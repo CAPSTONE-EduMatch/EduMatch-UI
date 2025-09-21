@@ -19,7 +19,7 @@ export function CTASection() {
             </h2>
             <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl mb-4 sm:mb-6 md:mb-8 opacity-90 max-w-2xl mx-auto leading-relaxed">
               Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the
-              industry's
+              industry&apos;s
             </p>
             <Button
               size="lg"

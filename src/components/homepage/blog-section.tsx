@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import Image from "next/image"
 
 const blogPosts = [
   {
@@ -70,9 +71,11 @@ export function BlogSection() {
               <CardContent className="p-0">
                 <div className="flex items-start gap-4">
                   <div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-                    <img 
+                    <Image 
                       src="/havard_logo.png" 
                       alt="Harvard University" 
+                      width={144}
+                      height={144}
                       className="w-full h-full object-contain rounded"
                     />
                   </div>

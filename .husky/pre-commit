@@ -1,0 +1,3 @@
+echo "🕺 Performing linting checks..."
+pnpm exec lint-staged
+echo "Your code is beautiful, nice job 👍"

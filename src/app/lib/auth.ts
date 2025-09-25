@@ -16,9 +16,9 @@ dotenv.config();
 //         apiVersion: "2025-08-27.basil",
 //       })
 //     : "";
-const stripeClient =  new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-08-27.basil",
-})
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-08-27.basil",
+});
 
 export const auth = betterAuth({
   plugins: [
@@ -48,19 +48,26 @@ export const auth = betterAuth({
       createCustomerOnSignUp: true,
       subscription: {
         enabled: true,
-        plans: [{
-           name: "basic",
-           priceId: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
-          //  annualDiscountPriceId:
-          // limits
-          
-        }]
-      }
+        plans: [
+          {
+            name: "basic",
+            priceId: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
+            //  annualDiscountPriceId:
+            // limits
+          },
+        ],
+      },
     }),
   ],
   database: prismaAdapter(prismaClient, {
     provider: "postgresql",
   }),
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    }
+  },
   // Redis as secondary storage for session caching
   secondaryStorage: {
     get: async (key: string) => {
@@ -95,6 +102,22 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true, // Require email verification for sign-up
+    sendResetPassword: async ({ user, url, token }, request) => {
+      await sendEmail(
+        user.email,
+        `Reset your password: Click the link to reset your password: ${url}
+        And this is your token: ${token}
+        ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
+        `,
+        // `
+        // Click the link to reset your password: ${url}
+        // And this is your token: ${token}
+        // ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
+        // `
+        ``
+      );
+    },
+    resetPasswordTokenExpiresIn: 3600, // 1 hour
   },
   socialProviders: {
     google: {
@@ -146,15 +169,60 @@ console.log(
 
 // Send verification email using nodemailer
 async function sendEmail(to: string, url: string, token: string) {
-  //otp or url case
-  const isOtp = token.length === 6;
-  const subject = isOtp ? "Your OTP Code" : "Verify your email address";
-  const html = isOtp
-    ? `<p>Your OTP code is: <strong>${token}</strong></p>`
-    : `<p>Hello,</p>
-      <p>Please verify your email address by clicking the link below:</p>
-      <p><a href="${url}">Verify Email</a></p>
-      <p>If you did not request this, please ignore this email.</p>`;
+  // Determine email type based on content
+  const isOtp = token.length === 6 && /^\d{6}$/.test(token);
+  const isReset = url.includes('reset-password') || token.includes('reset');
+  const isVerify = !isOtp && !isReset;
+
+  let subject: string;
+  let html: string;
+
+  if (isOtp) {
+    subject = "Your OTP Code";
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Your Verification Code</h2>
+        <p>Your OTP code is:</p>
+        <div style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 3px; margin: 20px 0;">
+          ${token}
+        </div>
+        <p style="color: #666;">This code will expire in 10 minutes.</p>
+        <p style="color: #666;">If you did not request this code, please ignore this email.</p>
+      </div>
+    `;
+  } else if (isReset) {
+    subject = "Reset Your Password";
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Password Reset Request</h2>
+        <p>Hello,</p>
+        <p>We received a request to reset your password. Click the button below to reset it:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${url}" style="background-color: #007cba; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+        </div>
+        <p style="color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="color: #666; word-break: break-all;">${url}</p>
+        <p style="color: #666;">This link will expire in 1 hour.</p>
+        <p style="color: #666;">If you did not request a password reset, please ignore this email.</p>
+      </div>
+    `;
+  } else {
+    subject = "Verify Your Email Address";
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Welcome! Please Verify Your Email</h2>
+        <p>Hello,</p>
+        <p>Thank you for signing up! Please verify your email address by clicking the button below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${url}" style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email</a>
+        </div>
+        <p style="color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="color: #666; word-break: break-all;">${url}</p>
+        <p style="color: #666;">This link will expire in 1 hour.</p>
+        <p style="color: #666;">If you did not create an account, please ignore this email.</p>
+      </div>
+    `;
+  }
 
   const transporter = nodeMailer.createTransport({
     host: process.env.SMTP_HOST,

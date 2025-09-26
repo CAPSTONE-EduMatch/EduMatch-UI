@@ -1,9 +1,9 @@
 echo "🔍 Running pre-commit checks (type check + build + lint)..."
+echo "🔧 Building project..."
 pnpm run pre-commit
 echo "Your code is beautiful, nice job 👍"
 
-echo "🔧 Building project..."
-pnpm run build
+# pnpm run build
 
 echo "🕺 Performing linting checks..."
 pnpm exec lint-staged

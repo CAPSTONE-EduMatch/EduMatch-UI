@@ -9,6 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: 'primary' | 'secondary' | 'outline'
 	fullWidth?: boolean
 	animate?: boolean
+	size?: 'sm' | 'md' | 'lg'
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -19,13 +20,19 @@ const Button: React.FC<ButtonProps> = ({
 	fullWidth = false,
 	className = '',
 	animate = true,
+	size = 'md',
 	onClick,
 	disabled,
 	type = 'button',
 	...restProps
 }) => {
-	const baseClasses =
-		'py-3 rounded-full shadow-md transition-all duration-100 font-medium transform hover:-translate-y-1'
+	const sizeClasses = {
+		sm: "py-1.5 px-4 text-sm",
+		md: "py-2.5 px-6 text-base", 
+		lg: "py-3 px-8 text-lg"
+	}
+
+	const baseClasses = `rounded-full shadow-md transition-all duration-100 font-medium transform hover:-translate-y-1 ${sizeClasses[size]}`
 
 	const variantClasses = {
 		primary: 'bg-[#126E64] text-white hover:opacity-90',
@@ -33,7 +40,7 @@ const Button: React.FC<ButtonProps> = ({
 		outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50',
 	}
 
-	const widthClass = fullWidth ? 'w-full' : 'px-8'
+	const widthClass = fullWidth ? 'w-full' : ''
 
 	const defaultHoverAnimation = {
 		scale: 1.02,

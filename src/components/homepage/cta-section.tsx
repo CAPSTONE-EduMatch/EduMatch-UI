@@ -24,7 +24,8 @@ export function CTASection() {
 							industry. Lorem Ipsum has been the industry&apos;s
 						</p>
 						<Button
-							className="bg-white text-primary text-black hover:bg-gray-100 px-4 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-3 rounded-full text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-md"
+							variant="secondary"
+							className="bg-white text-black hover:bg-gray-100 hover:text-black px-4 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-3 rounded-full text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-md"
 							animate={true}
 						>
 							Sign in

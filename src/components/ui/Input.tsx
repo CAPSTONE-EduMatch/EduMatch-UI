@@ -8,6 +8,7 @@ export interface InputProps
 	helpText?: string
 	required?: boolean
 	variant?: 'default' | 'signin'
+	inputSize?: 'sm' | 'md' | 'lg' | 'select'
 }
 
 const Input: React.FC<InputProps> = ({
@@ -16,13 +17,22 @@ const Input: React.FC<InputProps> = ({
 	helpText,
 	required = false,
 	variant = 'default',
+	inputSize = 'md',
 	className = '',
 	...props
 }) => {
+	const sizeClasses = {
+		sm: "px-3 py-2 text-sm",
+		md: "px-4 py-2.5 text-base", 
+		lg: "px-6 py-3 text-lg",
+		select: "px-4 py-2.5 text-sm h-10"
+	}
+
 	const baseInputClasses = `
-    w-full px-6 py-3 bg-[#F5F7FB] border focus:outline-none transition-all duration-300
+    w-full bg-[#F5F7FB] border focus:outline-none transition-all duration-300
     ${error ? 'border-red-300' : 'border-gray-200'}
     focus:ring-2 focus:ring-[#126E64] focus:border-transparent
+    ${sizeClasses[inputSize]}
   `
 
 	const variantClasses = {

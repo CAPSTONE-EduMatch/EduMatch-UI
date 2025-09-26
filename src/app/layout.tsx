@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { EduMatchHeader } from '@/components/layout/header'
-import { Footer } from '@/components/layout/footer'
+import { ConditionalLayout } from '@/components/layout/conditional-layout'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,9 +18,9 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={inter.className}>
-				<EduMatchHeader />
-				{children}
-				<Footer />
+				<ConditionalLayout>
+					{children}
+				</ConditionalLayout>
 			</body>
 		</html>
 	)

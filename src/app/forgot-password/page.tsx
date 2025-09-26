@@ -1,11 +1,11 @@
-import ForgotPassword from "./ForgotPassword";
+import ForgotPassword from './ForgotPassword'
 
 const ForgotPasswordPage = () => {
-    return (
-        <div className="">
-            <ForgotPassword />
-        </div>
-    );
+	return (
+		<div className="">
+			<ForgotPassword />
+		</div>
+	)
 }
 
-export default ForgotPasswordPage;
+export default ForgotPasswordPage

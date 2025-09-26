@@ -17,169 +17,171 @@ dotenv.config();
 //       })
 //     : "";
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-08-27.basil",
+	apiVersion: "2025-08-27.basil",
 });
 
 export const auth = betterAuth({
-  plugins: [
-    oneTap(),
-    emailOTP({
-      async sendVerificationOTP({ email, otp, type }) {
-        console.log(`Sending OTP ${otp} to ${email} for ${type}`);
-        // Send OTP via email using our sendEmail function
-        await sendEmail(email, "", otp);
-      },
-    }),
-    // Stripe plugin disabled - handling subscriptions manually
-    // ...(stripeClient && process.env.STRIPE_WEBHOOK_SECRET && !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.includes('GET_THIS_FROM') ? [
-    //   stripe({
-    //     stripeClient,
-    //     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
-    //     createCustomerOnSignUp: false, // Don't create subscriptions on signup
-    //     subscription: {
-    //       enabled: false, // Disable automatic subscription management
-    //       plans: [] // Empty plans when disabled
-    //     }
-    //   })
-    // ] : [])
-    stripe({
-      stripeClient,
-      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
-      createCustomerOnSignUp: true,
-      subscription: {
-        enabled: true,
-        plans: [
-          {
-            name: "basic",
-            priceId: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
-            //  annualDiscountPriceId:
-            // limits
-          },
-        ],
-      },
-    }),
-  ],
-  database: prismaAdapter(prismaClient, {
-    provider: "postgresql",
-  }),
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    }
-  },
-  // Redis as secondary storage for session caching
-  secondaryStorage: {
-    get: async (key: string) => {
-      try {
-        return await redisClient.get(key);
-      } catch (error) {
-        console.error("Redis get error:", error);
-        return null;
-      }
-    },
-    set: async (key: string, value: string, ttl?: number) => {
-      try {
-        if (ttl) {
-          await redisClient.setEx(key, ttl, value);
-        } else {
-          await redisClient.set(key, value);
-        }
-      } catch (error) {
-        console.error("Redis set error:", error);
-      }
-    },
-    delete: async (key: string) => {
-      try {
-        await redisClient.del(key);
-      } catch (error) {
-        console.error("Redis delete error:", error);
-      }
-    },
-  },
-  secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development",
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true, // Require email verification for sign-up
-    sendResetPassword: async ({ user, url, token }, request) => {
-      await sendEmail(
-        user.email,
-        `Reset your password: Click the link to reset your password: ${url}
+	plugins: [
+		oneTap(),
+		emailOTP({
+			async sendVerificationOTP({ email, otp, type }) {
+				console.log(`Sending OTP ${otp} to ${email} for ${type}`);
+				// Send OTP via email using our sendEmail function
+				await sendEmail(email, "", otp);
+			},
+		}),
+		// Stripe plugin disabled - handling subscriptions manually
+		// ...(stripeClient && process.env.STRIPE_WEBHOOK_SECRET && !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.includes('GET_THIS_FROM') ? [
+		//   stripe({
+		//     stripeClient,
+		//     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+		//     createCustomerOnSignUp: false, // Don't create subscriptions on signup
+		//     subscription: {
+		//       enabled: false, // Disable automatic subscription management
+		//       plans: [] // Empty plans when disabled
+		//     }
+		//   })
+		// ] : [])
+		stripe({
+			stripeClient,
+			stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+			createCustomerOnSignUp: true,
+			subscription: {
+				enabled: true,
+				plans: [
+					{
+						name: "basic",
+						priceId: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
+						//  annualDiscountPriceId:
+						// limits
+					},
+				],
+			},
+		}),
+	],
+	database: prismaAdapter(prismaClient, {
+		provider: "postgresql",
+	}),
+	session: {
+		cookieCache: {
+			enabled: true,
+			maxAge: 60 * 60 * 24 * 7, // 7 days
+		},
+	},
+	// Redis as secondary storage for session caching
+	secondaryStorage: {
+		get: async (key: string) => {
+			try {
+				return await redisClient.get(key);
+			} catch (error) {
+				console.error("Redis get error:", error);
+				return null;
+			}
+		},
+		set: async (key: string, value: string, ttl?: number) => {
+			try {
+				if (ttl) {
+					await redisClient.setEx(key, ttl, value);
+				} else {
+					await redisClient.set(key, value);
+				}
+			} catch (error) {
+				console.error("Redis set error:", error);
+			}
+		},
+		delete: async (key: string) => {
+			try {
+				await redisClient.del(key);
+			} catch (error) {
+				console.error("Redis delete error:", error);
+			}
+		},
+	},
+	secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development",
+	baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+	emailAndPassword: {
+		enabled: true,
+		requireEmailVerification: true, // Require email verification for sign-up
+		sendResetPassword: async ({ user, url, token }, request) => {
+			await sendEmail(
+				user.email,
+				`Reset your password: Click the link to reset your password: ${url}
         And this is your token: ${token}
         ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
         `,
-        // `
-        // Click the link to reset your password: ${url}
-        // And this is your token: ${token}
-        // ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
-        // `
-        ``
-      );
-    },
-    resetPasswordTokenExpiresIn: 3600, // 1 hour
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      prompt: "select_account",
-      accessType: "offline",
-    },
-  },
-  // emailVerification: {
-  //   sendVerificationEmail: async ({ user, url, token }) => {
-  //     console.log("Sending verification email to:", user.email);
+				// `
+				// Click the link to reset your password: ${url}
+				// And this is your token: ${token}
+				// ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
+				// `
+				``
+			);
+		},
+		resetPasswordTokenExpiresIn: 3600, // 1 hour
+	},
+	socialProviders: {
+		google: {
+			clientId: process.env.GOOGLE_CLIENT_ID || "",
+			clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+			prompt: "select_account",
+			accessType: "offline",
+		},
+	},
+	// emailVerification: {
+	//   sendVerificationEmail: async ({ user, url, token }) => {
+	//     console.log("Sending verification email to:", user.email);
 
-  //     // Cache verification token in Redis for faster lookup
-  //     try {
-  //       await redisClient.setEx(`verification:${token}`, 3600, JSON.stringify({
-  //         userId: user.id,
-  //         email: user.email,
-  //         timestamp: Date.now()
-  //       }));
-  //       console.log("Verification token cached in Redis");
-  //     } catch (error) {
-  //       console.error("Redis caching error:", error);
-  //     }
+	//     // Cache verification token in Redis for faster lookup
+	//     try {
+	//       await redisClient.setEx(`verification:${token}`, 3600, JSON.stringify({
+	//         userId: user.id,
+	//         email: user.email,
+	//         timestamp: Date.now()
+	//       }));
+	//       console.log("Verification token cached in Redis");
+	//     } catch (error) {
+	//       console.error("Redis caching error:", error);
+	//     }
 
-  //     await sendEmail(user.email, url, token);
-  //   },
-  //   sendOnSignUp: true, // Automatically send verification email after sign-up
-  //   autoSignInAfterVerification: true, // Automatically sign in the user after email verification
-  //   expiresIn: 3600, // Email verification link expires in 1 hour
-  // }
+	//     await sendEmail(user.email, url, token);
+	//   },
+	//   sendOnSignUp: true, // Automatically send verification email after sign-up
+	//   autoSignInAfterVerification: true, // Automatically sign in the user after email verification
+	//   expiresIn: 3600, // Email verification link expires in 1 hour
+	// }
 });
 
 console.log(
-  "Auth initialized with Google provider:",
-  !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET
+	"Auth initialized with Google provider:",
+	!!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET
 );
 console.log("Stripe integration: DISABLED (handling manually)");
 console.log(
-  "Stripe secret key available:",
-  !!process.env.STRIPE_SECRET_KEY &&
-    !process.env.STRIPE_SECRET_KEY.includes("GET_THIS_FROM")
+	"Stripe secret key available:",
+	!!process.env.STRIPE_SECRET_KEY &&
+		!process.env.STRIPE_SECRET_KEY.includes("GET_THIS_FROM")
 );
 console.log(
-  "Stripe publishable key valid:",
-  !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY &&
-    !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.includes("GET_THIS_FROM")
+	"Stripe publishable key valid:",
+	!!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY &&
+		!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.includes(
+			"GET_THIS_FROM"
+		)
 );
 
 // Send verification email using nodemailer
 async function sendEmail(to: string, url: string, token: string) {
-  // Determine email type based on content
-  const isOtp = token.length === 6 && /^\d{6}$/.test(token);
-  const isReset = url.includes('reset-password') || token.includes('reset');
-  const isVerify = !isOtp && !isReset;
+	// Determine email type based on content
+	const isOtp = token.length === 6 && /^\d{6}$/.test(token);
+	const isReset = url.includes("reset-password") || token.includes("reset");
+	const isVerify = !isOtp && !isReset;
 
-  let subject: string;
-  let html: string;
+	let subject: string;
+	let html: string;
 
-  if (isOtp) {
-    subject = "Your OTP Code";
-    html = `
+	if (isOtp) {
+		subject = "Your OTP Code";
+		html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Your Verification Code</h2>
         <p>Your OTP code is:</p>
@@ -190,9 +192,9 @@ async function sendEmail(to: string, url: string, token: string) {
         <p style="color: #666;">If you did not request this code, please ignore this email.</p>
       </div>
     `;
-  } else if (isReset) {
-    subject = "Reset Your Password";
-    html = `
+	} else if (isReset) {
+		subject = "Reset Your Password";
+		html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Password Reset Request</h2>
         <p>Hello,</p>
@@ -206,9 +208,9 @@ async function sendEmail(to: string, url: string, token: string) {
         <p style="color: #666;">If you did not request a password reset, please ignore this email.</p>
       </div>
     `;
-  } else {
-    subject = "Verify Your Email Address";
-    html = `
+	} else {
+		subject = "Verify Your Email Address";
+		html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Welcome! Please Verify Your Email</h2>
         <p>Hello,</p>
@@ -222,29 +224,29 @@ async function sendEmail(to: string, url: string, token: string) {
         <p style="color: #666;">If you did not create an account, please ignore this email.</p>
       </div>
     `;
-  }
+	}
 
-  const transporter = nodeMailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+	const transporter = nodeMailer.createTransport({
+		host: process.env.SMTP_HOST,
+		port: Number(process.env.SMTP_PORT) || 587,
+		secure: false,
+		auth: {
+			user: process.env.SMTP_USER,
+			pass: process.env.SMTP_PASS,
+		},
+	});
 
-  const mailOptions = {
-    from: process.env.SMTP_FROM || "noreply@yourdomain.com",
-    to,
-    subject: subject,
-    html: html,
-  };
+	const mailOptions = {
+		from: process.env.SMTP_FROM || "noreply@yourdomain.com",
+		to,
+		subject: subject,
+		html: html,
+	};
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log("Verification email sent to", to);
-  } catch (error) {
-    console.error("Error sending verification email:", error);
-  }
+	try {
+		await transporter.sendMail(mailOptions);
+		console.log("Verification email sent to", to);
+	} catch (error) {
+		console.error("Error sending verification email:", error);
+	}
 }

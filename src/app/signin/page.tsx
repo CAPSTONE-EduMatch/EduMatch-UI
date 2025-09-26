@@ -1,5 +1,5 @@
-import SignIn from './Signin';
+import SignIn from './Signin'
 
 export default function SigninPage() {
-    return <SignIn />;
+	return <SignIn />
 }

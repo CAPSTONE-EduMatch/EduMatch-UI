@@ -10,7 +10,8 @@
 		"lint:fix": "next lint --fix",
 		"format": "prettier --write .",
 		"prepare": "husky",
-		"prisma:refresh-schema": "prisma db pull && prisma generate"
+		"prisma:refresh-schema": "prisma db pull && prisma generate",
+		"pre-commit": "next build && lint-staged"
 	},
 	"lint-staged": {
 		"*.{js,jsx,ts,tsx}": [

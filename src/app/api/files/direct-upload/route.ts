@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { PrismaClient } from "@prisma/client";
 import { getFileCategory, getFileExtension } from "@/lib/file-utils";
-
-const prisma = new PrismaClient();
+import { prismaClient } from "../../../../../prisma";
 
 const s3Client = new S3Client({
 	region: process.env.AWS_REGION || "us-east-1",
@@ -70,7 +68,7 @@ export async function POST(request: NextRequest) {
 		const userId = "test-user-123"; // For testing
 
 		// Ensure test user exists
-		await prisma.user.upsert({
+		await prismaClient.user.upsert({
 			where: { id: userId },
 			update: {},
 			create: {
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		// Save file record with minimal data
-		const savedFile = await prisma.file.create({
+		const savedFile = await prismaClient.file.create({
 			data: {
 				name: file.name,
 				originalName: file.name,

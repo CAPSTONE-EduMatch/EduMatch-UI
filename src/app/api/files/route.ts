@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { generatePresignedGetUrl } from "@/lib/s3-service";
-
-const prisma = new PrismaClient();
+import { NextRequest, NextResponse } from "next/server";
+import { prismaClient } from "../../../../prisma";
 
 // GET /api/files - List user's files
 export async function GET(request: NextRequest) {
@@ -28,19 +26,11 @@ export async function GET(request: NextRequest) {
 			where.folderId = folderId;
 		}
 
-		const files = await prisma.file.findMany({
+		const files = await prismaClient.file.findMany({
 			where,
 			orderBy: { createdAt: "desc" },
 			skip: (page - 1) * limit,
 			take: limit,
-			include: {
-				folder: {
-					select: {
-						id: true,
-						name: true,
-					},
-				},
-			},
 		});
 
 		// Generate presigned URLs for private files
@@ -65,14 +55,14 @@ export async function GET(request: NextRequest) {
 					extension: file.extension,
 					url: viewUrl,
 					isPublic: file.isPublic,
-					folder: file.folder,
+					folderId: file.folderId,
 					createdAt: file.createdAt,
 					updatedAt: file.updatedAt,
 				};
 			})
 		);
 
-		const total = await prisma.file.count({ where });
+		const total = await prismaClient.file.count({ where });
 
 		return NextResponse.json({
 			files: filesWithUrls,
@@ -93,55 +83,55 @@ export async function GET(request: NextRequest) {
 }
 
 // DELETE /api/files - Delete a file
-export async function DELETE(request: NextRequest) {
-	try {
-		const session = await auth();
-		if (!session?.user?.id) {
-			return NextResponse.json(
-				{ error: "Unauthorized" },
-				{ status: 401 }
-			);
-		}
+// export async function DELETE(request: NextRequest) {
+// 	try {
+// 		const session = await auth();
+// 		if (!session?.user?.id) {
+// 			return NextResponse.json(
+// 				{ error: "Unauthorized" },
+// 				{ status: 401 }
+// 			);
+// 		}
 
-		const { searchParams } = new URL(request.url);
-		const fileId = searchParams.get("id");
+// 		const { searchParams } = new URL(request.url);
+// 		const fileId = searchParams.get("id");
 
-		if (!fileId) {
-			return NextResponse.json(
-				{ error: "File ID is required" },
-				{ status: 400 }
-			);
-		}
+// 		if (!fileId) {
+// 			return NextResponse.json(
+// 				{ error: "File ID is required" },
+// 				{ status: 400 }
+// 			);
+// 		}
 
-		// Find the file and verify ownership
-		const file = await prisma.file.findFirst({
-			where: {
-				id: fileId,
-				userId: session.user.id,
-			},
-		});
+// 		// Find the file and verify ownership
+// 		const file = await prisma.file.findFirst({
+// 			where: {
+// 				id: fileId,
+// 				userId: session.user.id,
+// 			},
+// 		});
 
-		if (!file) {
-			return NextResponse.json(
-				{ error: "File not found" },
-				{ status: 404 }
-			);
-		}
+// 		if (!file) {
+// 			return NextResponse.json(
+// 				{ error: "File not found" },
+// 				{ status: 404 }
+// 			);
+// 		}
 
-		// Delete from S3 (you might want to add this to the S3 service)
-		// await deleteFileFromS3(file.key)
+// 		// Delete from S3 (you might want to add this to the S3 service)
+// 		// await deleteFileFromS3(file.key)
 
-		// Delete from database
-		await prisma.file.delete({
-			where: { id: fileId },
-		});
+// 		// Delete from database
+// 		await prisma.file.delete({
+// 			where: { id: fileId },
+// 		});
 
-		return NextResponse.json({ success: true });
-	} catch (error) {
-		console.error("Error deleting file:", error);
-		return NextResponse.json(
-			{ error: "Failed to delete file" },
-			{ status: 500 }
-		);
-	}
-}
+// 		return NextResponse.json({ success: true });
+// 	} catch (error) {
+// 		console.error("Error deleting file:", error);
+// 		return NextResponse.json(
+// 			{ error: "Failed to delete file" },
+// 			{ status: 500 }
+// 		);
+// 	}
+// }

@@ -1259,9 +1259,9 @@ export const getCountryWithSvgFlag = (
 	if (!country) return undefined;
 
 	const flagData = countryFlags.find(
-		(flag: CountryFlag) =>
-			flag.code &&
-			country.code &&
+		(flag) =>
+			typeof flag.code === "string" &&
+			typeof country.code === "string" &&
 			flag.code.toLowerCase() === country.code.toLowerCase()
 	);
 
@@ -1277,9 +1277,9 @@ export const getCountriesWithSvgFlags = (): (Country & {
 })[] => {
 	return countries.map((country) => {
 		const flagData = countryFlags.find(
-			(flag: CountryFlag) =>
-				flag.code &&
-				country.code &&
+			(flag) =>
+				typeof flag.code === "string" &&
+				typeof country.code === "string" &&
 				flag.code.toLowerCase() === country.code.toLowerCase()
 		);
 

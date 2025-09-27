@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/../generated/prisma/client";
+import { prismaClient } from "@/../prisma/index";
 import { getFileCategory, getFileExtension } from "@/lib/file-utils";
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
 	try {
@@ -20,7 +18,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Ensure test user exists
-		await prisma.user.upsert({
+		await prismaClient.user.upsert({
 			where: { id: userId },
 			update: {},
 			create: {
@@ -51,7 +49,7 @@ export async function POST(request: NextRequest) {
 			folderId: folderId || null,
 		});
 
-		const file = await prisma.file.create({
+		const file = await prismaClient.file.create({
 			data: {
 				name: fileName,
 				originalName: fileName,

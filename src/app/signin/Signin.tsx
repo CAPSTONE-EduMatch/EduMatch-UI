@@ -1,7 +1,7 @@
 'use client'
 
 import { GoogleButton } from '@/components/auth'
-import { Input } from '@/components/ui'
+import { Input, Modal, ResendCodeButton } from '@/components/ui'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -62,6 +62,7 @@ const SignIn: React.FC = () => {
 	const [resetSent, setResetSent] = useState(false)
 	const [forgotEmail, setForgotEmail] = useState('')
 	const [animateForm, setAnimateForm] = useState(false)
+	const [hasSubmittedForgotEmail, setHasSubmittedForgotEmail] = useState(false)
 
 	// Trigger animation after component mounts
 	useEffect(() => {
@@ -133,12 +134,25 @@ const SignIn: React.FC = () => {
 			})
 
 			if (error) {
-				setErrors((prev) => ({
-					...prev,
-					forgotEmail:
-						error.message ||
-						'Failed to send reset link. Please try again later.',
-				}))
+				// Handle rate limiting errors specifically
+				const errorMessage =
+					error.message || 'Failed to send reset link. Please try again later.'
+
+				if (
+					errorMessage.includes('Too many') &&
+					errorMessage.includes('password reset requests')
+				) {
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail:
+							'⏰ Too many password reset attempts. Please wait 24 hours before trying again.',
+					}))
+				} else {
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail: errorMessage,
+					}))
+				}
 				setIsLoading(false)
 				return
 			}
@@ -149,6 +163,49 @@ const SignIn: React.FC = () => {
 				error: undefined,
 			})
 			setResetSent(true)
+			setHasSubmittedForgotEmail(true)
+			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
+		} catch (error) {
+			setForgotPasswordStatus({
+				success: undefined,
+				error: 'Failed to send reset link. Please try again later.',
+			})
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	const handleResendForgotPassword = async () => {
+		if (!forgotEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(forgotEmail)) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: 'Please enter a valid email address.',
+			}))
+			return
+		}
+		setIsLoading(true)
+		try {
+			const { data, error } = await authClient.requestPasswordReset({
+				email: forgotEmail,
+				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
+			})
+
+			if (error) {
+				setForgotPasswordStatus({
+					success: undefined,
+					error:
+						error.message ||
+						'Failed to send reset link. Please try again later.',
+				})
+				return
+			}
+
+			// Simulate delay for better UX
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+			setForgotPasswordStatus({
+				success: `Password reset link sent to ${forgotEmail}. Please check your inbox.`,
+				error: undefined,
+			})
 			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
 		} catch (error) {
 			setForgotPasswordStatus({
@@ -392,154 +449,128 @@ const SignIn: React.FC = () => {
 				</motion.div>
 			</div>
 
-			{/* Forgot Password Popup with animations */}
-			{showForgotPassword && (
-				<motion.div
-					className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					transition={{ duration: 0.3 }}
+			{/* Forgot Password Modal */}
+			<Modal
+				isOpen={showForgotPassword}
+				onClose={() => setShowForgotPassword(false)}
+				maxWidth="sm"
+			>
+				<motion.h2
+					className="text-2xl font-bold text-[#126E64] mb-2"
+					initial={{ opacity: 0, y: -10 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.2 }}
 				>
+					Verify Email
+				</motion.h2>
+
+				{!resetSent ? (
 					<motion.div
-						className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 relative"
-						initial={{ opacity: 0, scale: 0.9, y: 20 }}
-						animate={{ opacity: 1, scale: 1, y: 0 }}
-						transition={{
-							type: 'spring',
-							stiffness: 100,
-							damping: 15,
-						}}
+						initial="hidden"
+						animate="visible"
+						variants={containerVariants}
 					>
-						<motion.button
-							onClick={() => setShowForgotPassword(false)}
-							className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
-							whileHover={{ scale: 1.1, rotate: 90 }}
-							whileTap={{ scale: 0.95 }}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="h-6 w-6"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M6 18L18 6M6 6l12 12"
+						<motion.p className="text-gray-600 mb-6" variants={itemVariants}>
+							We will send a verification code to your email address.
+						</motion.p>
+
+						<motion.form onSubmit={handleForgotPassword} className="space-y-4">
+							<motion.div variants={itemVariants} className="relative">
+								<Input
+									type="email"
+									value={forgotEmail}
+									onChange={(e) => setForgotEmail(e.target.value)}
+									placeholder="example123@gmail.com"
+									variant="signin"
+									error={errors.forgotEmail}
+									required
 								/>
-							</svg>
-						</motion.button>
-
-						<motion.h2
-							className="text-2xl font-bold text-[#126E64] mb-2"
-							initial={{ opacity: 0, y: -10 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.2 }}
-						>
-							Verify Email
-						</motion.h2>
-
-						{!resetSent ? (
-							<motion.div
-								initial="hidden"
-								animate="visible"
-								variants={containerVariants}
-							>
-								<motion.p
-									className="text-gray-600 mb-6"
-									variants={itemVariants}
-								>
-									We will send a verification code to your email address.
-								</motion.p>
-
-								<motion.form
-									onSubmit={handleForgotPassword}
-									className="space-y-4"
-								>
-									<motion.div variants={itemVariants} className="relative">
-										<Input
-											type="email"
-											value={forgotEmail}
-											onChange={(e) => setForgotEmail(e.target.value)}
-											placeholder="example123@gmail.com"
-											variant="signin"
-											error={errors.forgotEmail}
-											required
-										/>
-									</motion.div>
-
-									<motion.button
-										type="submit"
-										disabled={isLoading}
-										className="w-full bg-[#126E64] text-white py-3 rounded-full font-medium shadow-md hover:bg-opacity-90 "
-										variants={itemVariants}
-										whileHover={{
-											scale: 1.02,
-											boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-										}}
-										whileTap={{ scale: 0.98 }}
-									>
-										{isLoading ? 'Sending...' : 'Confirm'}
-									</motion.button>
-								</motion.form>
 							</motion.div>
-						) : (
-							<motion.div
-								className="text-center py-4"
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
+
+							<motion.button
+								type="submit"
+								disabled={isLoading}
+								className="w-full bg-[#126E64] text-white py-3 rounded-full font-medium shadow-md hover:bg-opacity-90 "
+								variants={itemVariants}
+								whileHover={{
+									scale: 1.02,
+									boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+								}}
+								whileTap={{ scale: 0.98 }}
 							>
-								<motion.svg
-									className="mx-auto h-12 w-12 text-green-500 mb-4"
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									initial={{ scale: 0, opacity: 0 }}
-									animate={{ scale: 1, opacity: 1 }}
-									transition={{
-										type: 'spring',
-										stiffness: 100,
-										delay: 0.2,
-									}}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</motion.svg>
-								<motion.p
-									className="text-gray-700 mb-4"
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.3 }}
-								>
-									Password reset link sent to{' '}
-									<span className="font-medium">{forgotEmail}</span>
-								</motion.p>
-								<motion.button
-									onClick={() => setShowForgotPassword(false)}
-									className="w-full bg-[#126E64] text-white py-2 rounded-full font-medium shadow-md hover:bg-opacity-90 transition-all duration-300"
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.4 }}
-									whileHover={{
-										scale: 1.02,
-										boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-									}}
-									whileTap={{ scale: 0.98 }}
-								>
-									Close
-								</motion.button>
-							</motion.div>
+								{isLoading ? 'Sending...' : 'Confirm'}
+							</motion.button>
+						</motion.form>
+
+						{hasSubmittedForgotEmail && (
+							<ResendCodeButton
+								onResend={handleResendForgotPassword}
+								disabled={isLoading}
+								className="mt-4 w-full"
+							/>
 						)}
 					</motion.div>
-				</motion.div>
-			)}
+				) : (
+					<motion.div
+						className="text-center py-4"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+					>
+						<motion.svg
+							className="mx-auto h-12 w-12 text-green-500 mb-4"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							initial={{ scale: 0, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							transition={{
+								type: 'spring',
+								stiffness: 100,
+								delay: 0.2,
+							}}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</motion.svg>
+						<motion.p
+							className="text-gray-700 mb-4"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.3 }}
+						>
+							Password reset link sent to{' '}
+							<span className="font-medium">{forgotEmail}</span>
+						</motion.p>
+						<motion.button
+							onClick={() => setShowForgotPassword(false)}
+							className="w-full bg-[#126E64] text-white py-2 rounded-full font-medium shadow-md hover:bg-opacity-90 transition-all duration-300"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.4 }}
+							whileHover={{
+								scale: 1.02,
+								boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+							}}
+							whileTap={{ scale: 0.98 }}
+						>
+							Close
+						</motion.button>
+
+						{hasSubmittedForgotEmail && (
+							<ResendCodeButton
+								onResend={handleResendForgotPassword}
+								disabled={isLoading}
+								className="mt-4 w-full"
+							/>
+						)}
+					</motion.div>
+				)}
+			</Modal>
 		</div>
 	)
 }

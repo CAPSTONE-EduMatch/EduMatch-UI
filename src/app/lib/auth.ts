@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";
 import { prismaClient } from "../../../prisma/index";
+import { checkOTPRateLimit, recordOTPAttempt } from "./otp-rate-limit";
 import { redisClient } from "./redis";
 dotenv.config();
 
@@ -25,7 +26,19 @@ export const auth = betterAuth({
 		oneTap(),
 		emailOTP({
 			async sendVerificationOTP({ email, otp, type }) {
-				console.log(`Sending OTP ${otp} to ${email} for ${type}`);
+				// Check rate limiting before sending OTP
+				const rateLimitResult = await checkOTPRateLimit(email);
+
+				if (!rateLimitResult.allowed) {
+					throw new Error(
+						rateLimitResult.message ||
+							"Too many OTP requests. Please try again later."
+					);
+				}
+
+				// Record the attempt
+				await recordOTPAttempt(email);
+
 				// Send OTP via email using our sendEmail function
 				await sendEmail(email, "", otp);
 			},
@@ -102,7 +115,20 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		requireEmailVerification: true, // Require email verification for sign-up
-		sendResetPassword: async ({ user, url, token }, request) => {
+		sendResetPassword: async ({ user, url, token }) => {
+			// Check rate limiting for forgot password requests
+			const rateLimitResult = await checkOTPRateLimit(user.email);
+
+			if (!rateLimitResult.allowed) {
+				throw new Error(
+					rateLimitResult.message ||
+						"Too many password reset requests. Please try again later."
+				);
+			}
+
+			// Record the attempt
+			await recordOTPAttempt(user.email);
+
 			await sendEmail(
 				user.email,
 				`Reset your password: Click the link to reset your password: ${url}

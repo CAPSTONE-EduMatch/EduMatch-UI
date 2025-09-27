@@ -102,18 +102,18 @@ export function PhoneInput({
 	// Generate country-specific placeholder
 	const getCountryPlaceholder = () => {
 		if (placeholder) return placeholder
-		
+
 		const countryExamples: { [key: string]: string } = {
-			'US': 'Enter your phone number',
-			'VN': 'Nhập số điện thoại của bạn',
-			'GB': 'Enter your phone number',
-			'FR': 'Entrez votre numéro de téléphone',
-			'DE': 'Geben Sie Ihre Telefonnummer ein',
-			'JP': '電話番号を入力してください',
-			'KR': '전화번호를 입력하세요',
-			'CN': '请输入您的电话号码',
+			US: 'Enter your phone number',
+			VN: 'Nhập số điện thoại của bạn',
+			GB: 'Enter your phone number',
+			FR: 'Entrez votre numéro de téléphone',
+			DE: 'Geben Sie Ihre Telefonnummer ein',
+			JP: '電話番号を入力してください',
+			KR: '전화번호를 입력하세요',
+			CN: '请输入您的电话号码',
 		}
-		
+
 		return countryExamples[selectedCountry.code] || 'Enter your phone number'
 	}
 
@@ -125,7 +125,10 @@ export function PhoneInput({
 		if (phoneValue && countryCode) {
 			try {
 				const fullNumber = `${countryCode}${phoneValue}`
-				const isValidNumber = isValidPhoneNumber(fullNumber, selectedCountry.code as any)
+				const isValidNumber = isValidPhoneNumber(
+					fullNumber,
+					selectedCountry.code as any
+				)
 				setIsValid(isValidNumber)
 
 				if (!isValidNumber) {
@@ -147,14 +150,14 @@ export function PhoneInput({
 
 	const handleCountryChange = (option: any) => {
 		onCountryChange(option.phoneCode)
-		
+
 		// Re-validate existing phone number with new country
 		if (value) {
 			try {
 				const fullNumber = `${option.phoneCode}${value}`
 				const isValidNumber = isValidPhoneNumber(fullNumber, option.code)
 				setIsValid(isValidNumber)
-				
+
 				if (!isValidNumber) {
 					setErrorMessage(`Please enter a valid ${option.name} phone number`)
 				} else {

@@ -148,7 +148,9 @@ export default function CreateProfile() {
 
 					<ProgressBar currentStep={currentStep} totalSteps={4} />
 
-					<div className={`relative ${currentStep === 4 ? 'min-h-0' : 'min-h-[300px]'}`}>
+					<div
+						className={`relative ${currentStep === 4 ? 'min-h-0' : 'min-h-[300px]'}`}
+					>
 						<div
 							className={`transition-all duration-500 ease-in-out ${
 								isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'

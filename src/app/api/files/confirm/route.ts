@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
 		});
 
 		// Create file record in database
-		const bucketName = process.env.AWS_S3_BUCKET_NAME || "edumatch-files-12";
+		const bucketName =
+			process.env.AWS_S3_BUCKET_NAME || "edumatch-files-12";
 		const region = process.env.AWS_REGION || "us-east-1";
 		const fileUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
 
@@ -86,9 +87,12 @@ export async function POST(request: NextRequest) {
 			message: error instanceof Error ? error.message : "Unknown error",
 			stack: error instanceof Error ? error.stack : undefined,
 		});
-		
+
 		// Check if it's a Prisma validation error
-		if (error instanceof Error && error.message.includes('Unique constraint')) {
+		if (
+			error instanceof Error &&
+			error.message.includes("Unique constraint")
+		) {
 			return NextResponse.json(
 				{
 					error: "File with this key already exists",
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
 				{ status: 409 }
 			);
 		}
-		
+
 		return NextResponse.json(
 			{
 				error: "Failed to confirm file upload",

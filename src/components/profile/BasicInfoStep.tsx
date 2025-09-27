@@ -1,38 +1,41 @@
-import Button from "@/components/ui/Button"
-import Input from "@/components/ui/Input"
-import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { PhoneInput } from "@/components/ui/phone-input"
-import { CustomSelect } from "@/components/ui/custom-select"
-import { Upload, User } from "lucide-react"
-import { countries, Country, getCountriesWithSvgFlags } from "@/data/countries"
-import { useState, useRef } from "react"
+import Button from '@/components/ui/Button'
+import Input from '@/components/ui/Input'
+import { Label } from '@/components/ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { PhoneInput } from '@/components/ui/phone-input'
+import { CustomSelect } from '@/components/ui/custom-select'
+import { Upload, User } from 'lucide-react'
+import { countries, Country, getCountriesWithSvgFlags } from '@/data/countries'
+import { useState, useRef } from 'react'
 
 interface FormData {
-  role: "applicant" | "institution" | ""
-  firstName: string
-  lastName: string
-  gender: string
-  birthday: string
-  email: string
-  nationality: string
-  phoneNumber: string
-  countryCode: string
-  interests: string[]
-  favoriteCountries: string[]
-  profilePhoto: string
+	role: 'applicant' | 'institution' | ''
+	firstName: string
+	lastName: string
+	gender: string
+	birthday: string
+	email: string
+	nationality: string
+	phoneNumber: string
+	countryCode: string
+	interests: string[]
+	favoriteCountries: string[]
+	profilePhoto: string
 }
 
 interface BasicInfoStepProps {
-  formData: FormData
-  onInputChange: (field: keyof FormData, value: string) => void
-  onInputChangeEvent: (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => void
-  onSelectChange: (field: keyof FormData) => (value: string) => void
-  onMultiSelectChange: (field: "interests" | "favoriteCountries") => (value: string[]) => void
-  onBack: () => void
-  onNext: () => void
+	formData: FormData
+	onInputChange: (field: keyof FormData, value: string) => void
+	onInputChangeEvent: (
+		field: keyof FormData
+	) => (e: React.ChangeEvent<HTMLInputElement>) => void
+	onSelectChange: (field: keyof FormData) => (value: string) => void
+	onMultiSelectChange: (
+		field: 'interests' | 'favoriteCountries'
+	) => (value: string[]) => void
+	onBack: () => void
+	onNext: () => void
 }
-
 
 export function BasicInfoStep({
 	formData,
@@ -46,7 +49,9 @@ export function BasicInfoStep({
 	const [isUploading, setIsUploading] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
-	const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileSelect = async (
+		event: React.ChangeEvent<HTMLInputElement>
+	) => {
 		const file = event.target.files?.[0]
 		if (!file) return
 
@@ -80,7 +85,7 @@ export function BasicInfoStep({
 			}
 
 			const result = await response.json()
-			
+
 			// Update the profile photo with the S3 URL
 			onInputChange('profilePhoto', result.url)
 		} catch (error) {
@@ -126,8 +131,8 @@ export function BasicInfoStep({
 						</div>
 					</div>
 					<div className="flex flex-col space-y-2">
-						<Button 
-							variant="outline" 
+						<Button
+							variant="outline"
 							size="sm"
 							onClick={handleUploadClick}
 							disabled={isUploading}
@@ -276,7 +281,6 @@ export function BasicInfoStep({
 								onInputChange('countryCode', countryCode)
 							}
 							placeholder="Enter your phone number"
-
 						/>
 					</div>
 				</div>

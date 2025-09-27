@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button'
+import Image from 'next/image'
 
 interface FormData {
 	role: 'applicant' | 'institution' | ''
@@ -33,7 +34,7 @@ export function RoleSelectionStep({
 					Choose your role
 				</h2>
 				<p className="text-muted-foreground max-w-md mx-auto">
-					Select whether you're looking for educational opportunities or
+					Select whether you&apos;re looking for educational opportunities or
 					representing an educational institution.
 				</p>
 			</div>
@@ -49,12 +50,17 @@ export function RoleSelectionStep({
 				>
 					<div className="flex items-center space-x-3">
 						<div className="w-15 h-15 rounded-full bg-primary/10 flex items-center justify-center">
-							<img src="/image 14.svg" alt="Applicant" className="w-15 h-15" />
+							<Image
+								src="/image 14.svg"
+								alt="Applicant"
+								width={60}
+								height={60}
+							/>
 						</div>
 						<div>
 							<h3 className="font-semibold">Applicant</h3>
 							<p className="text-sm text-muted-foreground">
-								I'm a student or professional looking for educational
+								I&apos;m a student or professional looking for educational
 								opportunities, courses, or programs.
 							</p>
 						</div>
@@ -71,10 +77,11 @@ export function RoleSelectionStep({
 				>
 					<div className="flex items-center space-x-3">
 						<div className="w-15 h-15 rounded-full bg-primary/10 flex items-center justify-center">
-							<img
+							<Image
 								src="/image 13.svg"
 								alt="Institution"
-								className="w-15 h-15"
+								width={60}
+								height={60}
 							/>
 						</div>
 						<div>

@@ -371,14 +371,18 @@ export function AcademicInfoStep({
 					{formData.hasForeignLanguage === 'yes' && (
 						<div className="space-y-4">
 							{formData.languages.map((lang, index) => (
-								<div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div
+									key={index}
+									className="grid grid-cols-1 md:grid-cols-3 gap-4"
+								>
 									<div className="space-y-2">
 										<Label className="text-sm font-medium text-foreground">
 											Language
 										</Label>
 										<CustomSelect
 											value={
-												lang.language ? { value: lang.language, label: lang.language }
+												lang.language
+													? { value: lang.language, label: lang.language }
 													: null
 											}
 											onChange={(option) => {
@@ -489,7 +493,9 @@ export function AcademicInfoStep({
 										}}
 										className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
 									>
-										<span className="underline">Add language certification</span>
+										<span className="underline">
+											Add language certification
+										</span>
 										<div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
 											<span className="text-white text-sm font-bold">+</span>
 										</div>
@@ -499,7 +505,6 @@ export function AcademicInfoStep({
 						</div>
 					)}
 				</div>
-
 			</div>
 
 			{/* File Upload Section */}
@@ -625,129 +630,135 @@ export function AcademicInfoStep({
 				)}
 			</div>
 			<div className="space-y-4">
-					<div className="flex items-center gap-8">
-						<h3 className="text-lg font-semibold text-foreground">
-							Research Papers
-						</h3>
-					</div>
+				<div className="flex items-center gap-8">
+					<h3 className="text-lg font-semibold text-foreground">
+						Research Papers
+					</h3>
+				</div>
 
-					<div className="space-y-6">
-						{formData.researchPapers?.map((paper, index) => (
-							<div key={index} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-								{/* Left side - Title and Discipline */}
-								<div className="space-y-4">
-									<div className="space-y-2">
-										<Label className="text-sm font-medium text-foreground">
-											Paper Title
-										</Label>
-										<Input
-											placeholder="Enter research paper title"
-											value={paper.title}
-											onChange={(e) => {
-												const newPapers = [...(formData.researchPapers || [])]
-												newPapers[index] = {
-													...newPapers[index],
-													title: e.target.value,
-												}
-												onInputChange('researchPapers', newPapers)
-											}}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label className="text-sm font-medium text-foreground">
-											Discipline
-										</Label>
-										<CustomSelect
-											value={
-												paper.discipline
-													? { value: paper.discipline, label: paper.discipline }
-													: null
-											}
-											onChange={(option) => {
-												const newPapers = [...(formData.researchPapers || [])]
-												newPapers[index] = {
-													...newPapers[index],
-													discipline: option?.value || '',
-												}
-												onInputChange('researchPapers', newPapers)
-											}}
-											placeholder="Select discipline"
-											options={[
-												{ value: 'Computer Science', label: 'Computer Science' },
-												{ value: 'Business Administration', label: 'Business Administration' },
-												{ value: 'Engineering', label: 'Engineering' },
-												{ value: 'Medicine', label: 'Medicine' },
-												{ value: 'Law', label: 'Law' },
-												{ value: 'Arts', label: 'Arts' },
-												{ value: 'Sciences', label: 'Sciences' },
-												{ value: 'Mathematics', label: 'Mathematics' },
-												{ value: 'Physics', label: 'Physics' },
-												{ value: 'Chemistry', label: 'Chemistry' },
-												{ value: 'Biology', label: 'Biology' },
-												{ value: 'Psychology', label: 'Psychology' },
-												{ value: 'Sociology', label: 'Sociology' },
-												{ value: 'Economics', label: 'Economics' },
-												{ value: 'Political Science', label: 'Political Science' },
-											]}
-											menuPortalTarget={document.body}
-										/>
-									</div>
-								</div>
-
-								{/* Right side - File Upload */}
-								<div className="space-y-3">
+				<div className="space-y-6">
+					{formData.researchPapers?.map((paper, index) => (
+						<div key={index} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+							{/* Left side - Title and Discipline */}
+							<div className="space-y-4">
+								<div className="space-y-2">
 									<Label className="text-sm font-medium text-foreground">
-										Research Paper Files
+										Paper Title
 									</Label>
-									<FileUploadManager
-										onFilesUploaded={(files) => {
+									<Input
+										placeholder="Enter research paper title"
+										value={paper.title}
+										onChange={(e) => {
 											const newPapers = [...(formData.researchPapers || [])]
 											newPapers[index] = {
 												...newPapers[index],
-												files: files,
+												title: e.target.value,
 											}
 											onInputChange('researchPapers', newPapers)
 										}}
-										category={`research-paper-${index}`}
-										maxFiles={5}
-										acceptedTypes={[
-											'application/pdf',
-											'application/msword',
-											'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-										]}
-										maxSize={10}
-										showPreview={false}
 									/>
-									{paper.files && paper.files.length > 0 && (
-										<div className="text-xs text-green-600">
-											{paper.files.length} file(s) uploaded
-										</div>
-									)}
+								</div>
+								<div className="space-y-2">
+									<Label className="text-sm font-medium text-foreground">
+										Discipline
+									</Label>
+									<CustomSelect
+										value={
+											paper.discipline
+												? { value: paper.discipline, label: paper.discipline }
+												: null
+										}
+										onChange={(option) => {
+											const newPapers = [...(formData.researchPapers || [])]
+											newPapers[index] = {
+												...newPapers[index],
+												discipline: option?.value || '',
+											}
+											onInputChange('researchPapers', newPapers)
+										}}
+										placeholder="Select discipline"
+										options={[
+											{ value: 'Computer Science', label: 'Computer Science' },
+											{
+												value: 'Business Administration',
+												label: 'Business Administration',
+											},
+											{ value: 'Engineering', label: 'Engineering' },
+											{ value: 'Medicine', label: 'Medicine' },
+											{ value: 'Law', label: 'Law' },
+											{ value: 'Arts', label: 'Arts' },
+											{ value: 'Sciences', label: 'Sciences' },
+											{ value: 'Mathematics', label: 'Mathematics' },
+											{ value: 'Physics', label: 'Physics' },
+											{ value: 'Chemistry', label: 'Chemistry' },
+											{ value: 'Biology', label: 'Biology' },
+											{ value: 'Psychology', label: 'Psychology' },
+											{ value: 'Sociology', label: 'Sociology' },
+											{ value: 'Economics', label: 'Economics' },
+											{
+												value: 'Political Science',
+												label: 'Political Science',
+											},
+										]}
+										menuPortalTarget={document.body}
+									/>
 								</div>
 							</div>
-						))}
 
-						{/* Add Research Paper Button */}
-						<div className="flex justify-end">
-							<button
-								type="button"
-								onClick={() => {
-									const newPapers = [
-										...(formData.researchPapers || []),
-										{ title: '', discipline: '', files: [] },
-									]
-									onInputChange('researchPapers', newPapers)
-								}}
-								className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-							>
-								<span className="underline">Add research paper</span>
-								<div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-									<span className="text-white text-sm font-bold">+</span>
-								</div>
-							</button>
+							{/* Right side - File Upload */}
+							<div className="space-y-3">
+								<Label className="text-sm font-medium text-foreground">
+									Research Paper Files
+								</Label>
+								<FileUploadManager
+									onFilesUploaded={(files) => {
+										const newPapers = [...(formData.researchPapers || [])]
+										newPapers[index] = {
+											...newPapers[index],
+											files: files,
+										}
+										onInputChange('researchPapers', newPapers)
+									}}
+									category={`research-paper-${index}`}
+									maxFiles={5}
+									acceptedTypes={[
+										'application/pdf',
+										'application/msword',
+										'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+									]}
+									maxSize={10}
+									showPreview={false}
+								/>
+								{paper.files && paper.files.length > 0 && (
+									<div className="text-xs text-green-600">
+										{paper.files.length} file(s) uploaded
+									</div>
+								)}
+							</div>
 						</div>
+					))}
+
+					{/* Add Research Paper Button */}
+					<div className="flex justify-end">
+						<button
+							type="button"
+							onClick={() => {
+								const newPapers = [
+									...(formData.researchPapers || []),
+									{ title: '', discipline: '', files: [] },
+								]
+								onInputChange('researchPapers', newPapers)
+							}}
+							className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+						>
+							<span className="underline">Add research paper</span>
+							<div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+								<span className="text-white text-sm font-bold">+</span>
+							</div>
+						</button>
 					</div>
 				</div>
+			</div>
 			<div className="flex justify-between">
 				<Button variant="outline" onClick={onBack} size="sm">
 					Back

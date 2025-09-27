@@ -18,9 +18,7 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={inter.className}>
-				<ConditionalLayout>
-					{children}
-				</ConditionalLayout>
+				<ConditionalLayout>{children}</ConditionalLayout>
 			</body>
 		</html>
 	)

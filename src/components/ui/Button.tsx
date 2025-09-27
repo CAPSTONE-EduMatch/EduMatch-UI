@@ -27,9 +27,9 @@ const Button: React.FC<ButtonProps> = ({
 	...restProps
 }) => {
 	const sizeClasses = {
-		sm: "py-1.5 px-4 text-sm",
-		md: "py-2.5 px-6 text-base", 
-		lg: "py-3 px-8 text-lg"
+		sm: 'py-1.5 px-4 text-sm',
+		md: 'py-2.5 px-6 text-base',
+		lg: 'py-3 px-8 text-lg',
 	}
 
 	const baseClasses = `rounded-full shadow-md transition-all duration-100 font-medium transform hover:-translate-y-1 ${sizeClasses[size]}`

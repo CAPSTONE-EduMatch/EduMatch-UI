@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 		// Generate unique filename
 		const timestamp = Date.now();
 		const randomString = Math.random().toString(36).substring(2, 15);
-		const fileExtension = file.name.split('.').pop();
+		const fileExtension = file.name.split(".").pop();
 		const fileName = `profile-photos/${timestamp}-${randomString}.${fileExtension}`;
 
 		// Convert file to buffer
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
 		// Save minimal data to database
 		const userId = "test-user-123"; // For testing
-		
+
 		// Ensure test user exists
 		await prisma.user.upsert({
 			where: { id: userId },

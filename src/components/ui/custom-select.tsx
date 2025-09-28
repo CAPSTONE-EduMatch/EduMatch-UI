@@ -18,17 +18,23 @@ interface CustomSelectProps {
 }
 
 const customStyles = {
-	control: (provided: any) => ({
+	control: (provided: any, state: any) => ({
 		...provided,
 		minHeight: '40px',
-		height: '40px',
+		height: state.isMulti ? 'auto' : '40px', // Always auto for multi-select, fixed for single
 		border: '1px solid #e5e7eb', // border-gray-200
 		borderRadius: '20px',
 		backgroundColor: '#F5F7FB', // match Input component background
 		fontSize: '14px',
-		padding: '0 16px', // only horizontal padding, no vertical padding
+		padding: state.isMulti ? '8px 16px' : '0 16px', // consistent padding for multi-select
 		display: 'flex',
-		alignItems: 'center',
+		alignItems:
+			state.isMulti &&
+			Array.isArray(state.getValue()) &&
+			state.getValue().length > 0
+				? 'flex-start'
+				: 'center', // center when empty, flex-start when has values
+		flexWrap: 'wrap', // allow wrapping
 		'&:hover': {
 			border: '1px solid #e5e7eb',
 		},
@@ -53,7 +59,7 @@ const customStyles = {
 		...provided,
 		backgroundColor: 'hsl(var(--secondary))',
 		color: 'hsl(var(--secondary-foreground))',
-		borderRadius: '16px',
+		borderRadius: '12px',
 		fontSize: '14px',
 	}),
 	multiValueLabel: (provided: any) => ({
@@ -70,21 +76,6 @@ const customStyles = {
 			backgroundColor: 'hsl(var(--destructive))',
 			color: 'hsl(var(--destructive-foreground))',
 		},
-	}),
-	menu: (provided: any) => ({
-		...provided,
-		fontSize: '14px',
-		position: 'fixed',
-		top: '50%',
-		left: '50%',
-		transform: 'translate(-50%, -50%)',
-		width: '400px',
-		maxHeight: '400px',
-		zIndex: 9999,
-		boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-		border: '1px solid #e5e7eb',
-		borderRadius: '12px',
-		backgroundColor: 'white',
 	}),
 	option: (provided: any, state: any) => ({
 		...provided,
@@ -110,6 +101,17 @@ const customStyles = {
 	menuPortal: (provided: any) => ({
 		...provided,
 		zIndex: 9999,
+	}),
+	valueContainer: (provided: any) => ({
+		...provided,
+		flexWrap: 'wrap',
+		gap: '4px',
+		padding: '0',
+	}),
+	input: (provided: any) => ({
+		...provided,
+		margin: '0',
+		padding: '0',
 	}),
 }
 

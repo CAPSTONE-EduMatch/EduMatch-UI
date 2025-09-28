@@ -1,5 +1,8 @@
-export interface FormData {
+import { FileItem } from "@/lib/file-utils";
+
+export interface ProfileFormData {
 	role: "applicant" | "institution" | "";
+	// Student fields
 	firstName: string;
 	lastName: string;
 	gender: string;
@@ -11,6 +14,32 @@ export interface FormData {
 	interests: string[];
 	favoriteCountries: string[];
 	profilePhoto: string;
+	// Institution fields
+	institutionName: string;
+	institutionAbbreviation: string;
+	institutionHotline: string;
+	institutionHotlineCode: string;
+	institutionType: string;
+	institutionWebsite: string;
+	institutionEmail: string;
+	institutionCountry: string;
+	institutionAddress: string;
+	campuses: Array<{
+		name: string;
+		country: string;
+		address: string;
+	}>;
+	representativeName: string;
+	representativeAppellation: string;
+	representativePosition: string;
+	representativeEmail: string;
+	representativePhone: string;
+	representativePhoneCode: string;
+	aboutInstitution: string;
+	// Institution Details fields
+	institutionDisciplines: string[];
+	institutionCoverImage: string;
+	institutionVerificationDocuments: FileItem[];
 	// Academic fields
 	graduationStatus: "not-yet" | "graduated" | "";
 	degree: string;

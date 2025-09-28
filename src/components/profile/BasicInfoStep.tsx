@@ -6,30 +6,16 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { CustomSelect } from '@/components/ui/custom-select'
 import { Upload, User } from 'lucide-react'
 import { countries, Country, getCountriesWithSvgFlags } from '@/data/countries'
+import { ProfileFormData } from '@/types/profile'
 import { useState, useRef } from 'react'
 
-interface FormData {
-	role: 'applicant' | 'institution' | ''
-	firstName: string
-	lastName: string
-	gender: string
-	birthday: string
-	email: string
-	nationality: string
-	phoneNumber: string
-	countryCode: string
-	interests: string[]
-	favoriteCountries: string[]
-	profilePhoto: string
-}
-
 interface BasicInfoStepProps {
-	formData: FormData
-	onInputChange: (field: keyof FormData, value: string) => void
+	formData: ProfileFormData
+	onInputChange: (field: keyof ProfileFormData, value: string) => void
 	onInputChangeEvent: (
-		field: keyof FormData
+		field: keyof ProfileFormData
 	) => (e: React.ChangeEvent<HTMLInputElement>) => void
-	onSelectChange: (field: keyof FormData) => (value: string) => void
+	onSelectChange: (field: keyof ProfileFormData) => (value: string) => void
 	onMultiSelectChange: (
 		field: 'interests' | 'favoriteCountries'
 	) => (value: string[]) => void
@@ -47,6 +33,7 @@ export function BasicInfoStep({
 	onNext,
 }: BasicInfoStepProps) {
 	const [isUploading, setIsUploading] = useState(false)
+	const [birthdayError, setBirthdayError] = useState<string>('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	const handleFileSelect = async (
@@ -75,7 +62,7 @@ export function BasicInfoStep({
 			formData.append('file', file)
 
 			// Upload to S3
-			const response = await fetch('/api/files/direct-upload', {
+			const response = await fetch('/api/files/s3-upload', {
 				method: 'POST',
 				body: formData,
 			})
@@ -102,6 +89,31 @@ export function BasicInfoStep({
 
 	const handleUploadClick = () => {
 		fileInputRef.current?.click()
+	}
+
+	const validateBirthday = (dateString: string) => {
+		if (!dateString) {
+			setBirthdayError('')
+			return true
+		}
+
+		const selectedDate = new Date(dateString)
+		const today = new Date()
+		today.setHours(0, 0, 0, 0) // Reset time to start of day for accurate comparison
+
+		if (selectedDate > today) {
+			setBirthdayError('Birthday cannot be in the future')
+			return false
+		}
+
+		setBirthdayError('')
+		return true
+	}
+
+	const handleBirthdayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+		validateBirthday(value)
+		onInputChangeEvent('birthday')(e)
 	}
 
 	return (
@@ -159,7 +171,7 @@ export function BasicInfoStep({
 						<Label htmlFor="firstName">First Name</Label>
 						<Input
 							id="firstName"
-							placeholder="Anna"
+							placeholder="Enter your first name"
 							value={formData.firstName}
 							onChange={onInputChangeEvent('firstName')}
 							inputSize="select"
@@ -169,7 +181,7 @@ export function BasicInfoStep({
 						<Label htmlFor="lastName">Last Name</Label>
 						<Input
 							id="lastName"
-							placeholder="Smith"
+							placeholder="Enter your last name"
 							value={formData.lastName}
 							onChange={onInputChangeEvent('lastName')}
 							inputSize="select"
@@ -195,9 +207,9 @@ export function BasicInfoStep({
 							options={[
 								{ value: 'male', label: 'Male' },
 								{ value: 'female', label: 'Female' },
-								{ value: 'other', label: 'Other' },
 							]}
-							isClearable
+							isClearable={false}
+							className="w-full"
 						/>
 					</div>
 				</div>
@@ -210,9 +222,15 @@ export function BasicInfoStep({
 								id="birthday"
 								type="date"
 								value={formData.birthday}
-								onChange={onInputChangeEvent('birthday')}
+								onChange={handleBirthdayChange}
 								inputSize="select"
+								className={
+									birthdayError ? 'border-red-500 focus:border-red-500' : ''
+								}
 							/>
+							{birthdayError && (
+								<p className="text-sm text-red-500 mt-1">{birthdayError}</p>
+							)}
 						</div>
 					</div>
 					<div className="space-y-2">
@@ -261,7 +279,6 @@ export function BasicInfoStep({
 								</div>
 							)}
 							getOptionValue={(option: any) => option.name}
-							isClearable
 							isSearchable
 							filterOption={(option, inputValue) => {
 								const country = option.data as Country
@@ -306,8 +323,8 @@ export function BasicInfoStep({
 								{ value: 'Computer Science', label: 'Computer Science' },
 								{ value: 'Business', label: 'Business' },
 							]}
-							menuPortalTarget={document.body}
 							isMulti
+							isSearchable
 							isClearable
 						/>
 					</div>
@@ -350,7 +367,6 @@ export function BasicInfoStep({
 									<span>{option.name}</span>
 								</div>
 							)}
-							menuPortalTarget={document.body}
 							isMulti
 							isClearable
 							isSearchable

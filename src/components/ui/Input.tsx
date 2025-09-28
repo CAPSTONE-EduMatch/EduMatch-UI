@@ -9,6 +9,8 @@ export interface InputProps
 	required?: boolean
 	variant?: 'default' | 'signin'
 	inputSize?: 'sm' | 'md' | 'lg' | 'select'
+	fullWidth?: boolean
+	width?: string
 }
 
 const Input: React.FC<InputProps> = ({
@@ -18,6 +20,8 @@ const Input: React.FC<InputProps> = ({
 	required = false,
 	variant = 'default',
 	inputSize = 'md',
+	fullWidth = true,
+	width,
 	className = '',
 	...props
 }) => {
@@ -28,8 +32,13 @@ const Input: React.FC<InputProps> = ({
 		select: 'px-4 py-2.5 text-sm h-10',
 	}
 
+	const getWidthClass = () => {
+		if (width) return width
+		return fullWidth ? 'w-full' : 'w-auto'
+	}
+
 	const baseInputClasses = `
-    w-full bg-[#F5F7FB] border focus:outline-none transition-all duration-300
+    ${getWidthClass()} bg-[#F5F7FB] border focus:outline-none transition-all duration-300
     ${error ? 'border-red-300' : 'border-gray-200'}
     focus:ring-2 focus:ring-[#126E64] focus:border-transparent
     ${sizeClasses[inputSize]}

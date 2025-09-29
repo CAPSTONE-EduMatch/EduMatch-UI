@@ -1,5 +1,6 @@
 'use client'
 
+import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
@@ -223,7 +224,20 @@ const Signup = () => {
 		try {
 			setIsLoading(true)
 
-			// Send OTP for email verification BEFORE creating account
+			// First, check if user already exists using our API
+			const response = await axios.get(
+				`/api/user?email=${encodeURIComponent(email)}`
+			)
+
+			if (response.data.exists) {
+				setErrors({
+					email:
+						'An account with this email already exists. Please sign in instead.',
+				})
+				return
+			}
+
+			// If user doesn't exist, send OTP for email verification
 			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
 				{
 					email: email,
@@ -242,7 +256,14 @@ const Signup = () => {
 				setShowOTPPopup(true)
 			}
 		} catch (err) {
-			setOTPError('An unexpected error occurred. Please try again.')
+			// Handle both API errors and OTP errors
+			if (axios.isAxiosError(err) && err.response?.status === 400) {
+				setErrors({
+					email: 'Invalid email format. Please check your email and try again.',
+				})
+			} else {
+				setOTPError('An unexpected error occurred. Please try again.')
+			}
 		} finally {
 			setIsLoading(false)
 		}
@@ -257,6 +278,19 @@ const Signup = () => {
 		}
 		setIsOTPLoading(true)
 		try {
+			const { error: signUpError } = await authClient.signUp.email({
+				email,
+				password,
+				name: email.split('@')[0], // Use email username as temporary name
+			})
+
+			if (signUpError) {
+				setOTPError(
+					`Account creation failed: ${signUpError?.message || 'Unknown error'}`
+				)
+				return
+			}
+
 			// First verify the OTP
 			const { error: verifyError } = await authClient.emailOtp.verifyEmail({
 				email,
@@ -271,18 +305,6 @@ const Signup = () => {
 			}
 
 			// After successful OTP verification, create the account
-			const { error: signUpError } = await authClient.signUp.email({
-				email,
-				password,
-				name: email.split('@')[0], // Use email username as temporary name
-			})
-
-			if (signUpError) {
-				setOTPError(
-					`Account creation failed: ${signUpError?.message || 'Unknown error'}`
-				)
-				return
-			}
 
 			setOTPSuccess('Account created successfully! Redirecting to dashboard...')
 
@@ -347,6 +369,39 @@ const Signup = () => {
 							/>
 						</svg>
 						<span className="font-medium">{successMessage}</span>
+					</motion.div>
+				)}
+
+				{errors.email && errors.email.includes('already exists') && (
+					<motion.div
+						className="mb-8 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg"
+						initial={{ opacity: 0, scale: 0.8 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ type: 'spring', stiffness: 100 }}
+					>
+						<div className="flex items-start">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path
+									fillRule="evenodd"
+									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+									clipRule="evenodd"
+								/>
+							</svg>
+							<div>
+								<span className="font-medium block">{errors.email}</span>
+								<Link
+									href="/signin"
+									className="text-sm text-[#126E64] hover:underline mt-1 inline-block font-medium"
+								>
+									Go to Sign In →
+								</Link>
+							</div>
+						</div>
 					</motion.div>
 				)}
 

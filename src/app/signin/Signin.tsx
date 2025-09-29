@@ -7,6 +7,7 @@ import {
 	GoogleButton,
 } from '@/components/auth'
 import { Input, Modal, ResendCodeButton } from '@/components/ui'
+import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
@@ -149,7 +150,22 @@ const SignIn: React.FC = () => {
 		}
 		setIsLoading(true)
 		try {
-			// Simulating API call - would be replaced with actual password reset API
+			// First check if user exists
+			const userCheckResponse = await axios.get(
+				`/api/user?email=${encodeURIComponent(forgotEmail)}`
+			)
+
+			if (!userCheckResponse.data.exists) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail:
+						'No account found with this email address. Please check your email or sign up.',
+				}))
+				setIsLoading(false)
+				return
+			}
+
+			// If user exists, proceed with password reset
 			const { data, error } = await authClient.requestPasswordReset({
 				email: forgotEmail,
 				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
@@ -188,10 +204,18 @@ const SignIn: React.FC = () => {
 			setHasSubmittedForgotEmail(true)
 			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
 		} catch (error) {
-			setForgotPasswordStatus({
-				success: undefined,
-				error: 'Failed to send reset link. Please try again later.',
-			})
+			// Handle API errors
+			if (axios.isAxiosError(error)) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail: 'Unable to verify email. Please try again later.',
+				}))
+			} else {
+				setForgotPasswordStatus({
+					success: undefined,
+					error: 'Failed to send reset link. Please try again later.',
+				})
+			}
 		} finally {
 			setIsLoading(false)
 		}
@@ -207,6 +231,22 @@ const SignIn: React.FC = () => {
 		}
 		setIsLoading(true)
 		try {
+			// First check if user exists
+			const userCheckResponse = await axios.get(
+				`/api/user?email=${encodeURIComponent(forgotEmail)}`
+			)
+
+			if (!userCheckResponse.data.exists) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail:
+						'No account found with this email address. Please check your email or sign up.',
+				}))
+				setIsLoading(false)
+				return
+			}
+
+			// If user exists, proceed with password reset
 			const { data, error } = await authClient.requestPasswordReset({
 				email: forgotEmail,
 				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
@@ -230,10 +270,18 @@ const SignIn: React.FC = () => {
 			})
 			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
 		} catch (error) {
-			setForgotPasswordStatus({
-				success: undefined,
-				error: 'Failed to send reset link. Please try again later.',
-			})
+			// Handle API errors
+			if (axios.isAxiosError(error)) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail: 'Unable to verify email. Please try again later.',
+				}))
+			} else {
+				setForgotPasswordStatus({
+					success: undefined,
+					error: 'Failed to send reset link. Please try again later.',
+				})
+			}
 		} finally {
 			setIsLoading(false)
 		}

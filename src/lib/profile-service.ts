@@ -74,17 +74,17 @@ export class ProfileService {
 			const profile = await prismaClient.profile.findUnique({
 				where: { userId },
 				include: {
-					language: true,
-					research_paper: {
+					languages: true,
+					researchPapers: {
 						include: {
-							profile_file: {
+							files: {
 								include: {
 									file: true,
 								},
 							},
 						},
 					},
-					profile_file: {
+					uploadedFiles: {
 						include: {
 							file: true,
 						},

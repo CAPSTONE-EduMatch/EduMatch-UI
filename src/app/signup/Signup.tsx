@@ -9,9 +9,7 @@ import {
 	GoogleButton,
 	PasswordField,
 } from '../../components/auth'
-import { Modal, OTPInput, ResendCodeButton } from '../../components/ui'
 import { authClient } from '../lib/auth-client'
-// import { getTimeRemaining } from '../lib/otp-rate-limit' // Available for future use
 
 const LEFT_IMAGE = '/assets/campus-image.jpg'
 
@@ -49,7 +47,6 @@ const fadeIn = {
 }
 
 const Signup = () => {
-	const [name, setName] = useState('')
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [confirmPassword, setConfirmPassword] = useState('')
@@ -68,15 +65,96 @@ const Signup = () => {
 	const [OTPSuccess, setOTPSuccess] = useState('')
 	const [isOTPLoading, setIsOTPLoading] = useState(false)
 	const [animateForm, setAnimateForm] = useState(false)
-	const [isRateLimited, setIsRateLimited] = useState(false)
-	const [hasSubmittedEmail, setHasSubmittedEmail] = useState(false)
-	const [otpValue, setOtpValue] = useState('')
-	const [resendSuccess, setResendSuccess] = useState(false)
+	const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
 
 	// Trigger animation after component mounts
 	useEffect(() => {
 		setAnimateForm(true)
 	}, [])
+
+	// Helper function to handle OTP digit changes
+	const handleOtpChange = (index: number, value: string) => {
+		if (!/^\d*$/.test(value)) return // Only allow digits
+
+		const newDigits = [...otpDigits]
+		newDigits[index] = value.slice(-1) // Only take the last digit
+		setOtpDigits(newDigits)
+
+		// Auto-focus next input
+		if (value && index < 5) {
+			const nextInput = document.getElementById(`otp-${index + 1}`)
+			nextInput?.focus()
+		}
+	}
+
+	// Helper function to handle backspace
+	const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+		if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+			const prevInput = document.getElementById(`otp-${index - 1}`)
+			prevInput?.focus()
+		}
+	}
+
+	// Helper function to handle paste
+	const handleOtpPaste = (e: React.ClipboardEvent) => {
+		e.preventDefault()
+		const pastedData = e.clipboardData.getData('text').replace(/\D/g, '')
+		const newDigits = [...otpDigits]
+
+		for (let i = 0; i < Math.min(pastedData.length, 6); i++) {
+			newDigits[i] = pastedData[i]
+		}
+
+		setOtpDigits(newDigits)
+
+		// Focus the next empty field or the last field
+		const nextEmptyIndex = newDigits.findIndex(
+			(digit, idx) => !digit && idx < 6
+		)
+		const focusIndex = nextEmptyIndex !== -1 ? nextEmptyIndex : 5
+		const targetInput = document.getElementById(`otp-${focusIndex}`)
+		targetInput?.focus()
+	}
+
+	// Reset OTP digits
+	const resetOtpDigits = () => {
+		setOtpDigits(['', '', '', '', '', ''])
+	}
+
+	// Resend OTP function for the popup
+	const handleResendOTP = async () => {
+		setOTPError('')
+		setOTPSuccess('')
+
+		try {
+			setIsOTPLoading(true)
+
+			// Send OTP for email verification
+			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
+				{
+					email: email,
+					type: 'email-verification',
+				}
+			)
+
+			if (otpError) {
+				setOTPError(
+					`Failed to send verification code: ${
+						otpError.message || 'Unknown error'
+					}`
+				)
+			} else {
+				// Don't reset digits - let user keep their current input
+				setOTPSuccess('New verification code sent successfully!')
+				// Clear success message after 3 seconds
+				setTimeout(() => setOTPSuccess(''), 3000)
+			}
+		} catch (err) {
+			setOTPError('An unexpected error occurred. Please try again.')
+		} finally {
+			setIsOTPLoading(false)
+		}
+	}
 
 	function validate() {
 		const next: {
@@ -86,9 +164,7 @@ const Signup = () => {
 			confirmPassword?: string
 		} = {}
 
-		if (!name || name.trim() === '') {
-			next.name = 'Please enter your full name'
-		}
+		// Remove name validation since we don't collect it during signup
 
 		if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
 			next.email = 'Please enter a valid email address'
@@ -144,123 +220,28 @@ const Signup = () => {
 		setOTPError('')
 		setOTPSuccess('')
 
-		console.log('Starting sign-up process for:', email)
-
 		try {
 			setIsLoading(true)
-			// First, create the account
 
-			// Then send OTP for email verification
-			const { data: otpData, error: otpError } =
-				await authClient.emailOtp.sendVerificationOtp({
+			// Send OTP for email verification BEFORE creating account
+			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
+				{
 					email: email,
 					type: 'email-verification',
-				})
+				}
+			)
 
 			if (otpError) {
-				// Handle rate limiting errors with user-friendly messages
-				const errorMessage = otpError.message || 'Unknown error'
-
-				if (
-					errorMessage.includes('Too many OTP requests') ||
-					errorMessage.includes('Maximum OTP requests reached')
-				) {
-					setIsRateLimited(true)
-					// Extract time information if available
-					const timeMatch = errorMessage.match(/(\d+)\s*(hour|minute)/i)
-					if (timeMatch) {
-						const time = timeMatch[1]
-						const unit = timeMatch[2]
-						setOTPError(
-							`⏰ Too many verification attempts. Please wait ${time} ${unit}${
-								time !== '1' ? 's' : ''
-							} before trying again. This helps prevent spam and keeps your account secure.`
-						)
-					} else {
-						setOTPError(
-							'⏰ Too many verification attempts. Please wait 24 hours before trying again. This helps prevent spam and keeps your account secure.'
-						)
-					}
-				} else {
-					setIsRateLimited(false)
-					setOTPError(`Failed to send verification code: ${errorMessage}`)
-				}
+				setOTPError(
+					`Failed to send verification code: ${
+						otpError.message || 'Unknown error'
+					}`
+				)
 			} else {
-				setIsRateLimited(false)
-				setHasSubmittedEmail(true)
+				resetOtpDigits()
 				setShowOTPPopup(true)
 			}
-
-			//Wait for OTP to be verified before creating account
-			// Create account only after OTP is sent successfully
-
-			// const { data, error } = await authClient.signUp.email({
-			//   email,
-			//   password,
-			//   name,
-			// });
-
-			// if (error) {
-			//   console.error("Sign-up error:", error);
-			//   setOTPError(`Sign-up failed: ${error.message || "Unknown error"}`);
-			//   return;
-			// }
 		} catch (err) {
-			console.error('General error:', err)
-			setOTPError('An unexpected error occurred. Please try again.')
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	const handleResendOTP = async () => {
-		if (!validate()) return
-		setOTPError('')
-		setOTPSuccess('')
-		setResendSuccess(false)
-
-		try {
-			setIsLoading(true)
-
-			// Send OTP for email verification
-			const { data: otpData, error: otpError } =
-				await authClient.emailOtp.sendVerificationOtp({
-					email,
-					type: 'email-verification',
-				})
-
-			if (otpError) {
-				const errorMessage = otpError.message || 'Unknown error'
-				// Check if it's a rate limiting error
-				if (
-					errorMessage.includes('Too many OTP requests') ||
-					errorMessage.includes('rate limit') ||
-					errorMessage.includes('cooldown')
-				) {
-					setIsRateLimited(true)
-					const match = errorMessage.match(/(\d+)\s*hours?/)
-					const hours = match ? parseInt(match[1]) : 24
-					if (hours === 24) {
-						setOTPError(
-							'⏰ You have reached the maximum number of verification attempts (5). Please wait 24 hours before trying again.'
-						)
-					} else {
-						setOTPError(
-							`⏰ Too many attempts. Please wait ${hours} hours before trying again.`
-						)
-					}
-				} else {
-					setIsRateLimited(false)
-					setOTPError(`Failed to send verification code: ${errorMessage}`)
-				}
-			} else {
-				setIsRateLimited(false)
-				// Show temporary success feedback without switching screens
-				setResendSuccess(true)
-				setTimeout(() => setResendSuccess(false), 3000) // Clear after 3 seconds
-			}
-		} catch (err) {
-			console.error('Resend OTP error:', err)
 			setOTPError('An unexpected error occurred. Please try again.')
 		} finally {
 			setIsLoading(false)
@@ -276,51 +257,40 @@ const Signup = () => {
 		}
 		setIsOTPLoading(true)
 		try {
-			const { data, error } = await authClient.emailOtp.checkVerificationOtp({
+			// First verify the OTP
+			const { error: verifyError } = await authClient.emailOtp.verifyEmail({
 				email,
 				otp,
-				type: 'email-verification',
 			})
 
-			if (error) {
-				console.error('OTP verification error:', error)
-				setOTPError(`Verification failed: ${error.message || 'Unknown error'}`)
-			} else {
-				console.log('OTP verification successful:', data)
-				setOTPSuccess('Email verification successful. You can now sign in.')
-				const { data: signUpData, error: signUpError } =
-					await authClient.signUp.email({
-						email,
-						password,
-						name,
-					})
-
-				if (signUpError) {
-					console.error('Sign-up error:', signUpError)
-
-					// Check if it's a duplicate email error
-					const errorMessage = signUpError?.message || 'Unknown error'
-					if (
-						errorMessage.includes('unique') ||
-						errorMessage.includes('duplicate') ||
-						errorMessage.includes('already exists')
-					) {
-						setOTPError(
-							'An account with this email address already exists. Please sign in instead or use a different email address.'
-						)
-					} else {
-						setOTPError(`Sign-up failed: ${errorMessage}`)
-					}
-					return
-				}
-
-				// Automatically redirect to dashboard after a delay
-				setTimeout(() => {
-					window.location.href = '/dashboard'
-				}, 1500)
+			if (verifyError) {
+				setOTPError(
+					`Verification failed: ${verifyError.message || 'Unknown error'}`
+				)
+				return
 			}
+
+			// After successful OTP verification, create the account
+			const { error: signUpError } = await authClient.signUp.email({
+				email,
+				password,
+				name: email.split('@')[0], // Use email username as temporary name
+			})
+
+			if (signUpError) {
+				setOTPError(
+					`Account creation failed: ${signUpError?.message || 'Unknown error'}`
+				)
+				return
+			}
+
+			setOTPSuccess('Account created successfully! Redirecting to dashboard...')
+
+			// Redirect to dashboard after successful account creation
+			setTimeout(() => {
+				window.location.href = '/dashboard'
+			}, 1500)
 		} catch (err) {
-			console.error('Unexpected OTP error:', err)
 			setOTPError('An unexpected error occurred. Please try again.')
 		} finally {
 			setIsOTPLoading(false)
@@ -328,6 +298,7 @@ const Signup = () => {
 	}
 
 	return (
+		// <AuthRedirect redirectTo="/dashboard">
 		<AuthLayout imageSrc={LEFT_IMAGE}>
 			<motion.div
 				className="relative z-10 max-w-3xl ml-4 md:ml-12"
@@ -339,7 +310,7 @@ const Signup = () => {
 				}}
 			>
 				<motion.h1
-					className="text-4xl font-bold text-[#126E64] mb-4"
+					className="text-4xl font-bold text-[#126E64] mb-4 mt-20"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ delay: 0.2, duration: 0.7 }}
@@ -379,39 +350,6 @@ const Signup = () => {
 					</motion.div>
 				)}
 
-				{/* Rate limit warning message */}
-				{isRateLimited && (
-					<motion.div
-						className="mb-8 p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-lg flex items-start"
-						initial={{ opacity: 0, scale: 0.8 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ type: 'spring', stiffness: 100 }}
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							className="h-5 w-5 text-orange-600 mr-2 mt-0.5 flex-shrink-0"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fillRule="evenodd"
-								d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-								clipRule="evenodd"
-							/>
-						</svg>
-						<div>
-							<p className="font-medium text-sm">
-								⏰ Verification Code Limit Reached
-							</p>
-							<p className="text-sm mt-1">
-								You&apos;ve reached the maximum number of verification attempts.
-								Please wait 24 hours before requesting another code. This helps
-								protect your account from spam.
-							</p>
-						</div>
-					</motion.div>
-				)}
-
 				<motion.form
 					onSubmit={handleSendOTP}
 					className="space-y-6 md:space-y-8"
@@ -419,19 +357,6 @@ const Signup = () => {
 					initial="hidden"
 					animate={animateForm ? 'visible' : 'hidden'}
 				>
-					<motion.div variants={itemVariants}>
-						<FormField
-							label="Full Name"
-							name="name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="Enter your full name"
-							error={errors.name}
-							required
-							helpText="(or institution name if you are institution)"
-						/>
-					</motion.div>
-
 					<motion.div variants={itemVariants}>
 						<FormField
 							label="Email"
@@ -554,169 +479,230 @@ const Signup = () => {
 				</motion.form>
 			</motion.div>
 
-			{/* OTP Verification Modal */}
-			<Modal
-				isOpen={showOTPPopup}
-				onClose={() => setShowOTPPopup(false)}
-				title="Verify Your Email"
-				maxWidth="md"
-			>
-				{OTPSuccess ? (
+			{/* OTP Verification Modal with animations */}
+			{showOTPPopup && (
+				<motion.div
+					className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.3 }}
+				>
 					<motion.div
-						className="text-center py-4"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ delay: 0.2 }}
+						className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full"
+						initial={{ opacity: 0, scale: 0.9, y: 20 }}
+						animate={{ opacity: 1, scale: 1, y: 0 }}
+						transition={{
+							type: 'spring',
+							stiffness: 100,
+							damping: 15,
+						}}
 					>
-						<motion.svg
-							xmlns="http://www.w3.org/2000/svg"
-							className="h-12 w-12 text-green-500 mx-auto mb-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							initial={{ scale: 0, opacity: 0 }}
-							animate={{ scale: 1, opacity: 1 }}
-							transition={{
-								type: 'spring',
-								stiffness: 100,
-								delay: 0.3,
-							}}
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M5 13l4 4L19 7"
-							/>
-						</motion.svg>
-						<motion.p
-							className="text-gray-700 mb-6"
-							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.4 }}
-						>
-							{OTPSuccess}
-						</motion.p>
-						<motion.button
-							onClick={() => setShowOTPPopup(false)}
-							className="w-full py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 transition-all duration-300"
-							whileHover={{
-								scale: 1.02,
-								boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-							}}
-							whileTap={{ scale: 0.98 }}
-							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.5 }}
-						>
-							Close
-						</motion.button>
-					</motion.div>
-				) : (
-					<motion.div
-						initial="hidden"
-						animate="visible"
-						variants={containerVariants}
-					>
-						<motion.p className="text-gray-600 mb-4" variants={itemVariants}>
-							We&apos;ve sent a 6-digit verification code to{' '}
-							<span className="font-medium">{email}</span>. Please enter it
-							below to verify your email address.
-						</motion.p>
-
-						{OTPError && (
-							<motion.div
-								className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded"
-								initial={{ opacity: 0, x: -20 }}
-								animate={{ opacity: 1, x: 0 }}
-								transition={{ type: 'spring', stiffness: 100 }}
-							>
-								{OTPError}
-							</motion.div>
-						)}
-
-						{resendSuccess && (
-							<motion.div
-								className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded"
-								initial={{ opacity: 0, x: 20 }}
-								animate={{ opacity: 1, x: 0 }}
-								exit={{ opacity: 0, x: 20 }}
-								transition={{ type: 'spring', stiffness: 100 }}
-							>
-								✅ Verification code sent successfully! Check your email.
-							</motion.div>
-						)}
-
-						<motion.div className="mb-6" variants={itemVariants}>
-							<label className="block text-sm font-medium text-gray-700 mb-4 text-center">
-								Verification Code
-							</label>
-							<OTPInput
-								onComplete={(otp) => {
-									setOtpValue(otp)
-									handleVerifyOTPAndAccountCreation(otp)
-								}}
-								onOTPChange={(otp) => {
-									setOtpValue(otp)
-									setResendSuccess(false) // Clear resend success when user starts typing
-								}}
-								disabled={isOTPLoading}
-								error={OTPError}
-								className="mb-4"
-							/>
-						</motion.div>
-
-						<motion.div
-							className="flex justify-end space-x-2"
-							variants={itemVariants}
-						>
+						<div className="flex justify-between items-center mb-4">
+							<h2 className="text-xl font-bold text-gray-800">
+								Verify Your Email
+							</h2>
 							<motion.button
-								type="button"
 								onClick={() => setShowOTPPopup(false)}
-								className="px-4 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-300"
-								whileHover={{
-									scale: 1.02,
-									boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)',
-								}}
-								whileTap={{ scale: 0.98 }}
+								className="text-gray-500 hover:text-gray-700 transition-all duration-300"
+								whileHover={{ scale: 1.1 }}
+								whileTap={{ scale: 0.95 }}
 							>
-								Cancel
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-6 w-6"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
 							</motion.button>
-							<motion.button
-								type="button"
-								onClick={() => {
-									handleVerifyOTPAndAccountCreation(otpValue)
-								}}
-								disabled={isOTPLoading || otpValue.length !== 6}
-								className="px-4 py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 disabled:opacity-70 transition-all duration-300"
-								whileHover={{
-									scale: 1.02,
-									boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-								}}
-								whileTap={{ scale: 0.98 }}
-							>
-								{isOTPLoading ? 'Verifying...' : 'Verify'}
-							</motion.button>
-						</motion.div>
+						</div>
 
-						{hasSubmittedEmail && (
-							<motion.p
-								className="text-sm text-gray-500 mt-4 text-center"
-								variants={itemVariants}
+						{OTPSuccess ? (
+							<motion.div
+								className="text-center py-4"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ delay: 0.2 }}
 							>
-								Didn&apos;t receive the code?{' '}
-								<ResendCodeButton
-									onResend={handleResendOTP}
-									disabled={isRateLimited}
-									isLoading={isLoading}
-									cooldownSeconds={60}
-								/>
-							</motion.p>
+								<motion.svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-12 w-12 text-green-500 mx-auto mb-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									initial={{ scale: 0, opacity: 0 }}
+									animate={{ scale: 1, opacity: 1 }}
+									transition={{
+										type: 'spring',
+										stiffness: 100,
+										delay: 0.3,
+									}}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M5 13l4 4L19 7"
+									/>
+								</motion.svg>
+								<motion.p
+									className="text-gray-700 mb-6"
+									initial={{ opacity: 0, y: 10 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.4 }}
+								>
+									{OTPSuccess}
+								</motion.p>
+								<motion.button
+									onClick={() => setShowOTPPopup(false)}
+									className="w-full py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 transition-all duration-300"
+									whileHover={{
+										scale: 1.02,
+										boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+									}}
+									whileTap={{ scale: 0.98 }}
+									initial={{ opacity: 0, y: 10 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.5 }}
+								>
+									Close
+								</motion.button>
+							</motion.div>
+						) : (
+							<motion.div
+								initial="hidden"
+								animate="visible"
+								variants={containerVariants}
+							>
+								<motion.p
+									className="text-gray-600 mb-4"
+									variants={itemVariants}
+								>
+									We&apos;ve sent a 6-digit verification code to{' '}
+									<span className="font-medium">{email}</span>. Please enter it
+									below to verify your email address.
+								</motion.p>
+
+								{OTPError && (
+									<motion.div
+										className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded"
+										initial={{ opacity: 0, x: -20 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{ type: 'spring', stiffness: 100 }}
+									>
+										{OTPError}
+									</motion.div>
+								)}
+
+								{OTPSuccess && !OTPSuccess.includes('Account created') && (
+									<motion.div
+										className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded"
+										initial={{ opacity: 0, x: -20 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{ type: 'spring', stiffness: 100 }}
+									>
+										{OTPSuccess}
+									</motion.div>
+								)}
+
+								<motion.div className="mb-4" variants={itemVariants}>
+									<label className="block text-sm font-medium text-gray-700 mb-3">
+										Verification Code
+									</label>
+									<div className="flex justify-center space-x-2">
+										{otpDigits.map((digit, index) => (
+											<input
+												key={index}
+												id={`otp-${index}`}
+												type="text"
+												inputMode="numeric"
+												maxLength={1}
+												value={digit}
+												onChange={(e) => handleOtpChange(index, e.target.value)}
+												onKeyDown={(e) => handleOtpKeyDown(index, e)}
+												onPaste={handleOtpPaste}
+												className="w-14 h-16 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-[#126E64] focus:outline-none focus:ring-2 focus:ring-[#126E64]/20 transition-all duration-200 hover:border-gray-400"
+												// placeholder="0"
+											/>
+										))}
+									</div>
+									{otpDigits.some((digit) => digit) && (
+										<div className="text-center mt-2">
+											<button
+												type="button"
+												onClick={resetOtpDigits}
+												className="text-sm text-gray-500 hover:text-gray-700 underline"
+											>
+												Clear all
+											</button>
+										</div>
+									)}
+								</motion.div>
+
+								<motion.div
+									className="flex justify-end space-x-2"
+									variants={itemVariants}
+								>
+									<motion.button
+										type="button"
+										onClick={() => setShowOTPPopup(false)}
+										className="px-4 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-300"
+										whileHover={{
+											scale: 1.02,
+											boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)',
+										}}
+										whileTap={{ scale: 0.98 }}
+									>
+										Cancel
+									</motion.button>
+									<motion.button
+										type="button"
+										onClick={() => {
+											const otpCode = otpDigits.join('')
+											handleVerifyOTPAndAccountCreation(otpCode)
+										}}
+										disabled={isOTPLoading || otpDigits.some((digit) => !digit)}
+										className="px-4 py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 disabled:opacity-70 transition-all duration-300"
+										whileHover={{
+											scale: 1.02,
+											boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+										}}
+										whileTap={{ scale: 0.98 }}
+									>
+										{isOTPLoading ? 'Verifying...' : 'Verify'}
+									</motion.button>
+								</motion.div>
+
+								<motion.p
+									className="text-sm text-gray-500 mt-4"
+									variants={itemVariants}
+								>
+									Didn&apos;t receive the code?{' '}
+									<motion.button
+										type="button"
+										onClick={handleResendOTP}
+										disabled={isOTPLoading}
+										className="text-[#126E64] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+										whileHover={{ scale: 1.05, color: '#0D504A' }}
+										whileTap={{ scale: 0.98 }}
+									>
+										{isOTPLoading ? 'Sending...' : 'Resend Code'}
+									</motion.button>
+								</motion.p>
+							</motion.div>
 						)}
 					</motion.div>
-				)}
-			</Modal>
+				</motion.div>
+			)}
 		</AuthLayout>
+		// </AuthRedirect>
 	)
 }
 

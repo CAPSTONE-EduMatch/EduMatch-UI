@@ -153,7 +153,7 @@ export const auth = betterAuth({
 				``
 			);
 		},
-		resetPasswordTokenExpiresIn: 3600, // 1 hour
+		resetPasswordTokenExpiresIn: 900, // 15 minutes
 	},
 	socialProviders: {
 		google: {

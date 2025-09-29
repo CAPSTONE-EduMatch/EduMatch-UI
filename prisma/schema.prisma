@@ -9,14 +9,16 @@ datasource db {
 }
 
 model User {
-  id               String   @id
+  id               String    @id
   name             String
-  email            String   @unique
-  emailVerified    Boolean  @default(false)
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
   image            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @default(now()) @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
   stripeCustomerId String?
+  account          Account[]
+  profile          profile?
 
   @@map("User")
 }
@@ -35,6 +37,7 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  User                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
 }
@@ -91,22 +94,23 @@ model Post {
 }
 
 model File {
-  id           String   @id @default(uuid())
+  id           String         @id @default(uuid())
   name         String
-  originalName String   @map("originalName")
-  key          String   @unique
+  originalName String         @map("originalName")
+  key          String         @unique
   bucket       String
-  size         Int?
-  mimeType     String?   @map("mimeType")
+  size         Int
+  mimeType     String         @map("mimeType")
   extension    String?
-  category     String   @default("other")
+  category     String         @default("other")
   url          String?
-  isPublic     Boolean  @default(false) @map("isPublic")
+  isPublic     Boolean        @default(false) @map("isPublic")
   metadata     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   userId       String
   folderId     String?
+  profile_file profile_file[]
 
   @@map("file")
 }
@@ -122,4 +126,70 @@ model Folder {
   parentId    String?
 
   @@map("folder")
+}
+
+model language {
+  id          String   @id
+  profileId   String
+  language    String
+  certificate String
+  score       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  profile     profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model profile {
+  id                 String           @id
+  userId             String           @unique
+  role               String
+  firstName          String
+  lastName           String
+  gender             String
+  birthday           String
+  nationality        String
+  phoneNumber        String
+  countryCode        String
+  interests          String[]         @default([])
+  favoriteCountries  String[]         @default([])
+  profilePhoto       String?
+  graduationStatus   String?
+  degree             String?
+  fieldOfStudy       String?
+  university         String?
+  graduationYear     String?
+  gpa                String?
+  countryOfStudy     String?
+  scoreType          String?
+  scoreValue         String?
+  hasForeignLanguage String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime
+  language           language[]
+  User               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile_file       profile_file[]
+  research_paper     research_paper[]
+}
+
+model profile_file {
+  id              String          @id
+  profileId       String?
+  researchPaperId String?
+  fileId          String
+  category        String
+  createdAt       DateTime        @default(now())
+  file            File            @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  profile         profile?        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  research_paper  research_paper? @relation(fields: [researchPaperId], references: [id], onDelete: Cascade)
+}
+
+model research_paper {
+  id           String         @id
+  profileId    String
+  title        String
+  discipline   String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  profile_file profile_file[]
+  profile      profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }

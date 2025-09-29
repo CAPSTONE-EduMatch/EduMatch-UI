@@ -1,10 +1,60 @@
-echo "🔍 Running pre-commit checks (type check + build + lint)..."
-echo "🔧 Building project..."
-pnpm run pre-commit
-echo "Your code is beautiful, nice job 👍"
+#!/usr/bin/env sh
+set -e
 
-# pnpm run build
+echo "🔍 Running pre-commit checks (type check + build + lint)..."
+
+# --- Ensure PNPM is reachable (absolute path) ---
+PNPM="$HOME/.local/share/pnpm/pnpm"
+
+# --- Ensure NODE is reachable (Flatpak doesn't see host PATH) ---
+add_to_path_if_has_node() {
+  dir="$1"
+  if [ -x "$dir/node" ]; then
+    export PATH="$dir:$PATH"
+    echo "→ using node at $dir/node"
+    return 0
+  fi
+  return 1
+}
+
+# Try common locations (nvm, volta, asdf, system)
+add_to_path_if_has_node "$HOME/.nvm/versions/node/$(ls -1 $HOME/.nvm/versions/node 2>/dev/null | tail -n1)/bin" ||
+add_to_path_if_has_node "$HOME/.volta/bin" ||
+add_to_path_if_has_node "$HOME/.asdf/shims" ||
+add_to_path_if_has_node "/usr/bin" ||
+{
+  # As a last attempt, source nvm if present to set default
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    . "$HOME/.nvm/nvm.sh"
+    nvm use default >/dev/null 2>&1 || true
+  fi
+}
+
+# Final check
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ 'node' not found in PATH (Flatpak GitKraken can't see your host Node)."
+  echo "Fix: install Node in home (nvm/volta/asdf) or point to its bin dir."
+  exit 127
+fi
+
+run_pm() {
+  if [ -x "$PNPM" ]; then
+    echo "→ using pnpm at $PNPM"
+    "$PNPM" "$@"
+  elif command -v pnpm >/dev/null 2>&1; then
+    echo "→ using pnpm on PATH"
+    pnpm "$@"
+  else
+    if [ "$1" = "exec" ]; then shift; echo "→ npx --no-install $*"; npx --no-install "$@"
+    elif [ "$1" = "run" ]; then shift; echo "→ npm run $*"; npm run "$@"
+    else echo "pnpm not available and no fallback for: $*"; exit 127; fi
+  fi
+}
+
+echo "🔧 Building project..."
+run_pm run pre-commit   # e.g. "next build && lint-staged" in package.json
 
 echo "🕺 Performing linting checks..."
-pnpm exec lint-staged
-echo "Your code is beautiful, nice job 👍"
+run_pm exec lint-staged
+
+echo "✅ Your code is beautiful, nice job 👍"

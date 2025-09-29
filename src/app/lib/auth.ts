@@ -1,7 +1,7 @@
 import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP, oneTap } from "better-auth/plugins";
+import { emailOTP, oneTap, captcha } from "better-auth/plugins";
 import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";
@@ -14,7 +14,8 @@ dotenv.config();
 //   process.env.STRIPE_SECRET_KEY &&
 //   !process.env.STRIPE_SECRET_KEY.includes("GET_THIS_FROM")
 //     ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
-//         apiVersion: "2025-08-27.basil",
+//         apiVersion:
+//  "2025-08-27.basil",
 //       })
 //     : "";
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -42,6 +43,9 @@ export const auth = betterAuth({
 				// Send OTP via email using our sendEmail function
 				await sendEmail(email, "", otp);
 			},
+			// disableSignUp: false, // Allow sign-ups via OTP
+			allowedAttempts: 5, // Max 5 attempts per hour
+			expiresIn: 300, // OTP expires in 5 minutes
 		}),
 		// Stripe plugin disabled - handling subscriptions manually
 		// ...(stripeClient && process.env.STRIPE_WEBHOOK_SECRET && !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.includes('GET_THIS_FROM') ? [
@@ -71,6 +75,10 @@ export const auth = betterAuth({
 				],
 			},
 		}),
+		// captcha({
+		// 	provider: "cloudflare-turnstile", // or google-recaptcha, hcaptcha
+		// 	secretKey: process.env.TURNSTILE_SECRET_KEY!,
+		// }),
 	],
 	database: prismaAdapter(prismaClient, {
 		provider: "postgresql",
@@ -80,6 +88,8 @@ export const auth = betterAuth({
 			enabled: true,
 			maxAge: 60 * 60 * 24 * 7, // 7 days
 		},
+		expiresIn: 60 * 60 * 24 * 7, // 7 days
+		updateAge: 60 * 15, // 15 minutes
 	},
 	// Redis as secondary storage for session caching
 	secondaryStorage: {

@@ -127,7 +127,7 @@ export default function ViewProfile() {
 						<div className="text-6xl mb-4">👤</div>
 						<h2 className="text-xl font-semibold mb-2">No Profile Found</h2>
 						<p className="text-muted-foreground mb-4">
-							You haven't created a profile yet.
+							You haven&apos;t created a profile yet.
 						</p>
 						<Button
 							onClick={() => (window.location.href = '/profile/create-profile')}

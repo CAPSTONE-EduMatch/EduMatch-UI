@@ -19,6 +19,7 @@ const FormField: React.FC<FormFieldProps> = ({
 	helpText,
 	hint,
 	rounded = 'lg',
+	width,
 	...inputProps
 }) => {
 	return (
@@ -27,6 +28,7 @@ const FormField: React.FC<FormFieldProps> = ({
 			error={error}
 			required={required}
 			helpText={helpText || hint}
+			width={typeof width === 'number' ? width.toString() : width}
 			{...inputProps}
 		/>
 	)

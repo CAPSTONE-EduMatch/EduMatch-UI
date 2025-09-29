@@ -44,84 +44,24 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 							)
 						);
 
-						// Step 1: Get presigned upload URL
-						const uploadResponse = await fetch(
-							"/api/files/upload",
-							{
-								method: "POST",
-								headers: {
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({
-									fileName: file.name,
-									fileType: file.type,
-									fileSize: file.size,
-									category: options.category,
-								}),
-							}
+						// Use S3-only upload (no database save)
+						const formData = new FormData();
+						formData.append("file", file);
+						formData.append(
+							"category",
+							options.category || "uploads"
 						);
 
-						if (!uploadResponse.ok) {
-							throw new Error("Failed to get upload URL");
-						}
-
-						const { uploadUrl, fields, key } =
-							await uploadResponse.json();
-
-						// Step 2: Upload file to S3
-						const formData = new FormData();
-						Object.entries(fields).forEach(([key, value]) => {
-							formData.append(key, value as string);
-						});
-						formData.append("file", file);
-
-						const uploadResult = await fetch(uploadUrl, {
+						const response = await fetch("/api/files/s3-upload", {
 							method: "POST",
 							body: formData,
 						});
 
-						if (!uploadResult.ok) {
-							throw new Error("Failed to upload file to S3");
+						if (!response.ok) {
+							throw new Error("Upload failed");
 						}
 
-						// Update progress to confirming
-						setUploadProgress((prev) =>
-							prev.map((p) =>
-								p.fileIndex === index
-									? {
-											...p,
-											status: "confirming" as const,
-											progress: 90,
-										}
-									: p
-							)
-						);
-
-						// Step 3: Confirm upload in database
-						const confirmResponse = await fetch(
-							"/api/files/confirm",
-							{
-								method: "POST",
-								headers: {
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({
-									key,
-									fileName: file.name,
-									fileSize: file.size,
-									fileType: file.type,
-									folderId: options.folderId,
-									category: options.category,
-								}),
-							}
-						);
-
-						if (!confirmResponse.ok) {
-							throw new Error("Failed to confirm file upload");
-						}
-
-						const { file: savedFile } =
-							await confirmResponse.json();
+						const result = await response.json();
 
 						// Update progress to completed
 						setUploadProgress((prev) =>
@@ -136,7 +76,17 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 							)
 						);
 
-						return createFileItemFromSaved(savedFile);
+						// Return file metadata for form state (no database save)
+						return {
+							id: result.id,
+							name: result.originalName,
+							originalName: result.originalName,
+							size: result.fileSize,
+							type: result.fileType,
+							category: result.category,
+							url: result.url,
+							createdAt: new Date(),
+						};
 					} catch (error) {
 						const errorMessage =
 							error instanceof Error

@@ -1,23 +1,9 @@
 import Button from '@/components/ui/Button'
 import Image from 'next/image'
-
-interface FormData {
-	role: 'applicant' | 'institution' | ''
-	firstName: string
-	lastName: string
-	gender: string
-	birthday: string
-	email: string
-	nationality: string
-	phoneNumber: string
-	countryCode: string
-	interests: string[]
-	favoriteCountries: string[]
-	profilePhoto: string
-}
+import { ProfileFormData } from '@/types/profile'
 
 interface RoleSelectionStepProps {
-	formData: FormData
+	formData: ProfileFormData
 	onRoleSelect: (role: 'applicant' | 'institution') => void
 	onNext: () => void
 }

@@ -77,9 +77,9 @@ const formatOptionLabel = (option: any) => (
 				className="w-3 h-2 object-cover"
 			/>
 		) : (
-			<span className="text-xs">{option.flag}</span>
+			<span className="text-sm">{option.flag}</span>
 		)}
-		<span className="font-medium text-xs">{option.phoneCode}</span>
+		<span className="font-medium text-sm">{option.phoneCode}</span>
 	</div>
 )
 
@@ -183,7 +183,7 @@ export function PhoneInput({
 						...countryCodeStyles,
 						control: (provided: any) => ({
 							...countryCodeStyles.control(provided),
-							width: '120px',
+							width: '130px',
 						}),
 					}}
 					isClearable={false}

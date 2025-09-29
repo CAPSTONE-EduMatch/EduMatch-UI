@@ -7,64 +7,23 @@ import { ImageManager } from '@/components/ui/image-manager'
 import { CustomSelect } from '@/components/ui/custom-select'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { FileItem } from '@/lib/file-utils'
-import { useState } from 'react'
-
-interface FormData {
-	role: 'applicant' | 'institution' | ''
-	firstName: string
-	lastName: string
-	gender: string
-	birthday: string
-	email: string
-	nationality: string
-	phoneNumber: string
-	countryCode: string
-	interests: string[]
-	favoriteCountries: string[]
-	profilePhoto: string
-	// Academic fields
-	graduationStatus: 'not-yet' | 'graduated' | ''
-	degree: string
-	fieldOfStudy: string
-	university: string
-	graduationYear: string
-	gpa: string
-	countryOfStudy: string
-	scoreValue: string
-	hasForeignLanguage: 'yes' | 'no' | ''
-	languages: Array<{
-		language: string
-		certificate: string
-		score: string
-	}>
-	researchPapers: Array<{
-		title: string
-		discipline: string
-		files: FileItem[]
-	}>
-	cvFile: string
-	certificateFile: string
-	uploadedFiles: FileItem[]
-	cvFiles: FileItem[]
-	languageCertFiles: FileItem[]
-	degreeFiles: FileItem[]
-	transcriptFiles: FileItem[]
-}
+import { ProfileFormData } from '@/types/profile'
+import { useState, useEffect } from 'react'
 
 interface AcademicInfoStepProps {
-	formData: FormData
+	formData: ProfileFormData
 	onInputChange: (
-		field: keyof FormData,
+		field: keyof ProfileFormData,
 		value:
 			| string
 			| Array<{ language: string; certificate: string; score: string }>
 			| Array<{ title: string; discipline: string; files: any[] }>
 	) => void
 	onInputChangeEvent: (
-		field: keyof FormData
+		field: keyof ProfileFormData
 	) => (e: React.ChangeEvent<HTMLInputElement>) => void
-	onSelectChange: (field: keyof FormData) => (value: string) => void
-	onCheckboxChange: (field: keyof FormData) => (checked: boolean) => void
+	onSelectChange: (field: keyof ProfileFormData) => (value: string) => void
+	onCheckboxChange: (field: keyof ProfileFormData) => (checked: boolean) => void
 	onFilesUploaded: (files: FileItem[]) => void
 	onBack: () => void
 	onNext: () => void
@@ -147,18 +106,46 @@ export function AcademicInfoStep({
 	onNext,
 	onShowManageModal,
 }: AcademicInfoStepProps) {
+	// Add default research paper when component mounts
+	useEffect(() => {
+		if (formData.researchPapers?.length === 0) {
+			onInputChange('researchPapers', [
+				{ title: '', discipline: '', files: [] },
+			])
+		}
+	}, [])
 	const handleCategoryFilesUploaded = (category: string, files: FileItem[]) => {
-		// Update the specific file category using onInputChange
-		onInputChange(category as keyof FormData, files as any)
+		// Store file metadata in form state (S3-only approach)
+		onInputChange(category as keyof ProfileFormData, files as any)
 	}
 
 	const getAllFiles = () => {
-		return [
+		// Process research paper files with context
+		const researchPaperFiles =
+			formData.researchPapers?.flatMap((paper, paperIndex) =>
+				(paper.files || []).map((file) => ({
+					...file,
+					// Add research paper context for better display
+					researchPaperTitle: paper.title || `Research Paper ${paperIndex + 1}`,
+					researchPaperDiscipline:
+						paper.discipline || 'No discipline specified',
+					researchPaperIndex: paperIndex,
+					// Enhanced display name
+					displayName: `${file.name} (${paper.title || `Paper ${paperIndex + 1}`})`,
+					// Enhanced category with context
+					category: `research-paper-${paperIndex}-${paper.title?.replace(/\s+/g, '-').toLowerCase() || 'untitled'}`,
+				}))
+			) || []
+
+		const allFiles = [
 			...(formData.cvFiles || []),
 			...(formData.languageCertFiles || []),
 			...(formData.degreeFiles || []),
 			...(formData.transcriptFiles || []),
+			...researchPaperFiles,
 		]
+
+		return allFiles
 	}
 	return (
 		<div className="space-y-6 relative">
@@ -186,7 +173,10 @@ export function AcademicInfoStep({
 									name="graduationStatus"
 									checked={formData.graduationStatus === 'not-yet'}
 									onChange={() => onInputChange('graduationStatus', 'not-yet')}
-									className="w-4 h-4 text-primary border-2 border-primary focus:ring-primary"
+									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									style={{
+										accentColor: '#16a34a',
+									}}
 								/>
 								<Label
 									htmlFor="not-yet"
@@ -204,7 +194,10 @@ export function AcademicInfoStep({
 									onChange={() =>
 										onInputChange('graduationStatus', 'graduated')
 									}
-									className="w-4 h-4 text-primary border-2 border-primary focus:ring-primary"
+									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									style={{
+										accentColor: '#16a34a',
+									}}
 								/>
 								<Label
 									htmlFor="graduated"
@@ -246,7 +239,7 @@ export function AcademicInfoStep({
 												backgroundColor: 'rgba(17, 110, 99, 0.7)', // custom green with 70% opacity
 												borderColor: 'rgba(17, 110, 99, 0.7)',
 												color: 'white',
-												width: '140px',
+												width: '180px',
 											}),
 											singleValue: (provided: any) => ({
 												...provided,
@@ -315,7 +308,8 @@ export function AcademicInfoStep({
 											onInputChange('scoreValue', e.target.value)
 										}
 										inputSize="select"
-										className="w-32"
+										fullWidth={false}
+										width="w-24"
 									/>
 								</div>
 							</div>
@@ -339,7 +333,10 @@ export function AcademicInfoStep({
 									name="hasForeignLanguage"
 									checked={formData.hasForeignLanguage === 'yes'}
 									onChange={() => onInputChange('hasForeignLanguage', 'yes')}
-									className="w-4 h-4 text-primary border-2 border-primary focus:ring-primary"
+									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									style={{
+										accentColor: '#16a34a',
+									}}
 								/>
 								<Label
 									htmlFor="language-yes"
@@ -355,7 +352,10 @@ export function AcademicInfoStep({
 									name="hasForeignLanguage"
 									checked={formData.hasForeignLanguage === 'no'}
 									onChange={() => onInputChange('hasForeignLanguage', 'no')}
-									className="w-4 h-4 text-primary border-2 border-primary focus:ring-primary"
+									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									style={{
+										accentColor: '#16a34a',
+									}}
 								/>
 								<Label
 									htmlFor="language-no"
@@ -373,9 +373,9 @@ export function AcademicInfoStep({
 							{formData.languages.map((lang, index) => (
 								<div
 									key={index}
-									className="grid grid-cols-1 md:grid-cols-3 gap-4"
+									className="grid grid-cols-1 md:grid-cols-6 gap-4"
 								>
-									<div className="space-y-2">
+									<div className="space-y-2 md:col-span-2">
 										<Label className="text-sm font-medium text-foreground">
 											Language
 										</Label>
@@ -405,9 +405,10 @@ export function AcademicInfoStep({
 												{ value: 'Korean', label: 'Korean' },
 											]}
 											menuPortalTarget={document.body}
+											className="w-full"
 										/>
 									</div>
-									<div className="space-y-2">
+									<div className="space-y-2 md:col-span-2">
 										<Label className="text-sm font-medium text-foreground">
 											Certificate
 										</Label>
@@ -458,7 +459,7 @@ export function AcademicInfoStep({
 											menuPortalTarget={document.body}
 										/>
 									</div>
-									<div className="space-y-2">
+									<div className="space-y-2 md:col-span-1">
 										<Label className="text-sm font-medium text-foreground">
 											Score
 										</Label>
@@ -474,7 +475,38 @@ export function AcademicInfoStep({
 												onInputChange('languages', newLanguages)
 											}}
 											inputSize="select"
+											fullWidth={false}
+											width="w-32"
 										/>
+									</div>
+									{/* Delete Button */}
+									<div className="space-y-2 md:col-span-1 flex items-end justify-center">
+										<button
+											type="button"
+											onClick={() => {
+												const newLanguages = formData.languages.filter(
+													(_, i) => i !== index
+												)
+												onInputChange('languages', newLanguages)
+											}}
+											className="text-red-500 hover:text-red-700 transition-colors p-1"
+											title="Delete language certification"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												className="h-5 w-5"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M6 18L18 6M6 6l12 12"
+												/>
+											</svg>
+										</button>
 									</div>
 								</div>
 							))}
@@ -619,15 +651,6 @@ export function AcademicInfoStep({
 							)}
 					</div>
 				</div>
-
-				{/* Manage Files Button */}
-				{getAllFiles().length > 0 && (
-					<div className="flex justify-center pt-4">
-						<Button variant="outline" onClick={onShowManageModal} size="sm">
-							Manage Files ({getAllFiles().length})
-						</Button>
-					</div>
-				)}
 			</div>
 			<div className="space-y-4">
 				<div className="flex items-center gap-8">
@@ -656,52 +679,89 @@ export function AcademicInfoStep({
 											}
 											onInputChange('researchPapers', newPapers)
 										}}
+										inputSize="select"
 									/>
 								</div>
 								<div className="space-y-2">
 									<Label className="text-sm font-medium text-foreground">
-										Discipline
+										Disciplines
 									</Label>
-									<CustomSelect
-										value={
-											paper.discipline
-												? { value: paper.discipline, label: paper.discipline }
-												: null
-										}
-										onChange={(option) => {
-											const newPapers = [...(formData.researchPapers || [])]
-											newPapers[index] = {
-												...newPapers[index],
-												discipline: option?.value || '',
-											}
-											onInputChange('researchPapers', newPapers)
-										}}
-										placeholder="Select discipline"
-										options={[
-											{ value: 'Computer Science', label: 'Computer Science' },
-											{
-												value: 'Business Administration',
-												label: 'Business Administration',
-											},
-											{ value: 'Engineering', label: 'Engineering' },
-											{ value: 'Medicine', label: 'Medicine' },
-											{ value: 'Law', label: 'Law' },
-											{ value: 'Arts', label: 'Arts' },
-											{ value: 'Sciences', label: 'Sciences' },
-											{ value: 'Mathematics', label: 'Mathematics' },
-											{ value: 'Physics', label: 'Physics' },
-											{ value: 'Chemistry', label: 'Chemistry' },
-											{ value: 'Biology', label: 'Biology' },
-											{ value: 'Psychology', label: 'Psychology' },
-											{ value: 'Sociology', label: 'Sociology' },
-											{ value: 'Economics', label: 'Economics' },
-											{
-												value: 'Political Science',
-												label: 'Political Science',
-											},
-										]}
-										menuPortalTarget={document.body}
-									/>
+									<div className="border border-gray-200 rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
+										<div className="grid grid-cols-1 gap-2">
+											{[
+												'Computer Science',
+												'Business Administration',
+												'Engineering',
+												'Medicine',
+												'Law',
+												'Arts',
+												'Sciences',
+												'Mathematics',
+												'Physics',
+												'Chemistry',
+												'Biology',
+												'Psychology',
+												'Sociology',
+												'Economics',
+												'Political Science',
+											].map((discipline) => {
+												const selectedDisciplines = paper.discipline
+													? paper.discipline
+															.split(',')
+															.map((d: string) => d.trim())
+													: []
+												const isSelected =
+													selectedDisciplines.includes(discipline)
+
+												return (
+													<label
+														key={discipline}
+														className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition-colors"
+													>
+														<input
+															type="checkbox"
+															checked={isSelected}
+															onChange={() => {
+																const newPapers = [
+																	...(formData.researchPapers || []),
+																]
+																const currentDisciplines = paper.discipline
+																	? paper.discipline
+																			.split(',')
+																			.map((d: string) => d.trim())
+																	: []
+
+																let updatedDisciplines
+																if (isSelected) {
+																	// Remove discipline
+																	updatedDisciplines =
+																		currentDisciplines.filter(
+																			(d) => d !== discipline
+																		)
+																} else {
+																	// Add discipline
+																	updatedDisciplines = [
+																		...currentDisciplines,
+																		discipline,
+																	]
+																}
+
+																newPapers[index] = {
+																	...newPapers[index],
+																	discipline: updatedDisciplines.join(', '),
+																}
+																onInputChange('researchPapers', newPapers)
+															}}
+															className="w-4 h-4 text-primary border-2 border-gray-300 rounded focus:ring-primary focus:ring-2"
+														/>
+														<span className="text-sm text-gray-700">
+															{discipline}
+														</span>
+													</label>
+												)
+											})}
+										</div>
+									</div>
 								</div>
 							</div>
 
@@ -712,11 +772,35 @@ export function AcademicInfoStep({
 								</Label>
 								<FileUploadManager
 									onFilesUploaded={(files) => {
+										// Get current paper info for context
+										const currentPaper = formData.researchPapers?.[index]
+										const paperTitle =
+											currentPaper?.title || `Research Paper ${index + 1}`
+										const paperDiscipline =
+											currentPaper?.discipline || 'No discipline specified'
+
+										// Enhance files with research paper context
+										const processedFiles = files.map((file) => ({
+											...file,
+											// Add research paper context
+											researchPaperTitle: paperTitle,
+											researchPaperDiscipline: paperDiscipline,
+											researchPaperIndex: index,
+											// Enhanced display name
+											displayName: `${file.name} (${paperTitle})`,
+											// Enhanced category with context
+											category: `research-paper-${index}-${paperTitle.replace(/\s+/g, '-').toLowerCase()}`,
+										}))
+
 										const newPapers = [...(formData.researchPapers || [])]
+										const existingFiles = newPapers[index]?.files || []
+
 										newPapers[index] = {
 											...newPapers[index],
-											files: files,
+											files: [...existingFiles, ...processedFiles],
 										}
+
+										// Update the research papers
 										onInputChange('researchPapers', newPapers)
 									}}
 									category={`research-paper-${index}`}
@@ -758,6 +842,15 @@ export function AcademicInfoStep({
 						</button>
 					</div>
 				</div>
+
+				{/* Manage Files Button - Final Section */}
+				{getAllFiles().length > 0 && (
+					<div className="flex justify-center pt-6">
+						<Button variant="outline" onClick={onShowManageModal} size="sm">
+							Manage Files ({getAllFiles().length})
+						</Button>
+					</div>
+				)}
 			</div>
 			<div className="flex justify-between">
 				<Button variant="outline" onClick={onBack} size="sm">

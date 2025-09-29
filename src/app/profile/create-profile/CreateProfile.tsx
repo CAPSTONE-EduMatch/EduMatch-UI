@@ -1,22 +1,50 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { authClient } from '@/app/lib/auth-client'
 import { Card, CardContent } from '@/components/ui/card'
 import { ProgressBar } from '@/components/profile/ProgressBar'
 import { RoleSelectionStep } from '@/components/profile/RoleSelectionStep'
 import { BasicInfoStep } from '@/components/profile/BasicInfoStep'
 import { AcademicInfoStep } from '@/components/profile/AcademicInfoStep'
+import { InstitutionInfoStep } from '@/components/profile/InstitutionInfoStep'
+import { InstitutionDetailsStep } from '@/components/profile/InstitutionDetailsStep'
 import { CompletionStep } from '@/components/profile/CompletionStep'
-import { FormData } from '@/types/profile'
+import { ProfileFormData } from '@/types/profile'
 import Button from '@/components/ui/Button'
 
 export default function CreateProfile() {
+	const router = useRouter()
 	const [currentStep, setCurrentStep] = useState(1)
 	const [isTransitioning, setIsTransitioning] = useState(false)
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
-	const [formData, setFormData] = useState<FormData>({
+	const [isLoading, setIsLoading] = useState(true)
+
+	// Check authentication on component mount
+	useEffect(() => {
+		const checkAuth = async () => {
+			try {
+				const session = await authClient.getSession()
+				if (!session) {
+					// User is not authenticated, redirect to login
+					router.push('/signin')
+					return
+				}
+				setIsLoading(false)
+			} catch (error) {
+				console.error('Auth check failed:', error)
+				router.push('/signin')
+			}
+		}
+
+		checkAuth()
+	}, [router])
+
+	const [formData, setFormData] = useState<ProfileFormData>({
 		role: '',
+		// Student fields
 		firstName: '',
 		lastName: '',
 		gender: '',
@@ -28,6 +56,28 @@ export default function CreateProfile() {
 		interests: [],
 		favoriteCountries: [],
 		profilePhoto: '',
+		// Institution fields
+		institutionName: '',
+		institutionAbbreviation: '',
+		institutionHotline: '',
+		institutionHotlineCode: '+1',
+		institutionType: '',
+		institutionWebsite: '',
+		institutionEmail: '',
+		institutionCountry: '',
+		institutionAddress: '',
+		campuses: [],
+		representativeName: '',
+		representativeAppellation: '',
+		representativePosition: '',
+		representativeEmail: '',
+		representativePhone: '',
+		representativePhoneCode: '+1',
+		aboutInstitution: '',
+		// Institution Details fields
+		institutionDisciplines: [],
+		institutionCoverImage: '',
+		institutionVerificationDocuments: [],
 		// Academic fields
 		graduationStatus: '',
 		degree: '',
@@ -53,8 +103,14 @@ export default function CreateProfile() {
 	})
 
 	const handleNext = () => {
-		if (currentStep < 4 && !isTransitioning) {
+		const maxStep = formData.role === 'applicant' ? 4 : 4
+		if (currentStep < maxStep && !isTransitioning) {
 			setIsTransitioning(true)
+			// Auto-close modal if leaving Academic Info step (step 3)
+			if (currentStep === 3 && showManageModal) {
+				setShowManageModal(false)
+				setIsClosing(false)
+			}
 			setTimeout(() => {
 				setCurrentStep(currentStep + 1)
 				setIsTransitioning(false)
@@ -65,6 +121,11 @@ export default function CreateProfile() {
 	const handleBack = () => {
 		if (currentStep > 1 && !isTransitioning) {
 			setIsTransitioning(true)
+			// Auto-close modal if leaving Academic Info step (step 3)
+			if (currentStep === 3 && showManageModal) {
+				setShowManageModal(false)
+				setIsClosing(false)
+			}
 			setTimeout(() => {
 				setCurrentStep(currentStep - 1)
 				setIsTransitioning(false)
@@ -77,7 +138,7 @@ export default function CreateProfile() {
 	}
 
 	const handleInputChange = (
-		field: keyof FormData,
+		field: keyof ProfileFormData,
 		value:
 			| string
 			| Array<{ language: string; certificate: string; score: string }>
@@ -87,29 +148,49 @@ export default function CreateProfile() {
 	}
 
 	const handleInputChangeEvent =
-		(field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+		(field: keyof ProfileFormData) =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
 			handleInputChange(field, e.target.value)
 		}
 
-	const handleSelectChange = (field: keyof FormData) => (value: string) => {
-		handleInputChange(field, value)
-	}
+	const handleSelectChange =
+		(field: keyof ProfileFormData) => (value: string) => {
+			handleInputChange(field, value)
+		}
 
 	const handleMultiSelectChange =
-		(field: 'interests' | 'favoriteCountries') => (value: string[]) => {
+		(field: keyof ProfileFormData) => (value: string[]) => {
 			setFormData({ ...formData, [field]: value })
 		}
 
 	const handleFilesUploaded = (files: any[]) => {
-		setFormData({ ...formData, uploadedFiles: files })
+		// Check if files are verification documents
+		const verificationDocs = files.filter(
+			(file) => file.category === 'verification'
+		)
+		if (verificationDocs.length > 0) {
+			setFormData({
+				...formData,
+				institutionVerificationDocuments: [
+					...(formData.institutionVerificationDocuments || []),
+					...verificationDocs,
+				],
+			})
+		} else {
+			setFormData({ ...formData, uploadedFiles: files })
+		}
 	}
 
 	const getAllFiles = () => {
+		const researchPaperFiles =
+			formData.researchPapers?.flatMap((paper) => paper.files || []) || []
 		return [
 			...(formData.cvFiles || []),
 			...(formData.languageCertFiles || []),
 			...(formData.degreeFiles || []),
 			...(formData.transcriptFiles || []),
+			...researchPaperFiles,
+			...(formData.institutionVerificationDocuments || []),
 		]
 	}
 
@@ -127,15 +208,56 @@ export default function CreateProfile() {
 	}
 
 	const handleCheckboxChange =
-		(field: keyof FormData) => (checked: boolean) => {
+		(field: keyof ProfileFormData) => (_checked: boolean) => {
 			if (field === 'graduationStatus') {
 				// This will be handled by the AcademicInfoStep component directly
 				// We just need to provide the function signature
 			}
 		}
 
-	const handleGetStarted = () => {
-		window.location.href = '/'
+	const handleGetStarted = async () => {
+		try {
+			// Save profile to database
+			const response = await fetch('/api/profile', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(formData),
+			})
+
+			if (response.ok) {
+				const result = await response.json()
+				// Profile saved successfully
+				// Redirect to home page
+				window.location.href = '/'
+			} else {
+				const error = await response.json()
+				// Error saving profile
+				alert('Failed to save profile. Please try again.')
+			}
+		} catch (error) {
+			// Error saving profile
+			alert('Failed to save profile. Please try again.')
+		}
+	}
+
+	// Show loading state while checking authentication
+	if (isLoading) {
+		return (
+			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
+				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
+					<CardContent className="p-8">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+							<p className="text-muted-foreground">
+								Checking authentication...
+							</p>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		)
 	}
 
 	return (
@@ -146,10 +268,23 @@ export default function CreateProfile() {
 						<h1 className="text-3xl font-bold text-primary">Create Profile</h1>
 					</div>
 
-					<ProgressBar currentStep={currentStep} totalSteps={4} />
+					<ProgressBar
+						currentStep={currentStep}
+						totalSteps={formData.role === 'applicant' ? 4 : 4}
+						onStepClick={(step) => {
+							if (step <= currentStep || step === 1) {
+								// Auto-close modal if leaving Academic Info step (step 3)
+								if (currentStep === 3 && showManageModal && step !== 3) {
+									setShowManageModal(false)
+									setIsClosing(false)
+								}
+								setCurrentStep(step)
+							}
+						}}
+					/>
 
 					<div
-						className={`relative ${currentStep === 4 ? 'min-h-0' : 'min-h-[300px]'}`}
+						className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[300px]'}`}
 					>
 						<div
 							className={`transition-all duration-500 ease-in-out ${
@@ -167,18 +302,30 @@ export default function CreateProfile() {
 							)}
 							{currentStep === 2 && (
 								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									<BasicInfoStep
-										formData={formData}
-										onInputChange={handleInputChange}
-										onInputChangeEvent={handleInputChangeEvent}
-										onSelectChange={handleSelectChange}
-										onMultiSelectChange={handleMultiSelectChange}
-										onBack={handleBack}
-										onNext={handleNext}
-									/>
+									{formData.role === 'applicant' ? (
+										<BasicInfoStep
+											formData={formData}
+											onInputChange={handleInputChange}
+											onInputChangeEvent={handleInputChangeEvent}
+											onSelectChange={handleSelectChange}
+											onMultiSelectChange={handleMultiSelectChange}
+											onBack={handleBack}
+											onNext={handleNext}
+										/>
+									) : (
+										<InstitutionInfoStep
+											formData={formData}
+											onInputChange={handleInputChange}
+											onInputChangeEvent={handleInputChangeEvent}
+											onSelectChange={handleSelectChange}
+											onBack={handleBack}
+											onNext={handleNext}
+											onShowManageModal={handleOpenModal}
+										/>
+									)}
 								</div>
 							)}
-							{currentStep === 3 && (
+							{currentStep === 3 && formData.role === 'applicant' && (
 								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
 									<AcademicInfoStep
 										formData={formData}
@@ -193,7 +340,25 @@ export default function CreateProfile() {
 									/>
 								</div>
 							)}
-							{currentStep === 4 && (
+							{currentStep === 3 && formData.role === 'institution' && (
+								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+									<InstitutionDetailsStep
+										formData={formData}
+										onInputChange={handleInputChange}
+										onMultiSelectChange={handleMultiSelectChange}
+										onFilesUploaded={handleFilesUploaded}
+										onBack={handleBack}
+										onNext={handleNext}
+										onShowManageModal={handleOpenModal}
+									/>
+								</div>
+							)}
+							{currentStep === 4 && formData.role === 'applicant' && (
+								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+									<CompletionStep onGetStarted={handleGetStarted} />
+								</div>
+							)}
+							{currentStep === 4 && formData.role === 'institution' && (
 								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
 									<CompletionStep onGetStarted={handleGetStarted} />
 								</div>
@@ -252,12 +417,29 @@ export default function CreateProfile() {
 														{(file.size / 1024).toFixed(1)} KB
 													</p>
 												</div>
-												<Button
-													variant="outline"
-													onClick={() => window.open(file.url, '_blank')}
-												>
-													View
-												</Button>
+												<div className="flex gap-2">
+													<Button
+														variant="outline"
+														onClick={() => window.open(file.url, '_blank')}
+													>
+														View
+													</Button>
+													<Button
+														variant="outline"
+														onClick={() => {
+															const updatedFiles = formData.cvFiles.filter(
+																(f) => f.id !== file.id
+															)
+															setFormData({
+																...formData,
+																cvFiles: updatedFiles,
+															})
+														}}
+														className="text-red-500 hover:text-red-700"
+													>
+														Delete
+													</Button>
+												</div>
 											</div>
 										))}
 									</div>
@@ -289,12 +471,30 @@ export default function CreateProfile() {
 															{(file.size / 1024).toFixed(1)} KB
 														</p>
 													</div>
-													<Button
-														variant="outline"
-														onClick={() => window.open(file.url, '_blank')}
-													>
-														View
-													</Button>
+													<div className="flex gap-2">
+														<Button
+															variant="outline"
+															onClick={() => window.open(file.url, '_blank')}
+														>
+															View
+														</Button>
+														<Button
+															variant="outline"
+															onClick={() => {
+																const updatedFiles =
+																	formData.languageCertFiles.filter(
+																		(f) => f.id !== file.id
+																	)
+																setFormData({
+																	...formData,
+																	languageCertFiles: updatedFiles,
+																})
+															}}
+															className="text-red-500 hover:text-red-700"
+														>
+															Delete
+														</Button>
+													</div>
 												</div>
 											))}
 										</div>
@@ -324,12 +524,29 @@ export default function CreateProfile() {
 														{(file.size / 1024).toFixed(1)} KB
 													</p>
 												</div>
-												<Button
-													variant="outline"
-													onClick={() => window.open(file.url, '_blank')}
-												>
-													View
-												</Button>
+												<div className="flex gap-2">
+													<Button
+														variant="outline"
+														onClick={() => window.open(file.url, '_blank')}
+													>
+														View
+													</Button>
+													<Button
+														variant="outline"
+														onClick={() => {
+															const updatedFiles = formData.degreeFiles.filter(
+																(f) => f.id !== file.id
+															)
+															setFormData({
+																...formData,
+																degreeFiles: updatedFiles,
+															})
+														}}
+														className="text-red-500 hover:text-red-700"
+													>
+														Delete
+													</Button>
+												</div>
 											</div>
 										))}
 									</div>
@@ -360,12 +577,175 @@ export default function CreateProfile() {
 															{(file.size / 1024).toFixed(1)} KB
 														</p>
 													</div>
-													<Button
-														variant="outline"
-														onClick={() => window.open(file.url, '_blank')}
-													>
-														View
-													</Button>
+													<div className="flex gap-2">
+														<Button
+															variant="outline"
+															onClick={() => window.open(file.url, '_blank')}
+														>
+															View
+														</Button>
+														<Button
+															variant="outline"
+															onClick={() => {
+																const updatedFiles =
+																	formData.transcriptFiles.filter(
+																		(f) => f.id !== file.id
+																	)
+																setFormData({
+																	...formData,
+																	transcriptFiles: updatedFiles,
+																})
+															}}
+															className="text-red-500 hover:text-red-700"
+														>
+															Delete
+														</Button>
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
+							{/* Research Papers Section */}
+							{formData.researchPapers &&
+								formData.researchPapers.some(
+									(paper) => paper.files && paper.files.length > 0
+								) && (
+									<div className="space-y-4">
+										<h3 className="text-lg font-medium text-foreground border-b pb-2">
+											Research Papers (
+											{formData.researchPapers.reduce(
+												(total, paper) => total + (paper.files?.length || 0),
+												0
+											)}
+											)
+										</h3>
+										<div className="space-y-6">
+											{formData.researchPapers.map(
+												(paper, paperIndex) =>
+													paper.files &&
+													paper.files.length > 0 && (
+														<div key={paperIndex} className="space-y-3">
+															<div className="bg-blue-50 p-3 rounded-lg">
+																<h4 className="font-medium text-blue-900">
+																	{paper.title ||
+																		`Research Paper ${paperIndex + 1}`}
+																</h4>
+																{paper.discipline && (
+																	<p className="text-sm text-blue-700">
+																		Discipline: {paper.discipline}
+																	</p>
+																)}
+															</div>
+															<div className="grid grid-cols-1 gap-3">
+																{paper.files.map((file) => (
+																	<div
+																		key={file.id}
+																		className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+																	>
+																		<div className="text-2xl">📄</div>
+																		<div className="flex-1 min-w-0">
+																			<p className="text-sm font-medium text-foreground truncate">
+																				{file.name || file.originalName}
+																			</p>
+																			<p className="text-xs text-muted-foreground">
+																				{(file.size / 1024).toFixed(1)} KB
+																			</p>
+																		</div>
+																		<div className="flex gap-2">
+																			<Button
+																				variant="outline"
+																				onClick={() =>
+																					window.open(file.url, '_blank')
+																				}
+																			>
+																				View
+																			</Button>
+																			<Button
+																				variant="outline"
+																				onClick={() => {
+																					const updatedPapers = [
+																						...formData.researchPapers,
+																					]
+																					updatedPapers[paperIndex] = {
+																						...updatedPapers[paperIndex],
+																						files: updatedPapers[
+																							paperIndex
+																						].files.filter(
+																							(f) => f.id !== file.id
+																						),
+																					}
+																					setFormData({
+																						...formData,
+																						researchPapers: updatedPapers,
+																					})
+																				}}
+																				className="text-red-500 hover:text-red-700"
+																			>
+																				Delete
+																			</Button>
+																		</div>
+																	</div>
+																))}
+															</div>
+														</div>
+													)
+											)}
+										</div>
+									</div>
+								)}
+
+							{/* Institution Verification Documents Section */}
+							{formData.institutionVerificationDocuments &&
+								formData.institutionVerificationDocuments.length > 0 && (
+									<div className="space-y-4">
+										<h3 className="text-lg font-medium text-foreground border-b pb-2">
+											Institution Verification Documents (
+											{formData.institutionVerificationDocuments.length})
+										</h3>
+										<div className="grid grid-cols-1 gap-4">
+											{formData.institutionVerificationDocuments.map((file) => (
+												<div
+													key={file.id}
+													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+												>
+													<div className="text-2xl">
+														{file.type?.startsWith('image/') ? '🖼️' : '📄'}
+													</div>
+													<div className="flex-1 min-w-0">
+														<p className="text-sm font-medium text-foreground truncate">
+															{file.name || file.originalName}
+														</p>
+														<p className="text-xs text-muted-foreground">
+															{(file.size / 1024).toFixed(1)} KB
+														</p>
+													</div>
+													<div className="flex gap-2">
+														<Button
+															variant="outline"
+															onClick={() => window.open(file.url, '_blank')}
+														>
+															View
+														</Button>
+														<Button
+															variant="outline"
+															onClick={() => {
+																const updatedFiles =
+																	formData.institutionVerificationDocuments.filter(
+																		(f) => f.id !== file.id
+																	)
+																setFormData({
+																	...formData,
+																	institutionVerificationDocuments:
+																		updatedFiles,
+																})
+															}}
+															className="text-red-500 hover:text-red-700"
+														>
+															Delete
+														</Button>
+													</div>
 												</div>
 											))}
 										</div>

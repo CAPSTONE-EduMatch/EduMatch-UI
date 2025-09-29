@@ -17,8 +17,8 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @default(now()) @updatedAt
   stripeCustomerId String?
-  account          Account[]
-  profile          profile?
+  accounts         Account[]
+  profile          Profile?
 
   @@map("User")
 }
@@ -37,7 +37,7 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  User                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
 }
@@ -94,23 +94,22 @@ model Post {
 }
 
 model File {
-  id           String         @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
-  originalName String         @map("originalName")
-  key          String         @unique
+  originalName String   @map("originalName")
+  key          String   @unique
   bucket       String
-  size         Int
-  mimeType     String         @map("mimeType")
+  size         Int?
+  mimeType     String?   @map("mimeType")
   extension    String?
-  category     String         @default("other")
+  category     String   @default("other")
   url          String?
-  isPublic     Boolean        @default(false) @map("isPublic")
+  isPublic     Boolean  @default(false) @map("isPublic")
   metadata     Json?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   userId       String
   folderId     String?
-  profile_file profile_file[]
 
   @@map("file")
 }
@@ -126,6 +125,80 @@ model Folder {
   parentId    String?
 
   @@map("folder")
+}
+
+model Profile {
+  id                 String          @id @default(uuid())
+  userId             String          @unique
+  role               String
+  firstName          String
+  lastName           String
+  gender             String
+  birthday           String
+  nationality        String
+  phoneNumber        String
+  countryCode        String
+  interests          String[]        @default([])
+  favoriteCountries  String[]        @default([])
+  profilePhoto       String?
+  graduationStatus   String?
+  degree             String?
+  fieldOfStudy       String?
+  university         String?
+  graduationYear     String?
+  gpa                String?
+  countryOfStudy     String?
+  scoreType          String?
+  scoreValue         String?
+  hasForeignLanguage String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  languages          Language[]
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadedFiles      ProfileFile[]
+  researchPapers     ResearchPaper[]
+
+  @@map("profile")
+}
+
+model Language {
+  id          String   @id @default(uuid())
+  profileId   String
+  language    String
+  certificate String
+  score       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("language")
+}
+
+model ResearchPaper {
+  id         String        @id @default(uuid())
+  profileId  String
+  title      String
+  discipline String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  files      ProfileFile[]
+  profile    Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("research_paper")
+}
+
+model ProfileFile {
+  id              String         @id @default(uuid())
+  profileId       String?
+  researchPaperId String?
+  fileId          String
+  category        String
+  createdAt       DateTime       @default(now())
+  file            File           @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  profile         Profile?       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  researchPaper   ResearchPaper? @relation(fields: [researchPaperId], references: [id], onDelete: Cascade)
+
+  @@map("profile_file")
 }
 
 model language {

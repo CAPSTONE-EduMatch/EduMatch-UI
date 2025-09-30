@@ -3,14 +3,14 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { auth } from "@/app/lib/auth";
 
 const s3Client = new S3Client({
-	region: process.env.AWS_REGION || "us-east-1",
+	region: process.env.REGION || "us-east-1",
 	credentials: {
-		accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+		accessKeyId: process.env.ACCESS_KEY_ID || "",
+		secretAccessKey: process.env.SECRET_ACCESS_KEY || "",
 	},
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || "edumatch-file-12";
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || "edumatch-file-12";
 
 export async function POST(request: NextRequest) {
 	try {

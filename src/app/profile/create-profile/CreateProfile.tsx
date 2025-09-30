@@ -27,7 +27,7 @@ export default function CreateProfile() {
 		const checkAuth = async () => {
 			try {
 				const session = await authClient.getSession()
-				if (!session) {
+				if (!session?.data && session?.data?.user) {
 					// User is not authenticated, redirect to login
 					router.push('/signin')
 					return

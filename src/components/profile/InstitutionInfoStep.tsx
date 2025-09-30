@@ -130,7 +130,7 @@ export function InstitutionInfoStep({
 			<div className="flex items-center gap-4">
 				<div className="relative">
 					<Avatar className="w-20 h-20">
-						<AvatarImage src={formData.profilePhoto || '/placeholder.svg'} />
+						<AvatarImage src={formData.profilePhoto || '/profile.svg'} />
 						<AvatarFallback className="bg-blue-500 text-white">
 							<Building2 className="w-8 h-8" />
 						</AvatarFallback>

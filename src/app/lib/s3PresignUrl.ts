@@ -23,10 +23,10 @@ export async function generatePresignedPost(
 	}
 
 	const s3Client = new S3Client({
-		region: process.env.S3_REGION,
+		region: process.env.REGION,
 		credentials: {
-			accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
-			secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
+			accessKeyId: process.env.ACCESS_KEY_ID || "",
+			secretAccessKey: process.env.SECRET_ACCESS_KEY || "",
 		},
 	});
 
@@ -53,10 +53,10 @@ export async function listS3Objects(
 	prefix: string = "uploads/"
 ) {
 	const s3Client = new S3Client({
-		region: process.env.S3_REGION,
+		region: process.env.REGION,
 		credentials: {
-			accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
-			secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
+			accessKeyId: process.env.ACCESS_KEY_ID || "",
+			secretAccessKey: process.env.SECRET_ACCESS_KEY || "",
 		},
 	});
 
@@ -88,10 +88,10 @@ export async function generatePresignedGetUrl(
 	expiresIn: number = 3600
 ) {
 	const s3Client = new S3Client({
-		region: process.env.S3_REGION,
+		region: process.env.REGION,
 		credentials: {
-			accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
-			secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
+			accessKeyId: process.env.ACCESS_KEY_ID || "",
+			secretAccessKey: process.env.SECRET_ACCESS_KEY || "",
 		},
 	});
 

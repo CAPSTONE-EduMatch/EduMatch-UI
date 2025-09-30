@@ -6,7 +6,7 @@ import {
 	EmailVerificationModal,
 	GoogleButton,
 } from '@/components/auth'
-import { Input, Modal, ResendCodeButton } from '@/components/ui'
+import { Input, Modal } from '@/components/ui'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -71,11 +71,59 @@ const SignIn: React.FC = () => {
 	// Email verification states
 	const [showEmailVerification, setShowEmailVerification] = useState(false)
 	const [pendingEmail, setPendingEmail] = useState('')
+	// Forgot password cooldown states
+	const [forgotPasswordCooldown, setForgotPasswordCooldown] = useState(0)
+	const [canSendForgotPassword, setCanSendForgotPassword] = useState(true)
+	const [lastForgotPasswordEmail, setLastForgotPasswordEmail] = useState('')
 
 	// Trigger animation after component mounts
 	useEffect(() => {
 		setAnimateForm(true)
 	}, [])
+
+	// Load forgot password cooldown from localStorage on mount
+	useEffect(() => {
+		const savedCooldown = localStorage.getItem('forgotPasswordCooldownEnd')
+		const savedEmail = localStorage.getItem('forgotPasswordCooldownEmail')
+
+		if (savedCooldown && savedEmail) {
+			const cooldownEnd = parseInt(savedCooldown)
+			const now = Date.now()
+			const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000))
+
+			if (remainingTime > 0) {
+				setForgotPasswordCooldown(remainingTime)
+				setLastForgotPasswordEmail(savedEmail)
+				setCanSendForgotPassword(false)
+			} else {
+				// Cleanup expired cooldown
+				localStorage.removeItem('forgotPasswordCooldownEnd')
+				localStorage.removeItem('forgotPasswordCooldownEmail')
+			}
+		}
+	}, [])
+
+	// Forgot password cooldown effect
+	useEffect(() => {
+		let intervalId: NodeJS.Timeout
+		if (forgotPasswordCooldown > 0) {
+			intervalId = setInterval(() => {
+				setForgotPasswordCooldown((prev) => {
+					if (prev <= 1) {
+						// Clear localStorage when cooldown expires
+						localStorage.removeItem('forgotPasswordCooldownEnd')
+						localStorage.removeItem('forgotPasswordCooldownEmail')
+						setCanSendForgotPassword(true)
+						return 0
+					}
+					return prev - 1
+				})
+			}, 1000)
+		}
+		return () => {
+			if (intervalId) clearInterval(intervalId)
+		}
+	}, [forgotPasswordCooldown])
 
 	function validate() {
 		const next: { email?: string; password?: string } = {}
@@ -148,6 +196,16 @@ const SignIn: React.FC = () => {
 			}))
 			return
 		}
+
+		// Check for active cooldown
+		if (forgotPasswordCooldown > 0 && lastForgotPasswordEmail === forgotEmail) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: `Please wait ${forgotPasswordCooldown} seconds before requesting another reset link.`,
+			}))
+			return
+		}
+
 		setIsLoading(true)
 		try {
 			// First check if user exists
@@ -203,6 +261,17 @@ const SignIn: React.FC = () => {
 			setResetSent(true)
 			setHasSubmittedForgotEmail(true)
 			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
+
+			// Start cooldown to prevent spam
+			setForgotPasswordCooldown(60)
+			setLastForgotPasswordEmail(forgotEmail)
+			setCanSendForgotPassword(false)
+			// Store in localStorage for persistence
+			localStorage.setItem(
+				'forgotPasswordCooldownEnd',
+				(Date.now() + 60000).toString()
+			)
+			localStorage.setItem('forgotPasswordCooldownEmail', forgotEmail)
 		} catch (error) {
 			// Handle API errors
 			if (axios.isAxiosError(error)) {
@@ -229,6 +298,16 @@ const SignIn: React.FC = () => {
 			}))
 			return
 		}
+
+		// Check for active cooldown
+		if (!canSendForgotPassword && lastForgotPasswordEmail === forgotEmail) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: `Please wait ${forgotPasswordCooldown} seconds before requesting another reset link.`,
+			}))
+			return
+		}
+
 		setIsLoading(true)
 		try {
 			// First check if user exists
@@ -269,6 +348,17 @@ const SignIn: React.FC = () => {
 				error: undefined,
 			})
 			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
+
+			// Start cooldown to prevent spam
+			setForgotPasswordCooldown(60)
+			setLastForgotPasswordEmail(forgotEmail)
+			setCanSendForgotPassword(false)
+			// Store in localStorage for persistence
+			localStorage.setItem(
+				'forgotPasswordCooldownEnd',
+				(Date.now() + 60000).toString()
+			)
+			localStorage.setItem('forgotPasswordCooldownEmail', forgotEmail)
 		} catch (error) {
 			// Handle API errors
 			if (axios.isAxiosError(error)) {
@@ -561,11 +651,23 @@ const SignIn: React.FC = () => {
 						</motion.form>
 
 						{hasSubmittedForgotEmail && (
-							<ResendCodeButton
-								onResend={handleResendForgotPassword}
-								disabled={isLoading}
-								className="mt-4 w-full"
-							/>
+							<motion.button
+								onClick={handleResendForgotPassword}
+								disabled={isLoading || !canSendForgotPassword}
+								className="mt-4 w-full px-4 py-2 text-sm font-medium text-[#126E64] bg-transparent border border-[#126E64] rounded-full hover:bg-[#126E64] hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								whileHover={
+									canSendForgotPassword && !isLoading ? { scale: 1.02 } : {}
+								}
+								whileTap={
+									canSendForgotPassword && !isLoading ? { scale: 0.98 } : {}
+								}
+							>
+								{isLoading
+									? 'Sending...'
+									: !canSendForgotPassword
+										? `Resend Reset Link (${forgotPasswordCooldown}s)`
+										: 'Resend Reset Link'}
+							</motion.button>
 						)}
 					</motion.div>
 				) : (
@@ -620,11 +722,23 @@ const SignIn: React.FC = () => {
 						</motion.button>
 
 						{hasSubmittedForgotEmail && (
-							<ResendCodeButton
-								onResend={handleResendForgotPassword}
-								disabled={isLoading}
-								className="mt-4 w-full"
-							/>
+							<motion.button
+								onClick={handleResendForgotPassword}
+								disabled={isLoading || !canSendForgotPassword}
+								className="mt-4 w-full px-4 py-2 text-sm font-medium text-[#126E64] bg-transparent border border-[#126E64] rounded-full hover:bg-[#126E64] hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								whileHover={
+									canSendForgotPassword && !isLoading ? { scale: 1.02 } : {}
+								}
+								whileTap={
+									canSendForgotPassword && !isLoading ? { scale: 0.98 } : {}
+								}
+							>
+								{isLoading
+									? 'Sending...'
+									: !canSendForgotPassword
+										? `Resend Reset Link (${forgotPasswordCooldown}s)`
+										: 'Resend Reset Link'}
+							</motion.button>
 						)}
 					</motion.div>
 				)}

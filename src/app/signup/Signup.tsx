@@ -63,15 +63,90 @@ const Signup = () => {
 	const [passwordIsValid, setPasswordIsValid] = useState(false)
 	const [showOTPPopup, setShowOTPPopup] = useState(false)
 	const [OTPError, setOTPError] = useState('')
-	const [OTPSuccess, setOTPSuccess] = useState('')
 	const [isOTPLoading, setIsOTPLoading] = useState(false)
 	const [animateForm, setAnimateForm] = useState(false)
 	const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
+	const [resendCountdown, setResendCountdown] = useState(0)
+	const [canResend, setCanResend] = useState(true)
+	const [globalOtpCooldown, setGlobalOtpCooldown] = useState(0)
+	const [lastOtpRequestEmail, setLastOtpRequestEmail] = useState('')
+
+	// Load cooldown from localStorage on mount
+	useEffect(() => {
+		const savedCooldown = localStorage.getItem('otpCooldownEnd')
+		const savedEmail = localStorage.getItem('otpCooldownEmail')
+
+		if (savedCooldown && savedEmail) {
+			const cooldownEnd = parseInt(savedCooldown)
+			const now = Date.now()
+			const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000))
+
+			if (remainingTime > 0) {
+				setGlobalOtpCooldown(remainingTime)
+				setLastOtpRequestEmail(savedEmail)
+			} else {
+				// Cleanup expired cooldown
+				localStorage.removeItem('otpCooldownEnd')
+				localStorage.removeItem('otpCooldownEmail')
+			}
+		}
+	}, [])
 
 	// Trigger animation after component mounts
 	useEffect(() => {
 		setAnimateForm(true)
 	}, [])
+
+	// Countdown effect for resend button
+	useEffect(() => {
+		let intervalId: NodeJS.Timeout
+		if (resendCountdown > 0) {
+			intervalId = setInterval(() => {
+				setResendCountdown((prev) => {
+					if (prev <= 1) {
+						setCanResend(true)
+						return 0
+					}
+					return prev - 1
+				})
+			}, 1000)
+		}
+		return () => {
+			if (intervalId) clearInterval(intervalId)
+		}
+	}, [resendCountdown])
+
+	// Global OTP cooldown effect (prevents bypassing by closing modal)
+	useEffect(() => {
+		let intervalId: NodeJS.Timeout
+		if (globalOtpCooldown > 0) {
+			intervalId = setInterval(() => {
+				setGlobalOtpCooldown((prev) => {
+					if (prev <= 1) {
+						// Clear localStorage when cooldown expires
+						localStorage.removeItem('otpCooldownEnd')
+						localStorage.removeItem('otpCooldownEmail')
+						// Also reset resend button if modal is open
+						setCanResend(true)
+						setResendCountdown(0)
+						return 0
+					}
+					// Sync resend countdown if modal is open and not already in sync
+					if (
+						showOTPPopup &&
+						!canResend &&
+						Math.abs(resendCountdown - (prev - 1)) > 1
+					) {
+						setResendCountdown(prev - 1)
+					}
+					return prev - 1
+				})
+			}, 1000)
+		}
+		return () => {
+			if (intervalId) clearInterval(intervalId)
+		}
+	}, [globalOtpCooldown, showOTPPopup, canResend, resendCountdown])
 
 	// Helper function to handle OTP digit changes
 	const handleOtpChange = (index: number, value: string) => {
@@ -122,10 +197,19 @@ const Signup = () => {
 		setOtpDigits(['', '', '', '', '', ''])
 	}
 
+	// Handle OTP modal close
+	const handleCloseOTPModal = () => {
+		setShowOTPPopup(false)
+		setCanResend(true)
+		setResendCountdown(0)
+		setOTPError('')
+	}
+
 	// Resend OTP function for the popup
 	const handleResendOTP = async () => {
+		if (!canResend) return
+
 		setOTPError('')
-		setOTPSuccess('')
 
 		try {
 			setIsOTPLoading(true)
@@ -146,9 +230,15 @@ const Signup = () => {
 				)
 			} else {
 				// Don't reset digits - let user keep their current input
-				setOTPSuccess('New verification code sent successfully!')
-				// Clear success message after 3 seconds
-				setTimeout(() => setOTPSuccess(''), 3000)
+				// Start countdown and disable resend button
+				setCanResend(false)
+				setResendCountdown(60)
+				// Update global cooldown
+				setGlobalOtpCooldown(60)
+				setLastOtpRequestEmail(email)
+				// Store in localStorage for persistence
+				localStorage.setItem('otpCooldownEnd', (Date.now() + 60000).toString())
+				localStorage.setItem('otpCooldownEmail', email)
 			}
 		} catch (err) {
 			setOTPError('An unexpected error occurred. Please try again.')
@@ -219,7 +309,15 @@ const Signup = () => {
 		e.preventDefault()
 		if (!validate()) return
 		setOTPError('')
-		setOTPSuccess('')
+
+		// If there's an active cooldown for this email, just reopen the OTP modal
+		if (globalOtpCooldown > 0 && lastOtpRequestEmail === email) {
+			setShowOTPPopup(true)
+			// Sync the resend countdown with global cooldown
+			setResendCountdown(globalOtpCooldown)
+			setCanResend(false)
+			return
+		}
 
 		try {
 			setIsLoading(true)
@@ -254,6 +352,15 @@ const Signup = () => {
 			} else {
 				resetOtpDigits()
 				setShowOTPPopup(true)
+				// Start countdown for resend button
+				setCanResend(false)
+				setResendCountdown(60)
+				// Start global cooldown to prevent bypassing
+				setGlobalOtpCooldown(60)
+				setLastOtpRequestEmail(email)
+				// Store in localStorage for persistence
+				localStorage.setItem('otpCooldownEnd', (Date.now() + 60000).toString())
+				localStorage.setItem('otpCooldownEmail', email)
 			}
 		} catch (err) {
 			// Handle both API errors and OTP errors
@@ -271,7 +378,6 @@ const Signup = () => {
 
 	const handleVerifyOTPAndAccountCreation = async (otp: string) => {
 		setOTPError('')
-		setOTPSuccess('')
 		if (!otp.trim() || otp.length !== 6) {
 			setOTPError('Please enter the 6-digit OTP.')
 			return
@@ -306,7 +412,12 @@ const Signup = () => {
 
 			// After successful OTP verification, create the account
 
-			setOTPSuccess('Account created successfully! Redirecting to dashboard...')
+			// Clear global cooldown since verification was successful
+			setGlobalOtpCooldown(0)
+			setLastOtpRequestEmail('')
+			// Clear from localStorage
+			localStorage.removeItem('otpCooldownEnd')
+			localStorage.removeItem('otpCooldownEmail')
 
 			// Redirect to dashboard after successful account creation
 			setTimeout(() => {
@@ -490,14 +601,18 @@ const Signup = () => {
 						<motion.button
 							type="submit"
 							disabled={isLoading}
-							className="w-full bg-[#126E64] text-white py-3 rounded-full shadow-md hover:opacity-90 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
+							className="w-full bg-[#126E64] text-white py-3 rounded-full shadow-md hover:opacity-90 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
 							whileHover={{
 								scale: 1.02,
 								boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
 							}}
 							whileTap={{ scale: 0.98 }}
 						>
-							{isLoading ? 'Signing you up...' : 'Sign Up'}
+							{isLoading
+								? 'Signing you up...'
+								: globalOtpCooldown > 0 && lastOtpRequestEmail === email
+									? 'Continue Verification'
+									: 'Sign Up'}
 						</motion.button>
 					</motion.div>
 
@@ -557,7 +672,7 @@ const Signup = () => {
 								Verify Your Email
 							</h2>
 							<motion.button
-								onClick={() => setShowOTPPopup(false)}
+								onClick={handleCloseOTPModal}
 								className="text-gray-500 hover:text-gray-700 transition-all duration-300"
 								whileHover={{ scale: 1.1 }}
 								whileTap={{ scale: 0.95 }}
@@ -579,180 +694,119 @@ const Signup = () => {
 							</motion.button>
 						</div>
 
-						{OTPSuccess ? (
+						<motion.div
+							initial="hidden"
+							animate="visible"
+							variants={containerVariants}
+						>
+							<motion.p className="text-gray-600 mb-4" variants={itemVariants}>
+								We&apos;ve sent a 6-digit verification code to{' '}
+								<span className="font-medium">{email}</span>. Please enter it
+								below to verify your email address.
+							</motion.p>
+
+							{OTPError && (
+								<motion.div
+									className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded"
+									initial={{ opacity: 0, x: -20 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{ type: 'spring', stiffness: 100 }}
+								>
+									{OTPError}
+								</motion.div>
+							)}
+
+							<motion.div className="mb-4" variants={itemVariants}>
+								<label className="block text-sm font-medium text-gray-700 mb-3">
+									Verification Code
+								</label>
+								<div className="flex justify-center space-x-2">
+									{otpDigits.map((digit, index) => (
+										<input
+											key={index}
+											id={`otp-${index}`}
+											type="text"
+											inputMode="numeric"
+											maxLength={1}
+											value={digit}
+											onChange={(e) => handleOtpChange(index, e.target.value)}
+											onKeyDown={(e) => handleOtpKeyDown(index, e)}
+											onPaste={handleOtpPaste}
+											className="w-14 h-16 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-[#126E64] focus:outline-none focus:ring-2 focus:ring-[#126E64]/20 transition-all duration-200 hover:border-gray-400"
+											// placeholder="0"
+										/>
+									))}
+								</div>
+								{otpDigits.some((digit) => digit) && (
+									<div className="text-center mt-2">
+										<button
+											type="button"
+											onClick={resetOtpDigits}
+											className="text-sm text-gray-500 hover:text-gray-700 underline"
+										>
+											Clear all
+										</button>
+									</div>
+								)}
+							</motion.div>
+
 							<motion.div
-								className="text-center py-4"
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								transition={{ delay: 0.2 }}
+								className="flex justify-end space-x-2"
+								variants={itemVariants}
 							>
-								<motion.svg
-									xmlns="http://www.w3.org/2000/svg"
-									className="h-12 w-12 text-green-500 mx-auto mb-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									initial={{ scale: 0, opacity: 0 }}
-									animate={{ scale: 1, opacity: 1 }}
-									transition={{
-										type: 'spring',
-										stiffness: 100,
-										delay: 0.3,
-									}}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M5 13l4 4L19 7"
-									/>
-								</motion.svg>
-								<motion.p
-									className="text-gray-700 mb-6"
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.4 }}
-								>
-									{OTPSuccess}
-								</motion.p>
 								<motion.button
-									onClick={() => setShowOTPPopup(false)}
-									className="w-full py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 transition-all duration-300"
+									type="button"
+									onClick={handleCloseOTPModal}
+									className="px-4 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-300"
+									whileHover={{
+										scale: 1.02,
+										boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									Cancel
+								</motion.button>
+								<motion.button
+									type="button"
+									onClick={() => {
+										const otpCode = otpDigits.join('')
+										handleVerifyOTPAndAccountCreation(otpCode)
+									}}
+									disabled={isOTPLoading || otpDigits.some((digit) => !digit)}
+									className="px-4 py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 disabled:opacity-70 transition-all duration-300"
 									whileHover={{
 										scale: 1.02,
 										boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
 									}}
 									whileTap={{ scale: 0.98 }}
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.5 }}
 								>
-									Close
+									{isOTPLoading ? 'Verifying...' : 'Verify'}
 								</motion.button>
 							</motion.div>
-						) : (
-							<motion.div
-								initial="hidden"
-								animate="visible"
-								variants={containerVariants}
+
+							<motion.p
+								className="text-sm text-gray-500 mt-4"
+								variants={itemVariants}
 							>
-								<motion.p
-									className="text-gray-600 mb-4"
-									variants={itemVariants}
+								Didn&apos;t receive the code?{' '}
+								<motion.button
+									type="button"
+									onClick={handleResendOTP}
+									disabled={isOTPLoading || !canResend}
+									className="text-[#126E64] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+									whileHover={
+										canResend ? { scale: 1.05, color: '#0D504A' } : {}
+									}
+									whileTap={canResend ? { scale: 0.98 } : {}}
 								>
-									We&apos;ve sent a 6-digit verification code to{' '}
-									<span className="font-medium">{email}</span>. Please enter it
-									below to verify your email address.
-								</motion.p>
-
-								{OTPError && (
-									<motion.div
-										className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded"
-										initial={{ opacity: 0, x: -20 }}
-										animate={{ opacity: 1, x: 0 }}
-										transition={{ type: 'spring', stiffness: 100 }}
-									>
-										{OTPError}
-									</motion.div>
-								)}
-
-								{OTPSuccess && !OTPSuccess.includes('Account created') && (
-									<motion.div
-										className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded"
-										initial={{ opacity: 0, x: -20 }}
-										animate={{ opacity: 1, x: 0 }}
-										transition={{ type: 'spring', stiffness: 100 }}
-									>
-										{OTPSuccess}
-									</motion.div>
-								)}
-
-								<motion.div className="mb-4" variants={itemVariants}>
-									<label className="block text-sm font-medium text-gray-700 mb-3">
-										Verification Code
-									</label>
-									<div className="flex justify-center space-x-2">
-										{otpDigits.map((digit, index) => (
-											<input
-												key={index}
-												id={`otp-${index}`}
-												type="text"
-												inputMode="numeric"
-												maxLength={1}
-												value={digit}
-												onChange={(e) => handleOtpChange(index, e.target.value)}
-												onKeyDown={(e) => handleOtpKeyDown(index, e)}
-												onPaste={handleOtpPaste}
-												className="w-14 h-16 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-[#126E64] focus:outline-none focus:ring-2 focus:ring-[#126E64]/20 transition-all duration-200 hover:border-gray-400"
-												// placeholder="0"
-											/>
-										))}
-									</div>
-									{otpDigits.some((digit) => digit) && (
-										<div className="text-center mt-2">
-											<button
-												type="button"
-												onClick={resetOtpDigits}
-												className="text-sm text-gray-500 hover:text-gray-700 underline"
-											>
-												Clear all
-											</button>
-										</div>
-									)}
-								</motion.div>
-
-								<motion.div
-									className="flex justify-end space-x-2"
-									variants={itemVariants}
-								>
-									<motion.button
-										type="button"
-										onClick={() => setShowOTPPopup(false)}
-										className="px-4 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-300"
-										whileHover={{
-											scale: 1.02,
-											boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)',
-										}}
-										whileTap={{ scale: 0.98 }}
-									>
-										Cancel
-									</motion.button>
-									<motion.button
-										type="button"
-										onClick={() => {
-											const otpCode = otpDigits.join('')
-											handleVerifyOTPAndAccountCreation(otpCode)
-										}}
-										disabled={isOTPLoading || otpDigits.some((digit) => !digit)}
-										className="px-4 py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 disabled:opacity-70 transition-all duration-300"
-										whileHover={{
-											scale: 1.02,
-											boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-										}}
-										whileTap={{ scale: 0.98 }}
-									>
-										{isOTPLoading ? 'Verifying...' : 'Verify'}
-									</motion.button>
-								</motion.div>
-
-								<motion.p
-									className="text-sm text-gray-500 mt-4"
-									variants={itemVariants}
-								>
-									Didn&apos;t receive the code?{' '}
-									<motion.button
-										type="button"
-										onClick={handleResendOTP}
-										disabled={isOTPLoading}
-										className="text-[#126E64] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-										whileHover={{ scale: 1.05, color: '#0D504A' }}
-										whileTap={{ scale: 0.98 }}
-									>
-										{isOTPLoading ? 'Sending...' : 'Resend Code'}
-									</motion.button>
-								</motion.p>
-							</motion.div>
-						)}
+									{isOTPLoading
+										? 'Sending...'
+										: !canResend
+											? `Resend Code (${resendCountdown}s)`
+											: 'Resend Code'}
+								</motion.button>
+							</motion.p>
+						</motion.div>
 					</motion.div>
 				</motion.div>
 			)}

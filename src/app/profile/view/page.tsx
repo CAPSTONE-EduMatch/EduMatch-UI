@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/Button'
+import { ApiService } from '@/lib/axios-config'
+import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { AuthRequiredModal } from '@/components/auth'
+import { useState, useEffect } from 'react'
 
 interface ProfileData {
 	id: string
@@ -72,34 +75,71 @@ export default function ViewProfile() {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 
-	useEffect(() => {
-		fetchProfile()
-	}, [])
+	// Use the authentication check hook
+	const {
+		isAuthenticated,
+		showAuthModal,
+		handleCloseModal: closeAuthModal,
+		isLoading: authLoading,
+	} = useAuthCheck()
 
-	const fetchProfile = async () => {
-		try {
-			const response = await fetch('/api/profile')
-			if (response.ok) {
-				const data = await response.json()
-				setProfile(data.profile)
-			} else {
-				const errorData = await response.json()
-				setError(errorData.error || 'Failed to fetch profile')
+	// Get current user ID and fetch profile
+	useEffect(() => {
+		const getCurrentUserAndProfile = async () => {
+			if (!isAuthenticated) {
+				setLoading(false)
+				return
 			}
-		} catch (err) {
-			setError('Failed to fetch profile')
+
+			try {
+				// Fetch profile data using cached API service
+				const data = await ApiService.getProfile()
+				setProfile(data.profile)
+			} catch (error) {
+				console.error('Failed to get current user:', error)
+				setError('Failed to load profile')
+			} finally {
+				setLoading(false)
+			}
+		}
+		getCurrentUserAndProfile()
+	}, [isAuthenticated])
+
+	const refreshProfile = async () => {
+		setLoading(true)
+		try {
+			const data = await ApiService.getProfile()
+			setProfile(data.profile)
+		} catch (error) {
+			setError('Failed to refresh profile')
 		} finally {
 			setLoading(false)
 		}
 	}
 
-	if (loading) {
+	// Show loading state while checking auth or profile
+	if (authLoading || loading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
 					<p className="mt-4 text-muted-foreground">Loading profile...</p>
 				</div>
+			</div>
+		)
+	}
+
+	// Show authentication modal if user is not authenticated
+	if (!isAuthenticated) {
+		return (
+			<div className="min-h-screen flex items-center justify-center">
+				<div className="text-center">
+					<h1 className="text-3xl font-bold text-primary mb-4">Profile View</h1>
+					<p className="text-muted-foreground">
+						Please sign in to view your profile
+					</p>
+				</div>
+				<AuthRequiredModal isOpen={showAuthModal} onClose={closeAuthModal} />
 			</div>
 		)
 	}
@@ -112,7 +152,7 @@ export default function ViewProfile() {
 						<div className="text-red-500 text-6xl mb-4">⚠️</div>
 						<h2 className="text-xl font-semibold mb-2">Error</h2>
 						<p className="text-muted-foreground mb-4">{error}</p>
-						<Button onClick={fetchProfile}>Try Again</Button>
+						<Button onClick={refreshProfile}>Try Again</Button>
 					</CardContent>
 				</Card>
 			</div>
@@ -289,7 +329,7 @@ export default function ViewProfile() {
 										Language Certifications
 									</h3>
 									<div className="space-y-3">
-										{profile.languages.map((lang, index) => (
+										{profile.languages.map((lang: any, index: number) => (
 											<div key={index} className="border rounded-lg p-3">
 												<div className="flex justify-between items-start">
 													<div>
@@ -317,7 +357,7 @@ export default function ViewProfile() {
 										Research Papers
 									</h3>
 									<div className="space-y-3">
-										{profile.researchPapers.map((paper, index) => (
+										{profile.researchPapers.map((paper: any, index: number) => (
 											<div key={index} className="border rounded-lg p-3">
 												<h4 className="font-medium">{paper.title}</h4>
 												<p className="text-sm text-muted-foreground">
@@ -345,7 +385,7 @@ export default function ViewProfile() {
 										Uploaded Documents
 									</h3>
 									<div className="space-y-2">
-										{profile.uploadedFiles.map((file, index) => (
+										{profile.uploadedFiles.map((file: any, index: number) => (
 											<div
 												key={index}
 												className="flex items-center justify-between border rounded-lg p-3"

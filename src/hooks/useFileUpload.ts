@@ -52,16 +52,13 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 							options.category || "uploads"
 						);
 
-						const response = await fetch("/api/files/s3-upload", {
-							method: "POST",
-							body: formData,
-						});
-
-						if (!response.ok) {
-							throw new Error("Upload failed");
-						}
-
-						const result = await response.json();
+						const { ApiService } = await import(
+							"@/lib/axios-config"
+						);
+						const result = await ApiService.uploadFile(
+							file,
+							options.category || "uploads"
+						);
 
 						// Update progress to completed
 						setUploadProgress((prev) =>

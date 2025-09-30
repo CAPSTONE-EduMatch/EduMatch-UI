@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { authClient } from '@/app/lib/auth-client'
 import { Card, CardContent } from '@/components/ui/card'
 import { ProgressBar } from '@/components/profile/ProgressBar'
 import { RoleSelectionStep } from '@/components/profile/RoleSelectionStep'
@@ -13,6 +12,8 @@ import { InstitutionDetailsStep } from '@/components/profile/InstitutionDetailsS
 import { CompletionStep } from '@/components/profile/CompletionStep'
 import { ProfileFormData } from '@/types/profile'
 import Button from '@/components/ui/Button'
+import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { AuthRequiredModal } from '@/components/auth'
 
 export default function CreateProfile() {
 	const router = useRouter()
@@ -20,27 +21,60 @@ export default function CreateProfile() {
 	const [isTransitioning, setIsTransitioning] = useState(false)
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
-	const [isLoading, setIsLoading] = useState(true)
+	const [hasExistingProfile, setHasExistingProfile] = useState(false)
+	const [isCheckingProfile, setIsCheckingProfile] = useState(true)
 
-	// Check authentication on component mount
+	// Use the authentication check hook
+	const {
+		isAuthenticated,
+		showAuthModal,
+		handleCloseModal: closeAuthModal,
+		isLoading,
+	} = useAuthCheck()
+
+	// Check if user already has a profile
 	useEffect(() => {
-		const checkAuth = async () => {
+		const checkExistingProfile = async () => {
+			console.log('Checking profile, isAuthenticated:', isAuthenticated) // Debug log
+			if (!isAuthenticated) {
+				console.log('Not authenticated, stopping profile check') // Debug log
+				setIsCheckingProfile(false)
+				return
+			}
+
 			try {
-				const session = await authClient.getSession()
-				if (!session?.data && session?.data?.user) {
-					// User is not authenticated, redirect to login
-					router.push('/signin')
-					return
+				console.log('Making API call to /api/profile') // Debug log
+				const response = await fetch('/api/profile')
+				console.log('Profile API response status:', response.status) // Debug log
+
+				if (response.ok) {
+					const profileData = await response.json()
+					console.log('Profile data:', profileData) // Debug log
+					if (profileData && profileData.profile && profileData.profile.id) {
+						// User already has a profile, redirect to view profile
+						console.log('User has existing profile, redirecting') // Debug log
+						setHasExistingProfile(true)
+						router.push('/profile/view')
+						return
+					}
+				} else if (response.status === 404) {
+					// Profile not found, user can create one
+					console.log('No existing profile found, user can create one')
+				} else {
+					// Other error, still allow creation
+					console.log('Error checking profile, allowing creation')
 				}
-				setIsLoading(false)
 			} catch (error) {
-				console.error('Auth check failed:', error)
-				router.push('/signin')
+				console.error('Error checking existing profile:', error)
+				// On error, allow creation
+			} finally {
+				console.log('Setting isCheckingProfile to false') // Debug log
+				setIsCheckingProfile(false)
 			}
 		}
 
-		checkAuth()
-	}, [router])
+		checkExistingProfile()
+	}, [isAuthenticated, router])
 
 	const [formData, setFormData] = useState<ProfileFormData>({
 		role: '',
@@ -218,32 +252,23 @@ export default function CreateProfile() {
 	const handleGetStarted = async () => {
 		try {
 			// Save profile to database
-			const response = await fetch('/api/profile', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(formData),
-			})
+			const { ApiService } = await import('@/lib/axios-config')
+			await ApiService.createProfile(formData)
 
-			if (response.ok) {
-				const result = await response.json()
-				// Profile saved successfully
-				// Redirect to home page
-				window.location.href = '/'
-			} else {
-				const error = await response.json()
-				// Error saving profile
-				alert('Failed to save profile. Please try again.')
-			}
-		} catch (error) {
+			// Profile saved successfully
+			// Redirect to home page
+			window.location.href = '/'
+		} catch (error: any) {
 			// Error saving profile
-			alert('Failed to save profile. Please try again.')
+			alert(
+				error.response?.data?.error ||
+					'Failed to save profile. Please try again.'
+			)
 		}
 	}
 
-	// Show loading state while checking authentication
-	if (isLoading) {
+	// Show loading state while checking profile or auth
+	if (isCheckingProfile || isLoading) {
 		return (
 			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
 				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
@@ -251,13 +276,58 @@ export default function CreateProfile() {
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
 							<p className="text-muted-foreground">
-								Checking authentication...
+								Checking profile status...
 							</p>
 						</div>
 					</CardContent>
 				</Card>
 			</div>
 		)
+	}
+
+	// Show authentication modal if user is not authenticated
+	if (!isAuthenticated) {
+		return (
+			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
+				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
+					<CardContent className="p-8">
+						<div className="text-center mb-6">
+							<h1 className="text-3xl font-bold text-primary">
+								Create Profile
+							</h1>
+						</div>
+
+						<ProgressBar
+							currentStep={currentStep}
+							totalSteps={4}
+							onStepClick={(step) => {
+								if (step <= currentStep || step === 1) {
+									setCurrentStep(step)
+								}
+							}}
+						/>
+
+						<div className="min-h-[300px]">
+							<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+								<RoleSelectionStep
+									formData={formData}
+									onRoleSelect={handleRoleSelect}
+									onNext={handleNext}
+								/>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+
+				{/* Authentication Required Modal */}
+				<AuthRequiredModal isOpen={showAuthModal} onClose={closeAuthModal} />
+			</div>
+		)
+	}
+
+	// Don't render the form if user already has a profile
+	if (hasExistingProfile) {
+		return null
 	}
 
 	return (

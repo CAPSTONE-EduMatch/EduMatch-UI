@@ -32,23 +32,16 @@ export async function checkUserHasProfile(userId: string): Promise<boolean> {
 		}
 
 		// For client-side usage, use API call
-		const response = await fetch(`/api/profile/${userId}`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
+		const { ApiService } = await import("@/lib/axios-config");
+		const profileData = await ApiService.checkProfile(userId);
 
-		if (response.ok) {
-			const profileData = await response.json();
-			// Check if profile has minimum required fields
-			return !!(
-				profileData.profile &&
-				profileData.profile.role &&
-				profileData.profile.firstName &&
-				profileData.profile.lastName
-			);
-		}
+		// Check if profile has minimum required fields
+		return !!(
+			profileData.profile &&
+			profileData.profile.role &&
+			profileData.profile.firstName &&
+			profileData.profile.lastName
+		);
 
 		// If profile not found (404) or other error, assume no profile
 		return false;
@@ -67,17 +60,9 @@ export async function getUserProfile(userId: string): Promise<any> {
 		}
 
 		// For client-side usage, use API call
-		const response = await fetch(`/api/profile/${userId}`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
-
-		if (response.ok) {
-			const data = await response.json();
-			return data.profile;
-		}
+		const { ApiService } = await import("@/lib/axios-config");
+		const data = await ApiService.checkProfile(userId);
+		return data.profile;
 
 		return null;
 	} catch (error) {

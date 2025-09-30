@@ -81,16 +81,8 @@ export function InstitutionInfoStep({
 			formData.append('file', file)
 
 			// Upload to S3
-			const response = await fetch('/api/files/s3-upload', {
-				method: 'POST',
-				body: formData,
-			})
-
-			if (!response.ok) {
-				throw new Error('Upload failed')
-			}
-
-			const result = await response.json()
+			const { ApiService } = await import('@/lib/axios-config')
+			const result = await ApiService.uploadFile(file)
 
 			// Update the profile photo with the S3 URL
 			onInputChange('profilePhoto', result.url)

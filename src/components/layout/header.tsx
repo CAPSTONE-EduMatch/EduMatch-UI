@@ -1,18 +1,22 @@
 'use client'
 
-import { TreePine, MessageCircle, Bell, User, Menu, X } from 'lucide-react'
+import { MessageCircle, Bell, User, Menu, X, LogOut } from 'lucide-react'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import Logo from '../../../public/edumatch_logo.svg'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 // import { useTranslate } from '@/hooks/useTranslate'
 import { useTranslations, useLocale } from 'next-intl'
+import { authClient } from '@/app/lib/auth-client'
+import { useAuthCheck } from '@/hooks/useAuthCheck'
 
 export function EduMatchHeader() {
 	const router = useRouter()
-	const pathname = usePathname()
 	const t = useTranslations()
 	const currentLocale = useLocale()
+
+	// Get authentication state
+	const { isAuthenticated } = useAuthCheck()
 
 	const [isVisible, setIsVisible] = useState(true)
 	const [lastScrollY, setLastScrollY] = useState(0)
@@ -20,6 +24,7 @@ export function EduMatchHeader() {
 	const [currentLanguage, setCurrentLanguage] = useState('EN')
 	const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
 	const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+	const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
 	// Initialize language from localStorage or current locale
 	useEffect(() => {
@@ -69,11 +74,17 @@ export function EduMatchHeader() {
 			) {
 				setIsNotificationOpen(false)
 			}
+			if (
+				isUserMenuOpen &&
+				!(event.target as Element).closest('.user-menu-dropdown')
+			) {
+				setIsUserMenuOpen(false)
+			}
 		}
 
 		document.addEventListener('mousedown', handleClickOutside)
 		return () => document.removeEventListener('mousedown', handleClickOutside)
-	}, [isLanguageMenuOpen, isNotificationOpen])
+	}, [isLanguageMenuOpen, isNotificationOpen, isUserMenuOpen])
 
 	const handleLogoClick = () => {
 		router.push('/')
@@ -91,6 +102,19 @@ export function EduMatchHeader() {
 
 		// Refresh the page to apply the new locale
 		window.location.reload()
+	}
+
+	const handleLogout = async () => {
+		try {
+			await authClient.signOut()
+			// Clear any cached data
+			localStorage.clear()
+			sessionStorage.clear()
+			// Redirect to home page
+			router.push('/')
+		} catch (error) {
+			// Handle logout error silently or show user-friendly message
+		}
 	}
 
 	return (
@@ -286,9 +310,58 @@ export function EduMatchHeader() {
 							)}
 						</div>
 
-						{/* Dark Blue User Icon */}
-						<div className="w-10 h-10 bg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-							<User className="w-5 h-5 text-[#1e3a8a]" />
+						{/* User Menu Dropdown */}
+						<div className="relative user-menu-dropdown">
+							<div
+								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+								onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+								title={isAuthenticated ? 'User Menu' : 'Login'}
+							>
+								<User className="w-5 h-5 text-[#1e3a8a]" />
+							</div>
+
+							{/* User Dropdown Menu */}
+							{isUserMenuOpen && (
+								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[160px] z-[99999]">
+									{isAuthenticated ? (
+										// Logged in - show logout option
+										<div
+											className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+											onClick={() => {
+												handleLogout()
+												setIsUserMenuOpen(false)
+											}}
+										>
+											<LogOut className="w-4 h-4" />
+											<span className="text-sm">Logout</span>
+										</div>
+									) : (
+										// Not logged in - show login/signup options
+										<>
+											<div
+												className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-blue-600"
+												onClick={() => {
+													router.push('/signin')
+													setIsUserMenuOpen(false)
+												}}
+											>
+												<User className="w-4 h-4" />
+												<span className="text-sm">Sign In</span>
+											</div>
+											<div
+												className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-green-600"
+												onClick={() => {
+													router.push('/signup')
+													setIsUserMenuOpen(false)
+												}}
+											>
+												<User className="w-4 h-4" />
+												<span className="text-sm">Sign Up</span>
+											</div>
+										</>
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 
@@ -368,9 +441,25 @@ export function EduMatchHeader() {
 									{currentLanguage === 'EN' ? '🇺🇸' : '🇻🇳'}
 								</span>
 							</div>
-							<div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-								<User className="w-5 h-5 text-[#1e3a8a]" />
-							</div>
+							{isAuthenticated ? (
+								// Logged in - show logout
+								<div
+									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+									onClick={handleLogout}
+									title="Logout"
+								>
+									<LogOut className="w-5 h-5 text-red-600" />
+								</div>
+							) : (
+								// Not logged in - show login
+								<div
+									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+									onClick={() => router.push('/signin')}
+									title="Sign In"
+								>
+									<User className="w-5 h-5 text-blue-600" />
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

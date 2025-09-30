@@ -4,8 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 const routeConfig = {
 	publicRoutes: ["/", "/about", "/api/health"],
 	authRoutes: ["/signin", "/signup", "/forgot-password"],
-	protectedRoutes: ["/dashboard", "/profile", "/files"],
+	protectedRoutes: ["/dashboard", "/files"],
 	profileRequiredRoutes: ["/dashboard", "/files"],
+	// Routes that should show auth modal instead of redirecting
+	authModalRoutes: ["/profile/create-profile"],
 	defaultRedirects: {
 		afterLogin: "/dashboard",
 		afterLogout: "/signin",
@@ -106,6 +108,8 @@ export async function middleware(request: NextRequest) {
 			(route: string) => pathname.startsWith(route)
 		);
 
+		const isAuthModalRoute = routeConfig.authModalRoutes.includes(pathname);
+
 		const requiresProfile = routeConfig.profileRequiredRoutes.some(
 			(route: string) => pathname.startsWith(route)
 		);
@@ -125,6 +129,11 @@ export async function middleware(request: NextRequest) {
 					)
 				);
 			}
+			return NextResponse.next();
+		}
+
+		// Handle auth modal routes - allow access but let component handle auth
+		if (isAuthModalRoute) {
 			return NextResponse.next();
 		}
 
@@ -179,6 +188,11 @@ export async function middleware(request: NextRequest) {
 			return NextResponse.redirect(
 				new URL(routeConfig.defaultRedirects.afterLogout, request.url)
 			);
+		}
+
+		// Allow auth modal routes to proceed even on error
+		if (routeConfig.authModalRoutes.includes(pathname)) {
+			return NextResponse.next();
 		}
 
 		return NextResponse.next();

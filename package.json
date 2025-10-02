@@ -9,7 +9,7 @@
 		"lint": "next lint",
 		"lint:fix": "next lint --fix",
 		"format": "prettier --write .",
-		"prepare": "is-ci || husky",
+		"postinstall": "is-ci || husky install",
 		"prisma:refresh-schema": "prisma db pull && prisma generate",
 		"pre-commit": "next build && lint-staged"
 	},

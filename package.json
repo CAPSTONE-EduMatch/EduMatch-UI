@@ -9,7 +9,7 @@
 		"lint": "next lint",
 		"lint:fix": "next lint --fix",
 		"format": "prettier --write .",
-		"prepare": "husky",
+		"prepare": "is-ci || husky",
 		"prisma:refresh-schema": "prisma db pull && prisma generate",
 		"pre-commit": "next build && lint-staged"
 	},
@@ -114,6 +114,7 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.4",
 		"husky": "^9.1.7",
+		"is-ci": "^3.0.1",
 		"lint-staged": "^16.2.0",
 		"postcss": "^8.5",
 		"prettier": "^3.6.2",

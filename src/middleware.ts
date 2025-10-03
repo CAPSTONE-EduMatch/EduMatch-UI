@@ -37,40 +37,20 @@ async function checkAuthentication(request: NextRequest) {
 		// eslint-disable-next-line no-console
 		console.log(`[MIDDLEWARE] Found session cookie:`, sessionCookie?.name);
 
-		// Always validate with the API to ensure session is valid
-		try {
-			const response = await fetch(
-				`${request.nextUrl.origin}/api/auth/session`,
-				{
-					method: "GET",
-					headers: {
-						Cookie: request.headers.get("cookie") || "",
-						"Content-Type": "application/json",
-					},
-				}
-			);
-
-			if (response.ok) {
-				const data = await response.json();
-				const isAuth = !!data.user;
-				// eslint-disable-next-line no-console
-				console.log(`[MIDDLEWARE] API validation result:`, isAuth);
-				return {
-					isAuthenticated: isAuth,
-					userId: data.user?.id || null,
-				};
-			} else {
-				// eslint-disable-next-line no-console
-				console.log(
-					`[MIDDLEWARE] API validation failed:`,
-					response.status
-				);
-			}
-		} catch (apiError) {
+		// Better Auth session validation: If session cookies exist, user is authenticated
+		if (sessionCookie && sessionCookie.name.includes("session")) {
 			// eslint-disable-next-line no-console
-			console.error("[MIDDLEWARE] Session API call failed:", apiError);
+			console.log(
+				`[MIDDLEWARE] Valid session cookie - user authenticated`
+			);
+			return {
+				isAuthenticated: true,
+				userId: null,
+			};
 		}
 
+		// eslint-disable-next-line no-console
+		console.log(`[MIDDLEWARE] No valid session cookie found`);
 		return { isAuthenticated: false, userId: null };
 	} catch (error) {
 		// eslint-disable-next-line no-console

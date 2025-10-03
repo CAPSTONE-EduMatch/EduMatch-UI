@@ -52,7 +52,15 @@ export const auth = betterAuth({
 	plugins: [
 		oneTap(),
 		emailOTP({
-			async sendVerificationOTP({ email, otp, type }) {
+			async sendVerificationOTP({
+				email,
+				otp,
+				type,
+			}: {
+				email: string;
+				otp: string;
+				type: string;
+			}) {
 				// Check rate limiting before sending OTP
 				const rateLimitResult = await checkOTPRateLimit(email);
 
@@ -151,7 +159,15 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		requireEmailVerification: true, // Require email verification for sign-up
-		sendResetPassword: async ({ user, url, token }) => {
+		sendResetPassword: async ({
+			user,
+			url,
+			token,
+		}: {
+			user: { email: string; id: string };
+			url: string;
+			token: string;
+		}) => {
 			// Check rate limiting for forgot password requests
 			const rateLimitResult = await checkOTPRateLimit(user.email);
 
@@ -168,9 +184,9 @@ export const auth = betterAuth({
 			await sendEmail(
 				user.email,
 				`Reset your password: Click the link to reset your password: ${url}
-        And this is your token: ${token}
-        ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
-        `,
+		And this is your token: ${token}
+		${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
+		`,
 				// `
 				// Click the link to reset your password: ${url}
 				// And this is your token: ${token}

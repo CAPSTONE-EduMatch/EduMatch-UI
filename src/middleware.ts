@@ -18,31 +18,62 @@ const routeConfig = {
 // Edge Runtime compatible auth check function
 async function checkAuthentication(request: NextRequest) {
 	try {
-		// Method 1: Check session cookies (adjust cookie name based on your auth setup)
-		const sessionCookie =
-			request.cookies.get("better-auth.session_token")?.value ||
-			request.cookies.get("session")?.value;
+		// Get all cookies and log them for debugging
+		const allCookies = request.cookies.getAll();
+		// eslint-disable-next-line no-console
+		console.log(
+			`[MIDDLEWARE] Available cookies:`,
+			allCookies.map((c) => c.name)
+		);
 
-		if (sessionCookie) {
-			// For production, you might want to validate the session
-			// For now, assume valid if cookie exists
-			return { isAuthenticated: true, userId: null };
+		// Check for Better Auth session - try common cookie names
+		const sessionCookie = allCookies.find(
+			(cookie) =>
+				cookie.name.includes("session") ||
+				cookie.name.includes("auth") ||
+				cookie.name.includes("better-auth")
+		);
+
+		// eslint-disable-next-line no-console
+		console.log(`[MIDDLEWARE] Found session cookie:`, sessionCookie?.name);
+
+		// Always validate with the API to ensure session is valid
+		try {
+			const response = await fetch(
+				`${request.nextUrl.origin}/api/auth/session`,
+				{
+					method: "GET",
+					headers: {
+						Cookie: request.headers.get("cookie") || "",
+						"Content-Type": "application/json",
+					},
+				}
+			);
+
+			if (response.ok) {
+				const data = await response.json();
+				const isAuth = !!data.user;
+				// eslint-disable-next-line no-console
+				console.log(`[MIDDLEWARE] API validation result:`, isAuth);
+				return {
+					isAuthenticated: isAuth,
+					userId: data.user?.id || null,
+				};
+			} else {
+				// eslint-disable-next-line no-console
+				console.log(
+					`[MIDDLEWARE] API validation failed:`,
+					response.status
+				);
+			}
+		} catch (apiError) {
+			// eslint-disable-next-line no-console
+			console.error("[MIDDLEWARE] Session API call failed:", apiError);
 		}
-
-		// Method 2: Make API call to validate session (if needed)
-		// This is optional and adds latency to middleware
-		// try {
-		//   const response = await fetch(`${request.nextUrl.origin}/api/auth/validate`, {
-		//     headers: { Cookie: request.headers.get("cookie") || "" }
-		//   });
-		//   if (response.ok) {
-		//     const data = await response.json();
-		//     return { isAuthenticated: !!data.user, userId: data.user?.id };
-		//   }
-		// } catch {}
 
 		return { isAuthenticated: false, userId: null };
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[MIDDLEWARE] Auth check error:", error);
 		return { isAuthenticated: false, userId: null };
 	}

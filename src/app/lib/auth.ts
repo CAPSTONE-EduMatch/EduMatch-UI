@@ -1,7 +1,7 @@
 import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP, oneTap, captcha } from "better-auth/plugins";
+import { emailOTP, oneTap } from "better-auth/plugins";
 import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";
@@ -9,6 +9,32 @@ import { prismaClient } from "../../../prisma/index";
 import { checkOTPRateLimit, recordOTPAttempt } from "./otp-rate-limit";
 import { redisClient } from "./redis";
 dotenv.config();
+
+// Validate required environment variables
+function validateEnvironment() {
+	const required = [
+		"BETTER_AUTH_SECRET",
+		"BETTER_AUTH_URL",
+		"GOOGLE_CLIENT_ID",
+		"GOOGLE_CLIENT_SECRET",
+	];
+
+	const missing = required.filter((key) => !process.env[key]);
+
+	if (missing.length > 0) {
+		console.error("Missing required environment variables:", missing);
+		throw new Error(`Missing environment variables: ${missing.join(", ")}`);
+	}
+
+	console.log("Environment validation passed for social auth");
+}
+
+// Validate environment on startup
+try {
+	validateEnvironment();
+} catch (error) {
+	console.error("Environment validation failed:", error);
+}
 
 // const stripeClient =
 //   process.env.STRIPE_SECRET_KEY &&

@@ -1,4 +1,41 @@
 import { auth } from "@/app/lib/auth"; // path to your auth file
 import { toNextJsHandler } from "better-auth/next-js";
+import { NextRequest, NextResponse } from "next/server";
 
-export const { POST, GET } = toNextJsHandler(auth.handler);
+const { POST: _POST, GET: _GET } = toNextJsHandler(auth.handler);
+
+export async function POST(request: NextRequest) {
+	try {
+		// eslint-disable-next-line no-console
+		console.log("Auth API POST request:", request.url);
+		return await _POST(request);
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("Auth API POST error:", error);
+		return NextResponse.json(
+			{
+				error: "Internal server error",
+				details: error instanceof Error ? error.message : String(error),
+			},
+			{ status: 500 }
+		);
+	}
+}
+
+export async function GET(request: NextRequest) {
+	try {
+		// eslint-disable-next-line no-console
+		console.log("Auth API GET request:", request.url);
+		return await _GET(request);
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("Auth API GET error:", error);
+		return NextResponse.json(
+			{
+				error: "Internal server error",
+				details: error instanceof Error ? error.message : String(error),
+			},
+			{ status: 500 }
+		);
+	}
+}

@@ -14,8 +14,8 @@
 // redisClient.connect().catch(console.error);
 
 // export { redisClient };
-import { createClient } from "redis";
 import dotenv from "dotenv";
+import { createClient } from "redis";
 dotenv.config();
 
 const redisClient = createClient({
@@ -29,10 +29,25 @@ const redisClient = createClient({
 });
 
 redisClient.on("error", (err) => {
+	// eslint-disable-next-line no-console
 	console.error("Redis Client Error", err);
-	return;
 });
 
-redisClient.connect().catch(console.error);
+redisClient.on("connect", () => {
+	// eslint-disable-next-line no-console
+	console.log("Redis connected successfully");
+});
+
+redisClient.on("ready", () => {
+	// eslint-disable-next-line no-console
+	console.log("Redis client ready");
+});
+
+// Connect with better error handling
+redisClient.connect().catch((err) => {
+	// eslint-disable-next-line no-console
+	console.error("Failed to connect to Redis:", err);
+	// Don't throw error to prevent app crash if Redis is unavailable
+});
 
 export { redisClient };

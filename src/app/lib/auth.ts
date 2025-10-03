@@ -7,7 +7,6 @@ import nodeMailer from "nodemailer";
 import Stripe from "stripe";
 import { prismaClient } from "../../../prisma/index";
 import { checkOTPRateLimit, recordOTPAttempt } from "./otp-rate-limit";
-import { redisClient } from "./redis";
 dotenv.config();
 
 // Validate required environment variables
@@ -125,35 +124,7 @@ export const auth = betterAuth({
 		expiresIn: 60 * 60 * 24 * 7, // 7 days
 		updateAge: 60 * 15, // 15 minutes
 	},
-	// Redis as secondary storage for session caching
-	secondaryStorage: {
-		get: async (key: string) => {
-			try {
-				return await redisClient.get(key);
-			} catch (error) {
-				console.error("Redis get error:", error);
-				return null;
-			}
-		},
-		set: async (key: string, value: string, ttl?: number) => {
-			try {
-				if (ttl) {
-					await redisClient.setEx(key, ttl, value);
-				} else {
-					await redisClient.set(key, value);
-				}
-			} catch (error) {
-				console.error("Redis set error:", error);
-			}
-		},
-		delete: async (key: string) => {
-			try {
-				await redisClient.del(key);
-			} catch (error) {
-				console.error("Redis delete error:", error);
-			}
-		},
-	},
+	// Redis disabled for now - using memory-only session storage
 	secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development",
 	baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 	emailAndPassword: {

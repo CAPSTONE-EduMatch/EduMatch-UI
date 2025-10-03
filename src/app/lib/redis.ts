@@ -18,36 +18,40 @@ import dotenv from "dotenv";
 import { createClient } from "redis";
 dotenv.config();
 
-const redisClient = createClient({
-	url: process.env.REDIS_URL || "redis://localhost:6379",
-	// socket: {
-	// host: process.env.REDIS_URL, // e.g. 'my-redis.xxxxxx.0001.apn2.cache.amazonaws.com'
-	// port: Number(process.env.REDIS_PORT) || 6379,
-	// tls: true, // Uncomment if TLS is required
-	// },
-	// password: process.env.REDIS_PASSWORD, // Uncomment if password is required
-});
+// Only create Redis client if proper Redis URL is provided
+let redisClient: any = null;
 
-redisClient.on("error", (err) => {
-	// eslint-disable-next-line no-console
-	console.error("Redis Client Error", err);
-});
+if (
+	process.env.REDIS_URL &&
+	process.env.REDIS_URL !== "redis://localhost:6379"
+) {
+	redisClient = createClient({
+		url: process.env.REDIS_URL,
+	});
 
-redisClient.on("connect", () => {
-	// eslint-disable-next-line no-console
-	console.log("Redis connected successfully");
-});
+	redisClient.on("error", (err: Error) => {
+		// eslint-disable-next-line no-console
+		console.error("Redis Client Error", err);
+	});
 
-redisClient.on("ready", () => {
-	// eslint-disable-next-line no-console
-	console.log("Redis client ready");
-});
+	redisClient.on("connect", () => {
+		// eslint-disable-next-line no-console
+		console.log("Redis connected successfully");
+	});
 
-// Connect with better error handling
-redisClient.connect().catch((err) => {
+	redisClient.on("ready", () => {
+		// eslint-disable-next-line no-console
+		console.log("Redis client ready");
+	});
+
+	// Connect with better error handling
+	redisClient.connect().catch((err: Error) => {
+		// eslint-disable-next-line no-console
+		console.error("Failed to connect to Redis:", err);
+	});
+} else {
 	// eslint-disable-next-line no-console
-	console.error("Failed to connect to Redis:", err);
-	// Don't throw error to prevent app crash if Redis is unavailable
-});
+	console.log("Redis not configured - using memory-only session storage");
+}
 
 export { redisClient };

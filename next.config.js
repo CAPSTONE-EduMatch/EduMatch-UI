@@ -5,8 +5,20 @@ const withNextIntl = createNextIntlPlugin();
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	// Amplify supports Next.js with API routes
+	// images: {
+	// 	unoptimized: true,
+	// },
 	images: {
-		unoptimized: true,
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "**",
+			},
+			{
+				protocol: "http",
+				hostname: "**",
+			},
+		],
 	},
 	// webpack: (config, { isServer }) => {
 	// 	// Exclude Prisma and other server-only packages from client bundles

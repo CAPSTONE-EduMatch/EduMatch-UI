@@ -1,6 +1,7 @@
 'use client'
 
 import Button from '@/components/ui/Button'
+import { TabSelector } from '@/components/ui/TabSelector'
 import { Card, CardContent } from '@/components/ui/card'
 import Image from 'next/image'
 import { useState } from 'react'
@@ -48,25 +49,11 @@ export function BlogSection() {
 					Latest Posts
 				</h2>
 
-				<div className="flex justify-between mb-12">
-					<div className="flex flex-wrap gap-2 justify-center max-w-full">
-						{categories.map((category) => (
-							<Button
-								key={category.id}
-								variant={activeCategory === category.id ? 'primary' : 'outline'}
-								onClick={() => setActiveCategory(category.id)}
-								animate={true}
-								className={`rounded-full px-3 sm:px-4 md:px-6 py-2 text-xs sm:text-sm whitespace-nowrap ${
-									activeCategory === category.id
-										? 'bg-orange-400 hover:bg-orange-500 text-white shadow-md'
-										: 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-								}`}
-							>
-								{category.label}
-							</Button>
-						))}
-					</div>
-				</div>
+				<TabSelector
+					tabs={categories}
+					activeTab={activeCategory}
+					onTabChange={setActiveCategory}
+				/>
 
 				<div className="space-y-6 mb-12">
 					{blogPosts.map((post, index) => (

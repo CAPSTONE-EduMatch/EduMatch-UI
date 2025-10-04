@@ -1,0 +1,159 @@
+'use client'
+
+import { Heart, Calendar, MapPin, GraduationCap } from 'lucide-react'
+import { motion } from 'framer-motion'
+import Image from 'next/image'
+
+interface ProgramCardProps {
+	program: {
+		id: number
+		title: string
+		description: string
+		university: string
+		logo: string
+		field: string
+		country: string
+		date: string
+		daysLeft: number
+		price: string
+		match: string
+		funding: string
+		attendance: string
+	}
+	index: number
+	isWishlisted: boolean
+	// eslint-disable-next-line no-unused-vars
+	onWishlistToggle: (programId: number) => void
+}
+
+export function ProgramCard({
+	program,
+	index,
+	isWishlisted,
+	onWishlistToggle,
+}: ProgramCardProps) {
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.3, delay: index * 0.1 }}
+			whileHover={{ y: -5 }}
+			className="bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300"
+		>
+			{/* Header with logo and wishlist */}
+			<div className="flex justify-between items-start mb-4 gap-10">
+				{/* <div className="flex items-center gap-3">
+					<div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center">
+						<span className="text-white text-xl font-bold">{program.logo}</span>
+					</div>
+					<div>
+						<div className="text-xl font-bold text-gray-900">HARVARD</div>
+						<div className="text-sm text-gray-600 tracking-wider">
+							UNIVERSITY
+						</div>
+					</div>
+				</div> */}
+
+				<div className="">
+					<Image
+						src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png"
+						alt={program.university}
+						width={340}
+						height={340}
+						className="rounded-lg"
+					/>
+				</div>
+
+				<motion.button
+					onClick={() => onWishlistToggle(program.id)}
+					className={`p-2 rounded-full transition-all duration-200 ${
+						isWishlisted
+							? 'bg-red-500 text-white'
+							: 'text-red-500 hover:bg-red-50'
+					}`}
+					whileHover={{ scale: 1.1 }}
+					whileTap={{ scale: 0.9 }}
+				>
+					<Heart className={`w-6 h-6 ${isWishlisted ? 'fill-current' : ''}`} />
+				</motion.button>
+			</div>
+
+			{/* Title */}
+			<h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+				{program.title}
+			</h3>
+
+			{/* Description */}
+			<p className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed">
+				{program.description}
+			</p>
+
+			{/* Tags */}
+			<div className="flex flex-wrap gap-2 mb-3">
+				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+					<GraduationCap className="w-4 h-4" />
+					{program.field}
+				</span>
+				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+					<MapPin className="w-4 h-4" />
+					{program.country}
+				</span>
+			</div>
+
+			<div className="flex flex-wrap gap-2 mb-3">
+				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+					<Calendar className="w-4 h-4" />
+					{program.date}{' '}
+					<span className="text-red-500 font-semibold">
+						({program.daysLeft} days left)
+					</span>
+				</span>
+			</div>
+
+			<div className="flex flex-wrap gap-2 mb-6">
+				<span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-medium">
+					<span className="inline-flex items-center gap-1">
+						📱 {program.attendance}
+					</span>
+				</span>
+				<span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-medium">
+					<span className="inline-flex items-center gap-1">
+						🔒 {program.funding}
+					</span>
+				</span>
+			</div>
+
+			{/* Price */}
+			<div className="text-center mb-6">
+				<div className="text-3xl font-bold text-gray-900">{program.price}</div>
+			</div>
+
+			{/* Match button */}
+			<div className="relative w-full h-12 bg-gray-200 rounded-full overflow-hidden">
+				{/* Animated progress */}
+				<motion.div
+					className="h-full bg-[#32CF5C] rounded-full relative"
+					initial={{ width: '0%' }}
+					animate={{ width: program.match }}
+					transition={{
+						duration: 1.2,
+						delay: index * 0.1 + 0.3,
+						ease: [0.4, 0, 0.2, 1],
+					}}
+				/>
+
+				{/* Centered text */}
+				<div className="absolute inset-0 flex items-center justify-center">
+					<motion.span
+						className="font-semibold text-lg text-white "
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ delay: index * 0.1 + 0.8 }}
+					>
+						Match: {program.match}
+					</motion.span>
+				</div>
+			</div>
+		</motion.div>
+	)
+}

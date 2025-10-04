@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 			id: `${timestamp}-${randomString}`,
 		});
 	} catch (error) {
-		console.error("S3 upload error:", error);
+		// S3 upload error occurred
 		return NextResponse.json(
 			{ error: "Failed to upload file" },
 			{ status: 500 }

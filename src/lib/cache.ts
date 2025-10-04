@@ -87,30 +87,56 @@ class RedisCache {
 		if (typeof window !== "undefined") return; // Skip on client
 		if (!createClient) return; // Skip if Redis not available
 
+		const redisUrl = process.env.REDIS_URL;
+		console.log(
+			"🔗 Attempting Redis connection to:",
+			redisUrl ? "configured URL" : "localhost"
+		);
+
 		try {
 			this.redis = createClient({
-				url: process.env.REDIS_URL || "redis://localhost:6379",
+				url: redisUrl || "redis://localhost:6379",
 				socket: {
 					connectTimeout: 10000,
+					reconnectStrategy: (retries: number) => {
+						if (retries > 3) {
+							console.error(
+								"Redis: Max reconnection attempts reached"
+							);
+							return new Error(
+								"Max reconnection attempts reached"
+							);
+						}
+						return Math.min(retries * 100, 3000);
+					},
 				},
 			});
 
 			this.redis.on("error", (err: Error) => {
-				console.warn("Redis connection error:", err);
+				console.error("❌ Redis connection error:", err);
 				this.isConnected = false;
 			});
 
 			this.redis.on("connect", () => {
-				console.log("Redis connected successfully");
+				console.log("✅ Redis connected successfully");
 				this.isConnected = true;
 			});
 
+			this.redis.on("ready", () => {
+				console.log("🚀 Redis ready for operations");
+				this.isConnected = true;
+			});
+
+			this.redis.on("end", () => {
+				console.log("🔌 Redis connection ended");
+				this.isConnected = false;
+			});
+
 			await this.redis.connect();
+			console.log("🎯 Redis initialization completed");
 		} catch (error) {
-			console.warn(
-				"Redis not available, falling back to memory cache:",
-				error
-			);
+			console.error("❌ Redis connection failed:", error);
+			console.warn("⚠️ Falling back to memory cache only");
 			this.isConnected = false;
 		}
 	}
@@ -184,7 +210,14 @@ class CacheManager {
 
 	async init(): Promise<void> {
 		await this.redisCache.init();
-		this.isRedisAvailable = true;
+		// Check if Redis is actually connected
+		const stats = await this.redisCache.getStats();
+		this.isRedisAvailable = stats?.connected || false;
+
+		console.log("🚀 Cache Manager initialized:", {
+			redisAvailable: this.isRedisAvailable,
+			redisStats: stats,
+		});
 
 		// Cleanup memory cache every 5 minutes
 		setInterval(

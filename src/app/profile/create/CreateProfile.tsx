@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
-import { ProgressBar } from '@/components/profile/ProgressBar'
-import { RoleSelectionStep } from '@/components/profile/RoleSelectionStep'
-import { BasicInfoStep } from '@/components/profile/BasicInfoStep'
-import { AcademicInfoStep } from '@/components/profile/AcademicInfoStep'
-import { InstitutionInfoStep } from '@/components/profile/InstitutionInfoStep'
-import { InstitutionDetailsStep } from '@/components/profile/InstitutionDetailsStep'
-import { CompletionStep } from '@/components/profile/CompletionStep'
+import { ProgressBar } from '@/components/profile/create/steps/ProgressBar'
+import { RoleSelectionStep } from '@/components/profile/create/steps/RoleSelectionStep'
+import { BasicInfoStep } from '@/components/profile/create/steps/BasicInfoStep'
+import { AcademicInfoStep } from '@/components/profile/create/steps/AcademicInfoStep'
+import { InstitutionInfoStep } from '@/components/profile/create/steps/InstitutionInfoStep'
+import { InstitutionDetailsStep } from '@/components/profile/create/steps/InstitutionDetailsStep'
+import { CompletionStep } from '@/components/profile/create/steps/CompletionStep'
 import { ProfileFormData } from '@/types/profile'
 import Button from '@/components/ui/Button'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
@@ -30,6 +30,7 @@ export default function CreateProfile() {
 		showAuthModal,
 		handleCloseModal: closeAuthModal,
 		isLoading,
+		user,
 	} = useAuthCheck()
 
 	// Check if user already has a profile
@@ -135,6 +136,16 @@ export default function CreateProfile() {
 		degreeFiles: [],
 		transcriptFiles: [],
 	})
+
+	// Pre-fill email if user is authenticated
+	useEffect(() => {
+		if (isAuthenticated && user?.email && !formData.email) {
+			setFormData((prev) => ({
+				...prev,
+				email: user.email,
+			}))
+		}
+	}, [isAuthenticated, user, formData.email])
 
 	const handleNext = () => {
 		const maxStep = formData.role === 'applicant' ? 4 : 4
@@ -381,6 +392,7 @@ export default function CreateProfile() {
 											onMultiSelectChange={handleMultiSelectChange}
 											onBack={handleBack}
 											onNext={handleNext}
+											user={user}
 										/>
 									) : (
 										<InstitutionInfoStep

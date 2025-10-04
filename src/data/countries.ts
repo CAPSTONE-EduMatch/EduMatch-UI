@@ -1285,6 +1285,7 @@ export const getCountriesWithSvgFlags = (): (Country & {
 
 		return {
 			...country,
+			// Use emoji flag as fallback if SVG fails to load
 			svgFlag: flagData?.flag,
 		};
 	});

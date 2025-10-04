@@ -7,6 +7,7 @@ import Input from '@/components/ui/Input'
 import { CustomSelect } from '@/components/ui/custom-select'
 import { PhoneInput } from '@/components/ui/phone-input'
 import Button from '@/components/ui/Button'
+import { getCountriesWithSvgFlags } from '@/data/countries'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Upload, Building2 } from 'lucide-react'
 
@@ -33,12 +34,34 @@ export function InstitutionInfoStep({
 }: InstitutionInfoStepProps) {
 	const [showCampusForm, setShowCampusForm] = useState(false)
 	const [isUploading, setIsUploading] = useState(false)
+	const [validationErrors, setValidationErrors] = useState<
+		Record<string, boolean>
+	>({})
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const [newCampus, setNewCampus] = useState({
 		name: '',
 		country: '',
 		address: '',
 	})
+
+	const validateRequiredFields = () => {
+		const errors: Record<string, boolean> = {}
+
+		// Required fields validation
+		if (!formData.institutionName?.trim()) errors.institutionName = true
+		if (!formData.institutionType) errors.institutionType = true
+		if (!formData.institutionEmail?.trim()) errors.institutionEmail = true
+		if (!formData.institutionCountry) errors.institutionCountry = true
+		if (!formData.institutionAddress?.trim()) errors.institutionAddress = true
+		if (!formData.representativeName?.trim()) errors.representativeName = true
+		if (!formData.representativePosition?.trim())
+			errors.representativePosition = true
+		if (!formData.representativeEmail?.trim()) errors.representativeEmail = true
+		if (!formData.aboutInstitution?.trim()) errors.aboutInstitution = true
+
+		setValidationErrors(errors)
+		return Object.keys(errors).length === 0
+	}
 
 	const handleAddCampus = () => {
 		if (newCampus.name && newCampus.country && newCampus.address) {
@@ -63,13 +86,11 @@ export function InstitutionInfoStep({
 
 		// Validate file type
 		if (!file.type.startsWith('image/')) {
-			alert('Please select an image file')
 			return
 		}
 
 		// Validate file size (5MB max)
 		if (file.size > 5 * 1024 * 1024) {
-			alert('File size must be less than 5MB')
 			return
 		}
 
@@ -88,7 +109,6 @@ export function InstitutionInfoStep({
 			onInputChange('profilePhoto', result.url)
 		} catch (error) {
 			console.error('Upload error:', error)
-			alert('Failed to upload image. Please try again.')
 		} finally {
 			setIsUploading(false)
 			// Reset file input
@@ -100,6 +120,13 @@ export function InstitutionInfoStep({
 
 	const handleUploadClick = () => {
 		fileInputRef.current?.click()
+	}
+
+	const handleNext = () => {
+		if (validateRequiredFields()) {
+			onNext()
+		}
+		// Just validate and show red highlighting, no popup
 	}
 
 	const getAllFiles = () => {
@@ -165,6 +192,11 @@ export function InstitutionInfoStep({
 						onChange={onInputChangeEvent('institutionName')}
 						placeholder="Enter institution name"
 						inputSize="select"
+						className={
+							validationErrors.institutionName
+								? 'border-red-500 focus:border-red-500'
+								: ''
+						}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -205,6 +237,47 @@ export function InstitutionInfoStep({
 						value={formData.institutionType}
 						onChange={onSelectChange('institutionType')}
 						placeholder="Select institution type"
+						styles={
+							validationErrors.institutionType
+								? {
+										control: (provided: any, state: any) => ({
+											...provided,
+											border: '1px solid #ef4444',
+											backgroundColor: '#F5F7FB',
+											color: '#374151',
+											minHeight: '40px',
+											height: state.isMulti ? 'auto' : '40px',
+											borderRadius: '20px',
+											fontSize: '14px',
+											padding: state.isMulti ? '8px 16px' : '0 16px',
+											display: 'flex',
+											alignItems:
+												state.isMulti &&
+												Array.isArray(state.getValue()) &&
+												state.getValue().length > 0
+													? 'flex-start'
+													: 'center',
+											flexWrap: 'wrap',
+											'&:hover': {
+												border: '1px solid #ef4444',
+											},
+											'&:focus-within': {
+												border: '1px solid #ef4444',
+												boxShadow: '0 0 0 1px #ef4444',
+											},
+										}),
+										menu: (provided: any) => ({
+											...provided,
+											fontSize: '14px',
+										}),
+										option: (provided: any) => ({
+											...provided,
+											fontSize: '14px',
+											padding: '8px 16px',
+										}),
+									}
+								: undefined
+						}
 						options={[
 							{ value: 'university', label: 'University' },
 							{ value: 'college', label: 'College' },
@@ -240,6 +313,11 @@ export function InstitutionInfoStep({
 						onChange={onInputChangeEvent('institutionEmail')}
 						placeholder="contact@institution.edu"
 						inputSize="select"
+						className={
+							validationErrors.institutionEmail
+								? 'border-red-500 focus:border-red-500'
+								: ''
+						}
 					/>
 				</div>
 			</div>
@@ -251,21 +329,75 @@ export function InstitutionInfoStep({
 						Country *
 					</Label>
 					<CustomSelect
-						value={formData.institutionCountry}
-						onChange={onSelectChange('institutionCountry')}
+						value={
+							formData.institutionCountry
+								? getCountriesWithSvgFlags().find(
+										(c) =>
+											c.name.toLowerCase() ===
+											formData.institutionCountry.toLowerCase()
+									)
+								: null
+						}
+						onChange={(option) =>
+							onSelectChange('institutionCountry')(option?.name || '')
+						}
 						placeholder="Select country"
-						options={[
-							{ value: 'us', label: 'United States' },
-							{ value: 'uk', label: 'United Kingdom' },
-							{ value: 'ca', label: 'Canada' },
-							{ value: 'au', label: 'Australia' },
-							{ value: 'de', label: 'Germany' },
-							{ value: 'fr', label: 'France' },
-							{ value: 'jp', label: 'Japan' },
-							{ value: 'kr', label: 'South Korea' },
-							{ value: 'sg', label: 'Singapore' },
-							{ value: 'other', label: 'Other' },
-						]}
+						styles={
+							validationErrors.institutionCountry
+								? {
+										control: (provided: any, state: any) => ({
+											...provided,
+											border: '1px solid #ef4444',
+											backgroundColor: '#F5F7FB',
+											color: '#374151',
+											minHeight: '40px',
+											height: state.isMulti ? 'auto' : '40px',
+											borderRadius: '20px',
+											fontSize: '14px',
+											padding: state.isMulti ? '8px 16px' : '0 16px',
+											display: 'flex',
+											alignItems:
+												state.isMulti &&
+												Array.isArray(state.getValue()) &&
+												state.getValue().length > 0
+													? 'flex-start'
+													: 'center',
+											flexWrap: 'wrap',
+											'&:hover': {
+												border: '1px solid #ef4444',
+											},
+											'&:focus-within': {
+												border: '1px solid #ef4444',
+												boxShadow: '0 0 0 1px #ef4444',
+											},
+										}),
+										menu: (provided: any) => ({
+											...provided,
+											fontSize: '14px',
+										}),
+										option: (provided: any) => ({
+											...provided,
+											fontSize: '14px',
+											padding: '8px 16px',
+										}),
+									}
+								: undefined
+						}
+						options={getCountriesWithSvgFlags()}
+						formatOptionLabel={(option: any) => (
+							<div className="flex items-center space-x-2">
+								<span className="text-lg">{option.flag}</span>
+								<span>{option.name}</span>
+							</div>
+						)}
+						getOptionValue={(option: any) => option.name}
+						isSearchable
+						filterOption={(option, inputValue) => {
+							const country = option.data
+							return country.name
+								.toLowerCase()
+								.includes(inputValue.toLowerCase())
+						}}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -278,6 +410,11 @@ export function InstitutionInfoStep({
 						onChange={onInputChangeEvent('institutionAddress')}
 						placeholder="Enter detailed address"
 						inputSize="select"
+						className={
+							validationErrors.institutionAddress
+								? 'border-red-500 focus:border-red-500'
+								: ''
+						}
 					/>
 				</div>
 			</div>
@@ -345,13 +482,35 @@ export function InstitutionInfoStep({
 									}
 									inputSize="select"
 								/>
-								<Input
-									placeholder="Country"
-									value={newCampus.country}
-									onChange={(e) =>
-										setNewCampus({ ...newCampus, country: e.target.value })
+								<CustomSelect
+									value={
+										newCampus.country
+											? getCountriesWithSvgFlags().find(
+													(c) =>
+														c.name.toLowerCase() ===
+														newCampus.country.toLowerCase()
+												)
+											: null
 									}
-									inputSize="select"
+									onChange={(option) =>
+										setNewCampus({ ...newCampus, country: option?.name || '' })
+									}
+									placeholder="Select country"
+									options={getCountriesWithSvgFlags()}
+									formatOptionLabel={(option: any) => (
+										<div className="flex items-center space-x-2">
+											<span className="text-lg">{option.flag}</span>
+											<span>{option.name}</span>
+										</div>
+									)}
+									getOptionValue={(option: any) => option.name}
+									isSearchable
+									filterOption={(option, inputValue) => {
+										const country = option.data
+										return country.name
+											.toLowerCase()
+											.includes(inputValue.toLowerCase())
+									}}
 								/>
 								<Input
 									placeholder="Address"
@@ -398,6 +557,11 @@ export function InstitutionInfoStep({
 							onChange={onInputChangeEvent('representativeName')}
 							placeholder="Enter representative name"
 							inputSize="select"
+							className={
+								validationErrors.representativeName
+									? 'border-red-500 focus:border-red-500'
+									: ''
+							}
 						/>
 					</div>
 					<div className="space-y-2">
@@ -428,6 +592,11 @@ export function InstitutionInfoStep({
 							onChange={onInputChangeEvent('representativePosition')}
 							placeholder="e.g., Admissions Director"
 							inputSize="select"
+							className={
+								validationErrors.representativePosition
+									? 'border-red-500 focus:border-red-500'
+									: ''
+							}
 						/>
 					</div>
 				</div>
@@ -446,6 +615,11 @@ export function InstitutionInfoStep({
 						onChange={onInputChangeEvent('representativeEmail')}
 						placeholder="representative@institution.edu"
 						inputSize="select"
+						className={
+							validationErrors.representativeEmail
+								? 'border-red-500 focus:border-red-500'
+								: ''
+						}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -475,7 +649,11 @@ export function InstitutionInfoStep({
 					value={formData.aboutInstitution}
 					onChange={(e) => onInputChange('aboutInstitution', e.target.value)}
 					placeholder="Describe your institution, its mission, programs, and what makes it unique..."
-					className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-[#F5F7FB] text-sm"
+					className={`w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-[#F5F7FB] text-sm border ${
+						validationErrors.aboutInstitution
+							? 'border-red-500 focus:border-red-500'
+							: 'border-gray-200'
+					}`}
 					rows={5}
 				/>
 			</div>
@@ -494,9 +672,17 @@ export function InstitutionInfoStep({
 				<Button size="sm" variant="outline" onClick={onBack}>
 					Back
 				</Button>
-				<Button size="sm" onClick={onNext}>
-					Next
-				</Button>
+				<div className="flex items-center gap-2">
+					{Object.keys(validationErrors).length > 0 && (
+						<div className="flex items-center gap-1 text-red-500 text-sm">
+							<div className="w-1 h-4 bg-red-500"></div>
+							<span>Required fields missing</span>
+						</div>
+					)}
+					<Button size="sm" onClick={handleNext}>
+						Next
+					</Button>
+				</div>
 			</div>
 		</div>
 	)

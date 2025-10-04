@@ -25,7 +25,7 @@ function validateEnvironment() {
 		throw new Error(`Missing environment variables: ${missing.join(", ")}`);
 	}
 
-	console.log("Environment validation passed for social auth");
+	// Environment validation passed for social auth
 }
 
 // Validate environment on startup
@@ -200,23 +200,10 @@ export const auth = betterAuth({
 	// }
 });
 
-console.log(
-	"Auth initialized with Google provider:",
-	!!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET
-);
-console.log("Stripe integration: DISABLED (handling manually)");
-console.log(
-	"Stripe secret key available:",
-	!!process.env.STRIPE_SECRET_KEY &&
-		!process.env.STRIPE_SECRET_KEY.includes("GET_THIS_FROM")
-);
-console.log(
-	"Stripe publishable key valid:",
-	!!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY &&
-		!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.includes(
-			"GET_THIS_FROM"
-		)
-);
+// Auth initialized with Google provider
+// Stripe integration: DISABLED (handling manually)
+// Stripe secret key available
+// Stripe publishable key valid
 
 // Send verification email using nodemailer
 async function sendEmail(to: string, url: string, token: string) {
@@ -294,7 +281,7 @@ async function sendEmail(to: string, url: string, token: string) {
 
 	try {
 		await transporter.sendMail(mailOptions);
-		console.log("Verification email sent to", to);
+		// Verification email sent
 	} catch (error) {
 		console.error("Error sending verification email:", error);
 	}

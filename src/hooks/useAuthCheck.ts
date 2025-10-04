@@ -2,41 +2,76 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/app/lib/auth-client";
+import { ApiService } from "@/lib/axios-config";
+import { useRouter } from "next/navigation";
 
 export function useAuthCheck() {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [user, setUser] = useState<any>(null);
+	const router = useRouter();
 
 	useEffect(() => {
 		const checkAuth = async () => {
 			try {
 				const session = await authClient.getSession();
-				console.log("Auth session:", session); // Debug log
 				const hasUser = session?.data?.user;
-				console.log("Has user:", hasUser); // Debug log
 				setIsAuthenticated(!!hasUser);
+				setUser(hasUser);
 
 				// Set modal visibility based on authentication status
 				if (hasUser) {
 					setShowAuthModal(false); // Hide modal if authenticated
+
+					// Check if user has a profile
+					try {
+						await ApiService.getProfile();
+					} catch (profileError) {
+						// No profile found, redirect to create profile
+						router.push("/profile/create");
+					}
 				} else {
 					setShowAuthModal(true); // Show modal if not authenticated
 				}
 			} catch (error) {
-				console.error("Auth check failed:", error); // Debug log
 				setIsAuthenticated(false);
 				setShowAuthModal(true);
+				setUser(null);
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
 		checkAuth();
-	}, []);
+	}, [router]);
 
 	const handleCloseModal = () => {
 		setShowAuthModal(false);
+	};
+
+	// Manual auth check function
+	const refreshAuth = async () => {
+		setIsLoading(true);
+		try {
+			const session = await authClient.getSession();
+			const hasUser = session?.data?.user;
+			setIsAuthenticated(!!hasUser);
+			setUser(hasUser);
+
+			// Set modal visibility based on authentication status
+			if (hasUser) {
+				setShowAuthModal(false);
+			} else {
+				setShowAuthModal(true);
+			}
+		} catch (error) {
+			setIsAuthenticated(false);
+			setShowAuthModal(true);
+			setUser(null);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	// Manual cache clear function
@@ -67,5 +102,7 @@ export function useAuthCheck() {
 		handleCloseModal,
 		isLoading,
 		clearAuthCache,
+		refreshAuth,
+		user,
 	};
 }

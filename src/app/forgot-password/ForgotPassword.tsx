@@ -7,7 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { authClient } from '../lib/auth-client'
-import { set } from 'better-auth'
+// import { set } from 'better-auth'
 
 const LEFT_IMAGE = '/assets/campus-image.jpg'
 
@@ -89,7 +89,7 @@ const ForgotPassword: React.FC = () => {
 		try {
 			// This would be replaced with actual password reset API call
 			// For now, simulating the API call
-			const { data, error } = await authClient.resetPassword({
+			const { error } = await authClient.resetPassword({
 				newPassword: newPassword, // required
 				token, // required
 			})
@@ -113,7 +113,7 @@ const ForgotPassword: React.FC = () => {
 				window.location.href = '/signin'
 			}, 2000)
 		} catch (err) {
-			console.error(err)
+			// Error occurred during password reset
 			setErrors({
 				general: 'Failed to update password. Please try again.',
 			})

@@ -16,7 +16,7 @@ export function EduMatchHeader() {
 	const currentLocale = useLocale()
 
 	// Get authentication state
-	const { isAuthenticated } = useAuthCheck()
+	const { isAuthenticated, refreshAuth } = useAuthCheck()
 
 	const [isVisible, setIsVisible] = useState(true)
 	const [lastScrollY, setLastScrollY] = useState(0)
@@ -107,9 +107,14 @@ export function EduMatchHeader() {
 	const handleLogout = async () => {
 		try {
 			await authClient.signOut()
+
 			// Clear any cached data
 			localStorage.clear()
 			sessionStorage.clear()
+
+			// Refresh auth state to update header
+			await refreshAuth()
+
 			// Redirect to home page
 			router.push('/')
 		} catch (error) {

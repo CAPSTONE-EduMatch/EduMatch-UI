@@ -141,9 +141,11 @@ const shouldCache = (config: AxiosRequestConfig): boolean => {
 	// Don't cache auth endpoints
 	if (config.url?.includes("/auth/")) return false;
 
-	// Cache profile, static data, and other read-only endpoints
+	// Don't cache profile endpoints - server handles caching
+	if (config.url?.includes("/api/profile")) return false;
+
+	// Cache static data and other read-only endpoints
 	return !!(
-		config.url?.includes("/api/profile") ||
 		config.url?.includes("/api/cache/static") ||
 		config.url?.includes("/api/health")
 	);

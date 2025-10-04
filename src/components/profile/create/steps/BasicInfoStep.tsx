@@ -4,8 +4,10 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { CustomSelect } from '@/components/ui/custom-select'
+import { DateInput } from '@/components/ui/DateInput'
+import ErrorModal from '@/components/ui/ErrorModal'
 import { Upload, User } from 'lucide-react'
-import { countries, Country, getCountriesWithSvgFlags } from '@/data/countries'
+import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { ProfileFormData } from '@/types/profile'
 import { useState, useRef } from 'react'
 
@@ -21,6 +23,7 @@ interface BasicInfoStepProps {
 	) => (value: string[]) => void
 	onBack: () => void
 	onNext: () => void
+	user?: any
 }
 
 export function BasicInfoStep({
@@ -31,9 +34,11 @@ export function BasicInfoStep({
 	onMultiSelectChange,
 	onBack,
 	onNext,
+	user,
 }: BasicInfoStepProps) {
 	const [isUploading, setIsUploading] = useState(false)
-	const [birthdayError, setBirthdayError] = useState<string>('')
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	const handleFileSelect = async (
@@ -44,13 +49,15 @@ export function BasicInfoStep({
 
 		// Validate file type
 		if (!file.type.startsWith('image/')) {
-			alert('Please select an image file')
+			setErrorMessage('Please select an image file')
+			setShowErrorModal(true)
 			return
 		}
 
 		// Validate file size (5MB max)
 		if (file.size > 5 * 1024 * 1024) {
-			alert('File size must be less than 5MB')
+			setErrorMessage('File size must be less than 5MB')
+			setShowErrorModal(true)
 			return
 		}
 
@@ -68,8 +75,8 @@ export function BasicInfoStep({
 			// Update the profile photo with the S3 URL
 			onInputChange('profilePhoto', result.url)
 		} catch (error) {
-			console.error('Upload error:', error)
-			alert('Failed to upload image. Please try again.')
+			setErrorMessage('Failed to upload image. Please try again.')
+			setShowErrorModal(true)
 		} finally {
 			setIsUploading(false)
 			// Reset file input
@@ -81,31 +88,6 @@ export function BasicInfoStep({
 
 	const handleUploadClick = () => {
 		fileInputRef.current?.click()
-	}
-
-	const validateBirthday = (dateString: string) => {
-		if (!dateString) {
-			setBirthdayError('')
-			return true
-		}
-
-		const selectedDate = new Date(dateString)
-		const today = new Date()
-		today.setHours(0, 0, 0, 0) // Reset time to start of day for accurate comparison
-
-		if (selectedDate > today) {
-			setBirthdayError('Birthday cannot be in the future')
-			return false
-		}
-
-		setBirthdayError('')
-		return true
-	}
-
-	const handleBirthdayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const value = e.target.value
-		validateBirthday(value)
-		onInputChangeEvent('birthday')(e)
 	}
 
 	return (
@@ -207,24 +189,13 @@ export function BasicInfoStep({
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div className="space-y-2">
-						<Label htmlFor="birthday">Birthday</Label>
-						<div className="relative">
-							<Input
-								id="birthday"
-								type="date"
-								value={formData.birthday}
-								onChange={handleBirthdayChange}
-								inputSize="select"
-								className={
-									birthdayError ? 'border-red-500 focus:border-red-500' : ''
-								}
-							/>
-							{birthdayError && (
-								<p className="text-sm text-red-500 mt-1">{birthdayError}</p>
-							)}
-						</div>
-					</div>
+					<DateInput
+						id="birthday"
+						value={formData.birthday}
+						onChange={(value) => onInputChange('birthday', value)}
+						label="Birthday"
+						placeholder="dd/mm/yyyy"
+					/>
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
 						<Input
@@ -234,7 +205,14 @@ export function BasicInfoStep({
 							value={formData.email}
 							onChange={onInputChangeEvent('email')}
 							inputSize="select"
+							disabled={user?.email && formData.email === user.email}
 						/>
+						{user?.email && formData.email === user.email && (
+							<p className="text-xs text-muted-foreground">
+								Email is pre-filled from your Google account and cannot be
+								changed
+							</p>
+						)}
 					</div>
 				</div>
 
@@ -258,15 +236,7 @@ export function BasicInfoStep({
 							options={getCountriesWithSvgFlags()}
 							formatOptionLabel={(option: any) => (
 								<div className="flex items-center space-x-2">
-									{option.svgFlag ? (
-										<img
-											src={option.svgFlag}
-											alt={option.name}
-											className="w-5 h-4 object-cover"
-										/>
-									) : (
-										<span className="text-lg">{option.flag}</span>
-									)}
+									<span className="text-lg">{option.flag}</span>
 									<span>{option.name}</span>
 								</div>
 							)}
@@ -347,15 +317,7 @@ export function BasicInfoStep({
 							}))}
 							formatOptionLabel={(option: any) => (
 								<div className="flex items-center space-x-2">
-									{option.svgFlag ? (
-										<img
-											src={option.svgFlag}
-											alt={option.name}
-											className="w-5 h-4 object-cover"
-										/>
-									) : (
-										<span className="text-lg">{option.flag}</span>
-									)}
+									<span className="text-lg">{option.flag}</span>
 									<span>{option.name}</span>
 								</div>
 							)}
@@ -386,6 +348,15 @@ export function BasicInfoStep({
 					</Button>
 				</div>
 			</div>
+
+			{/* Error Modal */}
+			<ErrorModal
+				isOpen={showErrorModal}
+				onClose={() => setShowErrorModal(false)}
+				title="Upload Failed"
+				message={errorMessage}
+				buttonText="Try Again"
+			/>
 		</div>
 	)
 }

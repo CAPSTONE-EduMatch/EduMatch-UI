@@ -70,15 +70,7 @@ const countryCodeStyles = {
 
 const formatOptionLabel = (option: any) => (
 	<div className="flex items-center space-x-1 text-xs">
-		{option.svgFlag ? (
-			<img
-				src={option.svgFlag}
-				alt={option.name}
-				className="w-3 h-2 object-cover"
-			/>
-		) : (
-			<span className="text-sm">{option.flag}</span>
-		)}
+		<span className="text-sm">{option.flag}</span>
 		<span className="font-medium text-sm">{option.phoneCode}</span>
 	</div>
 )

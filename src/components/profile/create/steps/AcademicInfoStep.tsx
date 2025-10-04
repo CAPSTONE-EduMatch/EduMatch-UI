@@ -1,14 +1,12 @@
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { FileUploadManager } from '@/components/ui/file-upload-manager'
-import { ImageManager } from '@/components/ui/image-manager'
 import { CustomSelect } from '@/components/ui/custom-select'
-import { getCountriesWithSvgFlags } from '@/data/countries'
 import { FileItem } from '@/lib/file-utils'
 import { ProfileFormData } from '@/types/profile'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { getCountriesWithSvgFlags } from '@/data/countries'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData
@@ -28,71 +26,6 @@ interface AcademicInfoStepProps {
 	onBack: () => void
 	onNext: () => void
 	onShowManageModal: () => void
-}
-
-// Custom styles for AcademicInfoStep - matches BasicInfoStep sizing
-const academicCustomStyles = {
-	control: (provided: any) => ({
-		...provided,
-		minHeight: '40px',
-		height: '40px',
-		border: '1px solid #e5e7eb',
-		borderRadius: '20px',
-		backgroundColor: '#F5F7FB',
-		fontSize: '14px',
-		padding: '0 16px',
-		display: 'flex',
-		alignItems: 'center',
-		'&:hover': {
-			border: '1px solid #e5e7eb',
-		},
-		'&:focus-within': {
-			border: '1px solid transparent',
-			boxShadow: '0 0 0 2px #126E64',
-		},
-	}),
-	placeholder: (provided: any) => ({
-		...provided,
-		color: '#9ca3af',
-		fontWeight: 'normal',
-		fontSize: '14px',
-	}),
-	singleValue: (provided: any) => ({
-		...provided,
-		color: '#374151',
-		fontWeight: 'normal',
-		fontSize: '14px',
-	}),
-	menu: (provided: any) => ({
-		...provided,
-		fontSize: '14px',
-		position: 'fixed',
-		top: '50%',
-		left: '50%',
-		transform: 'translate(-50%, -50%)',
-		width: '400px',
-		maxHeight: '400px',
-		zIndex: 9999,
-		boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-		border: '1px solid #e5e7eb',
-		borderRadius: '12px',
-		backgroundColor: 'white',
-	}),
-	menuList: (provided: any) => ({
-		...provided,
-		fontSize: '14px',
-		maxHeight: '350px',
-		overflowY: 'auto',
-	}),
-	menuPortal: (provided: any) => ({
-		...provided,
-		zIndex: 9999,
-	}),
-	option: (provided: any) => ({
-		...provided,
-		fontSize: '14px',
-		padding: '8px 12px',
-	}),
 }
 
 export function AcademicInfoStep({
@@ -161,11 +94,11 @@ export function AcademicInfoStep({
 			<div className="space-y-8">
 				{/* Graduated Section */}
 				<div className="space-y-4">
-					<div className="flex items-center gap-8">
+					<div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
 						<h3 className="text-lg font-semibold text-foreground">Graduated</h3>
 
 						{/* Graduation Status Radio Buttons */}
-						<div className="flex items-center gap-6">
+						<div className="flex items-center gap-4 sm:gap-6">
 							<div className="flex items-center space-x-2">
 								<input
 									type="radio"
@@ -173,9 +106,9 @@ export function AcademicInfoStep({
 									name="graduationStatus"
 									checked={formData.graduationStatus === 'not-yet'}
 									onChange={() => onInputChange('graduationStatus', 'not-yet')}
-									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									className="w-4 h-4 text-primary border-2 border-primary focus:outline-none"
 									style={{
-										accentColor: '#16a34a',
+										accentColor: '#126E64',
 									}}
 								/>
 								<Label
@@ -194,9 +127,9 @@ export function AcademicInfoStep({
 									onChange={() =>
 										onInputChange('graduationStatus', 'graduated')
 									}
-									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									className="w-4 h-4 text-primary border-2 border-primary focus:outline-none"
 									style={{
-										accentColor: '#16a34a',
+										accentColor: '#126E64',
 									}}
 								/>
 								<Label
@@ -209,123 +142,152 @@ export function AcademicInfoStep({
 						</div>
 					</div>
 
-					{/* Academic Details - Only show if graduated */}
-					{formData.graduationStatus === 'graduated' && (
-						<div className="space-y-4">
-							<div className="flex items-end gap-4">
-								<div>
-									<CustomSelect
-										value={
-											formData.degree
-												? { value: formData.degree, label: formData.degree }
-												: null
-										}
-										onChange={(option) =>
-											onSelectChange('degree')(option?.value || '')
-										}
-										placeholder="Level"
-										options={[
-											{ value: 'High School', label: 'High School' },
-											{ value: 'Associate', label: 'Associate' },
-											{ value: "Bachelor's", label: "Bachelor's" },
-											{ value: "Master's", label: "Master's" },
-											{ value: 'PhD', label: 'PhD' },
-											{ value: 'Professional', label: 'Professional' },
-										]}
-										styles={{
-											...academicCustomStyles,
-											control: (provided: any) => ({
-												...academicCustomStyles.control(provided),
-												backgroundColor: 'rgba(17, 110, 99, 0.7)', // custom green with 70% opacity
-												borderColor: 'rgba(17, 110, 99, 0.7)',
-												color: 'white',
-												width: '180px',
-											}),
-											singleValue: (provided: any) => ({
-												...provided,
-												color: '#ffffff',
-												fontWeight: '500',
-											}),
-											placeholder: (provided: any) => ({
-												...provided,
-												color: '#ffffff',
-												fontWeight: '400',
-											}),
-										}}
-										menuPortalTarget={document.body}
-										isClearable={false}
-									/>
-								</div>
-								<span className="text-gray-400 text-xl pb-2">|</span>
-								<div>
-									<CustomSelect
-										value={
-											formData.fieldOfStudy
-												? {
-														value: formData.fieldOfStudy,
-														label: formData.fieldOfStudy,
-													}
-												: null
-										}
-										onChange={(option) =>
-											onSelectChange('fieldOfStudy')(option?.value || '')
-										}
-										placeholder="Choose discipline"
-										options={[
-											{ value: 'Computer Science', label: 'Computer Science' },
-											{
-												value: 'Business Administration',
-												label: 'Business Administration',
-											},
-											{ value: 'Engineering', label: 'Engineering' },
-											{ value: 'Medicine', label: 'Medicine' },
-											{ value: 'Law', label: 'Law' },
-											{ value: 'Arts', label: 'Arts' },
-											{ value: 'Sciences', label: 'Sciences' },
-										]}
-										styles={{
-											...academicCustomStyles,
-											control: (provided: any) => ({
-												...academicCustomStyles.control(provided),
-												borderColor: '#e5e7eb',
-												color: '#374151',
-												width: '250px',
-											}),
-										}}
-										menuPortalTarget={document.body}
-										isClearable={false}
-									/>
-								</div>
-								<div className="flex items-center gap-2">
-									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
-										GPA
-									</div>
-									<span className="text-gray-400 text-xl pb-1">|</span>
-									<Input
-										placeholder="Score"
-										value={formData.scoreValue || ''}
-										onChange={(e) =>
-											onInputChange('scoreValue', e.target.value)
-										}
-										inputSize="select"
-										fullWidth={false}
-										width="w-24"
-									/>
-								</div>
+					{/* Academic Details - Show for both graduated and not-yet */}
+					<div className="space-y-4">
+						{/* Level and Discipline Row */}
+						<div className="flex flex-col lg:flex-row lg:items-end gap-4">
+							<div className="flex-1">
+								<CustomSelect
+									value={
+										formData.degree
+											? { value: formData.degree, label: formData.degree }
+											: null
+									}
+									onChange={(option) =>
+										onSelectChange('degree')(option?.value || '')
+									}
+									placeholder="Level"
+									options={[
+										{ value: 'High School', label: 'High School' },
+										{ value: 'Associate', label: 'Associate' },
+										{ value: "Bachelor's", label: "Bachelor's" },
+										{ value: "Master's", label: "Master's" },
+										{ value: 'PhD', label: 'PhD' },
+										{ value: 'Professional', label: 'Professional' },
+									]}
+									variant="green"
+									menuPortalTarget={document.body}
+									isClearable={false}
+									className="w-full"
+								/>
+							</div>
+							<div className="hidden lg:block text-gray-400 text-xl pb-2">
+								|
+							</div>
+							<div className="flex-1">
+								<CustomSelect
+									value={
+										formData.fieldOfStudy
+											? {
+													value: formData.fieldOfStudy,
+													label: formData.fieldOfStudy,
+												}
+											: null
+									}
+									onChange={(option) =>
+										onSelectChange('fieldOfStudy')(option?.value || '')
+									}
+									placeholder="Choose discipline"
+									options={[
+										{ value: 'Computer Science', label: 'Computer Science' },
+										{
+											value: 'Business Administration',
+											label: 'Business Administration',
+										},
+										{ value: 'Engineering', label: 'Engineering' },
+										{ value: 'Medicine', label: 'Medicine' },
+										{ value: 'Law', label: 'Law' },
+										{ value: 'Arts', label: 'Arts' },
+										{ value: 'Sciences', label: 'Sciences' },
+									]}
+									variant="default"
+									menuPortalTarget={document.body}
+									isClearable={false}
+									className="w-full"
+								/>
 							</div>
 						</div>
-					)}
+
+						{/* GPA Row */}
+						<div className="flex flex-col sm:flex-row sm:items-center gap-4">
+							<div className="flex items-center gap-2">
+								<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
+									GPA
+								</div>
+								<span className="hidden sm:block text-gray-400 text-xl">|</span>
+								<Input
+									placeholder="Score"
+									value={formData.scoreValue || ''}
+									onChange={(e) => onInputChange('scoreValue', e.target.value)}
+									inputSize="select"
+									fullWidth={false}
+									width="w-24"
+								/>
+							</div>
+						</div>
+
+						{/* Additional fields - University and Country of Study */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<Label className="text-sm font-medium text-foreground">
+									University
+								</Label>
+								<Input
+									placeholder="e.g., Harvard University"
+									value={formData.university || ''}
+									onChange={(e) => onInputChange('university', e.target.value)}
+									inputSize="select"
+								/>
+							</div>
+							<div>
+								<Label className="text-sm font-medium text-foreground">
+									Country of Study
+								</Label>
+								<CustomSelect
+									value={
+										formData.countryOfStudy
+											? getCountriesWithSvgFlags().find(
+													(c) => c.name === formData.countryOfStudy
+												)
+											: null
+									}
+									onChange={(option) =>
+										onSelectChange('countryOfStudy')(option?.name || '')
+									}
+									placeholder="Select country"
+									options={getCountriesWithSvgFlags()}
+									formatOptionLabel={(option: any) => (
+										<div className="flex items-center space-x-2">
+											<span className="text-lg">{option.flag}</span>
+											<span>{option.name}</span>
+										</div>
+									)}
+									getOptionValue={(option: any) => option.name}
+									variant="default"
+									menuPortalTarget={document.body}
+									isSearchable
+									isClearable
+									filterOption={(option, inputValue) => {
+										const country = option.data
+										return country.name
+											.toLowerCase()
+											.includes(inputValue.toLowerCase())
+									}}
+								/>
+							</div>
+						</div>
+					</div>
 				</div>
 
 				{/* Foreign Language Section */}
 				<div className="space-y-4">
-					<div className="flex items-center gap-8">
+					<div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
 						<h3 className="text-lg font-semibold text-foreground">
 							Foreign Language
 						</h3>
 
 						{/* Foreign Language Status Radio Buttons */}
-						<div className="flex items-center gap-6">
+						<div className="flex items-center gap-4 sm:gap-6">
 							<div className="flex items-center space-x-2">
 								<input
 									type="radio"
@@ -333,9 +295,9 @@ export function AcademicInfoStep({
 									name="hasForeignLanguage"
 									checked={formData.hasForeignLanguage === 'yes'}
 									onChange={() => onInputChange('hasForeignLanguage', 'yes')}
-									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									className="w-4 h-4 text-primary border-2 border-primary focus:outline-none"
 									style={{
-										accentColor: '#16a34a',
+										accentColor: '#126E64',
 									}}
 								/>
 								<Label
@@ -352,9 +314,9 @@ export function AcademicInfoStep({
 									name="hasForeignLanguage"
 									checked={formData.hasForeignLanguage === 'no'}
 									onChange={() => onInputChange('hasForeignLanguage', 'no')}
-									className="w-4 h-4 text-green-600 border-2 border-green-600 focus:ring-green-600 focus:ring-2"
+									className="w-4 h-4 text-primary border-2 border-primary focus:outline-none"
 									style={{
-										accentColor: '#16a34a',
+										accentColor: '#126E64',
 									}}
 								/>
 								<Label
@@ -371,18 +333,32 @@ export function AcademicInfoStep({
 					{formData.hasForeignLanguage === 'yes' && (
 						<div className="space-y-4">
 							{formData.languages.map((lang, index) => (
-								<div
-									key={index}
-									className="grid grid-cols-1 md:grid-cols-6 gap-4"
-								>
-									<div className="space-y-2 md:col-span-2">
+								<div key={index} className="flex flex-col lg:flex-row gap-2">
+									<div className="space-y-1 flex-1">
 										<Label className="text-sm font-medium text-foreground">
 											Language
 										</Label>
 										<CustomSelect
 											value={
 												lang.language
-													? { value: lang.language, label: lang.language }
+													? {
+															value: lang.language,
+															label: lang.language,
+															flag:
+																[
+																	{ value: 'Vietnamese', flag: '🇻🇳' },
+																	{ value: 'English', flag: '🇺🇸' },
+																	{ value: 'Spanish', flag: '🇪🇸' },
+																	{ value: 'French', flag: '🇫🇷' },
+																	{ value: 'German', flag: '🇩🇪' },
+																	{ value: 'Chinese', flag: '🇨🇳' },
+																	{ value: 'Japanese', flag: '🇯🇵' },
+																	{ value: 'Korean', flag: '🇰🇷' },
+																].find(
+																	(langOption) =>
+																		langOption.value === lang.language
+																)?.flag || '🌐',
+														}
 													: null
 											}
 											onChange={(option) => {
@@ -395,20 +371,58 @@ export function AcademicInfoStep({
 											}}
 											placeholder="Language"
 											options={[
-												{ value: 'Vietnamese', label: 'Vietnamese' },
-												{ value: 'English', label: 'English' },
-												{ value: 'Spanish', label: 'Spanish' },
-												{ value: 'French', label: 'French' },
-												{ value: 'German', label: 'German' },
-												{ value: 'Chinese', label: 'Chinese' },
-												{ value: 'Japanese', label: 'Japanese' },
-												{ value: 'Korean', label: 'Korean' },
+												{
+													value: 'Vietnamese',
+													label: 'Vietnamese',
+													flag: '🇻🇳',
+												},
+												{
+													value: 'English',
+													label: 'English',
+													flag: '🇺🇸',
+												},
+												{
+													value: 'Spanish',
+													label: 'Spanish',
+													flag: '🇪🇸',
+												},
+												{
+													value: 'French',
+													label: 'French',
+													flag: '🇫🇷',
+												},
+												{
+													value: 'German',
+													label: 'German',
+													flag: '🇩🇪',
+												},
+												{
+													value: 'Chinese',
+													label: 'Chinese',
+													flag: '🇨🇳',
+												},
+												{
+													value: 'Japanese',
+													label: 'Japanese',
+													flag: '🇯🇵',
+												},
+												{
+													value: 'Korean',
+													label: 'Korean',
+													flag: '🇰🇷',
+												},
 											]}
+											formatOptionLabel={(option: any) => (
+												<div className="flex items-center space-x-2">
+													<span className="text-lg">{option.flag}</span>
+													<span>{option.label}</span>
+												</div>
+											)}
 											menuPortalTarget={document.body}
 											className="w-full"
 										/>
 									</div>
-									<div className="space-y-2 md:col-span-2">
+									<div className="space-y-1 flex-1">
 										<Label className="text-sm font-medium text-foreground">
 											Certificate
 										</Label>
@@ -426,7 +440,9 @@ export function AcademicInfoStep({
 												}
 												onInputChange('languages', newLanguages)
 											}}
-											placeholder="Select certificate"
+											placeholder="Certificate"
+											variant="green"
+											className="w-full"
 											options={[
 												{ value: 'IELTS', label: 'IELTS' },
 												{ value: 'TOEFL', label: 'TOEFL' },
@@ -437,29 +453,10 @@ export function AcademicInfoStep({
 												{ value: 'HSK', label: 'HSK' },
 												{ value: 'JLPT', label: 'JLPT' },
 											]}
-											styles={{
-												...academicCustomStyles,
-												control: (provided: any) => ({
-													...academicCustomStyles.control(provided),
-													backgroundColor: 'rgba(17, 110, 99, 0.7)', // custom green with 70% opacity
-													borderColor: 'rgba(17, 110, 99, 0.7)',
-													color: 'white',
-												}),
-												singleValue: (provided: any) => ({
-													...provided,
-													color: '#ffffff',
-													fontWeight: '500',
-												}),
-												placeholder: (provided: any) => ({
-													...provided,
-													color: '#ffffff',
-													fontWeight: '400',
-												}),
-											}}
 											menuPortalTarget={document.body}
 										/>
 									</div>
-									<div className="space-y-2 md:col-span-1">
+									<div className="space-y-1 flex-1">
 										<Label className="text-sm font-medium text-foreground">
 											Score
 										</Label>
@@ -476,37 +473,8 @@ export function AcademicInfoStep({
 											}}
 											inputSize="select"
 											fullWidth={false}
-											width="w-32"
+											width="w-full max-w-32"
 										/>
-									</div>
-									{/* Delete Button */}
-									<div className="space-y-2 md:col-span-1 flex items-end justify-center">
-										<button
-											type="button"
-											onClick={() => {
-												const newLanguages = formData.languages.filter(
-													(_, i) => i !== index
-												)
-												onInputChange('languages', newLanguages)
-											}}
-											className="text-red-500 hover:text-red-700 transition-colors p-1"
-											title="Delete language certification"
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												className="h-5 w-5"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M6 18L18 6M6 6l12 12"
-												/>
-											</svg>
-										</button>
 									</div>
 								</div>
 							))}
@@ -541,7 +509,7 @@ export function AcademicInfoStep({
 
 			{/* File Upload Section */}
 			<div className="space-y-6">
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					{/* CV/Resume Upload */}
 					<div className="space-y-3">
 						<Label className="text-sm font-medium text-foreground">
@@ -661,7 +629,7 @@ export function AcademicInfoStep({
 
 				<div className="space-y-6">
 					{formData.researchPapers?.map((paper, index) => (
-						<div key={index} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<div key={index} className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 							{/* Left side - Title and Discipline */}
 							<div className="space-y-4">
 								<div className="space-y-2">
@@ -683,85 +651,58 @@ export function AcademicInfoStep({
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label className="text-sm font-medium text-foreground">
-										Disciplines
-									</Label>
-									<div className="border border-gray-200 rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
-										<div className="grid grid-cols-1 gap-2">
-											{[
-												'Computer Science',
-												'Business Administration',
-												'Engineering',
-												'Medicine',
-												'Law',
-												'Arts',
-												'Sciences',
-												'Mathematics',
-												'Physics',
-												'Chemistry',
-												'Biology',
-												'Psychology',
-												'Sociology',
-												'Economics',
-												'Political Science',
-											].map((discipline) => {
-												const selectedDisciplines = paper.discipline
-													? paper.discipline
-															.split(',')
-															.map((d: string) => d.trim())
-													: []
-												const isSelected =
-													selectedDisciplines.includes(discipline)
-
-												return (
-													<label
-														key={discipline}
-														className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition-colors"
-													>
-														<input
-															type="checkbox"
-															checked={isSelected}
-															onChange={() => {
-																const newPapers = [
-																	...(formData.researchPapers || []),
-																]
-																const currentDisciplines = paper.discipline
-																	? paper.discipline
-																			.split(',')
-																			.map((d: string) => d.trim())
-																	: []
-
-																let updatedDisciplines
-																if (isSelected) {
-																	// Remove discipline
-																	updatedDisciplines =
-																		currentDisciplines.filter(
-																			(d) => d !== discipline
-																		)
-																} else {
-																	// Add discipline
-																	updatedDisciplines = [
-																		...currentDisciplines,
-																		discipline,
-																	]
-																}
-
-																newPapers[index] = {
-																	...newPapers[index],
-																	discipline: updatedDisciplines.join(', '),
-																}
-																onInputChange('researchPapers', newPapers)
-															}}
-															className="w-4 h-4 text-primary border-2 border-gray-300 rounded focus:ring-primary focus:ring-2"
-														/>
-														<span className="text-sm text-gray-700">
-															{discipline}
-														</span>
-													</label>
-												)
-											})}
-										</div>
-									</div>
+									<Label>Disciplines</Label>
+									<CustomSelect
+										value={
+											paper.discipline
+												? paper.discipline
+														.split(',')
+														.map((d: string) => d.trim())
+														.map((discipline) => ({
+															value: discipline,
+															label: discipline,
+														}))
+												: []
+										}
+										onChange={(options) => {
+											const newPapers = [...(formData.researchPapers || [])]
+											const selectedDisciplines = options
+												? options.map((option: any) => option.value)
+												: []
+											newPapers[index] = {
+												...newPapers[index],
+												discipline: selectedDisciplines.join(', '),
+											}
+											onInputChange('researchPapers', newPapers)
+										}}
+										placeholder="Choose disciplines"
+										options={[
+											{ value: 'Computer Science', label: 'Computer Science' },
+											{
+												value: 'Business Administration',
+												label: 'Business Administration',
+											},
+											{ value: 'Engineering', label: 'Engineering' },
+											{ value: 'Medicine', label: 'Medicine' },
+											{ value: 'Law', label: 'Law' },
+											{ value: 'Arts', label: 'Arts' },
+											{ value: 'Sciences', label: 'Sciences' },
+											{ value: 'Mathematics', label: 'Mathematics' },
+											{ value: 'Physics', label: 'Physics' },
+											{ value: 'Chemistry', label: 'Chemistry' },
+											{ value: 'Biology', label: 'Biology' },
+											{ value: 'Psychology', label: 'Psychology' },
+											{ value: 'Sociology', label: 'Sociology' },
+											{ value: 'Economics', label: 'Economics' },
+											{
+												value: 'Political Science',
+												label: 'Political Science',
+											},
+										]}
+										isMulti
+										isSearchable
+										isClearable
+									/>
 								</div>
 							</div>
 
@@ -852,15 +793,20 @@ export function AcademicInfoStep({
 					</div>
 				)}
 			</div>
-			<div className="flex justify-between">
-				<Button variant="outline" onClick={onBack} size="sm">
+			<div className="flex flex-col sm:flex-row justify-between gap-4">
+				<Button
+					variant="outline"
+					onClick={onBack}
+					size="sm"
+					className="w-full sm:w-auto"
+				>
 					Back
 				</Button>
-				<div className="flex gap-2">
-					<Button variant="outline" size="sm">
+				<div className="flex flex-col sm:flex-row gap-2">
+					<Button variant="outline" size="sm" className="w-full sm:w-auto">
 						Create later
 					</Button>
-					<Button onClick={onNext} size="sm">
+					<Button onClick={onNext} size="sm" className="w-full sm:w-auto">
 						Next
 					</Button>
 				</div>

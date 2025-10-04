@@ -37,6 +37,7 @@ export function InstitutionInfoStep({
 	const [validationErrors, setValidationErrors] = useState<
 		Record<string, boolean>
 	>({})
+	const [emailErrors, setEmailErrors] = useState<Record<string, string>>({})
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const [newCampus, setNewCampus] = useState({
 		name: '',
@@ -44,19 +45,56 @@ export function InstitutionInfoStep({
 		address: '',
 	})
 
+	const validateEmail = (email: string): boolean => {
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+		return emailRegex.test(email)
+	}
+
+	const handleEmailChange =
+		(field: keyof ProfileFormData) =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const value = e.target.value
+			onInputChangeEvent(field)(e)
+
+			// Real-time email validation
+			if (value && !validateEmail(value)) {
+				setEmailErrors((prev) => ({
+					...prev,
+					[field]: 'Please enter a valid email address',
+				}))
+			} else {
+				setEmailErrors((prev) => {
+					const newErrors = { ...prev }
+					delete newErrors[field]
+					return newErrors
+				})
+			}
+		}
+
 	const validateRequiredFields = () => {
 		const errors: Record<string, boolean> = {}
+
+		// Email validation regex
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 		// Required fields validation
 		if (!formData.institutionName?.trim()) errors.institutionName = true
 		if (!formData.institutionType) errors.institutionType = true
-		if (!formData.institutionEmail?.trim()) errors.institutionEmail = true
+		if (!formData.institutionEmail?.trim()) {
+			errors.institutionEmail = true
+		} else if (!emailRegex.test(formData.institutionEmail)) {
+			errors.institutionEmail = true
+		}
 		if (!formData.institutionCountry) errors.institutionCountry = true
 		if (!formData.institutionAddress?.trim()) errors.institutionAddress = true
 		if (!formData.representativeName?.trim()) errors.representativeName = true
 		if (!formData.representativePosition?.trim())
 			errors.representativePosition = true
-		if (!formData.representativeEmail?.trim()) errors.representativeEmail = true
+		if (!formData.representativeEmail?.trim()) {
+			errors.representativeEmail = true
+		} else if (!emailRegex.test(formData.representativeEmail)) {
+			errors.representativeEmail = true
+		}
 		if (!formData.aboutInstitution?.trim()) errors.aboutInstitution = true
 
 		setValidationErrors(errors)
@@ -123,7 +161,7 @@ export function InstitutionInfoStep({
 	}
 
 	const handleNext = () => {
-		if (validateRequiredFields()) {
+		if (validateRequiredFields() && Object.keys(emailErrors).length === 0) {
 			onNext()
 		}
 		// Just validate and show red highlighting, no popup
@@ -310,15 +348,20 @@ export function InstitutionInfoStep({
 						id="institutionEmail"
 						type="email"
 						value={formData.institutionEmail}
-						onChange={onInputChangeEvent('institutionEmail')}
+						onChange={handleEmailChange('institutionEmail')}
 						placeholder="contact@institution.edu"
 						inputSize="select"
 						className={
-							validationErrors.institutionEmail
+							validationErrors.institutionEmail || emailErrors.institutionEmail
 								? 'border-red-500 focus:border-red-500'
 								: ''
 						}
 					/>
+					{emailErrors.institutionEmail && (
+						<p className="text-xs text-red-500 mt-1">
+							{emailErrors.institutionEmail}
+						</p>
+					)}
 				</div>
 			</div>
 
@@ -421,7 +464,7 @@ export function InstitutionInfoStep({
 
 			{/* Campus Management */}
 			<div className="space-y-4">
-				<div className="flex items-center justify-between">
+				{/* <div className="flex items-center justify-between">
 					<Label className="text-sm font-medium text-foreground">
 						Campus Locations
 					</Label>
@@ -432,7 +475,7 @@ export function InstitutionInfoStep({
 					>
 						+ Add Campus
 					</Button>
-				</div>
+				</div> */}
 
 				{/* Existing Campuses */}
 				{formData.campuses && formData.campuses.length > 0 && (
@@ -612,15 +655,21 @@ export function InstitutionInfoStep({
 						id="representativeEmail"
 						type="email"
 						value={formData.representativeEmail}
-						onChange={onInputChangeEvent('representativeEmail')}
+						onChange={handleEmailChange('representativeEmail')}
 						placeholder="representative@institution.edu"
 						inputSize="select"
 						className={
-							validationErrors.representativeEmail
+							validationErrors.representativeEmail ||
+							emailErrors.representativeEmail
 								? 'border-red-500 focus:border-red-500'
 								: ''
 						}
 					/>
+					{emailErrors.representativeEmail && (
+						<p className="text-xs text-red-500 mt-1">
+							{emailErrors.representativeEmail}
+						</p>
+					)}
 				</div>
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">

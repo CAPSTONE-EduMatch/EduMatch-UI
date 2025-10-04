@@ -140,9 +140,7 @@ export function FileUploadManager({
 								browse
 							</button>
 						</p>
-						<p className="text-xs text-muted-foreground">
-							Max {maxFiles} files, {maxSize}MB each
-						</p>
+						<p className="text-xs text-muted-foreground">{maxSize}MB each</p>
 					</div>
 				) : (
 					<div className="space-y-4">

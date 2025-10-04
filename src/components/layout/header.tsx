@@ -2,6 +2,7 @@
 
 import { MessageCircle, Bell, User, Menu, X, LogOut } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import Logo from '../../../public/edumatch_logo.svg'
 import { useRouter } from 'next/navigation'
@@ -147,25 +148,25 @@ export function EduMatchHeader() {
 
 						{/* Desktop Navigation Menu - hidden on mobile */}
 						<nav className="hidden md:flex items-center gap-16">
-							<a
+							<Link
 								href="#"
 								className="text-[#222222] hover:text-[#126e64]  transition-colors"
 							>
 								{t('about-us')}
-							</a>
-							<a
-								href="#"
+							</Link>
+							<Link
+								href="/explore"
 								className="text-[#222222] hover:text-[#126e64]  transition-colors"
 							>
 								{t('explore')}
 								{/* Explore */}
-							</a>
-							<a
+							</Link>
+							{/* <Link
 								href="#"
 								className="text-[#222222] hover:text-[#126e64]  transition-colors"
 							>
 								{t('program')}
-							</a>
+							</Link> */}
 						</nav>
 					</div>
 
@@ -392,27 +393,27 @@ export function EduMatchHeader() {
 					<div className="py-4 space-y-4 border-t border-gray-100 mt-3">
 						{/* Mobile Navigation Links */}
 						<nav className="space-y-3">
-							<a
+							<Link
 								href="#"
 								className="block text-[#222222] hover:text-[#126e64]  transition-colors py-2"
 								onClick={() => setIsMobileMenuOpen(false)}
 							>
 								About us
-							</a>
-							<a
-								href="#"
+							</Link>
+							<Link
+								href="/explore"
 								className="block text-[#222222] hover:text-[#126e64]  transition-colors py-2"
 								onClick={() => setIsMobileMenuOpen(false)}
 							>
 								{/* {t('explore')} */}
 								Explore
-							</a>
-							<a
+							</Link>
+							<Link
 								href="#"
-								className="text-[#222222] hover:text-[#126e64]  transition-colors"
+								className="block text-[#222222] hover:text-[#126e64]  transition-colors py-2"
 							>
 								Program
-							</a>
+							</Link>
 						</nav>
 
 						{/* Mobile Profile Icons */}

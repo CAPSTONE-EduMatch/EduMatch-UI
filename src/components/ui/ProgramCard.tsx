@@ -17,7 +17,6 @@ interface ProgramCardProps {
 		daysLeft: number
 		price: string
 		match: string
-		funding: string
 		attendance: string
 	}
 	index: number
@@ -34,11 +33,11 @@ export function ProgramCard({
 }: ProgramCardProps) {
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.3, delay: index * 0.1 }}
+			// initial={{ opacity: 0, y: 20 }}
+			// animate={{ opacity: 1, y: 0 }}
+			// transition={{ duration: 0.3 }}
 			whileHover={{ y: -5 }}
-			className="bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300"
+			className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300"
 		>
 			{/* Header with logo and wishlist */}
 			<div className="flex justify-between items-start mb-4 gap-10">
@@ -66,15 +65,17 @@ export function ProgramCard({
 
 				<motion.button
 					onClick={() => onWishlistToggle(program.id)}
-					className={`p-2 rounded-full transition-all duration-200 ${
-						isWishlisted
-							? 'bg-red-500 text-white'
-							: 'text-red-500 hover:bg-red-50'
-					}`}
+					className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 					whileHover={{ scale: 1.1 }}
 					whileTap={{ scale: 0.9 }}
 				>
-					<Heart className={`w-6 h-6 ${isWishlisted ? 'fill-current' : ''}`} />
+					<Heart
+						className={`w-6 h-6 transition-all duration-200 ${
+							isWishlisted
+								? 'fill-red-500 text-red-500'
+								: 'text-gray-400 hover:text-red-500'
+						}`}
+					/>
 				</motion.button>
 			</div>
 
@@ -116,20 +117,15 @@ export function ProgramCard({
 						📱 {program.attendance}
 					</span>
 				</span>
-				<span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-medium">
-					<span className="inline-flex items-center gap-1">
-						🔒 {program.funding}
-					</span>
-				</span>
 			</div>
 
 			{/* Price */}
-			<div className="text-center mb-6">
-				<div className="text-3xl font-bold text-gray-900">{program.price}</div>
+			<div className="text-center mb-6 flex-grow flex items-end justify-center">
+				<div className="text-2xl font-bold text-gray-900">{program.price}</div>
 			</div>
 
-			{/* Match button */}
-			<div className="relative w-full h-12 bg-gray-200 rounded-full overflow-hidden">
+			{/* Match */}
+			<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden">
 				{/* Animated progress */}
 				<motion.div
 					className="h-full bg-[#32CF5C] rounded-full relative"
@@ -143,7 +139,7 @@ export function ProgramCard({
 				/>
 
 				{/* Centered text */}
-				<div className="absolute inset-0 flex items-center justify-center">
+				<div className="  absolute inset-0 flex items-center justify-center">
 					<motion.span
 						className="font-semibold text-lg text-white "
 						initial={{ opacity: 0 }}

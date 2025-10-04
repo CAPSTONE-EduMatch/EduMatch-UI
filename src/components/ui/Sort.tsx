@@ -5,21 +5,35 @@ import { ChevronDown, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Button from './Button'
 
-export type SortOption = 'most-popular' | 'newest' | 'match-score' | 'deadline'
+export type SortOption =
+	| 'most-popular'
+	| 'newest'
+	| 'oldest'
+	| 'match-score'
+	| 'deadline'
+	| 'default'
 
 interface SortDropdownProps {
 	value: SortOption
 	onChange: (value: SortOption) => void
 }
 
+interface SortOptionItem {
+	value: SortOption
+	label: string
+	separator?: boolean
+}
+
 export function SortDropdown({ value, onChange }: SortDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false)
 
-	const sortOptions = [
+	const sortOptions: SortOptionItem[] = [
 		{ value: 'most-popular' as SortOption, label: 'Most popular' },
 		{ value: 'newest' as SortOption, label: 'Newest' },
+		{ value: 'oldest' as SortOption, label: 'Oldest' },
 		{ value: 'match-score' as SortOption, label: 'Match score' },
 		{ value: 'deadline' as SortOption, label: 'Deadline' },
+		{ value: 'default' as SortOption, label: 'Clear sort', separator: true },
 	]
 
 	const currentOption = sortOptions.find((option) => option.value === value)
@@ -50,23 +64,36 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
 						transition={{ duration: 0.2 }}
 						className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[160px]"
 					>
-						{sortOptions.map((option) => (
-							<motion.button
-								key={option.value}
-								onClick={() => {
-									onChange(option.value)
-									setIsOpen(false)
-								}}
-								className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl ${
-									value === option.value
-										? 'bg-teal-50 text-teal-700'
-										: 'text-gray-700'
-								}`}
-								whileHover={{ backgroundColor: 'rgb(249 250 251)' }}
-								whileTap={{ scale: 0.98 }}
-							>
-								{option.label}
-							</motion.button>
+						{sortOptions.map((option, index) => (
+							<div key={option.value}>
+								{option.separator && (
+									<div className="border-t border-gray-200 my-1" />
+								)}
+								<motion.button
+									onClick={() => {
+										onChange(option.value)
+										setIsOpen(false)
+									}}
+									className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors ${
+										index === 0 ? 'rounded-t-xl' : ''
+									} ${index === sortOptions.length - 1 ? 'rounded-b-xl' : ''} ${
+										value === option.value
+											? 'bg-teal-50 text-teal-700'
+											: option.value === 'default'
+												? 'text-red-600 hover:bg-red-50'
+												: 'text-gray-700'
+									}`}
+									whileHover={{
+										backgroundColor:
+											option.value === 'default'
+												? 'rgb(254 242 242)'
+												: 'rgb(249 250 251)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									{option.label}
+								</motion.button>
+							</div>
 						))}
 					</motion.div>
 				)}

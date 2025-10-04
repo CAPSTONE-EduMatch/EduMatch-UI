@@ -36,19 +36,21 @@ export function ResearchLabCard({
 			className="bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300"
 		>
 			{/* Header with wishlist */}
-			<div className="flex justify-between items-start ">
+			<div className="flex justify-between items-start mb-4">
 				<div></div>
 				<motion.button
 					onClick={() => onWishlistToggle(lab.id)}
-					className={`p-2 rounded-full transition-all duration-200 ${
-						isWishlisted
-							? 'bg-red-500 text-white'
-							: 'text-red-500 hover:bg-red-50'
-					}`}
+					className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 					whileHover={{ scale: 1.1 }}
 					whileTap={{ scale: 0.9 }}
 				>
-					<Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+					<Heart
+						className={`w-6 h-6 transition-all duration-200 ${
+							isWishlisted
+								? 'fill-red-500 text-red-500'
+								: 'text-gray-400 hover:text-red-500'
+						}`}
+					/>
 				</motion.button>
 			</div>
 
@@ -65,36 +67,56 @@ export function ResearchLabCard({
 			</div>
 
 			{/* Bottom section */}
-			<div className="flex justify-between items-center">
-				<div className="flex items-center gap-6 text-sm text-gray-600">
-					<div className="flex items-center gap-2">
-						<Building className="w-4 h-4" />
-						<span>{lab.field}</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<MapPin className="w-4 h-4" />
-						<span>{lab.country}</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<Users className="w-4 h-4" />
-						<span>{lab.position}</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<Clock className="w-4 h-4" />
-						<span>
-							{lab.date}{' '}
-							<span className="text-red-500">({lab.daysLeft} days left)</span>
-						</span>
+			<div className="flex justify-between gap-3 items-center">
+				<div className="w-2/3 flex items-center gap-3 text-sm text-gray-600 overflow-x-auto scrollbar-hide">
+					<div className="flex items-center gap-3 min-w-max">
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<Building className="w-4 h-4" />
+							<span>{lab.field}</span>
+						</div>
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<MapPin className="w-4 h-4" />
+							<span>{lab.country}</span>
+						</div>
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<Users className="w-4 h-4" />
+							<span>{lab.position}</span>
+						</div>
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<Clock className="w-4 h-4" />
+							<span>
+								{lab.date}{' '}
+								<span className="text-red-500">({lab.daysLeft} days left)</span>
+							</span>
+						</div>
 					</div>
 				</div>
 
-				<motion.button
-					className="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded-full font-medium transition-colors"
-					whileHover={{ scale: 1.05 }}
-					whileTap={{ scale: 0.95 }}
-				>
-					Match: {lab.match}
-				</motion.button>
+				<div className="mt-auto relative w-1/3 h-7 bg-gray-200 rounded-full overflow-hidden">
+					{/* Animated progress */}
+					<motion.div
+						className="h-full bg-[#32CF5C] rounded-full relative"
+						initial={{ width: '0%' }}
+						animate={{ width: lab.match }}
+						transition={{
+							duration: 1.2,
+							delay: index * 0.1 + 0.3,
+							ease: [0.4, 0, 0.2, 1],
+						}}
+					/>
+
+					{/* Centered text */}
+					<div className="absolute inset-0 flex items-center justify-center">
+						<motion.span
+							className="font-semibold text-lg text-white"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ delay: index * 0.1 + 0.8 }}
+						>
+							Match: {lab.match}
+						</motion.span>
+					</div>
+				</div>
 			</div>
 		</motion.div>
 	)

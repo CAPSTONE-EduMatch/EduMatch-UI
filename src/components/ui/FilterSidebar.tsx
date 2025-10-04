@@ -233,7 +233,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ delay: 0.1 }}
 			>
-				<div className="flex items-center justify-between mb-6">
+				<div className="flex items-center justify-between mb-3">
 					<h3 className="text-lg font-semibold text-gray-900">
 						Selected filters
 					</h3>
@@ -249,20 +249,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Dynamic sections based on active tab */}
 				{filterConfig.sections.includes('discipline') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('discipline')}
+						>
 							<div className="flex items-center gap-2">
 								<BookOpen className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Discipline</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('discipline')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.discipline ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -294,7 +296,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 										</button>
 									</div>
 
-									<div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
 										{filterConfig.disciplines?.map((discipline) => (
 											<motion.label
 												key={discipline}
@@ -326,20 +328,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Research Field Section (for research labs) */}
 				{filterConfig.sections.includes('researchField') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('researchField')}
+						>
 							<div className="flex items-center gap-2">
 								<BookOpen className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Research field</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('researchField')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.researchField ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -369,7 +373,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 										</button>
 									</div>
 
-									<div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
 										{filterConfig.researchFields?.map((field) => (
 											<motion.label
 												key={field}
@@ -399,20 +403,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Country Section */}
 				{filterConfig.sections.includes('country') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('country')}
+						>
 							<div className="flex items-center gap-2">
 								<Globe className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Country</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('country')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.country ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -442,7 +448,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 										</button>
 									</div>
 
-									<div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
 										{filterConfig.countries?.map((country) => (
 											<motion.label
 												key={country}
@@ -471,20 +477,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Fee Section (for programs) */}
 				{filterConfig.sections.includes('fee') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('fee')}
+						>
 							<div className="flex items-center gap-2">
 								<DollarSign className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Fee</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('fee')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.fee ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -495,27 +503,125 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									exit={{ opacity: 0, height: 0 }}
 									transition={{ duration: 0.3 }}
 								>
-									<div className="space-y-3">
-										<div className="text-center text-lg font-semibold text-[#116E63]">
-											{feeRange.min.toLocaleString()}
+									<div className="space-y-4">
+										{/* Range Display */}
+										{/* <div className="flex justify-between items-center">
+											<div className="text-center">
+												<div className="text-xs text-gray-500 mb-1">Min</div>
+												<div className="text-lg font-semibold text-[#116E63]">
+													${feeRange.min.toLocaleString()}
+												</div>
+											</div>
+											<div className="text-center">
+												<div className="text-xs text-gray-500 mb-1">Max</div>
+												<div className="text-lg font-semibold text-[#116E63]">
+													${feeRange.max.toLocaleString()}
+												</div>
+											</div>
+										</div> */}
+
+										{/* Dual Range Slider */}
+										<div className="space-y-2">
+											<label className="text-sm font-medium text-gray-700">
+												Fee Range
+											</label>
+											<div className="relative">
+												{/* Min slider */}
+												<input
+													type="range"
+													min="0"
+													max="2000000"
+													step="1000"
+													value={feeRange.min}
+													onChange={(e) => {
+														const newMin = Number.parseInt(e.target.value)
+														setFeeRange((prev) => ({
+															...prev,
+															min: Math.min(newMin, prev.max - 1000),
+														}))
+													}}
+													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-10"
+													style={{
+														background: 'transparent',
+														WebkitAppearance: 'none',
+													}}
+												/>
+												{/* Max slider */}
+												<input
+													type="range"
+													min="0"
+													max="2000000"
+													step="1000"
+													value={feeRange.max}
+													onChange={(e) => {
+														const newMax = Number.parseInt(e.target.value)
+														setFeeRange((prev) => ({
+															...prev,
+															max: Math.max(newMax, prev.min + 1000),
+														}))
+													}}
+													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20"
+													style={{
+														background: 'transparent',
+														WebkitAppearance: 'none',
+													}}
+												/>
+												{/* Track background */}
+												<div className="relative h-2 bg-gray-200 rounded-lg">
+													{/* Active range */}
+													<div
+														className="absolute h-2 bg-[#116E63] rounded-lg"
+														style={{
+															left: `${(feeRange.min / 2000000) * 100}%`,
+															right: `${100 - (feeRange.max / 2000000) * 100}%`,
+														}}
+													/>
+												</div>
+											</div>
 										</div>
-										<div className="relative">
-											<input
-												type="range"
-												min="0"
-												max="2000000"
-												value={feeRange.min}
-												onChange={(e) =>
-													setFeeRange((prev) => ({
-														...prev,
-														min: Number.parseInt(e.target.value),
-													}))
-												}
-												className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-											/>
-										</div>
-										<div className="text-center text-lg font-semibold text-gray-700">
-											{feeRange.max.toLocaleString()}
+
+										{/* Manual Input Fields */}
+										<div className="grid grid-cols-2 gap-3">
+											<div className="space-y-1">
+												<label className="text-xs text-gray-500">Min ($)</label>
+												<input
+													type="number"
+													value={feeRange.min}
+													onChange={(e) => {
+														const newMin = Number.parseInt(e.target.value) || 0
+														setFeeRange((prev) => ({
+															...prev,
+															min: Math.min(
+																Math.max(newMin, 0),
+																prev.max - 1000
+															),
+														}))
+													}}
+													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
+													min="0"
+													max="2000000"
+												/>
+											</div>
+											<div className="space-y-1">
+												<label className="text-xs text-gray-500">Max ($)</label>
+												<input
+													type="number"
+													value={feeRange.max}
+													onChange={(e) => {
+														const newMax = Number.parseInt(e.target.value) || 0
+														setFeeRange((prev) => ({
+															...prev,
+															max: Math.max(
+																Math.min(newMax, 2000000),
+																prev.min + 1000
+															),
+														}))
+													}}
+													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
+													min="0"
+													max="2000000"
+												/>
+											</div>
 										</div>
 									</div>
 								</motion.div>
@@ -526,20 +632,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Salary Section (for research labs) */}
 				{filterConfig.sections.includes('salary') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('salary')}
+						>
 							<div className="flex items-center gap-2">
 								<DollarSign className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Salary</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('salary')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.salary ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -577,20 +685,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Duration Section (for programs) */}
 				{filterConfig.sections.includes('duration') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('duration')}
+						>
 							<div className="flex items-center gap-2">
 								<Clock className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Duration</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('duration')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.duration ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -633,20 +743,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Degree Level Section */}
 				{filterConfig.sections.includes('degreeLevel') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('degreeLevel')}
+						>
 							<div className="flex items-center gap-2">
 								<GraduationCap className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Degree level</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('degreeLevel')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.degreeLevel ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -687,20 +799,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Essay Required Section (for scholarships) */}
 				{filterConfig.sections.includes('essayRequired') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('essayRequired')}
+						>
 							<div className="flex items-center gap-2">
 								<FileText className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Essay required</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('essayRequired')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.essayRequired ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -741,20 +855,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Attendance Section */}
 				{filterConfig.sections.includes('attendance') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('attendance')}
+						>
 							<div className="flex items-center gap-2">
 								<Users className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Attendance</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('attendance')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.attendance ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -794,20 +910,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Contract Type Section (for research labs) */}
 				{filterConfig.sections.includes('contractType') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('contractType')}
+						>
 							<div className="flex items-center gap-2">
 								<Briefcase className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Type of Contract</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('contractType')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.contractType ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>
@@ -848,20 +966,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 				{/* Job Type Section (for research labs) */}
 				{filterConfig.sections.includes('jobType') && (
-					<div className="mb-6">
-						<div className="flex items-center justify-between mb-3">
+					<div className="mb-3">
+						<div
+							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+							onClick={() => toggleSection('jobType')}
+						>
 							<div className="flex items-center gap-2">
 								<Building className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">Job type</h4>
 							</div>
-							<motion.button
-								onClick={() => toggleSection('jobType')}
-								className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+							<motion.div
+								className="p-1"
 								animate={{ rotate: collapsedSections.jobType ? -90 : 0 }}
 								transition={{ duration: 0.2 }}
 							>
 								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.button>
+							</motion.div>
 						</div>
 
 						<AnimatePresence>

@@ -1,14 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SortOption } from '../ui/Sort'
 import { ResearchLabCard } from '../ui/ResearchLabCard'
+import { mockResearchLabs } from '@/data/utils'
+
 interface ResearchLabsTabProps {
-	sortBy: SortOption
+	sortBy?: SortOption
+	currentPage?: number
+	itemsPerPage?: number
 }
 
 // eslint-disable-next-line no-unused-vars
-export function ResearchLabsTab({ sortBy }: ResearchLabsTabProps) {
+export function ResearchLabsTab({
+	currentPage = 1,
+	itemsPerPage = 15,
+}: ResearchLabsTabProps) {
 	// TODO: Implement sorting functionality
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
@@ -24,32 +31,35 @@ export function ResearchLabsTab({ sortBy }: ResearchLabsTabProps) {
 		})
 	}
 
-	const labs = Array.from({ length: 6 }, (_, i) => ({
-		id: i + 1,
-		title:
-			'Lorem Ipsum is simply dummy text of the printing and typesetting industry',
-		description:
-			"Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s Lorem Ipsum is simply dummy text of the printing and typesetting...",
-		professor: 'Prof. John Smith',
-		field: 'Information System',
-		country: 'Korea',
-		position: 'PhD Position',
-		date: '25 July 2025',
-		daysLeft: Math.floor(Math.random() * 30) + 1,
-		match: `${Math.floor(Math.random() * 30) + 70}%`,
-	}))
+	const paginatedLabs = useMemo(() => {
+		// Apply pagination without sorting
+		const startIndex = (currentPage - 1) * itemsPerPage
+		const endIndex = startIndex + itemsPerPage
+		return mockResearchLabs.slice(startIndex, endIndex)
+	}, [currentPage, itemsPerPage])
 
 	return (
 		<div className="space-y-4">
-			{labs.map((lab, index) => (
-				<ResearchLabCard
-					key={lab.id}
-					lab={lab}
-					index={index}
-					isWishlisted={wishlistItems.has(lab.id)}
-					onWishlistToggle={toggleWishlist}
-				/>
-			))}
+			{paginatedLabs.length > 0 ? (
+				paginatedLabs.map((lab, index) => (
+					<ResearchLabCard
+						key={lab.id}
+						lab={lab}
+						index={index}
+						isWishlisted={wishlistItems.has(lab.id)}
+						onWishlistToggle={toggleWishlist}
+					/>
+				))
+			) : (
+				<div className="text-center py-12">
+					<div className="text-gray-500 text-lg mb-2">
+						No research labs found
+					</div>
+					<div className="text-gray-400 text-sm">
+						Try adjusting your filters or search criteria
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

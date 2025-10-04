@@ -42,7 +42,7 @@ export function Pagination({
 			} else {
 				// Show ellipsis, current page with neighbors, ellipsis
 				pages.push('...')
-				for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+				for (let i = currentPage - 2; i <= currentPage + 2; i++) {
 					pages.push(i)
 				}
 				pages.push('...')
@@ -58,16 +58,16 @@ export function Pagination({
 	return (
 		<motion.div
 			className="flex items-center justify-center space-x-2 mt-8"
-			initial={{ opacity: 0, y: 20 }}
+			initial={{ opacity: 0, y: 30 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5 }}
+			transition={{ duration: 0.6, ease: 'easeOut' }}
 		>
 			<motion.button
 				className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 hover:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 				onClick={() => onPageChange(Math.max(1, currentPage - 1))}
 				disabled={currentPage === 1}
-				whileHover={{ scale: 1.05 }}
-				whileTap={{ scale: 0.95 }}
+				whileHover={{ scale: 1.08, transition: { duration: 0.2 } }}
+				whileTap={{ scale: 0.92, transition: { duration: 0.1 } }}
 			>
 				<ChevronLeft className="w-4 h-4" />
 			</motion.button>
@@ -75,9 +75,10 @@ export function Pagination({
 			{pages.map((page, index) => (
 				<motion.div
 					key={`${page}-${index}`}
-					initial={{ opacity: 0, scale: 0.8 }}
-					animate={{ opacity: 1, scale: 1 }}
-					transition={{ delay: index * 0.05 }}
+					// layout
+					transition={{
+						layout: { duration: 0.3, ease: 'easeInOut' },
+					}}
 				>
 					{page === '...' ? (
 						<span className="px-3 py-2 text-gray-500">...</span>
@@ -89,21 +90,28 @@ export function Pagination({
 									: 'border border-gray-300 hover:border-teal-500 hover:bg-teal-50'
 							}`}
 							onClick={() => onPageChange(page as number)}
-							whileHover={{ scale: 1.1 }}
-							whileTap={{ scale: 0.9 }}
+							whileHover={{
+								scale: 1.15,
+								transition: { duration: 0.2, ease: 'easeOut' },
+							}}
+							whileTap={{
+								scale: 0.85,
+								transition: { duration: 0.1 },
+							}}
 						>
 							{page}
 						</motion.button>
 					)}
 				</motion.div>
 			))}
+			{/* <div className="h-10 w-20 p-6 bg-amber-100"></div> */}
 
 			<motion.button
 				className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 hover:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 				onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
 				disabled={currentPage === totalPages}
-				whileHover={{ scale: 1.05 }}
-				whileTap={{ scale: 0.95 }}
+				whileHover={{ scale: 1.08, transition: { duration: 0.2 } }}
+				whileTap={{ scale: 0.92, transition: { duration: 0.1 } }}
 			>
 				<ChevronRight className="w-4 h-4" />
 			</motion.button>

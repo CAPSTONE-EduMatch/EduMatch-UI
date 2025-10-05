@@ -30,11 +30,11 @@ export function ScholarshipCard({
 }: ScholarshipCardProps) {
 	return (
 		<motion.div
-			initial={{ opacity: 0, x: -20 }}
-			animate={{ opacity: 1, x: 0 }}
-			transition={{ duration: 0.3, delay: index * 0.1 }}
+			// initial={{ opacity: 0, x: -20 }}
+			// animate={{ opacity: 1, x: 0 }}
+			// transition={{ duration: 0.3 }}
 			whileHover={{ x: 5 }}
-			className="bg-white rounded-3xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300"
+			className="bg-white rounded-3xl border border-gray-600 p-6 hover:shadow-lg transition-all duration-300"
 		>
 			{/* Header */}
 			<div className="flex justify-between items-start mb-4">
@@ -45,16 +45,16 @@ export function ScholarshipCard({
 					</span>
 					<motion.button
 						onClick={() => onWishlistToggle(scholarship.id)}
-						className={`p-2 rounded-full transition-all duration-200 ${
-							isWishlisted
-								? 'bg-red-500 text-white'
-								: 'text-red-500 hover:bg-red-50'
-						}`}
+						className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 						whileHover={{ scale: 1.1 }}
 						whileTap={{ scale: 0.9 }}
 					>
 						<Heart
-							className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`}
+							className={`w-6 h-6 transition-all duration-200 ${
+								isWishlisted
+									? 'fill-red-500 text-red-500'
+									: 'text-gray-400 hover:text-red-500'
+							}`}
 						/>
 					</motion.button>
 				</div>
@@ -71,38 +71,58 @@ export function ScholarshipCard({
 			</p>
 
 			{/* Bottom section */}
-			<div className="flex justify-between items-center">
-				<div className="flex items-center gap-6 text-sm text-gray-600">
-					<div className="flex items-center gap-2">
-						<Building className="w-4 h-4" />
-						<span>{scholarship.university}</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<FileText className="w-4 h-4" />
-						<span>Essay required: {scholarship.essayRequired}</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<MapPin className="w-4 h-4" />
-						<span>{scholarship.country}</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<Clock className="w-4 h-4" />
-						<span>
-							{scholarship.date}{' '}
-							<span className="text-red-500">
-								({scholarship.daysLeft} days left)
+			<div className="flex justify-between gap-3 items-center">
+				<div className="w-2/3 flex items-center gap-3 text-sm text-gray-600 overflow-x-auto scrollbar-hide">
+					<div className="flex items-center gap-3 min-w-max">
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<Building className="w-4 h-4" />
+							<span>{scholarship.university}</span>
+						</div>
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<FileText className="w-4 h-4" />
+							<span>Essay required: {scholarship.essayRequired}</span>
+						</div>
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<MapPin className="w-4 h-4" />
+							<span>{scholarship.country}</span>
+						</div>
+						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
+							<Clock className="w-4 h-4" />
+							<span>
+								{scholarship.date}{' '}
+								<span className="text-red-500">
+									({scholarship.daysLeft} days left)
+								</span>
 							</span>
-						</span>
+						</div>
 					</div>
 				</div>
 
-				<motion.button
-					className="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded-full font-medium transition-colors"
-					whileHover={{ scale: 1.05 }}
-					whileTap={{ scale: 0.95 }}
-				>
-					Match: {scholarship.match}
-				</motion.button>
+				<div className="mt-auto relative w-1/3 h-7 bg-gray-200 rounded-full overflow-hidden">
+					{/* Animated progress */}
+					<motion.div
+						className="h-full bg-[#32CF5C] rounded-full relative"
+						initial={{ width: '0%' }}
+						animate={{ width: scholarship.match }}
+						transition={{
+							duration: 1.2,
+							delay: index * 0.1 + 0.3,
+							ease: [0.4, 0, 0.2, 1],
+						}}
+					/>
+
+					{/* Centered text */}
+					<div className="  absolute inset-0 flex items-center justify-center">
+						<motion.span
+							className="font-semibold text-lg text-white "
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ delay: index * 0.1 + 0.8 }}
+						>
+							Match: {scholarship.match}
+						</motion.span>
+					</div>
+				</div>
 			</div>
 		</motion.div>
 	)

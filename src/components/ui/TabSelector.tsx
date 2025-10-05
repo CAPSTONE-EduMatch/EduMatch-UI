@@ -21,7 +21,7 @@ export function TabSelector({
 	className = '',
 }: TabSelectorProps) {
 	return (
-		<div className={`flex justify-between mb-12 ${className}`}>
+		<div className={`flex justify-between mb-7 ${className} `}>
 			<div className="flex flex-wrap gap-2 justify-center max-w-full">
 				{tabs.map((tab) => (
 					<Button

@@ -15,6 +15,8 @@ interface PhoneInputProps {
 	onCountryChange: (countryCode: string) => void
 	placeholder?: string
 	className?: string
+	hasError?: boolean
+	height?: string
 }
 
 const customStyles = {
@@ -34,38 +36,54 @@ const customStyles = {
 	}),
 }
 
-const countryCodeStyles = {
-	control: (provided: any) => ({
-		...provided,
-		minHeight: '40px',
-		height: '40px',
-		border: '1px solid rgba(17, 110, 99, 0.7)',
-		borderRadius: '20px',
-		backgroundColor: 'rgba(17, 110, 99, 0.7)',
-		padding: '0px 8px',
-		fontSize: '14px',
-		'&:hover': {
-			border: '1px solid rgba(17, 110, 99, 0.8)',
-		},
-	}),
-	placeholder: (provided: any) => ({
-		...provided,
-		color: 'hsl(var(--muted-foreground))',
-	}),
-	menu: (provided: any) => ({
-		...provided,
-		maxHeight: '200px',
-		fontSize: '14px',
-	}),
-	option: (provided: any) => ({
-		...provided,
-		padding: '8px 12px',
-		fontSize: '14px',
-	}),
-	menuList: (provided: any) => ({
-		...provided,
-		maxHeight: '200px',
-	}),
+const getCountryCodeStyles = (height: string) => {
+	const heightValue = height === 'h-8' ? '32px' : '40px'
+	return {
+		control: (provided: any) => ({
+			...provided,
+			minHeight: heightValue,
+			height: heightValue,
+			border: '1px solid rgba(17, 110, 99, 0.7)',
+			borderRadius: '20px',
+			backgroundColor: 'rgba(17, 110, 99, 0.7)',
+			padding: '0px 8px',
+			fontSize: '14px',
+			display: 'flex',
+			alignItems: 'center',
+			'&:hover': {
+				border: '1px solid rgba(17, 110, 99, 0.8)',
+			},
+		}),
+		valueContainer: (provided: any) => ({
+			...provided,
+			display: 'flex',
+			alignItems: 'center',
+			padding: '0px',
+		}),
+		singleValue: (provided: any) => ({
+			...provided,
+			display: 'flex',
+			alignItems: 'center',
+		}),
+		placeholder: (provided: any) => ({
+			...provided,
+			color: 'hsl(var(--muted-foreground))',
+		}),
+		menu: (provided: any) => ({
+			...provided,
+			maxHeight: '200px',
+			fontSize: '14px',
+		}),
+		option: (provided: any) => ({
+			...provided,
+			padding: '8px 12px',
+			fontSize: '14px',
+		}),
+		menuList: (provided: any) => ({
+			...provided,
+			maxHeight: '200px',
+		}),
+	}
 }
 
 const formatOptionLabel = (option: any) => (
@@ -82,6 +100,8 @@ export function PhoneInput({
 	onCountryChange,
 	placeholder,
 	className = '',
+	hasError = false,
+	height = 'h-10',
 }: PhoneInputProps) {
 	const [isValid, setIsValid] = useState(true)
 	const [errorMessage, setErrorMessage] = useState('')
@@ -164,7 +184,7 @@ export function PhoneInput({
 
 	return (
 		<div className={`space-y-2 ${className}`}>
-			<div className="flex space-x-2">
+			<div className="flex space-x-2 items-center">
 				<Select
 					value={selectedCountry}
 					onChange={handleCountryChange}
@@ -172,10 +192,11 @@ export function PhoneInput({
 					formatOptionLabel={formatOptionLabel}
 					getOptionValue={(option) => option.phoneCode}
 					styles={{
-						...countryCodeStyles,
+						...getCountryCodeStyles(height),
 						control: (provided: any) => ({
-							...countryCodeStyles.control(provided),
-							width: '130px',
+							...getCountryCodeStyles(height).control(provided),
+							width: '120px',
+							minWidth: '120px',
 						}),
 					}}
 					isClearable={false}
@@ -190,14 +211,14 @@ export function PhoneInput({
 						)
 					}}
 				/>
-				<div className="flex-1">
+				<div className="flex-1 flex items-center min-w-0">
 					<input
 						type="tel"
 						value={value}
 						onChange={handlePhoneChange}
 						placeholder={getCountryPlaceholder()}
-						className={`w-full h-10 px-4 py-2.5 text-sm border rounded-full bg-[#F5F7FB] focus:outline-none transition-all duration-300 ${
-							!isValid ? 'border-red-300' : 'border-gray-200'
+						className={`w-full ${height} px-4 py-2.5 text-sm border rounded-full bg-[#F5F7FB] focus:outline-none transition-all duration-300 whitespace-nowrap ${
+							!isValid || hasError ? 'border-red-500' : 'border-gray-200'
 						} focus:ring-2 focus:ring-[#126E64] focus:border-transparent`}
 					/>
 				</div>

@@ -47,9 +47,130 @@ export function AcademicInfoStep({
 			])
 		}
 	}, [])
+
+	// Add default language certification when foreign language is set to "yes"
+	useEffect(() => {
+		if (
+			formData.hasForeignLanguage === 'yes' &&
+			formData.languages?.length === 0
+		) {
+			onInputChange('languages', [{ language: '', certificate: '', score: '' }])
+		}
+	}, [formData.hasForeignLanguage])
 	const handleCategoryFilesUploaded = (category: string, files: FileItem[]) => {
-		// Store file metadata in form state (S3-only approach)
-		onInputChange(category as keyof ProfileFormData, files as any)
+		// Get existing files for this category
+		const existingFiles =
+			(formData[category as keyof ProfileFormData] as FileItem[]) || []
+
+		// Merge new files with existing files
+		const mergedFiles = [...existingFiles, ...files]
+
+		// Store merged file metadata in form state
+		onInputChange(category as keyof ProfileFormData, mergedFiles as any)
+	}
+
+	// Function to get certificate options based on selected language
+	const getCertificateOptions = (language: string) => {
+		switch (language) {
+			case 'English':
+				return [
+					{ value: 'IELTS', label: 'IELTS' },
+					{ value: 'TOEFL', label: 'TOEFL' },
+					{ value: 'TOEIC', label: 'TOEIC' },
+					{ value: 'Cambridge', label: 'Cambridge' },
+					{ value: 'PTE', label: 'PTE Academic' },
+					{ value: 'Duolingo', label: 'Duolingo English Test' },
+				]
+			case 'Spanish':
+				return [
+					{ value: 'DELE', label: 'DELE' },
+					{ value: 'SIELE', label: 'SIELE' },
+					{ value: 'CELU', label: 'CELU' },
+				]
+			case 'French':
+				return [
+					{ value: 'DELF', label: 'DELF' },
+					{ value: 'DALF', label: 'DALF' },
+					{ value: 'TCF', label: 'TCF' },
+					{ value: 'TEF', label: 'TEF' },
+				]
+			case 'German':
+				return [
+					{ value: 'Goethe', label: 'Goethe-Zertifikat' },
+					{ value: 'TestDaF', label: 'TestDaF' },
+					{ value: 'DSH', label: 'DSH' },
+				]
+			case 'Chinese':
+				return [
+					{ value: 'HSK', label: 'HSK' },
+					{ value: 'TOCFL', label: 'TOCFL' },
+					{ value: 'BCT', label: 'BCT' },
+				]
+			case 'Japanese':
+				return [
+					{ value: 'JLPT', label: 'JLPT' },
+					{ value: 'J-Test', label: 'J-Test' },
+					{ value: 'NAT-TEST', label: 'NAT-TEST' },
+				]
+			case 'Korean':
+				return [
+					{ value: 'TOPIK', label: 'TOPIK' },
+					{ value: 'KLAT', label: 'KLAT' },
+				]
+			case 'Vietnamese':
+				return [
+					{ value: 'VSTEP', label: 'VSTEP' },
+					{ value: 'Other', label: 'Other Vietnamese Certificate' },
+				]
+			default:
+				return [{ value: 'Other', label: 'Other Certificate' }]
+		}
+	}
+
+	// Function to validate and format GPA score (4.0 scale)
+	const handleScoreInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+
+		// Allow empty string
+		if (value === '') {
+			onInputChange('scoreValue', '')
+			return
+		}
+
+		// Allow typing decimal separators and numbers
+		let cleanValue = value.replace(/[^0-9.,]/g, '')
+
+		// Allow partial input like "3." or "3," while typing
+		if (cleanValue.endsWith('.') || cleanValue.endsWith(',')) {
+			onInputChange('scoreValue', cleanValue)
+			return
+		}
+
+		// Replace comma with period for consistent decimal separator
+		cleanValue = cleanValue.replace(',', '.')
+
+		// Ensure only one decimal point
+		const decimalParts = cleanValue.split('.')
+		if (decimalParts.length > 2) {
+			cleanValue = decimalParts[0] + '.' + decimalParts.slice(1).join('')
+		}
+
+		// Convert to number and validate range (0.0 to 4.0)
+		const numValue = parseFloat(cleanValue)
+		if (!isNaN(numValue) && numValue >= 0 && numValue <= 4.0) {
+			// Format to max 2 decimal places
+			cleanValue = numValue.toFixed(2).replace(/\.?0+$/, '')
+			onInputChange('scoreValue', cleanValue)
+		} else if (
+			cleanValue === '0' ||
+			cleanValue === '1' ||
+			cleanValue === '2' ||
+			cleanValue === '3' ||
+			cleanValue === '4'
+		) {
+			// Allow single digits 0-4
+			onInputChange('scoreValue', cleanValue)
+		}
 	}
 
 	const getAllFiles = () => {
@@ -168,7 +289,7 @@ export function AcademicInfoStep({
 									variant="green"
 									menuPortalTarget={document.body}
 									isClearable={false}
-									className="w-full"
+									className="w-60"
 								/>
 							</div>
 							<div className="hidden lg:block text-gray-400 text-xl pb-2">
@@ -203,29 +324,30 @@ export function AcademicInfoStep({
 									variant="default"
 									menuPortalTarget={document.body}
 									isClearable={false}
-									className="w-full"
+									isSearchable
+									className="w-60"
 								/>
 							</div>
-						</div>
-
-						{/* GPA Row */}
-						<div className="flex flex-col sm:flex-row sm:items-center gap-4">
-							<div className="flex items-center gap-2">
-								<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
-									GPA
+							{/* GPA Row */}
+							<div className="flex flex-col sm:flex-row sm:items-center gap-4">
+								<div className="flex items-center gap-2">
+									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
+										GPA
+									</div>
+									<span className="hidden sm:block text-gray-400 text-xl">
+										|
+									</span>
+									<Input
+										placeholder="0.0-4.0"
+										value={formData.scoreValue || ''}
+										onChange={handleScoreInput}
+										inputSize="select"
+										fullWidth={false}
+										width="w-24"
+									/>
 								</div>
-								<span className="hidden sm:block text-gray-400 text-xl">|</span>
-								<Input
-									placeholder="Score"
-									value={formData.scoreValue || ''}
-									onChange={(e) => onInputChange('scoreValue', e.target.value)}
-									inputSize="select"
-									fullWidth={false}
-									width="w-24"
-								/>
 							</div>
 						</div>
-
 						{/* Additional fields - University and Country of Study */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
@@ -443,16 +565,7 @@ export function AcademicInfoStep({
 											placeholder="Certificate"
 											variant="green"
 											className="w-full"
-											options={[
-												{ value: 'IELTS', label: 'IELTS' },
-												{ value: 'TOEFL', label: 'TOEFL' },
-												{ value: 'TOEIC', label: 'TOEIC' },
-												{ value: 'Cambridge', label: 'Cambridge' },
-												{ value: 'DELE', label: 'DELE' },
-												{ value: 'DELF', label: 'DELF' },
-												{ value: 'HSK', label: 'HSK' },
-												{ value: 'JLPT', label: 'JLPT' },
-											]}
+											options={getCertificateOptions(lang.language)}
 											menuPortalTarget={document.body}
 										/>
 									</div>
@@ -520,7 +633,6 @@ export function AcademicInfoStep({
 								handleCategoryFilesUploaded('cvFiles', files)
 							}
 							category="cv-resume"
-							maxFiles={3}
 							acceptedTypes={[
 								'application/pdf',
 								'application/msword',
@@ -546,7 +658,6 @@ export function AcademicInfoStep({
 								handleCategoryFilesUploaded('languageCertFiles', files)
 							}
 							category="language-certificates"
-							maxFiles={5}
 							acceptedTypes={[
 								'application/pdf',
 								'image/jpeg',
@@ -574,7 +685,6 @@ export function AcademicInfoStep({
 								handleCategoryFilesUploaded('degreeFiles', files)
 							}
 							category="degree-certificates"
-							maxFiles={3}
 							acceptedTypes={[
 								'application/pdf',
 								'image/jpeg',
@@ -601,7 +711,6 @@ export function AcademicInfoStep({
 								handleCategoryFilesUploaded('transcriptFiles', files)
 							}
 							category="transcripts"
-							maxFiles={3}
 							acceptedTypes={[
 								'application/pdf',
 								'image/jpeg',
@@ -745,7 +854,6 @@ export function AcademicInfoStep({
 										onInputChange('researchPapers', newPapers)
 									}}
 									category={`research-paper-${index}`}
-									maxFiles={5}
 									acceptedTypes={[
 										'application/pdf',
 										'application/msword',

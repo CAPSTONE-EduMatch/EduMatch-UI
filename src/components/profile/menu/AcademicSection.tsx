@@ -85,6 +85,64 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 		}))
 	}
 
+	// Function to get certificate options based on selected language
+	const getCertificateOptions = (language: string) => {
+		switch (language) {
+			case 'English':
+				return [
+					{ value: 'IELTS', label: 'IELTS' },
+					{ value: 'TOEFL', label: 'TOEFL' },
+					{ value: 'TOEIC', label: 'TOEIC' },
+					{ value: 'Cambridge', label: 'Cambridge' },
+					{ value: 'PTE', label: 'PTE Academic' },
+					{ value: 'Duolingo', label: 'Duolingo English Test' },
+				]
+			case 'Spanish':
+				return [
+					{ value: 'DELE', label: 'DELE' },
+					{ value: 'SIELE', label: 'SIELE' },
+					{ value: 'CELU', label: 'CELU' },
+				]
+			case 'French':
+				return [
+					{ value: 'DELF', label: 'DELF' },
+					{ value: 'DALF', label: 'DALF' },
+					{ value: 'TCF', label: 'TCF' },
+					{ value: 'TEF', label: 'TEF' },
+				]
+			case 'German':
+				return [
+					{ value: 'Goethe', label: 'Goethe-Zertifikat' },
+					{ value: 'TestDaF', label: 'TestDaF' },
+					{ value: 'DSH', label: 'DSH' },
+				]
+			case 'Chinese':
+				return [
+					{ value: 'HSK', label: 'HSK' },
+					{ value: 'TOCFL', label: 'TOCFL' },
+					{ value: 'BCT', label: 'BCT' },
+				]
+			case 'Japanese':
+				return [
+					{ value: 'JLPT', label: 'JLPT' },
+					{ value: 'J-Test', label: 'J-Test' },
+					{ value: 'NAT-TEST', label: 'NAT-TEST' },
+				]
+			case 'Korean':
+				return [
+					{ value: 'TOPIK', label: 'TOPIK' },
+					{ value: 'KLAT', label: 'KLAT' },
+				]
+			case 'Vietnamese':
+				return [
+					{ value: 'VSTEP', label: 'VSTEP' },
+					{ value: 'Other', label: 'Other Vietnamese Certificate' },
+				]
+			default:
+				return [{ value: 'Other', label: 'Other Certificate' }]
+		}
+	}
+
 	const handleFileSelect = async (
 		event: React.ChangeEvent<HTMLInputElement>,
 		category: string,
@@ -733,16 +791,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 														handleFieldChange('languages', newLanguages)
 													}}
 													placeholder="Select certificate"
-													options={[
-														{ value: 'IELTS', label: 'IELTS' },
-														{ value: 'TOEFL', label: 'TOEFL' },
-														{ value: 'TOEIC', label: 'TOEIC' },
-														{ value: 'Cambridge', label: 'Cambridge' },
-														{ value: 'DELE', label: 'DELE' },
-														{ value: 'DELF', label: 'DELF' },
-														{ value: 'HSK', label: 'HSK' },
-														{ value: 'JLPT', label: 'JLPT' },
-													]}
+													options={getCertificateOptions(lang.language)}
 													menuPortalTarget={document.body}
 													variant="green"
 												/>

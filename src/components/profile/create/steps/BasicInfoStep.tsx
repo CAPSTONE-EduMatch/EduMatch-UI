@@ -90,6 +90,16 @@ export function BasicInfoStep({
 		fileInputRef.current?.click()
 	}
 
+	// Function to validate and format name input (letters only)
+	const handleNameInput =
+		(field: 'firstName' | 'lastName') =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const value = e.target.value
+			// Remove any non-letter characters (including numbers, symbols, spaces)
+			const lettersOnly = value.replace(/[^a-zA-Z]/g, '')
+			onInputChange(field, lettersOnly)
+		}
+
 	return (
 		<div className="space-y-6">
 			<div className="">
@@ -147,7 +157,7 @@ export function BasicInfoStep({
 							id="firstName"
 							placeholder="Enter your first name"
 							value={formData.firstName}
-							onChange={onInputChangeEvent('firstName')}
+							onChange={handleNameInput('firstName')}
 							inputSize="select"
 						/>
 					</div>
@@ -157,7 +167,7 @@ export function BasicInfoStep({
 							id="lastName"
 							placeholder="Enter your last name"
 							value={formData.lastName}
-							onChange={onInputChangeEvent('lastName')}
+							onChange={handleNameInput('lastName')}
 							inputSize="select"
 						/>
 					</div>

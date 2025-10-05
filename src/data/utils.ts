@@ -12,8 +12,8 @@ export interface Program {
 	daysLeft: number;
 	price: string;
 	match: string;
-	funding: string;
 	attendance: string;
+	popular?: number;
 }
 
 export interface Scholarship {
@@ -28,6 +28,7 @@ export interface Scholarship {
 	daysLeft: number;
 	amount: string;
 	match: string;
+	popular?: number;
 }
 
 export interface ResearchLab {
@@ -41,6 +42,7 @@ export interface ResearchLab {
 	date: string;
 	daysLeft: number;
 	match: string;
+	popular?: number;
 }
 
 // Programs mock data
@@ -58,8 +60,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 107,
 		price: "65,000 USD / year",
 		match: "95%",
-		funding: "Funding available",
 		attendance: "On-campus",
+		popular: 9500,
 	},
 	{
 		id: 2,
@@ -74,8 +76,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 152,
 		price: "72,000 USD / year",
 		match: "88%",
-		funding: "Full scholarship",
 		attendance: "Hybrid",
+		popular: 8800,
 	},
 	{
 		id: 3,
@@ -90,8 +92,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 132,
 		price: "78,500 USD / year",
 		match: "92%",
-		funding: "Partial funding",
 		attendance: "On-campus",
+		popular: 9200,
 	},
 	{
 		id: 4,
@@ -106,8 +108,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 345,
 		price: "45,000 GBP / year",
 		match: "90%",
-		funding: "Merit-based aid",
 		attendance: "Hybrid",
+		popular: 9000,
 	},
 	{
 		id: 5,
@@ -122,8 +124,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 366,
 		price: "1,200 CHF / semester",
 		match: "85%",
-		funding: "Research assistantship",
 		attendance: "On-campus",
+		popular: 8500,
 	},
 	{
 		id: 6,
@@ -138,8 +140,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 370,
 		price: "42,000 GBP / year",
 		match: "87%",
-		funding: "Need-based aid",
 		attendance: "On-campus",
+		popular: 8700,
 	},
 	{
 		id: 7,
@@ -154,8 +156,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 329,
 		price: "68,000 USD / year",
 		match: "93%",
-		funding: "Teaching assistantship",
 		attendance: "Hybrid",
+		popular: 9300,
 	},
 	{
 		id: 8,
@@ -170,8 +172,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 183,
 		price: "535,800 JPY / year",
 		match: "82%",
-		funding: "MEXT scholarship",
 		attendance: "On-campus",
+		popular: 8200,
 	},
 	{
 		id: 9,
@@ -186,8 +188,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 350,
 		price: "48,000 GBP / year",
 		match: "89%",
-		funding: "Industry sponsorship",
 		attendance: "Hybrid",
+		popular: 8900,
 	},
 	{
 		id: 10,
@@ -202,8 +204,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 324,
 		price: "58,000 USD / year",
 		match: "86%",
-		funding: "Research grant",
 		attendance: "On-campus",
+		popular: 8600,
 	},
 	{
 		id: 11,
@@ -218,8 +220,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 152,
 		price: "38,000 AUD / year",
 		match: "84%",
-		funding: "Australian Government RTP",
 		attendance: "On-campus",
+		popular: 8400,
 	},
 	{
 		id: 12,
@@ -234,8 +236,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 334,
 		price: "62,000 USD / year",
 		match: "91%",
-		funding: "Creative scholarship",
 		attendance: "Hybrid",
+		popular: 9100,
 	},
 	{
 		id: 13,
@@ -250,8 +252,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 345,
 		price: "59,000 USD / year",
 		match: "88%",
-		funding: "Public service fellowship",
 		attendance: "On-campus",
+		popular: 8800,
 	},
 	{
 		id: 14,
@@ -266,8 +268,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 366,
 		price: "250 EUR / semester",
 		match: "83%",
-		funding: "DAAD scholarship",
 		attendance: "On-campus",
+		popular: 8300,
 	},
 	{
 		id: 15,
@@ -282,8 +284,8 @@ export const mockPrograms: Program[] = [
 		daysLeft: 336,
 		price: "14,500 EUR / year",
 		match: "90%",
-		funding: "EU scholarship",
 		attendance: "On-campus",
+		popular: 9000,
 	},
 ];
 
@@ -302,6 +304,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 76,
 		amount: "85,000 USD",
 		match: "94%",
+		popular: 9400,
 	},
 	{
 		id: 2,
@@ -316,6 +319,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 123,
 		amount: "50,000 USD",
 		match: "89%",
+		popular: 8900,
 	},
 	{
 		id: 3,
@@ -330,6 +334,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 1,
 		amount: "75,000 GBP",
 		match: "96%",
+		popular: 9600,
 	},
 	{
 		id: 4,
@@ -344,6 +349,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 138,
 		amount: "25,000 EUR",
 		match: "87%",
+		popular: 8700,
 	},
 	{
 		id: 5,
@@ -358,6 +364,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 33,
 		amount: "60,000 GBP",
 		match: "91%",
+		popular: 9100,
 	},
 	{
 		id: 6,
@@ -372,6 +379,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 232,
 		amount: "1,800,000 JPY",
 		match: "85%",
+		popular: 8500,
 	},
 	{
 		id: 7,
@@ -386,6 +394,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 66,
 		amount: "70,000 GBP",
 		match: "93%",
+		popular: 9300,
 	},
 	{
 		id: 8,
@@ -400,6 +409,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 15,
 		amount: "55,000 USD",
 		match: "88%",
+		popular: 8800,
 	},
 	{
 		id: 9,
@@ -414,6 +424,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 77,
 		amount: "45,000 GBP",
 		match: "86%",
+		popular: 8600,
 	},
 	{
 		id: 10,
@@ -428,6 +439,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 182,
 		amount: "30,000 EUR",
 		match: "84%",
+		popular: 8400,
 	},
 	{
 		id: 11,
@@ -442,6 +454,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 212,
 		amount: "65,000 AUD",
 		match: "82%",
+		popular: 8200,
 	},
 	{
 		id: 12,
@@ -456,6 +469,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 107,
 		amount: "40,000 CHF",
 		match: "90%",
+		popular: 9000,
 	},
 	{
 		id: 13,
@@ -470,6 +484,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 151,
 		amount: "20,000 USD",
 		match: "81%",
+		popular: 8100,
 	},
 	{
 		id: 14,
@@ -484,6 +499,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 123,
 		amount: "35,000 CNY",
 		match: "79%",
+		popular: 7900,
 	},
 	{
 		id: 15,
@@ -498,6 +514,7 @@ export const mockScholarships: Scholarship[] = [
 		daysLeft: 62,
 		amount: "42,000 CAD",
 		match: "87%",
+		popular: 8700,
 	},
 ];
 
@@ -515,6 +532,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "15 November 2025",
 		daysLeft: 46,
 		match: "95%",
+		popular: 9500,
 	},
 	{
 		id: 2,
@@ -528,6 +546,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 December 2025",
 		daysLeft: 62,
 		match: "92%",
+		popular: 9200,
 	},
 	{
 		id: 3,
@@ -541,6 +560,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "20 January 2026",
 		daysLeft: 112,
 		match: "89%",
+		popular: 8900,
 	},
 	{
 		id: 4,
@@ -554,6 +574,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 March 2026",
 		daysLeft: 152,
 		match: "87%",
+		popular: 8700,
 	},
 	{
 		id: 5,
@@ -567,6 +588,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "15 February 2026",
 		daysLeft: 138,
 		match: "90%",
+		popular: 9000,
 	},
 	{
 		id: 6,
@@ -580,6 +602,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 September 2026",
 		daysLeft: 336,
 		match: "85%",
+		popular: 8500,
 	},
 	{
 		id: 7,
@@ -593,6 +616,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "10 December 2025",
 		daysLeft: 71,
 		match: "93%",
+		popular: 9300,
 	},
 	{
 		id: 8,
@@ -606,6 +630,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 April 2026",
 		daysLeft: 183,
 		match: "86%",
+		popular: 8600,
 	},
 	{
 		id: 9,
@@ -619,6 +644,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "15 May 2026",
 		daysLeft: 227,
 		match: "88%",
+		popular: 8800,
 	},
 	{
 		id: 10,
@@ -632,6 +658,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 October 2026",
 		daysLeft: 366,
 		match: "91%",
+		popular: 9100,
 	},
 	{
 		id: 11,
@@ -645,6 +672,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "20 March 2026",
 		daysLeft: 171,
 		match: "84%",
+		popular: 8400,
 	},
 	{
 		id: 12,
@@ -658,6 +686,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 June 2026",
 		daysLeft: 244,
 		match: "83%",
+		popular: 8300,
 	},
 	{
 		id: 13,
@@ -671,6 +700,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "15 April 2026",
 		daysLeft: 197,
 		match: "82%",
+		popular: 8200,
 	},
 	{
 		id: 14,
@@ -684,6 +714,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "1 July 2026",
 		daysLeft: 274,
 		match: "86%",
+		popular: 8600,
 	},
 	{
 		id: 15,
@@ -697,6 +728,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		date: "15 August 2026",
 		daysLeft: 319,
 		match: "81%",
+		popular: 8100,
 	},
 ];
 

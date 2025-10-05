@@ -35,6 +35,26 @@ export interface ProfileData {
 	// Files
 	cvFile?: string;
 	certificateFile?: string;
+
+	// Institution fields
+	institutionName?: string;
+	institutionAbbreviation?: string;
+	institutionHotline?: string;
+	institutionHotlineCode?: string;
+	institutionType?: string;
+	institutionWebsite?: string;
+	institutionEmail?: string;
+	institutionCountry?: string;
+	institutionAddress?: string;
+	representativeName?: string;
+	representativeAppellation?: string;
+	representativePosition?: string;
+	representativeEmail?: string;
+	representativePhone?: string;
+	representativePhoneCode?: string;
+	aboutInstitution?: string;
+	institutionDisciplines?: string[];
+	institutionCoverImage?: string;
 }
 
 export class ProfileService {
@@ -130,6 +150,34 @@ export class ProfileService {
 					scoreType: profileData.scoreType || null,
 					scoreValue: profileData.scoreValue || null,
 					hasForeignLanguage: profileData.hasForeignLanguage || null,
+					// Institution fields
+					institutionName: profileData.institutionName || null,
+					institutionAbbreviation:
+						profileData.institutionAbbreviation || null,
+					institutionHotline: profileData.institutionHotline || null,
+					institutionHotlineCode:
+						profileData.institutionHotlineCode || null,
+					institutionType: profileData.institutionType || null,
+					institutionWebsite: profileData.institutionWebsite || null,
+					institutionEmail: profileData.institutionEmail || null,
+					institutionCountry: profileData.institutionCountry || null,
+					institutionAddress: profileData.institutionAddress || null,
+					representativeName: profileData.representativeName || null,
+					representativeAppellation:
+						profileData.representativeAppellation || null,
+					representativePosition:
+						profileData.representativePosition || null,
+					representativeEmail:
+						profileData.representativeEmail || null,
+					representativePhone:
+						profileData.representativePhone || null,
+					representativePhoneCode:
+						profileData.representativePhoneCode || null,
+					aboutInstitution: profileData.aboutInstitution || null,
+					institutionDisciplines:
+						profileData.institutionDisciplines || [],
+					institutionCoverImage:
+						profileData.institutionCoverImage || null,
 					updatedAt: new Date(),
 				},
 				create: {
@@ -156,6 +204,34 @@ export class ProfileService {
 					scoreType: profileData.scoreType || null,
 					scoreValue: profileData.scoreValue || null,
 					hasForeignLanguage: profileData.hasForeignLanguage || null,
+					// Institution fields
+					institutionName: profileData.institutionName || null,
+					institutionAbbreviation:
+						profileData.institutionAbbreviation || null,
+					institutionHotline: profileData.institutionHotline || null,
+					institutionHotlineCode:
+						profileData.institutionHotlineCode || null,
+					institutionType: profileData.institutionType || null,
+					institutionWebsite: profileData.institutionWebsite || null,
+					institutionEmail: profileData.institutionEmail || null,
+					institutionCountry: profileData.institutionCountry || null,
+					institutionAddress: profileData.institutionAddress || null,
+					representativeName: profileData.representativeName || null,
+					representativeAppellation:
+						profileData.representativeAppellation || null,
+					representativePosition:
+						profileData.representativePosition || null,
+					representativeEmail:
+						profileData.representativeEmail || null,
+					representativePhone:
+						profileData.representativePhone || null,
+					representativePhoneCode:
+						profileData.representativePhoneCode || null,
+					aboutInstitution: profileData.aboutInstitution || null,
+					institutionDisciplines:
+						profileData.institutionDisciplines || [],
+					institutionCoverImage:
+						profileData.institutionCoverImage || null,
 					createdAt: new Date(),
 					updatedAt: new Date(),
 				},

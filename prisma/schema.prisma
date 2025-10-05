@@ -173,6 +173,25 @@ model Profile {
   scoreType          String?
   scoreValue         String?
   hasForeignLanguage String?
+  // Institution fields
+  institutionName             String?
+  institutionAbbreviation      String?
+  institutionHotline           String?
+  institutionHotlineCode      String?
+  institutionType              String?
+  institutionWebsite           String?
+  institutionEmail             String?
+  institutionCountry           String?
+  institutionAddress           String?
+  representativeName           String?
+  representativeAppellation    String?
+  representativePosition       String?
+  representativeEmail          String?
+  representativePhone          String?
+  representativePhoneCode      String?
+  aboutInstitution            String?
+  institutionDisciplines       String[]        @default([])
+  institutionCoverImage        String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   languages          Language[]

@@ -118,6 +118,19 @@ export async function GET(request: NextRequest) {
 						fileType: pf.file.mimeType,
 						category: pf.category,
 					})),
+				verificationDocuments: existingProfile.uploadedFiles
+					.filter((pf: any) => pf.category === "verification")
+					.map((pf: any) => ({
+						id: pf.file.id,
+						name: pf.file.name,
+						originalName: pf.file.originalName,
+						fileName: pf.file.key,
+						size: pf.file.size,
+						fileSize: pf.file.size,
+						url: pf.file.url,
+						fileType: pf.file.mimeType,
+						category: pf.category,
+					})),
 				// Transform research papers files
 				researchPapers: existingProfile.researchPapers.map(
 					(paper: any) => ({
@@ -351,6 +364,25 @@ export async function PUT(request: NextRequest) {
 				scoreType: formData.scoreType,
 				scoreValue: formData.scoreValue,
 				hasForeignLanguage: formData.hasForeignLanguage,
+				// Institution fields
+				institutionName: formData.institutionName,
+				institutionAbbreviation: formData.institutionAbbreviation,
+				institutionHotline: formData.institutionHotline,
+				institutionHotlineCode: formData.institutionHotlineCode,
+				institutionType: formData.institutionType,
+				institutionWebsite: formData.institutionWebsite,
+				institutionEmail: formData.institutionEmail,
+				institutionCountry: formData.institutionCountry,
+				institutionAddress: formData.institutionAddress,
+				representativeName: formData.representativeName,
+				representativeAppellation: formData.representativeAppellation,
+				representativePosition: formData.representativePosition,
+				representativeEmail: formData.representativeEmail,
+				representativePhone: formData.representativePhone,
+				representativePhoneCode: formData.representativePhoneCode,
+				aboutInstitution: formData.aboutInstitution,
+				institutionDisciplines: formData.institutionDisciplines || [],
+				institutionCoverImage: formData.institutionCoverImage,
 			},
 			include: {
 				user: {
@@ -492,7 +524,8 @@ export async function PUT(request: NextRequest) {
 			formData.cvFiles !== undefined ||
 			formData.languageCertFiles !== undefined ||
 			formData.degreeFiles !== undefined ||
-			formData.transcriptFiles !== undefined
+			formData.transcriptFiles !== undefined ||
+			formData.verificationDocuments !== undefined
 		) {
 			// Delete existing uploaded files
 			await prismaClient.profileFile.deleteMany({
@@ -516,6 +549,10 @@ export async function PUT(request: NextRequest) {
 				...(formData.transcriptFiles || []).map((file: any) => ({
 					...file,
 					category: "transcript",
+				})),
+				...(formData.verificationDocuments || []).map((file: any) => ({
+					...file,
+					category: "verification",
 				})),
 			];
 

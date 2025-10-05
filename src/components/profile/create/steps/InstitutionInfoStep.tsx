@@ -71,15 +71,26 @@ export function InstitutionInfoStep({
 			}
 		}
 
+	const handleNameInput =
+		(field: keyof ProfileFormData) =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const value = e.target.value
+			// Remove any non-letter characters (including numbers, symbols) but allow spaces
+			const lettersAndSpaces = value.replace(/[^a-zA-Z\s]/g, '')
+			onInputChange(field, lettersAndSpaces)
+		}
+
 	const validateRequiredFields = () => {
 		const errors: Record<string, boolean> = {}
 
 		// Email validation regex
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-		// Required fields validation
+		// Required fields validation (all fields except abbreviation and appellation)
 		if (!formData.institutionName?.trim()) errors.institutionName = true
 		if (!formData.institutionType) errors.institutionType = true
+		if (!formData.institutionHotline?.trim()) errors.institutionHotline = true
+		if (!formData.institutionWebsite?.trim()) errors.institutionWebsite = true
 		if (!formData.institutionEmail?.trim()) {
 			errors.institutionEmail = true
 		} else if (!emailRegex.test(formData.institutionEmail)) {
@@ -95,6 +106,7 @@ export function InstitutionInfoStep({
 		} else if (!emailRegex.test(formData.representativeEmail)) {
 			errors.representativeEmail = true
 		}
+		if (!formData.representativePhone?.trim()) errors.representativePhone = true
 		if (!formData.aboutInstitution?.trim()) errors.aboutInstitution = true
 
 		setValidationErrors(errors)
@@ -254,7 +266,9 @@ export function InstitutionInfoStep({
 			{/* Second Row: Hotline and Type */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
-					<Label className="text-sm font-medium text-foreground">Hotline</Label>
+					<Label className="text-sm font-medium text-foreground">
+						Hotline *
+					</Label>
 					<PhoneInput
 						value={formData.institutionHotline}
 						countryCode={formData.institutionHotlineCode}
@@ -265,6 +279,7 @@ export function InstitutionInfoStep({
 							onInputChange('institutionHotlineCode', code)
 						}
 						placeholder="Enter hotline number"
+						hasError={validationErrors.institutionHotline}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -318,11 +333,8 @@ export function InstitutionInfoStep({
 						}
 						options={[
 							{ value: 'university', label: 'University' },
-							{ value: 'college', label: 'College' },
-							{ value: 'research-institute', label: 'Research Institute' },
-							{ value: 'technical-school', label: 'Technical School' },
-							{ value: 'community-college', label: 'Community College' },
-							{ value: 'other', label: 'Other' },
+							{ value: 'scholarship-provider', label: 'Scholarship Provider' },
+							{ value: 'research-lab', label: 'Research Lab' },
 						]}
 					/>
 				</div>
@@ -331,13 +343,20 @@ export function InstitutionInfoStep({
 			{/* Third Row: Website and Email */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
-					<Label className="text-sm font-medium text-foreground">Website</Label>
+					<Label className="text-sm font-medium text-foreground">
+						Website *
+					</Label>
 					<Input
 						id="institutionWebsite"
 						value={formData.institutionWebsite}
 						onChange={onInputChangeEvent('institutionWebsite')}
 						placeholder="https://www.institution.edu"
 						inputSize="select"
+						className={
+							validationErrors.institutionWebsite
+								? 'border-red-500 focus:border-red-500'
+								: ''
+						}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -597,7 +616,7 @@ export function InstitutionInfoStep({
 						<Input
 							id="representativeName"
 							value={formData.representativeName}
-							onChange={onInputChangeEvent('representativeName')}
+							onChange={handleNameInput('representativeName')}
 							placeholder="Enter representative name"
 							inputSize="select"
 							className={
@@ -673,7 +692,7 @@ export function InstitutionInfoStep({
 				</div>
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Representative Phone
+						Representative Phone *
 					</Label>
 					<PhoneInput
 						value={formData.representativePhone}
@@ -685,6 +704,7 @@ export function InstitutionInfoStep({
 							onInputChange('representativePhoneCode', code)
 						}
 						placeholder="Enter phone number"
+						hasError={validationErrors.representativePhone}
 					/>
 				</div>
 			</div>

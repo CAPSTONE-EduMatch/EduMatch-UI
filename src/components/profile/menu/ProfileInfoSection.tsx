@@ -14,6 +14,7 @@ import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/lib/date-utils'
 import SuccessModal from '@/components/ui/SuccessModal'
 import ErrorModal from '@/components/ui/ErrorModal'
+import { InstitutionProfileSection } from './InstitutionProfileSection'
 
 interface ProfileInfoSectionProps {
 	profile: any
@@ -49,6 +50,15 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				interests: editedProfile?.interests || [],
 				favoriteCountries: editedProfile?.favoriteCountries || [],
 				profilePhoto: editedProfile?.profilePhoto || '',
+				// Institution fields
+				institutionName: editedProfile?.institutionName || '',
+				institutionAbbreviation: editedProfile?.institutionAbbreviation || '',
+				institutionType: editedProfile?.institutionType || '',
+				institutionWebsite: editedProfile?.institutionWebsite || '',
+				institutionEmail: editedProfile?.institutionEmail || '',
+				institutionCountry: editedProfile?.institutionCountry || '',
+				representativeName: editedProfile?.representativeName || '',
+				representativePosition: editedProfile?.representativePosition || '',
 			}
 
 			// Call the update profile API
@@ -79,10 +89,78 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	}
 
 	const handleFieldChange = (field: string, value: string) => {
-		setEditedProfile((prev: any) => ({
-			...prev,
-			[field]: value,
-		}))
+		// Validation for name fields - no numbers allowed
+		if (field === 'firstName' || field === 'lastName') {
+			// Remove any numbers and special characters, keep only letters and spaces
+			const lettersAndSpaces = value.replace(/[^a-zA-Z\s]/g, '')
+			setEditedProfile((prev: any) => ({
+				...prev,
+				[field]: lettersAndSpaces,
+			}))
+		} else {
+			setEditedProfile((prev: any) => ({
+				...prev,
+				[field]: value,
+			}))
+		}
+	}
+
+	// Function to get certificate options based on selected language
+	const getCertificateOptions = (language: string) => {
+		switch (language) {
+			case 'English':
+				return [
+					{ value: 'IELTS', label: 'IELTS' },
+					{ value: 'TOEFL', label: 'TOEFL' },
+					{ value: 'TOEIC', label: 'TOEIC' },
+					{ value: 'Cambridge', label: 'Cambridge' },
+					{ value: 'PTE', label: 'PTE Academic' },
+					{ value: 'Duolingo', label: 'Duolingo English Test' },
+				]
+			case 'Spanish':
+				return [
+					{ value: 'DELE', label: 'DELE' },
+					{ value: 'SIELE', label: 'SIELE' },
+					{ value: 'CELU', label: 'CELU' },
+				]
+			case 'French':
+				return [
+					{ value: 'DELF', label: 'DELF' },
+					{ value: 'DALF', label: 'DALF' },
+					{ value: 'TCF', label: 'TCF' },
+					{ value: 'TEF', label: 'TEF' },
+				]
+			case 'German':
+				return [
+					{ value: 'Goethe', label: 'Goethe-Zertifikat' },
+					{ value: 'TestDaF', label: 'TestDaF' },
+					{ value: 'DSH', label: 'DSH' },
+				]
+			case 'Chinese':
+				return [
+					{ value: 'HSK', label: 'HSK' },
+					{ value: 'TOCFL', label: 'TOCFL' },
+					{ value: 'BCT', label: 'BCT' },
+				]
+			case 'Japanese':
+				return [
+					{ value: 'JLPT', label: 'JLPT' },
+					{ value: 'J-Test', label: 'J-Test' },
+					{ value: 'NAT-TEST', label: 'NAT-TEST' },
+				]
+			case 'Korean':
+				return [
+					{ value: 'TOPIK', label: 'TOPIK' },
+					{ value: 'KLAT', label: 'KLAT' },
+				]
+			case 'Vietnamese':
+				return [
+					{ value: 'VSTEP', label: 'VSTEP' },
+					{ value: 'Other', label: 'Other Vietnamese Certificate' },
+				]
+			default:
+				return [{ value: 'Other', label: 'Other Certificate' }]
+		}
 	}
 
 	const handleFileSelect = async (
@@ -135,15 +213,22 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		fileInputRef.current?.click()
 	}
 
+	// Check if this is an institution profile
+	const isInstitution = profile?.role === 'institution'
+
+	// If it's an institution, use the specialized component
+	if (isInstitution) {
+		return <InstitutionProfileSection profile={profile} />
+	}
+
 	return (
 		<div className="space-y-6">
 			<div className="">
 				<h2 className="text-2xl font-bold text-primary mb-2">
-					Basic information
+					Basic Information
 				</h2>
 				<p className="text-muted-foreground">
-					Lorem Ipsum is simply dummy text of the printing and typesetting
-					industry. Lorem Ipsum is simply dummy text
+					Manage your personal information and preferences
 				</p>
 			</div>
 
@@ -204,7 +289,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 							/>
 						</div>
 
-						{/* Form Fields */}
+						{/* Form Fields - Applicant only */}
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 							<div className="space-y-2">
 								<Label htmlFor="firstName">First Name</Label>
@@ -415,158 +500,166 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						</div>
 
 						<div className="space-y-4">
-							<div className="space-y-2">
-								<Label>Interest</Label>
-								{isEditing ? (
-									<CustomSelect
-										value={(editedProfile?.interests || []).map(
-											(interest: string) => ({
-												value: interest,
-												label: interest,
-											})
-										)}
-										onChange={(options) =>
-											handleFieldChange(
-												'interests',
-												options
-													? options.map((option: any) => option.value)
-													: []
-											)
-										}
-										placeholder="Choose subject(s)/field(s) you interested in"
-										options={[
-											{ value: 'Data Science', label: 'Data Science' },
-											{ value: 'Data Engineer', label: 'Data Engineer' },
-											{
-												value: 'Information System',
-												label: 'Information System',
-											},
-											{ value: 'Computer Science', label: 'Computer Science' },
-											{ value: 'Business', label: 'Business' },
-										]}
-										isMulti
-										isSearchable
-										isClearable
-									/>
-								) : (
-									<div className="px-3 py-2 bg-gray-50 rounded-md">
-										{profile?.interests && profile.interests.length > 0 ? (
-											<div className="flex flex-wrap gap-2">
-												{profile.interests.map(
-													(interest: string, index: number) => (
-														<span
-															key={index}
-															className="bg-primary/10 text-primary px-2 py-1 rounded text-xs"
-														>
-															{interest}
-														</span>
-													)
-												)}
-											</div>
-										) : (
-											<p className="text-sm text-gray-500">
-												No interests specified
-											</p>
-										)}
-									</div>
-								)}
-							</div>
-
-							<div className="space-y-2">
-								<Label>Favorite country</Label>
-								{isEditing ? (
-									<CustomSelect
-										value={(editedProfile?.favoriteCountries || []).map(
-											(country: string) => {
-												const countryData = getCountriesWithSvgFlags().find(
-													(c) => c.name.toLowerCase() === country.toLowerCase()
+							<div className="space-y-4">
+								<div className="space-y-2">
+									<Label>Interest</Label>
+									{isEditing ? (
+										<CustomSelect
+											value={(editedProfile?.interests || []).map(
+												(interest: string) => ({
+													value: interest,
+													label: interest,
+												})
+											)}
+											onChange={(options) =>
+												handleFieldChange(
+													'interests',
+													options
+														? options.map((option: any) => option.value)
+														: []
 												)
-												return {
-													value: country,
-													label: country,
-													...countryData,
-												}
 											}
-										)}
-										onChange={(options) =>
-											handleFieldChange(
-												'favoriteCountries',
-												options
-													? options.map((option: any) => option.value)
-													: []
-											)
-										}
-										placeholder="Choose your favorite countries"
-										options={getCountriesWithSvgFlags().map((country) => ({
-											value: country.name,
-											label: country.name,
-											...country,
-										}))}
-										formatOptionLabel={(option: any) => (
-											<div className="flex items-center space-x-2">
-												<span className="text-lg">{option.flag}</span>
-												<span>{option.name}</span>
-											</div>
-										)}
-										isMulti
-										isClearable
-										isSearchable
-										filterOption={(option, inputValue) => {
-											const country = option.data
-											return country.name
-												.toLowerCase()
-												.includes(inputValue.toLowerCase())
-										}}
-									/>
-								) : (
-									<div className="px-3 py-2 bg-gray-50 rounded-md">
-										{profile?.favoriteCountries &&
-										profile.favoriteCountries.length > 0 ? (
-											<div className="flex flex-wrap gap-2">
-												{profile.favoriteCountries.map(
-													(country: string, index: number) => {
-														const countryData = getCountriesWithSvgFlags().find(
-															(c) =>
-																c.name.toLowerCase() === country.toLowerCase()
-														)
-														return (
+											placeholder="Choose subject(s)/field(s) you interested in"
+											options={[
+												{ value: 'Data Science', label: 'Data Science' },
+												{ value: 'Data Engineer', label: 'Data Engineer' },
+												{
+													value: 'Information System',
+													label: 'Information System',
+												},
+												{
+													value: 'Computer Science',
+													label: 'Computer Science',
+												},
+												{ value: 'Business', label: 'Business' },
+											]}
+											isMulti
+											isSearchable
+											isClearable
+										/>
+									) : (
+										<div className="px-3 py-2 bg-gray-50 rounded-md">
+											{profile?.interests && profile.interests.length > 0 ? (
+												<div className="flex flex-wrap gap-2">
+													{profile.interests.map(
+														(interest: string, index: number) => (
 															<span
 																key={index}
-																className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center space-x-1"
+																className="bg-primary/10 text-primary px-2 py-1 rounded text-xs"
 															>
-																<span className="text-sm">
-																	{countryData?.flag || '🌐'}
-																</span>
-																<span>{country}</span>
+																{interest}
 															</span>
 														)
-													}
-												)}
-											</div>
-										) : (
-											<p className="text-sm text-gray-500">
-												No favorite countries specified
-											</p>
-										)}
-									</div>
-								)}
-							</div>
-
-							<div className="flex justify-between">
-								<Button variant="outline" onClick={handleCancel} size="sm">
-									Cancel
-								</Button>
-								<div className="space-x-2">
-									{!isEditing ? (
-										<Button onClick={() => setIsEditing(true)} size="sm">
-											Edit Profile
-										</Button>
-									) : (
-										<Button onClick={handleSave} size="sm" disabled={isSaving}>
-											{isSaving ? 'Saving...' : 'Save Changes'}
-										</Button>
+													)}
+												</div>
+											) : (
+												<p className="text-sm text-gray-500">
+													No interests specified
+												</p>
+											)}
+										</div>
 									)}
 								</div>
+
+								<div className="space-y-2">
+									<Label>Favorite country</Label>
+									{isEditing ? (
+										<CustomSelect
+											value={(editedProfile?.favoriteCountries || []).map(
+												(country: string) => {
+													const countryData = getCountriesWithSvgFlags().find(
+														(c) =>
+															c.name.toLowerCase() === country.toLowerCase()
+													)
+													return {
+														value: country,
+														label: country,
+														...countryData,
+													}
+												}
+											)}
+											onChange={(options) =>
+												handleFieldChange(
+													'favoriteCountries',
+													options
+														? options.map((option: any) => option.value)
+														: []
+												)
+											}
+											placeholder="Choose your favorite countries"
+											options={getCountriesWithSvgFlags().map((country) => ({
+												value: country.name,
+												label: country.name,
+												...country,
+											}))}
+											formatOptionLabel={(option: any) => (
+												<div className="flex items-center space-x-2">
+													<span className="text-lg">{option.flag}</span>
+													<span>{option.name}</span>
+												</div>
+											)}
+											isMulti
+											isClearable
+											isSearchable
+											filterOption={(option, inputValue) => {
+												const country = option.data
+												return country.name
+													.toLowerCase()
+													.includes(inputValue.toLowerCase())
+											}}
+										/>
+									) : (
+										<div className="px-3 py-2 bg-gray-50 rounded-md">
+											{profile?.favoriteCountries &&
+											profile.favoriteCountries.length > 0 ? (
+												<div className="flex flex-wrap gap-2">
+													{profile.favoriteCountries.map(
+														(country: string, index: number) => {
+															const countryData =
+																getCountriesWithSvgFlags().find(
+																	(c) =>
+																		c.name.toLowerCase() ===
+																		country.toLowerCase()
+																)
+															return (
+																<span
+																	key={index}
+																	className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center space-x-1"
+																>
+																	<span className="text-sm">
+																		{countryData?.flag || '🌐'}
+																	</span>
+																	<span>{country}</span>
+																</span>
+															)
+														}
+													)}
+												</div>
+											) : (
+												<p className="text-sm text-gray-500">
+													No favorite countries specified
+												</p>
+											)}
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+
+						<div className="flex justify-between">
+							<Button variant="outline" onClick={handleCancel} size="sm">
+								Cancel
+							</Button>
+							<div className="space-x-2">
+								{!isEditing ? (
+									<Button onClick={() => setIsEditing(true)} size="sm">
+										Edit Profile
+									</Button>
+								) : (
+									<Button onClick={handleSave} size="sm" disabled={isSaving}>
+										{isSaving ? 'Saving...' : 'Save Changes'}
+									</Button>
+								)}
 							</div>
 						</div>
 					</div>

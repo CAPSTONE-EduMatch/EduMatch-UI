@@ -74,78 +74,91 @@ export function InstitutionDetailsStep({
 				</p>
 			</div>
 
-			{/* Disciplines Selection */}
-			<div className="space-y-4">
-				<Label className="text-sm font-medium text-foreground">
-					Institution Disciplines *
-				</Label>
-				<CustomSelect
-					options={disciplines}
-					value={
-						formData.institutionDisciplines?.map((discipline) => ({
-							value: discipline,
-							label: discipline,
-						})) || []
-					}
-					onChange={(selectedOptions) => {
-						const values = selectedOptions
-							? selectedOptions.map((option: any) => option.value)
-							: []
-						onMultiSelectChange('institutionDisciplines')(values)
-					}}
-					placeholder="Select disciplines..."
-					isMulti
-					className="w-full"
-				/>
-			</div>
-
-			{/* Cover Image Upload */}
-			<div className="space-y-4">
-				<Label className="text-sm font-medium text-foreground">
-					Institution Cover Image
-				</Label>
-
-				{/* Display uploaded cover image */}
-				{formData.institutionCoverImage && (
-					<div className="mb-4">
-						<div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-							<img
-								src={formData.institutionCoverImage}
-								alt="Institution Cover"
-								className="w-full h-full object-cover"
-							/>
-							<button
-								onClick={() => onInputChange('institutionCoverImage', '')}
-								className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-							>
-								×
-							</button>
-						</div>
-						<div className="text-center mt-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => onInputChange('institutionCoverImage', '')}
-							>
-								Remove Image
-							</Button>
-						</div>
-					</div>
-				)}
-
-				{/* Upload area - only show if no image uploaded */}
-				{!formData.institutionCoverImage && (
-					<FileUploadManager
-						onFilesUploaded={handleCoverImageUpload}
-						category="institution-cover"
-						acceptedTypes={['image/*']}
-						maxSize={5}
-						maxFiles={1}
-						showPreview={false}
+			{/* Disciplines Selection - Only for Universities */}
+			{((typeof formData.institutionType === 'string' &&
+				formData.institutionType === 'university') ||
+				(typeof formData.institutionType === 'object' &&
+					(formData.institutionType as any)?.value === 'university') ||
+				!formData.institutionType) && (
+				<div className="space-y-4">
+					<Label className="text-sm font-medium text-foreground">
+						Institution Disciplines *
+					</Label>
+					<CustomSelect
+						options={disciplines}
+						value={
+							formData.institutionDisciplines?.map((discipline) => ({
+								value: discipline,
+								label: discipline,
+							})) || []
+						}
+						onChange={(selectedOptions) => {
+							const values = selectedOptions
+								? selectedOptions.map((option: any) => option.value)
+								: []
+							onMultiSelectChange('institutionDisciplines')(values)
+						}}
+						placeholder="Select disciplines..."
+						isMulti
 						className="w-full"
+						isSearchable
 					/>
-				)}
-			</div>
+				</div>
+			)}
+
+			{/* Cover Image Upload - Only for Universities */}
+			{((typeof formData.institutionType === 'string' &&
+				formData.institutionType === 'university') ||
+				(typeof formData.institutionType === 'object' &&
+					(formData.institutionType as any)?.value === 'university') ||
+				!formData.institutionType) && (
+				<div className="space-y-4">
+					<Label className="text-sm font-medium text-foreground">
+						Institution Cover Image
+					</Label>
+
+					{/* Display uploaded cover image */}
+					{formData.institutionCoverImage && (
+						<div className="mb-4">
+							<div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
+								<img
+									src={formData.institutionCoverImage}
+									alt="Institution Cover"
+									className="w-full h-full object-cover"
+								/>
+								<button
+									onClick={() => onInputChange('institutionCoverImage', '')}
+									className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+								>
+									×
+								</button>
+							</div>
+							<div className="text-center mt-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => onInputChange('institutionCoverImage', '')}
+								>
+									Remove Image
+								</Button>
+							</div>
+						</div>
+					)}
+
+					{/* Upload area - only show if no image uploaded */}
+					{!formData.institutionCoverImage && (
+						<FileUploadManager
+							onFilesUploaded={handleCoverImageUpload}
+							category="institution-cover"
+							acceptedTypes={['image/*']}
+							maxSize={5}
+							maxFiles={1}
+							showPreview={false}
+							className="w-full"
+						/>
+					)}
+				</div>
+			)}
 
 			{/* Verification Documents Upload */}
 			<div className="space-y-4">

@@ -39,8 +39,8 @@ const Input: React.FC<InputProps> = ({
 
 	const baseInputClasses = `
     ${getWidthClass()} bg-[#F5F7FB] border focus:outline-none transition-all duration-300
-    ${error ? 'border-red-300' : 'border-gray-200'}
-    focus:ring-2 focus:ring-[#126E64] focus:border-transparent
+    ${error ? 'border-red-500 border-2' : 'border-gray-200'}
+    ${error ? 'focus:ring-2 focus:ring-red-200 focus:border-red-500' : 'focus:ring-2 focus:ring-[#126E64] focus:border-transparent'}
     ${sizeClasses[inputSize]}
   `
 

@@ -419,9 +419,9 @@ const Signup = () => {
 			localStorage.removeItem('otpCooldownEnd')
 			localStorage.removeItem('otpCooldownEmail')
 
-			// Redirect to dashboard after successful account creation
+			// Redirect to profile creation after successful account creation
 			setTimeout(() => {
-				window.location.href = '/dashboard'
+				window.location.href = 'profile/create'
 			}, 1500)
 		} catch (err) {
 			setOTPError('An unexpected error occurred. Please try again.')

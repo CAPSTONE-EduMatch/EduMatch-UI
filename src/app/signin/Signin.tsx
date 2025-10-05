@@ -3,7 +3,6 @@
 import {
 	AuthLayout,
 	// AuthRedirect,
-	EmailVerificationModal,
 	GoogleButton,
 } from '@/components/auth'
 import { Input, Modal } from '@/components/ui'
@@ -59,7 +58,6 @@ const SignIn: React.FC = () => {
 	}>({})
 	const [isLoading, setIsLoading] = useState(false)
 	const [showForgotPassword, setShowForgotPassword] = useState(false)
-	const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
 	const [forgotPasswordStatus, setForgotPasswordStatus] = useState<{
 		success?: string
 		error?: string
@@ -68,9 +66,14 @@ const SignIn: React.FC = () => {
 	const [forgotEmail, setForgotEmail] = useState('')
 	const [animateForm, setAnimateForm] = useState(false)
 	const [hasSubmittedForgotEmail, setHasSubmittedForgotEmail] = useState(false)
-	// Email verification states
-	const [showEmailVerification, setShowEmailVerification] = useState(false)
+	// Email verification OTP states (replacing EmailVerificationModal)
+	const [showOTPPopup, setShowOTPPopup] = useState(false)
 	const [pendingEmail, setPendingEmail] = useState('')
+	const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
+	const [isOTPLoading, setIsOTPLoading] = useState(false)
+	const [OTPError, setOTPError] = useState('')
+	const [resendCountdown, setResendCountdown] = useState(0)
+	const [canResend, setCanResend] = useState(true)
 	// Forgot password cooldown states
 	const [forgotPasswordCooldown, setForgotPasswordCooldown] = useState(0)
 	const [canSendForgotPassword, setCanSendForgotPassword] = useState(true)
@@ -125,13 +128,85 @@ const SignIn: React.FC = () => {
 		}
 	}, [forgotPasswordCooldown])
 
+	// OTP resend countdown effect
+	useEffect(() => {
+		let intervalId: NodeJS.Timeout
+		if (resendCountdown > 0) {
+			intervalId = setInterval(() => {
+				setResendCountdown((prev) => {
+					if (prev <= 1) {
+						setCanResend(true)
+						return 0
+					}
+					return prev - 1
+				})
+			}, 1000)
+		}
+		return () => {
+			if (intervalId) clearInterval(intervalId)
+		}
+	}, [resendCountdown])
+
+	// OTP helper functions
+	const handleOtpChange = (index: number, value: string) => {
+		if (!/^\d*$/.test(value)) return // Only allow digits
+
+		const newDigits = [...otpDigits]
+		newDigits[index] = value.slice(-1) // Only take the last digit
+		setOtpDigits(newDigits)
+
+		// Auto-focus next input
+		if (value && index < 5) {
+			const nextInput = document.getElementById(`otp-${index}`)
+			nextInput?.focus()
+		}
+	}
+
+	const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+		if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+			const prevInput = document.getElementById(`otp-${index - 1}`)
+			prevInput?.focus()
+		}
+	}
+
+	const handleOtpPaste = (e: React.ClipboardEvent) => {
+		e.preventDefault()
+		const pastedData = e.clipboardData.getData('text').replace(/\D/g, '')
+		const newDigits = [...otpDigits]
+
+		for (let i = 0; i < Math.min(pastedData.length, 6); i++) {
+			newDigits[i] = pastedData[i]
+		}
+
+		setOtpDigits(newDigits)
+
+		// Focus the next empty field or the last field
+		const nextEmptyIndex = newDigits.findIndex(
+			(digit, idx) => !digit && idx < 6
+		)
+		const focusIndex = nextEmptyIndex !== -1 ? nextEmptyIndex : 5
+		const targetInput = document.getElementById(`otp-${focusIndex}`)
+		targetInput?.focus()
+	}
+
+	const resetOtpDigits = () => {
+		setOtpDigits(['', '', '', '', '', ''])
+	}
+
+	const handleCloseOTPModal = () => {
+		setShowOTPPopup(false)
+		setOtpDigits(['', '', '', '', '', ''])
+		setOTPError('')
+		setPendingEmail('')
+	}
+
 	function validate() {
 		const next: { email?: string; password?: string } = {}
 		if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-			next.email = 'Email does not exist. Please try again.'
+			next.email = 'Please enter a valid email address.'
 		}
-		if (!password || password.length < 6) {
-			next.password = 'Incorrect password. Please try again.'
+		if (!password) {
+			next.password = 'Please enter your password.'
 		}
 		setErrors(next)
 		return Object.keys(next).length === 0
@@ -140,13 +215,13 @@ const SignIn: React.FC = () => {
 	const handleGoogleSignIn = async () => {
 		setIsLoading(true)
 		try {
-			const result = await authClient.signIn.social({
+			await authClient.signIn.social({
 				provider: 'google',
 				callbackURL: '/dashboard',
 			})
-			console.log('Google sign-in result:', result)
+			// Google sign-in successful
 		} catch (err) {
-			console.error(err)
+			// Handle Google sign-in error
 		} finally {
 			setIsLoading(false)
 		}
@@ -163,24 +238,71 @@ const SignIn: React.FC = () => {
 				callbackURL: '/dashboard',
 			})
 			if (res?.error) {
+				// eslint-disable-next-line no-console
+				console.log('Sign-in error:', res.error) // Debug log to see actual error
+
+				const errorMessage = res.error.message?.toLowerCase() || ''
+
 				// Check if error is related to email not being verified
-				if (
-					res.error.message?.includes('email') &&
-					(res.error.message?.includes('verify') ||
-						res.error.message?.includes('verification'))
-				) {
-					// Send OTP for email verification
-					await authClient.emailOtp.sendVerificationOtp({
-						email,
-						type: 'email-verification',
+				const isEmailVerificationError =
+					errorMessage.includes('email') &&
+					(errorMessage.includes('verify') ||
+						errorMessage.includes('verification') ||
+						errorMessage.includes('not verified') ||
+						errorMessage.includes('unverified') ||
+						errorMessage.includes('confirm') ||
+						errorMessage.includes('activate'))
+
+				// Check if error is related to wrong password/credentials
+				const isCredentialError =
+					errorMessage.includes('password') ||
+					errorMessage.includes('credential') ||
+					errorMessage.includes('invalid') ||
+					errorMessage.includes('unauthorized') ||
+					errorMessage.includes('wrong')
+
+				// Check if error is related to user not found
+				const isUserNotFoundError =
+					errorMessage.includes('user') &&
+					(errorMessage.includes('not found') ||
+						errorMessage.includes('does not exist') ||
+						errorMessage.includes("doesn't exist"))
+
+				if (isEmailVerificationError) {
+					try {
+						// Send OTP for email verification
+						await authClient.emailOtp.sendVerificationOtp({
+							email,
+							type: 'email-verification',
+						})
+						setPendingEmail(email)
+						setShowOTPPopup(true)
+					} catch (otpError) {
+						// eslint-disable-next-line no-console
+						console.error('Failed to send verification OTP:', otpError)
+						setErrors({
+							email: 'Failed to send verification code. Please try again.',
+						})
+					}
+				} else if (isCredentialError) {
+					// Show password error for credential issues
+					setErrors({
+						password: 'Incorrect password. Please try again.',
 					})
-					setPendingEmail(email)
-					setShowEmailVerification(true)
+				} else if (isUserNotFoundError) {
+					// Show email error for user not found
+					setErrors({
+						email: 'No account found with this email address.',
+					})
 				} else {
-					setErrors({ email: res.error.message ?? undefined })
+					// For any other error, show general message and try email verification
+					setErrors({
+						email: res.error.message ?? 'Sign in failed. Please try again.',
+					})
 				}
 			}
 		} catch (err) {
+			// eslint-disable-next-line no-console
 			console.error(err)
 		} finally {
 			setIsLoading(false)
@@ -224,7 +346,7 @@ const SignIn: React.FC = () => {
 			}
 
 			// If user exists, proceed with password reset
-			const { data, error } = await authClient.requestPasswordReset({
+			const { error } = await authClient.requestPasswordReset({
 				email: forgotEmail,
 				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
 			})
@@ -326,7 +448,7 @@ const SignIn: React.FC = () => {
 			}
 
 			// If user exists, proceed with password reset
-			const { data, error } = await authClient.requestPasswordReset({
+			const { error } = await authClient.requestPasswordReset({
 				email: forgotEmail,
 				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
 			})
@@ -377,22 +499,61 @@ const SignIn: React.FC = () => {
 		}
 	}
 
-	const openForgotPasswordModal = () => {
-		setForgotPasswordEmail(email)
-		setShowForgotPassword(true)
-		setForgotPasswordStatus({})
+	const handleVerifyOTP = async () => {
+		const otpCode = otpDigits.join('')
+		if (otpCode.length !== 6) {
+			setOTPError('Please enter the complete 6-digit code')
+			return
+		}
+
+		setIsOTPLoading(true)
+		setOTPError('')
+
+		try {
+			const result = await authClient.emailOtp.verifyEmail({
+				email: pendingEmail,
+				otp: otpCode,
+			})
+
+			if (result.error) {
+				setOTPError(result.error.message || 'Invalid verification code')
+			} else {
+				// Success - close modal and attempt signin again
+				handleCloseOTPModal()
+				// After successful verification, attempt sign in again
+				handleEmailSignIn({ preventDefault: () => {} } as React.FormEvent)
+			}
+		} catch (err) {
+			setOTPError('Verification failed. Please try again.')
+		} finally {
+			setIsOTPLoading(false)
+		}
 	}
 
-	const handleEmailVerificationClose = () => {
-		setShowEmailVerification(false)
-		setPendingEmail('')
-	}
+	const handleResendOTP = async () => {
+		if (resendCountdown > 0 || !canResend) return
 
-	const handleEmailVerificationSuccess = () => {
-		setShowEmailVerification(false)
-		setPendingEmail('')
-		// After successful verification, attempt sign in again
-		handleEmailSignIn({ preventDefault: () => {} } as React.FormEvent)
+		setIsOTPLoading(true)
+		setOTPError('')
+
+		try {
+			const result = await authClient.emailOtp.sendVerificationOtp({
+				email: pendingEmail,
+				type: 'email-verification',
+			})
+
+			if (result.error) {
+				setOTPError(result.error.message || 'Failed to send verification code')
+			} else {
+				setResendCountdown(30) // 30-second cooldown
+				setCanResend(false)
+				setOtpDigits(['', '', '', '', '', '']) // Clear current OTP
+			}
+		} catch (err) {
+			setOTPError('Failed to resend verification code')
+		} finally {
+			setIsOTPLoading(false)
+		}
 	}
 
 	useEffect(() => {
@@ -402,9 +563,11 @@ const SignIn: React.FC = () => {
 				callbackURL: '/dashboard',
 				fetchOptions: {
 					onSuccess: (response) => {
+						// eslint-disable-next-line no-console
 						console.log('One Tap sign-in successful:', response)
 					},
 					onError: (error) => {
+						// eslint-disable-next-line no-console
 						console.error('One Tap sign-in error:', error)
 					},
 				},
@@ -744,13 +907,163 @@ const SignIn: React.FC = () => {
 				)}
 			</Modal>
 
-			{/* Email Verification Modal */}
-			<EmailVerificationModal
-				isOpen={showEmailVerification}
-				onClose={handleEmailVerificationClose}
-				onVerificationSuccess={handleEmailVerificationSuccess}
-				email={pendingEmail}
-			/>
+			{/* Email Verification OTP Popup */}
+			{showOTPPopup && (
+				<motion.div
+					className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.3 }}
+				>
+					<motion.div
+						className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full"
+						initial={{ opacity: 0, scale: 0.9, y: 20 }}
+						animate={{ opacity: 1, scale: 1, y: 0 }}
+						transition={{
+							type: 'spring',
+							stiffness: 100,
+							damping: 15,
+						}}
+					>
+						<div className="flex justify-between items-center mb-4">
+							<h2 className="text-xl font-bold text-gray-800">
+								Verify Your Email
+							</h2>
+							<motion.button
+								onClick={handleCloseOTPModal}
+								className="text-gray-500 hover:text-gray-700 transition-all duration-300"
+								whileHover={{ scale: 1.1 }}
+								whileTap={{ scale: 0.95 }}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-6 w-6"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</motion.button>
+						</div>
+
+						<motion.div
+							initial="hidden"
+							animate="visible"
+							variants={containerVariants}
+						>
+							<motion.p className="text-gray-600 mb-4" variants={itemVariants}>
+								We&apos;ve sent a 6-digit verification code to{' '}
+								<span className="font-medium">{pendingEmail}</span>. Please
+								enter it below to verify your email address.
+							</motion.p>
+
+							{OTPError && (
+								<motion.div
+									className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded"
+									initial={{ opacity: 0, x: -20 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{ type: 'spring', stiffness: 100 }}
+								>
+									{OTPError}
+								</motion.div>
+							)}
+
+							<motion.div className="mb-4" variants={itemVariants}>
+								<label className="block text-sm font-medium text-gray-700 mb-3">
+									Verification Code
+								</label>
+								<div className="flex justify-center space-x-2">
+									{otpDigits.map((digit, index) => (
+										<input
+											key={index}
+											id={`otp-${index}`}
+											type="text"
+											inputMode="numeric"
+											maxLength={1}
+											value={digit}
+											onChange={(e) => handleOtpChange(index, e.target.value)}
+											onKeyDown={(e) => handleOtpKeyDown(index, e)}
+											onPaste={handleOtpPaste}
+											className="w-14 h-16 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-[#126E64] focus:outline-none focus:ring-2 focus:ring-[#126E64]/20 transition-all duration-200 hover:border-gray-400"
+										/>
+									))}
+								</div>
+								{otpDigits.some((digit) => digit) && (
+									<div className="text-center mt-2">
+										<button
+											type="button"
+											onClick={resetOtpDigits}
+											className="text-sm text-gray-500 hover:text-gray-700 underline"
+										>
+											Clear all
+										</button>
+									</div>
+								)}
+							</motion.div>
+
+							<motion.div
+								className="flex justify-end space-x-2"
+								variants={itemVariants}
+							>
+								<motion.button
+									type="button"
+									onClick={handleCloseOTPModal}
+									className="px-4 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-300"
+									whileHover={{
+										scale: 1.02,
+										boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									Cancel
+								</motion.button>
+								<motion.button
+									type="button"
+									onClick={handleVerifyOTP}
+									disabled={isOTPLoading || otpDigits.some((digit) => !digit)}
+									className="px-4 py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 disabled:opacity-70 transition-all duration-300"
+									whileHover={{
+										scale: 1.02,
+										boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									{isOTPLoading ? 'Verifying...' : 'Verify'}
+								</motion.button>
+							</motion.div>
+
+							<motion.p
+								className="text-sm text-gray-500 mt-4"
+								variants={itemVariants}
+							>
+								Didn&apos;t receive the code?{' '}
+								<motion.button
+									type="button"
+									onClick={handleResendOTP}
+									disabled={isOTPLoading || !canResend}
+									className="text-[#126E64] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+									whileHover={
+										canResend ? { scale: 1.05, color: '#0D504A' } : {}
+									}
+									whileTap={canResend ? { scale: 0.98 } : {}}
+								>
+									{isOTPLoading
+										? 'Sending...'
+										: !canResend
+											? `Resend Code (${resendCountdown}s)`
+											: 'Resend Code'}
+								</motion.button>
+							</motion.p>
+						</motion.div>
+					</motion.div>
+				</motion.div>
+			)}
 			{/* </AuthRedirect> */}
 		</div>
 	)

@@ -1,7 +1,7 @@
 import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP, oneTap, captcha, admin } from "better-auth/plugins";
+import { admin, emailOTP, oneTap } from "better-auth/plugins";
 import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";

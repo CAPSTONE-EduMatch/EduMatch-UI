@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { Input } from '../ui'
 import PasswordCriteriaChecker, {
 	PasswordCriteriaType,
 } from './PasswordCriteriaChecker'
-import { Input } from '../ui'
 
 export interface PasswordFieldProps {
 	value: string
@@ -83,6 +83,7 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
 								onChange={onChange}
 								placeholder={placeholder}
 								aria-label={label}
+								error={error}
 								// className="w-full border px-4 pr-10 py-3 bg-white border-b border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#126E64] focus:border-transparent transition-all"
 							/>
 							<button
@@ -136,6 +137,7 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
 							onChange={onChange}
 							placeholder={placeholder}
 							aria-label={label}
+							error={error}
 							// className={`w-full px-6 py-3 pr-12 rounded-lg border ${
 							// error ? "border-red-300" : "border-gray-300"
 							// } focus:outline-none focus:ring-2 focus:ring-[#126E64] focus:border-transparent transition-all`}
@@ -177,10 +179,6 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
 							)}
 						</button>
 					</div>
-				)}
-
-				{error && (
-					<p className="text-sm text-red-500 mt-1 flex items-center">{error}</p>
 				)}
 
 				{helpText && !error && (

@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -34,6 +35,7 @@ model User {
   sessions                          Session[]
   thread_thread_createdByToUser     thread[]       @relation("thread_createdByToUser")
   thread_thread_participantIdToUser thread[]       @relation("thread_participantIdToUser")
+
 
   @@map("User")
 }

@@ -1,12 +1,16 @@
 import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP, oneTap } from "better-auth/plugins";
+import { emailOTP, oneTap, captcha, admin } from "better-auth/plugins";
 import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";
 import { prismaClient } from "../../../prisma/index";
-import { checkOTPRateLimit, recordOTPAttempt } from "./otp-rate-limit";
+import {
+	checkOTPRateLimitByType,
+	recordOTPAttemptByType,
+	type OTPType,
+} from "./otp-rate-limit";
 dotenv.config();
 
 // Validate required environment variables
@@ -49,6 +53,9 @@ const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export const auth = betterAuth({
 	plugins: [
+		admin({
+			defaultRole: "user",
+		}),
 		oneTap(),
 		emailOTP({
 			async sendVerificationOTP({
@@ -60,8 +67,19 @@ export const auth = betterAuth({
 				otp: string;
 				type: string;
 			}) {
+				// Determine OTP type based on the type parameter
+				let otpType: OTPType = "email-verification"; // default
+				if (type === "sign-up") {
+					otpType = "signup";
+				} else if (type === "email-verification") {
+					otpType = "email-verification";
+				}
+
 				// Check rate limiting before sending OTP
-				const rateLimitResult = await checkOTPRateLimit(email);
+				const rateLimitResult = await checkOTPRateLimitByType(
+					email,
+					otpType
+				);
 
 				if (!rateLimitResult.allowed) {
 					throw new Error(
@@ -71,13 +89,13 @@ export const auth = betterAuth({
 				}
 
 				// Record the attempt
-				await recordOTPAttempt(email);
+				await recordOTPAttemptByType(email, otpType);
 
 				// Send OTP via email using our sendEmail function
 				await sendEmail(email, "", otp);
 			},
 			// disableSignUp: false, // Allow sign-ups via OTP
-			allowedAttempts: 5, // Max 5 attempts per hour
+			// allowedAttempts: 5, // Max 5 attempts per hour
 			expiresIn: 300, // OTP expires in 5 minutes
 		}),
 		// Stripe plugin disabled - handling subscriptions manually
@@ -140,7 +158,10 @@ export const auth = betterAuth({
 			token: string;
 		}) => {
 			// Check rate limiting for forgot password requests
-			const rateLimitResult = await checkOTPRateLimit(user.email);
+			const rateLimitResult = await checkOTPRateLimitByType(
+				user.email,
+				"forgot-password"
+			);
 
 			if (!rateLimitResult.allowed) {
 				throw new Error(
@@ -150,7 +171,7 @@ export const auth = betterAuth({
 			}
 
 			// Record the attempt
-			await recordOTPAttempt(user.email);
+			await recordOTPAttemptByType(user.email, "forgot-password");
 
 			await sendEmail(
 				user.email,
@@ -210,7 +231,6 @@ async function sendEmail(to: string, url: string, token: string) {
 	// Determine email type based on content
 	const isOtp = token.length === 6 && /^\d{6}$/.test(token);
 	const isReset = url.includes("reset-password") || token.includes("reset");
-	const isVerify = !isOtp && !isReset;
 
 	let subject: string;
 	let html: string;
@@ -283,6 +303,9 @@ async function sendEmail(to: string, url: string, token: string) {
 		await transporter.sendMail(mailOptions);
 		// Verification email sent
 	} catch (error) {
+		// Log error for monitoring
+		// eslint-disable-next-line no-console
 		console.error("Error sending verification email:", error);
+		throw new Error("Failed to send email");
 	}
 }

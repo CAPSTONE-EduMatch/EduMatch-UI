@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 const routeConfig = {
 	publicRoutes: ["/", "/about", "/api/health"],
 	authRoutes: ["/signin", "/signup", "/forgot-password"],
-	protectedRoutes: ["/dashboard", "/files"],
+	protectedRoutes: ["/dashboard", "/files", "/admin"],
+	adminRoutes: ["/admin"],
 	profileRequiredRoutes: ["/dashboard", "/files"],
 	// Routes that should show auth modal instead of redirecting
 	authModalRoutes: ["/profile/create-profile"],

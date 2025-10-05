@@ -335,7 +335,7 @@ const Signup = () => {
 				return
 			}
 
-			// If user doesn't exist, send OTP for email verification
+			// If user doesn't exist, send OTP for email verification during signup
 			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
 				{
 					email: email,

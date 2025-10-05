@@ -1,4 +1,8 @@
-import { emailOTPClient, oneTapClient } from "better-auth/client/plugins";
+import {
+	emailOTPClient,
+	oneTapClient,
+	adminClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { stripeClient } from "@better-auth/stripe/client";
 
@@ -23,6 +27,7 @@ export const authClient = createAuthClient({
 		stripeClient({
 			subscription: true,
 		}),
+		adminClient(),
 	],
 
 	/** The base URL of the server (optional if you're using the same domain) */

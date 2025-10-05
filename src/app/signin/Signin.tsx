@@ -287,7 +287,8 @@ const SignIn: React.FC = () => {
 				} else if (isCredentialError) {
 					// Show password error for credential issues
 					setErrors({
-						password: 'Incorrect password. Please try again.',
+						email: 'Invalid email or password. Please try again.',
+						password: 'Invalid email or password. Please try again.',
 					})
 				} else if (isUserNotFoundError) {
 					// Show email error for user not found

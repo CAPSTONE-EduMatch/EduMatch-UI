@@ -1,6 +1,6 @@
 // Types for Explore API responses using Prisma types
 import type {
-	InstitutionProfile,
+	institution_profile,
 	Post,
 	PostJob,
 	PostProgram,
@@ -10,7 +10,7 @@ import type {
 // Enhanced types that include computed fields and relations
 export interface EnhancedProgram extends Post {
 	postProgram?: PostProgram;
-	institution?: InstitutionProfile;
+	institution?: institution_profile;
 	// Computed fields
 	daysLeft: number;
 	match: string;
@@ -19,7 +19,7 @@ export interface EnhancedProgram extends Post {
 
 export interface EnhancedScholarship extends Post {
 	postScholarship?: PostScholarship;
-	institution?: InstitutionProfile;
+	institution?: institution_profile;
 	// Computed fields
 	daysLeft: number;
 	match: string;
@@ -28,7 +28,7 @@ export interface EnhancedScholarship extends Post {
 
 export interface EnhancedResearchPosition extends Post {
 	postJob?: PostJob;
-	institution?: InstitutionProfile;
+	institution?: institution_profile;
 	// Computed fields
 	daysLeft: number;
 	match: string;

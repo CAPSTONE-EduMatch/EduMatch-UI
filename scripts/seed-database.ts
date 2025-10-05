@@ -136,7 +136,7 @@ async function cleanDatabase() {
 		// Ignore if table doesn't exist
 	}
 	try {
-		await prismaClient.institutionProfile.deleteMany({});
+		// await prismaClient.institutionProfile.deleteMany({});
 	} catch (error) {
 		// Ignore if table doesn't exist
 	}
@@ -247,76 +247,6 @@ async function seedPrograms() {
 
 	await prismaClient.postProgram.createMany({
 		data: programDetails,
-	});
-
-	// eslint-disable-next-line no-console
-	// console.log(`✅ ${programPosts.length} Programs seeded successfully`);
-	// 			published: true,
-	// 			authorId: "admin-1",
-	// 		},
-	// 		{
-	// 			id: "prog-5",
-	// 			title: "Master of Science in Biotechnology",
-	// 			content:
-	// 				"Interdisciplinary program combining biology, chemistry, and engineering. Focus on medical applications and pharmaceutical research.",
-	// 			published: true,
-	// 			authorId: "admin-1",
-	// 		},
-	// 	],
-	// });
-
-	// Create PostProgram data
-	await prismaClient.postProgram.createMany({
-		data: [
-			{
-				PostId: "prog-1",
-				degreeLevel: "Master's Degree",
-				tuition_fee: 75000,
-				scholarship_info:
-					"Merit-based scholarships available up to $25,000",
-				CourseInclude:
-					"Machine Learning, Algorithms, Software Engineering, Database Systems",
-				duration: "2 years",
-			},
-			{
-				PostId: "prog-2",
-				degreeLevel: "Doctoral Degree",
-				tuition_fee: 0,
-				scholarship_info:
-					"Full funding including stipend and health insurance",
-				CourseInclude: "Deep Learning, NLP, Computer Vision, Robotics",
-				duration: "4-6 years",
-			},
-			{
-				PostId: "prog-3",
-				degreeLevel: "Bachelor's Degree",
-				tuition_fee: 55000,
-				scholarship_info:
-					"Need-based aid available, work-study programs",
-				CourseInclude:
-					"Statistics, Python Programming, SQL, Machine Learning Fundamentals",
-				duration: "4 years",
-			},
-			{
-				PostId: "prog-4",
-				degreeLevel: "Master's Degree",
-				tuition_fee: 85000,
-				scholarship_info:
-					"Executive scholarships for experienced professionals",
-				CourseInclude:
-					"Strategic Management, Finance, Marketing, Operations",
-				duration: "2 years",
-			},
-			{
-				PostId: "prog-5",
-				degreeLevel: "Master's Degree",
-				tuition_fee: 68000,
-				scholarship_info: "Research assistantships available",
-				CourseInclude:
-					"Molecular Biology, Bioengineering, Pharmaceutical Sciences",
-				duration: "2 years",
-			},
-		],
 	});
 
 	// eslint-disable-next-line no-console

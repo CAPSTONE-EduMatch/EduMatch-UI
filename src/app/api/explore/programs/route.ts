@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 		});
 
 		// Get institution data
-		const institutions = await prismaClient.institutionProfile.findMany();
+		const institutions = await prismaClient.institution_profile.findMany();
 
 		// Create a map for quick lookups
 		const postProgramMap = new Map(

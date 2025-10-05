@@ -4,6 +4,7 @@ import {
 	AuthLayout,
 	// AuthRedirect,
 	GoogleButton,
+	PasswordField,
 } from '@/components/auth'
 import { Input, Modal } from '@/components/ui'
 import axios from 'axios'
@@ -637,11 +638,11 @@ const SignIn: React.FC = () => {
 							className="grid grid-cols-12 items-center gap-4"
 							variants={itemVariants}
 						>
-							<label className="col-span-3 text-sm font-medium text-gray-700">
+							{/* <label className="col-span-3 text-sm font-medium text-gray-700">
 								Password <span className="text-red-500">*</span>
-							</label>
-							<div className="col-span-9 relative">
-								<Input
+							</label> */}
+							<div className="relative col-span-12">
+								{/* <Input
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
 									type={showPassword ? 'text' : 'password'}
@@ -687,7 +688,18 @@ const SignIn: React.FC = () => {
 											/>
 										</svg>
 									)}
-								</motion.button>
+								</motion.button> */}
+								<PasswordField
+									label="Password"
+									name="Password"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									placeholder="Enter your password"
+									error={errors.password}
+									required
+									showCriteria={false}
+									// helpText="Re-enter your password to confirm"
+								/>
 							</div>
 						</motion.div>
 

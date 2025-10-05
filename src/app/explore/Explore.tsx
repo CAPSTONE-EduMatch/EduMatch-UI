@@ -1,19 +1,19 @@
 'use client'
-import Image from 'next/image'
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { TabType } from '@/types/explore'
-import { SortDropdown, SortOption } from '@/components/ui/Sort'
+import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
+import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
+import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
+import { Button } from '@/components/ui'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
-import { SearchBar } from '@/components/ui/SearchBar'
-import { TabSelector } from '@/components/ui/TabSelector'
 import { FilterSidebar } from '@/components/ui/FilterSidebar'
 import { Pagination } from '@/components/ui/Pagination'
-import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
-import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
-import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
-import { Button } from '@/components/ui'
-import { mockPrograms, mockScholarships, mockResearchLabs } from '@/data/utils'
+import { SearchBar } from '@/components/ui/SearchBar'
+import { SortDropdown, SortOption } from '@/components/ui/Sort'
+import { TabSelector } from '@/components/ui/TabSelector'
+import { mockPrograms, mockResearchLabs, mockScholarships } from '@/data/utils'
+import { TabType } from '@/types/explore'
+import { motion } from 'framer-motion'
+import Image from 'next/image'
+import { useState } from 'react'
 import student from '../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -27,7 +27,6 @@ const Explore = () => {
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
-
 	// Get current tab data and calculate pagination
 	const getCurrentTabData = () => {
 		switch (activeTab) {
@@ -38,7 +37,7 @@ const Explore = () => {
 			case 'research':
 				return mockResearchLabs
 			default:
-				return mockPrograms
+				return []
 		}
 	}
 
@@ -46,13 +45,13 @@ const Explore = () => {
 	const totalItems = currentTabData.length
 	const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
+	const breadcrumbItems = [{ label: 'Explore', href: '/explore' }]
+
 	// Reset to page 1 when switching tabs
 	const handleTabChange = (tabId: string) => {
 		setActiveTab(tabId as TabType)
 		setCurrentPage(1)
 	}
-
-	const breadcrumbItems = [{ label: 'Explore', href: '/explore' }]
 
 	const renderTabContent = () => {
 		switch (activeTab) {

@@ -35,20 +35,6 @@ model User {
   thread_thread_createdByToUser     thread[]       @relation("thread_createdByToUser")
   thread_thread_participantIdToUser thread[]       @relation("thread_participantIdToUser")
 
-  role       String?
-  banned     Boolean?  @default(false)
-  banReason  String?
-  banExpires DateTime?
-
-  // Additional relations
-  emails              Email[]
-  notifications       Notification[]
-  wishlists          Wishlist[]
-  applications       Application[]
-  createdThreads     Thread[] @relation("ThreadCreatedBy")
-  participantThreads Thread[] @relation("ThreadParticipant")
-  sentMessages       Mesage[]
-
   @@map("User")
 }
 

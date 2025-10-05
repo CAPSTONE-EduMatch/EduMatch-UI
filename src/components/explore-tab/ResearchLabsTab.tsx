@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { SortOption } from '../ui/Sort'
-import { ResearchLabCard } from '../ui/ResearchLabCard'
 import { mockResearchLabs } from '@/data/utils'
+import { useMemo, useState } from 'react'
+import { ResearchLabCard } from '../ui/ResearchLabCard'
+import { SortOption } from '../ui/Sort'
 
 interface ResearchLabsTabProps {
 	sortBy?: SortOption
@@ -11,12 +11,10 @@ interface ResearchLabsTabProps {
 	itemsPerPage?: number
 }
 
-// eslint-disable-next-line no-unused-vars
 export function ResearchLabsTab({
 	currentPage = 1,
 	itemsPerPage = 15,
 }: ResearchLabsTabProps) {
-	// TODO: Implement sorting functionality
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
 	const toggleWishlist = (id: number) => {

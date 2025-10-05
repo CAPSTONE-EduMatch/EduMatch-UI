@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { SortOption } from '../ui/Sort'
-import { ScholarshipCard } from '../ui/ScholarshipCard'
 import { mockScholarships } from '@/data/utils'
+import { useMemo, useState } from 'react'
+import { ScholarshipCard } from '../ui/ScholarshipCard'
+import { SortOption } from '../ui/Sort'
 
 interface ScholarshipsTabProps {
 	sortBy?: SortOption
@@ -11,7 +11,6 @@ interface ScholarshipsTabProps {
 	itemsPerPage?: number
 }
 
-// eslint-disable-next-line no-unused-vars
 export function ScholarshipsTab({
 	currentPage = 1,
 	itemsPerPage = 15,

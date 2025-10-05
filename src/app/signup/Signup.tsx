@@ -327,7 +327,7 @@ const Signup = () => {
 				`/api/user?email=${encodeURIComponent(email)}`
 			)
 
-			if (response.data.exists) {
+			if (response.data.exists && response.data.isEmailVerified) {
 				setErrors({
 					email:
 						'An account with this email already exists. Please sign in instead.',
@@ -346,7 +346,7 @@ const Signup = () => {
 			if (otpError) {
 				setOTPError(
 					`Failed to send verification code: ${
-						otpError.message || 'Unknown error'
+						otpError.message || 'Please try again 1 hour later.'
 					}`
 				)
 			} else {

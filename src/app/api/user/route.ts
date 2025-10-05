@@ -22,10 +22,16 @@ export async function GET(request: NextRequest) {
 			where: { email },
 		});
 
-		return new Response(JSON.stringify({ exists: !!user }), {
-			status: 200,
-			headers: { "Content-Type": "application/json" },
-		});
+		return new Response(
+			JSON.stringify({
+				exists: !!user,
+				isEmailVerified: user?.emailVerified,
+			}),
+			{
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			}
+		);
 	} catch (error) {
 		return new Response(
 			JSON.stringify({ error: "Internal server error" }),

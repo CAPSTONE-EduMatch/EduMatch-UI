@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { SortOption } from '../ui/Sort'
-import { ProgramCard } from '../ui/ProgramCard'
 import { mockPrograms } from '@/data/utils'
+import { useMemo, useState } from 'react'
+import { ProgramCard } from '../ui/ProgramCard'
+import { SortOption } from '../ui/Sort'
 
 interface ProgramsTabProps {
 	sortBy?: SortOption
@@ -11,7 +11,6 @@ interface ProgramsTabProps {
 	itemsPerPage?: number
 }
 
-// eslint-disable-next-line no-unused-vars
 export function ProgramsTab({
 	currentPage = 1,
 	itemsPerPage = 15,

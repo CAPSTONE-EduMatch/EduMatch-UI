@@ -7,10 +7,10 @@ import {
 
 // SQS Configuration
 const sqsClient = new SQSClient({
-	region: process.env.AWS_REGION || "ap-northeast-1",
+	region: process.env.REGION || "ap-northeast-1",
 	credentials: {
-		accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+		accessKeyId: process.env.ACCESS_KEY_ID!,
+		secretAccessKey: process.env.SECRET_ACCESS_KEY!,
 	},
 });
 
@@ -22,14 +22,14 @@ export const QUEUE_URLS = {
 
 // Debug logging
 console.log("🔧 SQS Configuration:");
-console.log("📍 Region:", process.env.AWS_REGION || "ap-northeast-1");
+console.log("📍 Region:", process.env.REGION || "ap-northeast-1");
 console.log(
 	"🔑 Access Key:",
-	process.env.AWS_ACCESS_KEY_ID ? "✅ Set" : "❌ Missing"
+	process.env.ACCESS_KEY_ID ? "✅ Set" : "❌ Missing"
 );
 console.log(
 	"🔐 Secret Key:",
-	process.env.AWS_SECRET_ACCESS_KEY ? "✅ Set" : "❌ Missing"
+	process.env.SECRET_ACCESS_KEY ? "✅ Set" : "❌ Missing"
 );
 console.log(
 	"📧 Notifications Queue:",

@@ -20,18 +20,24 @@ const nextConfig = {
 			},
 		],
 	},
-	// webpack: (config, { isServer }) => {
-	// 	// Exclude Prisma and other server-only packages from client bundles
-	// 	if (!isServer) {
-	// 		config.resolve.fallback = {
-	// 			...config.resolve.fallback,
-	// 			fs: false,
-	// 			net: false,
-	// 			tls: false,
-	// 		};
-	// 	}
-	// 	return config;
-	// },
+	webpack: (config, { isServer }) => {
+		// Exclude CDK infrastructure files from build
+		config.module.rules.push({
+			test: /infrastructure\/.*/,
+			use: "ignore-loader",
+		});
+
+		// Exclude Prisma and other server-only packages from client bundles
+		if (!isServer) {
+			config.resolve.fallback = {
+				...config.resolve.fallback,
+				fs: false,
+				net: false,
+				tls: false,
+			};
+		}
+		return config;
+	},
 	// experimental: {
 	// 	serverComponentsExternalPackages: ["@prisma/client", "prisma"],
 	// },

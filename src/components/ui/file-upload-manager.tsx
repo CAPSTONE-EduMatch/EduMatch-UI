@@ -67,7 +67,16 @@ export function FileUploadManager({
 	}, [])
 
 	const handleFileSelection = async (files: File[]) => {
-		const validFiles = files.filter((file) => {
+		// Limit files to maxFiles if specified
+		const limitedFiles = maxFiles ? files.slice(0, maxFiles) : files
+
+		if (maxFiles && files.length > maxFiles) {
+			alert(
+				`You can only select up to ${maxFiles} file(s). Only the first ${maxFiles} file(s) will be processed.`
+			)
+		}
+
+		const validFiles = limitedFiles.filter((file) => {
 			// Check file size
 			if (file.size > maxSize * 1024 * 1024) {
 				alert(`File ${file.name} is too large. Maximum size is ${maxSize}MB.`)
@@ -179,7 +188,7 @@ export function FileUploadManager({
 				<input
 					ref={fileInputRef}
 					type="file"
-					multiple
+					multiple={maxFiles > 1}
 					accept={acceptedTypes.join(',')}
 					onChange={handleFileInputChange}
 					className="hidden"

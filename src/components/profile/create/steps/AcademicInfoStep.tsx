@@ -811,6 +811,7 @@ export function AcademicInfoStep({
 										isMulti
 										isSearchable
 										isClearable
+										maxSelectedHeight="120px"
 									/>
 								</div>
 							</div>
@@ -910,14 +911,9 @@ export function AcademicInfoStep({
 				>
 					Back
 				</Button>
-				<div className="flex flex-col sm:flex-row gap-2">
-					<Button variant="outline" size="sm" className="w-full sm:w-auto">
-						Create later
-					</Button>
-					<Button onClick={onNext} size="sm" className="w-full sm:w-auto">
-						Next
-					</Button>
-				</div>
+				<Button onClick={onNext} size="sm" className="w-full sm:w-auto">
+					Next
+				</Button>
 			</div>
 		</div>
 	)

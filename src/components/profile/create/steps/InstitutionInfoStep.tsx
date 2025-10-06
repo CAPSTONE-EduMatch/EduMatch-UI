@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ProfileFormData } from '@/types/profile'
 import { Label } from '@/components/ui/label'
 import Input from '@/components/ui/Input'
@@ -21,6 +21,7 @@ interface InstitutionInfoStepProps {
 	onBack: () => void
 	onNext: () => void
 	onShowManageModal: () => void
+	user?: any
 }
 
 export function InstitutionInfoStep({
@@ -31,6 +32,7 @@ export function InstitutionInfoStep({
 	onBack,
 	onNext,
 	onShowManageModal,
+	user,
 }: InstitutionInfoStepProps) {
 	const [showCampusForm, setShowCampusForm] = useState(false)
 	const [isUploading, setIsUploading] = useState(false)
@@ -44,6 +46,13 @@ export function InstitutionInfoStep({
 		country: '',
 		address: '',
 	})
+
+	// Pre-fill institution email with user's email
+	useEffect(() => {
+		if (user?.email && !formData.institutionEmail) {
+			onInputChange('institutionEmail', user.email)
+		}
+	}, [user?.email, formData.institutionEmail, onInputChange])
 
 	const validateEmail = (email: string): boolean => {
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -79,6 +88,15 @@ export function InstitutionInfoStep({
 			const lettersAndSpaces = value.replace(/[^a-zA-Z\s]/g, '')
 			onInputChange(field, lettersAndSpaces)
 		}
+
+	const handleInstitutionNameInput = (
+		e: React.ChangeEvent<HTMLInputElement>
+	) => {
+		const value = e.target.value
+		// Remove special characters but allow letters, numbers, spaces, and common punctuation
+		const cleanValue = value.replace(/[^a-zA-Z0-9\s\-\.&]/g, '')
+		onInputChange('institutionName', cleanValue)
+	}
 
 	const validateRequiredFields = () => {
 		const errors: Record<string, boolean> = {}
@@ -199,7 +217,7 @@ export function InstitutionInfoStep({
 			<div className="flex items-center gap-4">
 				<div className="relative">
 					<Avatar className="w-20 h-20">
-						<AvatarImage src={formData.profilePhoto || '/profile.svg'} />
+						<AvatarImage src={formData.profilePhoto} />
 						<AvatarFallback className="bg-blue-500 text-white">
 							<Building2 className="w-8 h-8" />
 						</AvatarFallback>
@@ -239,7 +257,7 @@ export function InstitutionInfoStep({
 					<Input
 						id="institutionName"
 						value={formData.institutionName}
-						onChange={onInputChangeEvent('institutionName')}
+						onChange={handleInstitutionNameInput}
 						placeholder="Enter institution name"
 						inputSize="select"
 						className={
@@ -370,12 +388,19 @@ export function InstitutionInfoStep({
 						onChange={handleEmailChange('institutionEmail')}
 						placeholder="contact@institution.edu"
 						inputSize="select"
+						disabled={user?.email && formData.institutionEmail === user.email}
 						className={
 							validationErrors.institutionEmail || emailErrors.institutionEmail
 								? 'border-red-500 focus:border-red-500'
 								: ''
 						}
 					/>
+					{user?.email && formData.institutionEmail === user.email && (
+						<p className="text-xs text-muted-foreground">
+							Institution email is pre-filled from your Google account and
+							cannot be changed
+						</p>
+					)}
 					{emailErrors.institutionEmail && (
 						<p className="text-xs text-red-500 mt-1">
 							{emailErrors.institutionEmail}

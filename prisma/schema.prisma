@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -9,9 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==================
-// Existing models (unchanged)
-// ==================
 model User {
   id                                String         @id
   name                              String
@@ -35,7 +31,6 @@ model User {
   sessions                          Session[]
   thread_thread_createdByToUser     thread[]       @relation("thread_createdByToUser")
   thread_thread_participantIdToUser thread[]       @relation("thread_participantIdToUser")
-
 
   @@map("User")
 }
@@ -160,54 +155,53 @@ model Folder {
 }
 
 model Profile {
-  id                 String          @id @default(uuid())
-  userId             String          @unique
-  role               String
-  firstName          String
-  lastName           String
-  gender             String
-  birthday           String
-  nationality        String
-  phoneNumber        String
-  countryCode        String
-  interests          String[]        @default([])
-  favoriteCountries  String[]        @default([])
-  profilePhoto       String?
-  graduationStatus   String?
-  degree             String?
-  fieldOfStudy       String?
-  university         String?
-  graduationYear     String?
-  gpa                String?
-  countryOfStudy     String?
-  scoreType          String?
-  scoreValue         String?
-  hasForeignLanguage String?
-  // Institution fields
-  institutionName             String?
-  institutionAbbreviation      String?
-  institutionHotline           String?
-  institutionHotlineCode      String?
-  institutionType              String?
-  institutionWebsite           String?
-  institutionEmail             String?
-  institutionCountry           String?
-  institutionAddress           String?
-  representativeName           String?
-  representativeAppellation    String?
-  representativePosition       String?
-  representativeEmail          String?
-  representativePhone          String?
-  representativePhoneCode      String?
-  aboutInstitution            String?
-  institutionDisciplines       String[]        @default([])
-  institutionCoverImage        String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  languages          Language[]
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  uploadedFiles      ProfileFile[]
-  researchPapers     ResearchPaper[]
+  id                        String          @id @default(uuid())
+  userId                    String          @unique
+  role                      String
+  firstName                 String
+  lastName                  String
+  gender                    String
+  birthday                  String
+  nationality               String
+  phoneNumber               String
+  countryCode               String
+  interests                 String[]        @default([])
+  favoriteCountries         String[]        @default([])
+  profilePhoto              String?
+  graduationStatus          String?
+  degree                    String?
+  fieldOfStudy              String?
+  university                String?
+  graduationYear            String?
+  gpa                       String?
+  countryOfStudy            String?
+  scoreType                 String?
+  scoreValue                String?
+  hasForeignLanguage        String?
+  institutionName           String?
+  institutionAbbreviation   String?
+  institutionHotline        String?
+  institutionHotlineCode    String?
+  institutionType           String?
+  institutionWebsite        String?
+  institutionEmail          String?
+  institutionCountry        String?
+  institutionAddress        String?
+  representativeName        String?
+  representativeAppellation String?
+  representativePosition    String?
+  representativeEmail       String?
+  representativePhone       String?
+  representativePhoneCode   String?
+  aboutInstitution          String?
+  institutionDisciplines    String[]        @default([])
+  institutionCoverImage     String?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  languages                 Language[]
+  user                      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadedFiles             ProfileFile[]
+  researchPapers            ResearchPaper[]
 
   @@map("profile")
 }
@@ -298,46 +292,6 @@ model Notification {
   read_at  DateTime?
   status   String
   User     User      @relation(fields: [userId], references: [id], onDelete: NoAction)
-}
-
-model Post_job {
-  PostId                    String  @id
-  contract_type             String
-  job_type                  String
-  min_salary                Decimal
-  max_salary                Decimal
-  salary_description        String?
-  benefit                   String?
-  main_responsibility       String?
-  qualification_requirement String?
-  experience_requirement    String?
-  assessment_criteria       String?
-  other_requirement         String?
-}
-
-model Post_program {
-  PostId           String   @id
-  duration         String
-  degreeLevel      String
-  CourseInclude    String?
-  professor_name   String?
-  gpa              Decimal?
-  gre              Int?
-  gmat             Int?
-  tuition_fee      Decimal?
-  fee_description  String?
-  scholarship_info String?
-}
-
-model Post_scholarship {
-  PostId               String   @id
-  detail               String
-  type                 String
-  number               Int?
-  grant                String?
-  scholarship_coverage String?
-  essay_required       Boolean?
-  eligibility          String?
 }
 
 model Sub_Discipline {
@@ -468,13 +422,6 @@ model plan {
   Subcription Subcription[]
 }
 
-model post_file_requirement {
-  id          String  @id
-  postId      String
-  name        String
-  description String?
-}
-
 model profile_attachment {
   documentId String   @id
   profile_id String
@@ -518,4 +465,51 @@ model thread {
   mesage                          mesage[]
   User_thread_createdByToUser     User     @relation("thread_createdByToUser", fields: [createdBy], references: [id], onDelete: NoAction)
   User_thread_participantIdToUser User     @relation("thread_participantIdToUser", fields: [participantId], references: [id], onDelete: NoAction)
+}
+
+model PostFileRequirement {
+  id          String  @id
+  postId      String
+  name        String
+  description String?
+}
+
+model PostJob {
+  PostId                    String  @id
+  contract_type             String
+  job_type                  String
+  min_salary                Decimal
+  max_salary                Decimal
+  salary_description        String?
+  benefit                   String?
+  main_responsibility       String?
+  qualification_requirement String?
+  experience_requirement    String?
+  assessment_criteria       String?
+  other_requirement         String?
+}
+
+model PostProgram {
+  PostId           String   @id
+  duration         String
+  degreeLevel      String
+  CourseInclude    String?
+  professor_name   String?
+  gpa              Decimal?
+  gre              Int?
+  gmat             Int?
+  tuition_fee      Decimal?
+  fee_description  String?
+  scholarship_info String?
+}
+
+model PostScholarship {
+  PostId               String   @id
+  detail               String
+  type                 String
+  number               Int?
+  grant                String?
+  scholarship_coverage String?
+  essay_required       Boolean?
+  eligibility          String?
 }

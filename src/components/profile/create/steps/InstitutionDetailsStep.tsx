@@ -74,15 +74,17 @@ export function InstitutionDetailsStep({
 				</p>
 			</div>
 
-			{/* Disciplines Selection - Only for Universities */}
+			{/* Disciplines Selection - For Universities and Research Labs */}
 			{((typeof formData.institutionType === 'string' &&
-				formData.institutionType === 'university') ||
+				(formData.institutionType === 'university' ||
+					formData.institutionType === 'research-lab')) ||
 				(typeof formData.institutionType === 'object' &&
-					(formData.institutionType as any)?.value === 'university') ||
+					((formData.institutionType as any)?.value === 'university' ||
+						(formData.institutionType as any)?.value === 'research-lab')) ||
 				!formData.institutionType) && (
 				<div className="space-y-4">
 					<Label className="text-sm font-medium text-foreground">
-						Institution Disciplines *
+						Institution Sub-Disciplines *
 					</Label>
 					<CustomSelect
 						options={disciplines}
@@ -98,10 +100,12 @@ export function InstitutionDetailsStep({
 								: []
 							onMultiSelectChange('institutionDisciplines')(values)
 						}}
-						placeholder="Select disciplines..."
+						placeholder="Select sub-disciplines..."
 						isMulti
+						isClearable
 						className="w-full"
 						isSearchable
+						maxSelectedHeight="120px"
 					/>
 				</div>
 			)}

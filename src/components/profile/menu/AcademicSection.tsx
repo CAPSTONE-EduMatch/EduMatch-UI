@@ -359,219 +359,210 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							</div>
 						</div>
 
-						{/* Academic Details - Only show if graduated */}
-						{(isEditing
-							? editedProfile?.graduationStatus
-							: profile?.graduationStatus) === 'graduated' && (
-							<div className="space-y-4">
-								{/* Additional fields */}
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div>
-										<Label htmlFor="university">University</Label>
-										{isEditing ? (
-											<Input
-												id="university"
-												value={editedProfile?.university || ''}
-												onChange={(e) =>
-													handleFieldChange('university', e.target.value)
-												}
-												placeholder="e.g., Harvard University"
-												inputSize="select"
-											/>
-										) : (
-											<p className="text-sm">
-												{profile?.university || 'Not provided'}
-											</p>
-										)}
-									</div>
-									<div>
-										<Label htmlFor="countryOfStudy">Country of Study</Label>
-										{isEditing ? (
-											<CustomSelect
-												value={
-													editedProfile?.countryOfStudy
-														? getCountriesWithSvgFlags().find(
-																(c) => c.name === editedProfile.countryOfStudy
-															)
-														: null
-												}
-												onChange={(option) =>
-													handleFieldChange(
-														'countryOfStudy',
-														option?.name || ''
-													)
-												}
-												placeholder="Select country"
-												options={getCountriesWithSvgFlags()}
-												formatOptionLabel={(option: any) => (
-													<div className="flex items-center space-x-2">
-														<span className="text-lg">{option.flag}</span>
-														<span>{option.name}</span>
-													</div>
-												)}
-												getOptionValue={(option: any) => option.name}
-												menuPortalTarget={document.body}
-												isSearchable
-												isClearable
-												filterOption={(option, inputValue) => {
-													const country = option.data
-													return country.name
-														.toLowerCase()
-														.includes(inputValue.toLowerCase())
-												}}
-											/>
-										) : (
-											<div className="flex items-center space-x-2">
-												{(() => {
-													const countryData = getCountriesWithSvgFlags().find(
-														(c) => c.name === profile?.countryOfStudy
-													)
-													return (
-														<>
-															<span className="text-lg">
-																{countryData?.flag || '🌐'}
-															</span>
-															<span className="text-sm font-medium">
-																{profile?.countryOfStudy || 'Not provided'}
-															</span>
-														</>
-													)
-												})()}
-											</div>
-										)}
-									</div>
+						{/* Academic Details - Always show */}
+						<div className="space-y-4">
+							<div className="flex items-end gap-4">
+								<div>
+									<Label className="text-sm font-medium text-foreground">
+										Level
+									</Label>
+									{isEditing ? (
+										<CustomSelect
+											value={
+												editedProfile?.degree
+													? {
+															value: editedProfile.degree,
+															label: editedProfile.degree,
+														}
+													: null
+											}
+											onChange={(option) =>
+												handleFieldChange('degree', option?.value || '')
+											}
+											placeholder="Level"
+											options={[
+												{
+													value: 'High School',
+													label: 'High School',
+												},
+												{
+													value: 'Associate',
+													label: 'Associate',
+												},
+												{
+													value: "Bachelor's",
+													label: "Bachelor's",
+												},
+												{
+													value: "Master's",
+													label: "Master's",
+												},
+												{ value: 'PhD', label: 'PhD' },
+												{
+													value: 'Professional',
+													label: 'Professional',
+												},
+											]}
+											menuPortalTarget={document.body}
+											isClearable={false}
+											variant="green"
+											className="w-sm"
+										/>
+									) : (
+										<p className="text-sm font-medium">
+											{profile?.degree || 'Not provided'}
+										</p>
+									)}
 								</div>
-								<div className="flex items-end gap-4">
-									<div>
-										<Label className="text-sm font-medium text-foreground">
-											Level
-										</Label>
-										{isEditing ? (
-											<CustomSelect
-												value={
-													editedProfile?.degree
-														? {
-																value: editedProfile.degree,
-																label: editedProfile.degree,
-															}
-														: null
-												}
-												onChange={(option) =>
-													handleFieldChange('degree', option?.value || '')
-												}
-												placeholder="Level"
-												options={[
-													{
-														value: 'High School',
-														label: 'High School',
-													},
-													{
-														value: 'Associate',
-														label: 'Associate',
-													},
-													{
-														value: "Bachelor's",
-														label: "Bachelor's",
-													},
-													{
-														value: "Master's",
-														label: "Master's",
-													},
-													{ value: 'PhD', label: 'PhD' },
-													{
-														value: 'Professional',
-														label: 'Professional',
-													},
-												]}
-												menuPortalTarget={document.body}
-												isClearable={false}
-												variant="green"
-												className="w-sm"
-											/>
-										) : (
-											<p className="text-sm font-medium">
-												{profile?.degree || 'Not provided'}
-											</p>
-										)}
+								<span className="text-gray-400 text-xl pb-2">|</span>
+								<div>
+									<Label className="text-sm font-medium text-foreground">
+										Discipline
+									</Label>
+									{isEditing ? (
+										<CustomSelect
+											value={
+												editedProfile?.fieldOfStudy
+													? {
+															value: editedProfile.fieldOfStudy,
+															label: editedProfile.fieldOfStudy,
+														}
+													: null
+											}
+											onChange={(option) =>
+												handleFieldChange('fieldOfStudy', option?.value || '')
+											}
+											placeholder="Choose discipline"
+											options={[
+												{
+													value: 'Computer Science',
+													label: 'Computer Science',
+												},
+												{
+													value: 'Business Administration',
+													label: 'Business Administration',
+												},
+												{
+													value: 'Engineering',
+													label: 'Engineering',
+												},
+												{
+													value: 'Medicine',
+													label: 'Medicine',
+												},
+												{ value: 'Law', label: 'Law' },
+												{ value: 'Arts', label: 'Arts' },
+												{
+													value: 'Sciences',
+													label: 'Sciences',
+												},
+											]}
+											menuPortalTarget={document.body}
+											isClearable={false}
+											className="w-sm"
+										/>
+									) : (
+										<p className="text-sm">
+											{profile?.fieldOfStudy || 'Not provided'}
+										</p>
+									)}
+								</div>
+								<div className="flex items-center gap-2">
+									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
+										GPA
 									</div>
-									<span className="text-gray-400 text-xl pb-2">|</span>
-									<div>
-										<Label className="text-sm font-medium text-foreground">
-											Discipline
-										</Label>
-										{isEditing ? (
-											<CustomSelect
-												value={
-													editedProfile?.fieldOfStudy
-														? {
-																value: editedProfile.fieldOfStudy,
-																label: editedProfile.fieldOfStudy,
-															}
-														: null
-												}
-												onChange={(option) =>
-													handleFieldChange('fieldOfStudy', option?.value || '')
-												}
-												placeholder="Choose discipline"
-												options={[
-													{
-														value: 'Computer Science',
-														label: 'Computer Science',
-													},
-													{
-														value: 'Business Administration',
-														label: 'Business Administration',
-													},
-													{
-														value: 'Engineering',
-														label: 'Engineering',
-													},
-													{
-														value: 'Medicine',
-														label: 'Medicine',
-													},
-													{ value: 'Law', label: 'Law' },
-													{ value: 'Arts', label: 'Arts' },
-													{
-														value: 'Sciences',
-														label: 'Sciences',
-													},
-												]}
-												menuPortalTarget={document.body}
-												isClearable={false}
-												className="w-sm"
-											/>
-										) : (
-											<p className="text-sm">
-												{profile?.fieldOfStudy || 'Not provided'}
-											</p>
-										)}
-									</div>
-									<div className="flex items-center gap-2">
-										<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
-											GPA
-										</div>
-										<span className="text-gray-400 text-xl pb-1">|</span>
-										{isEditing ? (
-											<Input
-												placeholder="Score"
-												value={editedProfile?.gpa || ''}
-												onChange={(e) =>
-													handleFieldChange('gpa', e.target.value)
-												}
-												inputSize="select"
-												fullWidth={false}
-												width="w-32"
-											/>
-										) : (
-											<p className="text-sm font-medium">
-												{profile?.gpa || 'Not provided'}
-											</p>
-										)}
-									</div>
+									<span className="text-gray-400 text-xl pb-1">|</span>
+									{isEditing ? (
+										<Input
+											placeholder="Score"
+											value={editedProfile?.gpa || ''}
+											onChange={(e) => handleFieldChange('gpa', e.target.value)}
+											inputSize="select"
+											fullWidth={false}
+											width="w-32"
+										/>
+									) : (
+										<p className="text-sm font-medium">
+											{profile?.gpa || 'Not provided'}
+										</p>
+									)}
 								</div>
 							</div>
-						)}
+							{/* Additional fields */}
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<Label htmlFor="university">University</Label>
+									{isEditing ? (
+										<Input
+											id="university"
+											value={editedProfile?.university || ''}
+											onChange={(e) =>
+												handleFieldChange('university', e.target.value)
+											}
+											placeholder="e.g., Harvard University"
+											inputSize="select"
+										/>
+									) : (
+										<p className="text-sm">
+											{profile?.university || 'Not provided'}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label htmlFor="countryOfStudy">Country of Study</Label>
+									{isEditing ? (
+										<CustomSelect
+											value={
+												editedProfile?.countryOfStudy
+													? getCountriesWithSvgFlags().find(
+															(c) => c.name === editedProfile.countryOfStudy
+														)
+													: null
+											}
+											onChange={(option) =>
+												handleFieldChange('countryOfStudy', option?.name || '')
+											}
+											placeholder="Select country"
+											options={getCountriesWithSvgFlags()}
+											formatOptionLabel={(option: any) => (
+												<div className="flex items-center space-x-2">
+													<span className="text-lg">{option.flag}</span>
+													<span>{option.name}</span>
+												</div>
+											)}
+											getOptionValue={(option: any) => option.name}
+											menuPortalTarget={document.body}
+											isSearchable
+											isClearable
+											filterOption={(option, inputValue) => {
+												const country = option.data
+												return country.name
+													.toLowerCase()
+													.includes(inputValue.toLowerCase())
+											}}
+										/>
+									) : (
+										<div className="flex items-center space-x-2">
+											{(() => {
+												const countryData = getCountriesWithSvgFlags().find(
+													(c) => c.name === profile?.countryOfStudy
+												)
+												return (
+													<>
+														<span className="text-lg">
+															{countryData?.flag || '🌐'}
+														</span>
+														<span className="text-sm font-medium">
+															{profile?.countryOfStudy || 'Not provided'}
+														</span>
+													</>
+												)
+											})()}
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
 					</div>
 				</CardContent>
 			</Card>

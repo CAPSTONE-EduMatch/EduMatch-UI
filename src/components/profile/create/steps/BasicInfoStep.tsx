@@ -90,14 +90,14 @@ export function BasicInfoStep({
 		fileInputRef.current?.click()
 	}
 
-	// Function to validate and format name input (letters only)
+	// Function to validate and format name input (letters and spaces only)
 	const handleNameInput =
 		(field: 'firstName' | 'lastName') =>
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const value = e.target.value
-			// Remove any non-letter characters (including numbers, symbols, spaces)
-			const lettersOnly = value.replace(/[^a-zA-Z]/g, '')
-			onInputChange(field, lettersOnly)
+			// Remove any non-letter characters except spaces (including numbers, symbols)
+			const lettersAndSpaces = value.replace(/[^a-zA-Z\s]/g, '')
+			onInputChange(field, lettersAndSpaces)
 		}
 
 	return (
@@ -117,7 +117,7 @@ export function BasicInfoStep({
 				<div className="flex items-center gap-4">
 					<div className="relative">
 						<Avatar className="w-20 h-20">
-							<AvatarImage src={formData.profilePhoto || '/profile.svg'} />
+							<AvatarImage src={formData.profilePhoto} />
 							<AvatarFallback className="bg-orange-500 text-white">
 								<User className="w-8 h-8" />
 							</AvatarFallback>
@@ -262,15 +262,18 @@ export function BasicInfoStep({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="phone">Phone Number</Label>
-						<PhoneInput
-							value={formData.phoneNumber}
-							countryCode={formData.countryCode}
-							onValueChange={(value) => onInputChange('phoneNumber', value)}
-							onCountryChange={(countryCode) =>
-								onInputChange('countryCode', countryCode)
-							}
-							placeholder="Enter your phone number"
-						/>
+						<div className="w-full">
+							<PhoneInput
+								value={formData.phoneNumber}
+								countryCode={formData.countryCode}
+								onValueChange={(value) => onInputChange('phoneNumber', value)}
+								onCountryChange={(countryCode) =>
+									onInputChange('countryCode', countryCode)
+								}
+								placeholder="Your phone number"
+								className="w-full"
+							/>
+						</div>
 					</div>
 				</div>
 
@@ -340,6 +343,7 @@ export function BasicInfoStep({
 									.toLowerCase()
 									.includes(inputValue.toLowerCase())
 							}}
+							maxSelectedHeight="120px"
 						/>
 					</div>
 				</div>
@@ -349,14 +353,9 @@ export function BasicInfoStep({
 				<Button variant="outline" onClick={onBack} size="sm">
 					Back
 				</Button>
-				<div className="space-x-2">
-					<Button variant="outline" size="sm">
-						Create later
-					</Button>
-					<Button onClick={onNext} size="sm">
-						Next
-					</Button>
-				</div>
+				<Button onClick={onNext} size="sm">
+					Next
+				</Button>
 			</div>
 
 			{/* Error Modal */}

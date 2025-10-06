@@ -388,9 +388,7 @@ export const InstitutionProfileSection: React.FC<
 							<div className="flex items-center gap-4">
 								<div className="relative">
 									<Avatar className="w-16 h-16">
-										<AvatarImage
-											src={editedProfile?.profilePhoto || '/profile.svg'}
-										/>
+										<AvatarImage src={editedProfile?.profilePhoto} />
 										<AvatarFallback className="bg-blue-500 text-white">
 											<Building2 className="w-8 h-8" />
 										</AvatarFallback>
@@ -500,7 +498,7 @@ export const InstitutionProfileSection: React.FC<
 													}
 													placeholder="0123456789"
 													className="w-full"
-													height="h-8"
+													height="h-9"
 												/>
 											) : (
 												<span className="text-sm font-medium w-full">
@@ -667,7 +665,7 @@ export const InstitutionProfileSection: React.FC<
 													}
 													placeholder="0909090909090"
 													className="w-full"
-													height="h-8"
+													height="h-9"
 												/>
 											) : (
 												<span className="text-sm font-medium w-full">

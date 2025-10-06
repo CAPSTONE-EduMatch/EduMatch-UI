@@ -11,6 +11,7 @@ import {
 	Settings,
 	Edit,
 	ArrowLeft,
+	Building2,
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
@@ -69,8 +70,14 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 										className="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-white"
 									/>
 								) : (
-									<div className="w-16 h-16 rounded-full bg-white/20 mx-auto mb-3 flex items-center justify-center border-2 border-white">
-										<span className="text-xl">👤</span>
+									<div
+										className={`w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-white ${profile?.role === 'institution' ? 'bg-blue-500' : 'bg-orange-500'}`}
+									>
+										{profile?.role === 'institution' ? (
+											<Building2 className="w-8 h-8 text-white" />
+										) : (
+											<User className="w-8 h-8 text-white" />
+										)}
 									</div>
 								)}
 								<h3 className="font-bold text-lg text-white mb-1">

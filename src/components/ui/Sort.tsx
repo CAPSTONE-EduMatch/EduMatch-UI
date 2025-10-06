@@ -33,7 +33,7 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
 		{ value: 'oldest' as SortOption, label: 'Oldest' },
 		{ value: 'match-score' as SortOption, label: 'Match score' },
 		{ value: 'deadline' as SortOption, label: 'Deadline' },
-		{ value: 'default' as SortOption, label: 'Clear sort', separator: true },
+		// { value: 'default' as SortOption, label: 'Clear sort', separator: true },
 	]
 
 	const currentOption = sortOptions.find((option) => option.value === value)

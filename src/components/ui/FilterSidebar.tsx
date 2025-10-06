@@ -393,7 +393,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 											<p className="text-sm text-gray-600 mb-3">
 												{selectedDiscipline} subdisciplines
 											</p>
-											<div className="space-y-2">
+											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
 												{filterConfig.subdisciplines?.[selectedDiscipline]?.map(
 													(subdiscipline) => (
 														<motion.label

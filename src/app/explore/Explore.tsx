@@ -114,7 +114,7 @@ const Explore = () => {
 
 			{/* ---------------------------------------------------Explore----------------------------------------------- */}
 			<motion.div
-				className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-5"
+				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-5"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
@@ -168,7 +168,7 @@ const Explore = () => {
 				</div>
 			</motion.div>
 			{/* ---------------------------------------------------Subscription----------------------------------------------- */}
-			<div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
+			<div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
 				<div className="p-8 bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl px-10">
 					<div className="flex items-center justify-between">
 						<div className="flex-1">

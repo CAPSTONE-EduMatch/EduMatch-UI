@@ -27,12 +27,15 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	const [selectedFilters, setSelectedFilters] = useState<
 		Record<string, string[]>
 	>({
-		discipline: ['Artificial Intelligence', 'Machine Learning'],
+		discipline: [],
 		country: ['America', 'Cambodia'],
 		duration: ['Less than 1 year', 'More than 2 years'],
 		degreeLevel: ['Master'],
 		attendance: ['Online'],
 	})
+
+	const [selectedDiscipline, setSelectedDiscipline] = useState<string>('')
+	const [showSubdisciplines, setShowSubdisciplines] = useState(false)
 
 	const [feeRange, setFeeRange] = useState({ min: 234567, max: 1234567 })
 	const [searchTerms, setSearchTerms] = useState({
@@ -66,10 +69,31 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 		}))
 	}
 
+	const handleDisciplineSelect = (discipline: string) => {
+		setSelectedDiscipline(discipline)
+		setShowSubdisciplines(true)
+	}
+
+	const handleSubdisciplineSelect = (subdiscipline: string) => {
+		setSelectedFilters((prev) => ({
+			...prev,
+			discipline: prev.discipline?.includes(subdiscipline)
+				? prev.discipline.filter((item) => item !== subdiscipline)
+				: [...(prev.discipline || []), subdiscipline],
+		}))
+	}
+
+	const handleBackToDisciplines = () => {
+		setShowSubdisciplines(false)
+		setSelectedDiscipline('')
+	}
+
 	const handleRefresh = () => {
 		setSelectedFilters({})
 		setFeeRange({ min: 234567, max: 1234567 })
 		setSearchTerms({ discipline: '', country: '', researchField: '' })
+		setSelectedDiscipline('')
+		setShowSubdisciplines(false)
 	}
 
 	const toggleSection = (sectionKey: string) => {
@@ -81,6 +105,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 	const getFilterSections = (): {
 		disciplines?: string[]
+		subdisciplines?: Record<string, string[]>
 		countries?: string[]
 		durations?: string[]
 		degreeLevels?: string[]
@@ -96,14 +121,72 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 			case 'programmes':
 				return {
 					disciplines: [
-						'Artificial Intelligence',
-						'Cybersecurity',
-						'DevOps',
-						'Data Engineering',
-						'Machine Learning',
-						'Software Development',
-						'Software Testing',
+						'Engineering',
+						'Computer Science',
+						'Business',
+						'Medicine',
+						'Arts & Humanities',
+						'Natural Sciences',
+						'Social Sciences',
 					],
+					subdisciplines: {
+						Engineering: [
+							'Software Engineering',
+							'Civil Engineering',
+							'Mechanical Engineering',
+							'Electrical Engineering',
+							'Chemical Engineering',
+							'Aerospace Engineering',
+						],
+						'Computer Science': [
+							'Artificial Intelligence',
+							'Machine Learning',
+							'Cybersecurity',
+							'Data Science',
+							'Software Development',
+							'Computer Vision',
+						],
+						Business: [
+							'Business Administration',
+							'Finance',
+							'Marketing',
+							'Management',
+							'Economics',
+							'Entrepreneurship',
+						],
+						Medicine: [
+							'General Medicine',
+							'Nursing',
+							'Pharmacy',
+							'Dentistry',
+							'Public Health',
+							'Medical Research',
+						],
+						'Arts & Humanities': [
+							'Literature',
+							'History',
+							'Philosophy',
+							'Fine Arts',
+							'Music',
+							'Languages',
+						],
+						'Natural Sciences': [
+							'Physics',
+							'Chemistry',
+							'Biology',
+							'Mathematics',
+							'Environmental Science',
+							'Geology',
+						],
+						'Social Sciences': [
+							'Psychology',
+							'Sociology',
+							'Political Science',
+							'Anthropology',
+							'International Relations',
+							'Law',
+						],
+					},
 					countries: [
 						'America',
 						'Angola',
@@ -275,51 +358,88 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									exit={{ opacity: 0, height: 0 }}
 									transition={{ duration: 0.3 }}
 								>
-									<p className="text-sm text-gray-600 mb-3">All disciplines</p>
-
-									<div className="relative mb-3">
-										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-										<input
-											type="text"
-											placeholder="Search in Engineering ....."
-											value={searchTerms.discipline}
-											onChange={(e) =>
-												setSearchTerms((prev) => ({
-													...prev,
-													discipline: e.target.value,
-												}))
-											}
-											className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-										/>
-										<button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#116E63] text-white p-1 rounded">
-											<Search className="w-4 h-4" />
-										</button>
-									</div>
-
-									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
-										{filterConfig.disciplines?.map((discipline) => (
-											<motion.label
-												key={discipline}
-												className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
-												whileHover={{ x: 2 }}
-											>
-												<input
-													type="checkbox"
-													checked={
-														selectedFilters.discipline?.includes(discipline) ||
-														false
-													}
-													onChange={() =>
-														handleFilterChange('discipline', discipline)
-													}
-													className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
-												/>
-												<span className="text-sm text-gray-700">
-													{discipline}
-												</span>
-											</motion.label>
-										))}
-									</div>
+									{!showSubdisciplines ? (
+										// Main disciplines view
+										<div>
+											<p className="text-sm text-gray-600 mb-3">
+												Select a discipline
+											</p>
+											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+												{filterConfig.disciplines?.map((discipline) => (
+													<motion.button
+														key={discipline}
+														onClick={() => handleDisciplineSelect(discipline)}
+														className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:border-[#116E63] hover:bg-[#116E63]/5 transition-colors text-sm"
+														whileHover={{ x: 2 }}
+													>
+														<span className="font-medium text-gray-700">
+															{discipline}
+														</span>
+													</motion.button>
+												))}
+											</div>
+										</div>
+									) : (
+										// Subdisciplines view
+										<div>
+											<div className="flex items-center gap-2 mb-3">
+												<button
+													onClick={handleBackToDisciplines}
+													className="text-[#116E63] hover:text-[#0d5a52] text-sm font-medium"
+												>
+													← Back to disciplines
+												</button>
+											</div>
+											<p className="text-sm text-gray-600 mb-3">
+												{selectedDiscipline} subdisciplines
+											</p>
+											<div className="space-y-2">
+												{filterConfig.subdisciplines?.[selectedDiscipline]?.map(
+													(subdiscipline) => (
+														<motion.label
+															key={subdiscipline}
+															className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
+															whileHover={{ x: 2 }}
+														>
+															<input
+																type="checkbox"
+																checked={
+																	selectedFilters.discipline?.includes(
+																		subdiscipline
+																	) || false
+																}
+																onChange={() =>
+																	handleSubdisciplineSelect(subdiscipline)
+																}
+																className="w-4 h-4 text-[#116E63] focus:ring-teal-500 rounded"
+															/>
+															<span className="text-sm text-gray-700">
+																{subdiscipline}
+															</span>
+														</motion.label>
+													)
+												)}
+											</div>
+											{/* {selectedFilters.discipline &&
+												selectedFilters.discipline.length > 0 && (
+													<div className="mt-3 p-2 bg-[#116E63]/10 rounded-lg">
+														<p className="text-sm text-[#116E63] font-medium mb-1">
+															Selected subdisciplines:
+														</p>
+														<div className="flex flex-wrap gap-1">
+															{selectedFilters.discipline.map((sub) => (
+																<span
+																	key={sub}
+																	className="inline-block px-2 py-1 bg-[#116E63] text-white text-xs rounded-full"
+																>
+																	{sub}
+																</span>
+															))}
+														</div>
+													</div>
+												)} */}
+										</div>
+									)}
 								</motion.div>
 							)}
 						</AnimatePresence>

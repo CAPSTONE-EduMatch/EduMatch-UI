@@ -349,6 +349,33 @@ export async function POST(request: NextRequest) {
 		// Clear cache after creating profile
 		await cacheManager.delete(cacheKey);
 
+		// Send profile created notification
+		try {
+			console.log("🚀 Starting profile created notification...");
+			console.log("📧 User email:", session.user.email);
+			console.log("👤 User ID:", userId);
+			console.log("📋 Profile ID:", newProfile.id);
+
+			const { NotificationUtils } = await import("@/lib/sqs-handlers");
+			console.log("✅ NotificationUtils imported successfully");
+
+			await NotificationUtils.sendProfileCreatedNotification(
+				userId,
+				session.user.email || "",
+				newProfile.id,
+				formData.firstName,
+				formData.lastName,
+				formData.role
+			);
+			console.log("✅ Profile created notification sent successfully!");
+		} catch (notificationError) {
+			console.error(
+				"❌ Error sending profile created notification:",
+				notificationError
+			);
+			// Don't fail the profile creation if notification fails
+		}
+
 		return NextResponse.json({
 			success: true,
 			message: "Profile created successfully",

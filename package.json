@@ -11,7 +11,9 @@
 		"format": "prettier --write .",
 		"prepare": "husky",
 		"prisma:refresh-schema": "prisma db pull && prisma generate",
-		"pre-commit": "next build && lint-staged"
+		"pre-commit": "next build && lint-staged",
+		"deploy:infrastructure": "cdk deploy --app \"npx ts-node --project tsconfig.json infrastructure/app.ts\"",
+		"deploy:infrastructure:diff": "cdk diff --app \"npx ts-node --project tsconfig.json infrastructure/app.ts\""
 	},
 	"lint-staged": {
 		"*.{js,jsx,ts,tsx}": [

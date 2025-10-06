@@ -1,0 +1,609 @@
+{
+	"version": "tree-0.1",
+	"tree": {
+		"id": "App",
+		"path": "",
+		"constructInfo": { "fqn": "aws-cdk-lib.App", "version": "2.219.0" },
+		"children": {
+			"EduMatchNotificationStack": {
+				"id": "EduMatchNotificationStack",
+				"path": "EduMatchNotificationStack",
+				"constructInfo": {
+					"fqn": "aws-cdk-lib.Stack",
+					"version": "2.219.0"
+				},
+				"children": {
+					"NotificationsDLQ": {
+						"id": "NotificationsDLQ",
+						"path": "EduMatchNotificationStack/NotificationsDLQ",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_sqs.Queue",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/NotificationsDLQ/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::SQS::Queue",
+									"aws:cdk:cloudformation:props": {
+										"contentBasedDeduplication": true,
+										"fifoQueue": true,
+										"messageRetentionPeriod": 1209600,
+										"queueName": "edumatch-notifications-dlq.fifo"
+									}
+								}
+							}
+						}
+					},
+					"NotificationsQueue": {
+						"id": "NotificationsQueue",
+						"path": "EduMatchNotificationStack/NotificationsQueue",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_sqs.Queue",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/NotificationsQueue/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::SQS::Queue",
+									"aws:cdk:cloudformation:props": {
+										"contentBasedDeduplication": true,
+										"fifoQueue": true,
+										"messageRetentionPeriod": 1209600,
+										"queueName": "edumatch-notifications.fifo",
+										"redrivePolicy": {
+											"deadLetterTargetArn": {
+												"Fn::GetAtt": [
+													"NotificationsDLQ7EE1DB27",
+													"Arn"
+												]
+											},
+											"maxReceiveCount": 3
+										},
+										"visibilityTimeout": 300
+									}
+								}
+							}
+						}
+					},
+					"EmailsDLQ": {
+						"id": "EmailsDLQ",
+						"path": "EduMatchNotificationStack/EmailsDLQ",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_sqs.Queue",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/EmailsDLQ/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::SQS::Queue",
+									"aws:cdk:cloudformation:props": {
+										"contentBasedDeduplication": true,
+										"fifoQueue": true,
+										"messageRetentionPeriod": 1209600,
+										"queueName": "edumatch-emails-dlq.fifo"
+									}
+								}
+							}
+						}
+					},
+					"EmailsQueue": {
+						"id": "EmailsQueue",
+						"path": "EduMatchNotificationStack/EmailsQueue",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_sqs.Queue",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/EmailsQueue/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::SQS::Queue",
+									"aws:cdk:cloudformation:props": {
+										"contentBasedDeduplication": true,
+										"fifoQueue": true,
+										"messageRetentionPeriod": 1209600,
+										"queueName": "edumatch-emails.fifo",
+										"redrivePolicy": {
+											"deadLetterTargetArn": {
+												"Fn::GetAtt": [
+													"EmailsDLQ1B20FAB8",
+													"Arn"
+												]
+											},
+											"maxReceiveCount": 3
+										},
+										"visibilityTimeout": 300
+									}
+								}
+							}
+						}
+					},
+					"NotificationLambdaRole": {
+						"id": "NotificationLambdaRole",
+						"path": "EduMatchNotificationStack/NotificationLambdaRole",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_iam.Role",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"ImportNotificationLambdaRole": {
+								"id": "ImportNotificationLambdaRole",
+								"path": "EduMatchNotificationStack/NotificationLambdaRole/ImportNotificationLambdaRole",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.Resource",
+									"version": "2.219.0",
+									"metadata": []
+								}
+							},
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/NotificationLambdaRole/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_iam.CfnRole",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::IAM::Role",
+									"aws:cdk:cloudformation:props": {
+										"assumeRolePolicyDocument": {
+											"Statement": [
+												{
+													"Action": "sts:AssumeRole",
+													"Effect": "Allow",
+													"Principal": {
+														"Service": "lambda.amazonaws.com"
+													}
+												}
+											],
+											"Version": "2012-10-17"
+										},
+										"managedPolicyArns": [
+											{
+												"Fn::Join": [
+													"",
+													[
+														"arn:",
+														{
+															"Ref": "AWS::Partition"
+														},
+														":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+													]
+												]
+											}
+										],
+										"policies": [
+											{
+												"policyName": "SQSAndSESPolicy",
+												"policyDocument": {
+													"Statement": [
+														{
+															"Action": [
+																"sqs:ChangeMessageVisibility",
+																"sqs:DeleteMessage",
+																"sqs:GetQueueAttributes",
+																"sqs:ReceiveMessage"
+															],
+															"Effect": "Allow",
+															"Resource": [
+																{
+																	"Fn::GetAtt": [
+																		"EmailsDLQ1B20FAB8",
+																		"Arn"
+																	]
+																},
+																{
+																	"Fn::GetAtt": [
+																		"EmailsQueue3086DFE6",
+																		"Arn"
+																	]
+																},
+																{
+																	"Fn::GetAtt": [
+																		"NotificationsDLQ7EE1DB27",
+																		"Arn"
+																	]
+																},
+																{
+																	"Fn::GetAtt": [
+																		"NotificationsQueue3B766469",
+																		"Arn"
+																	]
+																}
+															]
+														},
+														{
+															"Action": [
+																"ses:SendEmail",
+																"ses:SendRawEmail"
+															],
+															"Effect": "Allow",
+															"Resource": "*"
+														}
+													],
+													"Version": "2012-10-17"
+												}
+											}
+										]
+									}
+								}
+							},
+							"DefaultPolicy": {
+								"id": "DefaultPolicy",
+								"path": "EduMatchNotificationStack/NotificationLambdaRole/DefaultPolicy",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_iam.Policy",
+									"version": "2.219.0",
+									"metadata": []
+								},
+								"children": {
+									"Resource": {
+										"id": "Resource",
+										"path": "EduMatchNotificationStack/NotificationLambdaRole/DefaultPolicy/Resource",
+										"constructInfo": {
+											"fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+											"version": "2.219.0"
+										},
+										"attributes": {
+											"aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+											"aws:cdk:cloudformation:props": {
+												"policyDocument": {
+													"Statement": [
+														{
+															"Action": [
+																"sqs:ChangeMessageVisibility",
+																"sqs:DeleteMessage",
+																"sqs:GetQueueAttributes",
+																"sqs:GetQueueUrl",
+																"sqs:ReceiveMessage"
+															],
+															"Effect": "Allow",
+															"Resource": [
+																{
+																	"Fn::GetAtt": [
+																		"EmailsQueue3086DFE6",
+																		"Arn"
+																	]
+																},
+																{
+																	"Fn::GetAtt": [
+																		"NotificationsQueue3B766469",
+																		"Arn"
+																	]
+																}
+															]
+														}
+													],
+													"Version": "2012-10-17"
+												},
+												"policyName": "NotificationLambdaRoleDefaultPolicy07D18877",
+												"roles": [
+													{
+														"Ref": "NotificationLambdaRole8517A721"
+													}
+												]
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"NotificationProcessorLogGroup": {
+						"id": "NotificationProcessorLogGroup",
+						"path": "EduMatchNotificationStack/NotificationProcessorLogGroup",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_logs.LogGroup",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/NotificationProcessorLogGroup/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_logs.CfnLogGroup",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::Logs::LogGroup",
+									"aws:cdk:cloudformation:props": {
+										"retentionInDays": 7
+									}
+								}
+							}
+						}
+					},
+					"NotificationProcessor": {
+						"id": "NotificationProcessor",
+						"path": "EduMatchNotificationStack/NotificationProcessor",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_lambda.Function",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/NotificationProcessor/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::Lambda::Function",
+									"aws:cdk:cloudformation:props": {
+										"code": {
+											"zipFile": "\nconst { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');\n\nconst sqsClient = new SQSClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  console.log('Processing notification messages:', JSON.stringify(event, null, 2));\n  \n  for (const record of event.Records) {\n    try {\n      const message = JSON.parse(record.body);\n      console.log('Processing notification:', message.type, 'for user:', message.userId);\n      \n      // Forward message to email queue\n      \n      const emailCommand = new SendMessageCommand({\n        QueueUrl: process.env.EMAILS_QUEUE_URL,\n        MessageBody: JSON.stringify(message),\n        MessageAttributes: {\n          Type: {\n            DataType: 'String',\n            StringValue: message.type,\n          },\n          UserEmail: {\n            DataType: 'String',\n            StringValue: message.userEmail,\n          },\n        },\n        MessageGroupId: message.userEmail,\n        MessageDeduplicationId: message.id,\n      });\n      \n      await sqsClient.send(emailCommand);\n      console.log('Message forwarded to email queue:', message.type, 'for:', message.userEmail);\n      \n    } catch (error) {\n      console.error('Error processing notification:', error);\n      throw error; // This will trigger retry\n    }\n  }\n};\n      "
+										},
+										"environment": {
+											"variables": {
+												"NOTIFICATIONS_QUEUE_URL": {
+													"Ref": "NotificationsQueue3B766469"
+												},
+												"EMAILS_QUEUE_URL": {
+													"Ref": "EmailsQueue3086DFE6"
+												}
+											}
+										},
+										"handler": "index.handler",
+										"loggingConfig": {
+											"logGroup": {
+												"Ref": "NotificationProcessorLogGroup84C9CB83"
+											}
+										},
+										"memorySize": 256,
+										"role": {
+											"Fn::GetAtt": [
+												"NotificationLambdaRole8517A721",
+												"Arn"
+											]
+										},
+										"runtime": "nodejs18.x",
+										"timeout": 300
+									}
+								}
+							},
+							"SqsEventSource:EduMatchNotificationStackNotificationsQueueD5B21BB6": {
+								"id": "SqsEventSource:EduMatchNotificationStackNotificationsQueueD5B21BB6",
+								"path": "EduMatchNotificationStack/NotificationProcessor/SqsEventSource:EduMatchNotificationStackNotificationsQueueD5B21BB6",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_lambda.EventSourceMapping",
+									"version": "2.219.0",
+									"metadata": []
+								},
+								"children": {
+									"Resource": {
+										"id": "Resource",
+										"path": "EduMatchNotificationStack/NotificationProcessor/SqsEventSource:EduMatchNotificationStackNotificationsQueueD5B21BB6/Resource",
+										"constructInfo": {
+											"fqn": "aws-cdk-lib.aws_lambda.CfnEventSourceMapping",
+											"version": "2.219.0"
+										},
+										"attributes": {
+											"aws:cdk:cloudformation:type": "AWS::Lambda::EventSourceMapping",
+											"aws:cdk:cloudformation:props": {
+												"batchSize": 10,
+												"eventSourceArn": {
+													"Fn::GetAtt": [
+														"NotificationsQueue3B766469",
+														"Arn"
+													]
+												},
+												"functionName": {
+													"Ref": "NotificationProcessorE91924AA"
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"EmailProcessorLogGroup": {
+						"id": "EmailProcessorLogGroup",
+						"path": "EduMatchNotificationStack/EmailProcessorLogGroup",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_logs.LogGroup",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/EmailProcessorLogGroup/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_logs.CfnLogGroup",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::Logs::LogGroup",
+									"aws:cdk:cloudformation:props": {
+										"retentionInDays": 7
+									}
+								}
+							}
+						}
+					},
+					"EmailProcessor": {
+						"id": "EmailProcessor",
+						"path": "EduMatchNotificationStack/EmailProcessor",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.aws_lambda.Function",
+							"version": "2.219.0",
+							"metadata": []
+						},
+						"children": {
+							"Resource": {
+								"id": "Resource",
+								"path": "EduMatchNotificationStack/EmailProcessor/Resource",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
+									"version": "2.219.0"
+								},
+								"attributes": {
+									"aws:cdk:cloudformation:type": "AWS::Lambda::Function",
+									"aws:cdk:cloudformation:props": {
+										"code": {
+											"zipFile": "\nconst { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } = require('@aws-sdk/client-sqs');\nconst https = require('https');\n\nconst sqsClient = new SQSClient({ region: 'ap-northeast-1' });\n\n// Email templates (simplified versions)\nconst emailTemplates = {\n  WELCOME: (metadata) => ({\n    subject: `Welcome to EduMatch, ${metadata.firstName}!`,\n    html: `\n      <h1>Welcome to EduMatch!</h1>\n      <p>Hello ${metadata.firstName} ${metadata.lastName},</p>\n      <p>Welcome to EduMatch! We're thrilled to have you join our community.</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  }),\n  PROFILE_CREATED: (metadata) => ({\n    subject: 'Profile Created Successfully - Welcome to EduMatch!',\n    html: `\n      <h1>Profile Created Successfully!</h1>\n      <p>Congratulations, ${metadata.firstName}!</p>\n      <p>Your ${metadata.role} profile has been successfully created.</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  }),\n  PAYMENT_DEADLINE: (metadata) => ({\n    subject: `Payment Deadline Reminder - ${metadata.planName} Subscription`,\n    html: `\n      <h1>Payment Deadline Reminder</h1>\n      <p>Your ${metadata.planName} subscription payment is due soon.</p>\n      <p>Amount: ${metadata.currency} ${metadata.amount}</p>\n      <p>Deadline: ${new Date(metadata.deadlineDate).toLocaleDateString()}</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  }),\n  APPLICATION_STATUS_UPDATE: (metadata) => ({\n    subject: `Application Status Update - ${metadata.programName}`,\n    html: `\n      <h1>Application Status Update</h1>\n      <p>Your application to ${metadata.programName} at ${metadata.institutionName} has been updated.</p>\n      <p>New Status: ${metadata.newStatus}</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  }),\n  PAYMENT_SUCCESS: (metadata) => ({\n    subject: `Payment Successful - ${metadata.planName} Subscription`,\n    html: `\n      <h1>Payment Successful!</h1>\n      <p>Thank you for your payment.</p>\n      <p>Plan: ${metadata.planName}</p>\n      <p>Amount: ${metadata.currency} ${metadata.amount}</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  }),\n  PAYMENT_FAILED: (metadata) => ({\n    subject: `Payment Failed - ${metadata.planName} Subscription`,\n    html: `\n      <h1>Payment Failed</h1>\n      <p>We were unable to process your payment for ${metadata.planName}.</p>\n      <p>Reason: ${metadata.failureReason}</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  }),\n  SUBSCRIPTION_EXPIRING: (metadata) => ({\n    subject: `Subscription Expiring Soon - ${metadata.planName}`,\n    html: `\n      <h1>Subscription Expiring Soon</h1>\n      <p>Your ${metadata.planName} subscription will expire in ${metadata.daysRemaining} days.</p>\n      <p>Expiry Date: ${new Date(metadata.expiryDate).toLocaleDateString()}</p>\n      <p>Best regards,<br>The EduMatch Team</p>\n    `\n  })\n};\n\nexports.handler = async (event) => {\n  console.log('Processing email messages:', JSON.stringify(event, null, 2));\n  \n  for (const record of event.Records) {\n    try {\n      const message = JSON.parse(record.body);\n      console.log('Processing email:', message.type, 'for:', message.userEmail);\n      \n      // Get email template\n      const template = emailTemplates[message.type];\n      if (!template) {\n        console.error('Unknown email type:', message.type);\n        continue;\n      }\n      \n      const emailContent = template(message.metadata);\n      \n      // Send email by calling your Next.js app's email API\n      const emailPayload = {\n        to: message.userEmail,\n        subject: emailContent.subject,\n        html: emailContent.html,\n        from: 'edumatch.noreply@gmail.com'\n      };\n      \n      // Call your Next.js app's email API endpoint\n      // Try localhost first (for development), then fallback to deployed URL\n      let baseUrl = 'http://localhost:3000';\n      try {\n        // Try localhost first\n        const localhostResponse = await fetch('http://localhost:3000/api/send-email', {\n          method: 'POST',\n          headers: {\n            'Content-Type': 'application/json',\n          },\n          body: JSON.stringify(emailPayload),\n          signal: AbortSignal.timeout(2000) // 2 second timeout\n        });\n        \n        if (localhostResponse.ok) {\n          const result = await localhostResponse.json();\n          console.log('Email sent successfully via localhost:', {\n            to: message.userEmail,\n            subject: emailContent.subject,\n            type: message.type,\n            messageId: result.messageId,\n            timestamp: new Date().toISOString()\n          });\n          continue; // Skip to next message\n        }\n      } catch (localhostError) {\n        console.log('Localhost not available, trying deployed URL...');\n      }\n      \n      // Fallback to deployed URL\n      baseUrl = 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';\n      const response = await fetch('https://dev.d1jaxpbx3axxsh.amplifyapp.com/api/send-email', {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n        },\n        body: JSON.stringify(emailPayload)\n      });\n      \n      if (response.ok) {\n        const result = await response.json();\n        console.log('Email sent successfully via deployed URL:', {\n          to: message.userEmail,\n          subject: emailContent.subject,\n          type: message.type,\n          messageId: result.messageId,\n          timestamp: new Date().toISOString()\n        });\n      } else {\n        const errorData = await response.json();\n        console.error('Failed to send email via deployed URL:', response.status, errorData);\n        throw new Error(`Email sending failed: ${response.status} - ${errorData.error}`);\n      }\n      \n    } catch (error) {\n      console.error('Error processing email:', error);\n      throw error; // This will trigger retry\n    }\n  }\n};\n      "
+										},
+										"handler": "index.handler",
+										"loggingConfig": {
+											"logGroup": {
+												"Ref": "EmailProcessorLogGroup8A79A2C8"
+											}
+										},
+										"memorySize": 256,
+										"role": {
+											"Fn::GetAtt": [
+												"NotificationLambdaRole8517A721",
+												"Arn"
+											]
+										},
+										"runtime": "nodejs18.x",
+										"timeout": 300
+									}
+								}
+							},
+							"SqsEventSource:EduMatchNotificationStackEmailsQueueA17FD60A": {
+								"id": "SqsEventSource:EduMatchNotificationStackEmailsQueueA17FD60A",
+								"path": "EduMatchNotificationStack/EmailProcessor/SqsEventSource:EduMatchNotificationStackEmailsQueueA17FD60A",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.aws_lambda.EventSourceMapping",
+									"version": "2.219.0",
+									"metadata": []
+								},
+								"children": {
+									"Resource": {
+										"id": "Resource",
+										"path": "EduMatchNotificationStack/EmailProcessor/SqsEventSource:EduMatchNotificationStackEmailsQueueA17FD60A/Resource",
+										"constructInfo": {
+											"fqn": "aws-cdk-lib.aws_lambda.CfnEventSourceMapping",
+											"version": "2.219.0"
+										},
+										"attributes": {
+											"aws:cdk:cloudformation:type": "AWS::Lambda::EventSourceMapping",
+											"aws:cdk:cloudformation:props": {
+												"batchSize": 10,
+												"eventSourceArn": {
+													"Fn::GetAtt": [
+														"EmailsQueue3086DFE6",
+														"Arn"
+													]
+												},
+												"functionName": {
+													"Ref": "EmailProcessor218EC076"
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"NotificationsQueueUrl": {
+						"id": "NotificationsQueueUrl",
+						"path": "EduMatchNotificationStack/NotificationsQueueUrl",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.CfnOutput",
+							"version": "2.219.0"
+						}
+					},
+					"EmailsQueueUrl": {
+						"id": "EmailsQueueUrl",
+						"path": "EduMatchNotificationStack/EmailsQueueUrl",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.CfnOutput",
+							"version": "2.219.0"
+						}
+					},
+					"NotificationProcessorArn": {
+						"id": "NotificationProcessorArn",
+						"path": "EduMatchNotificationStack/NotificationProcessorArn",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.CfnOutput",
+							"version": "2.219.0"
+						}
+					},
+					"EmailProcessorArn": {
+						"id": "EmailProcessorArn",
+						"path": "EduMatchNotificationStack/EmailProcessorArn",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.CfnOutput",
+							"version": "2.219.0"
+						}
+					},
+					"CDKMetadata": {
+						"id": "CDKMetadata",
+						"path": "EduMatchNotificationStack/CDKMetadata",
+						"constructInfo": {
+							"fqn": "constructs.Construct",
+							"version": "10.4.2"
+						},
+						"children": {
+							"Default": {
+								"id": "Default",
+								"path": "EduMatchNotificationStack/CDKMetadata/Default",
+								"constructInfo": {
+									"fqn": "aws-cdk-lib.CfnResource",
+									"version": "2.219.0"
+								}
+							}
+						}
+					},
+					"BootstrapVersion": {
+						"id": "BootstrapVersion",
+						"path": "EduMatchNotificationStack/BootstrapVersion",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.CfnParameter",
+							"version": "2.219.0"
+						}
+					},
+					"CheckBootstrapVersion": {
+						"id": "CheckBootstrapVersion",
+						"path": "EduMatchNotificationStack/CheckBootstrapVersion",
+						"constructInfo": {
+							"fqn": "aws-cdk-lib.CfnRule",
+							"version": "2.219.0"
+						}
+					}
+				}
+			},
+			"Tree": {
+				"id": "Tree",
+				"path": "Tree",
+				"constructInfo": {
+					"fqn": "constructs.Construct",
+					"version": "10.4.2"
+				}
+			}
+		}
+	}
+}

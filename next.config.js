@@ -22,10 +22,10 @@ const nextConfig = {
 	},
 	webpack: (config, { isServer }) => {
 		// Exclude CDK infrastructure files from build
-		config.module.rules.push({
-			test: /infrastructure\/.*/,
-			use: "ignore-loader",
-		});
+		config.resolve.alias = {
+			...config.resolve.alias,
+			infrastructure: false,
+		};
 
 		// Exclude Prisma and other server-only packages from client bundles
 		if (!isServer) {

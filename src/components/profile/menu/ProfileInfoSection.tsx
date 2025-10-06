@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { CustomSelect } from '@/components/ui/custom-select'
 import { DateInput } from '@/components/ui/DateInput'
-import { Upload, User } from 'lucide-react'
+import { Upload, User, Building2, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/lib/date-utils'
 import SuccessModal from '@/components/ui/SuccessModal'
@@ -223,13 +223,45 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 	return (
 		<div className="space-y-6">
-			<div className="">
-				<h2 className="text-2xl font-bold text-primary mb-2">
-					Basic Information
-				</h2>
-				<p className="text-muted-foreground">
-					Manage your personal information and preferences
-				</p>
+			<div className="flex justify-between items-center">
+				<div>
+					<h2 className="text-2xl font-bold mb-2">Basic Information</h2>
+					<p className="text-muted-foreground">
+						Manage your personal information and preferences
+					</p>
+				</div>
+				{!isEditing ? (
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setIsEditing(true)}
+						className="flex items-center gap-2"
+					>
+						<Edit3 className="h-4 w-4" />
+						Edit
+					</Button>
+				) : (
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={handleCancel}
+							className="flex items-center gap-2"
+						>
+							<X className="h-4 w-4" />
+							Cancel
+						</Button>
+						<Button
+							size="sm"
+							onClick={handleSave}
+							disabled={isSaving}
+							className="flex items-center gap-2"
+						>
+							<Save className="h-4 w-4" />
+							{isSaving ? 'Saving...' : 'Save'}
+						</Button>
+					</div>
+				)}
 			</div>
 
 			{/* Single White Box Container */}
@@ -240,11 +272,19 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						<div className="flex items-center gap-4">
 							<div className="relative">
 								<Avatar className="w-20 h-20">
-									<AvatarImage
-										src={editedProfile?.profilePhoto || '/profile.svg'}
-									/>
-									<AvatarFallback className="bg-orange-500 text-white">
-										<User className="w-8 h-8" />
+									<AvatarImage src={editedProfile?.profilePhoto} />
+									<AvatarFallback
+										className={
+											isInstitution
+												? 'bg-blue-500 text-white'
+												: 'bg-orange-500 text-white'
+										}
+									>
+										{isInstitution ? (
+											<Building2 className="w-8 h-8" />
+										) : (
+											<User className="w-8 h-8" />
+										)}
 									</AvatarFallback>
 								</Avatar>
 								{isEditing && (
@@ -257,7 +297,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								)}
 							</div>
 							<div className="flex flex-col space-y-2">
-								{isEditing ? (
+								{isEditing && (
 									<Button
 										variant="outline"
 										size="sm"
@@ -266,18 +306,12 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 									>
 										{isUploading ? 'Uploading...' : 'Upload your photo'}
 									</Button>
-								) : (
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setIsEditing(true)}
-									>
-										Change photo
-									</Button>
 								)}
-								<p className="text-xs text-muted-foreground">
-									Must be PNG or JPG file (max 5MB)
-								</p>
+								{isEditing && (
+									<p className="text-xs text-muted-foreground">
+										Must be PNG or JPG file (max 5MB)
+									</p>
+								)}
 							</div>
 							{/* Hidden file input */}
 							<input
@@ -643,23 +677,6 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 										</div>
 									)}
 								</div>
-							</div>
-						</div>
-
-						<div className="flex justify-between">
-							<Button variant="outline" onClick={handleCancel} size="sm">
-								Cancel
-							</Button>
-							<div className="space-x-2">
-								{!isEditing ? (
-									<Button onClick={() => setIsEditing(true)} size="sm">
-										Edit Profile
-									</Button>
-								) : (
-									<Button onClick={handleSave} size="sm" disabled={isSaving}>
-										{isSaving ? 'Saving...' : 'Save Changes'}
-									</Button>
-								)}
 							</div>
 						</div>
 					</div>

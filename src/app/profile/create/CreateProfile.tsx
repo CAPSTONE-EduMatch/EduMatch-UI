@@ -403,6 +403,7 @@ export default function CreateProfile() {
 											onBack={handleBack}
 											onNext={handleNext}
 											onShowManageModal={handleOpenModal}
+											user={user}
 										/>
 									)}
 								</div>

@@ -189,6 +189,27 @@ export async function POST(request: NextRequest) {
 		const userId = session.user.id;
 		const cacheKey = `profile:${userId}`;
 
+		// Clean up empty language certificates and research papers
+		const cleanedLanguages =
+			formData.languages?.filter(
+				(lang: any) =>
+					lang.language &&
+					lang.language.trim() !== "" &&
+					lang.certificate &&
+					lang.certificate.trim() !== "" &&
+					lang.score &&
+					lang.score.trim() !== ""
+			) || [];
+
+		const cleanedResearchPapers =
+			formData.researchPapers?.filter(
+				(paper: any) =>
+					paper.title &&
+					paper.title.trim() !== "" &&
+					paper.discipline &&
+					paper.discipline.trim() !== ""
+			) || [];
+
 		// Check if user exists in database, create if not
 		let user = await prismaClient.user.findUnique({
 			where: { id: userId },
@@ -260,37 +281,59 @@ export async function POST(request: NextRequest) {
 				scoreType: formData.scoreType,
 				scoreValue: formData.scoreValue,
 				hasForeignLanguage: formData.hasForeignLanguage,
-				// Create language records if provided
-				languages: formData.languages
-					? {
-							create: formData.languages.map((lang: any) => ({
-								language: lang.language,
-								certificate: lang.certificate,
-								score: lang.score,
-							})),
-						}
-					: undefined,
-				// Create research paper records if provided
-				researchPapers: formData.researchPapers
-					? {
-							create: formData.researchPapers.map(
-								(paper: any) => ({
-									title: paper.title,
-									discipline: paper.discipline,
-									files: paper.files
-										? {
-												create: paper.files.map(
-													(file: any) => ({
-														fileId: file.id,
-														category: "research",
-													})
-												),
-											}
-										: undefined,
-								})
-							),
-						}
-					: undefined,
+				// Institution fields
+				institutionName: formData.institutionName,
+				institutionAbbreviation: formData.institutionAbbreviation,
+				institutionHotline: formData.institutionHotline,
+				institutionHotlineCode: formData.institutionHotlineCode,
+				institutionType: formData.institutionType,
+				institutionWebsite: formData.institutionWebsite,
+				institutionEmail: formData.institutionEmail,
+				institutionCountry: formData.institutionCountry,
+				institutionAddress: formData.institutionAddress,
+				representativeName: formData.representativeName,
+				representativeAppellation: formData.representativeAppellation,
+				representativePosition: formData.representativePosition,
+				representativeEmail: formData.representativeEmail,
+				representativePhone: formData.representativePhone,
+				representativePhoneCode: formData.representativePhoneCode,
+				aboutInstitution: formData.aboutInstitution,
+				institutionDisciplines: formData.institutionDisciplines || [],
+				institutionCoverImage: formData.institutionCoverImage,
+				// Create language records if provided and not empty
+				languages:
+					cleanedLanguages.length > 0
+						? {
+								create: cleanedLanguages.map((lang: any) => ({
+									language: lang.language,
+									certificate: lang.certificate,
+									score: lang.score,
+								})),
+							}
+						: undefined,
+				// Create research paper records if provided and not empty
+				researchPapers:
+					cleanedResearchPapers.length > 0
+						? {
+								create: cleanedResearchPapers.map(
+									(paper: any) => ({
+										title: paper.title,
+										discipline: paper.discipline,
+										files: paper.files
+											? {
+													create: paper.files.map(
+														(file: any) => ({
+															fileId: file.id,
+															category:
+																"research",
+														})
+													),
+												}
+											: undefined,
+									})
+								),
+							}
+						: undefined,
 				// Create uploaded file records if provided
 				uploadedFiles: formData.uploadedFiles
 					? {
@@ -337,6 +380,27 @@ export async function PUT(request: NextRequest) {
 		const userId = session.user.id;
 		const formData = await request.json();
 		const cacheKey = `profile:${userId}`;
+
+		// Clean up empty language certificates and research papers
+		const cleanedLanguages =
+			formData.languages?.filter(
+				(lang: any) =>
+					lang.language &&
+					lang.language.trim() !== "" &&
+					lang.certificate &&
+					lang.certificate.trim() !== "" &&
+					lang.score &&
+					lang.score.trim() !== ""
+			) || [];
+
+		const cleanedResearchPapers =
+			formData.researchPapers?.filter(
+				(paper: any) =>
+					paper.title &&
+					paper.title.trim() !== "" &&
+					paper.discipline &&
+					paper.discipline.trim() !== ""
+			) || [];
 
 		// Update the profile in the database with all fields
 		const updatedProfile = await prismaClient.profile.update({
@@ -403,16 +467,8 @@ export async function PUT(request: NextRequest) {
 				where: { profileId: updatedProfile.id },
 			});
 
-			// Filter out empty language entries and create new languages if any
-			const validLanguages = formData.languages.filter(
-				(lang: any) =>
-					lang.language &&
-					lang.language.trim() !== "" &&
-					lang.certificate &&
-					lang.certificate.trim() !== "" &&
-					lang.score &&
-					lang.score.trim() !== ""
-			);
+			// Use cleaned languages (already filtered)
+			const validLanguages = cleanedLanguages;
 
 			if (validLanguages.length > 0) {
 				await prismaClient.language.createMany({
@@ -444,14 +500,8 @@ export async function PUT(request: NextRequest) {
 				where: { profileId: updatedProfile.id },
 			});
 
-			// Filter out empty research papers and create new ones if any
-			const validResearchPapers = formData.researchPapers.filter(
-				(paper: any) =>
-					paper.title &&
-					paper.title.trim() !== "" &&
-					paper.discipline &&
-					paper.discipline.trim() !== ""
-			);
+			// Use cleaned research papers (already filtered)
+			const validResearchPapers = cleanedResearchPapers;
 
 			if (validResearchPapers.length > 0) {
 				for (const paper of validResearchPapers) {

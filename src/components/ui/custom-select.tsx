@@ -16,9 +16,13 @@ interface CustomSelectProps {
 	className?: string
 	styles?: any
 	variant?: 'default' | 'green' | 'outline'
+	maxSelectedHeight?: string
 }
 
-const getVariantStyles = (variant: 'default' | 'green' | 'outline') => {
+const getVariantStyles = (
+	variant: 'default' | 'green' | 'outline',
+	maxSelectedHeight?: string
+) => {
 	const baseStyles = {
 		control: (provided: any, state: any) => ({
 			...provided,
@@ -35,6 +39,26 @@ const getVariantStyles = (variant: 'default' | 'green' | 'outline') => {
 					? 'flex-start'
 					: 'center',
 			flexWrap: 'wrap',
+			position: 'relative',
+			overflow: 'hidden',
+			'&::-webkit-scrollbar': {
+				width: '6px',
+				position: 'absolute',
+				right: '0',
+				top: '0',
+				bottom: '0',
+			},
+			'&::-webkit-scrollbar-track': {
+				background: '#f1f5f9',
+				borderRadius: '3px',
+			},
+			'&::-webkit-scrollbar-thumb': {
+				background: '#cbd5e1',
+				borderRadius: '3px',
+				'&:hover': {
+					background: '#94a3b8',
+				},
+			},
 		}),
 		placeholder: (provided: any) => ({
 			...provided,
@@ -98,11 +122,42 @@ const getVariantStyles = (variant: 'default' | 'green' | 'outline') => {
 			flexWrap: 'wrap',
 			gap: '4px',
 			padding: '0',
+			...(maxSelectedHeight && {
+				maxHeight: maxSelectedHeight,
+			}),
+			overflowY: 'auto',
+			overflowX: 'hidden',
+			scrollbarWidth: 'thin',
+			scrollbarColor: '#cbd5e1 #f1f5f9',
+			// Remove padding to allow scrollbar to reach the edge
+			paddingRight: '0',
+			// Ensure content doesn't overlap with scrollbar
+			marginRight: '6px',
 		}),
 		input: (provided: any) => ({
 			...provided,
 			margin: '0',
 			padding: '0',
+		}),
+		indicatorsContainer: (provided: any) => ({
+			...provided,
+			display: 'flex',
+			alignItems: 'center',
+			gap: '4px',
+		}),
+		clearIndicator: (provided: any) => ({
+			...provided,
+			color: '#6b7280',
+			'&:hover': {
+				color: '#374151',
+			},
+		}),
+		dropdownIndicator: (provided: any) => ({
+			...provided,
+			color: '#6b7280',
+			'&:hover': {
+				color: '#374151',
+			},
 		}),
 	}
 
@@ -200,6 +255,7 @@ export function CustomSelect({
 	className = '',
 	styles,
 	variant = 'default',
+	maxSelectedHeight,
 }: CustomSelectProps) {
 	return (
 		<Select
@@ -207,7 +263,7 @@ export function CustomSelect({
 			onChange={onChange}
 			placeholder={placeholder}
 			options={options}
-			styles={styles || getVariantStyles(variant)}
+			styles={styles || getVariantStyles(variant, maxSelectedHeight)}
 			isMulti={isMulti}
 			isClearable={isClearable}
 			isSearchable={isSearchable}

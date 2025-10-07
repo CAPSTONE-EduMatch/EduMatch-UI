@@ -384,17 +384,27 @@ const Signup = () => {
 		}
 		setIsOTPLoading(true)
 		try {
-			const { error: signUpError } = await authClient.signUp.email({
-				email,
-				password,
-				name: email.split('@')[0], // Use email username as temporary name
-			})
+			// Check if user already exists and is verified (edge case)
+			const response = await axios.get(
+				`/api/user?email=${encodeURIComponent(email)}`
+			)
 
-			if (signUpError) {
-				setOTPError(
-					`Account creation failed: ${signUpError?.message || 'Unknown error'}`
-				)
-				return
+			if (!response.data.exists) {
+				setErrors({
+					email:
+						'An account with this email already exists. Please sign in instead.',
+				})
+				const { error: signUpError } = await authClient.signUp.email({
+					email,
+					password,
+					name: email.split('@')[0], // Use email username as temporary name
+				})
+				if (signUpError) {
+					setOTPError(
+						`Account creation failed: ${signUpError?.message || 'Unknown error'}`
+					)
+					return
+				}
 			}
 
 			// First verify the OTP

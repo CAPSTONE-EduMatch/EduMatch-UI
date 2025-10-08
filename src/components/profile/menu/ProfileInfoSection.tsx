@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -14,14 +14,18 @@ import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/lib/date-utils'
 import SuccessModal from '@/components/ui/SuccessModal'
 import ErrorModal from '@/components/ui/ErrorModal'
+import { SimpleWarningModal } from '@/components/ui/WarningModal'
+import { useSimpleWarning } from '@/hooks/useSimpleWarning'
 import { InstitutionProfileSection } from './InstitutionProfileSection'
 
 interface ProfileInfoSectionProps {
 	profile: any
+	onNavigationAttempt?: (targetSection: string) => boolean
 }
 
 export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	profile,
+	onNavigationAttempt,
 }) => {
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
@@ -31,6 +35,32 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	// Track if there are unsaved changes
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+	// Initialize edited profile when profile changes
+	useEffect(() => {
+		console.log('ProfileInfoSection - Profile received:', profile)
+		console.log('ProfileInfoSection - Interests:', profile?.interests)
+		console.log(
+			'ProfileInfoSection - Favorite countries:',
+			profile?.favoriteCountries
+		)
+		setEditedProfile(profile)
+		setHasUnsavedChanges(false)
+	}, [profile])
+
+	// Track changes to detect unsaved modifications
+	useEffect(() => {
+		if (isEditing && editedProfile) {
+			const hasChanges =
+				JSON.stringify(editedProfile) !== JSON.stringify(profile)
+			setHasUnsavedChanges(hasChanges)
+		} else {
+			setHasUnsavedChanges(false)
+		}
+	}, [editedProfile, profile, isEditing])
 
 	const handleSave = async () => {
 		setIsSaving(true)
@@ -61,6 +91,16 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				representativePosition: editedProfile?.representativePosition || '',
 			}
 
+			console.log('ProfileInfoSection - Sending profile data:', profileData)
+			console.log(
+				'ProfileInfoSection - Interests being sent:',
+				profileData.interests
+			)
+			console.log(
+				'ProfileInfoSection - Favorite countries being sent:',
+				profileData.favoriteCountries
+			)
+
 			// Call the update profile API
 			await ApiService.updateProfile(profileData)
 
@@ -72,6 +112,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 			// Exit editing mode
 			setIsEditing(false)
+			setHasUnsavedChanges(false)
 		} catch (error: any) {
 			setErrorMessage(
 				error.response?.data?.error ||
@@ -86,7 +127,37 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	const handleCancel = () => {
 		setEditedProfile(profile)
 		setIsEditing(false)
+		setHasUnsavedChanges(false)
 	}
+
+	// Simple warning system
+	const {
+		showWarningModal,
+		handleNavigationAttempt,
+		handleSaveAndContinue,
+		handleDiscardChanges,
+		handleCancelNavigation,
+		isSaving: isWarningSaving,
+	} = useSimpleWarning({
+		hasUnsavedChanges,
+		onSave: handleSave,
+		onCancel: handleCancel,
+	})
+
+	// Expose navigation handler to parent
+	useEffect(() => {
+		// Always expose the handler regardless of onNavigationAttempt prop
+		// Use 'profile' as the key to match the section ID
+		;(window as any).profileNavigationHandler = handleNavigationAttempt
+		console.log(
+			'ProfileInfoSection - Navigation handler exposed:',
+			handleNavigationAttempt
+		)
+		console.log('ProfileInfoSection - Has unsaved changes:', hasUnsavedChanges)
+		return () => {
+			delete (window as any).profileNavigationHandler
+		}
+	}, [handleNavigationAttempt, hasUnsavedChanges])
 
 	const handleFieldChange = (field: string, value: string) => {
 		// Validation for name fields - no numbers allowed
@@ -573,24 +644,35 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 										/>
 									) : (
 										<div className="px-3 py-2 bg-gray-50 rounded-md">
-											{profile?.interests && profile.interests.length > 0 ? (
-												<div className="flex flex-wrap gap-2">
-													{profile.interests.map(
-														(interest: string, index: number) => (
-															<span
-																key={index}
-																className="bg-primary/10 text-primary px-2 py-1 rounded text-xs"
-															>
-																{interest}
-															</span>
-														)
-													)}
-												</div>
-											) : (
-												<p className="text-sm text-gray-500">
-													No interests specified
-												</p>
-											)}
+											{(() => {
+												console.log(
+													'Displaying interests:',
+													profile?.interests,
+													'Type:',
+													typeof profile?.interests,
+													'Length:',
+													profile?.interests?.length
+												)
+												return profile?.interests &&
+													profile.interests.length > 0 ? (
+													<div className="flex flex-wrap gap-2">
+														{profile.interests.map(
+															(interest: string, index: number) => (
+																<span
+																	key={index}
+																	className="bg-primary/10 text-primary px-2 py-1 rounded text-xs"
+																>
+																	{interest}
+																</span>
+															)
+														)}
+													</div>
+												) : (
+													<p className="text-sm text-gray-500">
+														No interests specified
+													</p>
+												)
+											})()}
 										</div>
 									)}
 								</div>
@@ -644,36 +726,46 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 										/>
 									) : (
 										<div className="px-3 py-2 bg-gray-50 rounded-md">
-											{profile?.favoriteCountries &&
-											profile.favoriteCountries.length > 0 ? (
-												<div className="flex flex-wrap gap-2">
-													{profile.favoriteCountries.map(
-														(country: string, index: number) => {
-															const countryData =
-																getCountriesWithSvgFlags().find(
-																	(c) =>
-																		c.name.toLowerCase() ===
-																		country.toLowerCase()
-																)
-															return (
-																<span
-																	key={index}
-																	className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center space-x-1"
-																>
-																	<span className="text-sm">
-																		{countryData?.flag || '🌐'}
+											{(() => {
+												console.log(
+													'Displaying favorite countries:',
+													profile?.favoriteCountries,
+													'Type:',
+													typeof profile?.favoriteCountries,
+													'Length:',
+													profile?.favoriteCountries?.length
+												)
+												return profile?.favoriteCountries &&
+													profile.favoriteCountries.length > 0 ? (
+													<div className="flex flex-wrap gap-2">
+														{profile.favoriteCountries.map(
+															(country: string, index: number) => {
+																const countryData =
+																	getCountriesWithSvgFlags().find(
+																		(c) =>
+																			c.name.toLowerCase() ===
+																			country.toLowerCase()
+																	)
+																return (
+																	<span
+																		key={index}
+																		className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center space-x-1"
+																	>
+																		<span className="text-sm">
+																			{countryData?.flag || '🌐'}
+																		</span>
+																		<span>{country}</span>
 																	</span>
-																	<span>{country}</span>
-																</span>
-															)
-														}
-													)}
-												</div>
-											) : (
-												<p className="text-sm text-gray-500">
-													No favorite countries specified
-												</p>
-											)}
+																)
+															}
+														)}
+													</div>
+												) : (
+													<p className="text-sm text-gray-500">
+														No favorite countries specified
+													</p>
+												)
+											})()}
 										</div>
 									)}
 								</div>
@@ -699,6 +791,15 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				title="Error"
 				message={errorMessage}
 				buttonText="Try Again"
+			/>
+
+			{/* Simple Warning Modal */}
+			<SimpleWarningModal
+				isOpen={showWarningModal}
+				onSaveAndContinue={handleSaveAndContinue}
+				onDiscardChanges={handleDiscardChanges}
+				onCancel={handleCancelNavigation}
+				isSaving={isWarningSaving}
 			/>
 		</div>
 	)

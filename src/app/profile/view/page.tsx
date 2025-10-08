@@ -67,6 +67,81 @@ interface ProfileData {
 		}
 		category: string
 	}>
+	// Institution fields
+	institutionName?: string
+	institutionAbbreviation?: string
+	institutionHotline?: string
+	institutionHotlineCode?: string
+	institutionType?: string
+	institutionWebsite?: string
+	institutionEmail?: string
+	institutionCountry?: string
+	institutionAddress?: string
+	representativeName?: string
+	representativeAppellation?: string
+	representativePosition?: string
+	representativeEmail?: string
+	representativePhone?: string
+	representativePhoneCode?: string
+	aboutInstitution?: string
+	institutionDisciplines?: string[]
+	institutionCoverImage?: string
+	// File categories
+	cvFiles?: Array<{
+		id: string
+		name: string
+		originalName: string
+		fileName: string
+		size: number
+		fileSize: number
+		url: string
+		fileType: string
+		category: string
+	}>
+	languageCertFiles?: Array<{
+		id: string
+		name: string
+		originalName: string
+		fileName: string
+		size: number
+		fileSize: number
+		url: string
+		fileType: string
+		category: string
+	}>
+	degreeFiles?: Array<{
+		id: string
+		name: string
+		originalName: string
+		fileName: string
+		size: number
+		fileSize: number
+		url: string
+		fileType: string
+		category: string
+	}>
+	transcriptFiles?: Array<{
+		id: string
+		name: string
+		originalName: string
+		fileName: string
+		size: number
+		fileSize: number
+		url: string
+		fileType: string
+		category: string
+	}>
+	verificationDocuments?: Array<{
+		id: string
+		name: string
+		originalName: string
+		fileName: string
+		size: number
+		fileSize: number
+		url: string
+		fileType: string
+		category: string
+	}>
 	user: {
 		id: string
 		name: string
@@ -225,12 +300,26 @@ export default function ViewProfile() {
 
 	// Render section content based on active section
 	const renderSectionContent = () => {
+		const navigationHandler = (targetSection: string) => {
+			// This will be handled by the ProfileLayout
+			return true
+		}
+
 		switch (activeSection) {
 			case 'profile':
-				return <ProfileInfoSection profile={profile} />
+				return (
+					<ProfileInfoSection
+						profile={profile}
+						onNavigationAttempt={navigationHandler}
+					/>
+				)
 			case 'academic':
 				return (
-					<AcademicSection profile={profile} onProfileUpdate={refreshProfile} />
+					<AcademicSection
+						profile={profile}
+						onProfileUpdate={refreshProfile}
+						onNavigationAttempt={navigationHandler}
+					/>
 				)
 			case 'wishlist':
 				return <WishlistSection profile={profile} />
@@ -241,7 +330,12 @@ export default function ViewProfile() {
 			case 'settings':
 				return <SettingsSection profile={profile} />
 			default:
-				return <ProfileInfoSection profile={profile} />
+				return (
+					<ProfileInfoSection
+						profile={profile}
+						onNavigationAttempt={navigationHandler}
+					/>
+				)
 		}
 	}
 

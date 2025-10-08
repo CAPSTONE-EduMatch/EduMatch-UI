@@ -50,6 +50,7 @@ const getCountryCodeStyles = (height: string) => {
 			fontSize: '14px',
 			display: 'flex',
 			alignItems: 'center',
+			justifyContent: 'flex-start',
 			'&:hover': {
 				border: '1px solid rgba(17, 110, 99, 0.8)',
 			},
@@ -58,12 +59,17 @@ const getCountryCodeStyles = (height: string) => {
 			...provided,
 			display: 'flex',
 			alignItems: 'center',
+			justifyContent: 'flex-start',
 			padding: '0px',
+			height: '100%',
 		}),
 		singleValue: (provided: any) => ({
 			...provided,
 			display: 'flex',
 			alignItems: 'center',
+			justifyContent: 'flex-start',
+			margin: '0',
+			lineHeight: '1',
 		}),
 		placeholder: (provided: any) => ({
 			...provided,
@@ -197,6 +203,9 @@ export function PhoneInput({
 							...getCountryCodeStyles(height).control(provided),
 							width: '120px',
 							minWidth: '120px',
+							position: 'relative',
+							top: '0',
+							left: '0',
 						}),
 					}}
 					isClearable={false}

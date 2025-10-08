@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -10,15 +10,19 @@ import { Upload, Edit3, Save, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import SuccessModal from '@/components/ui/SuccessModal'
 import ErrorModal from '@/components/ui/ErrorModal'
+import { SimpleWarningModal } from '@/components/ui/WarningModal'
+import { useSimpleWarning } from '@/hooks/useSimpleWarning'
 
 interface AcademicSectionProps {
 	profile: any
 	onProfileUpdate?: () => void
+	onNavigationAttempt?: (targetSection: string) => boolean
 }
 
 export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	profile,
 	onProfileUpdate,
+	onNavigationAttempt,
 }) => {
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
@@ -28,12 +32,58 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 
+	// Track if there are unsaved changes
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+	// Initialize edited profile when profile changes
+	useEffect(() => {
+		console.log('AcademicSection - Profile received:', profile)
+		console.log('AcademicSection - GPA:', profile?.gpa)
+		setEditedProfile(profile)
+		setHasUnsavedChanges(false)
+	}, [profile])
+
+	// Track changes to detect unsaved modifications
+	useEffect(() => {
+		if (isEditing && editedProfile) {
+			const hasChanges =
+				JSON.stringify(editedProfile) !== JSON.stringify(profile)
+			setHasUnsavedChanges(hasChanges)
+		} else {
+			setHasUnsavedChanges(false)
+		}
+	}, [editedProfile, profile, isEditing])
+
 	const handleSave = async () => {
+		// Validate research papers before saving
+		const incompleteResearchPapers =
+			editedProfile?.researchPapers?.filter(
+				(paper: any) =>
+					(!paper.title ||
+						paper.title.trim() === '' ||
+						!paper.discipline ||
+						paper.discipline.trim() === '') &&
+					paper.files &&
+					paper.files.length > 0
+			) || []
+
+		if (incompleteResearchPapers.length > 0) {
+			setErrorMessage(
+				'Please provide both title and discipline for all research papers before uploading files.'
+			)
+			setShowErrorModal(true)
+			return
+		}
+
 		setIsSaving(true)
 		try {
 			const { ApiService } = await import('@/lib/axios-config')
 
 			const profileData = {
+				// Preserve existing profile fields
+				interests: profile?.interests || [],
+				favoriteCountries: profile?.favoriteCountries || [],
+				// Academic fields
 				graduationStatus: editedProfile?.graduationStatus || '',
 				degree: editedProfile?.degree || '',
 				fieldOfStudy: editedProfile?.fieldOfStudy || '',
@@ -52,6 +102,17 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 				transcriptFiles: editedProfile?.transcriptFiles || [],
 			}
 
+			console.log('AcademicSection - Sending profile data:', profileData)
+			console.log('AcademicSection - GPA being sent:', profileData.gpa)
+			console.log(
+				'AcademicSection - Preserving interests:',
+				profileData.interests
+			)
+			console.log(
+				'AcademicSection - Preserving favorite countries:',
+				profileData.favoriteCountries
+			)
+
 			await ApiService.updateProfile(profileData)
 
 			// Refresh profile data if callback is provided
@@ -61,6 +122,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 
 			setShowSuccessModal(true)
 			setIsEditing(false)
+			setHasUnsavedChanges(false)
 		} catch (error: any) {
 			console.error('Error saving academic information:', error)
 			setErrorMessage(
@@ -76,13 +138,88 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	const handleCancel = () => {
 		setEditedProfile(profile)
 		setIsEditing(false)
+		setHasUnsavedChanges(false)
 	}
+
+	// Simple warning system
+	const {
+		showWarningModal,
+		handleNavigationAttempt,
+		handleSaveAndContinue,
+		handleDiscardChanges,
+		handleCancelNavigation,
+		isSaving: isWarningSaving,
+	} = useSimpleWarning({
+		hasUnsavedChanges,
+		onSave: handleSave,
+		onCancel: handleCancel,
+	})
+
+	// Expose navigation handler to parent
+	useEffect(() => {
+		// Always expose the handler regardless of onNavigationAttempt prop
+		;(window as any).academicNavigationHandler = handleNavigationAttempt
+		console.log(
+			'AcademicSection - Navigation handler exposed:',
+			handleNavigationAttempt
+		)
+		console.log('AcademicSection - Has unsaved changes:', hasUnsavedChanges)
+		return () => {
+			delete (window as any).academicNavigationHandler
+		}
+	}, [handleNavigationAttempt, hasUnsavedChanges])
 
 	const handleFieldChange = (field: string, value: string | any[]) => {
 		setEditedProfile((prev: any) => ({
 			...prev,
 			[field]: value,
 		}))
+	}
+
+	// Function to validate and format GPA score (4.0 scale)
+	const handleGpaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+
+		// Allow empty string
+		if (value === '') {
+			handleFieldChange('gpa', '')
+			return
+		}
+
+		// Allow typing decimal separators and numbers
+		let cleanValue = value.replace(/[^0-9.,]/g, '')
+
+		// Allow partial input like "3." or "3," while typing
+		if (cleanValue.endsWith('.') || cleanValue.endsWith(',')) {
+			handleFieldChange('gpa', cleanValue)
+			return
+		}
+
+		// Replace comma with period for consistent decimal separator
+		cleanValue = cleanValue.replace(',', '.')
+
+		// Ensure only one decimal point
+		const decimalParts = cleanValue.split('.')
+		if (decimalParts.length > 2) {
+			cleanValue = decimalParts[0] + '.' + decimalParts.slice(1).join('')
+		}
+
+		// Convert to number and validate range (0.0 to 4.0)
+		const numValue = parseFloat(cleanValue)
+		if (!isNaN(numValue) && numValue >= 0 && numValue <= 4.0) {
+			// Format to max 2 decimal places
+			cleanValue = numValue.toFixed(2).replace(/\.?0+$/, '')
+			handleFieldChange('gpa', cleanValue)
+		} else if (
+			cleanValue === '0' ||
+			cleanValue === '1' ||
+			cleanValue === '2' ||
+			cleanValue === '3' ||
+			cleanValue === '4'
+		) {
+			// Allow single digits 0-4
+			handleFieldChange('gpa', cleanValue)
+		}
 	}
 
 	// Function to get certificate options based on selected language
@@ -474,16 +611,24 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									<span className="text-gray-400 text-xl pb-1">|</span>
 									{isEditing ? (
 										<Input
-											placeholder="Score"
+											placeholder="0.0-4.0"
 											value={editedProfile?.gpa || ''}
-											onChange={(e) => handleFieldChange('gpa', e.target.value)}
+											onChange={handleGpaInput}
 											inputSize="select"
 											fullWidth={false}
 											width="w-32"
 										/>
 									) : (
 										<p className="text-sm font-medium">
-											{profile?.gpa || 'Not provided'}
+											{(() => {
+												console.log(
+													'Displaying GPA:',
+													profile?.gpa,
+													'Type:',
+													typeof profile?.gpa
+												)
+												return profile?.gpa || 'Not provided'
+											})()}
 										</p>
 									)}
 								</div>
@@ -1312,6 +1457,51 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 															{ value: 'Sociology', label: 'Sociology' },
 															{ value: 'Economics', label: 'Economics' },
 															{
+																value: 'Economics and Finance',
+																label: 'Economics and Finance',
+															},
+															{
+																value: 'Economics and Business',
+																label: 'Economics and Business',
+															},
+															{
+																value: 'Economics and Management',
+																label: 'Economics and Management',
+															},
+															{
+																value: 'Economics and Accounting',
+																label: 'Economics and Accounting',
+															},
+															{
+																value: 'Economics and Marketing',
+																label: 'Economics and Marketing',
+															},
+															{
+																value: 'Economics and Human Resources',
+																label: 'Economics and Human Resources',
+															},
+															{
+																value: 'Economics and International Relations',
+																label: 'Economics and International Relations',
+															},
+															{
+																value: 'Economics and Public Policy',
+																label: 'Economics and Public Policy',
+															},
+															{
+																value: 'Economics and Development',
+																label: 'Economics and Development',
+															},
+															{
+																value: 'Economics and Policy',
+																label: 'Economics and Policy',
+															},
+															{
+																value: 'Economics and Policy',
+																label: 'Economics and Policy',
+															},
+
+															{
 																value: 'Political Science',
 																label: 'Political Science',
 															},
@@ -1319,6 +1509,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 														isMulti
 														isSearchable
 														isClearable
+														maxSelectedHeight="120px"
 													/>
 												) : (
 													<p className="text-sm">
@@ -1459,6 +1650,15 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 				title="Error"
 				message={errorMessage}
 				buttonText="Try Again"
+			/>
+
+			{/* Simple Warning Modal */}
+			<SimpleWarningModal
+				isOpen={showWarningModal}
+				onSaveAndContinue={handleSaveAndContinue}
+				onDiscardChanges={handleDiscardChanges}
+				onCancel={handleCancelNavigation}
+				isSaving={isWarningSaving}
 			/>
 		</div>
 	)

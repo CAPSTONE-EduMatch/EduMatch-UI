@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
 	User,
@@ -51,6 +51,64 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 	profile,
 	onEditProfile,
 }) => {
+	// Listen for navigation events from warning modal
+	useEffect(() => {
+		const handleNavigateToSection = (event: CustomEvent) => {
+			const section = event.detail.section as ProfileSection
+			onSectionChange(section)
+		}
+
+		window.addEventListener(
+			'navigateToSection',
+			handleNavigateToSection as EventListener
+		)
+
+		return () => {
+			window.removeEventListener(
+				'navigateToSection',
+				handleNavigateToSection as EventListener
+			)
+		}
+	}, [onSectionChange])
+
+	// Handle section changes with unsaved changes check
+	const handleSectionChange = (targetSection: ProfileSection) => {
+		console.log(
+			'ProfileLayout - Navigation attempt:',
+			activeSection,
+			'->',
+			targetSection
+		)
+
+		// Check if current section has unsaved changes
+		const handlerKey = `${activeSection}NavigationHandler`
+		const currentSectionHandler = (window as any)[handlerKey]
+
+		console.log('ProfileLayout - Looking for handler key:', handlerKey)
+		console.log(
+			'ProfileLayout - Current section handler:',
+			currentSectionHandler
+		)
+		console.log(
+			'ProfileLayout - Available handlers:',
+			Object.keys(window).filter((key) => key.includes('NavigationHandler'))
+		)
+
+		if (currentSectionHandler) {
+			const canNavigate = currentSectionHandler(targetSection)
+			console.log('ProfileLayout - Can navigate:', canNavigate)
+			if (!canNavigate) {
+				// Navigation was blocked by warning modal
+				console.log('ProfileLayout - Navigation blocked by warning modal')
+				return
+			}
+		}
+
+		// No unsaved changes or navigation allowed
+		console.log('ProfileLayout - Proceeding with navigation')
+		onSectionChange(targetSection)
+	}
+
 	return (
 		<div className="bg-gray-50 min-h-screen pt-24">
 			<div className="pr-8">
@@ -86,10 +144,23 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 								<p className="text-white/80 text-xs mb-2 truncate">
 									{profile?.user?.email}
 								</p>
-								<div>
+								<div className="space-y-1">
 									<span className="inline-block bg-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
 										{profile?.role === 'applicant' ? 'Student' : 'Institution'}
 									</span>
+									{profile?.role === 'institution' &&
+										profile?.institutionType && (
+											<div className="mt-1">
+												<span className="inline-block bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
+													{profile.institutionType === 'university' &&
+														'University'}
+													{profile.institutionType === 'scholarship-provider' &&
+														'Scholarship Provider'}
+													{profile.institutionType === 'research-lab' &&
+														'Research Lab'}
+												</span>
+											</div>
+										)}
 								</div>
 							</div>
 						</div>
@@ -103,7 +174,7 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 								return (
 									<button
 										key={section.id}
-										onClick={() => onSectionChange(section.id)}
+										onClick={() => handleSectionChange(section.id)}
 										className={`w-full flex items-center gap-3 px-3 py-3 text-left rounded-lg transition-all duration-200 mb-1 ${
 											isActive
 												? 'bg-white text-[#126E64] shadow-lg'

@@ -39,6 +39,7 @@ export function BasicInfoStep({
 	const [isUploading, setIsUploading] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [phoneValidationError, setPhoneValidationError] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	const handleFileSelect = async (
@@ -88,6 +89,54 @@ export function BasicInfoStep({
 
 	const handleUploadClick = () => {
 		fileInputRef.current?.click()
+	}
+
+	// Function to validate phone number
+	const validatePhoneNumber = async () => {
+		if (!formData.phoneNumber || !formData.countryCode) {
+			setPhoneValidationError('')
+			return true
+		}
+
+		try {
+			const { isValidPhoneNumber } = await import('libphonenumber-js')
+			const fullNumber = `${formData.countryCode}${formData.phoneNumber}`
+
+			// Get country code from phone code
+			const { getCountryByPhoneCode } = await import('@/data/countries')
+			const country = getCountryByPhoneCode(formData.countryCode)
+
+			if (!country) {
+				setPhoneValidationError('Invalid country code')
+				return false
+			}
+
+			const isValid = isValidPhoneNumber(fullNumber, country.code as any)
+
+			if (!isValid) {
+				setPhoneValidationError(
+					`Please enter a valid ${country.name} phone number`
+				)
+				return false
+			} else {
+				setPhoneValidationError('')
+				return true
+			}
+		} catch (error) {
+			setPhoneValidationError('Invalid phone number format')
+			return false
+		}
+	}
+
+	// Function to handle form validation and submission
+	const handleNext = async () => {
+		const isPhoneValid = await validatePhoneNumber()
+
+		if (!isPhoneValid) {
+			return // Don't proceed if phone validation fails
+		}
+
+		onNext()
 	}
 
 	// Function to validate and format name input (letters and spaces only)
@@ -266,12 +315,23 @@ export function BasicInfoStep({
 							<PhoneInput
 								value={formData.phoneNumber}
 								countryCode={formData.countryCode}
-								onValueChange={(value) => onInputChange('phoneNumber', value)}
-								onCountryChange={(countryCode) =>
+								onValueChange={(value) => {
+									onInputChange('phoneNumber', value)
+									// Clear validation error when user starts typing
+									if (phoneValidationError) {
+										setPhoneValidationError('')
+									}
+								}}
+								onCountryChange={(countryCode) => {
 									onInputChange('countryCode', countryCode)
-								}
+									// Clear validation error when user changes country
+									if (phoneValidationError) {
+										setPhoneValidationError('')
+									}
+								}}
 								placeholder="Your phone number"
 								className="w-full"
+								hasError={!!phoneValidationError}
 							/>
 						</div>
 					</div>
@@ -297,10 +357,24 @@ export function BasicInfoStep({
 								{ value: 'Information System', label: 'Information System' },
 								{ value: 'Computer Science', label: 'Computer Science' },
 								{ value: 'Business', label: 'Business' },
+								{
+									value: 'Business Administration',
+									label: 'Business Administration',
+								},
+								{ value: 'Business Analytics', label: 'Business Analytics' },
+								{
+									value: 'Business Intelligence',
+									label: 'Business Intelligence',
+								},
+								{ value: 'Business Finance', label: 'Business Finance' },
+								{ value: 'Business Economics', label: 'Business Economics' },
+								{ value: 'Business Law', label: 'Business Law' },
+								{ value: 'Business Management', label: 'Business Management' },
 							]}
 							isMulti
 							isSearchable
 							isClearable
+							maxSelectedHeight="120px"
 						/>
 					</div>
 
@@ -353,7 +427,7 @@ export function BasicInfoStep({
 				<Button variant="outline" onClick={onBack} size="sm">
 					Back
 				</Button>
-				<Button onClick={onNext} size="sm">
+				<Button onClick={handleNext} size="sm">
 					Next
 				</Button>
 			</div>

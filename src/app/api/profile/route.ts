@@ -63,9 +63,35 @@ export async function GET(request: NextRequest) {
 		});
 
 		if (existingProfile) {
+			// Debug: Log the existing profile data
+			console.log("Existing profile from DB:", existingProfile);
+			console.log(
+				"Institution disciplines from DB:",
+				existingProfile.institutionDisciplines
+			);
+			console.log("Interests from DB:", existingProfile.interests);
+			console.log(
+				"Favorite countries from DB:",
+				existingProfile.favoriteCountries
+			);
+			console.log("GPA from DB:", existingProfile.gpa);
+
 			// Transform uploadedFiles into categorized arrays for UI
 			const transformedProfile = {
 				...existingProfile,
+				// Ensure arrays are properly handled - parse if they're strings
+				interests: Array.isArray(existingProfile.interests)
+					? existingProfile.interests
+					: existingProfile.interests
+						? JSON.parse(existingProfile.interests)
+						: [],
+				favoriteCountries: Array.isArray(
+					existingProfile.favoriteCountries
+				)
+					? existingProfile.favoriteCountries
+					: existingProfile.favoriteCountries
+						? JSON.parse(existingProfile.favoriteCountries)
+						: [],
 				cvFiles: existingProfile.uploadedFiles
 					.filter((pf: any) => pf.category === "cv")
 					.map((pf: any) => ({
@@ -189,6 +215,15 @@ export async function POST(request: NextRequest) {
 		const userId = session.user.id;
 		const cacheKey = `profile:${userId}`;
 
+		// Debug: Log the form data being received
+		console.log("POST - Received form data:", formData);
+		console.log("POST - Interests received:", formData.interests);
+		console.log(
+			"POST - Favorite countries received:",
+			formData.favoriteCountries
+		);
+		console.log("POST - GPA received:", formData.gpa);
+
 		// Clean up empty language certificates and research papers
 		const cleanedLanguages =
 			formData.languages?.filter(
@@ -201,7 +236,41 @@ export async function POST(request: NextRequest) {
 					lang.score.trim() !== ""
 			) || [];
 
-		const cleanedResearchPapers =
+		// Check for research papers with files but missing title/discipline
+		const incompleteResearchPapersWithFiles =
+			formData.researchPapers?.filter(
+				(paper: any) =>
+					(!paper.title ||
+						paper.title.trim() === "" ||
+						!paper.discipline ||
+						paper.discipline.trim() === "") &&
+					paper.files &&
+					paper.files.length > 0
+			) || [];
+
+		// If there are incomplete research papers with files, return validation error
+		if (incompleteResearchPapersWithFiles.length > 0) {
+			return NextResponse.json(
+				{
+					error: "Research paper validation failed",
+					details:
+						"Please provide both title and discipline for all research papers before uploading files.",
+					validationErrors: {
+						researchPapers: incompleteResearchPapersWithFiles.map(
+							(paper: any, index: number) => ({
+								index,
+								message:
+									"Title and discipline are required when files are uploaded",
+							})
+						),
+					},
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Filter research papers with complete info
+		const completeResearchPapers =
 			formData.researchPapers?.filter(
 				(paper: any) =>
 					paper.title &&
@@ -255,8 +324,51 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Create the profile in the database
+		// Helper function to create file records in database
+		const createFileRecords = async (files: any[], category: string) => {
+			const createdFiles = [];
+			for (const file of files) {
+				// Check if file already exists in database
+				let existingFile = await prismaClient.file.findFirst({
+					where: {
+						url: file.url,
+						userId: userId,
+					},
+				});
 
+				if (!existingFile) {
+					// Create new file record in database
+					existingFile = await prismaClient.file.create({
+						data: {
+							name: file.originalName || file.name,
+							originalName: file.originalName || file.name,
+							key:
+								file.fileName ||
+								file.url.split("/").pop() ||
+								file.name,
+							bucket: BUCKET_NAME,
+							size: file.fileSize || file.size,
+							mimeType:
+								file.fileType ||
+								file.type ||
+								"application/octet-stream",
+							extension:
+								(file.originalName || file.name)
+									.split(".")
+									.pop() || "",
+							category: category,
+							url: file.url,
+							isPublic: true,
+							userId: userId,
+						},
+					});
+				}
+				createdFiles.push(existingFile);
+			}
+			return createdFiles;
+		};
+
+		// Create the profile in the database
 		const newProfile = await prismaClient.profile.create({
 			data: {
 				userId: userId,
@@ -286,13 +398,19 @@ export async function POST(request: NextRequest) {
 				institutionAbbreviation: formData.institutionAbbreviation,
 				institutionHotline: formData.institutionHotline,
 				institutionHotlineCode: formData.institutionHotlineCode,
-				institutionType: formData.institutionType,
+				institutionType:
+					typeof formData.institutionType === "object"
+						? formData.institutionType?.value
+						: formData.institutionType,
 				institutionWebsite: formData.institutionWebsite,
 				institutionEmail: formData.institutionEmail,
 				institutionCountry: formData.institutionCountry,
 				institutionAddress: formData.institutionAddress,
 				representativeName: formData.representativeName,
-				representativeAppellation: formData.representativeAppellation,
+				representativeAppellation:
+					typeof formData.representativeAppellation === "object"
+						? formData.representativeAppellation?.value
+						: formData.representativeAppellation,
 				representativePosition: formData.representativePosition,
 				representativeEmail: formData.representativeEmail,
 				representativePhone: formData.representativePhone,
@@ -313,38 +431,76 @@ export async function POST(request: NextRequest) {
 						: undefined,
 				// Create research paper records if provided and not empty
 				researchPapers:
-					cleanedResearchPapers.length > 0
+					completeResearchPapers.length > 0
 						? {
-								create: cleanedResearchPapers.map(
+								create: completeResearchPapers.map(
 									(paper: any) => ({
 										title: paper.title,
 										discipline: paper.discipline,
-										files: paper.files
-											? {
-													create: paper.files.map(
-														(file: any) => ({
-															fileId: file.id,
-															category:
-																"research",
-														})
-													),
-												}
-											: undefined,
 									})
 								),
 							}
 						: undefined,
-				// Create uploaded file records if provided
-				uploadedFiles: formData.uploadedFiles
-					? {
-							create: formData.uploadedFiles.map((file: any) => ({
-								fileId: file.id,
-								category: file.category || "other",
-							})),
-						}
-					: undefined,
 			},
 		});
+
+		// Handle file uploads after profile creation
+		const allFiles = [
+			...(formData.cvFiles || []),
+			...(formData.languageCertFiles || []),
+			...(formData.degreeFiles || []),
+			...(formData.transcriptFiles || []),
+			...(formData.uploadedFiles || []),
+			...(formData.institutionVerificationDocuments || []),
+		];
+
+		// Create file records for general uploads
+		if (allFiles.length > 0) {
+			const createdFiles = await createFileRecords(allFiles, "profile");
+
+			// Create ProfileFile relationships
+			await prismaClient.profileFile.createMany({
+				data: createdFiles.map((file) => ({
+					profileId: newProfile.id,
+					fileId: file.id,
+					category: file.category,
+				})),
+			});
+		}
+
+		// Handle research paper files
+		if (completeResearchPapers.length > 0) {
+			for (let i = 0; i < completeResearchPapers.length; i++) {
+				const paper = completeResearchPapers[i];
+				if (paper.files && paper.files.length > 0) {
+					const createdFiles = await createFileRecords(
+						paper.files,
+						"research"
+					);
+
+					// Get the research paper ID (it should be created with the profile)
+					const researchPaper =
+						await prismaClient.researchPaper.findFirst({
+							where: {
+								profileId: newProfile.id,
+								title: paper.title,
+							},
+						});
+
+					if (researchPaper) {
+						// Create ProfileFile relationships for research papers
+						await prismaClient.profileFile.createMany({
+							data: createdFiles.map((file) => ({
+								profileId: newProfile.id,
+								researchPaperId: researchPaper.id,
+								fileId: file.id,
+								category: "research",
+							})),
+						});
+					}
+				}
+			}
+		}
 
 		// Clear cache after creating profile
 		await cacheManager.delete(cacheKey);
@@ -420,7 +576,41 @@ export async function PUT(request: NextRequest) {
 					lang.score.trim() !== ""
 			) || [];
 
-		const cleanedResearchPapers =
+		// Check for research papers with files but missing title/discipline
+		const incompleteResearchPapersWithFiles =
+			formData.researchPapers?.filter(
+				(paper: any) =>
+					(!paper.title ||
+						paper.title.trim() === "" ||
+						!paper.discipline ||
+						paper.discipline.trim() === "") &&
+					paper.files &&
+					paper.files.length > 0
+			) || [];
+
+		// If there are incomplete research papers with files, return validation error
+		if (incompleteResearchPapersWithFiles.length > 0) {
+			return NextResponse.json(
+				{
+					error: "Research paper validation failed",
+					details:
+						"Please provide both title and discipline for all research papers before uploading files.",
+					validationErrors: {
+						researchPapers: incompleteResearchPapersWithFiles.map(
+							(paper: any, index: number) => ({
+								index,
+								message:
+									"Title and discipline are required when files are uploaded",
+							})
+						),
+					},
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Filter research papers with complete info
+		const completeResearchPapers =
 			formData.researchPapers?.filter(
 				(paper: any) =>
 					paper.title &&
@@ -428,6 +618,19 @@ export async function PUT(request: NextRequest) {
 					paper.discipline &&
 					paper.discipline.trim() !== ""
 			) || [];
+
+		// Debug: Log the form data being received
+		console.log("Received form data:", formData);
+		console.log(
+			"Institution disciplines received:",
+			formData.institutionDisciplines
+		);
+		console.log("Interests received in PUT:", formData.interests);
+		console.log(
+			"Favorite countries received in PUT:",
+			formData.favoriteCountries
+		);
+		console.log("GPA received in PUT:", formData.gpa);
 
 		// Update the profile in the database with all fields
 		const updatedProfile = await prismaClient.profile.update({
@@ -460,13 +663,19 @@ export async function PUT(request: NextRequest) {
 				institutionAbbreviation: formData.institutionAbbreviation,
 				institutionHotline: formData.institutionHotline,
 				institutionHotlineCode: formData.institutionHotlineCode,
-				institutionType: formData.institutionType,
+				institutionType:
+					typeof formData.institutionType === "object"
+						? formData.institutionType?.value
+						: formData.institutionType,
 				institutionWebsite: formData.institutionWebsite,
 				institutionEmail: formData.institutionEmail,
 				institutionCountry: formData.institutionCountry,
 				institutionAddress: formData.institutionAddress,
 				representativeName: formData.representativeName,
-				representativeAppellation: formData.representativeAppellation,
+				representativeAppellation:
+					typeof formData.representativeAppellation === "object"
+						? formData.representativeAppellation?.value
+						: formData.representativeAppellation,
 				representativePosition: formData.representativePosition,
 				representativeEmail: formData.representativeEmail,
 				representativePhone: formData.representativePhone,
@@ -527,8 +736,8 @@ export async function PUT(request: NextRequest) {
 				where: { profileId: updatedProfile.id },
 			});
 
-			// Use cleaned research papers (already filtered)
-			const validResearchPapers = cleanedResearchPapers;
+			// Use complete research papers (already filtered)
+			const validResearchPapers = completeResearchPapers;
 
 			if (validResearchPapers.length > 0) {
 				for (const paper of validResearchPapers) {
@@ -602,7 +811,8 @@ export async function PUT(request: NextRequest) {
 			formData.languageCertFiles !== undefined ||
 			formData.degreeFiles !== undefined ||
 			formData.transcriptFiles !== undefined ||
-			formData.verificationDocuments !== undefined
+			formData.verificationDocuments !== undefined ||
+			formData.institutionVerificationDocuments !== undefined
 		) {
 			// Delete existing uploaded files
 			await prismaClient.profileFile.deleteMany({
@@ -631,6 +841,12 @@ export async function PUT(request: NextRequest) {
 					...file,
 					category: "verification",
 				})),
+				...(formData.institutionVerificationDocuments || []).map(
+					(file: any) => ({
+						...file,
+						category: "verification",
+					})
+				),
 			];
 
 			if (allFiles.length > 0) {

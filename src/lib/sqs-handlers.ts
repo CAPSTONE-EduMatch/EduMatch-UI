@@ -277,6 +277,12 @@ export class NotificationUtils {
 		firstName: string,
 		lastName: string
 	): Promise<void> {
+		console.log("🎯 NotificationUtils.sendWelcomeNotification called");
+		console.log("👤 User ID:", userId);
+		console.log("📧 User Email:", userEmail);
+		console.log("👋 First Name:", firstName);
+		console.log("👋 Last Name:", lastName);
+
 		const message: NotificationMessage = {
 			id: `welcome-${userId}-${Date.now()}`,
 			type: NotificationType.WELCOME,
@@ -289,7 +295,15 @@ export class NotificationUtils {
 			},
 		};
 
+		console.log("📝 Created message:", JSON.stringify(message, null, 2));
+		console.log("📤 Calling SQSService.sendNotification...");
+
 		await SQSService.sendNotification(message);
+		console.log("✅ SQSService.sendNotification completed");
+
+		// Also store directly in database for immediate display
+		await this.storeNotificationDirectly(message);
+		console.log("✅ Notification stored directly in database!");
 	}
 
 	/**
@@ -324,6 +338,72 @@ export class NotificationUtils {
 
 		await SQSService.sendNotification(message);
 		console.log("✅ Notification sent to SQS successfully!");
+
+		// Also store directly in database for immediate display
+		await this.storeNotificationDirectly(message);
+		console.log("✅ Notification stored directly in database!");
+	}
+
+	/**
+	 * Store notification directly in database (for immediate display)
+	 */
+	private static async storeNotificationDirectly(
+		message: NotificationMessage
+	): Promise<void> {
+		try {
+			// Import prisma client dynamically to avoid circular dependencies
+			const { prismaClient } = await import("../../prisma");
+
+			// Create notification title and body based on type
+			let title = "";
+			let bodyText = "";
+			let url = "/";
+
+			switch (message.type) {
+				case "WELCOME":
+					title = "Welcome to EduMatch!";
+					bodyText = `Welcome ${message.metadata?.firstName || "User"}! Your account has been created successfully.`;
+					url = "/profile/create";
+					break;
+				case "PROFILE_CREATED":
+					title = "Profile Created Successfully!";
+					bodyText = `Your ${message.metadata?.role || "profile"} profile has been created and is now live.`;
+					url = "/profile/view";
+					break;
+				case "PAYMENT_DEADLINE":
+					title = "Payment Deadline Reminder";
+					bodyText = `Your ${message.metadata?.planName || "subscription"} payment is due on ${message.metadata?.deadlineDate || "soon"}.`;
+					url = "/pricing";
+					break;
+				default:
+					title = "New Notification";
+					bodyText = "You have a new notification from EduMatch.";
+					break;
+			}
+
+			// Save notification to database
+			await prismaClient.notification.create({
+				data: {
+					id: message.id,
+					userId: message.userId,
+					type: message.type,
+					title,
+					bodyText,
+					url,
+					payload: message.metadata || {},
+					createAt: new Date(),
+					queuedAt: new Date(),
+					status: "sent",
+				},
+			});
+
+			console.log(
+				`✅ Notification stored directly in database: ${message.type} for user ${message.userId}`
+			);
+		} catch (error) {
+			console.error("Error storing notification directly:", error);
+			// Don't throw error here as it's not critical
+		}
 	}
 
 	/**

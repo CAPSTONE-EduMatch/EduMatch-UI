@@ -1,4 +1,7 @@
+import { useTranslations } from 'next-intl'
+
 export function HeroSection() {
+	const t = useTranslations()
 	return (
 		<section className="relative w-full h-screen flex items-center justify-center text-center overflow-hidden">
 			{/* Background image */}
@@ -16,11 +19,10 @@ export function HeroSection() {
 			{/* Content */}
 			<div className="relative z-10 text-white max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 				<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 whitespace-nowrap leading-tight">
-					Match. Apply. Succeed.
+					{t('homepage.hero_section.title')}
 				</h1>
 				<p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl mb-8 whitespace-nowrap opacity-90 pt-12">
-					Find your perfect university match with our intelligent matching
-					system
+					{t('homepage.hero_section.subtitle')}
 				</p>
 			</div>
 		</section>

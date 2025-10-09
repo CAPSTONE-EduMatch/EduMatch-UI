@@ -39,7 +39,11 @@ export function ResearchLabCard({
 			<div className="flex justify-between items-start mb-4">
 				<div></div>
 				<motion.button
-					onClick={() => onWishlistToggle(lab.id)}
+					onClick={(e) => {
+						e.preventDefault()
+						e.stopPropagation()
+						onWishlistToggle(lab.id)
+					}}
 					className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 					whileHover={{ scale: 1.1 }}
 					whileTap={{ scale: 0.9 }}

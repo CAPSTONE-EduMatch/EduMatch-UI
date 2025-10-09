@@ -45,6 +45,17 @@ export interface PaginationMeta {
 export interface ExploreApiResponse<T> {
 	data: T[];
 	meta: PaginationMeta;
+	availableFilters?: {
+		disciplines?: string[];
+		subdisciplines?: Record<string, string[]>;
+		countries?: string[];
+		researchFields?: string[];
+		degreeLevels?: string[];
+		attendanceTypes?: string[];
+		essayRequired?: string[];
+		positions?: string[];
+		[key: string]: any;
+	};
 }
 
 // Legacy interfaces for backward compatibility

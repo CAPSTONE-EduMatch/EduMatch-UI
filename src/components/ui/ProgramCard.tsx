@@ -64,7 +64,11 @@ export function ProgramCard({
 				</div>
 
 				<motion.button
-					onClick={() => onWishlistToggle(program.id)}
+					onClick={(e) => {
+						e.preventDefault()
+						e.stopPropagation()
+						onWishlistToggle(program.id)
+					}}
 					className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 					whileHover={{ scale: 1.1 }}
 					whileTap={{ scale: 0.9 }}

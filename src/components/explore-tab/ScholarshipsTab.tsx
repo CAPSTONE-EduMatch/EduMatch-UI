@@ -1,20 +1,14 @@
 'use client'
 
-import { mockScholarships } from '@/data/utils'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ScholarshipCard } from '../ui/ScholarshipCard'
-import { SortOption } from '../ui/Sort'
+import { Scholarship } from '@/types/explore-api'
 
 interface ScholarshipsTabProps {
-	sortBy?: SortOption
-	currentPage?: number
-	itemsPerPage?: number
+	scholarships?: Scholarship[]
 }
 
-export function ScholarshipsTab({
-	currentPage = 1,
-	itemsPerPage = 15,
-}: ScholarshipsTabProps) {
+export function ScholarshipsTab({ scholarships = [] }: ScholarshipsTabProps) {
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
 	const toggleWishlist = (id: number) => {
@@ -29,17 +23,10 @@ export function ScholarshipsTab({
 		})
 	}
 
-	const paginatedScholarships = useMemo(() => {
-		// Apply pagination without sorting
-		const startIndex = (currentPage - 1) * itemsPerPage
-		const endIndex = startIndex + itemsPerPage
-		return mockScholarships.slice(startIndex, endIndex)
-	}, [currentPage, itemsPerPage])
-
 	return (
 		<div className="space-y-4">
-			{paginatedScholarships.length > 0 ? (
-				paginatedScholarships.map((scholarship, index) => (
+			{scholarships.length > 0 ? (
+				scholarships.map((scholarship, index) => (
 					<ScholarshipCard
 						key={scholarship.id}
 						scholarship={scholarship}

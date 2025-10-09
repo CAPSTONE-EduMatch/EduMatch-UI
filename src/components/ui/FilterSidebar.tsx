@@ -15,9 +15,10 @@ import {
 	ChevronDown,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TabType } from '@/types/explore'
 import { AIAssistantCard } from './AIAssistantCard'
+import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 
 interface FilterSidebarProps {
 	activeTab: TabType
@@ -28,21 +29,252 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 		Record<string, string[]>
 	>({
 		discipline: [],
-		country: ['America', 'Cambodia'],
-		duration: ['Less than 1 year', 'More than 2 years'],
-		degreeLevel: ['Master'],
-		attendance: ['Online'],
+		country: [],
+		duration: [],
+		degreeLevel: [],
+		attendance: [],
 	})
 
 	const [selectedDiscipline, setSelectedDiscipline] = useState<string>('')
 	const [showSubdisciplines, setShowSubdisciplines] = useState(false)
 
-	const [feeRange, setFeeRange] = useState({ min: 234567, max: 1234567 })
+	const [feeRange, setFeeRange] = useState({ min: 0, max: 1000000 })
 	const [searchTerms, setSearchTerms] = useState({
 		discipline: '',
+		subdiscipline: '',
 		country: '',
 		researchField: '',
 	})
+
+	// Dynamic filter data
+	const [dynamicFilters, setDynamicFilters] = useState<{
+		countries: string[]
+		disciplines: string[]
+		researchFields: string[]
+		degreeLevels: string[]
+		attendanceTypes: string[]
+		essayRequired: string[]
+		jobTypes: string[]
+		contractTypes: string[]
+		subdisciplines: Record<string, string[]>
+	}>({
+		countries: [],
+		disciplines: [],
+		researchFields: [],
+		degreeLevels: [],
+		attendanceTypes: [],
+		essayRequired: [],
+		jobTypes: [],
+		contractTypes: [],
+		subdisciplines: {},
+	})
+
+	const [isLoadingFilters, setIsLoadingFilters] = useState(false)
+
+	// Fetch filter data when tab changes
+	useEffect(() => {
+		const fetchFilterData = async () => {
+			setIsLoadingFilters(true)
+			try {
+				let endpoint = ''
+				switch (activeTab) {
+					case 'programmes':
+						endpoint = '/api/explore/programs'
+						break
+					case 'scholarships':
+						endpoint = '/api/explore/scholarships'
+						break
+					case 'research':
+						endpoint = '/api/explore/research'
+						break
+					default:
+						return
+				}
+
+				const response = await fetch(`${endpoint}?limit=1000`)
+				const data = await response.json()
+
+				if (data.availableFilters) {
+					// Use available filters from API response
+					setDynamicFilters({
+						countries: data.availableFilters.countries || [],
+						disciplines: data.availableFilters.disciplines || [],
+						researchFields: data.availableFilters.researchFields || [],
+						degreeLevels: data.availableFilters.degreeLevels || [],
+						attendanceTypes: data.availableFilters.attendanceTypes || [],
+						essayRequired: data.availableFilters.essayRequired || [],
+						jobTypes: data.availableFilters.jobTypes || [],
+						contractTypes: data.availableFilters.contractTypes || [],
+						subdisciplines: data.availableFilters.subdisciplines || {},
+					})
+				} else if (data.data) {
+					// Fallback to extracting from data if availableFilters not provided
+					const extractedFilters = extractFilterOptions(data.data, activeTab)
+					setDynamicFilters({
+						...extractedFilters,
+						subdisciplines: {},
+					})
+				}
+			} catch (error) {
+				console.error('Error fetching filter data:', error)
+			} finally {
+				setIsLoadingFilters(false)
+			}
+		}
+
+		fetchFilterData()
+	}, [activeTab])
+
+	// Extract filter options from API data
+	const extractFilterOptions = (
+		data: Program[] | Scholarship[] | ResearchLab[],
+		tab: TabType
+	) => {
+		const countries = Array.from(
+			new Set(data.map((item) => item.country).filter(Boolean))
+		).sort()
+
+		let disciplines: string[] = []
+		let researchFields: string[] = []
+		let degreeLevels: string[] = []
+		let attendanceTypes: string[] = []
+		let essayRequired: string[] = []
+		let jobTypes: string[] = []
+		let contractTypes: string[] = []
+
+		if (tab === 'programmes') {
+			const programs = data as Program[]
+			disciplines = Array.from(
+				new Set(programs.map((p) => p.field).filter(Boolean))
+			).sort()
+			degreeLevels = Array.from(
+				new Set(
+					programs
+						.map((p) => {
+							// Extract degree level from field or other properties
+							const field = p.field.toLowerCase()
+							if (
+								field.includes('master') ||
+								field.includes('msc') ||
+								field.includes('ma')
+							)
+								return 'Master'
+							if (field.includes('phd') || field.includes('doctorate'))
+								return 'PhD'
+							if (
+								field.includes('bachelor') ||
+								field.includes('bsc') ||
+								field.includes('ba')
+							)
+								return 'Bachelor'
+							return 'Other'
+						})
+						.filter(Boolean)
+				)
+			).sort()
+			attendanceTypes = Array.from(
+				new Set(programs.map((p) => p.attendance).filter(Boolean))
+			).sort()
+		} else if (tab === 'scholarships') {
+			const scholarships = data as Scholarship[]
+			disciplines = Array.from(
+				new Set(
+					scholarships
+						.map((s) => {
+							// Extract disciplines from description or other fields
+							const desc = s.description.toLowerCase()
+							if (desc.includes('engineering')) return 'Engineering'
+							if (desc.includes('computer') || desc.includes('technology'))
+								return 'Computer Science'
+							if (desc.includes('business') || desc.includes('management'))
+								return 'Business'
+							if (desc.includes('medicine') || desc.includes('health'))
+								return 'Medicine'
+							if (desc.includes('art') || desc.includes('humanities'))
+								return 'Arts & Humanities'
+							if (desc.includes('science')) return 'Sciences'
+							if (desc.includes('law')) return 'Law'
+							return 'Other'
+						})
+						.filter(Boolean)
+				)
+			).sort()
+			degreeLevels = Array.from(
+				new Set(
+					scholarships
+						.map((s) => {
+							const desc = s.description.toLowerCase()
+							if (
+								desc.includes('master') ||
+								desc.includes('msc') ||
+								desc.includes('ma')
+							)
+								return 'Master'
+							if (desc.includes('phd') || desc.includes('doctorate'))
+								return 'PhD'
+							if (
+								desc.includes('bachelor') ||
+								desc.includes('bsc') ||
+								desc.includes('ba')
+							)
+								return 'Bachelor'
+							return 'Other'
+						})
+						.filter(Boolean)
+				)
+			).sort()
+			essayRequired = Array.from(
+				new Set(scholarships.map((s) => s.essayRequired).filter(Boolean))
+			).sort()
+		} else if (tab === 'research') {
+			const research = data as ResearchLab[]
+			researchFields = Array.from(
+				new Set(research.map((r) => r.field).filter(Boolean))
+			).sort()
+			jobTypes = Array.from(
+				new Set(research.map((r) => r.position).filter(Boolean))
+			).sort()
+			degreeLevels = Array.from(
+				new Set(
+					research
+						.map((r) => {
+							const pos = r.position.toLowerCase()
+							if (pos.includes('phd')) return 'PhD'
+							if (pos.includes('postdoc')) return 'Postdoc'
+							if (pos.includes('master')) return 'Master'
+							return 'Other'
+						})
+						.filter(Boolean)
+				)
+			).sort()
+			contractTypes = Array.from(
+				new Set(
+					research
+						.map((r) => {
+							const desc = r.description.toLowerCase()
+							if (desc.includes('full-time') || desc.includes('fulltime'))
+								return 'Full-time'
+							if (desc.includes('part-time') || desc.includes('parttime'))
+								return 'Part-time'
+							if (desc.includes('contract')) return 'Contract'
+							return 'Full-time' // default
+						})
+						.filter(Boolean)
+				)
+			).sort()
+		}
+
+		return {
+			countries,
+			disciplines,
+			researchFields,
+			degreeLevels,
+			attendanceTypes,
+			essayRequired,
+			jobTypes,
+			contractTypes,
+		}
+	}
 
 	const [collapsedSections, setCollapsedSections] = useState<
 		Record<string, boolean>
@@ -72,6 +304,11 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	const handleDisciplineSelect = (discipline: string) => {
 		setSelectedDiscipline(discipline)
 		setShowSubdisciplines(true)
+		// Reset discipline search when selecting a discipline
+		setSearchTerms((prev) => ({
+			...prev,
+			discipline: '',
+		}))
 	}
 
 	const handleSubdisciplineSelect = (subdiscipline: string) => {
@@ -86,12 +323,22 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	const handleBackToDisciplines = () => {
 		setShowSubdisciplines(false)
 		setSelectedDiscipline('')
+		// Reset subdiscipline search when going back
+		setSearchTerms((prev) => ({
+			...prev,
+			subdiscipline: '',
+		}))
 	}
 
 	const handleRefresh = () => {
 		setSelectedFilters({})
 		setFeeRange({ min: 234567, max: 1234567 })
-		setSearchTerms({ discipline: '', country: '', researchField: '' })
+		setSearchTerms({
+			discipline: '',
+			subdiscipline: '',
+			country: '',
+			researchField: '',
+		})
 		setSelectedDiscipline('')
 		setShowSubdisciplines(false)
 	}
@@ -120,82 +367,9 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 		switch (activeTab) {
 			case 'programmes':
 				return {
-					disciplines: [
-						'Engineering',
-						'Computer Science',
-						'Business',
-						'Medicine',
-						'Arts & Humanities',
-						'Natural Sciences',
-						'Social Sciences',
-					],
-					subdisciplines: {
-						Engineering: [
-							'Software Engineering',
-							'Civil Engineering',
-							'Mechanical Engineering',
-							'Electrical Engineering',
-							'Chemical Engineering',
-							'Aerospace Engineering',
-						],
-						'Computer Science': [
-							'Artificial Intelligence',
-							'Machine Learning',
-							'Cybersecurity',
-							'Data Science',
-							'Software Development',
-							'Computer Vision',
-						],
-						Business: [
-							'Business Administration',
-							'Finance',
-							'Marketing',
-							'Management',
-							'Economics',
-							'Entrepreneurship',
-						],
-						Medicine: [
-							'General Medicine',
-							'Nursing',
-							'Pharmacy',
-							'Dentistry',
-							'Public Health',
-							'Medical Research',
-						],
-						'Arts & Humanities': [
-							'Literature',
-							'History',
-							'Philosophy',
-							'Fine Arts',
-							'Music',
-							'Languages',
-						],
-						'Natural Sciences': [
-							'Physics',
-							'Chemistry',
-							'Biology',
-							'Mathematics',
-							'Environmental Science',
-							'Geology',
-						],
-						'Social Sciences': [
-							'Psychology',
-							'Sociology',
-							'Political Science',
-							'Anthropology',
-							'International Relations',
-							'Law',
-						],
-					},
-					countries: [
-						'America',
-						'Angola',
-						'Brazil',
-						'China',
-						'Cambodia',
-						'England',
-						'Korea',
-					],
+					disciplines: dynamicFilters.disciplines,
+					subdisciplines: dynamicFilters.subdisciplines,
+					countries: dynamicFilters.countries,
 					durations: [
 						'Less than 1 year',
 						'1 year',
@@ -203,8 +377,8 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 						'2 years',
 						'More than 2 years',
 					],
-					degreeLevels: ['Master', 'PhD'],
-					attendanceTypes: ['Online', 'At campus', 'Hybrid'],
+					degreeLevels: dynamicFilters.degreeLevels,
+					attendanceTypes: dynamicFilters.attendanceTypes,
 					sections: [
 						'discipline',
 						'country',
@@ -217,26 +391,11 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 			case 'scholarships':
 				return {
-					disciplines: [
-						'Engineering',
-						'Computer Science',
-						'Business',
-						'Medicine',
-						'Arts',
-						'Sciences',
-						'Law',
-					],
-					countries: [
-						'America',
-						'Canada',
-						'UK',
-						'Australia',
-						'Germany',
-						'France',
-						'Japan',
-					],
-					degreeLevels: ['Bachelor', 'Master', 'PhD'],
-					essayRequired: ['Yes', 'No'],
+					disciplines: dynamicFilters.disciplines,
+					subdisciplines: dynamicFilters.subdisciplines,
+					countries: dynamicFilters.countries,
+					degreeLevels: dynamicFilters.degreeLevels,
+					essayRequired: dynamicFilters.essayRequired,
 					sections: [
 						'discipline',
 						'country',
@@ -247,39 +406,18 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 			case 'research':
 				return {
-					researchFields: [
-						'Artificial Intelligence',
-						'Machine Learning',
-						'Computer Vision',
-						'Natural Language Processing',
-						'Robotics',
-						'Data Science',
-						'Cybersecurity',
-					],
-					countries: [
-						'America',
-						'UK',
-						'Germany',
-						'Japan',
-						'Singapore',
-						'Canada',
-						'Australia',
-					],
+					researchFields: dynamicFilters.researchFields,
+					countries: dynamicFilters.countries,
 					salaryRanges: [
 						'$50,000 - $70,000',
 						'$70,000 - $90,000',
 						'$90,000 - $120,000',
 						'$120,000+',
 					],
-					degreeLevels: ['Master', 'PhD', 'Postdoc'],
-					attendanceTypes: ['On-site', 'Remote', 'Hybrid'],
-					contractTypes: ['Full-time', 'Part-time', 'Contract'],
-					jobTypes: [
-						'Research Assistant',
-						'PhD Position',
-						'Postdoc',
-						'Research Scientist',
-					],
+					degreeLevels: dynamicFilters.degreeLevels,
+					attendanceTypes: dynamicFilters.attendanceTypes,
+					contractTypes: dynamicFilters.contractTypes,
+					jobTypes: dynamicFilters.jobTypes,
 					sections: [
 						'researchField',
 						'country',
@@ -301,6 +439,14 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	}
 
 	const filterConfig = getFilterSections()
+
+	// Helper function to filter options based on search term
+	const filterOptions = (options: string[], searchTerm: string) => {
+		if (!searchTerm) return options
+		return options.filter((option) =>
+			option.toLowerCase().includes(searchTerm.toLowerCase())
+		)
+	}
 
 	return (
 		<motion.div
@@ -361,22 +507,81 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									{!showSubdisciplines ? (
 										// Main disciplines view
 										<div>
+											<div className="relative mb-3">
+												<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+												<input
+													type="text"
+													placeholder="Search discipline..."
+													value={searchTerms.discipline}
+													onChange={(e) =>
+														setSearchTerms((prev) => ({
+															...prev,
+															discipline: e.target.value,
+														}))
+													}
+													className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+												/>
+												<button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#116E63] text-white p-1 rounded">
+													<Search className="w-4 h-4" />
+												</button>
+											</div>
 											<p className="text-sm text-gray-600 mb-3">
 												Select a discipline
 											</p>
 											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-												{filterConfig.disciplines?.map((discipline) => (
-													<motion.button
-														key={discipline}
-														onClick={() => handleDisciplineSelect(discipline)}
-														className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:border-[#116E63] hover:bg-[#116E63]/5 transition-colors text-sm"
-														whileHover={{ x: 2 }}
-													>
-														<span className="font-medium text-gray-700">
-															{discipline}
+												{isLoadingFilters ? (
+													<div className="flex items-center justify-center py-4">
+														<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
+														<span className="ml-2 text-sm text-gray-600">
+															Loading...
 														</span>
-													</motion.button>
-												))}
+													</div>
+												) : filterConfig.disciplines &&
+												  filterConfig.disciplines.length > 0 ? (
+													filterOptions(
+														filterConfig.disciplines,
+														searchTerms.discipline
+													).length > 0 ? (
+														filterOptions(
+															filterConfig.disciplines,
+															searchTerms.discipline
+														).map((discipline) => (
+															<motion.button
+																key={discipline}
+																onClick={() =>
+																	handleDisciplineSelect(discipline)
+																}
+																className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:border-[#116E63] hover:bg-[#116E63]/5 transition-colors text-sm"
+																whileHover={{ x: 2 }}
+															>
+																<span className="font-medium text-gray-700">
+																	{discipline}
+																</span>
+															</motion.button>
+														))
+													) : (
+														<div className="flex items-center justify-center py-8 text-gray-500">
+															<div className="text-center">
+																<div className="text-2xl mb-2">🔍</div>
+																<p className="text-sm">
+																	No disciplines match your search
+																</p>
+															</div>
+														</div>
+													)
+												) : (
+													<div className="flex items-center justify-center py-8 text-gray-500">
+														<div className="text-center">
+															<div className="text-2xl mb-2">📚</div>
+															<p className="text-sm">
+																No disciplines available
+															</p>
+															<p className="text-xs mt-1">
+																Check back later or contact support
+															</p>
+														</div>
+													</div>
+												)}
 											</div>
 										</div>
 									) : (
@@ -390,35 +595,55 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 													← Back to disciplines
 												</button>
 											</div>
+											<div className="relative mb-3">
+												<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+												<input
+													type="text"
+													placeholder="Search subdiscipline..."
+													value={searchTerms.subdiscipline}
+													onChange={(e) =>
+														setSearchTerms((prev) => ({
+															...prev,
+															subdiscipline: e.target.value,
+														}))
+													}
+													className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+												/>
+												<button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#116E63] text-white p-1 rounded">
+													<Search className="w-4 h-4" />
+												</button>
+											</div>
 											<p className="text-sm text-gray-600 mb-3">
 												{selectedDiscipline} subdisciplines
 											</p>
 											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-												{filterConfig.subdisciplines?.[selectedDiscipline]?.map(
-													(subdiscipline) => (
-														<motion.label
-															key={subdiscipline}
-															className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
-															whileHover={{ x: 2 }}
-														>
-															<input
-																type="checkbox"
-																checked={
-																	selectedFilters.discipline?.includes(
-																		subdiscipline
-																	) || false
-																}
-																onChange={() =>
-																	handleSubdisciplineSelect(subdiscipline)
-																}
-																className="w-4 h-4 text-[#116E63] focus:ring-teal-500 rounded"
-															/>
-															<span className="text-sm text-gray-700">
-																{subdiscipline}
-															</span>
-														</motion.label>
-													)
-												)}
+												{filterOptions(
+													filterConfig.subdisciplines?.[selectedDiscipline] ||
+														[],
+													searchTerms.subdiscipline
+												).map((subdiscipline) => (
+													<motion.label
+														key={subdiscipline}
+														className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
+														whileHover={{ x: 2 }}
+													>
+														<input
+															type="checkbox"
+															checked={
+																selectedFilters.discipline?.includes(
+																	subdiscipline
+																) || false
+															}
+															onChange={() =>
+																handleSubdisciplineSelect(subdiscipline)
+															}
+															className="w-4 h-4 text-[#116E63] focus:ring-teal-500 rounded"
+														/>
+														<span className="text-sm text-gray-700">
+															{subdiscipline}
+														</span>
+													</motion.label>
+												))}
 											</div>
 											{/* {selectedFilters.discipline &&
 												selectedFilters.discipline.length > 0 && (
@@ -494,26 +719,38 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									</div>
 
 									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
-										{filterConfig.researchFields?.map((field) => (
-											<motion.label
-												key={field}
-												className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
-												whileHover={{ x: 2 }}
-											>
-												<input
-													type="checkbox"
-													checked={
-														selectedFilters.researchField?.includes(field) ||
-														false
-													}
-													onChange={() =>
-														handleFilterChange('researchField', field)
-													}
-													className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
-												/>
-												<span className="text-sm text-gray-700">{field}</span>
-											</motion.label>
-										))}
+										{isLoadingFilters ? (
+											<div className="flex items-center justify-center py-4">
+												<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
+												<span className="ml-2 text-sm text-gray-600">
+													Loading...
+												</span>
+											</div>
+										) : (
+											filterOptions(
+												filterConfig.researchFields || [],
+												searchTerms.researchField
+											).map((field) => (
+												<motion.label
+													key={field}
+													className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
+													whileHover={{ x: 2 }}
+												>
+													<input
+														type="checkbox"
+														checked={
+															selectedFilters.researchField?.includes(field) ||
+															false
+														}
+														onChange={() =>
+															handleFilterChange('researchField', field)
+														}
+														className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
+													/>
+													<span className="text-sm text-gray-700">{field}</span>
+												</motion.label>
+											))
+										)}
 									</div>
 								</motion.div>
 							)}
@@ -569,25 +806,40 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									</div>
 
 									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
-										{filterConfig.countries?.map((country) => (
-											<motion.label
-												key={country}
-												className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
-												whileHover={{ x: 2 }}
-											>
-												<input
-													type="checkbox"
-													checked={
-														selectedFilters.country?.includes(country) || false
-													}
-													onChange={() =>
-														handleFilterChange('country', country)
-													}
-													className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
-												/>
-												<span className="text-sm text-gray-700">{country}</span>
-											</motion.label>
-										))}
+										{isLoadingFilters ? (
+											<div className="flex items-center justify-center py-4">
+												<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
+												<span className="ml-2 text-sm text-gray-600">
+													Loading...
+												</span>
+											</div>
+										) : (
+											filterOptions(
+												filterConfig.countries || [],
+												searchTerms.country
+											).map((country) => (
+												<motion.label
+													key={country}
+													className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
+													whileHover={{ x: 2 }}
+												>
+													<input
+														type="checkbox"
+														checked={
+															selectedFilters.country?.includes(country) ||
+															false
+														}
+														onChange={() =>
+															handleFilterChange('country', country)
+														}
+														className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
+													/>
+													<span className="text-sm text-gray-700">
+														{country}
+													</span>
+												</motion.label>
+											))
+										)}
 									</div>
 								</motion.div>
 							)}
@@ -890,7 +1142,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									transition={{ duration: 0.3 }}
 								>
 									<div className="space-y-2">
-										{filterConfig.degreeLevels?.map((level) => (
+										{(filterConfig.degreeLevels || []).map((level) => (
 											<motion.label
 												key={level}
 												className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
@@ -946,26 +1198,37 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									transition={{ duration: 0.3 }}
 								>
 									<div className="space-y-2">
-										{filterConfig.essayRequired?.map((option) => (
-											<motion.label
-												key={option}
-												className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
-												whileHover={{ x: 2 }}
-											>
-												<input
-													type="checkbox"
-													checked={
-														selectedFilters.essayRequired?.includes(option) ||
-														false
-													}
-													onChange={() =>
-														handleFilterChange('essayRequired', option)
-													}
-													className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
-												/>
-												<span className="text-sm text-gray-700">{option}</span>
-											</motion.label>
-										))}
+										{isLoadingFilters ? (
+											<div className="flex items-center justify-center py-4">
+												<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
+												<span className="ml-2 text-sm text-gray-600">
+													Loading...
+												</span>
+											</div>
+										) : (
+											filterConfig.essayRequired?.map((option) => (
+												<motion.label
+													key={option}
+													className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
+													whileHover={{ x: 2 }}
+												>
+													<input
+														type="checkbox"
+														checked={
+															selectedFilters.essayRequired?.includes(option) ||
+															false
+														}
+														onChange={() =>
+															handleFilterChange('essayRequired', option)
+														}
+														className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
+													/>
+													<span className="text-sm text-gray-700">
+														{option}
+													</span>
+												</motion.label>
+											))
+										)}
 									</div>
 								</motion.div>
 							)}
@@ -1002,7 +1265,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									transition={{ duration: 0.3 }}
 								>
 									<div className="space-y-2">
-										{filterConfig.attendanceTypes?.map((type) => (
+										{(filterConfig.attendanceTypes || []).map((type) => (
 											<motion.label
 												key={type}
 												className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
@@ -1057,7 +1320,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									transition={{ duration: 0.3 }}
 								>
 									<div className="space-y-2">
-										{filterConfig.contractTypes?.map((type) => (
+										{(filterConfig.contractTypes || []).map((type) => (
 											<motion.label
 												key={type}
 												className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
@@ -1113,7 +1376,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									transition={{ duration: 0.3 }}
 								>
 									<div className="space-y-2">
-										{filterConfig.jobTypes?.map((type) => (
+										{(filterConfig.jobTypes || []).map((type) => (
 											<motion.label
 												key={type}
 												className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"

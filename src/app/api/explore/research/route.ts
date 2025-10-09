@@ -110,6 +110,16 @@ export async function GET(request: NextRequest) {
 		// Get institution data
 		const institutions = await prismaClient.institution_profile.findMany();
 
+		// Get disciplines and subdisciplines from database
+		const disciplines = await prismaClient.discipline.findMany({
+			where: { status: true },
+			include: {
+				Sub_Discipline: {
+					where: { status: true },
+				},
+			},
+		});
+
 		// Create a map for quick lookups
 		const postJobMap = new Map(postJobs.map((pj) => [pj.PostId, pj]));
 
@@ -132,8 +142,19 @@ export async function GET(request: NextRequest) {
 
 				const applicationCount = applicationCountMap.get(post.id) || 0;
 
+				// Create unique numeric ID by hashing the post ID
+				const hashCode = (str: string) => {
+					let hash = 0;
+					for (let i = 0; i < str.length; i++) {
+						const char = str.charCodeAt(i);
+						hash = (hash << 5) - hash + char;
+						hash = hash & hash; // Convert to 32bit integer
+					}
+					return Math.abs(hash);
+				};
+
 				const lab: ResearchLab = {
-					id: parseInt(post.id.substring(0, 8), 16), // Convert string ID to number
+					id: hashCode(post.id),
 					title: post.title,
 					description: post.content || "No description available",
 					professor: "Prof. Researcher", // Default value since not in PostJob
@@ -202,9 +223,66 @@ export async function GET(request: NextRequest) {
 			totalPages: Math.ceil(totalCount / limit),
 		};
 
+		// Extract available filter options from all research labs (before pagination)
+		const availableCountries = Array.from(
+			new Set(labs.map((lab) => lab.country).filter(Boolean))
+		).sort();
+
+		const availableResearchFields = Array.from(
+			new Set(labs.map((lab) => lab.field).filter(Boolean))
+		).sort();
+
+		const availableJobTypes = Array.from(
+			new Set(labs.map((lab) => lab.position).filter(Boolean))
+		).sort();
+
+		const availableDegreeLevels = Array.from(
+			new Set(
+				labs
+					.map((lab) => {
+						const pos = lab.position.toLowerCase();
+						if (pos.includes("phd")) return "PhD";
+						if (pos.includes("postdoc")) return "Postdoc";
+						if (pos.includes("master")) return "Master";
+						return "Other";
+					})
+					.filter(Boolean)
+			)
+		).sort();
+
+		const availableContractTypes = Array.from(
+			new Set(
+				labs
+					.map((lab) => {
+						const desc = lab.description.toLowerCase();
+						if (
+							desc.includes("full-time") ||
+							desc.includes("fulltime")
+						)
+							return "Full-time";
+						if (
+							desc.includes("part-time") ||
+							desc.includes("parttime")
+						)
+							return "Part-time";
+						if (desc.includes("contract")) return "Contract";
+						return "Full-time"; // default
+					})
+					.filter(Boolean)
+			)
+		).sort();
+
 		const response: ExploreApiResponse<ResearchLab> = {
 			data: labs,
 			meta,
+			availableFilters: {
+				countries: availableCountries,
+				researchFields: availableResearchFields,
+				jobTypes: availableJobTypes,
+				degreeLevels: availableDegreeLevels,
+				contractTypes: availableContractTypes,
+				attendanceTypes: ["On-site", "Remote", "Hybrid"], // Default values for research
+			},
 		};
 
 		return NextResponse.json(response);

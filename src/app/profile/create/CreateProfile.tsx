@@ -261,6 +261,25 @@ export default function CreateProfile() {
 		}
 
 	const handleGetStarted = async () => {
+		// Validate research papers before saving
+		const incompleteResearchPapers =
+			formData.researchPapers?.filter(
+				(paper: any) =>
+					(!paper.title ||
+						paper.title.trim() === '' ||
+						!paper.discipline ||
+						paper.discipline.trim() === '') &&
+					paper.files &&
+					paper.files.length > 0
+			) || []
+
+		if (incompleteResearchPapers.length > 0) {
+			alert(
+				'Please provide both title and discipline for all research papers before uploading files.'
+			)
+			return
+		}
+
 		try {
 			// Save profile to database
 			const { ApiService } = await import('@/lib/axios-config')
@@ -365,7 +384,7 @@ export default function CreateProfile() {
 					/>
 
 					<div
-						className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[300px]'}`}
+						className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[200px]'}`}
 					>
 						<div
 							className={`transition-all duration-500 ease-in-out ${

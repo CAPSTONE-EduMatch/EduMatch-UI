@@ -103,8 +103,10 @@ exports.handler = async (event) => {
       const message = JSON.parse(record.body);
       console.log('Processing notification:', message.type, 'for user:', message.userId);
       
-      // Forward message to email queue
+      // Store notification in database
+      await storeNotificationInDatabase(message);
       
+      // Forward message to email queue
       const emailCommand = new SendMessageCommand({
         QueueUrl: process.env.EMAILS_QUEUE_URL,
         MessageBody: JSON.stringify(message),
@@ -131,6 +133,68 @@ exports.handler = async (event) => {
     }
   }
 };
+
+async function storeNotificationInDatabase(message) {
+  try {
+    console.log('Storing notification in database:', message.type, 'for user:', message.userId);
+    
+    // Create notification title and body based on type
+    let title = "";
+    let bodyText = "";
+    let url = "/";
+
+    switch (message.type) {
+      case "WELCOME":
+        title = "Welcome to EduMatch!";
+        bodyText = \`Welcome \${message.metadata?.firstName || "User"}! Your account has been created successfully.\`;
+        url = "/profile/create";
+        break;
+      case "PROFILE_CREATED":
+        title = "Profile Created Successfully!";
+        bodyText = \`Your \${message.metadata?.role || "profile"} profile has been created and is now live.\`;
+        url = "/profile/view";
+        break;
+      case "PAYMENT_DEADLINE":
+        title = "Payment Deadline Reminder";
+        bodyText = \`Your \${message.metadata?.planName || "subscription"} payment is due on \${message.metadata?.deadlineDate || "soon"}.\`;
+        url = "/pricing";
+        break;
+      default:
+        title = "New Notification";
+        bodyText = "You have a new notification from EduMatch.";
+        break;
+    }
+
+    // Call your API to store notification
+    const response = await fetch(\`\${process.env.API_BASE_URL || 'https://your-app-url.com'}/api/notifications/store\`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: message.id,
+        userId: message.userId,
+        type: message.type,
+        title,
+        bodyText,
+        url,
+        payload: message.metadata || {},
+        createAt: new Date().toISOString(),
+        queuedAt: new Date().toISOString(),
+        status: "sent",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(\`Failed to store notification: \${response.status}\`);
+    }
+
+    console.log('✅ Notification stored in database successfully');
+  } catch (error) {
+    console.error('❌ Error storing notification in database:', error);
+    throw error;
+  }
+}
       `),
 				role: lambdaRole,
 				timeout: cdk.Duration.seconds(300),

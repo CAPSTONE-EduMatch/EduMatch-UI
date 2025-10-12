@@ -44,7 +44,11 @@ export function ScholarshipCard({
 						Grant: {scholarship.amount}
 					</span>
 					<motion.button
-						onClick={() => onWishlistToggle(scholarship.id)}
+						onClick={(e) => {
+							e.preventDefault()
+							e.stopPropagation()
+							onWishlistToggle(scholarship.id)
+						}}
 						className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 						whileHover={{ scale: 1.1 }}
 						whileTap={{ scale: 0.9 }}

@@ -9,11 +9,12 @@ import { Pagination } from '@/components/ui/Pagination'
 import { SearchBar } from '@/components/ui/SearchBar'
 import { SortDropdown, SortOption } from '@/components/ui/Sort'
 import { TabSelector } from '@/components/ui/TabSelector'
-import { mockPrograms, mockResearchLabs, mockScholarships } from '@/data/utils'
+import { ExploreApiService } from '@/lib/explore-api'
 import { TabType } from '@/types/explore'
+import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import student from '../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -21,29 +22,112 @@ const categories = [
 	{ id: 'research', label: 'Research Labs' },
 ]
 
-const ITEMS_PER_PAGE = 15
+const ITEMS_PER_PAGE_PROGRAMS = 15
+const ITEMS_PER_PAGE_SCHOLARSHIPS = 5
+const ITEMS_PER_PAGE_RESEARCH = 5
 
 const Explore = () => {
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
-	// Get current tab data and calculate pagination
-	const getCurrentTabData = () => {
-		switch (activeTab) {
-			case 'programmes':
-				return mockPrograms
-			case 'scholarships':
-				return mockScholarships
-			case 'research':
-				return mockResearchLabs
-			default:
-				return []
-		}
-	}
 
-	const currentTabData = getCurrentTabData()
-	const totalItems = currentTabData.length
-	const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
+	// Programs state
+	const [programs, setPrograms] = useState<Program[]>([])
+	const [programsLoading, setProgramsLoading] = useState(false)
+	const [programsTotalPages, setProgramsTotalPages] = useState(0)
+	const [programsTotalItems, setProgramsTotalItems] = useState(0)
+
+	// Scholarships state
+	const [scholarships, setScholarships] = useState<Scholarship[]>([])
+	const [scholarshipsLoading, setScholarshipsLoading] = useState(false)
+	const [scholarshipsTotalPages, setScholarshipsTotalPages] = useState(0)
+	const [scholarshipsTotalItems, setScholarshipsTotalItems] = useState(0)
+
+	// Research Labs state
+	const [researchLabs, setResearchLabs] = useState<ResearchLab[]>([])
+	const [researchLabsLoading, setResearchLabsLoading] = useState(false)
+	const [researchLabsTotalPages, setResearchLabsTotalPages] = useState(0)
+	const [researchLabsTotalItems, setResearchLabsTotalItems] = useState(0)
+
+	// Load data when tab, page, or sort changes
+	useEffect(() => {
+		const loadData = async () => {
+			try {
+				// Filter out unsupported sort options
+				let apiSortBy:
+					| 'most-popular'
+					| 'newest'
+					| 'match-score'
+					| 'deadline'
+					| undefined = 'newest'
+				if (
+					sortBy === 'most-popular' ||
+					sortBy === 'newest' ||
+					sortBy === 'match-score' ||
+					sortBy === 'deadline'
+				) {
+					apiSortBy = sortBy
+				}
+
+				if (activeTab === 'programmes') {
+					setProgramsLoading(true)
+					const response = await ExploreApiService.getPrograms({
+						page: currentPage,
+						limit: ITEMS_PER_PAGE_PROGRAMS,
+						sortBy: apiSortBy,
+					})
+					setPrograms(response.data)
+					setProgramsTotalItems(response.meta.total)
+					setProgramsTotalPages(response.meta.totalPages)
+					setProgramsLoading(false)
+				} else if (activeTab === 'scholarships') {
+					setScholarshipsLoading(true)
+					const response = await ExploreApiService.getScholarships({
+						page: currentPage,
+						limit: ITEMS_PER_PAGE_SCHOLARSHIPS,
+						sortBy: apiSortBy,
+					})
+					setScholarships(response.data)
+					setScholarshipsTotalItems(response.meta.total)
+					setScholarshipsTotalPages(response.meta.totalPages)
+					setScholarshipsLoading(false)
+				} else if (activeTab === 'research') {
+					setResearchLabsLoading(true)
+					const response = await ExploreApiService.getResearchLabs({
+						page: currentPage,
+						limit: ITEMS_PER_PAGE_RESEARCH,
+						sortBy: apiSortBy,
+					})
+					setResearchLabs(response.data)
+					setResearchLabsTotalItems(response.meta.total)
+					setResearchLabsTotalPages(response.meta.totalPages)
+					setResearchLabsLoading(false)
+				}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error(`Error loading ${activeTab}:`, error)
+
+				if (activeTab === 'programmes') {
+					setPrograms([])
+					setProgramsTotalItems(0)
+					setProgramsTotalPages(0)
+					setProgramsLoading(false)
+				} else if (activeTab === 'scholarships') {
+					setScholarships([])
+					setScholarshipsTotalItems(0)
+					setScholarshipsTotalPages(0)
+					setScholarshipsLoading(false)
+				} else if (activeTab === 'research') {
+					setResearchLabs([])
+					setResearchLabsTotalItems(0)
+					setResearchLabsTotalPages(0)
+					setResearchLabsLoading(false)
+				}
+			}
+		}
+
+		loadData()
+	}, [activeTab, currentPage, sortBy])
 
 	const breadcrumbItems = [{ label: 'Explore', href: '/explore' }]
 
@@ -56,35 +140,47 @@ const Explore = () => {
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'programmes':
-				return (
-					<ProgramsTab
-						currentPage={currentPage}
-						itemsPerPage={ITEMS_PER_PAGE}
-					/>
-				)
+				return <ProgramsTab programs={programs} />
 			case 'scholarships':
-				return (
-					<ScholarshipsTab
-						currentPage={currentPage}
-						itemsPerPage={ITEMS_PER_PAGE}
-					/>
-				)
+				return <ScholarshipsTab scholarships={scholarships} />
 			case 'research':
-				return (
-					<ResearchLabsTab
-						currentPage={currentPage}
-						itemsPerPage={ITEMS_PER_PAGE}
-					/>
-				)
+				return <ResearchLabsTab researchLabs={researchLabs} />
 			default:
-				return (
-					<ProgramsTab
-						currentPage={currentPage}
-						itemsPerPage={ITEMS_PER_PAGE}
-					/>
-				)
+				return <ProgramsTab programs={programs} />
 		}
 	}
+
+	// Get current tab data for UI display
+	const getCurrentTabData = () => {
+		switch (activeTab) {
+			case 'programmes':
+				return {
+					loading: programsLoading,
+					totalItems: programsTotalItems,
+					totalPages: programsTotalPages,
+				}
+			case 'scholarships':
+				return {
+					loading: scholarshipsLoading,
+					totalItems: scholarshipsTotalItems,
+					totalPages: scholarshipsTotalPages,
+				}
+			case 'research':
+				return {
+					loading: researchLabsLoading,
+					totalItems: researchLabsTotalItems,
+					totalPages: researchLabsTotalPages,
+				}
+			default:
+				return {
+					loading: programsLoading,
+					totalItems: programsTotalItems,
+					totalPages: programsTotalPages,
+				}
+		}
+	}
+
+	const currentTabData = getCurrentTabData()
 	return (
 		<div className="min-h-screen bg-background">
 			{/* ---------------------------------------------------Quote----------------------------------------------- */}
@@ -147,21 +243,38 @@ const Explore = () => {
 							animate={{ opacity: 1 }}
 							transition={{ delay: 0.2 }}
 						>
-							<div className="text-sm text-gray-600">{totalItems} results</div>
+							<div className="text-sm text-gray-600">
+								{currentTabData.totalItems} results
+							</div>
 							<SortDropdown value={sortBy} onChange={setSortBy} />
 						</motion.div>
 						<div className="flex gap-6 h-full">
 							<div className="sticky top-4 self-start ">
 								<FilterSidebar activeTab={activeTab} />
 							</div>
-							<div className="">
-								{renderTabContent()}
+							<div className="w-full">
+								{currentTabData.loading ? (
+									<div className="flex items-center justify-center py-20 w-full h-full">
+										<div className="flex flex-col items-center gap-3">
+											<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
+											<p className="text-gray-600 text-sm">
+												Loading{' '}
+												{activeTab === 'programmes' ? 'programs' : activeTab}
+												...
+											</p>
+										</div>
+									</div>
+								) : (
+									renderTabContent()
+								)}
 
-								<Pagination
-									currentPage={currentPage}
-									totalPages={totalPages}
-									onPageChange={setCurrentPage}
-								/>
+								{!currentTabData.loading && (
+									<Pagination
+										currentPage={currentPage}
+										totalPages={currentTabData.totalPages}
+										onPageChange={setCurrentPage}
+									/>
+								)}
 							</div>
 						</div>
 					</div>

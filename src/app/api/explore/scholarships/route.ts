@@ -110,6 +110,16 @@ export async function GET(request: NextRequest) {
 		// Get institution data
 		const institutions = await prismaClient.institution_profile.findMany();
 
+		// Get disciplines and subdisciplines from database
+		const disciplines = await prismaClient.discipline.findMany({
+			where: { status: true },
+			include: {
+				Sub_Discipline: {
+					where: { status: true },
+				},
+			},
+		});
+
 		// Create a map for quick lookups
 		const postScholarshipMap = new Map(
 			postScholarships.map((ps) => [ps.PostId, ps])
@@ -134,8 +144,19 @@ export async function GET(request: NextRequest) {
 
 				const applicationCount = applicationCountMap.get(post.id) || 0;
 
+				// Create unique numeric ID by hashing the post ID
+				const hashCode = (str: string) => {
+					let hash = 0;
+					for (let i = 0; i < str.length; i++) {
+						const char = str.charCodeAt(i);
+						hash = (hash << 5) - hash + char;
+						hash = hash & hash; // Convert to 32bit integer
+					}
+					return Math.abs(hash);
+				};
+
 				const scholarship: Scholarship = {
-					id: parseInt(post.id.substring(0, 8), 16), // Convert string ID to number
+					id: hashCode(post.id),
 					title: post.title,
 					description: post.content || "No description available",
 					provider: postScholarship.type || "Provided by institution",
@@ -161,11 +182,23 @@ export async function GET(request: NextRequest) {
 		// Apply client-side filters
 		if (discipline.length > 0) {
 			scholarships = scholarships.filter((scholarship) =>
-				discipline.some((d) =>
-					scholarship.description
+				discipline.some((d) => {
+					// Check against discipline names from database
+					const matchesDiscipline = disciplines.some(
+						(dbDisc) =>
+							dbDisc.name
+								.toLowerCase()
+								.includes(d.toLowerCase()) ||
+							d.toLowerCase().includes(dbDisc.name.toLowerCase())
+					);
+
+					// Also check description for backward compatibility
+					const matchesDescription = scholarship.description
 						.toLowerCase()
-						.includes(d.toLowerCase())
-				)
+						.includes(d.toLowerCase());
+
+					return matchesDiscipline || matchesDescription;
+				})
 			);
 		}
 
@@ -235,9 +268,68 @@ export async function GET(request: NextRequest) {
 			totalPages: Math.ceil(totalCount / limit),
 		};
 
+		// Extract available filter options from all scholarships (before pagination)
+		const availableCountries = Array.from(
+			new Set(
+				scholarships
+					.map((scholarship) => scholarship.country)
+					.filter(Boolean)
+			)
+		).sort();
+
+		const availableDisciplines = disciplines.map((d) => d.name).sort();
+
+		const availableDegreeLevels = Array.from(
+			new Set(
+				scholarships
+					.map((scholarship) => {
+						const desc = scholarship.description.toLowerCase();
+						if (
+							desc.includes("master") ||
+							desc.includes("msc") ||
+							desc.includes("ma")
+						)
+							return "Master";
+						if (desc.includes("phd") || desc.includes("doctorate"))
+							return "PhD";
+						if (
+							desc.includes("bachelor") ||
+							desc.includes("bsc") ||
+							desc.includes("ba")
+						)
+							return "Bachelor";
+						return "Other";
+					})
+					.filter(Boolean)
+			)
+		).sort();
+
+		const availableEssayRequired = Array.from(
+			new Set(
+				scholarships
+					.map((scholarship) => scholarship.essayRequired)
+					.filter(Boolean)
+			)
+		).sort();
+
 		const response: ExploreApiResponse<Scholarship> = {
 			data: scholarships,
 			meta,
+			availableFilters: {
+				countries: availableCountries,
+				disciplines: availableDisciplines,
+				degreeLevels: availableDegreeLevels,
+				essayRequired: availableEssayRequired,
+				subdisciplines: disciplines.reduce(
+					(acc, discipline) => {
+						acc[discipline.name] = discipline.Sub_Discipline.map(
+							(sub) => sub.name
+						);
+						return acc;
+					},
+					{} as Record<string, string[]>
+				),
+			},
 		};
 
 		return NextResponse.json(response);

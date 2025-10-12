@@ -204,8 +204,8 @@ async function seedPrograms() {
 	const programPosts = [];
 	const programDetails = [];
 
-	// Create 100 program posts for better pagination testing
-	for (let i = 1; i <= 100; i++) {
+	// Create 130 program posts for better pagination testing
+	for (let i = 1; i <= 130; i++) {
 		const field = getRandomElement(fields);
 		const university = getRandomElement(universities);
 		const degreeLevel = getRandomElement(degreeLevels);
@@ -395,7 +395,7 @@ async function seedApplications() {
 	const applications = [];
 
 	// Collect all post IDs
-	const programIds = Array.from({ length: 100 }, (_, i) => `prog-${i + 1}`);
+	const programIds = Array.from({ length: 130 }, (_, i) => `prog-${i + 1}`);
 	const scholarshipIds = Array.from(
 		{ length: 50 },
 		(_, i) => `schol-${i + 1}`
@@ -444,12 +444,12 @@ async function main() {
 		console.log("🎉 Database seeding completed successfully!");
 		console.log("📊 Summary:");
 		console.log("  - 200 Users");
-		console.log("  - 100 Programs");
+		console.log("  - 130 Programs");
 		console.log("  - 50 Scholarships");
 		console.log("  - 75 Research Positions");
 		console.log("  - 500 Applications");
 		console.log(
-			"  - Total: 925 records for comprehensive pagination testing"
+			"  - Total: 955 records for comprehensive pagination testing"
 		);
 	} catch (error) {
 		console.error("❌ Error seeding database:", error);

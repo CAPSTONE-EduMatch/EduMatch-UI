@@ -388,7 +388,6 @@ export function AcademicInfoStep({
 									variant="default"
 									menuPortalTarget={document.body}
 									isSearchable
-									isClearable
 									filterOption={(option, inputValue) => {
 										const country = option.data
 										return country.name
@@ -542,6 +541,13 @@ export function AcademicInfoStep({
 											)}
 											menuPortalTarget={document.body}
 											className="w-full"
+											isSearchable
+											filterOption={(option, inputValue) => {
+												const language = option.data
+												return language.label
+													.toLowerCase()
+													.includes(inputValue.toLowerCase())
+											}}
 										/>
 									</div>
 									<div className="space-y-1 flex-1">
@@ -562,11 +568,18 @@ export function AcademicInfoStep({
 												}
 												onInputChange('languages', newLanguages)
 											}}
-											placeholder="Certificate"
+											placeholder="Select certificate"
 											variant="green"
 											className="w-full"
 											options={getCertificateOptions(lang.language)}
 											menuPortalTarget={document.body}
+											isSearchable
+											filterOption={(option, inputValue) => {
+												const certificate = option.data
+												return certificate.label
+													.toLowerCase()
+													.includes(inputValue.toLowerCase())
+											}}
 										/>
 									</div>
 									<div className="space-y-1 flex-1">
@@ -586,7 +599,7 @@ export function AcademicInfoStep({
 											}}
 											inputSize="select"
 											fullWidth={false}
-											width="w-full max-w-32"
+											width="w-full"
 										/>
 									</div>
 								</div>

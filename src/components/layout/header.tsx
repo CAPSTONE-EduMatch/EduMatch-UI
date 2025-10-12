@@ -1,6 +1,6 @@
 'use client'
 
-import { MessageCircle, Bell, User, Menu, X, LogOut } from 'lucide-react'
+import { MessageCircle, Bell, User, Menu, X, LogOut, Check } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { authClient } from '@/app/lib/auth-client'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { useNotifications } from '@/hooks/useNotifications'
 
 export function EduMatchHeader() {
 	const router = useRouter()
@@ -18,6 +19,9 @@ export function EduMatchHeader() {
 
 	// Get authentication state
 	const { isAuthenticated, refreshAuth } = useAuthCheck()
+
+	// Get notifications
+	const { notifications, unreadCount, markAsRead } = useNotifications()
 
 	const [isVisible, setIsVisible] = useState(true)
 	const [lastScrollY, setLastScrollY] = useState(0)
@@ -123,6 +127,39 @@ export function EduMatchHeader() {
 		}
 	}
 
+	const handleNotificationClick = async (
+		notificationId: string,
+		url: string
+	) => {
+		// Mark notification as read
+		await markAsRead([notificationId])
+
+		// Navigate to the notification URL
+		router.push(url)
+
+		// Close notification dropdown
+		setIsNotificationOpen(false)
+	}
+
+	const handleMarkAllAsRead = async () => {
+		await markAsRead(undefined, true)
+	}
+
+	const formatNotificationTime = (dateString: string) => {
+		const date = new Date(dateString)
+		const now = new Date()
+		const diffInMinutes = Math.floor(
+			(now.getTime() - date.getTime()) / (1000 * 60)
+		)
+
+		if (diffInMinutes < 1) return 'Just now'
+		if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+		if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
+		if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}d ago`
+
+		return date.toLocaleDateString()
+	}
+
 	return (
 		<header
 			className={`w-full bg-[#ffffff] border-b border-gray-100 py-3 fixed top-0 left-0 right-0 z-50  transition-transform duration-300 ease-in-out ${
@@ -185,9 +222,11 @@ export function EduMatchHeader() {
 							>
 								<Bell className="w-5 h-5 text-[#f0a227]" />
 								{/* Badge số thông báo */}
-								<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-									3
-								</div>
+								{unreadCount > 0 && (
+									<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+										{unreadCount > 99 ? '99+' : unreadCount}
+									</div>
+								)}
 							</div>
 
 							{/* Notification Dropdown */}
@@ -196,82 +235,63 @@ export function EduMatchHeader() {
 									{/* Header */}
 									<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
 										<h3 className="text-sm font-semibold text-gray-700">
-											All messages
+											Notifications
 										</h3>
-										{/* <button className="text-gray-400 hover:text-gray-600">
-											<svg
-												className="w-4 h-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
+										{unreadCount > 0 && (
+											<button
+												onClick={handleMarkAllAsRead}
+												className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
 											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M19 9l-7 7-7-7"
-												/>
-											</svg>
-										</button> */}
+												<Check className="w-3 h-3" />
+												Mark all read
+											</button>
+										)}
 									</div>
 
 									{/* Notifications List */}
 									<div className="max-h-96 overflow-y-auto">
-										{/* Contract amendment */}
-										<div className="px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-											<div className="flex items-start gap-3">
-												<div className="w-2 h-2 bg-[#126e64] rounded-full mt-2 flex-shrink-0"></div>
-												<div className="flex-1">
-													<h4 className="text-sm font-medium text-gray-800 mb-1">
-														Contract amendment
-													</h4>
-													<p className="text-xs text-gray-500 mb-2">
-														Ruhrallee 17, 1. OG, rechts
-														<br />
-														Nadine Müller
-													</p>
-												</div>
-												<span className="text-xs text-gray-400">2:32pm</span>
+										{notifications.length === 0 ? (
+											<div className="px-4 py-8 text-center text-gray-500">
+												<Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+												<p className="text-sm">No notifications yet</p>
 											</div>
-										</div>
-
-										{/* Cancellation */}
-										<div className="px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-											<div className="flex items-start gap-3">
-												<div className="w-2 h-2 bg-[#126e64] rounded-full mt-2 flex-shrink-0"></div>
-												<div className="flex-1">
-													<h4 className="text-sm font-medium text-gray-800 mb-1">
-														Cancellation
-													</h4>
-													<p className="text-xs text-gray-500 mb-2">
-														Ruhrallee 17, 1. OG, rechts
-														<br />
-														Nadine Müller
-													</p>
+										) : (
+											notifications.map((notification) => (
+												<div
+													key={notification.id}
+													className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer ${
+														!notification.read_at ? 'bg-blue-50' : ''
+													}`}
+													onClick={() =>
+														handleNotificationClick(
+															notification.id,
+															notification.url
+														)
+													}
+												>
+													<div className="flex items-start gap-3">
+														<div
+															className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+																!notification.read_at
+																	? 'bg-[#126e64]'
+																	: 'bg-gray-300'
+															}`}
+														></div>
+														<div className="flex-1">
+															<h4 className="text-sm font-medium text-gray-800 mb-1">
+																{notification.title}
+															</h4>
+															<p className="text-xs text-gray-500 mb-2">
+																{notification.bodyText}
+															</p>
+														</div>
+														<span className="text-xs text-gray-400">
+															{formatNotificationTime(notification.createAt)}
+														</span>
+													</div>
 												</div>
-												<span className="text-xs text-gray-400">Yesterday</span>
-											</div>
-										</div>
-
-										{/* Water damage */}
-										<div className="px-4 py-3 hover:bg-gray-50">
-											<div className="flex items-start gap-3">
-												<div className="w-2 h-2 bg-[#126e64] rounded-full mt-2 flex-shrink-0"></div>
-												<div className="flex-1">
-													<h4 className="text-sm font-medium text-gray-800 mb-1">
-														Water damage
-													</h4>
-													<p className="text-xs text-gray-500 mb-2">
-														Ruhrallee 17, 1. OG, rechts
-														<br />
-														Nadine Müller
-													</p>
-												</div>
-												<span className="text-xs text-gray-400">
-													3 days ago
-												</span>
-											</div>
-										</div>
+											))
+										)}
 									</div>
 								</div>
 							)}
@@ -430,9 +450,11 @@ export function EduMatchHeader() {
 								>
 									<Bell className="w-5 h-5 text-[#f0a227]" />
 									{/* Badge số thông báo */}
-									<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-										3
-									</div>
+									{unreadCount > 0 && (
+										<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+											{unreadCount > 99 ? '99+' : unreadCount}
+										</div>
+									)}
 								</div>
 							</div>
 							<div

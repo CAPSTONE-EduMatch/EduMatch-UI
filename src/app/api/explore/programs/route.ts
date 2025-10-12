@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
 			1,
 			Math.min(50, parseInt(searchParams.get("limit") || "10"))
 		); // Max 50 per page
-		const skip = (page - 1) * limit;
 
 		// Build where clause for filtering
 		const whereClause: any = {
@@ -67,13 +66,8 @@ export async function GET(request: NextRequest) {
 			];
 		}
 
-		// Get total count for pagination
-		const totalCount = await prismaClient.post.count({
-			where: whereClause,
-		});
-
-		// Query posts with PostProgram data
-		const posts = await prismaClient.post.findMany({
+		// Query ALL posts first (without pagination) to apply filtering
+		const allPosts = await prismaClient.post.findMany({
 			where: whereClause,
 			orderBy:
 				sortBy === "newest"
@@ -81,15 +75,13 @@ export async function GET(request: NextRequest) {
 					: sortBy === "oldest"
 						? { createdAt: "asc" }
 						: { createdAt: "desc" }, // default to newest
-			skip,
-			take: limit,
 		});
 
-		// Get PostProgram data for each post
-		const postIds = posts.map((post) => post.id);
+		// Get PostProgram data for all posts
+		const allPostIds = allPosts.map((post) => post.id);
 		const postPrograms = await prismaClient.postProgram.findMany({
 			where: {
-				PostId: { in: postIds },
+				PostId: { in: allPostIds },
 			},
 		});
 
@@ -97,7 +89,7 @@ export async function GET(request: NextRequest) {
 		const applicationCounts = await prismaClient.application.groupBy({
 			by: ["postId"],
 			where: {
-				postId: { in: postIds },
+				postId: { in: allPostIds },
 			},
 			_count: {
 				id: true,
@@ -107,7 +99,17 @@ export async function GET(request: NextRequest) {
 		// Get institution data
 		const institutions = await prismaClient.institution_profile.findMany();
 
-		// Create a map for quick lookups
+		// Get disciplines and subdisciplines from database
+		const disciplines = await prismaClient.discipline.findMany({
+			where: { status: true },
+			include: {
+				Sub_Discipline: {
+					where: { status: true },
+				},
+			},
+		});
+
+		// Create maps for quick lookups
 		const postProgramMap = new Map(
 			postPrograms.map((pp) => [pp.PostId, pp])
 		);
@@ -117,14 +119,38 @@ export async function GET(request: NextRequest) {
 			applicationCounts.map((ac) => [ac.postId, ac._count.id])
 		);
 
-		// Transform data to Program format
-		let programs: Program[] = posts
+		// Create institution map
+		const institutionMap = new Map(
+			institutions.map((inst) => [inst.profile_id, inst])
+		);
+
+		// Create subdiscipline map for discipline lookup
+		const subdisciplineMap = new Map();
+		const disciplineMap = new Map();
+		disciplines.forEach((discipline) => {
+			disciplineMap.set(discipline.id, discipline.name);
+			discipline.Sub_Discipline.forEach((sub) => {
+				subdisciplineMap.set(sub.id, {
+					name: sub.name,
+					disciplineName: discipline.name,
+				});
+			});
+		});
+
+		// Transform ALL data to Program format first
+		let allPrograms: Program[] = allPosts
 			.map((post) => {
 				const postProgram = postProgramMap.get(post.id);
 				if (!postProgram) return null;
 
-				// Find a matching institution (simplified logic)
-				const institution = institutions[0] || {
+				// Find the appropriate institution for this program
+				// For now, we'll use a more intelligent matching logic
+				const institution = institutions.find(
+					(inst) =>
+						// You can add more sophisticated matching logic here
+						// For example, matching by program content or other criteria
+						inst.name && inst.country
+				) || {
 					name: "University",
 					logo: "/logos/default.png",
 					country: "Unknown",
@@ -132,13 +158,56 @@ export async function GET(request: NextRequest) {
 
 				const applicationCount = applicationCountMap.get(post.id) || 0;
 
+				// Map degree level to proper discipline name
+				let fieldName = postProgram.degreeLevel || "General Studies";
+
+				// Try to find a matching discipline/subdiscipline
+				for (const [, subInfo] of Array.from(subdisciplineMap)) {
+					if (
+						fieldName
+							.toLowerCase()
+							.includes(subInfo.name.toLowerCase())
+					) {
+						fieldName = `${subInfo.disciplineName} - ${subInfo.name}`;
+						break;
+					}
+				}
+
+				// If no subdiscipline match, try main disciplines
+				if (
+					fieldName === postProgram.degreeLevel ||
+					fieldName === "General Studies"
+				) {
+					for (const [, discName] of Array.from(disciplineMap)) {
+						if (
+							fieldName
+								.toLowerCase()
+								.includes(discName.toLowerCase())
+						) {
+							fieldName = discName;
+							break;
+						}
+					}
+				}
+
+				// Create unique numeric ID by hashing the post ID
+				const hashCode = (str: string) => {
+					let hash = 0;
+					for (let i = 0; i < str.length; i++) {
+						const char = str.charCodeAt(i);
+						hash = (hash << 5) - hash + char;
+						hash = hash & hash; // Convert to 32bit integer
+					}
+					return Math.abs(hash);
+				};
+
 				const program: Program = {
-					id: parseInt(post.id.substring(0, 8), 16), // Convert string ID to number
+					id: hashCode(post.id),
 					title: post.title,
 					description: post.content || "No description available",
 					university: institution.name,
 					logo: institution.logo || "/logos/default.png",
-					field: postProgram.degreeLevel || "General Studies",
+					field: fieldName, // Use the mapped discipline/subdiscipline name
 					country: institution.country || "Unknown",
 					date: post.createdAt.toISOString().split("T")[0],
 					daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
@@ -156,9 +225,9 @@ export async function GET(request: NextRequest) {
 			})
 			.filter((program): program is Program => program !== null);
 
-		// Apply client-side filters (since we couldn't do them in the DB query)
+		// Apply ALL client-side filters
 		if (discipline.length > 0) {
-			programs = programs.filter((program) =>
+			allPrograms = allPrograms.filter((program) =>
 				discipline.some((d) =>
 					program.field.toLowerCase().includes(d.toLowerCase())
 				)
@@ -166,19 +235,19 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (country.length > 0) {
-			programs = programs.filter((program) =>
+			allPrograms = allPrograms.filter((program) =>
 				country.includes(program.country)
 			);
 		}
 
 		if (attendance.length > 0) {
-			programs = programs.filter((program) =>
+			allPrograms = allPrograms.filter((program) =>
 				attendance.includes(program.attendance)
 			);
 		}
 
 		if (degreeLevel.length > 0) {
-			programs = programs.filter((program) =>
+			allPrograms = allPrograms.filter((program) =>
 				degreeLevel.some((level) =>
 					program.field.toLowerCase().includes(level.toLowerCase())
 				)
@@ -188,21 +257,21 @@ export async function GET(request: NextRequest) {
 		// Sort programs
 		switch (sortBy) {
 			case "most-popular":
-				programs.sort(
+				allPrograms.sort(
 					(a, b) =>
 						(b.applicationCount || 0) - (a.applicationCount || 0)
 				);
 				break;
 			case "match-score":
-				programs.sort(
+				allPrograms.sort(
 					(a, b) => parseFloat(b.match) - parseFloat(a.match)
 				);
 				break;
 			case "deadline":
-				programs.sort((a, b) => a.daysLeft - b.daysLeft);
+				allPrograms.sort((a, b) => a.daysLeft - b.daysLeft);
 				break;
 			case "price-low":
-				programs.sort((a, b) => {
+				allPrograms.sort((a, b) => {
 					const priceA =
 						parseFloat(a.price.replace(/[^0-9.]/g, "")) || 0;
 					const priceB =
@@ -211,7 +280,7 @@ export async function GET(request: NextRequest) {
 				});
 				break;
 			case "price-high":
-				programs.sort((a, b) => {
+				allPrograms.sort((a, b) => {
 					const priceA =
 						parseFloat(a.price.replace(/[^0-9.]/g, "")) || 0;
 					const priceB =
@@ -222,6 +291,14 @@ export async function GET(request: NextRequest) {
 			// newest and oldest are handled by DB orderBy above
 		}
 
+		// Get total count AFTER filtering
+		const totalCount = allPrograms.length;
+
+		// Apply pagination AFTER filtering and sorting
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		const programs = allPrograms.slice(startIndex, endIndex);
+
 		const totalPages = Math.ceil(totalCount / limit);
 
 		const meta: PaginationMeta = {
@@ -231,9 +308,69 @@ export async function GET(request: NextRequest) {
 			totalPages,
 		};
 
+		// Extract available filter options from all programs (before pagination)
+		const availableCountries = Array.from(
+			new Set(
+				allPrograms.map((program) => program.country).filter(Boolean)
+			)
+		).sort();
+
+		const availableDisciplines = Array.from(
+			new Set(allPrograms.map((program) => program.field).filter(Boolean))
+		).sort();
+
+		const availableDegreeLevels = Array.from(
+			new Set(
+				allPrograms
+					.map((program) => {
+						const field = program.field.toLowerCase();
+						if (
+							field.includes("master") ||
+							field.includes("msc") ||
+							field.includes("ma")
+						)
+							return "Master";
+						if (
+							field.includes("phd") ||
+							field.includes("doctorate")
+						)
+							return "PhD";
+						if (
+							field.includes("bachelor") ||
+							field.includes("bsc") ||
+							field.includes("ba")
+						)
+							return "Bachelor";
+						return "Other";
+					})
+					.filter(Boolean)
+			)
+		).sort();
+
+		const availableAttendanceTypes = Array.from(
+			new Set(
+				allPrograms.map((program) => program.attendance).filter(Boolean)
+			)
+		).sort();
+
 		const response: ExploreApiResponse<Program> = {
 			data: programs,
 			meta,
+			availableFilters: {
+				countries: availableCountries,
+				disciplines: availableDisciplines,
+				degreeLevels: availableDegreeLevels,
+				attendanceTypes: availableAttendanceTypes,
+				subdisciplines: disciplines.reduce(
+					(acc, discipline) => {
+						acc[discipline.name] = discipline.Sub_Discipline.map(
+							(sub) => sub.name
+						);
+						return acc;
+					},
+					{} as Record<string, string[]>
+				),
+			},
 		};
 
 		return NextResponse.json(response);

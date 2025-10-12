@@ -1,20 +1,14 @@
 'use client'
 
-import { mockResearchLabs } from '@/data/utils'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ResearchLabCard } from '../ui/ResearchLabCard'
-import { SortOption } from '../ui/Sort'
+import { ResearchLab } from '@/types/explore-api'
 
 interface ResearchLabsTabProps {
-	sortBy?: SortOption
-	currentPage?: number
-	itemsPerPage?: number
+	researchLabs?: ResearchLab[]
 }
 
-export function ResearchLabsTab({
-	currentPage = 1,
-	itemsPerPage = 15,
-}: ResearchLabsTabProps) {
+export function ResearchLabsTab({ researchLabs = [] }: ResearchLabsTabProps) {
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
 	const toggleWishlist = (id: number) => {
@@ -29,17 +23,10 @@ export function ResearchLabsTab({
 		})
 	}
 
-	const paginatedLabs = useMemo(() => {
-		// Apply pagination without sorting
-		const startIndex = (currentPage - 1) * itemsPerPage
-		const endIndex = startIndex + itemsPerPage
-		return mockResearchLabs.slice(startIndex, endIndex)
-	}, [currentPage, itemsPerPage])
-
 	return (
 		<div className="space-y-4">
-			{paginatedLabs.length > 0 ? (
-				paginatedLabs.map((lab, index) => (
+			{researchLabs.length > 0 ? (
+				researchLabs.map((lab, index) => (
 					<ResearchLabCard
 						key={lab.id}
 						lab={lab}

@@ -93,16 +93,20 @@ export function InstitutionInfoStep({
 		e: React.ChangeEvent<HTMLInputElement>
 	) => {
 		const value = e.target.value
-		// Remove special characters but allow letters, numbers, spaces, and common punctuation
-		const cleanValue = value.replace(/[^a-zA-Z0-9\s\-\.&]/g, '')
+		// Remove special characters and numbers but allow letters, spaces, and common punctuation
+		const cleanValue = value.replace(/[^a-zA-Z\s\-\.&]/g, '')
 		onInputChange('institutionName', cleanValue)
 	}
 
-	const validateRequiredFields = () => {
+	const validateRequiredFields = async () => {
 		const errors: Record<string, boolean> = {}
 
 		// Email validation regex
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+		// Get valid country codes for validation
+		const validCountries = getCountriesWithSvgFlags()
+		const validCountryCodes = validCountries.map((country) => country.phoneCode)
 
 		// Required fields validation (all fields except abbreviation and appellation)
 		if (!formData.institutionName?.trim()) errors.institutionName = true
@@ -127,23 +131,53 @@ export function InstitutionInfoStep({
 		if (!formData.representativePhone?.trim()) errors.representativePhone = true
 		if (!formData.aboutInstitution?.trim()) errors.aboutInstitution = true
 
+		// Validate phone number formats with country codes
+		if (formData.institutionHotlineCode && formData.institutionHotline) {
+			const fullNumber = `${formData.institutionHotlineCode}${formData.institutionHotline}`
+			const selectedCountry = validCountries.find(
+				(country) => country.phoneCode === formData.institutionHotlineCode
+			)
+
+			if (selectedCountry) {
+				try {
+					const { isValidPhoneNumber } = await import('libphonenumber-js')
+					const isValidNumber = isValidPhoneNumber(
+						fullNumber,
+						selectedCountry.code as any
+					)
+					if (!isValidNumber) {
+						errors.institutionHotline = true
+					}
+				} catch (error) {
+					errors.institutionHotline = true
+				}
+			}
+		}
+
+		if (formData.representativePhoneCode && formData.representativePhone) {
+			const fullNumber = `${formData.representativePhoneCode}${formData.representativePhone}`
+			const selectedCountry = validCountries.find(
+				(country) => country.phoneCode === formData.representativePhoneCode
+			)
+
+			if (selectedCountry) {
+				try {
+					const { isValidPhoneNumber } = await import('libphonenumber-js')
+					const isValidNumber = isValidPhoneNumber(
+						fullNumber,
+						selectedCountry.code as any
+					)
+					if (!isValidNumber) {
+						errors.representativePhone = true
+					}
+				} catch (error) {
+					errors.representativePhone = true
+				}
+			}
+		}
+
 		setValidationErrors(errors)
 		return Object.keys(errors).length === 0
-	}
-
-	const handleAddCampus = () => {
-		if (newCampus.name && newCampus.country && newCampus.address) {
-			const updatedCampuses = [...(formData.campuses || []), { ...newCampus }]
-			onInputChange('campuses', updatedCampuses)
-			setNewCampus({ name: '', country: '', address: '' })
-			setShowCampusForm(false)
-		}
-	}
-
-	const handleRemoveCampus = (index: number) => {
-		const updatedCampuses =
-			formData.campuses?.filter((_, i) => i !== index) || []
-		onInputChange('campuses', updatedCampuses)
 	}
 
 	const handleFileSelect = async (
@@ -190,8 +224,11 @@ export function InstitutionInfoStep({
 		fileInputRef.current?.click()
 	}
 
-	const handleNext = () => {
-		if (validateRequiredFields() && Object.keys(emailErrors).length === 0) {
+	const handleNext = async () => {
+		if (
+			(await validateRequiredFields()) &&
+			Object.keys(emailErrors).length === 0
+		) {
 			onNext()
 		}
 		// Just validate and show red highlighting, no popup
@@ -297,7 +334,10 @@ export function InstitutionInfoStep({
 							onInputChange('institutionHotlineCode', code)
 						}
 						placeholder="Enter hotline number"
-						hasError={validationErrors.institutionHotline}
+						hasError={
+							validationErrors.institutionHotline ||
+							validationErrors.institutionHotlineCode
+						}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -506,128 +546,6 @@ export function InstitutionInfoStep({
 				</div>
 			</div>
 
-			{/* Campus Management */}
-			<div className="space-y-4">
-				{/* <div className="flex items-center justify-between">
-					<Label className="text-sm font-medium text-foreground">
-						Campus Locations
-					</Label>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => setShowCampusForm(true)}
-					>
-						+ Add Campus
-					</Button>
-				</div> */}
-
-				{/* Existing Campuses */}
-				{formData.campuses && formData.campuses.length > 0 && (
-					<div className="space-y-3">
-						{formData.campuses.map((campus, index) => (
-							<div
-								key={index}
-								className="p-4 border border-gray-200 rounded-lg bg-gray-50"
-							>
-								<div className="flex justify-between items-start">
-									<div className="flex-1">
-										<h4 className="font-medium text-foreground">
-											{campus.name}
-										</h4>
-										<p className="text-sm text-muted-foreground">
-											{campus.country}
-										</p>
-										<p className="text-sm text-muted-foreground">
-											{campus.address}
-										</p>
-									</div>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => handleRemoveCampus(index)}
-										className="text-red-500 hover:text-red-700"
-									>
-										Remove
-									</Button>
-								</div>
-							</div>
-						))}
-					</div>
-				)}
-
-				{/* Add Campus Form */}
-				{showCampusForm && (
-					<div className="p-4 border border-gray-200 rounded-lg bg-blue-50">
-						<h4 className="font-medium text-blue-900 mb-4">Add New Campus</h4>
-						<div className="space-y-4">
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-								<Input
-									placeholder="Campus name"
-									value={newCampus.name}
-									onChange={(e) =>
-										setNewCampus({ ...newCampus, name: e.target.value })
-									}
-									inputSize="select"
-								/>
-								<CustomSelect
-									value={
-										newCampus.country
-											? getCountriesWithSvgFlags().find(
-													(c) =>
-														c.name.toLowerCase() ===
-														newCampus.country.toLowerCase()
-												)
-											: null
-									}
-									onChange={(option) =>
-										setNewCampus({ ...newCampus, country: option?.name || '' })
-									}
-									placeholder="Select country"
-									options={getCountriesWithSvgFlags()}
-									formatOptionLabel={(option: any) => (
-										<div className="flex items-center space-x-2">
-											<span className="text-lg">{option.flag}</span>
-											<span>{option.name}</span>
-										</div>
-									)}
-									getOptionValue={(option: any) => option.name}
-									isSearchable
-									filterOption={(option, inputValue) => {
-										const country = option.data
-										return country.name
-											.toLowerCase()
-											.includes(inputValue.toLowerCase())
-									}}
-								/>
-								<Input
-									placeholder="Address"
-									value={newCampus.address}
-									onChange={(e) =>
-										setNewCampus({ ...newCampus, address: e.target.value })
-									}
-									inputSize="select"
-								/>
-							</div>
-							<div className="flex gap-2">
-								<Button onClick={handleAddCampus} size="sm">
-									Add Campus
-								</Button>
-								<Button
-									variant="outline"
-									onClick={() => {
-										setShowCampusForm(false)
-										setNewCampus({ name: '', country: '', address: '' })
-									}}
-									size="sm"
-								>
-									Cancel
-								</Button>
-							</div>
-						</div>
-					</div>
-				)}
-			</div>
-
 			{/* Fifth Row: Representative Information */}
 			<div className="space-y-4">
 				<h3 className="text-lg font-semibold text-foreground">
@@ -729,7 +647,10 @@ export function InstitutionInfoStep({
 							onInputChange('representativePhoneCode', code)
 						}
 						placeholder="Enter phone number"
-						hasError={validationErrors.representativePhone}
+						hasError={
+							validationErrors.representativePhone ||
+							validationErrors.representativePhoneCode
+						}
 					/>
 				</div>
 			</div>

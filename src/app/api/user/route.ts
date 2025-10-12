@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
 			JSON.stringify({
 				exists: !!user,
 				isEmailVerified: user?.emailVerified,
+				userId: user?.id,
 			}),
 			{
 				status: 200,

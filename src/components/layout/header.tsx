@@ -185,25 +185,20 @@ export function EduMatchHeader() {
 
 						{/* Desktop Navigation Menu - hidden on mobile */}
 						<nav className="hidden md:flex items-center gap-16">
-							<Link
-								href="#"
-								className="text-[#222222] hover:text-[#126e64]  transition-colors"
-							>
-								{t('about-us')}
-							</Link>
-							<Link
-								href="/explore"
-								className="text-[#222222] hover:text-[#126e64]  transition-colors"
-							>
-								{t('explore')}
-								{/* Explore */}
-							</Link>
-							{/* <Link
-								href="#"
-								className="text-[#222222] hover:text-[#126e64]  transition-colors"
-							>
-								{t('program')}
-							</Link> */}
+							{[
+								{ label: t('about-us'), href: '#' },
+								{ label: t('explore'), href: '/explore' },
+								{ label: 'Pricing', href: '/pricing' },
+								// Uncomment if needed: { label: t('program'), href: '#' },
+							].map((nav, idx) => (
+								<Link
+									key={nav.label + idx}
+									href={nav.href}
+									className="text-[#222222] hover:text-[#126e64]  transition-colors"
+								>
+									{nav.label}
+								</Link>
+							))}
 						</nav>
 					</div>
 

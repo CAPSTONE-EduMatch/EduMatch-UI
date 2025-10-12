@@ -223,7 +223,7 @@ const SignIn: React.FC = () => {
 			const res = await authClient.signIn.email({
 				email,
 				password,
-				callbackURL: '/dashboard',
+				callbackURL: '/',
 			})
 			if (res?.error) {
 				// eslint-disable-next-line no-console

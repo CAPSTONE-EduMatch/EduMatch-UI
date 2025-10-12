@@ -361,10 +361,10 @@ const Signup = () => {
 			)
 
 			if (!response.data.exists) {
-				setErrors({
-					email:
-						'An account with this email already exists. Please sign in instead.',
-				})
+				// setErrors({
+				// 	email:
+				// 		'An account with this email already exists. Please sign in instead.',
+				// })
 				const { error: signUpError } = await authClient.signUp.email({
 					email,
 					password,
@@ -391,6 +391,29 @@ const Signup = () => {
 				return
 			}
 
+			if (!response.data.exists) {
+				// Get the user ID after account creation
+				const updatedResponse = await axios.get(
+					`/api/user?email=${encodeURIComponent(email)}`
+				)
+
+				if (!updatedResponse.data.exists || !updatedResponse.data.userId) {
+					setOTPError(
+						'Failed to retrieve user information. Please try signing in.'
+					)
+					return
+				}
+
+				const responseUpdate = await axios.put('/api/user/update-password', {
+					userId: updatedResponse.data.userId,
+					newPassword: password,
+				})
+
+				if (responseUpdate.status !== 204) {
+					setOTPError('Failed to set password. Please try signing in.')
+				}
+			}
+
 			// After successful OTP verification, create the account
 
 			// Clear global cooldown since verification was successful
@@ -402,10 +425,12 @@ const Signup = () => {
 
 			// Redirect to profile creation after successful account creation
 			setTimeout(() => {
-				window.location.href = 'profile/create'
+				window.location.href = 'signin'
 			}, 1500)
 		} catch (err) {
-			setOTPError('An unexpected error occurred. Please try again.')
+			setOTPError(
+				'An unexpected error occurred. Please try again. ' + (err || '')
+			)
 		} finally {
 			setIsOTPLoading(false)
 		}

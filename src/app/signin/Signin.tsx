@@ -213,20 +213,7 @@ const SignIn: React.FC = () => {
 		return Object.keys(next).length === 0
 	}
 
-	const handleGoogleSignIn = async () => {
-		setIsLoading(true)
-		try {
-			await authClient.signIn.social({
-				provider: 'google',
-				callbackURL: '/dashboard',
-			})
-			// Google sign-in successful
-		} catch (err) {
-			// Handle Google sign-in error
-		} finally {
-			setIsLoading(false)
-		}
-	}
+	// Google social sign-in is handled within the GoogleButton component
 
 	const handleEmailSignIn = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -743,7 +730,8 @@ const SignIn: React.FC = () => {
 						<motion.div variants={itemVariants}>
 							<motion.div className="mt-4" variants={itemVariants}>
 								<GoogleButton
-									onClick={handleGoogleSignIn}
+									action="signin"
+									callbackURL="/"
 									isLoading={isLoading}
 									text="Sign in with Google"
 									loadingText="Signing in..."

@@ -52,7 +52,8 @@ const Signup = () => {
 	const [password, setPassword] = useState('')
 	const [confirmPassword, setConfirmPassword] = useState('')
 	const [showPassword, setShowPassword] = useState(false)
-	const [successMessage, setSuccessMessage] = useState('')
+	const successState = useState('')
+	const successMessage = successState[0]
 	const [errors, setErrors] = useState<{
 		name?: string
 		email?: string
@@ -273,37 +274,7 @@ const Signup = () => {
 		return Object.keys(next).length === 0
 	}
 
-	const handleGoogleSignUp = async () => {
-		setIsLoading(true)
-		setErrors({})
-		setSuccessMessage('')
-
-		try {
-			// Using social sign-in with Google for signup
-			const result = await authClient.signIn.social({
-				provider: 'google',
-				callbackURL: '/',
-				requestSignUp: true, // This parameter indicates we want to sign up
-			})
-
-			if (result?.error) {
-				setErrors({ email: result.error.message ?? undefined })
-			} else {
-				// Show success message if not automatically redirected
-				setSuccessMessage(
-					'Google signup successful! Redirecting to dashboard...'
-				)
-			}
-		} catch (err) {
-			console.error(err)
-			setErrors({
-				email: 'Google signup failed. Please try again or use email.',
-			})
-			setSuccessMessage('')
-		} finally {
-			setIsLoading(false)
-		}
-	}
+	// Google signup is handled inside the GoogleButton component via the auth client
 
 	const handleSendOTP = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -493,7 +464,7 @@ const Signup = () => {
 					</motion.div>
 				)}
 
-				{errors.email && errors.email.includes('already exists') && (
+				{/* {errors.email && errors.email.includes('already exists') && (
 					<motion.div
 						className="mb-8 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg"
 						initial={{ opacity: 0, scale: 0.8 }}
@@ -524,7 +495,7 @@ const Signup = () => {
 							</div>
 						</div>
 					</motion.div>
-				)}
+				)} */}
 
 				<motion.form
 					onSubmit={handleSendOTP}
@@ -628,7 +599,8 @@ const Signup = () => {
 
 					<motion.div className="mt-4" variants={itemVariants}>
 						<GoogleButton
-							onClick={handleGoogleSignUp}
+							action="signup"
+							callbackURL="/"
 							isLoading={isLoading}
 							text="Sign up with Google"
 							loadingText="Signing up..."

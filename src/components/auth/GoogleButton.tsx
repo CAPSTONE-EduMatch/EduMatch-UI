@@ -1,23 +1,46 @@
+import { authClient } from '@/app/lib/auth-client'
 import { motion } from 'framer-motion'
-import React from 'react'
+import React, { useState } from 'react'
 
 interface GoogleButtonProps {
-	onClick: () => void
-	isLoading: boolean
-	text: string
-	loadingText: string
+	action?: 'signup' | 'signin'
+	callbackURL?: string
+	isLoading?: boolean
+	text?: string
+	loadingText?: string
 }
 
 const GoogleButton: React.FC<GoogleButtonProps> = ({
-	onClick,
-	isLoading,
-	text,
-	loadingText,
+	action = 'signin',
+	callbackURL = '/',
+	isLoading: controlledLoading,
+	text = 'Continue with Google',
+	loadingText = 'Signing in...',
 }) => {
+	const [loading, setLoading] = useState(false)
+	const isLoading = controlledLoading ?? loading
+
+	const handleClick = async () => {
+		setLoading(true)
+		try {
+			await authClient.signIn.social({
+				provider: 'google',
+				callbackURL,
+				requestSignUp: action === 'signup',
+			})
+		} catch (err) {
+			// Let callers handle errors via authClient state or redirect; we just stop loading
+			// eslint-disable-next-line no-console
+			console.error('Google social sign-in failed', err)
+		} finally {
+			setLoading(false)
+		}
+	}
+
 	return (
 		<motion.button
 			type="button"
-			onClick={onClick}
+			onClick={handleClick}
 			disabled={isLoading}
 			className="w-full border border-gray-300 flex items-center justify-center gap-3 py-3 rounded-full hover:bg-gray-50 transition-all duration-100 hover:shadow-md"
 			whileHover={{ scale: 1.02, boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)' }}

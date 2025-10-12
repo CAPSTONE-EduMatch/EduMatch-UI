@@ -431,17 +431,21 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			</div>
 
 			{/* Graduated Section */}
-			<Card>
+			<Card className="border rounded-2xl shadow-sm">
 				<CardContent className="p-6">
-					<div className="space-y-4">
-						<div className="flex items-center gap-8">
-							<h3 className="text-lg font-semibold text-foreground">
+					<div className="space-y-6">
+						{/* Row: Title + Graduation radios */}
+						<div className="flex flex-row  gap-4">
+							<h3 className="text-base md:text-lg font-semibold text-foreground tracking-tight">
 								Graduated
 							</h3>
 
-							{/* Graduation Status Radio Buttons */}
+							{/* Radio group */}
 							<div className="flex items-center gap-6">
-								<div className="flex items-center space-x-2">
+								<label
+									htmlFor="not-yet"
+									className="flex items-center gap-2 cursor-pointer"
+								>
 									<input
 										type="radio"
 										id="not-yet"
@@ -455,19 +459,16 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											handleFieldChange('graduationStatus', 'not-yet')
 										}
 										disabled={!isEditing}
-										className="w-4 h-4 text-primary border-2 border-primary focus:outline-none"
-										style={{
-											accentColor: '#126E64',
-										}}
+										className="w-4 h-4 border-2 rounded-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60"
+										style={{ accentColor: '#126E64' }}
 									/>
-									<Label
-										htmlFor="not-yet"
-										className="text-sm font-normal cursor-pointer"
-									>
-										Not yet
-									</Label>
-								</div>
-								<div className="flex items-center space-x-2">
+									<span className="text-sm text-foreground/90">Not yet</span>
+								</label>
+
+								<label
+									htmlFor="graduated"
+									className="flex items-center gap-2 cursor-pointer"
+								>
 									<input
 										type="radio"
 										id="graduated"
@@ -481,26 +482,20 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											handleFieldChange('graduationStatus', 'graduated')
 										}
 										disabled={!isEditing}
-										className="w-4 h-4 text-primary border-2 border-primary focus:outline-none"
-										style={{
-											accentColor: '#126E64',
-										}}
+										className="w-4 h-4 border-2 rounded-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60"
+										style={{ accentColor: '#126E64' }}
 									/>
-									<Label
-										htmlFor="graduated"
-										className="text-sm font-normal cursor-pointer"
-									>
-										Graduated
-									</Label>
-								</div>
+									<span className="text-sm text-foreground/90">Graduated</span>
+								</label>
 							</div>
 						</div>
 
-						{/* Academic Details - Always show */}
-						<div className="space-y-4">
-							<div className="flex items-end gap-4">
-								<div>
-									<Label className="text-sm font-medium text-foreground">
+						{/* Academic details */}
+						<div className="rounded-xl border bg-muted/30 p-4">
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								{/* Level */}
+								<div className="space-y-1.5">
+									<Label className="text-l font-medium text-foreground/80">
 										Level
 									</Label>
 									{isEditing ? (
@@ -518,32 +513,17 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											}
 											placeholder="Level"
 											options={[
-												{
-													value: 'High School',
-													label: 'High School',
-												},
-												{
-													value: 'Associate',
-													label: 'Associate',
-												},
-												{
-													value: "Bachelor's",
-													label: "Bachelor's",
-												},
-												{
-													value: "Master's",
-													label: "Master's",
-												},
+												{ value: 'High School', label: 'High School' },
+												{ value: 'Associate', label: 'Associate' },
+												{ value: "Bachelor's", label: "Bachelor's" },
+												{ value: "Master's", label: "Master's" },
 												{ value: 'PhD', label: 'PhD' },
-												{
-													value: 'Professional',
-													label: 'Professional',
-												},
+												{ value: 'Professional', label: 'Professional' },
 											]}
 											menuPortalTarget={document.body}
 											isClearable={false}
 											variant="green"
-											className="w-sm"
+											className="min-w-[12rem]"
 										/>
 									) : (
 										<p className="text-sm font-medium">
@@ -551,9 +531,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										</p>
 									)}
 								</div>
-								<span className="text-gray-400 text-xl pb-2">|</span>
-								<div>
-									<Label className="text-sm font-medium text-foreground">
+
+								{/* Discipline */}
+								<div className="space-y-1.5 md:border-l md:pl-6 border-border/60">
+									<Label className="text-l font-medium text-foreground/80">
 										Discipline
 									</Label>
 									{isEditing ? (
@@ -579,133 +560,138 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 													value: 'Business Administration',
 													label: 'Business Administration',
 												},
-												{
-													value: 'Engineering',
-													label: 'Engineering',
-												},
-												{
-													value: 'Medicine',
-													label: 'Medicine',
-												},
+												{ value: 'Engineering', label: 'Engineering' },
+												{ value: 'Medicine', label: 'Medicine' },
 												{ value: 'Law', label: 'Law' },
 												{ value: 'Arts', label: 'Arts' },
-												{
-													value: 'Sciences',
-													label: 'Sciences',
-												},
+												{ value: 'Sciences', label: 'Sciences' },
 											]}
 											menuPortalTarget={document.body}
 											isClearable={false}
-											className="w-sm"
+											className="min-w-[12rem]"
 										/>
 									) : (
-										<p className="text-sm">
+										<p className="text-sm font-medium">
 											{profile?.fieldOfStudy || 'Not provided'}
 										</p>
 									)}
 								</div>
-								<div className="flex items-center gap-2">
-									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
+
+								{/* GPA */}
+								<div className="space-y-1.5 md:border-l md:pl-6 border-border/60">
+									<Label className="text-l font-medium text-foreground/80">
 										GPA
+									</Label>
+									<div className="flex items-center gap-3">
+										{/* <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-primary/15 text-primary">
+											GPA
+										</span> */}
+										{isEditing ? (
+											<Input
+												placeholder="0.0–4.0"
+												value={editedProfile?.gpa || ''}
+												onChange={handleGpaInput}
+												inputSize="select"
+												fullWidth={false}
+												width="w-28"
+											/>
+										) : (
+											<p className="text-sm font-medium">
+												{(() => {
+													console.log(
+														'Displaying GPA:',
+														profile?.gpa,
+														'Type:',
+														typeof profile?.gpa
+													)
+													return profile?.gpa || 'Not provided'
+												})()}
+											</p>
+										)}
 									</div>
-									<span className="text-gray-400 text-xl pb-1">|</span>
-									{isEditing ? (
-										<Input
-											placeholder="0.0-4.0"
-											value={editedProfile?.gpa || ''}
-											onChange={handleGpaInput}
-											inputSize="select"
-											fullWidth={false}
-											width="w-32"
-										/>
-									) : (
-										<p className="text-sm font-medium">
-											{(() => {
-												console.log(
-													'Displaying GPA:',
-													profile?.gpa,
-													'Type:',
-													typeof profile?.gpa
-												)
-												return profile?.gpa || 'Not provided'
-											})()}
-										</p>
-									)}
 								</div>
 							</div>
-							{/* Additional fields */}
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-								<div>
-									<Label htmlFor="university">University</Label>
-									{isEditing ? (
-										<Input
-											id="university"
-											value={editedProfile?.university || ''}
-											onChange={(e) =>
-												handleFieldChange('university', e.target.value)
-											}
-											placeholder="e.g., Harvard University"
-											inputSize="select"
-										/>
-									) : (
-										<p className="text-sm">
-											{profile?.university || 'Not provided'}
-										</p>
-									)}
-								</div>
-								<div>
-									<Label htmlFor="countryOfStudy">Country of Study</Label>
-									{isEditing ? (
-										<CustomSelect
-											value={
-												editedProfile?.countryOfStudy
-													? getCountriesWithSvgFlags().find(
-															(c) => c.name === editedProfile.countryOfStudy
-														)
-													: null
-											}
-											onChange={(option) =>
-												handleFieldChange('countryOfStudy', option?.name || '')
-											}
-											placeholder="Select country"
-											options={getCountriesWithSvgFlags()}
-											formatOptionLabel={(option: any) => (
-												<div className="flex items-center space-x-2">
-													<span className="text-lg">{option.flag}</span>
-													<span>{option.name}</span>
-												</div>
-											)}
-											getOptionValue={(option: any) => option.name}
-											menuPortalTarget={document.body}
-											isSearchable
-											isClearable
-											filterOption={(option, inputValue) => {
-												const country = option.data
-												return country.name
-													.toLowerCase()
-													.includes(inputValue.toLowerCase())
-											}}
-										/>
-									) : (
-										<div className="flex items-center space-x-2">
-											{(() => {
-												const countryData = getCountriesWithSvgFlags().find(
-													(c) => c.name === profile?.countryOfStudy
-												)
-												return (
-													<>
-														<span className="text-lg">
-															{countryData?.flag || '🌐'}
-														</span>
-														<span className="text-sm font-medium">
-															{profile?.countryOfStudy || 'Not provided'}
-														</span>
-													</>
-												)
-											})()}
-										</div>
-									)}
-								</div>
+						</div>
+
+						{/* Additional fields */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4">
+							<div className="space-y-1.5">
+								<Label
+									htmlFor="university"
+									className="text-l font-medium text-foreground/80"
+								>
+									University
+								</Label>
+								{isEditing ? (
+									<Input
+										id="university"
+										value={editedProfile?.university || ''}
+										onChange={(e) =>
+											handleFieldChange('university', e.target.value)
+										}
+										placeholder="e.g., Harvard University"
+										inputSize="select"
+									/>
+								) : (
+									<p className="text-sm font-medium">
+										{profile?.university || 'Not provided'}
+									</p>
+								)}
+							</div>
+
+							<div className="space-y-1.5">
+								<Label
+									htmlFor="countryOfStudy"
+									className="text-l font-medium text-foreground/80"
+								>
+									Country of Study
+								</Label>
+								{isEditing ? (
+									<CustomSelect
+										value={
+											editedProfile?.countryOfStudy
+												? getCountriesWithSvgFlags().find(
+														(c) => c.name === editedProfile.countryOfStudy
+													)
+												: null
+										}
+										onChange={(option) =>
+											handleFieldChange('countryOfStudy', option?.name || '')
+										}
+										placeholder="Select country"
+										options={getCountriesWithSvgFlags()}
+										formatOptionLabel={(option: any) => (
+											<div className="flex items-center gap-2">
+												<span className="text-lg">{option.flag}</span>
+												<span>{option.name}</span>
+											</div>
+										)}
+										getOptionValue={(option: any) => option.name}
+										menuPortalTarget={document.body}
+										isSearchable
+										isClearable
+										filterOption={(option, inputValue) =>
+											option.data.name
+												.toLowerCase()
+												.includes(inputValue.toLowerCase())
+										}
+									/>
+								) : (
+									<div className="flex items-center gap-2">
+										{(() => {
+											const countryData = getCountriesWithSvgFlags().find(
+												(c) => c.name === profile?.countryOfStudy
+											)
+											return (
+												<>
+													<span className="text-sm font-medium">
+														{profile?.countryOfStudy || 'Not provided'}
+													</span>
+												</>
+											)
+										})()}
+									</div>
+								)}
 							</div>
 						</div>
 					</div>
@@ -791,7 +777,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										className="grid grid-cols-1 md:grid-cols-6 gap-4"
 									>
 										<div className="space-y-2 md:col-span-2">
-											<Label className="text-sm font-medium text-foreground">
+											<Label className="text-l font-medium text-foreground">
 												Language
 											</Label>
 											{isEditing ? (
@@ -903,7 +889,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											)}
 										</div>
 										<div className="space-y-2 md:col-span-2">
-											<Label className="text-sm font-medium text-foreground">
+											<Label className="text-l font-medium text-foreground">
 												Certificate
 											</Label>
 											{isEditing ? (
@@ -938,7 +924,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											)}
 										</div>
 										<div className="space-y-2 md:col-span-1">
-											<Label className="text-sm font-medium text-foreground">
+											<Label className="text-l font-medium text-foreground">
 												Score
 											</Label>
 											{isEditing ? (
@@ -1381,7 +1367,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										{/* Left side - Title and Discipline */}
 										<div className="space-y-4">
 											<div className="space-y-2">
-												<Label className="text-sm font-medium text-foreground">
+												<Label className="text-l font-medium text-foreground">
 													Paper Title
 												</Label>
 												{isEditing ? (
@@ -1521,7 +1507,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 
 										{/* Right side - File Upload */}
 										<div className="space-y-3">
-											<Label className="text-sm font-medium text-foreground">
+											<Label className="text-l font-medium text-foreground">
 												Research Paper Files
 											</Label>
 											{isEditing && (

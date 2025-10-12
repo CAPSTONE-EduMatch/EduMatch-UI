@@ -484,7 +484,7 @@ export const InstitutionProfileSection: React.FC<
 
 	return (
 		<div className="space-y-6">
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<div className="grid grid-cols-2 gap-6">
 				{/* Left Panel - Institution Profile Information */}
 				<Card className="bg-white shadow-sm border lg:col-span-1 h-[750px]">
 					<CardContent className="p-6 h-full flex flex-col">
@@ -804,7 +804,7 @@ export const InstitutionProfileSection: React.FC<
 				</Card>
 
 				{/* Right Panel - Verification Documents */}
-				<Card className="bg-white shadow-sm border lg:col-span-2 h-[750px]">
+				<Card className="bg-white shadow-sm border lg:col-span-1 h-[750px]">
 					<CardContent className="p-6 h-full flex flex-col">
 						<div className="flex flex-col flex-1">
 							{/* Navigation Tabs */}
@@ -1132,13 +1132,6 @@ export const InstitutionProfileSection: React.FC<
 															)}
 														</div>
 													</div>
-												)}
-
-												{!isEditing && (
-													<p className="text-gray-500 text-sm text-center mt-6">
-														Switch to edit mode to upload or change the cover
-														image
-													</p>
 												)}
 											</div>
 										</div>

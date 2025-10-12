@@ -1,5 +1,116 @@
 {
 	"explore": "Khám phá",
 	"about-us": "Về chúng tôi",
-	"program": "Chương trình"
+	"program": "Chương trình",
+
+	"breadcrumb": {
+		"explore": "Khám phá"
+	},
+
+	"search": {
+		"title": "Tìm kiếm nhu cầu của bạn tại đây",
+		"placeholder": "Tìm kiếm chương trình, học bổng, phòng nghiên cứu..."
+	},
+
+	"tabs": {
+		"programmes": "Chương trình",
+		"scholarships": "Học bổng",
+		"research_labs": "Phòng nghiên cứu"
+	},
+
+	"results": "kết quả",
+
+	"sort": {
+		"most_popular": "Phổ biến nhất",
+		"latest": "Mới nhất",
+		"deadline_soon": "Sắp đến hạn",
+		"a_to_z": "A → Z",
+		"z_to_a": "Z → A"
+	},
+
+	"filter": {
+		"title": "Bộ lọc"
+	},
+
+	"pagination": {
+		"previous": "Trước",
+		"next": "Sau"
+	},
+
+	"quote": {
+		"JohnDewey": "Giáo dục không phải là sự chuẩn bị cho cuộc sống, giáo dục chính là cuộc sống. Đó là quá trình tái kiến tạo kinh nghiệm liên tục, nơi mỗi bài học trở thành nền tảng cho sự trưởng thành mới, và mỗi thách thức là cơ hội để đạt được trí tuệ sâu sắc hơn."
+	},
+
+	"subscription": {
+		"badge": "Gói thành viên",
+		"title": "Tìm lộ trình học tập phù hợp nhất",
+		"description": "Từ tìm kiếm học bổng cơ bản đến ghép đôi bằng AI, hãy chọn gói phù hợp với mục tiêu học thuật của bạn. Nhận gợi ý cá nhân hóa và kết nối với cơ hội trên toàn thế giới.",
+		"benefit_1": {
+			"title": "Tiết kiệm thời gian & gọn gàng",
+			"desc": "Dễ dàng tìm và theo dõi học bổng kèm nhắc hạn nộp."
+		},
+		"benefit_2": {
+			"title": "Kết nối trực tiếp",
+			"desc": "Nhắn tin với giáo sư & cán bộ học bổng để tăng cơ hội của bạn."
+		},
+		"benefit_3": {
+			"title": "Ghép phù hợp thông minh",
+			"desc": "Dùng AI để tìm học bổng và nhóm nghiên cứu phù hợp nhất."
+		}
+	},
+
+	"homepage": {
+		"hero_section": {
+			"title": "Phù hợp. Ứng tuyển. Thành công.",
+			"subtitle": "Tìm kiếm cơ hội phù hợp với bạn thông qua hệ thống ghép nối thông minh của chúng tôi"
+		},
+		"about_section": {
+			"title": "Cổng thông tin dẫn đến các cơ hội nghiên cứu và học bổng toàn cầu",
+			"description": "Tại EduMatch, chúng tôi đưa sinh viên đến gần hơn với các chương trình nghiên cứu và học bổng sau đại học trên toàn thế giới, đảm bảo sự phù hợp hoàn hảo với hệ thống ghép nối thông minh của chúng tôi. Khám phá các cơ hội phù hợp với nền tảng học thuật và nguyện vọng của bạn."
+		},
+		"disciplines_section": {
+			"title": "Khám phá theo lĩnh vực"
+		},
+		"features_section": {
+			"title": "Tính năng",
+			"features_1": {
+				"title": "Ghép nối thông minh",
+				"description": "Ghép nối sinh viên với các chương trình phù hợp dựa trên trình độ."
+			},
+			"features_2": {
+				"title": "Cơ hội toàn cầu",
+				"description": "Truy cập vào nhiều chương trình và học bổng quốc tế."
+			},
+			"features_3": {
+				"title": "Gợi ý cá nhân hóa",
+				"description": "Tìm kiếm cơ hội phù hợp với trình độ học vấn cụ thể của bạn."
+			},
+			"features_4": {
+				"title": "Quy trình ứng tuyển liền mạch",
+				"description": "Ứng tuyển trực tiếp qua nền tảng của chúng tôi."
+			}
+		},
+		"blog_section": {
+			"title": "Bài viết mới nhất"
+		},
+		"cta_section": {
+			"title": "Khám phá thêm bài viết",
+			"description_1": "Tham gia EduMatch ngay để bắt đầu hành trình thành công của bạn.",
+			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn."
+		}
+	},
+
+	"buttons": {
+		"explore_more": "Khám phá thêm",
+		"show_more": "Xem thêm",
+		"learn_more": "Tìm hiểu thêm",
+		"sign_in": "Đăng nhập",
+		"sign_up": "Đăng ký",
+		"log_out": "Đăng xuất"
+	},
+
+	"empty": {
+		"title": "Không tìm thấy chương trình",
+		"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
+	}
 }

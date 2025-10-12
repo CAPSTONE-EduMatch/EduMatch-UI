@@ -10,11 +10,12 @@ import { SearchBar } from '@/components/ui/SearchBar'
 import { SortDropdown, SortOption } from '@/components/ui/Sort'
 import { TabSelector } from '@/components/ui/TabSelector'
 import { ExploreApiService } from '@/lib/explore-api'
+import { useTranslations } from 'next-intl'
 import { TabType } from '@/types/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import student from '../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -27,9 +28,22 @@ const ITEMS_PER_PAGE_SCHOLARSHIPS = 5
 const ITEMS_PER_PAGE_RESEARCH = 5
 
 const Explore = () => {
+	const contentRef = useRef<HTMLDivElement>(null)
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
+
+	// Initialize tab from URL parameter
+	useEffect(() => {
+		const urlParams = new URLSearchParams(window.location.search)
+		const tabFromUrl = urlParams.get('tab')
+		if (
+			tabFromUrl &&
+			['programmes', 'scholarships', 'research'].includes(tabFromUrl)
+		) {
+			setActiveTab(tabFromUrl as TabType)
+		}
+	}, [])
 
 	// Programs state
 	const [programs, setPrograms] = useState<Program[]>([])
@@ -128,13 +142,47 @@ const Explore = () => {
 
 		loadData()
 	}, [activeTab, currentPage, sortBy])
+	const t = useTranslations()
 
-	const breadcrumbItems = [{ label: 'Explore', href: '/explore' }]
+	const breadcrumbItems = [{ label: 'Explore' }]
 
 	// Reset to page 1 when switching tabs
 	const handleTabChange = (tabId: string) => {
 		setActiveTab(tabId as TabType)
 		setCurrentPage(1)
+		// Update URL to include tab parameter
+		const url = new URL(window.location.href)
+		url.searchParams.set('tab', tabId)
+		window.history.pushState({}, '', url.toString())
+		// Scroll to top when switching tabs with delay
+		setTimeout(() => {
+			// Try scrolling to content area first, fallback to window scroll
+			if (contentRef.current) {
+				contentRef.current.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start',
+				})
+			} else {
+				window.scrollTo({ top: 0, behavior: 'smooth' })
+			}
+		}, 100)
+	}
+
+	// Handle page change with scroll to top
+	const handlePageChange = (page: number) => {
+		setCurrentPage(page)
+		// Use setTimeout to ensure DOM is updated before scrolling
+		setTimeout(() => {
+			// Try scrolling to content area first, fallback to window scroll
+			if (contentRef.current) {
+				contentRef.current.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start',
+				})
+			} else {
+				window.scrollTo({ top: 0, behavior: 'smooth' })
+			}
+		}, 100)
 	}
 
 	const renderTabContent = () => {
@@ -199,10 +247,7 @@ const Explore = () => {
 					<div className="text-white">
 						<h1 className="text-2xl font-bold mb-2">John Dewey:</h1>
 						<p className="text-sm max-w-xl">
-							&ldquo;Education is not preparation for life; education is life
-							itself. It is the continuous reconstruction of experience, where
-							each lesson learned becomes the foundation for new growth, and
-							every challenge faced an opportunity for deeper wisdom.&rdquo;
+							&ldquo;{t('quote.JohnDewey')}&rdquo;
 						</p>
 					</div>
 				</div>
@@ -210,6 +255,7 @@ const Explore = () => {
 
 			{/* ---------------------------------------------------Explore----------------------------------------------- */}
 			<motion.div
+				ref={contentRef}
 				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-5"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -223,7 +269,7 @@ const Explore = () => {
 						animate={{ opacity: 1 }}
 						transition={{ delay: 0.2 }}
 					>
-						Search your needs here
+						{t('search.title')}
 					</motion.h2>
 					<SearchBar />
 				</div>
@@ -272,7 +318,7 @@ const Explore = () => {
 									<Pagination
 										currentPage={currentPage}
 										totalPages={currentTabData.totalPages}
-										onPageChange={setCurrentPage}
+										onPageChange={handlePageChange}
 									/>
 								)}
 							</div>
@@ -288,22 +334,20 @@ const Explore = () => {
 							<div className="flex items-center space-x-2 mb-4">
 								<span className="text-[#116E63] text-xl">★</span>
 								<span className="text-lg font-medium text-[#116E63]">
-									Subscription Plans
+									{t('subscription.badge')}
 								</span>
 							</div>
 
 							<h2 className="text-3xl font-bold text-gray-900 mb-4">
-								Find Your Perfect Learning Path
+								{t('subscription.title')}
 							</h2>
 
 							<p className="text-gray-600 mb-6 max-w-xl">
-								From basic scholarship search to AI-powered matching, choose the
-								plan that fits your academic goals. Get personalized
-								recommendations and connect with opportunities worldwide.
+								{t('subscription.description')}
 							</p>
 
 							<Button className="bg-[#116E63] hover:bg-teal-700 text-white mb-6">
-								Explore more
+								{t('buttons.explore_more')}
 							</Button>
 
 							<div className="space-y-4">
@@ -313,11 +357,10 @@ const Explore = () => {
 									</span>
 									<div>
 										<h4 className="font-medium text-gray-900 mb-1">
-											Save Time & Stay Organized
+											{t('subscription.benefit_1.title')}
 										</h4>
 										<p className="text-sm text-gray-600">
-											Easily find and track scholarships with deadline
-											reminders.
+											{t('subscription.benefit_1.desc')}
 										</p>
 									</div>
 								</div>
@@ -327,11 +370,10 @@ const Explore = () => {
 									</span>
 									<div>
 										<h4 className="font-medium text-gray-900 mb-1">
-											Connect Directly
+											{t('subscription.benefit_2.title')}
 										</h4>
 										<p className="text-sm text-gray-600">
-											Message professors & scholarship officers to boost your
-											chances.
+											{t('subscription.benefit_2.desc')}
 										</p>
 									</div>
 								</div>
@@ -341,11 +383,10 @@ const Explore = () => {
 									</span>
 									<div>
 										<h4 className="font-medium text-gray-900 mb-1">
-											Get Smart Matches
+											{t('subscription.benefit_3.title')}
 										</h4>
 										<p className="text-sm text-gray-600">
-											Use AI to find the best-fit scholarships and research
-											groups.
+											{t('subscription.benefit_3.desc')}
 										</p>
 									</div>
 								</div>

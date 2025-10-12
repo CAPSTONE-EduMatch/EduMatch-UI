@@ -21,7 +21,7 @@ export function SearchBar() {
 		>
 			<Input
 				type="text"
-				placeholder="Enter name, qualification, country you want to find..."
+				placeholder="Enter name, country you want to find..."
 				variant="signin"
 				className="w-full rounded-l-full rounded-r-none border-r-0 focus:border-teal-500"
 			/>

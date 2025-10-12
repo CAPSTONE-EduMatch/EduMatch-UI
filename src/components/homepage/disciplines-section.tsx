@@ -3,6 +3,7 @@
 import Button from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BookOpen } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 const disciplines = [
 	'Biological Sciences',
@@ -20,11 +21,12 @@ const disciplines = [
 ]
 
 export function DisciplinesSection() {
+	const t = useTranslations()
 	return (
 		<section className="py-20 bg-muted/30">
 			<div className="container mx-auto px-4">
 				<h2 className="text-3xl font-bold text-center mb-12 text-foreground">
-					Browse by Discipline
+					{t('homepage.disciplines_section.title')}
 				</h2>
 
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
@@ -47,7 +49,7 @@ export function DisciplinesSection() {
 
 				<div className="text-center">
 					<Button variant="primary" animate={true}>
-						Show more
+						{t('buttons.show_more')}
 					</Button>
 				</div>
 			</div>

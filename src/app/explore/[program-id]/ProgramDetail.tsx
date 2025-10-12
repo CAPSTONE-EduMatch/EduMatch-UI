@@ -1,22 +1,16 @@
 'use client'
-import React from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { GraduationCap, Heart } from 'lucide-react'
-import { useState } from 'react'
-import Image from 'next/image'
 import { Button } from '@/components/ui'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
-import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
+import Modal from '@/components/ui/Modal'
 import { Pagination } from '@/components/ui/Pagination'
-import { mockScholarships, mockPrograms } from '@/data/utils'
 import { ProgramCard } from '@/components/ui/ProgramCard'
-import { ChevronLeft, ChevronRight, Upload } from 'lucide-react'
-import { useFileUpload } from '@/hooks/useFileUpload'
-
-const breadcrumbItems = [
-	{ label: 'Explore', href: '/explore' },
-	{ label: 'Program Detail' },
-]
+import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
+import { mockPrograms, mockScholarships } from '@/data/utils'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
 
 const infoItems = [
 	{ label: 'Tuition fee', value: '100000000$/ year' },
@@ -27,6 +21,7 @@ const infoItems = [
 ]
 
 const ProgramDetail = () => {
+	const router = useRouter()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('overview')
 	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
@@ -36,10 +31,56 @@ const ProgramDetail = () => {
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
-	const itemsPerPage = 5
+	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+	const [breadcrumbItems, setBreadcrumbItems] = useState<
+		Array<{ label: string; href?: string }>
+	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
+	const itemsPerPage = 3
 	const totalPages = Math.ceil(mockScholarships.length / itemsPerPage)
 	const programsPerPage = 3
 	const totalPrograms = mockPrograms.length
+
+	// Dynamic breadcrumb based on referrer and context
+	useEffect(() => {
+		const updateBreadcrumb = () => {
+			const referrer = document.referrer
+			const programName = 'Information Technology' // This should come from props or API data
+
+			let items: Array<{ label: string; href?: string }> = [
+				{ label: 'Explore', href: '/explore' },
+			]
+
+			// Check if came from a specific tab in explore
+			if (referrer.includes('/explore')) {
+				const urlParams = new URLSearchParams(window.location.search)
+				const fromTab = urlParams.get('from') || 'programmes'
+
+				if (fromTab === 'scholarships') {
+					items.push({
+						label: 'Scholarships',
+						href: '/explore?tab=scholarships',
+					})
+				} else if (fromTab === 'research') {
+					items.push({
+						label: 'Research Labs',
+						href: '/explore?tab=research',
+					})
+				} else {
+					items.push({
+						label: 'Programmes',
+						href: '/explore?tab=programmes',
+					})
+				}
+			}
+
+			// Add current page (non-clickable)
+			items.push({ label: programName })
+
+			setBreadcrumbItems(items)
+		}
+
+		updateBreadcrumb()
+	}, [])
 
 	const handleWishlistToggle = (scholarshipId: number) => {
 		setScholarshipWishlist((prev) =>
@@ -77,6 +118,11 @@ const ProgramDetail = () => {
 
 	const removeAllFiles = () => {
 		setUploadedFiles([])
+		setShowDeleteConfirmModal(false)
+	}
+
+	const handleRemoveAllClick = () => {
+		setShowDeleteConfirmModal(true)
 	}
 
 	const nextSlide = () => {
@@ -104,6 +150,19 @@ const ProgramDetail = () => {
 	const handleOpenModal = () => {
 		setShowManageModal(true)
 		setIsClosing(false)
+	}
+
+	const handleProgramClick = (programId: number) => {
+		// Get current tab context from referrer or default to programmes
+		const referrer = document.referrer
+		let fromTab = 'programmes'
+		if (referrer.includes('tab=scholarships')) {
+			fromTab = 'scholarships'
+		} else if (referrer.includes('tab=research')) {
+			fromTab = 'research'
+		}
+
+		router.push(`/explore/${programId}?from=${fromTab}`)
 	}
 
 	const menuItems = [
@@ -502,7 +561,7 @@ const ProgramDetail = () => {
 							</li>
 						</ul>
 
-						<p className="flex items-center gap-2 text-teal-600 font-medium mt-6">
+						<p className="flex items-center gap-2 text-[#126E64] font-medium mt-6">
 							<GraduationCap className="w-5 h-5" />
 							Supervisor: Tran Thanh Nguyen
 						</p>
@@ -578,7 +637,7 @@ const ProgramDetail = () => {
 								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
 									<div className="text-4xl mb-4">📁</div>
 									<div className="space-y-2">
-										{/* <p className="text-sm text-teal-600 cursor-pointer hover:underline">
+										{/* <p className="text-sm text-[#126E64] cursor-pointer hover:underline">
 											Click here to upload file
 										</p> */}
 										<input
@@ -590,7 +649,7 @@ const ProgramDetail = () => {
 										/>
 										<label
 											htmlFor={`file-upload-${index}`}
-											className="text-sm text-teal-600 cursor-pointer hover:underline block"
+											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
 										>
 											Click here to upload file
 										</label>
@@ -611,7 +670,7 @@ const ProgramDetail = () => {
 								<Button
 									variant="outline"
 									onClick={handleOpenModal}
-									className="text-teal-600 border-teal-600 hover:bg-teal-50"
+									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 								>
 									Manage Files
 								</Button>
@@ -623,27 +682,27 @@ const ProgramDetail = () => {
 						<div className="flex gap-3 justify-center">
 							<Button
 								variant="outline"
-								onClick={removeAllFiles}
+								onClick={handleRemoveAllClick}
 								className="text-red-500 border-red-500 hover:bg-red-50"
 							>
 								Remove all
 							</Button>
-							<Button className="bg-teal-600 hover:bg-teal-700 text-white">
+							<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
 								Submit
 							</Button>
 						</div>
 					)}
 
 					{uploadedFiles.length > 0 && (
-						<div className="flex gap-3">
+						<div className="flex gap-3 justify-center">
 							<Button
 								variant="outline"
-								onClick={removeAllFiles}
+								onClick={handleRemoveAllClick}
 								className="text-red-500 border-red-500 hover:bg-red-50"
 							>
 								Remove all
 							</Button>
-							<Button className="bg-teal-600 hover:bg-teal-700 text-white">
+							<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
 								Submit
 							</Button>
 						</div>
@@ -677,7 +736,7 @@ const ProgramDetail = () => {
 						</button>
 
 						{/* Programs Grid */}
-						<div className="overflow-hidden px-12">
+						<div className="overflow-hidden px-12 py-5">
 							<div
 								className="flex transition-transform duration-300 ease-in-out"
 								style={{
@@ -685,13 +744,16 @@ const ProgramDetail = () => {
 								}}
 							>
 								{mockPrograms.map((program, index) => (
-									<div key={program.id} className="w-1/3 flex-shrink-0 px-3 ">
-										<ProgramCard
-											program={program}
-											index={index}
-											isWishlisted={programWishlist.includes(program.id)}
-											onWishlistToggle={handleProgramWishlistToggle}
-										/>
+									<div key={program.id} className="w-1/3 flex-shrink-0 px-3">
+										<div className="h-[600px]">
+											<ProgramCard
+												program={program}
+												index={index}
+												isWishlisted={programWishlist.includes(program.id)}
+												onWishlistToggle={handleProgramWishlistToggle}
+												onClick={handleProgramClick}
+											/>
+										</div>
 									</div>
 								))}
 							</div>
@@ -707,7 +769,7 @@ const ProgramDetail = () => {
 									onClick={() => setCarouselIndex(index * programsPerPage)}
 									className={`w-3 h-3 rounded-full transition-colors ${
 										Math.floor(carouselIndex / programsPerPage) === index
-											? 'bg-teal-600'
+											? 'bg-[#126E64]'
 											: 'bg-gray-300'
 									}`}
 								/>
@@ -808,6 +870,36 @@ const ProgramDetail = () => {
 					</div>
 				</div>
 			)}
+
+			{/* Delete Confirmation Modal */}
+			<Modal
+				isOpen={showDeleteConfirmModal}
+				onClose={() => setShowDeleteConfirmModal(false)}
+				title="Delete All Files"
+				maxWidth="sm"
+			>
+				<div className="space-y-6">
+					<p className="text-gray-600">
+						Do you want to delete all files? This action cannot be undone.
+					</p>
+
+					<div className="flex gap-3 justify-end">
+						<Button
+							variant="outline"
+							onClick={() => setShowDeleteConfirmModal(false)}
+							className="text-gray-600 border-gray-300 hover:bg-gray-50"
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={removeAllFiles}
+							className="bg-red-500 hover:bg-red-600 text-white"
+						>
+							Delete All
+						</Button>
+					</div>
+				</div>
+			</Modal>
 		</div>
 	)
 }

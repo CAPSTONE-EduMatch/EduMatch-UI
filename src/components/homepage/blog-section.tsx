@@ -4,7 +4,9 @@ import Button from '@/components/ui/Button'
 import { TabSelector } from '@/components/ui/TabSelector'
 import { Card, CardContent } from '@/components/ui/card'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 
 const blogPosts = [
 	{
@@ -36,59 +38,97 @@ const blogPosts = [
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
 	{ id: 'scholarships', label: 'Scholarships' },
-	{ id: 'research', label: 'Research Labs' },
+	{ id: 'research_labs', label: 'Research Labs' },
 ]
 
 export function BlogSection() {
 	const [activeCategory, setActiveCategory] = useState('programmes')
+	const t = useTranslations()
+
+	// Create refs for each blog post at the top level
+	const blogPost0Ref = useRef(null)
+	const blogPost1Ref = useRef(null)
+	const blogPost2Ref = useRef(null)
+
+	// Create useInView hooks for each blog post with framer-motion
+	const blogPost0InView = useInView(blogPost0Ref, { once: true, amount: 0.2 })
+	const blogPost1InView = useInView(blogPost1Ref, { once: true, amount: 0.2 })
+	const blogPost2InView = useInView(blogPost2Ref, { once: true, amount: 0.2 })
+
+	const refs = [blogPost0Ref, blogPost1Ref, blogPost2Ref]
+	const inViewStates = [blogPost0InView, blogPost1InView, blogPost2InView]
 
 	return (
 		<section className="py-20 bg-gray-50">
 			<div className="container mx-auto px-4">
 				<h2 className="text-4xl font-bold text-center mb-12 text-foreground">
-					Latest Posts
+					{t('homepage.blog_section.title')}
 				</h2>
 
 				<TabSelector
-					tabs={categories}
+					tabs={categories.map((category) => ({
+						...category,
+						label: t(`tabs.${category.id}`),
+					}))}
 					activeTab={activeCategory}
 					onTabChange={setActiveCategory}
 				/>
 
 				<div className="space-y-6 mb-12">
-					{blogPosts.map((post, index) => (
-						<Card key={index} className="p-6 bg-white shadow-sm">
-							<CardContent className="p-0">
-								<div className="flex items-start gap-4">
-									<div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-										<Image
-											src="/havard_logo.png"
-											alt="Harvard University"
-											width={144}
-											height={144}
-											className="w-full h-full object-contain rounded"
-										/>
-									</div>
-									<div className="flex-1">
-										<div className="mb-2">
-											<h3 className="font-bold text-xl text-card-foreground">
-												{post.title}
-											</h3>
-											<p className="text-sm text-muted-foreground">
-												{post.subtitle}
-											</p>
+					{blogPosts.map((post, index) => {
+						// Use the pre-created ref and inView state for this index
+						const ref = refs[index]
+						const inView = inViewStates[index]
+
+						return (
+							<motion.div
+								key={index}
+								ref={ref} // Attach the ref here
+								initial={{ opacity: 0, y: 50 }}
+								animate={{
+									opacity: inView ? 1 : 0,
+									y: inView ? 0 : 50,
+								}}
+								transition={{
+									duration: 0.8,
+									ease: 'easeOut',
+									delay: index * 0.1, // Delay for staggered animation
+								}}
+							>
+								<Card className="p-6 bg-white shadow-sm">
+									<CardContent className="p-0">
+										<div className="flex items-start gap-4">
+											<div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+												<Image
+													src="/havard_logo.png"
+													alt="Harvard University"
+													width={144}
+													height={144}
+													className="w-full h-full object-contain rounded"
+												/>
+											</div>
+											<div className="flex-1">
+												<div className="mb-2">
+													<h3 className="font-bold text-xl text-card-foreground">
+														{post.title}
+													</h3>
+													<p className="text-sm text-muted-foreground">
+														{post.subtitle}
+													</p>
+												</div>
+												<p className="text-muted-foreground text-sm leading-relaxed mb-3">
+													{post.excerpt}
+												</p>
+												<p className="text-sm text-primary font-medium">
+													{post.date}
+												</p>
+											</div>
 										</div>
-										<p className="text-muted-foreground text-sm leading-relaxed mb-3">
-											{post.excerpt}
-										</p>
-										<p className="text-sm text-primary font-medium">
-											{post.date}
-										</p>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
-					))}
+									</CardContent>
+								</Card>
+							</motion.div>
+						)
+					})}
 				</div>
 
 				<div className="text-center">
@@ -97,7 +137,7 @@ export function BlogSection() {
 						animate={true}
 						className="rounded-full px-8 py-3"
 					>
-						Show more
+						{t('buttons.show_more')}
 					</Button>
 				</div>
 			</div>

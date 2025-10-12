@@ -1,5 +1,123 @@
 {
 	"explore": "Explore",
 	"about-us": "About us",
-	"program": "Program"
+	"program": "Program",
+
+	"breadcrumb": {
+		"explore": "Explore"
+	},
+
+	"search": {
+		"title": "Search your needs here",
+		"placeholder": "Search programs, scholarships, research labs..."
+	},
+
+	"tabs": {
+		"programmes": "Programmes",
+		"scholarships": "Scholarships",
+		"research_labs": "Research Labs"
+	},
+
+	"results": "results",
+
+	"sort": {
+		"most_popular": "Most popular",
+		"latest": "Latest",
+		"deadline_soon": "Deadline soon",
+		"a_to_z": "A → Z",
+		"z_to_a": "Z → A"
+	},
+
+	"filter": {
+		"title": "Filters"
+	},
+
+	"pagination": {
+		"previous": "Previous",
+		"next": "Next"
+	},
+
+	"quote": {
+		"dewey": {
+			"author": "John Dewey:",
+			"text": "Education is not preparation for life; education is life itself. It is the continuous reconstruction of experience, where each lesson learned becomes the foundation for new growth, and every challenge faced an opportunity for deeper wisdom."
+		}
+	},
+
+	"subscription": {
+		"badge": "Subscription Plans",
+		"title": "Find Your Perfect Learning Path",
+		"description": "From basic scholarship search to AI-powered matching, choose the plan that fits your academic goals. Get personalized recommendations and connect with opportunities worldwide.",
+		"cta": "Explore more",
+		"benefit_1": {
+			"title": "Save Time & Stay Organized",
+			"desc": "Easily find and track scholarships with deadline reminders."
+		},
+		"benefit_2": {
+			"title": "Connect Directly",
+			"desc": "Message professors & scholarship officers to boost your chances."
+		},
+		"benefit_3": {
+			"title": "Get Smart Matches",
+			"desc": "Use AI to find the best-fit scholarships and research groups."
+		},
+		"image": {
+			"alt": "Student illustration"
+		}
+	},
+
+	"homepage": {
+		"hero_section": {
+			"title": "Match. Apply. Succeed.",
+			"subtitle": "Find your perfect opportunity match with our intelligent matching system"
+		},
+		"about_section": {
+			"title": "Your Gateway to Study Abroad, Global Research & Scholarship Opportunities",
+			"description": "At EduMatch, we bring students closer to graduate research programs and scholarships worldwide, ensuring a perfect fit with our intelligent matching system. Explore opportunities that align with your academic background and aspirations."
+		},
+		"disciplines_section": {
+			"title": "Browse by Discipline"
+		},
+		"features_section": {
+			"title": "Features",
+			"features_1": {
+				"title": "Smart Matching",
+				"description": "Match students with the right programs based on qualifications."
+			},
+			"features_2": {
+				"title": "Global Opportunities",
+				"description": "Access scholarships and research programs globally."
+			},
+			"features_3": {
+				"title": "Personalized Recommendations",
+				"description": "Find opportunities tailored to your specific academic background."
+			},
+			"features_4": {
+				"title": "Seamless Application Process",
+				"description": "Apply with ease through our platform's intuitive interface."
+			}
+		},
+		"blog_section": {
+			"title": "Latest Posts"
+		},
+		"cta_section": {
+			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
+			"description_1": "Join EduMatch now to start your journey to success.",
+			"description_2": "Find the perfect opportunities for you."
+		}
+	},
+
+	"buttons": {
+		"explore_more": "Explore more",
+		"show_more": "Show more",
+		"learn_more": "Learn more",
+		"sign_in": "Sign in",
+		"sign_up": "Sign up",
+		"log-out": "Log out"
+	},
+
+	"empty": {
+		"title": "No programs found",
+		"hint": "Try adjusting your filters or search criteria"
+	}
 }

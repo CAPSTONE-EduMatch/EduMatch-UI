@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { ProgramCard } from '../ui/ProgramCard'
 import { SortOption } from '../ui/Sort'
 import { Program } from '@/types/explore-api'
+import { useRouter } from 'next/navigation'
 
 interface ProgramsTabProps {
 	sortBy?: SortOption
@@ -11,6 +12,7 @@ interface ProgramsTabProps {
 }
 
 export function ProgramsTab({ programs = [] }: ProgramsTabProps) {
+	const router = useRouter()
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
 	const toggleWishlist = (id: number) => {
@@ -23,6 +25,10 @@ export function ProgramsTab({ programs = [] }: ProgramsTabProps) {
 			}
 			return newSet
 		})
+	}
+
+	const handleProgramClick = (programId: number) => {
+		router.push(`/explore/${programId}?from=programmes`)
 	}
 
 	const paginatedPrograms = useMemo(() => {
@@ -40,6 +46,7 @@ export function ProgramsTab({ programs = [] }: ProgramsTabProps) {
 						index={index}
 						isWishlisted={wishlistItems.has(program.id)}
 						onWishlistToggle={toggleWishlist}
+						onClick={handleProgramClick}
 					/>
 				))
 			) : (

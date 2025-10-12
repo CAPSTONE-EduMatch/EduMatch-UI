@@ -23,6 +23,8 @@ interface ProgramCardProps {
 	isWishlisted: boolean
 	// eslint-disable-next-line no-unused-vars
 	onWishlistToggle: (programId: number) => void
+	// eslint-disable-next-line no-unused-vars
+	onClick?: (programId: number) => void
 }
 
 export function ProgramCard({
@@ -30,6 +32,7 @@ export function ProgramCard({
 	index,
 	isWishlisted,
 	onWishlistToggle,
+	onClick,
 }: ProgramCardProps) {
 	return (
 		<motion.div
@@ -37,7 +40,8 @@ export function ProgramCard({
 			// animate={{ opacity: 1, y: 0 }}
 			// transition={{ duration: 0.3 }}
 			whileHover={{ y: -5 }}
-			className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300"
+			onClick={() => onClick?.(program.id)}
+			className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
 		>
 			{/* Header with logo and wishlist */}
 			<div className="flex justify-between items-start mb-4 gap-10">
@@ -89,12 +93,12 @@ export function ProgramCard({
 			</h3>
 
 			{/* Description */}
-			<p className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed">
+			<p className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0">
 				{program.description}
 			</p>
 
 			{/* Tags */}
-			<div className="flex flex-wrap gap-2 mb-3">
+			<div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">
 				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
 					<GraduationCap className="w-4 h-4" />
 					{program.field}
@@ -105,7 +109,7 @@ export function ProgramCard({
 				</span>
 			</div>
 
-			<div className="flex flex-wrap gap-2 mb-3">
+			<div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">
 				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
 					<Calendar className="w-4 h-4" />
 					{program.date}{' '}
@@ -115,7 +119,7 @@ export function ProgramCard({
 				</span>
 			</div>
 
-			<div className="flex flex-wrap gap-2 mb-6">
+			<div className="flex flex-wrap gap-2 mb-6 flex-shrink-0">
 				<span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-medium">
 					<span className="inline-flex items-center gap-1">
 						📱 {program.attendance}
@@ -124,12 +128,12 @@ export function ProgramCard({
 			</div>
 
 			{/* Price */}
-			<div className="text-center mb-6 flex-grow flex items-end justify-center">
+			<div className="text-center mb-6 flex-grow flex items-end justify-center min-h-[60px]">
 				<div className="text-2xl font-bold text-gray-900">{program.price}</div>
 			</div>
 
 			{/* Match */}
-			<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden">
+			<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
 				{/* Animated progress */}
 				<motion.div
 					className="h-full bg-[#32CF5C] rounded-full relative"

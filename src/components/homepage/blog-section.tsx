@@ -4,9 +4,8 @@ import Button from '@/components/ui/Button'
 import { TabSelector } from '@/components/ui/TabSelector'
 import { Card, CardContent } from '@/components/ui/card'
 import Image from 'next/image'
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { useInView } from 'react-intersection-observer'
+import { useState, useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 
 const blogPosts = [
@@ -46,12 +45,18 @@ export function BlogSection() {
 	const [activeCategory, setActiveCategory] = useState('programmes')
 	const t = useTranslations()
 
-	// Create useInView hooks for each blog post at the top level
-	const blogPost0 = useInView({ triggerOnce: true, threshold: 0.2 })
-	const blogPost1 = useInView({ triggerOnce: true, threshold: 0.2 })
-	const blogPost2 = useInView({ triggerOnce: true, threshold: 0.2 })
+	// Create refs for each blog post at the top level
+	const blogPost0Ref = useRef(null)
+	const blogPost1Ref = useRef(null)
+	const blogPost2Ref = useRef(null)
 
-	const inViewHooks = [blogPost0, blogPost1, blogPost2]
+	// Create useInView hooks for each blog post with framer-motion
+	const blogPost0InView = useInView(blogPost0Ref, { once: true, amount: 0.2 })
+	const blogPost1InView = useInView(blogPost1Ref, { once: true, amount: 0.2 })
+	const blogPost2InView = useInView(blogPost2Ref, { once: true, amount: 0.2 })
+
+	const refs = [blogPost0Ref, blogPost1Ref, blogPost2Ref]
+	const inViewStates = [blogPost0InView, blogPost1InView, blogPost2InView]
 
 	return (
 		<section className="py-20 bg-gray-50">
@@ -71,8 +76,9 @@ export function BlogSection() {
 
 				<div className="space-y-6 mb-12">
 					{blogPosts.map((post, index) => {
-						// Use the pre-created hook for this index
-						const [ref, inView] = inViewHooks[index]
+						// Use the pre-created ref and inView state for this index
+						const ref = refs[index]
+						const inView = inViewStates[index]
 
 						return (
 							<motion.div

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { motion } from 'framer-motion'
-import { useInView } from 'react-intersection-observer'
+import { motion, useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
+import { useRef } from 'react'
 
 const features = [
 	{
@@ -31,13 +31,25 @@ const features = [
 export function FeaturesSection() {
 	const t = useTranslations()
 
-	// Create useInView hooks for each feature at the top level
-	const feature0 = useInView({ triggerOnce: true, threshold: 0.2 })
-	const feature1 = useInView({ triggerOnce: true, threshold: 0.2 })
-	const feature2 = useInView({ triggerOnce: true, threshold: 0.2 })
-	const feature3 = useInView({ triggerOnce: true, threshold: 0.2 })
+	// Create refs for each feature at the top level
+	const feature0Ref = useRef(null)
+	const feature1Ref = useRef(null)
+	const feature2Ref = useRef(null)
+	const feature3Ref = useRef(null)
 
-	const inViewHooks = [feature0, feature1, feature2, feature3]
+	// Create useInView hooks for each feature with framer-motion
+	const feature0InView = useInView(feature0Ref, { once: true, amount: 0.2 })
+	const feature1InView = useInView(feature1Ref, { once: true, amount: 0.2 })
+	const feature2InView = useInView(feature2Ref, { once: true, amount: 0.2 })
+	const feature3InView = useInView(feature3Ref, { once: true, amount: 0.2 })
+
+	const refs = [feature0Ref, feature1Ref, feature2Ref, feature3Ref]
+	const inViewStates = [
+		feature0InView,
+		feature1InView,
+		feature2InView,
+		feature3InView,
+	]
 
 	return (
 		<section className="py-20 bg-gray-50">
@@ -48,8 +60,8 @@ export function FeaturesSection() {
 
 				<div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 					{features.map((feature, index) => {
-						// Use the pre-created hook for this index
-						const { ref, inView } = inViewHooks[index]
+						const ref = refs[index]
+						const inView = inViewStates[index]
 
 						return (
 							<motion.div
@@ -63,7 +75,7 @@ export function FeaturesSection() {
 								transition={{
 									duration: 0.8,
 									ease: 'easeOut',
-									delay: index * 0.1, // Delay for staggered animation
+									delay: index * 0.1,
 								}}
 							>
 								<Card className="h-full bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out transform hover:scale-105">

@@ -15,7 +15,7 @@ import { TabType } from '@/types/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import student from '../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -28,9 +28,22 @@ const ITEMS_PER_PAGE_SCHOLARSHIPS = 5
 const ITEMS_PER_PAGE_RESEARCH = 5
 
 const Explore = () => {
+	const contentRef = useRef<HTMLDivElement>(null)
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
+
+	// Initialize tab from URL parameter
+	useEffect(() => {
+		const urlParams = new URLSearchParams(window.location.search)
+		const tabFromUrl = urlParams.get('tab')
+		if (
+			tabFromUrl &&
+			['programmes', 'scholarships', 'research'].includes(tabFromUrl)
+		) {
+			setActiveTab(tabFromUrl as TabType)
+		}
+	}, [])
 
 	// Programs state
 	const [programs, setPrograms] = useState<Program[]>([])
@@ -131,12 +144,45 @@ const Explore = () => {
 	}, [activeTab, currentPage, sortBy])
 	const t = useTranslations()
 
-	const breadcrumbItems = [{ label: t('explore'), href: '/explore' }]
+	const breadcrumbItems = [{ label: 'Explore' }]
 
 	// Reset to page 1 when switching tabs
 	const handleTabChange = (tabId: string) => {
 		setActiveTab(tabId as TabType)
 		setCurrentPage(1)
+		// Update URL to include tab parameter
+		const url = new URL(window.location.href)
+		url.searchParams.set('tab', tabId)
+		window.history.pushState({}, '', url.toString())
+		// Scroll to top when switching tabs with delay
+		setTimeout(() => {
+			// Try scrolling to content area first, fallback to window scroll
+			if (contentRef.current) {
+				contentRef.current.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start',
+				})
+			} else {
+				window.scrollTo({ top: 0, behavior: 'smooth' })
+			}
+		}, 100)
+	}
+
+	// Handle page change with scroll to top
+	const handlePageChange = (page: number) => {
+		setCurrentPage(page)
+		// Use setTimeout to ensure DOM is updated before scrolling
+		setTimeout(() => {
+			// Try scrolling to content area first, fallback to window scroll
+			if (contentRef.current) {
+				contentRef.current.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start',
+				})
+			} else {
+				window.scrollTo({ top: 0, behavior: 'smooth' })
+			}
+		}, 100)
 	}
 
 	const renderTabContent = () => {
@@ -209,6 +255,7 @@ const Explore = () => {
 
 			{/* ---------------------------------------------------Explore----------------------------------------------- */}
 			<motion.div
+				ref={contentRef}
 				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-5"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -271,7 +318,7 @@ const Explore = () => {
 									<Pagination
 										currentPage={currentPage}
 										totalPages={currentTabData.totalPages}
-										onPageChange={setCurrentPage}
+										onPageChange={handlePageChange}
 									/>
 								)}
 							</div>

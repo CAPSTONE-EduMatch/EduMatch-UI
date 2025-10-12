@@ -40,16 +40,16 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
 					transition={{ duration: 0.3, delay: index * 0.1 }}
 				>
 					<ChevronRight className="w-4 h-4 text-gray-400" />
-					<Link
-						href={item.href || '/'}
-						className={
-							item.href
-								? 'hover:text-[#116E63] cursor-pointer transition-colors'
-								: 'text-gray-900'
-						}
-					>
-						{item.label}
-					</Link>
+					{item.href ? (
+						<Link
+							href={item.href}
+							className="hover:text-[#116E63] cursor-pointer transition-colors"
+						>
+							{item.label}
+						</Link>
+					) : (
+						<span className="text-gray-900 font-medium">{item.label}</span>
+					)}
 				</motion.div>
 			))}
 		</motion.nav>

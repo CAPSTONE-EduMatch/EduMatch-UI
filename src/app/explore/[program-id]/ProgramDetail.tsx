@@ -1,24 +1,16 @@
 'use client'
-import React from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { GraduationCap, Heart } from 'lucide-react'
-import { useState } from 'react'
-import Image from 'next/image'
 import { Button } from '@/components/ui'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
-import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
-import { Pagination } from '@/components/ui/Pagination'
-import { mockScholarships, mockPrograms } from '@/data/utils'
-import { ProgramCard } from '@/components/ui/ProgramCard'
-import { ChevronLeft, ChevronRight, Upload } from 'lucide-react'
-import { useFileUpload } from '@/hooks/useFileUpload'
-import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
-
-const breadcrumbItems = [
-	{ label: 'Explore', href: '/explore' },
-	{ label: 'Program Detail' },
-]
+import { Pagination } from '@/components/ui/Pagination'
+import { ProgramCard } from '@/components/ui/ProgramCard'
+import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
+import { mockPrograms, mockScholarships } from '@/data/utils'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
 
 const infoItems = [
 	{ label: 'Tuition fee', value: '100000000$/ year' },
@@ -40,10 +32,55 @@ const ProgramDetail = () => {
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+	const [breadcrumbItems, setBreadcrumbItems] = useState<
+		Array<{ label: string; href?: string }>
+	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
 	const itemsPerPage = 3
 	const totalPages = Math.ceil(mockScholarships.length / itemsPerPage)
 	const programsPerPage = 3
 	const totalPrograms = mockPrograms.length
+
+	// Dynamic breadcrumb based on referrer and context
+	useEffect(() => {
+		const updateBreadcrumb = () => {
+			const referrer = document.referrer
+			const programName = 'Information Technology' // This should come from props or API data
+
+			let items: Array<{ label: string; href?: string }> = [
+				{ label: 'Explore', href: '/explore' },
+			]
+
+			// Check if came from a specific tab in explore
+			if (referrer.includes('/explore')) {
+				const urlParams = new URLSearchParams(window.location.search)
+				const fromTab = urlParams.get('from') || 'programmes'
+
+				if (fromTab === 'scholarships') {
+					items.push({
+						label: 'Scholarships',
+						href: '/explore?tab=scholarships',
+					})
+				} else if (fromTab === 'research') {
+					items.push({
+						label: 'Research Labs',
+						href: '/explore?tab=research',
+					})
+				} else {
+					items.push({
+						label: 'Programmes',
+						href: '/explore?tab=programmes',
+					})
+				}
+			}
+
+			// Add current page (non-clickable)
+			items.push({ label: programName })
+
+			setBreadcrumbItems(items)
+		}
+
+		updateBreadcrumb()
+	}, [])
 
 	const handleWishlistToggle = (scholarshipId: number) => {
 		setScholarshipWishlist((prev) =>
@@ -116,7 +153,16 @@ const ProgramDetail = () => {
 	}
 
 	const handleProgramClick = (programId: number) => {
-		router.push(`/explore/${programId}`)
+		// Get current tab context from referrer or default to programmes
+		const referrer = document.referrer
+		let fromTab = 'programmes'
+		if (referrer.includes('tab=scholarships')) {
+			fromTab = 'scholarships'
+		} else if (referrer.includes('tab=research')) {
+			fromTab = 'research'
+		}
+
+		router.push(`/explore/${programId}?from=${fromTab}`)
 	}
 
 	const menuItems = [

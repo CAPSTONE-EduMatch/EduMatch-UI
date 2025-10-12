@@ -84,7 +84,7 @@ export function InstitutionDetailsStep({
 				!formData.institutionType) && (
 				<div className="space-y-4">
 					<Label className="text-sm font-medium text-foreground">
-						Institution Sub-Disciplines *
+						Institution Sub-Disciplines <span className="text-red-500">*</span>
 					</Label>
 					<CustomSelect
 						options={disciplines}
@@ -167,7 +167,7 @@ export function InstitutionDetailsStep({
 			{/* Verification Documents Upload */}
 			<div className="space-y-4">
 				<Label className="text-sm font-medium text-foreground">
-					Verification Documents *
+					Verification Documents <span className="text-red-500">*</span>
 				</Label>
 				<FileUploadManager
 					onFilesUploaded={(files) =>

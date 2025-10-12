@@ -9,7 +9,8 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import Button from '@/components/ui/Button'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Upload, Building2 } from 'lucide-react'
+import { Upload, Building2, Info } from 'lucide-react'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface InstitutionInfoStepProps {
 	formData: ProfileFormData
@@ -289,7 +290,7 @@ export function InstitutionInfoStep({
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Institution Name *
+						Institution Name <span className="text-red-500">*</span>
 					</Label>
 					<Input
 						id="institutionName"
@@ -322,7 +323,7 @@ export function InstitutionInfoStep({
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Hotline *
+						Hotline <span className="text-red-500">*</span>
 					</Label>
 					<PhoneInput
 						value={formData.institutionHotline}
@@ -342,7 +343,7 @@ export function InstitutionInfoStep({
 				</div>
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Institution Type *
+						Institution Type <span className="text-red-500">*</span>
 					</Label>
 					<CustomSelect
 						value={formData.institutionType}
@@ -402,7 +403,7 @@ export function InstitutionInfoStep({
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Website *
+						Website <span className="text-red-500">*</span>
 					</Label>
 					<Input
 						id="institutionWebsite"
@@ -418,9 +419,16 @@ export function InstitutionInfoStep({
 					/>
 				</div>
 				<div className="space-y-2">
-					<Label className="text-sm font-medium text-foreground">
-						Institution Email *
-					</Label>
+					<div className="flex items-center gap-2">
+						<Label className="text-sm font-medium text-foreground">
+							Institution Email <span className="text-red-500">*</span>
+						</Label>
+						{user?.email && formData.institutionEmail === user.email && (
+							<Tooltip content="Institution email is pre-filled from your Google account and cannot be changed">
+								<Info className="w-3 h-3" />
+							</Tooltip>
+						)}
+					</div>
 					<Input
 						id="institutionEmail"
 						type="email"
@@ -429,18 +437,20 @@ export function InstitutionInfoStep({
 						placeholder="contact@institution.edu"
 						inputSize="select"
 						disabled={user?.email && formData.institutionEmail === user.email}
-						className={
-							validationErrors.institutionEmail || emailErrors.institutionEmail
-								? 'border-red-500 focus:border-red-500'
-								: ''
-						}
+						className={`
+							${
+								validationErrors.institutionEmail ||
+								emailErrors.institutionEmail
+									? 'border-red-500 focus:border-red-500'
+									: ''
+							}
+							${
+								user?.email && formData.institutionEmail === user.email
+									? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60'
+									: ''
+							}
+						`}
 					/>
-					{user?.email && formData.institutionEmail === user.email && (
-						<p className="text-xs text-muted-foreground">
-							Institution email is pre-filled from your Google account and
-							cannot be changed
-						</p>
-					)}
 					{emailErrors.institutionEmail && (
 						<p className="text-xs text-red-500 mt-1">
 							{emailErrors.institutionEmail}
@@ -453,7 +463,7 @@ export function InstitutionInfoStep({
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Country *
+						Country <span className="text-red-500">*</span>
 					</Label>
 					<CustomSelect
 						value={
@@ -529,7 +539,7 @@ export function InstitutionInfoStep({
 				</div>
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Detailed Address *
+						Detailed Address <span className="text-red-500">*</span>
 					</Label>
 					<Input
 						id="institutionAddress"
@@ -554,7 +564,7 @@ export function InstitutionInfoStep({
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					<div className="space-y-2">
 						<Label className="text-sm font-medium text-foreground">
-							Representative Name *
+							Representative Name <span className="text-red-500">*</span>
 						</Label>
 						<Input
 							id="representativeName"
@@ -589,7 +599,7 @@ export function InstitutionInfoStep({
 					</div>
 					<div className="space-y-2">
 						<Label className="text-sm font-medium text-foreground">
-							Position *
+							Position <span className="text-red-500">*</span>
 						</Label>
 						<Input
 							id="representativePosition"
@@ -611,7 +621,7 @@ export function InstitutionInfoStep({
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Representative Email *
+						Representative Email <span className="text-red-500">*</span>
 					</Label>
 					<Input
 						id="representativeEmail"
@@ -635,7 +645,7 @@ export function InstitutionInfoStep({
 				</div>
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">
-						Representative Phone *
+						Representative Phone <span className="text-red-500">*</span>
 					</Label>
 					<PhoneInput
 						value={formData.representativePhone}
@@ -658,7 +668,7 @@ export function InstitutionInfoStep({
 			{/* About Institution */}
 			<div className="space-y-2">
 				<Label className="text-sm font-medium text-foreground">
-					About Institution *
+					About Institution <span className="text-red-500">*</span>
 				</Label>
 				<textarea
 					value={formData.aboutInstitution}

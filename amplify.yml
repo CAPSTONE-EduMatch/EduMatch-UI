@@ -34,7 +34,7 @@ frontend:
         - echo "STRIPE_PRO_PRICE_ID=$STRIPE_PRO_PRICE_ID" >> .env
         - echo "STRIPE_ENTERPRISE_PRICE_ID=$STRIPE_ENTERPRISE_PRICE_ID" >> .env
         - npx prisma generate
-        - npx prisma db push
+        # - npx prisma db push
     build:
       commands:
         - npm run build

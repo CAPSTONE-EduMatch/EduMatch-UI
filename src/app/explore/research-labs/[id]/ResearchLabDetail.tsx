@@ -1,31 +1,33 @@
 'use client'
 import { Button } from '@/components/ui'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
-import { FilterSidebar } from '@/components/ui/FilterSidebar'
 import Modal from '@/components/ui/Modal'
-import { Pagination } from '@/components/ui/Pagination'
-import { ProgramCard } from '@/components/ui/ProgramCard'
 import { ResearchLabCard } from '@/components/ui/ResearchLabCard'
-import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
-import { mockPrograms, mockResearchLabs, mockScholarships } from '@/data/utils'
+import { mockResearchLabs } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
-
-const infoItems = [
-	{ label: 'Salary', value: 'Up to $2000' },
-	{ label: 'Country', value: 'Italy' },
-	{ label: 'Job type', value: 'Researcher' },
-	{ label: 'Application deadline', value: '07/07/2026' },
-	{ label: 'Work location', value: 'District 3, Ho Chi Minh City, Viet Nam' },
-]
 
 const ResearchLabDetail = () => {
 	const router = useRouter()
+	const searchParams = useSearchParams()
+	const params = useParams()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('job-description')
 	const [researchLabWishlist, setResearchLabWishlist] = useState<number[]>([])
+	const [currentLab, setCurrentLab] = useState<any>(null)
+
+	// Dynamic info items based on current lab data
+	const infoItems = [
+		{ label: 'Salary', value: currentLab?.salary || 'Up to $2000' },
+		{ label: 'Country', value: currentLab?.country || 'Italy' },
+		{ label: 'Job type', value: currentLab?.jobType || 'Researcher' },
+		{
+			label: 'Application deadline',
+			value: currentLab?.applicationDeadline || '07/07/2026',
+		},
+	]
 
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
@@ -38,34 +40,43 @@ const ResearchLabDetail = () => {
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
 		const updateBreadcrumb = () => {
-			const referrer = document.referrer
-			const labName = 'AI Research Lab' // This should come from props or API data
+			// Get research lab ID from URL params
+			const labId = params.id as string
+
+			// Get the 'from' parameter from search params to know which tab we came from
+			const fromTab = searchParams.get('from') || 'research'
+
+			// Find the research lab data (in real app, this would be an API call)
+			const foundLab = mockResearchLabs.find(
+				(lab) => lab.id.toString() === labId
+			)
+
+			if (foundLab) {
+				setCurrentLab(foundLab)
+			}
+
+			const labName = foundLab?.title || 'AI Research Lab'
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
 			]
 
-			// Check if came from a specific tab in explore
-			if (referrer.includes('/explore')) {
-				const urlParams = new URLSearchParams(window.location.search)
-				const fromTab = urlParams.get('from') || 'research'
-
-				if (fromTab === 'programmes') {
-					items.push({
-						label: 'Programmes',
-						href: '/explore?tab=programmes',
-					})
-				} else if (fromTab === 'scholarships') {
-					items.push({
-						label: 'Scholarships',
-						href: '/explore?tab=scholarships',
-					})
-				} else {
-					items.push({
-						label: 'Research Labs',
-						href: '/explore?tab=research',
-					})
-				}
+			// Add intermediate breadcrumb based on where we came from
+			if (fromTab === 'programmes') {
+				items.push({
+					label: 'Programmes',
+					href: '/explore?tab=programmes',
+				})
+			} else if (fromTab === 'scholarships') {
+				items.push({
+					label: 'Scholarships',
+					href: '/explore?tab=scholarships',
+				})
+			} else {
+				items.push({
+					label: 'Research Labs',
+					href: '/explore?tab=research',
+				})
 			}
 
 			// Add current page (non-clickable)
@@ -75,7 +86,7 @@ const ResearchLabDetail = () => {
 		}
 
 		updateBreadcrumb()
-	}, [])
+	}, [params.id, searchParams])
 
 	const handleRResearchLabWishlistToggle = (researchLabId: number) => {
 		setResearchLabWishlist((prev) =>
@@ -373,8 +384,12 @@ const ResearchLabDetail = () => {
 				>
 					<div className="w-[1500px] flex justify-center items-center gap-10 mx-auto px-4 sm:px-6 lg:px-8 py-8">
 						<div className="flex flex-col justify-center items-center w-1/2">
-							<h1 className="text-3xl font-bold mb-2">Job&apos;s name</h1>
-							<p className="text-gray-600 mb-6">Provided by: Lab&apos;s name</p>
+							<h1 className="text-3xl font-bold mb-2">
+								{currentLab?.title || "Job's name"}
+							</h1>
+							<p className="text-gray-600 mb-6">
+								Provided by: {currentLab?.organization || "Lab's name"}
+							</p>
 
 							<div className="flex items-center gap-3 mb-4">
 								<Button className="">Visit website</Button>
@@ -402,26 +417,17 @@ const ResearchLabDetail = () => {
 							<p className="text-sm text-gray-500">Number of applications: 0</p>
 						</div>
 						<div className="w-1/2 grid grid-cols-2 gap-4">
-							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Salary</span>
-								<span className="text-xl text-black font-bold">
-									Up to $2000
-								</span>
-							</div>
-							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Country</span>
-								<span className="text-xl text-black font-bold">Italy</span>
-							</div>
-							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Job type</span>
-								<span className="text-xl text-black font-bold">Researcher</span>
-							</div>
-							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">
-									Application deadline
-								</span>
-								<span className="text-xl text-black font-bold">07/07/2026</span>
-							</div>
+							{infoItems.map((item, index) => (
+								<div
+									key={index}
+									className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start"
+								>
+									<span className="text-md text-gray-500">{item.label}</span>
+									<span className="text-xl text-black font-bold">
+										{item.value}
+									</span>
+								</div>
+							))}
 						</div>
 					</div>
 				</motion.div>

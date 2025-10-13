@@ -9,19 +9,13 @@ import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
 import { mockPrograms, mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
-
-const infoItems = [
-	{ label: 'Tuition fee', value: '100000000$/ year' },
-	{ label: 'Duration', value: '2 years' },
-	{ label: 'Application deadline', value: '11/12/2024' },
-	{ label: 'Start Date', value: '11/12/2024' },
-	{ label: 'Location', value: 'Bangkok, Thailand' },
-]
 
 const ScholarshipDetail = () => {
 	const router = useRouter()
+	const searchParams = useSearchParams()
+	const params = useParams()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('detail')
 	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
@@ -31,9 +25,31 @@ const ScholarshipDetail = () => {
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
+
+	// Dynamic info items based on current scholarship data
+	const infoItems = [
+		{
+			label: 'Tuition fee',
+			value: currentScholarship?.tuitionFee || '100000000$/ year',
+		},
+		{ label: 'Duration', value: currentScholarship?.duration || '2 years' },
+		{
+			label: 'Application deadline',
+			value: currentScholarship?.applicationDeadline || '11/12/2024',
+		},
+		{
+			label: 'Start Date',
+			value: currentScholarship?.startDate || '11/12/2024',
+		},
+		{
+			label: 'Location',
+			value: currentScholarship?.location || 'Bangkok, Thailand',
+		},
+	]
 
 	const eligibilityProgramsPerPage = 6
 	const totalEligibilityPages = Math.ceil(
@@ -43,34 +59,44 @@ const ScholarshipDetail = () => {
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
 		const updateBreadcrumb = () => {
-			const referrer = document.referrer
-			const scholarshipName = 'Information Technology' // This should come from props or API dat
+			// Get scholarship ID from URL params
+			const scholarshipId = params.id as string
+
+			// Get the 'from' parameter from search params to know which tab we came from
+			const fromTab = searchParams.get('from') || 'scholarships'
+
+			// Find the scholarship data (in real app, this would be an API call)
+			const foundScholarship = mockScholarships.find(
+				(scholarship) => scholarship.id.toString() === scholarshipId
+			)
+
+			if (foundScholarship) {
+				setCurrentScholarship(foundScholarship)
+			}
+
+			const scholarshipName =
+				foundScholarship?.title || 'Information Technology'
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
 			]
 
-			// Check if came from a specific tab in explore
-			if (referrer.includes('/explore')) {
-				const urlParams = new URLSearchParams(window.location.search)
-				const fromTab = urlParams.get('from') || 'scholarships'
-
-				if (fromTab === 'programmes') {
-					items.push({
-						label: 'Programmes',
-						href: '/explore?tab=programmes',
-					})
-				} else if (fromTab === 'research') {
-					items.push({
-						label: 'Research Labs',
-						href: '/explore?tab=research',
-					})
-				} else {
-					items.push({
-						label: 'Scholarships',
-						href: '/explore?tab=scholarships',
-					})
-				}
+			// Add intermediate breadcrumb based on where we came from
+			if (fromTab === 'programmes') {
+				items.push({
+					label: 'Programmes',
+					href: '/explore?tab=programmes',
+				})
+			} else if (fromTab === 'research') {
+				items.push({
+					label: 'Research Labs',
+					href: '/explore?tab=research',
+				})
+			} else {
+				items.push({
+					label: 'Scholarships',
+					href: '/explore?tab=scholarships',
+				})
 			}
 
 			// Add current page (non-clickable)
@@ -80,7 +106,7 @@ const ScholarshipDetail = () => {
 		}
 
 		updateBreadcrumb()
-	}, [])
+	}, [params.id, searchParams])
 
 	const handleProgramWishlistToggle = (programId: number) => {
 		setProgramWishlist((prev) =>
@@ -281,9 +307,11 @@ const ScholarshipDetail = () => {
 					<div className="w-[1500px] flex justify-center items-center gap-10 mx-auto px-4 sm:px-6 lg:px-8 py-8 ">
 						<div className=" flex flex-col justify-center items-center w-1/2">
 							<h1 className="text-3xl font-bold mb-2">
-								Information Technology
+								{currentScholarship?.title || 'Information Technology'}
 							</h1>
-							<p className="text-gray-600 mb-6">Army West University (AWU)</p>
+							<p className="text-gray-600 mb-6">
+								{currentScholarship?.university || 'Army West University (AWU)'}
+							</p>
 
 							<div className="flex items-center gap-3 mb-4">
 								<Button className="">Visit website</Button>
@@ -544,34 +572,33 @@ const ScholarshipDetail = () => {
 
 					{/* File Upload Area */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-						{[1, 2, 3].map((index) => (
-							<div key={index} className="space-y-2">
-								<label className="text-sm font-medium text-gray-700">
-									Essay
-								</label>
-								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-									<div className="text-4xl mb-4">📁</div>
-									<div className="space-y-2">
-										{/* <p className="text-sm text-[#126E64] cursor-pointer hover:underline">
-                                            Click here to upload file
-                                        </p> */}
-										<input
-											type="file"
-											multiple
-											onChange={handleFileUpload}
-											className="hidden"
-											id={`file-upload-${index}`}
-										/>
-										<label
-											htmlFor={`file-upload-${index}`}
-											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-										>
-											Click here to upload file
-										</label>
+						{['Research Proposal', 'CV/Resume', 'Portfolio'].map(
+							(label, index) => (
+								<div key={index} className="space-y-2">
+									<label className="text-sm font-medium text-gray-700">
+										{label}
+									</label>
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+										<div className="text-4xl mb-4">📁</div>
+										<div className="space-y-2">
+											<input
+												type="file"
+												multiple
+												onChange={handleFileUpload}
+												className="hidden"
+												id={`file-upload-${index}`}
+											/>
+											<label
+												htmlFor={`file-upload-${index}`}
+												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+											>
+												Click here to upload file
+											</label>
+										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							)
+						)}
 					</div>
 
 					{/* File Management */}
@@ -593,8 +620,8 @@ const ScholarshipDetail = () => {
 						</div>
 					)}
 
-					{uploadedFiles.length === 0 && (
-						<div className="flex gap-3 justify-center">
+					<div className="flex gap-3 justify-center">
+						{uploadedFiles.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}
@@ -602,26 +629,11 @@ const ScholarshipDetail = () => {
 							>
 								Remove all
 							</Button>
-							<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-								Submit
-							</Button>
-						</div>
-					)}
-
-					{uploadedFiles.length > 0 && (
-						<div className="flex gap-3 justify-center">
-							<Button
-								variant="outline"
-								onClick={handleRemoveAllClick}
-								className="text-red-500 border-red-500 hover:bg-red-50"
-							>
-								Remove all
-							</Button>
-							<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-								Submit
-							</Button>
-						</div>
-					)}
+						)}
+						<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
+							Submit Application
+						</Button>
+					</div>
 				</motion.div>
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}

@@ -9,19 +9,13 @@ import { mockPrograms, mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
-
-const infoItems = [
-	{ label: 'Tuition fee', value: '100000000$/ year' },
-	{ label: 'Duration', value: '2 years' },
-	{ label: 'Application deadline', value: '11/12/2024' },
-	{ label: 'Start Date', value: '11/12/2024' },
-	{ label: 'Location', value: 'Bangkok, Thailand' },
-]
 
 const ProgramDetail = () => {
 	const router = useRouter()
+	const searchParams = useSearchParams()
+	const params = useParams()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('overview')
 	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
@@ -32,9 +26,29 @@ const ProgramDetail = () => {
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
+
+	// Dynamic info items based on current program data
+	const infoItems = [
+		{
+			label: 'Tuition fee',
+			value: currentProgram?.tuitionFee || '100000000$/ year',
+		},
+		{ label: 'Duration', value: currentProgram?.duration || '2 years' },
+		{
+			label: 'Application deadline',
+			value: currentProgram?.applicationDeadline || '11/12/2024',
+		},
+		{ label: 'Start Date', value: currentProgram?.startDate || '11/12/2024' },
+		{
+			label: 'Location',
+			value: currentProgram?.location || 'Bangkok, Thailand',
+		},
+	]
+
 	const itemsPerPage = 3
 	const totalPages = Math.ceil(mockScholarships.length / itemsPerPage)
 	const programsPerPage = 3
@@ -43,34 +57,43 @@ const ProgramDetail = () => {
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
 		const updateBreadcrumb = () => {
-			const referrer = document.referrer
-			const programName = 'Information Technology' // This should come from props or API data
+			// Get program ID from URL params
+			const programId = params.id as string
+
+			// Get the 'from' parameter from search params to know which tab we came from
+			const fromTab = searchParams.get('from') || 'programmes'
+
+			// Find the program data (in real app, this would be an API call)
+			const foundProgram = mockPrograms.find(
+				(program) => program.id.toString() === programId
+			)
+
+			if (foundProgram) {
+				setCurrentProgram(foundProgram)
+			}
+
+			const programName = foundProgram?.title || 'Information Technology'
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
 			]
 
-			// Check if came from a specific tab in explore
-			if (referrer.includes('/explore')) {
-				const urlParams = new URLSearchParams(window.location.search)
-				const fromTab = urlParams.get('from') || 'programmes'
-
-				if (fromTab === 'scholarships') {
-					items.push({
-						label: 'Scholarships',
-						href: '/explore?tab=scholarships',
-					})
-				} else if (fromTab === 'research') {
-					items.push({
-						label: 'Research Labs',
-						href: '/explore?tab=research',
-					})
-				} else {
-					items.push({
-						label: 'Programmes',
-						href: '/explore?tab=programmes',
-					})
-				}
+			// Add intermediate breadcrumb based on where we came from
+			if (fromTab === 'scholarships') {
+				items.push({
+					label: 'Scholarships',
+					href: '/explore?tab=scholarships',
+				})
+			} else if (fromTab === 'research') {
+				items.push({
+					label: 'Research Labs',
+					href: '/explore?tab=research',
+				})
+			} else {
+				items.push({
+					label: 'Programmes',
+					href: '/explore?tab=programmes',
+				})
 			}
 
 			// Add current page (non-clickable)
@@ -80,7 +103,7 @@ const ProgramDetail = () => {
 		}
 
 		updateBreadcrumb()
-	}, [])
+	}, [params.id, searchParams])
 
 	const handleWishlistToggle = (scholarshipId: number) => {
 		setScholarshipWishlist((prev) =>
@@ -163,6 +186,10 @@ const ProgramDetail = () => {
 		}
 
 		router.push(`/explore/${programId}?from=${fromTab}`)
+	}
+
+	const handleScholarshipClick = (scholarshipId: number) => {
+		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
 	}
 
 	const menuItems = [
@@ -396,6 +423,7 @@ const ProgramDetail = () => {
 										index={index}
 										isWishlisted={scholarshipWishlist.includes(scholarship.id)}
 										onWishlistToggle={handleWishlistToggle}
+										onClick={handleScholarshipClick}
 									/>
 								))}
 							</div>
@@ -459,8 +487,12 @@ const ProgramDetail = () => {
 						transition={{ delay: 0.2 }}
 						className="absolute bottom-0 right-4 translate-y-1/3 bg-white rounded-2xl shadow-xl p-8 max-w-lg flex flex-col justify-center items-center"
 					>
-						<h1 className="text-3xl font-bold mb-2">Information Technology</h1>
-						<p className="text-gray-600 mb-6">Army West University (AWU)</p>
+						<h1 className="text-3xl font-bold mb-2">
+							{currentProgram?.title || 'Information Technology'}
+						</h1>
+						<p className="text-gray-600 mb-6">
+							{currentProgram?.university || 'Army West University (AWU)'}
+						</p>
 
 						<div className="flex items-center gap-3 mb-4">
 							<Button className="">Visit website</Button>
@@ -628,35 +660,35 @@ const ProgramDetail = () => {
 					</p>
 
 					{/* File Upload Area */}
+					{/* File Upload Area */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-						{[1, 2, 3].map((index) => (
-							<div key={index} className="space-y-2">
-								<label className="text-sm font-medium text-gray-700">
-									Essay
-								</label>
-								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-									<div className="text-4xl mb-4">📁</div>
-									<div className="space-y-2">
-										{/* <p className="text-sm text-[#126E64] cursor-pointer hover:underline">
-											Click here to upload file
-										</p> */}
-										<input
-											type="file"
-											multiple
-											onChange={handleFileUpload}
-											className="hidden"
-											id={`file-upload-${index}`}
-										/>
-										<label
-											htmlFor={`file-upload-${index}`}
-											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-										>
-											Click here to upload file
-										</label>
+						{['Research Proposal', 'CV/Resume', 'Portfolio'].map(
+							(label, index) => (
+								<div key={index} className="space-y-2">
+									<label className="text-sm font-medium text-gray-700">
+										{label}
+									</label>
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+										<div className="text-4xl mb-4">📁</div>
+										<div className="space-y-2">
+											<input
+												type="file"
+												multiple
+												onChange={handleFileUpload}
+												className="hidden"
+												id={`file-upload-${index}`}
+											/>
+											<label
+												htmlFor={`file-upload-${index}`}
+												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+											>
+												Click here to upload file
+											</label>
+										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							)
+						)}
 					</div>
 
 					{/* File Management */}
@@ -678,8 +710,8 @@ const ProgramDetail = () => {
 						</div>
 					)}
 
-					{uploadedFiles.length === 0 && (
-						<div className="flex gap-3 justify-center">
+					<div className="flex gap-3 justify-center">
+						{uploadedFiles.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}
@@ -687,26 +719,11 @@ const ProgramDetail = () => {
 							>
 								Remove all
 							</Button>
-							<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-								Submit
-							</Button>
-						</div>
-					)}
-
-					{uploadedFiles.length > 0 && (
-						<div className="flex gap-3 justify-center">
-							<Button
-								variant="outline"
-								onClick={handleRemoveAllClick}
-								className="text-red-500 border-red-500 hover:bg-red-50"
-							>
-								Remove all
-							</Button>
-							<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-								Submit
-							</Button>
-						</div>
-					)}
+						)}
+						<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
+							Submit Application
+						</Button>
+					</div>
 				</motion.div>
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}

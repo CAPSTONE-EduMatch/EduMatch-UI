@@ -22,6 +22,11 @@ export async function GET(request: NextRequest) {
 		}
 
 		// Verify user has access to this thread
+		console.log("GET - Checking thread access:", {
+			threadId,
+			userId: session.user.id,
+		});
+
 		const thread = await prismaClient.thread.findFirst({
 			where: {
 				id: threadId,
@@ -32,7 +37,15 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
+		console.log("GET - Thread found:", thread);
+
 		if (!thread) {
+			// Let's also check if the thread exists at all
+			const anyThread = await prismaClient.thread.findFirst({
+				where: { id: threadId },
+			});
+			console.log("GET - Any thread with this ID:", anyThread);
+
 			return new Response("Access denied", { status: 403 });
 		}
 
@@ -105,6 +118,11 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Verify user has access to this thread
+		console.log("Checking thread access:", {
+			threadId,
+			userId: session.user.id,
+		});
+
 		const thread = await prismaClient.thread.findFirst({
 			where: {
 				id: threadId,
@@ -115,7 +133,15 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
+		console.log("Thread found:", thread);
+
 		if (!thread) {
+			// Let's also check if the thread exists at all
+			const anyThread = await prismaClient.thread.findFirst({
+				where: { id: threadId },
+			});
+			console.log("Any thread with this ID:", anyThread);
+
 			return new Response("Access denied", { status: 403 });
 		}
 

@@ -1,41 +1,3 @@
-type Message {
-	id: ID!
-	threadId: ID!
-	content: String
-	senderId: ID!
-	senderName: String!
-	senderImage: String
-	fileUrl: String
-	fileName: String
-	fileSize: Int
-	mimeType: String
-	createdAt: String!
-	isRead: Boolean!
-}
-
-type Thread {
-	id: ID!
-	participants: [String!]!
-	lastMessage: String
-	lastMessageAt: String
-	createdAt: String!
-	updatedAt: String!
-	# Additional fields for complete thread display
-	otherParticipant: Participant
-	lastMessageSender: Participant
-	unreadCount: Int!
-	lastMessageFileUrl: String
-	lastMessageFileName: String
-	lastMessageMimeType: String
-}
-
-type Participant {
-	id: ID!
-	name: String!
-	email: String!
-	image: String
-}
-
 type User {
 	id: ID!
 	name: String!
@@ -43,70 +5,89 @@ type User {
 	image: String
 }
 
-input CreateMessageInput {
+type Message {
 	id: ID!
 	threadId: ID!
-	content: String
+	content: String!
 	senderId: ID!
 	senderName: String!
 	senderImage: String
+	createdAt: String!
 	fileUrl: String
 	fileName: String
-	fileSize: Int
 	mimeType: String
-	createdAt: String!
 	isRead: Boolean!
+	readAt: String
+}
+
+type Thread {
+	id: ID!
+	user1Id: ID!
+	user2Id: ID!
+	lastMessage: String
+	lastMessageAt: String
+	lastMessageSenderId: ID
+	lastMessageSenderName: String
+	lastMessageSenderImage: String
+	lastMessageFileUrl: String
+	lastMessageFileName: String
+	lastMessageMimeType: String
+	createdAt: String!
+	updatedAt: String!
+	unreadCount: Int!
+}
+
+type MessageRead {
+	id: ID!
+	messageId: ID!
+	userId: ID!
+	readAt: String!
+}
+
+input CreateMessageInput {
+	threadId: ID!
+	content: String!
+	fileUrl: String
+	fileName: String
+	mimeType: String
+	senderId: ID
+	senderName: String
+	senderImage: String
 }
 
 input CreateThreadInput {
-	id: ID!
-	participants: [String!]!
-	createdAt: String!
-	updatedAt: String!
-	# Additional fields for complete thread creation
-	otherParticipant: ParticipantInput
-	lastMessageSender: ParticipantInput
-	unreadCount: Int!
-	lastMessageFileUrl: String
-	lastMessageFileName: String
-	lastMessageMimeType: String
+	participantId: ID!
+	userId: ID
+	userName: String
+	userEmail: String
+	userImage: String
 }
 
-input ParticipantInput {
-	id: ID!
-	name: String!
-	email: String!
-	image: String
+input MarkMessageReadInput {
+	messageId: ID!
+	userId: ID
 }
 
-input UpdateThreadInput {
-	id: ID!
-	lastMessage: String
-	lastMessageAt: String
-	updatedAt: String!
-	lastMessageSender: ParticipantInput
-	unreadCount: Int!
-	lastMessageFileUrl: String
-	lastMessageFileName: String
-	lastMessageMimeType: String
+input ClearThreadUnreadCountInput {
+	threadId: ID!
+	userId: ID
 }
 
 type Query {
+	getThreads(userId: ID): [Thread!]!
 	getMessages(threadId: ID!): [Message!]!
-	getThreads: [Thread!]!
-	getThread(id: ID!): Thread
+	getUnreadCount(userId: ID): Int!
 }
 
 type Mutation {
 	createMessage(input: CreateMessageInput!): Message!
 	createThread(input: CreateThreadInput!): Thread!
-	updateThread(input: UpdateThreadInput!): Thread!
-	markMessageAsRead(messageId: ID!): Message!
+	markMessageRead(input: MarkMessageReadInput!): MessageRead!
+	clearThreadUnreadCount(input: ClearThreadUnreadCountInput!): Thread!
 }
 
 type Subscription {
 	onMessageAdded(threadId: ID!): Message
 		@aws_subscribe(mutations: ["createMessage"])
-	onThreadUpdated: Thread
-		@aws_subscribe(mutations: ["createThread", "updateThread"])
+	onThreadCreated: Thread @aws_subscribe(mutations: ["createThread"])
 }

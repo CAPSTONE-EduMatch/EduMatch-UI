@@ -1,646 +1,284 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-	getMessages,
-	getMessagesFromAppSync,
 	createMessage,
-	getThreads,
 	createThread,
-	updateThread,
-	updateThreadUnreadCount,
+	getMessages,
+	getThreads,
+	markMessageAsRead,
+	clearThreadUnreadCount,
 	subscribeToMessages,
-	subscribeToThreads,
+	subscribeToThreadUpdates,
+	subscribeToAllMessages,
 } from "@/lib/appsync-client";
+import { authClient } from "@/app/lib/auth-client";
 
 export interface Message {
 	id: string;
 	threadId: string;
-	content?: string;
+	content: string;
 	senderId: string;
 	senderName: string;
 	senderImage?: string;
+	createdAt: string;
 	fileUrl?: string;
 	fileName?: string;
-	fileSize?: number;
 	mimeType?: string;
-	createdAt: string;
 	isRead: boolean;
+	readAt?: string;
 }
 
 export interface Thread {
 	id: string;
-	participants: string[];
+	user1Id: string;
+	user2Id: string;
 	lastMessage?: string;
 	lastMessageAt?: string;
-	createdAt: string;
-	updatedAt: string;
-	// File message fields (from API fallback)
+	lastMessageSenderId?: string;
+	lastMessageSenderName?: string;
+	lastMessageSenderImage?: string;
 	lastMessageFileUrl?: string;
 	lastMessageFileName?: string;
 	lastMessageMimeType?: string;
-	// AppSync thread fields
-	unreadCount?: number;
-	otherParticipant?: {
-		id: string;
-		name: string;
-		email?: string;
-		image?: string;
-	};
-	lastMessageSender?: {
-		id: string;
-		name: string;
-		email?: string;
-		image?: string;
-	};
+	createdAt: string;
+	updatedAt: string;
+	unreadCount: number;
 }
 
-export const useAppSyncMessaging = (user?: any) => {
+export const useAppSyncMessaging = () => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [threads, setThreads] = useState<Thread[]>([]);
 	const [selectedThreadId, setSelectedThreadId] = useState<string | null>(
 		null
 	);
-	const [isConnected, setIsConnected] = useState(false);
-	const [isLoading, setIsLoading] = useState(false);
+	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [user, setUser] = useState<any>(null);
 
-	const subscriptionRef = useRef<any>(null);
-
-	// Initialize connection
-	useEffect(() => {
-		setIsConnected(true);
-		loadThreads();
-
-		return () => {
-			if (subscriptionRef.current) {
-				subscriptionRef.current.unsubscribe();
-			}
-		};
-	}, []);
-
-	// Subscribe to messages when thread is selected
-	useEffect(() => {
-		if (selectedThreadId) {
-			// Unsubscribe from previous subscription
-			if (subscriptionRef.current) {
-				subscriptionRef.current.unsubscribe();
-			}
-
-			// Load existing messages
-			loadMessages(selectedThreadId);
-
-			// Subscribe to new messages using AppSync
-			if (process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-				console.log(
-					"Setting up AppSync subscription for thread:",
-					selectedThreadId
-				);
-				subscriptionRef.current = subscribeToMessages(
-					selectedThreadId,
-					(newMessage) => {
-						console.log(
-							"AppSync message received for current thread:",
-							newMessage
-						);
-						setMessages((prev) => {
-							// Check if message already exists to avoid duplicates
-							const exists = prev.some(
-								(msg) => msg && msg.id === newMessage.id
-							);
-							if (exists) {
-								console.log(
-									"Message already exists, not adding"
-								);
-								return prev;
-							}
-
-							// Ensure the new message has proper structure
-							if (newMessage && newMessage.id) {
-								console.log(
-									"Adding new AppSync message to chat"
-								);
-								return [...prev, newMessage];
-							}
-							return prev;
-						});
-					}
-				);
-			} else {
-				console.warn("AppSync not configured, using fallback polling");
-				// Fallback: minimal polling only if AppSync is not available
-				const pollInterval = setInterval(() => {
-					loadMessages(selectedThreadId);
-				}, 5000); // Much slower polling as fallback
-
-				subscriptionRef.current = {
-					unsubscribe: () => clearInterval(pollInterval),
-				};
-			}
-
-			// Also set up cross-tab communication for immediate updates
-			const handleStorageChange = (e: StorageEvent) => {
-				if (e.key === `message_${selectedThreadId}` && e.newValue) {
-					try {
-						const message = JSON.parse(e.newValue);
-						console.log(
-							"Cross-tab message received in hook:",
-							message
-						);
-						setMessages((prev) => {
-							// Check if message already exists to avoid duplicates
-							const exists = prev.some(
-								(msg) => msg && msg.id === message.id
-							);
-							if (exists) return prev;
-
-							// Ensure the new message has proper structure
-							if (message && message.id) {
-								console.log("Adding cross-tab message to chat");
-								return [...prev, message];
-							}
-							return prev;
-						});
-					} catch (error) {
-						console.error(
-							"Error parsing cross-tab message in hook:",
-							error
-						);
-					}
-				}
-			};
-
-			window.addEventListener("storage", handleStorageChange);
-
-			// Clean up storage listener
-			return () => {
-				window.removeEventListener("storage", handleStorageChange);
-			};
-		}
-	}, [selectedThreadId]);
-
-	const loadMessages = useCallback(async (threadId: string) => {
-		try {
-			setIsLoading(true);
-			setError(null);
-
-			// Use AppSync for loading messages if available
-			if (process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-				console.log(
-					"Loading messages from AppSync for thread:",
-					threadId
-				);
-				const fetchedMessages = await getMessagesFromAppSync(threadId);
-
-				// Ensure messages have proper structure and unique IDs
-				const validMessages = (fetchedMessages || []).filter(
-					(msg: any, index: number, arr: any[]) =>
-						msg &&
-						msg.id &&
-						arr.findIndex((m: any) => m.id === msg.id) === index
-				);
-
-				console.log(
-					"Loaded messages from AppSync:",
-					validMessages.length
-				);
-				setMessages(validMessages);
-			} else {
-				// Fallback to API only if AppSync is not available
-				console.log(
-					"Loading messages from API (fallback) for thread:",
-					threadId
-				);
-				const fetchedMessages = await getMessages(threadId);
-
-				const validMessages = (fetchedMessages || []).filter(
-					(msg: any, index: number, arr: any[]) =>
-						msg &&
-						msg.id &&
-						arr.findIndex((m: any) => m.id === msg.id) === index
-				);
-
-				console.log("Loaded messages from API:", validMessages.length);
-				setMessages(validMessages);
-			}
-		} catch (err) {
-			setError("Failed to load messages");
-			console.error("Error loading messages:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	}, []);
-
-	// No need for heartbeat polling when using AppSync subscriptions
-
+	// Load all threads
 	const loadThreads = useCallback(async () => {
 		try {
-			setIsLoading(true);
+			setLoading(true);
 			setError(null);
-			const fetchedThreads = await getThreads();
-			setThreads(fetchedThreads || []);
+			const threadsData = await getThreads();
+			setThreads(threadsData);
 		} catch (err) {
-			setError("Failed to load threads");
 			console.error("Error loading threads:", err);
+			setError("Failed to load threads");
 		} finally {
-			setIsLoading(false);
+			setLoading(false);
 		}
 	}, []);
 
-	// Subscribe to thread updates
-	useEffect(() => {
-		if (process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-			console.log("Setting up thread subscription");
-			const threadSubscription = subscribeToThreads((updatedThread) => {
-				console.log("Thread updated via subscription:", updatedThread);
-				// Refresh threads when a thread is updated
-				loadThreads();
-			});
-
-			return () => {
-				threadSubscription.unsubscribe();
-			};
+	// Load messages for a specific thread
+	const loadMessages = useCallback(async (threadId: string) => {
+		try {
+			setLoading(true);
+			setError(null);
+			const messagesData = await getMessages(threadId);
+			setMessages(messagesData);
+		} catch (err) {
+			console.error("Error loading messages:", err);
+			setError("Failed to load messages");
+		} finally {
+			setLoading(false);
 		}
-	}, [loadThreads]);
+	}, []);
 
-	// Global thread polling for unread counts (works for both AppSync and non-AppSync)
-	useEffect(() => {
-		console.log("Setting up global thread polling for unread counts");
-
-		// Poll threads every 1 second to update unread counts for all threads
-		// This ensures cross-thread unread counts work even when using AppSync
-		const pollInterval = setInterval(() => {
-			loadThreads(); // This will update unread counts for all threads
-		}, 1000);
-
-		return () => {
-			clearInterval(pollInterval);
-		};
-	}, [loadThreads]);
-
-	// Cross-tab communication for immediate thread updates
-	useEffect(() => {
-		console.log("Setting up cross-tab communication for thread updates");
-
-		const handleStorageChange = (e: StorageEvent) => {
-			// Listen for thread updates from other tabs
-			if (e.key && e.key.startsWith("thread_update_") && e.newValue) {
-				try {
-					const threadUpdate = JSON.parse(e.newValue);
-					console.log(
-						"Cross-tab thread update received:",
-						threadUpdate
-					);
-
-					// Update the specific thread immediately
-					setThreads((prev) => {
-						return prev.map((thread) => {
-							if (thread.id === threadUpdate.threadId) {
-								return {
-									...thread,
-									lastMessage: threadUpdate.lastMessage,
-									lastMessageAt: threadUpdate.lastMessageAt,
-									lastMessageSender:
-										threadUpdate.lastMessageSender,
-									// Only increment unread count if this is from another user and not the current thread
-									unreadCount:
-										threadUpdate.lastMessageSender.id !==
-											user?.id &&
-										selectedThreadId !==
-											threadUpdate.threadId
-											? (thread.unreadCount || 0) + 1
-											: thread.unreadCount,
-									updatedAt: new Date().toISOString(),
-								};
-							}
-							return thread;
-						});
-					});
-				} catch (error) {
-					console.error(
-						"Error parsing cross-tab thread update:",
-						error
-					);
-				}
-			}
-		};
-
-		window.addEventListener("storage", handleStorageChange);
-
-		return () => {
-			window.removeEventListener("storage", handleStorageChange);
-		};
-	}, [user, selectedThreadId]);
-
+	// Send a message
 	const sendMessage = useCallback(
-		async (content: string, threadId: string) => {
-			try {
-				setError(null);
-				const newMessage = await createMessage({
-					threadId,
-					content,
-					user,
-				});
-
-				console.log("Message sent, adding optimistically:", newMessage);
-
-				// The message will be added via subscription, but we can add it optimistically
-				setMessages((prev) => {
-					const exists = prev.some(
-						(msg) => msg && msg.id === newMessage.id
-					);
-					if (exists) {
-						console.log("Message already exists, not adding");
-						return prev;
-					}
-
-					// Ensure the new message has proper structure
-					if (newMessage && newMessage.id) {
-						console.log(
-							"Adding new message to array, total messages:",
-							prev.length + 1
-						);
-						return [...prev, newMessage];
-					}
-					console.log("Message structure invalid, not adding");
-					return prev;
-				});
-
-				// Update thread immediately for instant UI update
-				setThreads((prev) => {
-					return prev.map((thread) => {
-						if (thread.id === threadId) {
-							return {
-								...thread,
-								lastMessage: newMessage.content || "[File]",
-								lastMessageAt: newMessage.createdAt,
-								lastMessageSender: {
-									id: user?.id || "",
-									name: user?.name || "",
-									email: user?.email || "",
-									image: user?.image || null,
-								},
-								updatedAt: new Date().toISOString(),
-							};
-						}
-						return thread;
-					});
-				});
-
-				return newMessage;
-			} catch (err) {
-				setError("Failed to send message");
-				console.error("Error sending message:", err);
-				throw err;
-			}
-		},
-		[user]
-	);
-
-	const sendFileMessage = useCallback(
 		async (
 			threadId: string,
-			fileUrl: string,
-			fileName: string,
-			fileSize: number,
-			mimeType: string
+			content: string,
+			fileUrl?: string,
+			fileName?: string,
+			mimeType?: string
 		) => {
 			try {
 				setError(null);
-				const newMessage = await createMessage({
+				const message = await createMessage({
 					threadId,
+					content,
 					fileUrl,
 					fileName,
-					fileSize,
 					mimeType,
-					user,
 				});
 
-				// The message will be added via subscription, but we can add it optimistically
-				setMessages((prev) => {
-					const exists = prev.some(
-						(msg) => msg && msg.id === newMessage.id
-					);
-					if (exists) return prev;
+				// Add message to local state immediately for better UX
+				setMessages((prev) => [...prev, message]);
 
-					// Ensure the new message has proper structure
-					if (newMessage && newMessage.id) {
-						return [...prev, newMessage];
-					}
-					return prev;
-				});
+				// Refresh threads to update lastMessage and timestamp
+				loadThreads();
 
-				// Update thread immediately for instant UI feedback
-				setThreads((prev) => {
-					return prev.map((thread) => {
-						if (thread.id === threadId) {
-							return {
-								...thread,
-								lastMessage: newMessage.content || "[File]",
-								lastMessageAt: newMessage.createdAt,
-								lastMessageSender: {
-									id: user.id,
-									name: user.name,
-									email: user.email,
-									image: user.image,
-								},
-								unreadCount: 0, // Sender's unread count is always 0
-								updatedAt: new Date().toISOString(),
-							};
-						}
-						return thread;
-					});
-				});
-
-				// Also refresh threads from server to ensure consistency
-				setTimeout(() => {
-					loadThreads();
-				}, 100);
-
-				return newMessage;
+				return message;
 			} catch (err) {
-				setError("Failed to send file message");
-				console.error("Error sending file message:", err);
+				console.error("Error sending message:", err);
+				setError("Failed to send message");
 				throw err;
 			}
 		},
-		[user]
+		[loadThreads]
 	);
 
-	const createNewThread = useCallback(
-		async (participants: string[], otherParticipant?: any) => {
-			try {
-				setError(null);
-				const newThread = await createThread(
-					participants,
-					otherParticipant
-				);
-				setThreads((prev) => [...prev, newThread]);
-				return newThread;
-			} catch (err) {
-				setError("Failed to create thread");
-				console.error("Error creating thread:", err);
-				throw err;
-			}
-		},
-		[]
-	);
+	// Create a new thread
+	const startNewThread = useCallback(async (participantId: string) => {
+		try {
+			setError(null);
+			const thread = await createThread(participantId);
 
-	const selectThread = useCallback((threadId: string) => {
-		setSelectedThreadId(threadId);
+			// Add thread to local state
+			setThreads((prev) => [...prev, thread]);
+
+			return thread;
+		} catch (err) {
+			console.error("Error creating thread:", err);
+			setError("Failed to create thread");
+			throw err;
+		}
 	}, []);
 
-	// Removed markAsRead functionality - using simple unread count from threads API instead
+	// Mark message as read
+	const markAsRead = useCallback(async (messageId: string) => {
+		try {
+			console.log(
+				"useAppSyncMessaging - markAsRead called with messageId:",
+				messageId
+			);
+			setError(null);
+			await markMessageAsRead(messageId);
+			console.log(
+				"useAppSyncMessaging - markMessageAsRead completed successfully"
+			);
 
-	const clearMessages = useCallback(() => {
-		setMessages([]);
-		setSelectedThreadId(null);
+			// Update local state
+			setMessages((prev) =>
+				prev.map((msg) =>
+					msg.id === messageId
+						? {
+								...msg,
+								isRead: true,
+								readAt: new Date().toISOString(),
+							}
+						: msg
+				)
+			);
+		} catch (err) {
+			console.error("Error marking message as read:", err);
+			setError("Failed to mark message as read");
+		}
 	}, []);
 
-	// Mark messages as read for a thread
-	const markThreadAsRead = useCallback(
+	// Clear thread unread count
+	const clearUnreadCount = useCallback(
 		async (threadId: string) => {
 			try {
 				console.log(
-					"Attempting to mark messages as read for thread:",
+					"useAppSyncMessaging - clearUnreadCount called with threadId:",
 					threadId
 				);
-				console.log("Current messages:", messages);
+				setError(null);
+				await clearThreadUnreadCount(threadId);
 				console.log(
-					"Message IDs to mark as read:",
-					messages.map((msg) => msg.id)
+					"useAppSyncMessaging - clearThreadUnreadCount completed successfully"
 				);
 
-				// Call the API to mark messages as read
-				const response = await fetch("/api/socket/read", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						threadId: threadId,
-						markAllUnread: true, // Mark all unread messages in the thread as read
-					}),
-				});
+				// Refresh threads to get updated unread counts
+				loadThreads();
+			} catch (err) {
+				console.error("Error clearing unread count:", err);
+				setError("Failed to clear unread count");
+			}
+		},
+		[loadThreads]
+	);
 
-				console.log("Mark as read response status:", response.status);
+	// Select a thread
+	const selectThread = useCallback(
+		(threadId: string) => {
+			setSelectedThreadId(threadId);
+			loadMessages(threadId);
+		},
+		[loadMessages]
+	);
 
-				if (response.ok) {
-					const result = await response.json();
-					console.log(
-						"Messages marked as read successfully:",
-						result
-					);
+	// Set up subscriptions
+	useEffect(() => {
+		if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
+			console.warn("AppSync not configured, skipping subscriptions");
+			return;
+		}
 
-					// Update thread unread count immediately in local state
-					setThreads((prev) => {
-						return prev.map((thread) => {
-							if (thread.id === threadId) {
-								return {
-									...thread,
-									unreadCount: 0,
-									updatedAt: new Date().toISOString(),
-								};
-							}
-							return thread;
-						});
-					});
+		// Subscribe to thread updates
+		const unsubscribeThreads = subscribeToThreadUpdates((updatedThread) => {
+			setThreads((prev) =>
+				prev.map((thread) =>
+					thread.id === updatedThread.id ? updatedThread : thread
+				)
+			);
+		});
 
-					// Update thread unread count in AppSync for real-time updates
-					try {
-						await updateThreadUnreadCount(threadId, 0);
-					} catch (error) {
-						console.error(
-							"Error updating thread unread count in AppSync:",
-							error
+		// Subscribe to ALL message updates to refresh thread list when messages are sent to other threads
+		// This ensures that when user is on a different thread, they still see updates to other threads
+		const unsubscribeAllMessages = subscribeToAllMessages(() => {
+			// Refresh threads whenever any message is sent to any thread
+			loadThreads();
+		});
+
+		// Subscribe to messages for selected thread
+		let unsubscribeMessages = () => {};
+		if (selectedThreadId) {
+			unsubscribeMessages = subscribeToMessages(
+				selectedThreadId,
+				(newMessage) => {
+					setMessages((prev) => {
+						// Check if message already exists to avoid duplicates
+						const exists = prev.some(
+							(msg) => msg.id === newMessage.id
 						);
-					}
-				} else {
-					const errorText = await response.text();
-					console.error(
-						"Failed to mark messages as read:",
-						response.status,
-						errorText
-					);
-				}
-			} catch (error) {
-				console.error("Error marking messages as read:", error);
-			}
-		},
-		[messages, loadThreads]
-	);
-
-	// Update thread immediately when a new message is received
-	const updateThreadFromMessage = useCallback(
-		async (threadId: string, message: any) => {
-			try {
-				console.log(
-					"Updating thread from new message:",
-					threadId,
-					message
-				);
-
-				// Get current user info for sender
-				const sender = {
-					id: message.senderId,
-					name: message.senderName,
-					email: "", // We don't have email in message
-					image: message.senderImage,
-				};
-
-				// Update local threads state immediately for instant UI update
-				setThreads((prev) => {
-					return prev.map((thread) => {
-						if (thread.id === threadId) {
-							// Only increment unread count if this is a new message from another user
-							// and we're not currently viewing this specific thread
-							const shouldIncrementUnread =
-								message.senderId !== user?.id &&
-								selectedThreadId !== threadId;
-
-							return {
-								...thread,
-								lastMessage: message.content || "[File]",
-								lastMessageAt: message.createdAt,
-								lastMessageSender: sender,
-								unreadCount: shouldIncrementUnread
-									? (thread.unreadCount || 0) + 1
-									: thread.unreadCount,
-								updatedAt: new Date().toISOString(),
-							};
-						}
-						return thread;
+						if (exists) return prev;
+						return [...prev, newMessage];
 					});
-				});
+				}
+			);
+		}
 
-				// Update thread in AppSync for real-time sync (but don't duplicate local updates)
-				try {
-					await updateThread(threadId, message, sender);
-				} catch (error) {
-					console.error("Error updating thread in AppSync:", error);
+		return () => {
+			unsubscribeThreads();
+			unsubscribeAllMessages();
+			unsubscribeMessages();
+		};
+	}, [selectedThreadId, user?.id, loadThreads]);
+
+	// Initialize user and load threads when user is available
+	useEffect(() => {
+		const initUserAndLoadThreads = async () => {
+			try {
+				const session = await authClient.getSession();
+				if (session?.data?.user) {
+					setUser(session.data.user);
+					// Load threads after user is available
+					await loadThreads();
 				}
 			} catch (error) {
-				console.error("Error updating thread from message:", error);
+				console.error("Error initializing user:", error);
 			}
-		},
-		[user, selectedThreadId]
-	);
+		};
+
+		initUserAndLoadThreads();
+	}, [loadThreads]);
 
 	return {
-		// State
 		messages,
 		threads,
 		selectedThreadId,
-		isConnected,
-		isLoading,
+		loading,
 		error,
-
-		// Actions
-		sendMessage,
-		sendFileMessage,
-		createNewThread,
-		selectThread,
-		loadMessages,
+		user,
 		loadThreads,
-		markThreadAsRead,
-		clearMessages,
+		loadMessages,
+		sendMessage,
+		startNewThread,
+		markAsRead,
+		clearUnreadCount,
+		selectThread,
 	};
 };

@@ -18,7 +18,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-deploy-role-555225979596-ap-northeast-1",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-cfn-exec-role-555225979596-ap-northeast-1",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-555225979596-ap-northeast-1/a16861f13be05e11737274503812c78e20b90010426bfef16b9188d5e5b40c50.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-555225979596-ap-northeast-1/962c1002fa183bc46ffd389270a4f62750cc27143a83df3ca7034dabd01702ea.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -134,6 +134,68 @@
             "data": "ThreadsTable1D5C607C"
           }
         ],
+        "/EduMatchNotificationStack/MessageReadsTable": [
+          {
+            "type": "aws:cdk:hasPhysicalName",
+            "data": {
+              "Ref": "MessageReadsTable793D4BB1"
+            }
+          }
+        ],
+        "/EduMatchNotificationStack/MessageReadsTable/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MessageReadsTable793D4BB1"
+          }
+        ],
+        "/EduMatchNotificationStack/ThreadManagerLogGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ThreadManagerLogGroupB3777F31"
+          }
+        ],
+        "/EduMatchNotificationStack/ThreadManager/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ThreadManagerD7162686"
+          }
+        ],
+        "/EduMatchNotificationStack/MessageManagerLogGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MessageManagerLogGroup706CEE6F"
+          }
+        ],
+        "/EduMatchNotificationStack/MessageManager/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MessageManager52B59406"
+          }
+        ],
+        "/EduMatchNotificationStack/MarkReadManagerLogGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MarkReadManagerLogGroup81DB0517"
+          }
+        ],
+        "/EduMatchNotificationStack/MarkReadManager/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MarkReadManagerA1C8AB18"
+          }
+        ],
+        "/EduMatchNotificationStack/ClearUnreadManagerLogGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ClearUnreadManagerLogGroupA2D34E3A"
+          }
+        ],
+        "/EduMatchNotificationStack/ClearUnreadManager/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ClearUnreadManagerBDCB9586"
+          }
+        ],
         "/EduMatchNotificationStack/EduMatchMessagingApi/Resource": [
           {
             "type": "aws:cdk:logicalId",
@@ -188,6 +250,78 @@
             "data": "EduMatchMessagingApiThreadsDataSource61344A17"
           }
         ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/ServiceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/ServiceRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiThreadManagerDataSourceServiceRoleDefaultPolicyF4BEDC57"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiThreadManagerDataSource991308D0"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/ServiceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/ServiceRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMessageManagerDataSourceServiceRoleDefaultPolicyECC8C916"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMessageManagerDataSource23A7D64B"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/ServiceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/ServiceRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMarkReadManagerDataSourceServiceRoleDefaultPolicyC0FB4C57"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMarkReadManagerDataSourceA09F1459"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/ServiceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/ServiceRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleDefaultPolicy7EE0F163"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiClearUnreadManagerDataSource585C53CF"
+          }
+        ],
         "/EduMatchNotificationStack/EduMatchMessagingApi/GetMessagesResolver/Resource": [
           {
             "type": "aws:cdk:logicalId",
@@ -210,6 +344,24 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "EduMatchMessagingApiCreateThreadResolver2BE40D1D"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/MarkMessageReadResolver/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiMarkMessageReadResolver3E6E7CEF"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/ClearThreadUnreadCountResolver/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiClearThreadUnreadCountResolver3FF12049"
+          }
+        ],
+        "/EduMatchNotificationStack/EduMatchMessagingApi/GetUnreadCountResolver/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EduMatchMessagingApiGetUnreadCountResolverBF0F926F"
           }
         ],
         "/EduMatchNotificationStack/NotificationsQueueUrl": [

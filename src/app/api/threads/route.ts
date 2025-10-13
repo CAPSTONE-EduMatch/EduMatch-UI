@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 			orderBy: { lastMessageAt: "desc" },
 		});
 
-		// Format threads with decrypted last message
+		// Format threads with new simplified schema
 		const formattedThreads = await Promise.all(
 			threads.map(async (thread) => {
 				// Determine the other participant
@@ -68,17 +68,17 @@ export async function GET(request: NextRequest) {
 				// Get last message
 				const lastMessage = thread.mesage[0];
 				let lastMessageContent = "";
-				let lastMessageSender = null;
+				let lastMessageSenderId = null;
+				let lastMessageSenderName = null;
+				let lastMessageSenderImage = null;
 
 				if (lastMessage) {
 					// Use message body directly (encryption removed for simplicity)
 					lastMessageContent = lastMessage.body;
 
-					lastMessageSender = {
-						id: lastMessage.User.id,
-						name: lastMessage.User.name,
-						image: lastMessage.User.image,
-					};
+					lastMessageSenderId = lastMessage.User.id;
+					lastMessageSenderName = lastMessage.User.name;
+					lastMessageSenderImage = lastMessage.User.image;
 				}
 
 				// Calculate unread count from messages
@@ -92,12 +92,16 @@ export async function GET(request: NextRequest) {
 
 				return {
 					id: thread.id,
-					otherParticipant,
+					// New simplified schema for 1-on-1 chats
+					user1Id: thread.createdBy,
+					user2Id: thread.participantId,
 					lastMessage: lastMessageContent,
-					lastMessageSender,
 					lastMessageAt: thread.lastMessageAt,
-					isTyping: thread.isTyping,
+					lastMessageSenderId,
+					lastMessageSenderName,
+					lastMessageSenderImage,
 					createdAt: thread.createdAt,
+					updatedAt: thread.lastMessageAt || thread.createdAt,
 					unreadCount,
 					// Include file data if it's a file message
 					...(lastMessage && {
@@ -105,6 +109,8 @@ export async function GET(request: NextRequest) {
 						lastMessageFileName: lastMessage.fileName,
 						lastMessageMimeType: lastMessage.mimeType,
 					}),
+					// Keep otherParticipant for backward compatibility with UI
+					otherParticipant,
 				};
 			})
 		);
@@ -137,9 +143,16 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body = await request.json();
-		const { participantId } = body;
+		const { participantId, threadId } = body;
+
+		console.log("Create thread request:", {
+			participantId,
+			threadId,
+			userId: session.user.id,
+		});
 
 		if (!participantId) {
+			console.log("Missing participantId");
 			return NextResponse.json(
 				{ error: "Participant ID is required" },
 				{ status: 400 }
@@ -147,6 +160,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		if (participantId === session.user.id) {
+			console.log("Cannot create thread with yourself");
 			return NextResponse.json(
 				{ error: "Cannot create thread with yourself" },
 				{ status: 400 }
@@ -170,6 +184,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (existingThread) {
+			console.log("Thread already exists:", existingThread.id);
 			return NextResponse.json({
 				success: true,
 				thread: {
@@ -190,6 +205,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (!participant) {
+			console.log("Participant not found:", participantId);
 			return NextResponse.json(
 				{ error: "Participant not found" },
 				{ status: 404 }
@@ -199,7 +215,7 @@ export async function POST(request: NextRequest) {
 		// Create new thread
 		const thread = await prismaClient.thread.create({
 			data: {
-				id: crypto.randomUUID(),
+				id: threadId || crypto.randomUUID(), // Use provided threadId or generate new one
 				createdBy: session.user.id,
 				participantId: participantId,
 				lastMessageId: "",
@@ -228,13 +244,19 @@ export async function POST(request: NextRequest) {
 			success: true,
 			thread: {
 				id: thread.id,
-				otherParticipant: participant,
+				// New simplified schema for 1-on-1 chats
+				user1Id: thread.createdBy,
+				user2Id: thread.participantId,
 				lastMessage: "",
-				lastMessageSender: null,
 				lastMessageAt: thread.lastMessageAt,
-				isTyping: null,
+				lastMessageSenderId: null,
+				lastMessageSenderName: null,
+				lastMessageSenderImage: null,
 				createdAt: thread.createdAt,
+				updatedAt: thread.lastMessageAt || thread.createdAt,
 				unreadCount: 0,
+				// Keep otherParticipant for backward compatibility with UI
+				otherParticipant: participant,
 			},
 		});
 	} catch (error) {

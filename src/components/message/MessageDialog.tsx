@@ -7,15 +7,9 @@ import {
 	Send,
 	Check,
 	CheckCheck,
-	Image,
-	File,
-	FileText,
-	Video,
-	Music,
 	RefreshCw,
 } from 'lucide-react'
 import { useAppSyncMessaging } from '@/hooks/useAppSyncMessaging'
-import { authClient } from '@/app/lib/auth-client'
 import { FileUpload } from './FileUpload'
 import { formatFileSize } from '@/lib/file-utils'
 
@@ -76,41 +70,25 @@ export function MessageDialog() {
 	const [isInitialLoad, setIsInitialLoad] = useState(false)
 	const messagesEndRef = useRef<HTMLDivElement>(null)
 
-	// Initialize user
-	useEffect(() => {
-		const initUser = async () => {
-			try {
-				const session = await authClient.getSession()
-				setUser(session?.data?.user)
-			} catch (error) {
-				console.error('Failed to get user session:', error)
-			}
-		}
-		initUser()
-	}, [])
-
-	// Handle new messages to update sidebar (AppSync handles this automatically)
-	const handleNewMessage = (message: any) => {
-		// AppSync automatically updates the messages and threads
-		// This function is kept for compatibility but doesn't need to do anything
-	}
-
 	// Use AppSync messaging hook
 	const {
 		messages,
 		threads: appSyncThreads,
-		selectedThreadId,
-		isConnected,
-		isLoading,
-		error,
 		sendMessage: sendAppSyncMessage,
-		sendFileMessage,
+		startNewThread,
 		selectThread,
-		createNewThread,
 		loadMessages,
 		loadThreads,
-		markThreadAsRead,
-	} = useAppSyncMessaging(user)
+		clearUnreadCount,
+		user: appSyncUser,
+	} = useAppSyncMessaging()
+
+	// Use user from AppSync hook
+	useEffect(() => {
+		if (appSyncUser) {
+			setUser(appSyncUser)
+		}
+	}, [appSyncUser])
 
 	// Auto-scroll to bottom
 	const scrollToBottom = (smooth: boolean = true) => {
@@ -139,7 +117,6 @@ export function MessageDialog() {
 	// Handle file upload
 	const handleFileUpload = async (file: File) => {
 		if (!selectedThread) {
-			console.error('No thread selected for file upload')
 			return
 		}
 
@@ -167,18 +144,17 @@ export function MessageDialog() {
 			}
 
 			// Send file message through AppSync
-			await sendFileMessage(
+			await sendAppSyncMessage(
 				selectedThread.id,
+				'[File]',
 				uploadData.url,
 				uploadData.originalName,
-				uploadData.fileSize,
 				uploadData.fileType
 			)
 
 			setShowFileUpload(false) // Close the modal after successful upload
 		} catch (error) {
-			console.error('File upload failed:', error)
-			// You could add a toast notification here
+			// Handle error silently
 		} finally {
 			setIsUploading(false)
 		}
@@ -196,14 +172,16 @@ export function MessageDialog() {
 
 		try {
 			// Use AppSync to send message
-			await sendAppSyncMessage(messageContent, selectedThread.id)
+			await sendAppSyncMessage(selectedThread.id, messageContent)
 		} catch (error) {
-			console.error('Error sending message:', error)
+			// Handle error silently
 		}
 	}
 
-	// Simple unread count - no need to mark as read, just count unread messages
-	// This is handled by the threads API which already provides unreadCount
+	// Simplified unread count logic:
+	// - Only counts messages from OTHER users as unread
+	// - Your own messages are never considered "unread"
+	// - This is handled by the threads API which already provides unreadCount
 
 	// Auto-scroll when messages change
 	useEffect(() => {
@@ -226,73 +204,88 @@ export function MessageDialog() {
 	// Typing indicator for 1-to-1 chat (not implemented in AppSync version yet)
 	const isOtherUserTyping = false
 
-	// Convert AppSync threads to the expected format
+	// Convert AppSync threads to the expected format and sort by newest message
 	const formattedThreads: Thread[] = Array.isArray(appSyncThreads)
-		? appSyncThreads.map((appSyncThread) => {
-				// In 1-to-1 chat: find the other participant (not the current user)
-				const otherParticipantId = appSyncThread.participants.find(
-					(p) => p !== user?.id
-				)
-				const otherUser = users.find((u) => u.id === otherParticipantId)
+		? appSyncThreads
+				.map((appSyncThread) => {
+					// In 1-to-1 chat: find the other participant (not the current user)
+					const otherParticipantId =
+						appSyncThread.user1Id === user?.id
+							? appSyncThread.user2Id
+							: appSyncThread.user1Id
+					const otherUser = users.find((u) => u.id === otherParticipantId)
 
-				// Use API data if available, otherwise fallback to users list
-				const otherParticipant = (appSyncThread as any).otherParticipant || {
-					id: otherParticipantId || '',
-					name: otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
-					image: otherUser?.image,
-				}
+					// Use the new flat structure from AppSync
+					const otherParticipant = {
+						id: otherParticipantId || '',
+						name:
+							otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
+						image: otherUser?.image,
+					}
 
-				// Create a mock lastMessage object from the string
+					// Create a mock lastMessage object from the string
 
-				const lastMessage =
-					appSyncThread.lastMessage && appSyncThread.lastMessage.trim()
-						? {
-								id: 'last-message',
-								threadId: appSyncThread.id,
-								senderId: otherParticipant.id,
-								content: appSyncThread.lastMessage,
-								sender: {
-									id: otherParticipant.id,
-									name: otherParticipant.name,
-									image: otherParticipant.image,
-								},
-								fileUrl: (appSyncThread as any).lastMessageFileUrl,
-								fileName: (appSyncThread as any).lastMessageFileName,
-								mimeType: (appSyncThread as any).lastMessageMimeType,
-								isRead: true,
-								createdAt: (() => {
-									const dateStr =
-										appSyncThread.lastMessageAt || appSyncThread.updatedAt
-									const date = new Date(dateStr)
-									return isNaN(date.getTime()) ? new Date() : date
-								})(),
-							}
-						: undefined
+					const lastMessage =
+						appSyncThread.lastMessage && appSyncThread.lastMessage.trim()
+							? {
+									id: 'last-message',
+									threadId: appSyncThread.id,
+									senderId:
+										appSyncThread.lastMessageSenderId || otherParticipant.id,
+									content: appSyncThread.lastMessage,
+									sender: {
+										id:
+											appSyncThread.lastMessageSenderId || otherParticipant.id,
+										name:
+											appSyncThread.lastMessageSenderName ||
+											otherParticipant.name,
+										image:
+											appSyncThread.lastMessageSenderImage ||
+											otherParticipant.image,
+									},
+									fileUrl: appSyncThread.lastMessageFileUrl,
+									fileName: appSyncThread.lastMessageFileName,
+									mimeType: appSyncThread.lastMessageMimeType,
+									isRead: true,
+									createdAt: (() => {
+										const dateStr =
+											appSyncThread.lastMessageAt || appSyncThread.updatedAt
+										const date = new Date(dateStr)
+										return isNaN(date.getTime()) ? new Date() : date
+									})(),
+								}
+							: undefined
 
-				return {
-					id: appSyncThread.id,
-					title: otherParticipant.name,
-					lastMessage,
-					participants: [
-						{
-							id: user?.id || '',
-							name: user?.name || '',
-							image: user?.image,
-						},
-						{
-							id: otherParticipant.id,
-							name: otherParticipant.name,
-							image: otherParticipant.image,
-						},
-					],
-					unreadCount: (appSyncThread as any).unreadCount || 0,
-					updatedAt: new Date(appSyncThread.updatedAt),
-				}
-			})
+					return {
+						id: appSyncThread.id,
+						title: otherParticipant.name,
+						lastMessage,
+						participants: [
+							{
+								id: user?.id || '',
+								name: user?.name || '',
+								image: user?.image,
+							},
+							{
+								id: otherParticipant.id,
+								name: otherParticipant.name,
+								image: otherParticipant.image,
+							},
+						],
+						unreadCount: appSyncThread.unreadCount || 0,
+						updatedAt: new Date(appSyncThread.updatedAt),
+					}
+				})
+				.sort((a, b) => {
+					// Sort by lastMessageAt if available, otherwise by updatedAt
+					const aTime = a.lastMessage?.createdAt || a.updatedAt
+					const bTime = b.lastMessage?.createdAt || b.updatedAt
+					return new Date(bTime).getTime() - new Date(aTime).getTime()
+				})
 		: []
 
 	// Handle selecting an existing thread
-	const selectExistingThread = (thread: Thread) => {
+	const selectExistingThread = async (thread: Thread) => {
 		setSelectedThread(thread)
 		setIsInitialLoad(true) // Mark as initial load for this thread
 
@@ -313,23 +306,28 @@ export function MessageDialog() {
 			})
 		}
 
-		// Mark any unread messages in this thread as read
-		// We'll mark messages as read after they're loaded in the useEffect
+		// Clear unread count for this thread when selected
+		// This provides immediate UI feedback
+		try {
+			console.log(
+				'Thread selected - clearing unread count for thread:',
+				thread.id
+			)
 
-		// Mark messages as read after a delay to allow messages to load
-		setTimeout(() => {
-			markThreadAsRead(thread.id)
-		}, 1500) // Delay to allow messages to load first
+			// Clear the unread count for this thread
+			await clearUnreadCount(thread.id)
+
+			console.log('Successfully cleared unread count for thread:', thread.id)
+		} catch (error) {
+			console.error('Error clearing unread count:', error)
+		}
 	}
 
 	// Handle starting a new thread with a user
 	const startThreadWithUser = async (targetUser: User) => {
 		try {
 			// Use AppSync to create thread
-			const newThread = await createNewThread(
-				[user?.id || '', targetUser.id],
-				targetUser
-			)
+			const newThread = await startNewThread(targetUser.id)
 
 			// Create a proper thread object that matches the Thread interface
 			const threadObject: Thread = {
@@ -363,7 +361,7 @@ export function MessageDialog() {
 				loadThreads()
 			}, 300)
 		} catch (error) {
-			console.error('Failed to start thread:', error)
+			// Handle error silently
 		}
 	}
 
@@ -384,11 +382,9 @@ export function MessageDialog() {
 						setUsers(data.users)
 					}
 				} else {
-					console.error('Failed to fetch users:', response.statusText)
 					setUsers([])
 				}
 			} catch (error) {
-				console.error('Error fetching users:', error)
 				setUsers([])
 			}
 		}
@@ -431,22 +427,6 @@ export function MessageDialog() {
 			)
 		: []
 
-	const getFileIcon = (mimeType?: string) => {
-		if (!mimeType) return <File className="w-6 h-6 text-gray-500" />
-
-		if (mimeType.startsWith('image/'))
-			return <Image className="w-6 h-6 text-green-500" />
-		if (mimeType.startsWith('video/'))
-			return <Video className="w-6 h-6 text-red-500" />
-		if (mimeType.startsWith('audio/'))
-			return <Music className="w-6 h-6 text-purple-500" />
-		if (mimeType === 'application/pdf')
-			return <FileText className="w-6 h-6 text-red-600" />
-		if (mimeType.startsWith('text/'))
-			return <FileText className="w-6 h-6 text-blue-500" />
-		return <File className="w-6 h-6 text-gray-500" />
-	}
-
 	const formatTime = (date: Date | string) => {
 		try {
 			const dateObj = typeof date === 'string' ? new Date(date) : date
@@ -458,7 +438,6 @@ export function MessageDialog() {
 				minute: '2-digit',
 			}).format(dateObj)
 		} catch (error) {
-			console.error('Error formatting date:', error, 'Input:', date)
 			return '--:--'
 		}
 	}
@@ -483,10 +462,12 @@ export function MessageDialog() {
 						<h1 className="text-xl font-semibold text-gray-900">Messages</h1>
 						<div className="flex items-center space-x-2">
 							<div
-								className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+								className={`w-2 h-2 rounded-full ${process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT ? 'bg-green-500' : 'bg-red-500'}`}
 							></div>
 							<span className="text-xs text-gray-500">
-								{isConnected ? 'Connected' : 'Disconnected'}
+								{process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT
+									? 'Connected'
+									: 'Disconnected'}
 							</span>
 						</div>
 					</div>
@@ -540,7 +521,7 @@ export function MessageDialog() {
 									<div
 										key={thread.id}
 										onClick={() => selectExistingThread(thread)}
-										className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+										className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
 											selectedThread?.id === thread.id
 												? 'bg-blue-50 border-blue-200'
 												: thread.unreadCount > 0
@@ -566,7 +547,10 @@ export function MessageDialog() {
 														{thread.title}
 													</h3>
 													{thread.unreadCount > 0 && (
-														<span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+														<span
+															className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+															title={`${thread.unreadCount} unread message${thread.unreadCount > 1 ? 's' : ''} from ${thread.title}`}
+														>
 															{thread.unreadCount}
 														</span>
 													)}
@@ -809,7 +793,6 @@ export function MessageDialog() {
 																				document.body.removeChild(link)
 																			}
 																		} catch (error) {
-																			console.error('Download error:', error)
 																			// Fallback: try to open in new tab
 																			window.open(message.fileUrl, '_blank')
 																		}
@@ -877,7 +860,7 @@ export function MessageDialog() {
 																		>
 																			{message.fileName}
 																		</div>
-																		{message.fileSize && (
+																		{(message as any).fileSize && (
 																			<div
 																				className={`text-xs opacity-75 ${
 																					message.senderId === user.id
@@ -885,7 +868,9 @@ export function MessageDialog() {
 																						: 'text-gray-600'
 																				}`}
 																			>
-																				{formatFileSize(message.fileSize)}
+																				{formatFileSize(
+																					(message as any).fileSize
+																				)}
 																			</div>
 																		)}
 																	</div>
@@ -939,7 +924,6 @@ export function MessageDialog() {
 																				document.body.removeChild(link)
 																			}
 																		} catch (error) {
-																			console.error('Download error:', error)
 																			// Fallback: try to open in new tab
 																			window.open(message.fileUrl, '_blank')
 																		}

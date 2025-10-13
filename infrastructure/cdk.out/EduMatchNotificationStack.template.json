@@ -152,6 +152,18 @@
          ],
          "Effect": "Allow",
          "Resource": "*"
+        },
+        {
+         "Action": [
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:UpdateItem"
+         ],
+         "Effect": "Allow",
+         "Resource": "arn:aws:dynamodb:*:*:table/edumatch-*"
         }
        ],
        "Version": "2012-10-17"
@@ -190,6 +202,63 @@
           "NotificationsQueue3B766469",
           "Arn"
          ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessageReadsTable793D4BB1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "MessagesTable05B58A27",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "ThreadsTable1D5C607C",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessagesTable05B58A27",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
         }
        ]
       }
@@ -359,7 +428,7 @@
       "KeyType": "RANGE"
      }
     ],
-    "TableName": "edumatch-messages"
+    "TableName": "edumatch-messages-v2"
    },
    "UpdateReplacePolicy": "Delete",
    "DeletionPolicy": "Delete",
@@ -372,23 +441,264 @@
    "Properties": {
     "AttributeDefinitions": [
      {
-      "AttributeName": "id",
+      "AttributeName": "userId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "threadId",
       "AttributeType": "S"
      }
     ],
     "BillingMode": "PAY_PER_REQUEST",
     "KeySchema": [
      {
-      "AttributeName": "id",
+      "AttributeName": "userId",
       "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "threadId",
+      "KeyType": "RANGE"
      }
     ],
-    "TableName": "edumatch-threads"
+    "TableName": "edumatch-threads-v2"
    },
    "UpdateReplacePolicy": "Delete",
    "DeletionPolicy": "Delete",
    "Metadata": {
     "aws:cdk:path": "EduMatchNotificationStack/ThreadsTable/Resource"
+   }
+  },
+  "MessageReadsTable793D4BB1": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "messageId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "userId",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+     {
+      "AttributeName": "messageId",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "userId",
+      "KeyType": "RANGE"
+     }
+    ],
+    "TableName": "edumatch-message-reads-v2"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessageReadsTable/Resource"
+   }
+  },
+  "ThreadManagerLogGroupB3777F31": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ThreadManagerLogGroup/Resource"
+   }
+  },
+  "ThreadManagerD7162686": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');\nconst { marshall } = require('@aws-sdk/util-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  console.log('Thread manager event:', JSON.stringify(event, null, 2));\n  \n  try {\n    const { currentUserId, participantId, threadId, createdAt, userName, userEmail, userImage } = event.arguments.input;\n    \n    if (!currentUserId || !participantId || !threadId) {\n      throw new Error('Missing required parameters: currentUserId, participantId, or threadId');\n    }\n    \n    // Create thread entry for current user\n    const currentUserThread = {\n      userId: currentUserId,\n      threadId: threadId,\n      id: threadId,\n      user1Id: currentUserId,\n      user2Id: participantId,\n      lastMessage: \"\",\n      lastMessageAt: createdAt,\n      lastMessageSenderId: null,\n      lastMessageSenderName: null,\n      lastMessageSenderImage: null,\n      lastMessageFileUrl: null,\n      lastMessageFileName: null,\n      lastMessageMimeType: null,\n      createdAt: createdAt,\n      updatedAt: createdAt,\n      unreadCount: 0\n    };\n    \n    // Create thread entry for participant\n    const participantThread = {\n      userId: participantId,\n      threadId: threadId,\n      id: threadId,\n      user1Id: participantId,\n      user2Id: currentUserId,\n      lastMessage: \"\",\n      lastMessageAt: createdAt,\n      lastMessageSenderId: null,\n      lastMessageSenderName: null,\n      lastMessageSenderImage: null,\n      lastMessageFileUrl: null,\n      lastMessageFileName: null,\n      lastMessageMimeType: null,\n      createdAt: createdAt,\n      updatedAt: createdAt,\n      unreadCount: 0\n    };\n    \n    // Put both thread entries\n    const currentUserCommand = new PutItemCommand({\n      TableName: process.env.THREADS_TABLE_NAME,\n      Item: marshall(currentUserThread)\n    });\n    \n    const participantCommand = new PutItemCommand({\n      TableName: process.env.THREADS_TABLE_NAME,\n      Item: marshall(participantThread)\n    });\n    \n    await Promise.all([\n      dynamoClient.send(currentUserCommand),\n      dynamoClient.send(participantCommand)\n    ]);\n    \n    console.log('Successfully created thread entries for both users:', threadId);\n    \n    // Return the current user's thread entry\n    return currentUserThread;\n    \n  } catch (error) {\n    console.error('Error in thread manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "ThreadManagerLogGroupB3777F31"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ThreadManager/Resource"
+   }
+  },
+  "MessageManagerLogGroup706CEE6F": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessageManagerLogGroup/Resource"
+   }
+  },
+  "MessageManager52B59406": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, PutItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');\nconst { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  console.log('Message manager event:', JSON.stringify(event, null, 2));\n  \n  try {\n    const { threadId, content, senderId, senderName, senderImage, fileUrl, fileName, mimeType } = event.arguments.input;\n    \n    if (!threadId || !content || !senderId) {\n      throw new Error('Missing required parameters: threadId, content, or senderId');\n    }\n    \n    const messageId = event.arguments.input.messageId || require('crypto').randomUUID();\n    const createdAt = event.arguments.input.createdAt || new Date().toISOString();\n    \n    // Create the message\n    const message = {\n      threadId: threadId,\n      createdAt: createdAt,\n      id: messageId,\n      content: content,\n      senderId: senderId,\n      senderName: senderName,\n      senderImage: senderImage,\n      fileUrl: fileUrl || null,\n      fileName: fileName || null,\n      mimeType: mimeType || null,\n      isRead: false,\n      readAt: null\n    };\n    \n    // Put the message\n    const messageCommand = new PutItemCommand({\n      TableName: process.env.MESSAGES_TABLE_NAME,\n      Item: marshall(message)\n    });\n    \n    await dynamoClient.send(messageCommand);\n    \n    // Update thread information for both users\n    // First, get the thread to find both users\n    const threadQuery = {\n      TableName: process.env.THREADS_TABLE_NAME,\n      FilterExpression: 'threadId = :threadId',\n      ExpressionAttributeValues: {\n        ':threadId': { S: threadId }\n      }\n    };\n    \n    const { ScanCommand } = require('@aws-sdk/client-dynamodb');\n    const scanCommand = new ScanCommand(threadQuery);\n    const threadResult = await dynamoClient.send(scanCommand);\n    \n    if (threadResult.Items && threadResult.Items.length > 0) {\n      // Update each thread entry\n      for (const threadItem of threadResult.Items) {\n        const thread = unmarshall(threadItem);\n        \n        // Determine if this thread entry is for the sender or recipient\n        const isSender = thread.userId === senderId;\n        \n        let updateCommand;\n        if (isSender) {\n          // For sender: set unreadCount to 0\n          updateCommand = new UpdateItemCommand({\n            TableName: process.env.THREADS_TABLE_NAME,\n            Key: {\n              userId: { S: thread.userId },\n              threadId: { S: thread.threadId }\n            },\n            UpdateExpression: 'SET lastMessage = :lastMessage, lastMessageAt = :lastMessageAt, lastMessageSenderId = :lastMessageSenderId, lastMessageSenderName = :lastMessageSenderName, lastMessageSenderImage = :lastMessageSenderImage, lastMessageFileUrl = :lastMessageFileUrl, lastMessageFileName = :lastMessageFileName, lastMessageMimeType = :lastMessageMimeType, updatedAt = :updatedAt, unreadCount = :zero',\n            ExpressionAttributeValues: {\n              ':lastMessage': { S: content },\n              ':lastMessageAt': { S: createdAt },\n              ':lastMessageSenderId': { S: senderId },\n              ':lastMessageSenderName': { S: senderName || '' },\n              ':lastMessageSenderImage': { S: senderImage || '' },\n              ':lastMessageFileUrl': { S: fileUrl || '' },\n              ':lastMessageFileName': { S: fileName || '' },\n              ':lastMessageMimeType': { S: mimeType || '' },\n              ':updatedAt': { S: createdAt },\n              ':zero': { N: '0' }\n            }\n          });\n        } else {\n          // For recipient: increment unreadCount\n          updateCommand = new UpdateItemCommand({\n            TableName: process.env.THREADS_TABLE_NAME,\n            Key: {\n              userId: { S: thread.userId },\n              threadId: { S: thread.threadId }\n            },\n            UpdateExpression: 'SET lastMessage = :lastMessage, lastMessageAt = :lastMessageAt, lastMessageSenderId = :lastMessageSenderId, lastMessageSenderName = :lastMessageSenderName, lastMessageSenderImage = :lastMessageSenderImage, lastMessageFileUrl = :lastMessageFileUrl, lastMessageFileName = :lastMessageFileName, lastMessageMimeType = :lastMessageMimeType, updatedAt = :updatedAt, unreadCount = unreadCount + :one',\n            ExpressionAttributeValues: {\n              ':lastMessage': { S: content },\n              ':lastMessageAt': { S: createdAt },\n              ':lastMessageSenderId': { S: senderId },\n              ':lastMessageSenderName': { S: senderName || '' },\n              ':lastMessageSenderImage': { S: senderImage || '' },\n              ':lastMessageFileUrl': { S: fileUrl || '' },\n              ':lastMessageFileName': { S: fileName || '' },\n              ':lastMessageMimeType': { S: mimeType || '' },\n              ':updatedAt': { S: createdAt },\n              ':one': { N: '1' }\n            }\n          });\n        }\n        \n        await dynamoClient.send(updateCommand);\n      }\n    }\n    \n    console.log('Successfully created message and updated threads:', messageId);\n    \n    return message;\n    \n  } catch (error) {\n    console.error('Error in message manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "MESSAGES_TABLE_NAME": {
+       "Ref": "MessagesTable05B58A27"
+      },
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "MessageManagerLogGroup706CEE6F"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessageManager/Resource"
+   }
+  },
+  "MarkReadManagerLogGroup81DB0517": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MarkReadManagerLogGroup/Resource"
+   }
+  },
+  "MarkReadManagerA1C8AB18": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, PutItemCommand, UpdateItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');\nconst { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  console.log('Mark read manager event:', JSON.stringify(event, null, 2));\n  \n  try {\n    const { messageId, userId } = event.arguments.input;\n    \n    if (!messageId || !userId) {\n      throw new Error('Missing required parameters: messageId or userId');\n    }\n    \n    const readId = event.arguments.input.readId || require('crypto').randomUUID();\n    const readAt = event.arguments.input.readAt || new Date().toISOString();\n    \n    // First, get the message to find the threadId\n    const messageCommand = new GetItemCommand({\n      TableName: process.env.MESSAGES_TABLE_NAME,\n      Key: {\n        threadId: { S: 'temp' }, // We need to scan to find the message\n        createdAt: { S: 'temp' }\n      }\n    });\n    \n    // Since we don't have threadId, we need to scan for the message\n    const { ScanCommand } = require('@aws-sdk/client-dynamodb');\n    const scanCommand = new ScanCommand({\n      TableName: process.env.MESSAGES_TABLE_NAME,\n      FilterExpression: 'id = :messageId',\n      ExpressionAttributeValues: {\n        ':messageId': { S: messageId }\n      }\n    });\n    \n    const messageResult = await dynamoClient.send(scanCommand);\n    \n    if (!messageResult.Items || messageResult.Items.length === 0) {\n      throw new Error('Message not found');\n    }\n    \n    const message = unmarshall(messageResult.Items[0]);\n    const threadId = message.threadId;\n    \n    // Create the read record\n    const readRecord = {\n      messageId: messageId,\n      userId: userId,\n      id: readId,\n      readAt: readAt\n    };\n    \n    const readCommand = new PutItemCommand({\n      TableName: process.env.MESSAGE_READS_TABLE_NAME,\n      Item: marshall(readRecord)\n    });\n    \n    await dynamoClient.send(readCommand);\n    \n    // Update the thread's unread count for this user\n    const threadQuery = {\n      TableName: process.env.THREADS_TABLE_NAME,\n      FilterExpression: 'threadId = :threadId AND userId = :userId',\n      ExpressionAttributeValues: {\n        ':threadId': { S: threadId },\n        ':userId': { S: userId }\n      }\n    };\n    \n    const threadScanCommand = new ScanCommand(threadQuery);\n    const threadResult = await dynamoClient.send(threadScanCommand);\n    \n    if (threadResult.Items && threadResult.Items.length > 0) {\n      const thread = unmarshall(threadResult.Items[0]);\n      \n      const updateCommand = new UpdateItemCommand({\n        TableName: process.env.THREADS_TABLE_NAME,\n        Key: {\n          userId: { S: thread.userId },\n          threadId: { S: thread.threadId }\n        },\n        UpdateExpression: 'SET unreadCount = unreadCount - :one',\n        ConditionExpression: 'unreadCount > :zero',\n        ExpressionAttributeValues: {\n          ':one': { N: '1' },\n          ':zero': { N: '0' }\n        }\n      });\n      \n      try {\n        await dynamoClient.send(updateCommand);\n      } catch (error) {\n        // If unreadCount is already 0, that's fine\n        console.log('Unread count already at 0 or update failed:', error.message);\n      }\n    }\n    \n    console.log('Successfully marked message as read:', messageId);\n    \n    return readRecord;\n    \n  } catch (error) {\n    console.error('Error in mark read manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "MESSAGES_TABLE_NAME": {
+       "Ref": "MessagesTable05B58A27"
+      },
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      },
+      "MESSAGE_READS_TABLE_NAME": {
+       "Ref": "MessageReadsTable793D4BB1"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "MarkReadManagerLogGroup81DB0517"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MarkReadManager/Resource"
+   }
+  },
+  "ClearUnreadManagerLogGroupA2D34E3A": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ClearUnreadManagerLogGroup/Resource"
+   }
+  },
+  "ClearUnreadManagerBDCB9586": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  console.log('Clear unread manager event:', JSON.stringify(event, null, 2));\n  \n  try {\n    const { threadId, userId } = event.arguments.input;\n    \n    if (!threadId || !userId) {\n      throw new Error('Missing required parameters: threadId or userId');\n    }\n    \n    // Update the thread's unread count to 0 for this user\n    const updateCommand = new UpdateItemCommand({\n      TableName: process.env.THREADS_TABLE_NAME,\n      Key: {\n        userId: { S: userId },\n        threadId: { S: threadId }\n      },\n      UpdateExpression: 'SET unreadCount = :zero',\n      ExpressionAttributeValues: {\n        ':zero': { N: '0' }\n      },\n      ReturnValues: 'ALL_NEW'\n    });\n    \n    const result = await dynamoClient.send(updateCommand);\n    \n    console.log('Successfully cleared unread count for thread:', threadId);\n    \n    return {\n      id: threadId,\n      unreadCount: 0\n    };\n    \n  } catch (error) {\n    console.error('Error in clear unread manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "ClearUnreadManagerLogGroupA2D34E3A"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ClearUnreadManager/Resource"
    }
   },
   "EduMatchMessagingApiBA77C261": {
@@ -420,7 +730,7 @@
       "ApiId"
      ]
     },
-    "Definition": "type Message {\n\tid: ID!\n\tthreadId: ID!\n\tcontent: String\n\tsenderId: ID!\n\tsenderName: String!\n\tsenderImage: String\n\tfileUrl: String\n\tfileName: String\n\tfileSize: Int\n\tmimeType: String\n\tcreatedAt: String!\n\tisRead: Boolean!\n}\n\ntype Thread {\n\tid: ID!\n\tparticipants: [String!]!\n\tlastMessage: String\n\tlastMessageAt: String\n\tcreatedAt: String!\n\tupdatedAt: String!\n\t# Additional fields for complete thread display\n\totherParticipant: Participant\n\tlastMessageSender: Participant\n\tunreadCount: Int!\n\tlastMessageFileUrl: String\n\tlastMessageFileName: String\n\tlastMessageMimeType: String\n}\n\ntype Participant {\n\tid: ID!\n\tname: String!\n\temail: String!\n\timage: String\n}\n\ntype User {\n\tid: ID!\n\tname: String!\n\temail: String!\n\timage: String\n}\n\ninput CreateMessageInput {\n\tid: ID!\n\tthreadId: ID!\n\tcontent: String\n\tsenderId: ID!\n\tsenderName: String!\n\tsenderImage: String\n\tfileUrl: String\n\tfileName: String\n\tfileSize: Int\n\tmimeType: String\n\tcreatedAt: String!\n\tisRead: Boolean!\n}\n\ninput CreateThreadInput {\n\tid: ID!\n\tparticipants: [String!]!\n\tcreatedAt: String!\n\tupdatedAt: String!\n\t# Additional fields for complete thread creation\n\totherParticipant: ParticipantInput\n\tlastMessageSender: ParticipantInput\n\tunreadCount: Int!\n\tlastMessageFileUrl: String\n\tlastMessageFileName: String\n\tlastMessageMimeType: String\n}\n\ninput ParticipantInput {\n\tid: ID!\n\tname: String!\n\temail: String!\n\timage: String\n}\n\ninput UpdateThreadInput {\n\tid: ID!\n\tlastMessage: String\n\tlastMessageAt: String\n\tupdatedAt: String!\n\tlastMessageSender: ParticipantInput\n\tunreadCount: Int!\n\tlastMessageFileUrl: String\n\tlastMessageFileName: String\n\tlastMessageMimeType: String\n}\n\ntype Query {\n\tgetMessages(threadId: ID!): [Message!]!\n\tgetThreads: [Thread!]!\n\tgetThread(id: ID!): Thread\n}\n\ntype Mutation {\n\tcreateMessage(input: CreateMessageInput!): Message!\n\tcreateThread(input: CreateThreadInput!): Thread!\n\tupdateThread(input: UpdateThreadInput!): Thread!\n\tmarkMessageAsRead(messageId: ID!): Message!\n}\n\ntype Subscription {\n\tonMessageAdded(threadId: ID!): Message\n\t\t@aws_subscribe(mutations: [\"createMessage\"])\n\tonThreadUpdated: Thread\n\t\t@aws_subscribe(mutations: [\"createThread\", \"updateThread\"])\n}\n"
+    "Definition": "type User {\n\tid: ID!\n\tname: String!\n\temail: String!\n\timage: String\n}\n\ntype Message {\n\tid: ID!\n\tthreadId: ID!\n\tcontent: String!\n\tsenderId: ID!\n\tsenderName: String!\n\tsenderImage: String\n\tcreatedAt: String!\n\tfileUrl: String\n\tfileName: String\n\tmimeType: String\n\tisRead: Boolean!\n\treadAt: String\n}\n\ntype Thread {\n\tid: ID!\n\tuser1Id: ID!\n\tuser2Id: ID!\n\tlastMessage: String\n\tlastMessageAt: String\n\tlastMessageSenderId: ID\n\tlastMessageSenderName: String\n\tlastMessageSenderImage: String\n\tlastMessageFileUrl: String\n\tlastMessageFileName: String\n\tlastMessageMimeType: String\n\tcreatedAt: String!\n\tupdatedAt: String!\n\tunreadCount: Int!\n}\n\ntype MessageRead {\n\tid: ID!\n\tmessageId: ID!\n\tuserId: ID!\n\treadAt: String!\n}\n\ninput CreateMessageInput {\n\tthreadId: ID!\n\tcontent: String!\n\tfileUrl: String\n\tfileName: String\n\tmimeType: String\n\tsenderId: ID\n\tsenderName: String\n\tsenderImage: String\n}\n\ninput CreateThreadInput {\n\tparticipantId: ID!\n\tuserId: ID\n\tuserName: String\n\tuserEmail: String\n\tuserImage: String\n}\n\ninput MarkMessageReadInput {\n\tmessageId: ID!\n\tuserId: ID\n}\n\ninput ClearThreadUnreadCountInput {\n\tthreadId: ID!\n\tuserId: ID\n}\n\ntype Query {\n\tgetThreads(userId: ID): [Thread!]!\n\tgetMessages(threadId: ID!): [Message!]!\n\tgetUnreadCount(userId: ID): Int!\n}\n\ntype Mutation {\n\tcreateMessage(input: CreateMessageInput!): Message!\n\tcreateThread(input: CreateThreadInput!): Thread!\n\tmarkMessageRead(input: MarkMessageReadInput!): MessageRead!\n\tclearThreadUnreadCount(input: ClearThreadUnreadCountInput!): Thread!\n}\n\ntype Subscription {\n\tonMessageAdded(threadId: ID!): Message\n\t\t@aws_subscribe(mutations: [\"createMessage\"])\n\tonThreadCreated: Thread @aws_subscribe(mutations: [\"createThread\"])\n}\n"
    },
    "Metadata": {
     "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/Schema"
@@ -435,7 +745,7 @@
       "ApiId"
      ]
     },
-    "Expires": 1791812703
+    "Expires": 1791890293
    },
    "DependsOn": [
     "EduMatchMessagingApiSchema41540462"
@@ -634,6 +944,386 @@
     "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadsDataSource/Resource"
    }
   },
+  "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadManagerDataSourceServiceRoleDefaultPolicyF4BEDC57": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ThreadManagerD7162686",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ThreadManagerD7162686",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiThreadManagerDataSourceServiceRoleDefaultPolicyF4BEDC57",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadManagerDataSource991308D0": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "ThreadManagerD7162686",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "ThreadManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessageManagerDataSourceServiceRoleDefaultPolicyECC8C916": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessageManager52B59406",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "MessageManager52B59406",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiMessageManagerDataSourceServiceRoleDefaultPolicyECC8C916",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessageManagerDataSource23A7D64B": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "MessageManager52B59406",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "MessageManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkReadManagerDataSourceServiceRoleDefaultPolicyC0FB4C57": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MarkReadManagerA1C8AB18",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "MarkReadManagerA1C8AB18",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiMarkReadManagerDataSourceServiceRoleDefaultPolicyC0FB4C57",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkReadManagerDataSourceA09F1459": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "MarkReadManagerA1C8AB18",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "MarkReadManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleDefaultPolicy7EE0F163": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ClearUnreadManagerBDCB9586",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ClearUnreadManagerBDCB9586",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleDefaultPolicy7EE0F163",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearUnreadManagerDataSource585C53CF": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "ClearUnreadManagerBDCB9586",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "ClearUnreadManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/Resource"
+   }
+  },
   "EduMatchMessagingApiGetMessagesResolver33E0BB7B": {
    "Type": "AWS::AppSync::Resolver",
    "Properties": {
@@ -667,15 +1357,15 @@
       "ApiId"
      ]
     },
-    "DataSourceName": "MessagesDataSource",
+    "DataSourceName": "MessageManagerDataSource",
     "FieldName": "createMessage",
     "Kind": "UNIT",
-    "RequestMappingTemplate": "\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"PutItem\",\n\t\t\t\t\t\"key\": {\n\t\t\t\t\t\t\"threadId\": $util.dynamodb.toDynamoDBJson($ctx.args.input.threadId),\n\t\t\t\t\t\t\"createdAt\": $util.dynamodb.toDynamoDBJson($ctx.args.input.createdAt)\n\t\t\t\t\t},\n\t\t\t\t\t\"attributeValues\": $util.dynamodb.toMapValuesJson($ctx.args.input)\n\t\t\t\t}\n\t\t\t",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($senderId = $ctx.identity.sub)\n\t\t\t\t#set($senderName = $ctx.identity.claims.name)\n\t\t\t\t#set($senderImage = $ctx.identity.claims.picture)\n\t\t\t\t#if($ctx.args.input.senderId)\n\t\t\t\t\t#set($senderId = $ctx.args.input.senderId)\n\t\t\t\t#end\n\t\t\t\t#if($ctx.args.input.senderName)\n\t\t\t\t\t#set($senderName = $ctx.args.input.senderName)\n\t\t\t\t#end\n\t\t\t\t#if($ctx.args.input.senderImage)\n\t\t\t\t\t#set($senderImage = $ctx.args.input.senderImage)\n\t\t\t\t#end\n\t\t\t\t#set($messageId = $util.autoId())\n\t\t\t\t#set($createdAt = $util.time.nowISO8601())\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"messageId\": $util.toJson($messageId),\n\t\t\t\t\t\t\t\t\"threadId\": $util.toJson($ctx.args.input.threadId),\n\t\t\t\t\t\t\t\t\"content\": $util.toJson($ctx.args.input.content),\n\t\t\t\t\t\t\t\t\"senderId\": $util.toJson($senderId),\n\t\t\t\t\t\t\t\t\"senderName\": $util.toJson($senderName),\n\t\t\t\t\t\t\t\t\"senderImage\": $util.toJson($senderImage),\n\t\t\t\t\t\t\t\t\"fileUrl\": $util.toJson($ctx.args.input.fileUrl),\n\t\t\t\t\t\t\t\t\"fileName\": $util.toJson($ctx.args.input.fileName),\n\t\t\t\t\t\t\t\t\"mimeType\": $util.toJson($ctx.args.input.mimeType),\n\t\t\t\t\t\t\t\t\"createdAt\": $util.toJson($createdAt)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
     "ResponseMappingTemplate": "$util.toJson($ctx.result)",
     "TypeName": "Mutation"
    },
    "DependsOn": [
-    "EduMatchMessagingApiMessagesDataSourceF27C1361",
+    "EduMatchMessagingApiMessageManagerDataSource23A7D64B",
     "EduMatchMessagingApiSchema41540462"
    ],
    "Metadata": {
@@ -694,8 +1384,8 @@
     "DataSourceName": "ThreadsDataSource",
     "FieldName": "getThreads",
     "Kind": "UNIT",
-    "RequestMappingTemplate": "{\"version\" : \"2017-02-28\", \"operation\" : \"Scan\", \"consistentRead\": false}",
-    "ResponseMappingTemplate": "$util.toJson($ctx.result.items)",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.userId)\n\t\t\t\t\t#set($userId = $ctx.args.userId)\n\t\t\t\t#end\n\t\t\t\t#if($userId)\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Query\",\n\t\t\t\t\t\"query\": {\n\t\t\t\t\t\t\"expression\": \"userId = :userId\",\n\t\t\t\t\t\t\"expressionValues\": {\n\t\t\t\t\t\t\t\":userId\": $util.dynamodb.toDynamoDBJson($userId)\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\t#else\n\t\t\t\t$util.error(\"User ID is required\", \"BadRequest\")\n\t\t\t\t#end\n\t\t\t",
+    "ResponseMappingTemplate": "\n\t\t\t\t#set($items = [])\n\t\t\t\t#foreach($item in $ctx.result.items)\n\t\t\t\t\t#set($item.unreadCount = $util.defaultIfNull($item.unreadCount, 0))\n\t\t\t\t\t$util.qr($items.add($item))\n\t\t\t\t#end\n\t\t\t\t$util.toJson($items)\n\t\t\t",
     "TypeName": "Query"
    },
    "DependsOn": [
@@ -715,25 +1405,97 @@
       "ApiId"
      ]
     },
-    "DataSourceName": "ThreadsDataSource",
+    "DataSourceName": "ThreadManagerDataSource",
     "FieldName": "createThread",
     "Kind": "UNIT",
-    "RequestMappingTemplate": "\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"PutItem\",\n\t\t\t\t\t\"key\": {\n\t\t\t\t\t\t\"id\": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)\n\t\t\t\t\t},\n\t\t\t\t\t\"attributeValues\": $util.dynamodb.toMapValuesJson($ctx.args.input)\n\t\t\t\t}\n\t\t\t",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($currentUserId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.input.userId)\n\t\t\t\t\t#set($currentUserId = $ctx.args.input.userId)\n\t\t\t\t#end\n\t\t\t\t#set($threadId = $util.autoId())\n\t\t\t\t#set($createdAt = $util.time.nowISO8601())\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"currentUserId\": $util.toJson($currentUserId),\n\t\t\t\t\t\t\t\t\"participantId\": $util.toJson($ctx.args.input.participantId),\n\t\t\t\t\t\t\t\t\"threadId\": $util.toJson($threadId),\n\t\t\t\t\t\t\t\t\"createdAt\": $util.toJson($createdAt),\n\t\t\t\t\t\t\t\t\"userName\": $util.toJson($ctx.args.input.userName),\n\t\t\t\t\t\t\t\t\"userEmail\": $util.toJson($ctx.args.input.userEmail),\n\t\t\t\t\t\t\t\t\"userImage\": $util.toJson($ctx.args.input.userImage)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
     "ResponseMappingTemplate": "$util.toJson($ctx.result)",
     "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiSchema41540462",
+    "EduMatchMessagingApiThreadManagerDataSource991308D0"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/CreateThreadResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkMessageReadResolver3E6E7CEF": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "MarkReadManagerDataSource",
+    "FieldName": "markMessageRead",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.input.userId)\n\t\t\t\t\t#set($userId = $ctx.args.input.userId)\n\t\t\t\t#end\n\t\t\t\t#set($readId = $util.autoId())\n\t\t\t\t#set($readAt = $util.time.nowISO8601())\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"messageId\": $util.toJson($ctx.args.input.messageId),\n\t\t\t\t\t\t\t\t\"userId\": $util.toJson($userId),\n\t\t\t\t\t\t\t\t\"readId\": $util.toJson($readId),\n\t\t\t\t\t\t\t\t\"readAt\": $util.toJson($readAt)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result)",
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiMarkReadManagerDataSourceA09F1459",
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkMessageReadResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearThreadUnreadCountResolver3FF12049": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "ClearUnreadManagerDataSource",
+    "FieldName": "clearThreadUnreadCount",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.input.userId)\n\t\t\t\t\t#set($userId = $ctx.args.input.userId)\n\t\t\t\t#end\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"threadId\": $util.toJson($ctx.args.input.threadId),\n\t\t\t\t\t\t\t\t\"userId\": $util.toJson($userId)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result)",
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiClearUnreadManagerDataSource585C53CF",
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearThreadUnreadCountResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiGetUnreadCountResolverBF0F926F": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "ThreadsDataSource",
+    "FieldName": "getUnreadCount",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.userId)\n\t\t\t\t\t#set($userId = $ctx.args.userId)\n\t\t\t\t#end\n\t\t\t\t#if($userId)\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Query\",\n\t\t\t\t\t\"query\": {\n\t\t\t\t\t\t\"expression\": \"userId = :userId\",\n\t\t\t\t\t\t\"expressionValues\": {\n\t\t\t\t\t\t\t\":userId\": $util.dynamodb.toDynamoDBJson($userId)\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\t#else\n\t\t\t\t$util.error(\"User ID is required\", \"BadRequest\")\n\t\t\t\t#end\n\t\t\t",
+    "ResponseMappingTemplate": "\n\t\t\t\t#set($totalUnread = 0)\n\t\t\t\t#foreach($item in $ctx.result.items)\n\t\t\t\t\t#set($totalUnread = $totalUnread + $item.unreadCount)\n\t\t\t\t#end\n\t\t\t\t$totalUnread\n\t\t\t",
+    "TypeName": "Query"
    },
    "DependsOn": [
     "EduMatchMessagingApiSchema41540462",
     "EduMatchMessagingApiThreadsDataSource61344A17"
    ],
    "Metadata": {
-    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/CreateThreadResolver/Resource"
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/GetUnreadCountResolver/Resource"
    }
   },
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WPQW7DIBBFz5I9nsbedRnFbRZN1cTuvhowdUgwEAOOLMTdK3BTtepq3v8PMVBBVT7CeoU3W7DuUkhBIbQO2YXgzX4Ee7UQjp57TrafKkMkAgcIjZa5y/OgpWBzigtFInVvIex1vxu1N8ncORKJA+0QwrNXzAmtkv3hp4kr12o/Mv6KxgjVJ/2/jaSbFQ66oxDekS6PyRAJGmNnxSDsRjSnq9wYkWxOx/3f1LITHzAVGyNe+EzqfG1Na3S4bEzyV2q41XLiY/79N8eY6/vpN++Md5Eo3XE424epqqAsYb06WyGK0SsnBg7NMr8AcP06D4QBAAA="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WQQW7DIBBFz5I9nsbeZRnVbRZx1cTuvhpj6pBgIAYcWYi7V+CmStXVvP++gBEFFPkG1iu8mYx2l0zwFnxjkV4I3synN1cD/uiYY+T5SyYIhOMAvlYiuTQPSnA6x7hQIEL1Bnyl+t2onI7NnQMROLQdgn91klquZGx/+WVi0jbKjZS9odZc9rH+bwPpZomD6lrwH9guyyQIBLU2s6TgdyPq01VsNY9tSsfqb2roiQ0YxVbzPZtJma4t2xItLi/G8iFVaf0HUTOjxMTG9B0/HELS9+PvzmpnA5GqY3A2T1NRQJ7DenU2nGejk5YPDOplfgM96q/SlQEAAA=="
    },
    "Metadata": {
     "aws:cdk:path": "EduMatchNotificationStack/CDKMetadata/Default"

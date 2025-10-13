@@ -118,12 +118,252 @@ export const auth = betterAuth({
 				enabled: true,
 				plans: [
 					{
-						name: "basic",
-						priceId: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
-						//  annualDiscountPriceId:
-						// limits
+						name: "standard",
+						priceId:
+							process.env.STRIPE_STANDARD_PRICE_ID ||
+							process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID,
+						limits: {
+							applications: 10,
+							scholarships: 50,
+							programs: 30,
+						},
+					},
+					{
+						name: "premium",
+						priceId:
+							process.env.STRIPE_PREMIUM_PRICE_ID ||
+							process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID,
+						limits: {
+							applications: 25,
+							scholarships: 100,
+							programs: 75,
+						},
 					},
 				],
+				onSubscriptionComplete: async ({ subscription, plan }) => {
+					// Log detailed info for testing
+					// eslint-disable-next-line no-console
+					console.log(
+						"🎉 [Better-auth] onSubscriptionComplete FIRED!"
+					);
+					// eslint-disable-next-line no-console
+					console.log(
+						"📋 Subscription data:",
+						JSON.stringify(subscription, null, 2)
+					);
+					// eslint-disable-next-line no-console
+					console.log("📦 Plan data:", JSON.stringify(plan, null, 2));
+
+					// Update subscription in database when payment is complete
+					try {
+						const stripeSubscription = subscription as any;
+						const userId = stripeSubscription.userId;
+
+						// eslint-disable-next-line no-console
+						console.log("👤 User ID from subscription:", userId);
+
+						if (userId) {
+							// Find existing subscription
+							const existingSub =
+								await prismaClient.subscription.findFirst({
+									where: {
+										stripeSubscriptionId:
+											stripeSubscription.stripeSubscriptionId,
+									},
+								});
+
+							// eslint-disable-next-line no-console
+							console.log(
+								"🔍 Existing subscription found:",
+								existingSub ? "YES" : "NO"
+							);
+
+							if (existingSub) {
+								// Update existing subscription
+								await prismaClient.subscription.update({
+									where: { id: existingSub.id },
+									data: {
+										plan: plan.name,
+										status: "active",
+										periodStart:
+											stripeSubscription.periodStart
+												? new Date(
+														stripeSubscription.periodStart
+													)
+												: null,
+										periodEnd: stripeSubscription.periodEnd
+											? new Date(
+													stripeSubscription.periodEnd
+												)
+											: null,
+										cancelAtPeriodEnd:
+											stripeSubscription.cancelAtPeriodEnd ||
+											false,
+									},
+								});
+								// eslint-disable-next-line no-console
+								console.log(
+									"✅ Subscription UPDATED in database"
+								);
+							} else {
+								// Create new subscription
+								const newSub =
+									await prismaClient.subscription.create({
+										data: {
+											id: crypto.randomUUID(),
+											referenceId: userId,
+											stripeSubscriptionId:
+												stripeSubscription.stripeSubscriptionId,
+											stripeCustomerId:
+												stripeSubscription.customerId,
+											plan: plan.name,
+											status: "active",
+											periodStart:
+												stripeSubscription.periodStart
+													? new Date(
+															stripeSubscription.periodStart
+														)
+													: null,
+											periodEnd:
+												stripeSubscription.periodEnd
+													? new Date(
+															stripeSubscription.periodEnd
+														)
+													: null,
+											cancelAtPeriodEnd:
+												stripeSubscription.cancelAtPeriodEnd ||
+												false,
+											seats: 1,
+										},
+									});
+								// eslint-disable-next-line no-console
+								console.log(
+									"✅ Subscription CREATED in database with ID:",
+									newSub.id
+								);
+							}
+						} else {
+							// eslint-disable-next-line no-console
+							console.warn(
+								"⚠️ No userId found in subscription data"
+							);
+						}
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error(
+							"❌ Error updating subscription on completion:",
+							error
+						);
+					}
+
+					// Log subscription completion for debugging
+					if (process.env.NODE_ENV === "development") {
+						// eslint-disable-next-line no-console
+						console.log(
+							`✅ Subscription ${subscription.id} completed for plan ${plan.name}`
+						);
+					}
+				},
+				onSubscriptionUpdate: async ({ subscription }) => {
+					// eslint-disable-next-line no-console
+					console.log("🔄 [Better-auth] onSubscriptionUpdate FIRED!");
+					// eslint-disable-next-line no-console
+					console.log(
+						"📋 Subscription data:",
+						JSON.stringify(subscription, null, 2)
+					);
+
+					// Update subscription in database
+					try {
+						const stripeSubscription = subscription as any;
+
+						const result =
+							await prismaClient.subscription.updateMany({
+								where: {
+									stripeSubscriptionId:
+										stripeSubscription.stripeSubscriptionId,
+								},
+								data: {
+									status: stripeSubscription.status,
+									periodStart: stripeSubscription.periodStart
+										? new Date(
+												stripeSubscription.periodStart
+											)
+										: null,
+									periodEnd: stripeSubscription.periodEnd
+										? new Date(stripeSubscription.periodEnd)
+										: null,
+									cancelAtPeriodEnd:
+										stripeSubscription.cancelAtPeriodEnd ||
+										false,
+								},
+							});
+
+						// eslint-disable-next-line no-console
+						console.log(
+							`✅ Updated ${result.count} subscription(s) in database`
+						);
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error(
+							"❌ Error updating subscription on update:",
+							error
+						);
+					}
+
+					// Log subscription update for debugging
+					if (process.env.NODE_ENV === "development") {
+						// eslint-disable-next-line no-console
+						console.log(
+							`✅ Subscription ${subscription.id} updated`
+						);
+					}
+				},
+				onSubscriptionCancel: async ({ subscription }) => {
+					// eslint-disable-next-line no-console
+					console.log("❌ [Better-auth] onSubscriptionCancel FIRED!");
+					// eslint-disable-next-line no-console
+					console.log(
+						"📋 Subscription data:",
+						JSON.stringify(subscription, null, 2)
+					);
+
+					// Update subscription status in database
+					try {
+						const stripeSubscription = subscription as any;
+
+						const result =
+							await prismaClient.subscription.updateMany({
+								where: {
+									stripeSubscriptionId:
+										stripeSubscription.stripeSubscriptionId,
+								},
+								data: {
+									status: "canceled",
+									cancelAtPeriodEnd: false,
+								},
+							});
+
+						// eslint-disable-next-line no-console
+						console.log(
+							`✅ Canceled ${result.count} subscription(s) in database`
+						);
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error(
+							"❌ Error updating subscription on cancellation:",
+							error
+						);
+					}
+
+					// Log subscription cancellation for debugging
+					if (process.env.NODE_ENV === "development") {
+						// eslint-disable-next-line no-console
+						console.log(
+							`✅ Subscription ${subscription.id} canceled`
+						);
+					}
+				},
 			},
 		}),
 		// captcha({

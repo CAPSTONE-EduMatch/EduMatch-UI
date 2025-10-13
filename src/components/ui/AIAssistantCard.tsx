@@ -16,7 +16,7 @@ export function AIAssistantCard({
 }: AIAssistantCardProps) {
 	return (
 		<motion.div
-			className={`bg-gradient-to-br from-[#116E63] via-[#0F5F54] to-[#0D4F45] text-white rounded-3xl p-6 shadow-2xl border-2 border-[#F0A227]/20 ${className} flex flex-col items-center gap-3 relative overflow-hidden`}
+			className={`bg-gradient-to-br from-[#116E63] via-[#0F5F54] to-[#0D4F45] text-white rounded-3xl p-6 shadow-2xl border-2 border-[#F0A227]/20 ${className} flex flex-col items-center gap-3 relative overflow-hidden w-72`}
 			initial={{ opacity: 0, y: 20, scale: 0.95 }}
 			animate={{ opacity: 1, y: 0, scale: 1 }}
 			transition={{ delay, duration: 0.6, ease: 'easeOut' }}
@@ -108,7 +108,7 @@ export function AIAssistantCard({
 				whileTap={{ scale: 0.95 }}
 				className="relative z-10 w-full"
 			>
-				<Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-full text-lg font-bold w-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+				<Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-full text-md font-bold w-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
 					Search Faster with AI
 				</Button>
 			</motion.div>

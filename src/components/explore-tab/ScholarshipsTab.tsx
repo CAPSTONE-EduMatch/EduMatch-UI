@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { ScholarshipCard } from '../ui/ScholarshipCard'
 import { Scholarship } from '@/types/explore-api'
+import { useRouter } from 'next/navigation'
 
 interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
 }
 
 export function ScholarshipsTab({ scholarships = [] }: ScholarshipsTabProps) {
+	const router = useRouter()
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
 	const toggleWishlist = (id: number) => {
@@ -23,6 +25,10 @@ export function ScholarshipsTab({ scholarships = [] }: ScholarshipsTabProps) {
 		})
 	}
 
+	const handleScholarshipClick = (scholarshipId: number) => {
+		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
+	}
+
 	return (
 		<div className="space-y-4">
 			{scholarships.length > 0 ? (
@@ -33,6 +39,7 @@ export function ScholarshipsTab({ scholarships = [] }: ScholarshipsTabProps) {
 						index={index}
 						isWishlisted={wishlistItems.has(scholarship.id)}
 						onWishlistToggle={toggleWishlist}
+						onClick={handleScholarshipClick}
 					/>
 				))
 			) : (

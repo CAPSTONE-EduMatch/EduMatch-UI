@@ -1,16 +1,16 @@
 'use client'
 import { Button } from '@/components/ui'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
+import { FilterSidebar } from '@/components/ui/FilterSidebar'
 import Modal from '@/components/ui/Modal'
 import { Pagination } from '@/components/ui/Pagination'
 import { ProgramCard } from '@/components/ui/ProgramCard'
 import { ScholarshipCard } from '@/components/ui/ScholarshipCard'
 import { mockPrograms, mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'
-import Image from 'next/image'
+import { Heart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 
 const infoItems = [
 	{ label: 'Tuition fee', value: '100000000$/ year' },
@@ -20,31 +20,36 @@ const infoItems = [
 	{ label: 'Location', value: 'Bangkok, Thailand' },
 ]
 
-const ProgramDetail = () => {
+const ScholarshipDetail = () => {
 	const router = useRouter()
 	const [isWishlisted, setIsWishlisted] = useState(false)
-	const [activeTab, setActiveTab] = useState('overview')
+	const [activeTab, setActiveTab] = useState('detail')
 	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
 	const [currentPage, setCurrentPage] = useState(1)
 	const [programWishlist, setProgramWishlist] = useState<number[]>([])
 	const [carouselIndex, setCarouselIndex] = useState(0)
+	const [eligibilityProgramsPage, setEligibilityProgramsPage] = useState(1)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
+	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
 	const itemsPerPage = 3
 	const totalPages = Math.ceil(mockScholarships.length / itemsPerPage)
 	const programsPerPage = 3
 	const totalPrograms = mockPrograms.length
+	const eligibilityProgramsPerPage = 6
+	const totalEligibilityPages = Math.ceil(
+		mockPrograms.length / eligibilityProgramsPerPage
+	)
 
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
 		const updateBreadcrumb = () => {
 			const referrer = document.referrer
-			const programName = 'Information Technology' // This should come from props or API data
+			const scholarshipName = 'Information Technology' // This should come from props or API dat
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
@@ -53,12 +58,12 @@ const ProgramDetail = () => {
 			// Check if came from a specific tab in explore
 			if (referrer.includes('/explore')) {
 				const urlParams = new URLSearchParams(window.location.search)
-				const fromTab = urlParams.get('from') || 'programmes'
+				const fromTab = urlParams.get('from') || 'scholarships'
 
-				if (fromTab === 'scholarships') {
+				if (fromTab === 'programmes') {
 					items.push({
-						label: 'Scholarships',
-						href: '/explore?tab=scholarships',
+						label: 'Programmes',
+						href: '/explore?tab=programmes',
 					})
 				} else if (fromTab === 'research') {
 					items.push({
@@ -67,14 +72,14 @@ const ProgramDetail = () => {
 					})
 				} else {
 					items.push({
-						label: 'Programmes',
-						href: '/explore?tab=programmes',
+						label: 'Scholarships',
+						href: '/explore?tab=scholarships',
 					})
 				}
 			}
 
 			// Add current page (non-clickable)
-			items.push({ label: programName })
+			items.push({ label: scholarshipName })
 
 			setBreadcrumbItems(items)
 		}
@@ -82,19 +87,19 @@ const ProgramDetail = () => {
 		updateBreadcrumb()
 	}, [])
 
-	const handleWishlistToggle = (scholarshipId: number) => {
-		setScholarshipWishlist((prev) =>
-			prev.includes(scholarshipId)
-				? prev.filter((id) => id !== scholarshipId)
-				: [...prev, scholarshipId]
-		)
-	}
-
 	const handleProgramWishlistToggle = (programId: number) => {
 		setProgramWishlist((prev) =>
 			prev.includes(programId)
 				? prev.filter((id) => id !== programId)
 				: [...prev, programId]
+		)
+	}
+
+	const handleScholarshipWishlistToggle = (scholarshipId: number) => {
+		setScholarshipWishlist((prev) =>
+			prev.includes(scholarshipId)
+				? prev.filter((id) => id !== scholarshipId)
+				: [...prev, scholarshipId]
 		)
 	}
 
@@ -125,20 +130,6 @@ const ProgramDetail = () => {
 		setShowDeleteConfirmModal(true)
 	}
 
-	const nextSlide = () => {
-		setCarouselIndex((prev) =>
-			prev + programsPerPage >= totalPrograms ? 0 : prev + programsPerPage
-		)
-	}
-
-	const prevSlide = () => {
-		setCarouselIndex((prev) =>
-			prev - programsPerPage < 0
-				? Math.max(0, totalPrograms - programsPerPage)
-				: prev - programsPerPage
-		)
-	}
-
 	const handleCloseModal = () => {
 		setIsClosing(true)
 		setTimeout(() => {
@@ -153,30 +144,24 @@ const ProgramDetail = () => {
 	}
 
 	const handleProgramClick = (programId: number) => {
-		// Get current tab context from referrer or default to programmes
-		const referrer = document.referrer
-		let fromTab = 'programmes'
-		if (referrer.includes('tab=scholarships')) {
-			fromTab = 'scholarships'
-		} else if (referrer.includes('tab=research')) {
-			fromTab = 'research'
-		}
+		// Navigate to programmes detail page
+		router.push(`/explore/programmes/${programId}?from=scholarships`)
+	}
 
-		router.push(`/explore/${programId}?from=${fromTab}`)
+	const handleScholarshipClick = (scholarshipId: number) => {
+		// Navigate to scholarship detail page
+		router.push(`/explore/scholarships/${scholarshipId}`)
 	}
 
 	const menuItems = [
-		{ id: 'overview', label: 'Overview' },
-		{ id: 'structure', label: 'Programme structure' },
-		{ id: 'admission', label: 'Admission requirements' },
-		{ id: 'fee', label: 'Fee and funding' },
-		{ id: 'scholarship', label: 'Scholarship' },
+		{ id: 'detail', label: 'Detail' },
+		{ id: 'eligibility', label: 'Eligibility' },
 		{ id: 'other', label: 'Other information' },
 	]
 
 	const renderTabContent = () => {
 		switch (activeTab) {
-			case 'overview':
+			case 'detail':
 				return (
 					<div className="space-y-4">
 						<ol className="space-y-4">
@@ -218,7 +203,7 @@ const ProgramDetail = () => {
 					</div>
 				)
 
-			case 'structure':
+			case 'eligibilty':
 				return (
 					<div className="space-y-6">
 						<div>
@@ -245,170 +230,6 @@ const ProgramDetail = () => {
 								<span className="font-bold text-gray-900">Credits:</span>{' '}
 								<span className="text-gray-700">180 alternative credits</span>
 							</p>
-						</div>
-					</div>
-				)
-
-			case 'admission':
-				return (
-					<div className="space-y-6">
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								Academic requirements:
-							</p>
-							<ul className="list-disc pl-5 space-y-1 text-gray-700">
-								<li>GPA: 3.0</li>
-								<li>GRE: 170</li>
-							</ul>
-						</div>
-
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								Language requirements:
-							</p>
-							<ul className="list-disc pl-5 space-y-1 text-gray-700">
-								<li>
-									English:
-									<ul className="list-disc pl-5 mt-1">
-										<li>IELTS: 6.0</li>
-										<li>TOEFL: 78</li>
-									</ul>
-								</li>
-								<li>Chinese: HSK 3</li>
-							</ul>
-						</div>
-
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								Other requirements:
-							</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>We normally require an honours degree of 2.2 or above.</li>
-								<li>
-									You need to have some knowledge of computing, either from your
-									first degree or work/voluntary experience, which you should
-									outline in your application.
-								</li>
-								<li>
-									If you do not meet the above grade requirements but have at
-									least 12 months relevant professional experience and/ or
-									equivalent qualifications, we will consider you on an
-									individual basis.
-								</li>
-								<li>
-									International and EU applicants are required to have a minimum
-									overall IELTS (Academic) score of 6.5 with 5.5 in each
-									component (or approved equivalent*).
-								</li>
-							</ul>
-						</div>
-
-						<div>
-							<p className="font-bold text-gray-900 mb-3">Student insurance:</p>
-							<p className="text-gray-700 mb-3">
-								Make sure to cover your health, travel, and stay while studying
-								abroad. Even global coverages can miss important items, so make
-								sure your student insurance ticks all the following:
-							</p>
-							<ul className="list-disc pl-5 space-y-1 text-gray-700">
-								<li>Additional medical costs (i.e. dental)</li>
-								<li>
-									Repatriation, if something happens to you or your family
-								</li>
-								<li>Liability</li>
-								<li>Home contents and baggage</li>
-								<li>Accidents</li>
-								<li>Legal aid</li>
-							</ul>
-							<p className="text-gray-700 mt-3">
-								<span className="font-semibold">
-									Remember, countries and universities may have specific
-									insurance requirements.
-								</span>{' '}
-								To learn more about how student insurance work at UWE Bristol
-								(University of the West of England) and/or in United Kingdom
-							</p>
-						</div>
-					</div>
-				)
-
-			case 'fee':
-				return (
-					<div className="space-y-6">
-						<div>
-							<p className="font-bold text-gray-900 mb-2">Tuition Fee:</p>
-							<ul className="list-disc pl-5 text-gray-700">
-								<li>International: 615,708,011 VND/year</li>
-							</ul>
-						</div>
-
-						<div>
-							<p className="font-bold text-gray-900 mb-2">
-								Living costs for Bristol:{' '}
-								<span className="font-normal text-gray-700">
-									26,769,914-44,973,455 VND/month
-								</span>
-							</p>
-							<p className="text-gray-700">
-								<span className="font-semibold">Living costs:</span> The living
-								costs include the total expenses per month, covering
-								accommodation, public transportation, utilities (electricity,
-								internet), books and groceries.
-							</p>
-						</div>
-					</div>
-				)
-
-			case 'scholarship':
-				const startIndex = (currentPage - 1) * itemsPerPage
-				const endIndex = startIndex + itemsPerPage
-				const currentScholarships = mockScholarships.slice(startIndex, endIndex)
-
-				return (
-					<div className="space-y-6">
-						<div>
-							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Scholarships Information:
-							</h3>
-							<p className="text-gray-700 mb-6">
-								Lorem Ipsum is simply dummy text of the printing and typesetting
-								industry. Lorem Ipsum has been the industry&apos;s standard
-								dummy text ever since the 1500s Lorem Ipsum is simply dummy text
-								of the printing and typesetting industry. Lorem Ipsum has been
-								the industry&apos;s standard dummy text ever since the 1500s.
-							</p>
-						</div>
-
-						<div>
-							<h4 className="text-lg font-bold text-gray-900 mb-4">
-								Available Scholarships:
-							</h4>
-							<p className="text-sm text-gray-600 mb-4">
-								You are eligible to apply for these scholarships but a selection
-								process will still be applied by the provider.
-							</p>
-
-							<div className="space-y-4">
-								{currentScholarships.map((scholarship, index) => (
-									<ScholarshipCard
-										key={scholarship.id}
-										scholarship={scholarship}
-										index={index}
-										isWishlisted={scholarshipWishlist.includes(scholarship.id)}
-										onWishlistToggle={handleWishlistToggle}
-									/>
-								))}
-							</div>
-
-							{totalPages > 1 && (
-								<div className="mt-6">
-									<Pagination
-										currentPage={currentPage}
-										totalPages={totalPages}
-										onPageChange={setCurrentPage}
-									/>
-								</div>
-							)}
 						</div>
 					</div>
 				)
@@ -442,52 +263,91 @@ const ProgramDetail = () => {
 			<motion.div
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
-				className="relative h-[500px] w-full"
+				className="relative  w-full"
 			>
-				<Image
+				<div className="mt-28 w-[1500px] mx-auto px-5 sm:px-7 lg:px-9 ">
+					<Breadcrumb items={breadcrumbItems} />
+				</div>
+				{/* <Image
 					src="https://vcdn1-vnexpress.vnecdn.net/2023/07/28/hoc-vien3-1690476448-4686-1690477817.jpg?w=1200&h=0&q=100&dpr=1&fit=crop&s=T1naMvwNebHJRgrlo54Jbw"
 					alt="Army West University"
 					fill
 					className="object-cover"
 					priority
-				/>
+				/> */}
 
-				<div className="container mx-auto px-4 h-full relative">
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.2 }}
-						className="absolute bottom-0 right-4 translate-y-1/3 bg-white rounded-2xl shadow-xl p-8 max-w-md flex flex-col justify-center items-center"
-					>
-						<h1 className="text-3xl font-bold mb-2">Information Technology</h1>
-						<p className="text-gray-600 mb-6">Army West University (AWU)</p>
+				{/* <div className="container mx-auto px-4 h-full relative"> */}
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.2 }}
+					className="w-full bg-[#F5F7FB]  mt-5 px-10 py-5 flex justify-center"
+				>
+					<div className="w-[1500px] flex justify-center items-center gap-10 mx-auto px-4 sm:px-6 lg:px-8 py-8 ">
+						<div className=" flex flex-col justify-center items-center w-1/2">
+							<h1 className="text-3xl font-bold mb-2">
+								Information Technology
+							</h1>
+							<p className="text-gray-600 mb-6">Army West University (AWU)</p>
 
-						<div className="flex items-center gap-3 mb-4">
-							<Button className="">Visit website</Button>
-							<Button className="">Apply</Button>
-							<motion.button
-								onClick={(e) => {
-									e.preventDefault()
-									e.stopPropagation()
-									setIsWishlisted(!isWishlisted)
-								}}
-								className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
-							>
-								<Heart
-									className={`w-6 h-6 transition-all duration-200 ${
-										isWishlisted
-											? 'fill-red-500 text-red-500'
-											: 'text-gray-400 hover:text-red-500'
-									}`}
-								/>
-							</motion.button>
+							<div className="flex items-center gap-3 mb-4">
+								<Button className="">Visit website</Button>
+								<Button className="">Apply</Button>
+								<motion.button
+									onClick={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										setIsWishlisted(!isWishlisted)
+									}}
+									className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
+									whileHover={{ scale: 1.1 }}
+									whileTap={{ scale: 0.9 }}
+								>
+									<Heart
+										className={`w-6 h-6 transition-all duration-200 ${
+											isWishlisted
+												? 'fill-red-500 text-red-500'
+												: 'text-gray-400 hover:text-red-500'
+										}`}
+									/>
+								</motion.button>
+							</div>
+
+							<p className="text-sm text-gray-500">
+								Number of applications: 30
+							</p>
 						</div>
-
-						<p className="text-sm text-gray-500">Number of applications: 30</p>
-					</motion.div>
-				</div>
+						<div className="  w-1/2 grid grid-cols-2 gap-4">
+							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
+								<span className="text-md text-gray-500">Grant</span>
+								<span className="text-xl text-black font-bold">
+									Various benefit
+								</span>
+							</div>
+							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
+								<span className="text-md text-gray-500">Country</span>
+								<span className="text-xl text-black font-bold">
+									Various benefit
+								</span>
+							</div>
+							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
+								<span className="text-md text-gray-500">Discipline</span>
+								<span className="text-xl text-black font-bold">
+									Various benefit
+								</span>
+							</div>
+							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
+								<span className="text-md text-gray-500">
+									Application deadline
+								</span>
+								<span className="text-xl text-black font-bold">
+									Various benefit
+								</span>
+							</div>
+						</div>
+					</div>
+				</motion.div>
+				{/* </div> */}
 			</motion.div>
 			{/* --------------------------------------------------------------------------------------------- */}
 			<motion.div
@@ -496,9 +356,9 @@ const ProgramDetail = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
 			>
-				<div className="mb-6">
+				{/* <div className="mb-6">
 					<Breadcrumb items={breadcrumbItems} />
-				</div>
+				</div> */}
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
@@ -560,11 +420,6 @@ const ProgramDetail = () => {
 								entrepreneurial activity, and access to employer events.
 							</li>
 						</ul>
-
-						<p className="flex items-center gap-2 text-[#126E64] font-medium mt-6">
-							<GraduationCap className="w-5 h-5" />
-							Supervisor: Tran Thanh Nguyen
-						</p>
 					</div>
 				</motion.div>
 				{/* -----------------------------------------------Overview Content---------------------------------------------- */}
@@ -615,6 +470,71 @@ const ProgramDetail = () => {
 						</AnimatePresence>
 					</motion.div>
 				</div>
+
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.3 }}
+					className="p-8 bg-white py-6 shadow-xl border"
+				>
+					<h2 className="text-3xl font-bold mb-6">Eligibility programmes</h2>
+
+					<div className="flex gap-8">
+						{/* Filter Sidebar */}
+						<FilterSidebar activeTab="programmes" />
+
+						{/* Programs Content */}
+						<div className="flex-1">
+							{/* Results Count */}
+							<div className="mb-4">
+								<p className="text-gray-600">
+									Showing {mockPrograms.length} programmes
+								</p>
+							</div>
+
+							{/* Programs Grid */}
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+								{mockPrograms
+									.slice(
+										(eligibilityProgramsPage - 1) * eligibilityProgramsPerPage,
+										eligibilityProgramsPage * eligibilityProgramsPerPage
+									)
+									.map((program, index) => (
+										<ProgramCard
+											key={program.id}
+											program={program}
+											index={index}
+											isWishlisted={programWishlist.includes(program.id)}
+											onWishlistToggle={handleProgramWishlistToggle}
+											onClick={handleProgramClick}
+										/>
+									))}
+							</div>
+
+							{/* No Results */}
+							{mockPrograms.length === 0 && (
+								<div className="text-center py-12">
+									<p className="text-gray-500 text-lg mb-2">
+										No programmes found
+									</p>
+									<p className="text-gray-400 text-sm">
+										Try adjusting your filters
+									</p>
+								</div>
+							)}
+
+							{/* Pagination */}
+							{mockPrograms.length > 0 && (
+								<Pagination
+									currentPage={eligibilityProgramsPage}
+									totalPages={totalEligibilityPages}
+									onPageChange={setEligibilityProgramsPage}
+								/>
+							)}
+						</div>
+					</div>
+				</motion.div>
+				{/* -----------------------------------------------Apply Content---------------------------------------------- */}
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
@@ -638,8 +558,8 @@ const ProgramDetail = () => {
 									<div className="text-4xl mb-4">📁</div>
 									<div className="space-y-2">
 										{/* <p className="text-sm text-[#126E64] cursor-pointer hover:underline">
-											Click here to upload file
-										</p> */}
+                                            Click here to upload file
+                                        </p> */}
 										<input
 											type="file"
 											multiple
@@ -716,66 +636,31 @@ const ProgramDetail = () => {
 				>
 					<h2 className="text-3xl font-bold mb-6">Recommend for you</h2>
 
-					{/* Carousel */}
-					<div className="relative">
-						{/* Navigation Buttons */}
-						<button
-							onClick={prevSlide}
-							className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-							disabled={carouselIndex === 0}
-						>
-							<ChevronLeft className="w-6 h-6 text-gray-600" />
-						</button>
-
-						<button
-							onClick={nextSlide}
-							className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-							disabled={carouselIndex + programsPerPage >= totalPrograms}
-						>
-							<ChevronRight className="w-6 h-6 text-gray-600" />
-						</button>
-
-						{/* Programs Grid */}
-						<div className="overflow-hidden px-12 py-5">
-							<div
-								className="flex transition-transform duration-300 ease-in-out"
-								style={{
-									transform: `translateX(-${(carouselIndex / programsPerPage) * 100}%)`,
-								}}
-							>
-								{mockPrograms.map((program, index) => (
-									<div key={program.id} className="w-1/3 flex-shrink-0 px-3">
-										<div className="h-[600px]">
-											<ProgramCard
-												program={program}
-												index={index}
-												isWishlisted={programWishlist.includes(program.id)}
-												onWishlistToggle={handleProgramWishlistToggle}
-												onClick={handleProgramClick}
-											/>
-										</div>
+					{mockScholarships.length > 0 ? (
+						<div className="relative h-[800px] overflow-y-auto overflow-x-hidden">
+							{/* Navigation Buttons */}
+							{/* Programs Grid */}{' '}
+							{mockScholarships.slice(0, 9).map((scholarship, index) => (
+								<div key={scholarship.id} className="">
+									<div className="mb-7">
+										<ScholarshipCard
+											scholarship={scholarship}
+											index={index}
+											isWishlisted={scholarshipWishlist.includes(
+												scholarship.id
+											)}
+											onWishlistToggle={handleScholarshipWishlistToggle}
+											onClick={handleScholarshipClick}
+										/>
 									</div>
-								))}
-							</div>
-						</div>
-
-						{/* Dots Indicator */}
-						<div className="flex justify-center mt-6 gap-2">
-							{Array.from({
-								length: Math.ceil(totalPrograms / programsPerPage),
-							}).map((_, index) => (
-								<button
-									key={index}
-									onClick={() => setCarouselIndex(index * programsPerPage)}
-									className={`w-3 h-3 rounded-full transition-colors ${
-										Math.floor(carouselIndex / programsPerPage) === index
-											? 'bg-[#126E64]'
-											: 'bg-gray-300'
-									}`}
-								/>
+								</div>
 							))}
 						</div>
-					</div>
+					) : (
+						<div className="text-center py-8">
+							<p className="text-gray-600">No recommendations available</p>
+						</div>
+					)}
 				</motion.div>
 			</motion.div>
 
@@ -904,4 +789,4 @@ const ProgramDetail = () => {
 	)
 }
 
-export default ProgramDetail
+export default ScholarshipDetail

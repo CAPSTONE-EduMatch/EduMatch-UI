@@ -28,7 +28,7 @@ export function ProgramsTab({ programs = [] }: ProgramsTabProps) {
 	}
 
 	const handleProgramClick = (programId: number) => {
-		router.push(`/explore/${programId}?from=programmes`)
+		router.push(`/explore/programmes/${programId}?from=programmes`)
 	}
 
 	const paginatedPrograms = useMemo(() => {

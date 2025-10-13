@@ -19,6 +19,7 @@ interface ResearchLabCardProps {
 	index: number
 	isWishlisted: boolean
 	onWishlistToggle: (labId: number) => void
+	onClick?: (labId: number) => void
 }
 
 export function ResearchLabCard({
@@ -26,6 +27,7 @@ export function ResearchLabCard({
 	index,
 	isWishlisted,
 	onWishlistToggle,
+	onClick,
 }: ResearchLabCardProps) {
 	return (
 		<motion.div
@@ -33,7 +35,8 @@ export function ResearchLabCard({
 			animate={{ opacity: 1, x: 0 }}
 			transition={{ duration: 0.3, delay: index * 0.1 }}
 			whileHover={{ x: 5 }}
-			className="bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300"
+			className="bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
+			onClick={() => onClick?.(lab.id)}
 		>
 			{/* Header with wishlist */}
 			<div className="flex justify-between items-start mb-4">

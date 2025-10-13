@@ -1,0 +1,112 @@
+type Message {
+	id: ID!
+	threadId: ID!
+	content: String
+	senderId: ID!
+	senderName: String!
+	senderImage: String
+	fileUrl: String
+	fileName: String
+	fileSize: Int
+	mimeType: String
+	createdAt: String!
+	isRead: Boolean!
+}
+
+type Thread {
+	id: ID!
+	participants: [String!]!
+	lastMessage: String
+	lastMessageAt: String
+	createdAt: String!
+	updatedAt: String!
+	# Additional fields for complete thread display
+	otherParticipant: Participant
+	lastMessageSender: Participant
+	unreadCount: Int!
+	lastMessageFileUrl: String
+	lastMessageFileName: String
+	lastMessageMimeType: String
+}
+
+type Participant {
+	id: ID!
+	name: String!
+	email: String!
+	image: String
+}
+
+type User {
+	id: ID!
+	name: String!
+	email: String!
+	image: String
+}
+
+input CreateMessageInput {
+	id: ID!
+	threadId: ID!
+	content: String
+	senderId: ID!
+	senderName: String!
+	senderImage: String
+	fileUrl: String
+	fileName: String
+	fileSize: Int
+	mimeType: String
+	createdAt: String!
+	isRead: Boolean!
+}
+
+input CreateThreadInput {
+	id: ID!
+	participants: [String!]!
+	createdAt: String!
+	updatedAt: String!
+	# Additional fields for complete thread creation
+	otherParticipant: ParticipantInput
+	lastMessageSender: ParticipantInput
+	unreadCount: Int!
+	lastMessageFileUrl: String
+	lastMessageFileName: String
+	lastMessageMimeType: String
+}
+
+input ParticipantInput {
+	id: ID!
+	name: String!
+	email: String!
+	image: String
+}
+
+input UpdateThreadInput {
+	id: ID!
+	lastMessage: String
+	lastMessageAt: String
+	updatedAt: String!
+	lastMessageSender: ParticipantInput
+	unreadCount: Int!
+	lastMessageFileUrl: String
+	lastMessageFileName: String
+	lastMessageMimeType: String
+}
+
+type Query {
+	getMessages(threadId: ID!): [Message!]!
+	getThreads: [Thread!]!
+	getThread(id: ID!): Thread
+}
+
+type Mutation {
+	createMessage(input: CreateMessageInput!): Message!
+	createThread(input: CreateThreadInput!): Thread!
+	updateThread(input: UpdateThreadInput!): Thread!
+	markMessageAsRead(messageId: ID!): Message!
+}
+
+type Subscription {
+	onMessageAdded(threadId: ID!): Message
+		@aws_subscribe(mutations: ["createMessage"])
+	onThreadUpdated: Thread
+		@aws_subscribe(mutations: ["createThread", "updateThread"])
+}

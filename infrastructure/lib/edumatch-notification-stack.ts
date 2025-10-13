@@ -4,6 +4,9 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as appsync from "aws-cdk-lib/aws-appsync";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
 
 export class EduMatchNotificationStack extends cdk.Stack {
@@ -404,6 +407,130 @@ exports.handler = async (event) => {
 			})
 		);
 
+		// Create DynamoDB tables for messaging
+		const messagesTable = new dynamodb.Table(this, "MessagesTable", {
+			tableName: "edumatch-messages",
+			partitionKey: {
+				name: "threadId",
+				type: dynamodb.AttributeType.STRING,
+			},
+			sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+			billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+			removalPolicy: cdk.RemovalPolicy.DESTROY,
+		});
+
+		const threadsTable = new dynamodb.Table(this, "ThreadsTable", {
+			tableName: "edumatch-threads",
+			partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+			billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+			removalPolicy: cdk.RemovalPolicy.DESTROY,
+		});
+
+		// Create AppSync API
+		const api = new appsync.GraphqlApi(this, "EduMatchMessagingApi", {
+			name: "EduMatchMessagingApi",
+			schema: appsync.SchemaFile.fromAsset("graphql/schema.graphql"),
+			authorizationConfig: {
+				defaultAuthorization: {
+					authorizationType: appsync.AuthorizationType.API_KEY,
+					apiKeyConfig: {
+						expires: cdk.Expiration.after(cdk.Duration.days(365)),
+					},
+				},
+				additionalAuthorizationModes: [
+					{
+						authorizationType: appsync.AuthorizationType.USER_POOL,
+						userPoolConfig: {
+							userPool: cognito.UserPool.fromUserPoolId(
+								this,
+								"UserPool",
+								process.env.COGNITO_USER_POOL_ID ||
+									"us-east-1_XXXXXXXXX"
+							),
+						},
+					},
+				],
+			},
+			xrayEnabled: true,
+		});
+
+		// Create DynamoDB data sources
+		const messagesDataSource = api.addDynamoDbDataSource(
+			"MessagesDataSource",
+			messagesTable
+		);
+		const threadsDataSource = api.addDynamoDbDataSource(
+			"ThreadsDataSource",
+			threadsTable
+		);
+
+		// Create resolvers for messages
+		messagesDataSource.createResolver("GetMessagesResolver", {
+			typeName: "Query",
+			fieldName: "getMessages",
+			requestMappingTemplate: appsync.MappingTemplate.fromString(`
+				{
+					"version": "2017-02-28",
+					"operation": "Query",
+					"query": {
+						"expression": "threadId = :threadId",
+						"expressionValues": {
+							":threadId": $util.dynamodb.toDynamoDBJson($ctx.args.threadId)
+						}
+					}
+				}
+			`),
+			responseMappingTemplate:
+				appsync.MappingTemplate.dynamoDbResultList(),
+		});
+
+		messagesDataSource.createResolver("CreateMessageResolver", {
+			typeName: "Mutation",
+			fieldName: "createMessage",
+			requestMappingTemplate: appsync.MappingTemplate.fromString(`
+				{
+					"version": "2017-02-28",
+					"operation": "PutItem",
+					"key": {
+						"threadId": $util.dynamodb.toDynamoDBJson($ctx.args.input.threadId),
+						"createdAt": $util.dynamodb.toDynamoDBJson($ctx.args.input.createdAt)
+					},
+					"attributeValues": $util.dynamodb.toMapValuesJson($ctx.args.input)
+				}
+			`),
+			responseMappingTemplate:
+				appsync.MappingTemplate.dynamoDbResultItem(),
+		});
+
+		// Note: onMessageAdded subscription is handled automatically by AppSync
+		// when @aws_subscribe(mutations: ["createMessage"]) is used in the schema
+
+		// Create resolvers for threads
+		threadsDataSource.createResolver("GetThreadsResolver", {
+			typeName: "Query",
+			fieldName: "getThreads",
+			requestMappingTemplate: appsync.MappingTemplate.dynamoDbScanTable(),
+			responseMappingTemplate:
+				appsync.MappingTemplate.dynamoDbResultList(),
+		});
+
+		threadsDataSource.createResolver("CreateThreadResolver", {
+			typeName: "Mutation",
+			fieldName: "createThread",
+			requestMappingTemplate: appsync.MappingTemplate.fromString(`
+				{
+					"version": "2017-02-28",
+					"operation": "PutItem",
+					"key": {
+						"id": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
+					},
+					"attributeValues": $util.dynamodb.toMapValuesJson($ctx.args.input)
+				}
+			`),
+			responseMappingTemplate:
+				appsync.MappingTemplate.dynamoDbResultItem(),
+		});
+
 		// Output important values
 		new cdk.CfnOutput(this, "NotificationsQueueUrl", {
 			value: notificationsQueue.queueUrl,
@@ -427,6 +554,30 @@ exports.handler = async (event) => {
 			value: emailProcessor.functionArn,
 			description: "Email Processor Lambda ARN",
 			exportName: "EduMatch-EmailProcessorArn",
+		});
+
+		new cdk.CfnOutput(this, "AppSyncApiEndpoint", {
+			value: api.graphqlUrl,
+			description: "AppSync GraphQL API Endpoint",
+			exportName: "EduMatch-AppSyncApiEndpoint",
+		});
+
+		new cdk.CfnOutput(this, "AppSyncApiKey", {
+			value: api.apiKey || "No API Key",
+			description: "AppSync API Key",
+			exportName: "EduMatch-AppSyncApiKey",
+		});
+
+		new cdk.CfnOutput(this, "MessagesTableName", {
+			value: messagesTable.tableName,
+			description: "Messages DynamoDB Table Name",
+			exportName: "EduMatch-MessagesTableName",
+		});
+
+		new cdk.CfnOutput(this, "ThreadsTableName", {
+			value: threadsTable.tableName,
+			description: "Threads DynamoDB Table Name",
+			exportName: "EduMatch-ThreadsTableName",
 		});
 	}
 }

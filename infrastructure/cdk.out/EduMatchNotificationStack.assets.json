@@ -1,21 +1,21 @@
 {
-	"version": "48.0.0",
-	"files": {
-		"cade04b7679c3229331ae23c8d370ed776edb24e4242dbde11031041f50645ce": {
-			"displayName": "EduMatchNotificationStack Template",
-			"source": {
-				"path": "EduMatchNotificationStack.template.json",
-				"packaging": "file"
-			},
-			"destinations": {
-				"555225979596-ap-northeast-1-2df0e323": {
-					"bucketName": "cdk-hnb659fds-assets-555225979596-ap-northeast-1",
-					"objectKey": "cade04b7679c3229331ae23c8d370ed776edb24e4242dbde11031041f50645ce.json",
-					"region": "ap-northeast-1",
-					"assumeRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-file-publishing-role-555225979596-ap-northeast-1"
-				}
-			}
-		}
-	},
-	"dockerImages": {}
+  "version": "48.0.0",
+  "files": {
+    "a16861f13be05e11737274503812c78e20b90010426bfef16b9188d5e5b40c50": {
+      "displayName": "EduMatchNotificationStack Template",
+      "source": {
+        "path": "EduMatchNotificationStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "555225979596-ap-northeast-1-f6aefcc4": {
+          "bucketName": "cdk-hnb659fds-assets-555225979596-ap-northeast-1",
+          "objectKey": "a16861f13be05e11737274503812c78e20b90010426bfef16b9188d5e5b40c50.json",
+          "region": "ap-northeast-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-file-publishing-role-555225979596-ap-northeast-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
 }

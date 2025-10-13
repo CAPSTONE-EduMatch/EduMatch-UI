@@ -33,6 +33,9 @@ frontend:
         - echo "STRIPE_BASIC_PRICE_ID=$STRIPE_BASIC_PRICE_ID" >> .env
         - echo "STRIPE_PRO_PRICE_ID=$STRIPE_PRO_PRICE_ID" >> .env
         - echo "STRIPE_ENTERPRISE_PRICE_ID=$STRIPE_ENTERPRISE_PRICE_ID" >> .env
+        - echo "NEXT_PUBLIC_APPSYNC_ENDPOINT=$NEXT_PUBLIC_APPSYNC_ENDPOINT" >> .env
+        - echo "NEXT_PUBLIC_APPSYNC_API_KEY=$NEXT_PUBLIC_APPSYNC_API_KEY" >> .env
+        - echo "NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION" >> .env
         - npx prisma generate
         # - npx prisma db push
     build:

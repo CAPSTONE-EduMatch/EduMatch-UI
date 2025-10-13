@@ -20,6 +20,7 @@ interface ScholarshipCardProps {
 	index: number
 	isWishlisted: boolean
 	onWishlistToggle: (scholarshipId: number) => void
+	onClick?: (scholarshipId: number) => void
 }
 
 export function ScholarshipCard({
@@ -27,6 +28,7 @@ export function ScholarshipCard({
 	index,
 	isWishlisted,
 	onWishlistToggle,
+	onClick,
 }: ScholarshipCardProps) {
 	return (
 		<motion.div
@@ -34,7 +36,8 @@ export function ScholarshipCard({
 			// animate={{ opacity: 1, x: 0 }}
 			// transition={{ duration: 0.3 }}
 			whileHover={{ x: 5 }}
-			className="bg-white rounded-3xl border border-gray-600 p-6 hover:shadow-lg transition-all duration-300"
+			className="bg-white rounded-3xl border border-gray-600 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
+			onClick={() => onClick?.(scholarship.id)}
 		>
 			{/* Header */}
 			<div className="flex justify-between items-start mb-4">

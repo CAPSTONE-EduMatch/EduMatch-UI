@@ -21,6 +21,7 @@ model User {
   banned                            Boolean?       @default(false)
   banReason                         String?
   banExpires                        DateTime?
+  lastSeen                          DateTime?
   Email                             Email[]
   Notification                      Notification[]
   Wishlist                          Wishlist[]
@@ -404,13 +405,21 @@ model institution_profile {
 }
 
 model mesage {
-  id        String   @id
-  senderId  String
-  threadId  String
-  body      String
-  createdAt DateTime
-  User      User     @relation(fields: [senderId], references: [id], onDelete: NoAction)
-  thread    thread   @relation(fields: [threadId], references: [id], onDelete: NoAction)
+  id               String    @id
+  senderId         String
+  threadId         String
+  body             String
+  createdAt        DateTime
+  encryptedContent String?
+  fileName         String?
+  fileSize         Int?
+  fileUrl          String?
+  isRead           Boolean   @default(false)
+  iv               String?
+  mimeType         String?
+  readAt           DateTime?
+  User             User      @relation(fields: [senderId], references: [id], onDelete: NoAction)
+  thread           thread    @relation(fields: [threadId], references: [id], onDelete: NoAction)
 }
 
 model plan {
@@ -462,6 +471,7 @@ model thread {
   lastMessageId                   String
   lastMessageAt                   DateTime
   createdAt                       DateTime
+  isTyping                        Json?
   mesage                          mesage[]
   User_thread_createdByToUser     User     @relation("thread_createdByToUser", fields: [createdBy], references: [id], onDelete: NoAction)
   User_thread_participantIdToUser User     @relation("thread_participantIdToUser", fields: [participantId], references: [id], onDelete: NoAction)

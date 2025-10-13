@@ -144,6 +144,9 @@ const shouldCache = (config: AxiosRequestConfig): boolean => {
 	// Don't cache profile endpoints - server handles caching
 	if (config.url?.includes("/api/profile")) return false;
 
+	// Cache users/status endpoint for 1 minute
+	if (config.url?.includes("/api/users/status")) return true;
+
 	// Cache static data and other read-only endpoints
 	return !!(
 		config.url?.includes("/api/cache/static") ||
@@ -156,6 +159,7 @@ const getCacheTTL = (config: AxiosRequestConfig): number => {
 	const url = config.url || "";
 
 	if (url.includes("/api/profile")) return 5 * 60; // 5 minutes
+	if (url.includes("/api/users/status")) return 1 * 60; // 1 minute
 	if (url.includes("/api/cache/static")) return 24 * 60 * 60; // 24 hours
 	if (url.includes("/api/health")) return 60; // 1 minute
 

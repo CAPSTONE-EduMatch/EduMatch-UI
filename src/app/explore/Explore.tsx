@@ -17,6 +17,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
 import student from '../../../public/student.png'
+import { AIAssistantCard } from '@/components/ui/AIAssistantCard'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
 	{ id: 'scholarships', label: 'Scholarships' },
@@ -295,8 +296,9 @@ const Explore = () => {
 							<SortDropdown value={sortBy} onChange={setSortBy} />
 						</motion.div>
 						<div className="flex gap-6 h-full">
-							<div className="sticky top-4 self-start ">
+							<div className="sticky top-4 self-start  flex flex-col gap-6">
 								<FilterSidebar activeTab={activeTab} />
+								<AIAssistantCard />
 							</div>
 							<div className="w-full">
 								{currentTabData.loading ? (

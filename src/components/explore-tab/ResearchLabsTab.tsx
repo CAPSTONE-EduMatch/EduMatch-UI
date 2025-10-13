@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { ResearchLabCard } from '../ui/ResearchLabCard'
 import { ResearchLab } from '@/types/explore-api'
+import { useRouter } from 'next/navigation'
 
 interface ResearchLabsTabProps {
 	researchLabs?: ResearchLab[]
 }
 
 export function ResearchLabsTab({ researchLabs = [] }: ResearchLabsTabProps) {
+	const router = useRouter()
 	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
 
 	const toggleWishlist = (id: number) => {
@@ -23,6 +25,10 @@ export function ResearchLabsTab({ researchLabs = [] }: ResearchLabsTabProps) {
 		})
 	}
 
+	const handleLabClick = (labId: number) => {
+		router.push(`/explore/research-labs/${labId}?from=research`)
+	}
+
 	return (
 		<div className="space-y-4">
 			{researchLabs.length > 0 ? (
@@ -33,6 +39,7 @@ export function ResearchLabsTab({ researchLabs = [] }: ResearchLabsTabProps) {
 						index={index}
 						isWishlisted={wishlistItems.has(lab.id)}
 						onWishlistToggle={toggleWishlist}
+						onClick={handleLabClick}
 					/>
 				))
 			) : (

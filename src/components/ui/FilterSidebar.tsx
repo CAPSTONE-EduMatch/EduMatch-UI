@@ -1400,8 +1400,6 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 					</div>
 				)}
 			</motion.div>
-
-			<AIAssistantCard />
 		</motion.div>
 	)
 }

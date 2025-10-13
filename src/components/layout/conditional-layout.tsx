@@ -14,8 +14,9 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 	// Hide header and footer on create profile page
 	const hideLayout = pathname === '/profile/create'
 
-	// Hide only footer on profile pages
-	const hideFooter = pathname.startsWith('/profile/')
+	// Hide only footer on profile pages and messages page
+	const hideFooter =
+		pathname.startsWith('/profile/') || pathname === '/messages'
 
 	if (hideLayout) {
 		return <>{children}</>

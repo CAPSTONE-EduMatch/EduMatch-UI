@@ -25,9 +25,7 @@ const ScholarshipDetail = () => {
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('detail')
 	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
-	const [currentPage, setCurrentPage] = useState(1)
 	const [programWishlist, setProgramWishlist] = useState<number[]>([])
-	const [carouselIndex, setCarouselIndex] = useState(0)
 	const [eligibilityProgramsPage, setEligibilityProgramsPage] = useState(1)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
@@ -36,10 +34,7 @@ const ScholarshipDetail = () => {
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
-	const itemsPerPage = 3
-	const totalPages = Math.ceil(mockScholarships.length / itemsPerPage)
-	const programsPerPage = 3
-	const totalPrograms = mockPrograms.length
+
 	const eligibilityProgramsPerPage = 6
 	const totalEligibilityPages = Math.ceil(
 		mockPrograms.length / eligibilityProgramsPerPage

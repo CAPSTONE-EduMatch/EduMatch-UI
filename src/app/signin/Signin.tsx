@@ -231,26 +231,55 @@ const SignIn: React.FC = () => {
 
 				const errorMessage = res.error.message?.toLowerCase() || ''
 
-				// Check if error is related to email not being verified
-				const isEmailVerificationError =
-					errorMessage.includes('email') &&
-					(errorMessage.includes('verify') ||
-						errorMessage.includes('verification') ||
-						errorMessage.includes('not verified') ||
-						errorMessage.includes('unverified') ||
-						errorMessage.includes('confirm') ||
-						errorMessage.includes('activate'))
+				// First, try to check if user exists and get their verification status
+				let shouldTriggerEmailVerification = false
 
-				// Check if error is related to wrong password/credentials
+				try {
+					const userCheckResponse = await axios.get(
+						`/api/user?email=${encodeURIComponent(email)}`
+					)
+
+					// If user exists but email is not verified, trigger OTP flow
+					if (
+						userCheckResponse.data.exists &&
+						!userCheckResponse.data.isEmailVerified
+					) {
+						shouldTriggerEmailVerification = true
+						console.log('User exists but email is not verified')
+					}
+				} catch (apiError) {
+					// eslint-disable-next-line no-console
+					console.log('Error checking user verification status:', apiError)
+				}
+
+				// Enhanced email verification error detection
+				const isEmailVerificationError =
+					shouldTriggerEmailVerification ||
+					(errorMessage.includes('email') &&
+						(errorMessage.includes('verify') ||
+							errorMessage.includes('verification') ||
+							errorMessage.includes('not verified') ||
+							errorMessage.includes('unverified') ||
+							errorMessage.includes('confirm') ||
+							errorMessage.includes('activate'))) ||
+					// Better Auth specific error patterns
+					errorMessage.includes('email not verified') ||
+					errorMessage.includes('please verify') ||
+					errorMessage.includes('account not verified') ||
+					errorMessage.includes('verification required')
+
+				// Check if error is related to wrong password/credentials (but not email verification)
 				const isCredentialError =
-					errorMessage.includes('password') ||
-					errorMessage.includes('credential') ||
-					errorMessage.includes('invalid') ||
-					errorMessage.includes('unauthorized') ||
-					errorMessage.includes('wrong')
+					!isEmailVerificationError &&
+					(errorMessage.includes('password') ||
+						errorMessage.includes('credential') ||
+						errorMessage.includes('invalid') ||
+						errorMessage.includes('unauthorized') ||
+						errorMessage.includes('wrong'))
 
 				// Check if error is related to user not found
 				const isUserNotFoundError =
+					!isEmailVerificationError &&
 					errorMessage.includes('user') &&
 					(errorMessage.includes('not found') ||
 						errorMessage.includes('does not exist') ||
@@ -284,10 +313,21 @@ const SignIn: React.FC = () => {
 						email: 'No account found with this email address.',
 					})
 				} else {
-					// For any other error, show general message and try email verification
-					setErrors({
-						email: res.error.message ?? 'Sign in failed. Please try again.',
-					})
+					// For any other error, try email verification as fallback
+					try {
+						// Attempt to send verification OTP as fallback
+						await authClient.emailOtp.sendVerificationOtp({
+							email,
+							type: 'email-verification',
+						})
+						setPendingEmail(email)
+						setShowOTPPopup(true)
+					} catch (otpError) {
+						// If OTP fails, show the original error
+						setErrors({
+							email: res.error.message ?? 'Sign in failed. Please try again.',
+						})
+					}
 				}
 			}
 		} catch (err) {

@@ -2,7 +2,7 @@
 
 import { authClient } from '@/app/lib/auth-client'
 import { Modal } from '@/components/ui'
-import Button from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import React, { useEffect, useRef, useState } from 'react'
 
 interface EmailVerificationModalProps {

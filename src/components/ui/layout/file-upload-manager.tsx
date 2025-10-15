@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { FileItem, FolderItem } from '@/lib/file-utils'
-import Button from './Button'
+import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils'
 
 interface FileUploadManagerProps {

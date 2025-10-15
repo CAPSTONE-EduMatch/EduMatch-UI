@@ -1,11 +1,12 @@
 'use client'
 
-import { Card, CardContent } from '@/components/ui/card'
-import Button from '@/components/ui/Button'
+import { Card, CardContent } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { ApiService, cacheUtils } from '@/lib/axios-config'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthRequiredModal } from '@/components/auth'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ProfileLayout } from '@/components/profile/ProfileLayout'
 import { ProfileInfoSection } from '@/components/profile/menu/ProfileInfoSection'
 import { AcademicSection } from '@/components/profile/menu/AcademicSection'
@@ -161,10 +162,35 @@ type ProfileSection =
 	| 'settings'
 
 export default function ViewProfile() {
+	const searchParams = useSearchParams()
 	const [profile, setProfile] = useState<ProfileData | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
-	const [activeSection, setActiveSection] = useState<ProfileSection>('profile')
+
+	// Initialize active section from URL parameter or default to 'profile'
+	const getInitialSection = useCallback((): ProfileSection => {
+		const tab = searchParams.get('tab')
+		const validSections: ProfileSection[] = [
+			'profile',
+			'academic',
+			'wishlist',
+			'application',
+			'payment',
+			'settings',
+		]
+		return validSections.includes(tab as ProfileSection)
+			? (tab as ProfileSection)
+			: 'profile'
+	}, [searchParams])
+
+	const [activeSection, setActiveSection] =
+		useState<ProfileSection>(getInitialSection())
+
+	// Update active section when URL parameters change
+	useEffect(() => {
+		const newSection = getInitialSection()
+		setActiveSection(newSection)
+	}, [searchParams, getInitialSection])
 
 	// Use the authentication check hook
 	const {

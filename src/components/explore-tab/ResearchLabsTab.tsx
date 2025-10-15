@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ResearchLabCard } from '../ui/ResearchLabCard'
+import { ResearchLabCard } from '@/components/ui'
 import { ResearchLab } from '@/types/explore-api'
 import { useRouter } from 'next/navigation'
 

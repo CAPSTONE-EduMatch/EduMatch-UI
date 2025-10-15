@@ -1,16 +1,16 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { PhoneInput } from '@/components/ui/phone-input'
-import { CustomSelect } from '@/components/ui/custom-select'
+import { Card, CardContent } from '@/components/ui'
+import { Button } from '@/components/ui'
+import { Input } from '@/components/ui'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
+import { PhoneInput } from '@/components/ui'
+import { CustomSelect } from '@/components/ui'
 import { Upload, Building2, Download } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import SuccessModal from '@/components/ui/SuccessModal'
-import ErrorModal from '@/components/ui/ErrorModal'
+import { SuccessModal } from '@/components/ui'
+import { ErrorModal } from '@/components/ui'
 
 interface InstitutionProfileSectionProps {
 	profile: any

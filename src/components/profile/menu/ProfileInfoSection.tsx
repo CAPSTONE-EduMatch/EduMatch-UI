@@ -1,20 +1,20 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
-import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { PhoneInput } from '@/components/ui/phone-input'
-import { CustomSelect } from '@/components/ui/custom-select'
-import { DateInput } from '@/components/ui/DateInput'
+import { Card, CardContent } from '@/components/ui'
+import { Button } from '@/components/ui'
+import { Input } from '@/components/ui'
+import { Label } from '@/components/ui'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
+import { PhoneInput } from '@/components/ui'
+import { CustomSelect } from '@/components/ui'
+import { DateInput } from '@/components/ui'
 import { Upload, User, Building2, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/lib/date-utils'
-import SuccessModal from '@/components/ui/SuccessModal'
-import ErrorModal from '@/components/ui/ErrorModal'
-import { SimpleWarningModal } from '@/components/ui/WarningModal'
+import { SuccessModal } from '@/components/ui'
+import { ErrorModal } from '@/components/ui'
+import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/useSimpleWarning'
 import { InstitutionProfileSection } from './InstitutionProfileSection'
 
@@ -794,7 +794,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 			/>
 
 			{/* Simple Warning Modal */}
-			<SimpleWarningModal
+			<WarningModal
 				isOpen={showWarningModal}
 				onSaveAndContinue={handleSaveAndContinue}
 				onDiscardChanges={handleDiscardChanges}

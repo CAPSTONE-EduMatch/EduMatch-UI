@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ScholarshipCard } from '../ui/ScholarshipCard'
+import { ScholarshipCard } from '@/components/ui'
 import { Scholarship } from '@/types/explore-api'
 import { useRouter } from 'next/navigation'
 

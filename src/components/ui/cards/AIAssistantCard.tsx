@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import robot from '../../../public/Robot.png'
-import Button from './Button'
+import robot from '../../../../public/Robot.png'
+import { Button } from '@/components/ui'
 
 interface AIAssistantCardProps {
 	className?: string

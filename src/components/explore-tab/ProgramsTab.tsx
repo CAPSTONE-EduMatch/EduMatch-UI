@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ProgramCard } from '../ui/ProgramCard'
-import { SortOption } from '../ui/Sort'
+import { ProgramCard } from '@/components/ui'
+import type { SortOption } from '@/components/ui'
 import { Program } from '@/types/explore-api'
 import { useRouter } from 'next/navigation'
 

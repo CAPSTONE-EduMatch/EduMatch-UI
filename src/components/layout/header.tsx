@@ -1,6 +1,16 @@
 'use client'
 
-import { MessageCircle, Bell, User, Menu, X, LogOut, Check } from 'lucide-react'
+import {
+	MessageCircle,
+	Bell,
+	User,
+	Menu,
+	X,
+	LogOut,
+	Check,
+	Heart,
+	Settings,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -30,6 +40,7 @@ export function EduMatchHeader() {
 	const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
 	const [isNotificationOpen, setIsNotificationOpen] = useState(false)
 	const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+	const [wishlistCount, setWishlistCount] = useState(0)
 
 	// Initialize language from localStorage or current locale
 	useEffect(() => {
@@ -42,6 +53,13 @@ export function EduMatchHeader() {
 			setCurrentLanguage(languageDisplay)
 		}
 	}, [currentLocale])
+
+	// Initialize wishlist count (replace with actual wishlist logic)
+	useEffect(() => {
+		// TODO: Replace with actual wishlist count from API or context
+		// For now, setting a sample count
+		setWishlistCount(3)
+	}, [])
 
 	useEffect(() => {
 		const controlNavbar = () => {
@@ -205,8 +223,27 @@ export function EduMatchHeader() {
 					{/* Desktop Profile Icons - hidden on mobile */}
 					<div className="hidden md:flex items-center gap-3">
 						{/* Teal Chat Icon */}
-						<div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
+						<div
+							className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+							onClick={() => router.push('/messages')}
+						>
 							<MessageCircle className="w-5 h-5 text-[#126e64]" />
+						</div>
+
+						{/* Wishlist Icon */}
+						<div className="relative">
+							<div
+								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+								onClick={() => router.push('/profile/view?tab=wishlist')}
+							>
+								<Heart className="w-5 h-5 text-[#e91e63]" />
+								{/* Badge số wishlist */}
+								{wishlistCount > 0 && (
+									<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+										{wishlistCount > 99 ? '99+' : wishlistCount}
+									</div>
+								)}
+							</div>
 						</div>
 
 						{/* Orange Bell Icon */}
@@ -343,19 +380,32 @@ export function EduMatchHeader() {
 
 							{/* User Dropdown Menu */}
 							{isUserMenuOpen && (
-								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[160px] z-[99999]">
+								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[180px] z-[99999]">
 									{isAuthenticated ? (
-										// Logged in - show logout option
-										<div
-											className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
-											onClick={() => {
-												handleLogout()
-												setIsUserMenuOpen(false)
-											}}
-										>
-											<LogOut className="w-4 h-4" />
-											<span className="text-sm">Logout</span>
-										</div>
+										// Logged in - show profile options and logout
+										<>
+											<div
+												className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-gray-700"
+												onClick={() => {
+													router.push('/profile/view')
+													setIsUserMenuOpen(false)
+												}}
+											>
+												<Settings className="w-4 h-4" />
+												<span className="text-sm">Manage Profile</span>
+											</div>
+											<div className="border-t border-gray-100 my-1"></div>
+											<div
+												className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+												onClick={() => {
+													handleLogout()
+													setIsUserMenuOpen(false)
+												}}
+											>
+												<LogOut className="w-4 h-4" />
+												<span className="text-sm">Logout</span>
+											</div>
+										</>
 									) : (
 										// Not logged in - show login/signup options
 										<>
@@ -433,8 +483,33 @@ export function EduMatchHeader() {
 
 						{/* Mobile Profile Icons */}
 						<div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-							<div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
+							<div
+								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+								onClick={() => {
+									router.push('/messages')
+									setIsMobileMenuOpen(false)
+								}}
+							>
 								<MessageCircle className="w-5 h-5 text-[#126e64]" />
+							</div>
+
+							{/* Wishlist Icon */}
+							<div className="relative">
+								<div
+									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+									onClick={() => {
+										router.push('/profile/view?tab=wishlist')
+										setIsMobileMenuOpen(false)
+									}}
+								>
+									<Heart className="w-5 h-5 text-[#e91e63]" />
+									{/* Badge số wishlist */}
+									{wishlistCount > 0 && (
+										<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+											{wishlistCount > 99 ? '99+' : wishlistCount}
+										</div>
+									)}
+								</div>
 							</div>
 
 							{/* Orange Bell Icon */}

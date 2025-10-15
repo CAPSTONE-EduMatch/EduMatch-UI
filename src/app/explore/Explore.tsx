@@ -2,13 +2,17 @@
 import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
-import { Button } from '@/components/ui'
-import { Breadcrumb } from '@/components/ui/Breadcrumb'
-import { FilterSidebar } from '@/components/ui/FilterSidebar'
-import { Pagination } from '@/components/ui/Pagination'
-import { SearchBar } from '@/components/ui/SearchBar'
-import { SortDropdown, SortOption } from '@/components/ui/Sort'
-import { TabSelector } from '@/components/ui/TabSelector'
+import {
+	Button,
+	Breadcrumb,
+	FilterSidebar,
+	Pagination,
+	SearchBar,
+	SortDropdown,
+	TabSelector,
+	AIAssistantCard,
+} from '@/components/ui'
+import type { SortOption } from '@/components/ui'
 import { ExploreApiService } from '@/lib/explore-api'
 import { useTranslations } from 'next-intl'
 import { TabType } from '@/types/explore'
@@ -17,7 +21,6 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
 import student from '../../../public/student.png'
-import { AIAssistantCard } from '@/components/ui/AIAssistantCard'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
 	{ id: 'scholarships', label: 'Scholarships' },

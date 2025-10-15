@@ -1,8 +1,8 @@
 'use client'
 
-import Button from '@/components/ui/Button'
-import { TabSelector } from '@/components/ui/TabSelector'
-import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui'
+import { TabSelector } from '@/components/ui'
+import { Card, CardContent } from '@/components/ui'
 import Image from 'next/image'
 import { useState, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'

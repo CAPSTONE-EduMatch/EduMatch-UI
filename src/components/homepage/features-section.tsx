@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { motion, useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRef } from 'react'

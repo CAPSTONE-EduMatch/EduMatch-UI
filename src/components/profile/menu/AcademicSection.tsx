@@ -1,16 +1,16 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
-import { Label } from '@/components/ui/label'
-import { CustomSelect } from '@/components/ui/custom-select'
+import { Card, CardContent } from '@/components/ui'
+import { Button } from '@/components/ui'
+import { Input } from '@/components/ui'
+import { Label } from '@/components/ui'
+import { CustomSelect } from '@/components/ui'
 import { Upload, Edit3, Save, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import SuccessModal from '@/components/ui/SuccessModal'
-import ErrorModal from '@/components/ui/ErrorModal'
-import { SimpleWarningModal } from '@/components/ui/WarningModal'
+import { SuccessModal } from '@/components/ui'
+import { ErrorModal } from '@/components/ui'
+import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/useSimpleWarning'
 
 interface AcademicSectionProps {
@@ -1639,7 +1639,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			/>
 
 			{/* Simple Warning Modal */}
-			<SimpleWarningModal
+			<WarningModal
 				isOpen={showWarningModal}
 				onSaveAndContinue={handleSaveAndContinue}
 				onDiscardChanges={handleDiscardChanges}

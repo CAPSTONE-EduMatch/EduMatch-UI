@@ -2,8 +2,8 @@
 
 import { Search } from 'lucide-react'
 import { motion } from 'framer-motion'
-import Input from './Input'
-import Button from './Button'
+import { Input } from '@/components/ui'
+import { Button } from '@/components/ui'
 
 export function SearchBar() {
 	return (

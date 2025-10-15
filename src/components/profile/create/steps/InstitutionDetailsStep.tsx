@@ -2,10 +2,10 @@
 
 import React from 'react'
 import { ProfileFormData } from '@/types/profile'
-import { Label } from '@/components/ui/label'
-import Button from '@/components/ui/Button'
-import { FileUploadManager } from '@/components/ui/file-upload-manager'
-import { CustomSelect } from '@/components/ui/custom-select'
+import { Label } from '@/components/ui'
+import { Button } from '@/components/ui'
+import { FileUploadManager } from '@/components/ui'
+import { CustomSelect } from '@/components/ui'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData

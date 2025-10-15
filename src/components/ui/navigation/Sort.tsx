@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Button from './Button'
+import { Button } from '@/components/ui'
 
 export type SortOption =
 	| 'most-popular'

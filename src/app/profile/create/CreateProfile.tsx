@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui'
 import { ProgressBar } from '@/components/profile/create/steps/ProgressBar'
 import { RoleSelectionStep } from '@/components/profile/create/steps/RoleSelectionStep'
 import { BasicInfoStep } from '@/components/profile/create/steps/BasicInfoStep'
@@ -11,7 +11,7 @@ import { InstitutionInfoStep } from '@/components/profile/create/steps/Instituti
 import { InstitutionDetailsStep } from '@/components/profile/create/steps/InstitutionDetailsStep'
 import { CompletionStep } from '@/components/profile/create/steps/CompletionStep'
 import { ProfileFormData } from '@/types/profile'
-import Button from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthRequiredModal } from '@/components/auth'
 

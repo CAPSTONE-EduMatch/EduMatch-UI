@@ -1,6 +1,6 @@
 'use client'
 
-import Button from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import { useTranslations } from 'next-intl'
 
 export function CTASection() {

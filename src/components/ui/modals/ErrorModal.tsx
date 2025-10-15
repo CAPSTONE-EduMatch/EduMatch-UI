@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Modal } from '@/components/ui'
-import Button from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 
 interface ErrorModalProps {
 	isOpen: boolean

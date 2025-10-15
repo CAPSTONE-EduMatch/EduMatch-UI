@@ -2,15 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { ProfileFormData } from '@/types/profile'
-import { Label } from '@/components/ui/label'
-import Input from '@/components/ui/Input'
-import { CustomSelect } from '@/components/ui/custom-select'
-import { PhoneInput } from '@/components/ui/phone-input'
-import Button from '@/components/ui/Button'
+import { Label } from '@/components/ui'
+import { Input } from '@/components/ui'
+import { CustomSelect } from '@/components/ui'
+import { PhoneInput } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { Upload, Building2, Info } from 'lucide-react'
-import { Tooltip } from '@/components/ui/tooltip'
+import { Tooltip } from '@/components/ui'
 
 interface InstitutionInfoStepProps {
 	formData: ProfileFormData

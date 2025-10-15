@@ -745,7 +745,7 @@
       "ApiId"
      ]
     },
-    "Expires": 1791890293
+    "Expires": 1792052293
    },
    "DependsOn": [
     "EduMatchMessagingApiSchema41540462"

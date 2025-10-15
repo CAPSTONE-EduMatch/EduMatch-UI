@@ -17,7 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { TabType } from '@/types/explore'
-import { AIAssistantCard } from './AIAssistantCard'
+import { AIAssistantCard } from '@/components/ui'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 
 interface FilterSidebarProps {

@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import {
 	User,
 	GraduationCap,
@@ -13,7 +12,6 @@ import {
 	ArrowLeft,
 	Building2,
 } from 'lucide-react'
-import Button from '@/components/ui/Button'
 
 type ProfileSection =
 	| 'profile'

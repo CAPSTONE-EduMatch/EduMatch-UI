@@ -1,10 +1,13 @@
 'use client'
-import { Button } from '@/components/ui'
-import { Breadcrumb } from '@/components/ui'
-import { Modal } from '@/components/ui'
-import { Pagination } from '@/components/ui'
-import { ProgramCard } from '@/components/ui'
-import { ScholarshipCard } from '@/components/ui'
+import {
+	Breadcrumb,
+	Button,
+	Modal,
+	Pagination,
+	ProgramCard,
+	ScholarshipCard,
+} from '@/components/ui'
+
 import { mockPrograms, mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'

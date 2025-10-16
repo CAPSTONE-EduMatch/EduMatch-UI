@@ -1,8 +1,6 @@
 'use client'
-import { Button } from '@/components/ui'
-import { Breadcrumb } from '@/components/ui'
-import { Modal } from '@/components/ui'
-import { ResearchLabCard } from '@/components/ui'
+import { Breadcrumb, Button, Modal, ResearchLabCard } from '@/components/ui'
+
 import { mockResearchLabs } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'

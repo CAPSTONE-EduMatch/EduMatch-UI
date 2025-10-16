@@ -19,9 +19,7 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={inter.className}>
 				<NextIntlClientProvider>
-					{/* <ConditionalLayout> */}
-					{children}
-					{/* </ConditionalLayout> */}
+					<ConditionalLayout>{children}</ConditionalLayout>
 				</NextIntlClientProvider>
 			</body>
 		</html>

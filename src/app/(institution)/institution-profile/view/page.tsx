@@ -308,7 +308,7 @@ export default function ViewProfile() {
 						<div className="space-y-3">
 							<Button
 								onClick={() =>
-									(window.location.href = '/profile/create-profile')
+									(window.location.href = '/institution-profile/create')
 								}
 								className="w-full"
 							>
@@ -372,7 +372,7 @@ export default function ViewProfile() {
 	}
 
 	// const handleEditProfile = () => {
-	// 	window.location.href = '/profile/create-profile'
+	// 	window.location.href = '/institution-profile/create'
 	// }
 
 	return (

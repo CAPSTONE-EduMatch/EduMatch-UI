@@ -247,6 +247,12 @@ export class ApiService {
 		);
 		return response.data;
 	}
+
+	// Subdisciplines endpoints
+	static async getSubdisciplines() {
+		const response = await apiClient.get("/api/subdisciplines");
+		return response.data;
+	}
 }
 
 // Cache management utilities

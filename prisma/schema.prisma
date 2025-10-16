@@ -105,10 +105,16 @@ model Applicant {
   gender              Boolean?
   nationality         String?
   phone_number        String?
+  country_code        String?
+  favorite_countries  String[]                @default([])
   graduated           Boolean?
   level               String?
   subdiscipline_id    String?
   gpa                 Decimal?                @db.Decimal
+  university          String?
+  country_of_study    String?
+  has_foreign_language Boolean?
+  languages           Json?                   // Array of language objects
   user_id             String                  @unique
   user                user                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subdiscipline       Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
@@ -302,6 +308,8 @@ model ApplicantDocument {
   url              String
   size             Int
   upload_at        DateTime     @db.Timestamptz(6)
+  title            String?      // For research papers
+  subdiscipline    String[]     @default([]) // For research papers - array of subdisciplines
   applicant        Applicant    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
   documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
 

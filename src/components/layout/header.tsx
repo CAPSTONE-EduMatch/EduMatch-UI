@@ -374,7 +374,7 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/view')
+														router.push('/applicant-profile/view?tab=profile')
 														setIsUserMenuOpen(false)
 													}}
 												>
@@ -385,7 +385,7 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/academic')
+														router.push('/applicant-profile/view?tab=academic')
 														setIsUserMenuOpen(false)
 													}}
 												>
@@ -396,7 +396,7 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/wishlist')
+														router.push('/applicant-profile/view?tab=wishlist')
 														setIsUserMenuOpen(false)
 													}}
 												>
@@ -407,7 +407,9 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/applications')
+														router.push(
+															'/applicant-profile/view?tab=application'
+														)
 														setIsUserMenuOpen(false)
 													}}
 												>
@@ -418,7 +420,7 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/payment')
+														router.push('/applicant-profile/payment')
 														setIsUserMenuOpen(false)
 													}}
 												>
@@ -429,7 +431,7 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/settings')
+														router.push('/applicant-profile/view?tab=settings')
 														setIsUserMenuOpen(false)
 													}}
 												>

@@ -1,5 +1,3 @@
-import { EduMatchHeader } from '@/components/layout/header'
-import { Footer } from '@/components/layout/footer'
 import { ConditionalLayout } from '@/components/layout/conditional-layout'
 
 export default function ApplicantLayout({
@@ -9,10 +7,7 @@ export default function ApplicantLayout({
 }) {
 	return (
 		<>
-			<ConditionalLayout>
-				<EduMatchHeader />
-				{children}
-			</ConditionalLayout>
+			<ConditionalLayout>{children}</ConditionalLayout>
 		</>
 	)
 }

@@ -104,6 +104,7 @@ export default function CreateProfile() {
 		fieldOfStudy: '',
 		university: '',
 		countryOfStudy: '',
+		gpa: '',
 		scoreValue: '',
 		// Foreign Language fields
 		hasForeignLanguage: '',
@@ -262,8 +263,8 @@ export default function CreateProfile() {
 			const { ApiService } = await import('@/lib/axios-config')
 			await ApiService.createProfile(formData)
 
-			// Profile saved successfully, redirect to dashboard
-			router.push('/dashboard')
+			// Profile saved successfully, redirect to explore page
+			router.push('/explore')
 		} catch (error: any) {
 			// Error saving profile
 			alert(

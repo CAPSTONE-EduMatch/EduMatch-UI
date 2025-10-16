@@ -1,5 +1,4 @@
 import { ConditionalLayout } from '@/components/layout/conditional-layout'
-import { Footer } from '@/components/layout/footer'
 
 export default function InstitutionLayout({
 	children,
@@ -8,8 +7,7 @@ export default function InstitutionLayout({
 }) {
 	return (
 		<>
-			{children}
-			<Footer />
+			<ConditionalLayout>{children}</ConditionalLayout>
 		</>
 	)
 }

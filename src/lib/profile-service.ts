@@ -24,6 +24,7 @@ export interface ProfileFormData {
 	fieldOfStudy: string;
 	university: string;
 	countryOfStudy: string;
+	gpa: string;
 	scoreValue: string;
 	hasForeignLanguage: "yes" | "no" | "";
 	languages: Array<{
@@ -72,10 +73,16 @@ export interface ApplicantProfile {
 	gender: boolean | null;
 	nationality: string | null;
 	phone_number: string | null;
+	country_code: string | null;
+	favorite_countries: string[];
 	graduated: boolean | null;
 	level: string | null;
 	subdiscipline_id: string | null;
 	gpa: any | null;
+	university: string | null;
+	country_of_study: string | null;
+	has_foreign_language: boolean | null;
+	languages: any | null;
 	user_id: string;
 	user: {
 		id: string;
@@ -280,12 +287,25 @@ export class ProfileService {
 								: null,
 					nationality: formData.nationality || null,
 					phone_number: formData.phoneNumber || null,
+					country_code: formData.countryCode || null,
+					favorite_countries: formData.favoriteCountries || [],
 					graduated: formData.graduationStatus === "graduated",
 					level: formData.degree || null,
 					subdiscipline_id: subdisciplineId,
-					gpa: formData.scoreValue
-						? parseFloat(formData.scoreValue)
-						: null,
+					gpa: formData.gpa
+						? parseFloat(formData.gpa)
+						: formData.scoreValue
+							? parseFloat(formData.scoreValue)
+							: null,
+					university: formData.university || null,
+					country_of_study: formData.countryOfStudy || null,
+					has_foreign_language:
+						formData.hasForeignLanguage === "yes"
+							? true
+							: formData.hasForeignLanguage === "no"
+								? false
+								: null,
+					languages: formData.languages || null,
 				},
 				create: {
 					applicant_id: `applicant_${userId}`,
@@ -303,12 +323,25 @@ export class ProfileService {
 								: null,
 					nationality: formData.nationality || null,
 					phone_number: formData.phoneNumber || null,
+					country_code: formData.countryCode || null,
+					favorite_countries: formData.favoriteCountries || [],
 					graduated: formData.graduationStatus === "graduated",
 					level: formData.degree || null,
 					subdiscipline_id: subdisciplineId,
-					gpa: formData.scoreValue
-						? parseFloat(formData.scoreValue)
-						: null,
+					gpa: formData.gpa
+						? parseFloat(formData.gpa)
+						: formData.scoreValue
+							? parseFloat(formData.scoreValue)
+							: null,
+					university: formData.university || null,
+					country_of_study: formData.countryOfStudy || null,
+					has_foreign_language:
+						formData.hasForeignLanguage === "yes"
+							? true
+							: formData.hasForeignLanguage === "no"
+								? false
+								: null,
+					languages: formData.languages || null,
 				},
 			});
 
@@ -329,23 +362,31 @@ export class ProfileService {
 
 				// Add new interests
 				for (const interestName of formData.interests) {
-					const subdiscipline =
-						await prismaClient.subdiscipline.findFirst({
-							where: { name: interestName },
-						});
+					if (interestName && interestName.trim()) {
+						const subdiscipline =
+							await prismaClient.subdiscipline.findFirst({
+								where: { name: interestName.trim() },
+							});
 
-					if (subdiscipline) {
-						await prismaClient.applicantInterest.create({
-							data: {
-								applicant_id: applicant.applicant_id,
-								subdiscipline_id:
-									subdiscipline.subdiscipline_id,
-								add_at: new Date(),
-							},
-						});
+						if (subdiscipline) {
+							await prismaClient.applicantInterest.create({
+								data: {
+									applicant_id: applicant.applicant_id,
+									subdiscipline_id:
+										subdiscipline.subdiscipline_id,
+									add_at: new Date(),
+								},
+							});
+						} else {
+							console.warn(
+								`Subdiscipline not found for interest: ${interestName}`
+							);
+						}
 					}
 				}
 			}
+
+			// Favorite countries are now stored in the database field favorite_countries
 
 			// Handle documents
 			await this.handleApplicantDocuments(
@@ -522,6 +563,11 @@ export class ProfileService {
 		formData: ProfileFormData
 	): Promise<void> {
 		try {
+			// Clear existing documents first to avoid duplicates
+			await prismaClient.applicantDocument.deleteMany({
+				where: { applicant_id: applicantId },
+			});
+
 			// Get or create document types
 			const cvDocType = await this.getOrCreateDocumentType("CV/Resume");
 			const languageCertDocType = await this.getOrCreateDocumentType(
@@ -616,6 +662,39 @@ export class ProfileService {
 							upload_at: new Date(),
 						},
 					});
+				}
+			}
+
+			// Handle research papers
+			if (formData.researchPapers && formData.researchPapers.length > 0) {
+				const researchPaperDocType =
+					await this.getOrCreateDocumentType("Research Paper");
+
+				for (const researchPaper of formData.researchPapers) {
+					// Create a document for each file in the research paper
+					if (researchPaper.files && researchPaper.files.length > 0) {
+						for (const file of researchPaper.files) {
+							await prismaClient.applicantDocument.create({
+								data: {
+									document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+									applicant_id: applicantId,
+									document_type_id:
+										researchPaperDocType.document_type_id,
+									name:
+										file.name ||
+										file.originalName ||
+										"Research Paper",
+									url: file.url || "",
+									size: file.size || 0,
+									upload_at: new Date(),
+									title: researchPaper.title || null,
+									subdiscipline: researchPaper.discipline
+										? [researchPaper.discipline]
+										: [],
+								},
+							});
+						}
+					}
 				}
 			}
 		} catch (error) {

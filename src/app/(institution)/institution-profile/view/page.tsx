@@ -11,12 +11,13 @@ import {
 	InstitutionProfileLayout,
 	InstitutionProfileSection,
 } from '@/components/profile/InstitutionProfileLayout'
-import { ProfileInfoSection } from '@/components/profile/menu/ProfileInfoSection'
-import { AcademicSection } from '@/components/profile/menu/AcademicSection'
-import { WishlistSection } from '@/components/profile/menu/WishlistSection'
-import { ApplicationSection } from '@/components/profile/menu/ApplicationSection'
-import { PaymentSection } from '@/components/profile/menu/PaymentSection'
-import { SettingsSection } from '@/components/profile/menu/SettingsSection'
+import { InstitutionOverviewSection } from '@/components/profile/institution/menu/InstitutionOverviewSection'
+import { ProgramsSection } from '@/components/profile/institution/menu/ProgramsSection'
+import { InstitutionApplicationSection } from '@/components/profile/institution/menu/InstitutionApplicationSection'
+import { AnalyticsReportsSection } from '@/components/profile/institution/menu/AnalyticsReportsSection'
+import { InstitutionPaymentSection } from '@/components/profile/institution/menu/InstitutionPaymentSection'
+import { InstitutionSettingsSection } from '@/components/profile/institution/menu/InstitutionSettingsSection'
+import { InstitutionProfileSection as InstitutionProfileComponent } from '@/components/profile/institution/menu/InstitutionProfileSection'
 
 interface ProfileData {
 	id: string
@@ -166,17 +167,17 @@ export default function ViewProfile() {
 	const getInitialSection = useCallback((): InstitutionProfileSection => {
 		const tab = searchParams.get('tab')
 		const validSections: InstitutionProfileSection[] = [
+			'overview',
 			'profile',
 			'programs',
 			'application',
-			'students',
 			'analytics',
 			'payment',
 			'settings',
 		]
 		return validSections.includes(tab as InstitutionProfileSection)
 			? (tab as InstitutionProfileSection)
-			: 'profile'
+			: 'overview'
 	}, [searchParams])
 
 	const [activeSection, setActiveSection] =
@@ -335,32 +336,34 @@ export default function ViewProfile() {
 		}
 
 		switch (activeSection) {
-			case 'profile':
+			case 'overview':
 				return (
-					<ProfileInfoSection
+					<InstitutionOverviewSection
 						profile={profile}
 						onNavigationAttempt={navigationHandler}
 					/>
 				)
 			case 'programs':
 				return (
-					<AcademicSection
+					<ProgramsSection
 						profile={profile}
 						onProfileUpdate={refreshProfile}
 						onNavigationAttempt={navigationHandler}
 					/>
 				)
-			case 'students':
-				return <WishlistSection profile={profile} />
+			case 'profile':
+				return <InstitutionProfileComponent profile={profile} />
 			case 'application':
-				return <ApplicationSection profile={profile} />
+				return <InstitutionApplicationSection profile={profile} />
+			case 'analytics':
+				return <AnalyticsReportsSection profile={profile} />
 			case 'payment':
-				return <PaymentSection profile={profile} />
+				return <InstitutionPaymentSection profile={profile} />
 			case 'settings':
-				return <SettingsSection profile={profile} />
+				return <InstitutionSettingsSection profile={profile} />
 			default:
 				return (
-					<ProfileInfoSection
+					<InstitutionOverviewSection
 						profile={profile}
 						onNavigationAttempt={navigationHandler}
 					/>
@@ -368,16 +371,16 @@ export default function ViewProfile() {
 		}
 	}
 
-	const handleEditProfile = () => {
-		window.location.href = '/profile/create-profile'
-	}
+	// const handleEditProfile = () => {
+	// 	window.location.href = '/profile/create-profile'
+	// }
 
 	return (
 		<InstitutionProfileLayout
 			activeSection={activeSection}
 			onSectionChange={setActiveSection}
 			profile={profile}
-			onEditProfile={handleEditProfile}
+			// onEditProfile={handleEditProfile}
 		>
 			{renderSectionContent()}
 		</InstitutionProfileLayout>

@@ -12,6 +12,14 @@ export interface NavItem {
 	icon: LucideIcon
 }
 
+interface SidebarStyle {
+	bgColor?: string
+	width?: string
+	activeItemBgColor?: string
+	activeItemTextColor?: string
+	inactiveItemTextColor?: string
+}
+
 interface ProfileLayoutBaseProps {
 	activeSection: ProfileSection
 	onSectionChange: (section: ProfileSection) => void
@@ -21,6 +29,8 @@ interface ProfileLayoutBaseProps {
 	navItems: NavItem[]
 	roleLabel: string
 	roleIcon?: React.ReactNode
+	containerPaddingTop?: string
+	sidebarStyle?: SidebarStyle
 }
 
 export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
@@ -31,7 +41,17 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 	navItems,
 	roleLabel,
 	roleIcon,
+	containerPaddingTop = 'pt-24',
+	sidebarStyle,
 }) => {
+	// Default sidebar styles
+	const {
+		bgColor = '#126E64',
+		width = 'w-64',
+		activeItemBgColor = 'bg-white',
+		activeItemTextColor = 'text-[#126E64]',
+		inactiveItemTextColor = 'text-white/90',
+	} = sidebarStyle || {}
 	// Listen for navigation events from warning modal
 	useEffect(() => {
 		const handleNavigateToSection = (event: CustomEvent) => {
@@ -71,13 +91,13 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 	}
 
 	return (
-		<div className="bg-gray-50 min-h-screen pt-24">
+		<div className={`bg-gray-50 min-h-screen ${containerPaddingTop}`}>
 			<div className="pr-8">
-				<div className="flex gap-8 min-h-[calc(100vh-6rem)]">
+				<div className="flex gap-8 min-h-screen">
 					{/* Sidebar */}
 					<div
-						className="w-64 flex-shrink-0 flex flex-col min-h-full"
-						style={{ backgroundColor: '#126E64' }}
+						className={`flex-shrink-0 flex flex-col min-h-full ${width}`}
+						style={{ backgroundColor: bgColor }}
 					>
 						{/* Profile Summary */}
 						<div className="p-6 border-b border-white/20">
@@ -134,8 +154,8 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 										onClick={() => handleSectionChange(section.id)}
 										className={`w-full flex items-center gap-3 px-3 py-3 text-left rounded-lg transition-all duration-200 mb-1 ${
 											isActive
-												? 'bg-white text-[#126E64] shadow-lg'
-												: 'text-white/90 hover:bg-white/10 hover:text-white'
+												? `${activeItemBgColor} ${activeItemTextColor} shadow-lg`
+												: `${inactiveItemTextColor} hover:bg-white/10 hover:text-white`
 										}`}
 									>
 										<Icon className="w-4 h-4" />
@@ -147,7 +167,7 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 					</div>
 
 					{/* Main Content Area */}
-					<div className="w-full pb-12">
+					<div className="w-full pb-12 pt-10">
 						{/* Content */}
 						<div className="w-full">{children}</div>
 					</div>

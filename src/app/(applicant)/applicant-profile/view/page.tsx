@@ -10,7 +10,7 @@ import { useSearchParams } from 'next/navigation'
 import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
-} from '@/components/profile/ApplicantProfileLayout'
+} from '@/components/profile/menu/ApplicantProfileLayout'
 import { ProfileInfoSection } from '@/components/profile/menu/ProfileInfoSection'
 import { AcademicSection } from '@/components/profile/menu/AcademicSection'
 import { WishlistSection } from '@/components/profile/menu/WishlistSection'

@@ -13,6 +13,7 @@ import {
 import { ProfileLayoutBase, NavItem } from './ProfileLayoutBase'
 
 type InstitutionProfileSection =
+	| 'overview'
 	| 'profile'
 	| 'programs'
 	| 'application'
@@ -23,8 +24,8 @@ type InstitutionProfileSection =
 
 const institutionNavItems: NavItem[] = [
 	{
-		id: 'profile' as InstitutionProfileSection,
-		label: 'Institution Info',
+		id: 'overview' as InstitutionProfileSection,
+		label: 'Overview',
 		icon: Building2,
 	},
 	{
@@ -34,27 +35,27 @@ const institutionNavItems: NavItem[] = [
 	},
 	{
 		id: 'application' as InstitutionProfileSection,
-		label: 'Applications',
+		label: 'Application',
 		icon: FileText,
 	},
 	{
-		id: 'students' as InstitutionProfileSection,
-		label: 'Students',
+		id: 'profile' as InstitutionProfileSection,
+		label: 'Institution Information',
 		icon: Users,
 	},
 	{
 		id: 'analytics' as InstitutionProfileSection,
-		label: 'Analytics',
+		label: 'Analytics & Reports',
 		icon: BarChart3,
 	},
 	{
 		id: 'payment' as InstitutionProfileSection,
-		label: 'Payment',
+		label: 'Payments',
 		icon: CreditCard,
 	},
 	{
 		id: 'settings' as InstitutionProfileSection,
-		label: 'Settings',
+		label: 'Setting',
 		icon: Settings,
 	},
 ]
@@ -79,6 +80,7 @@ export const InstitutionProfileLayout: React.FC<
 			navItems={institutionNavItems}
 			roleLabel="Institution"
 			roleIcon={<Building2 className="w-8 h-8 text-white" />}
+			containerPaddingTop="pt-0"
 		>
 			{children}
 		</ProfileLayoutBase>

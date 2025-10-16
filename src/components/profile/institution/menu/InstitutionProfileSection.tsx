@@ -484,9 +484,9 @@ export const InstitutionProfileSection: React.FC<
 
 	return (
 		<div className="space-y-6">
-			<div className="grid grid-cols-2 gap-6">
+			<div className="flex gap-6">
 				{/* Left Panel - Institution Profile Information */}
-				<Card className="bg-white shadow-sm border lg:col-span-1 h-[750px]">
+				<Card className="bg-white shadow-sm border lg:col-span-1 h-[750px] w-1/3">
 					<CardContent className="p-6 h-full flex flex-col">
 						<div className="space-y-6 flex-1">
 							{/* Institution Header with Logo */}
@@ -804,7 +804,7 @@ export const InstitutionProfileSection: React.FC<
 				</Card>
 
 				{/* Right Panel - Verification Documents */}
-				<Card className="bg-white shadow-sm border lg:col-span-1 h-[750px]">
+				<Card className="bg-white shadow-sm border lg:col-span-1 h-[750px] w-2/3">
 					<CardContent className="p-6 h-full flex flex-col">
 						<div className="flex flex-col flex-1">
 							{/* Navigation Tabs */}

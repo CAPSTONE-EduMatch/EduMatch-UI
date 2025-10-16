@@ -9,7 +9,7 @@ import {
 	CreditCard,
 	Settings,
 } from 'lucide-react'
-import { ProfileLayoutBase, NavItem } from './ProfileLayoutBase'
+import { ProfileLayoutBase, NavItem } from '../ProfileLayoutBase'
 
 type ApplicantProfileSection =
 	| 'profile'
@@ -76,6 +76,7 @@ export const ApplicantProfileLayout: React.FC<ApplicantProfileLayoutProps> = ({
 			navItems={applicantNavItems}
 			roleLabel="Student"
 			roleIcon={<User className="w-8 h-8 text-white" />}
+			containerPaddingTop="pt-9"
 		>
 			{children}
 		</ProfileLayoutBase>

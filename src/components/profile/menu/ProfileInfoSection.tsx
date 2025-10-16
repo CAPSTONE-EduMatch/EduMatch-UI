@@ -16,7 +16,7 @@ import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/useSimpleWarning'
-import { InstitutionProfileSection } from './InstitutionProfileSection'
+import { InstitutionProfileSection } from '../institution/menu/InstitutionProfileSection'
 
 interface ProfileInfoSectionProps {
 	profile: any

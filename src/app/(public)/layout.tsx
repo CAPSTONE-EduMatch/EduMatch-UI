@@ -8,7 +8,7 @@ export default function PublicLayout({
 }) {
 	return (
 		<>
-			{/* <EduMatchHeader /> */}
+			<EduMatchHeader />
 			{children}
 			<Footer />
 		</>

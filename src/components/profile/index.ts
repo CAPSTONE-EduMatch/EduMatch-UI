@@ -18,7 +18,7 @@ export {
 export {
 	ApplicantProfileLayout,
 	type ApplicantProfileSection,
-} from "./ApplicantProfileLayout";
+} from "./menu/ApplicantProfileLayout";
 
 // Legacy Layout (for backward compatibility)
 export { ProfileLayout } from "./ProfileLayout";

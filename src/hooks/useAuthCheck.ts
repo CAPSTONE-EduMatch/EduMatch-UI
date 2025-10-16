@@ -29,7 +29,7 @@ export function useAuthCheck() {
 						await ApiService.getProfile();
 					} catch (profileError) {
 						// No profile found, redirect to create profile
-						router.push("/profile/create");
+						router.push("/applicant-profile/create");
 					}
 				} else {
 					setShowAuthModal(true); // Show modal if not authenticated

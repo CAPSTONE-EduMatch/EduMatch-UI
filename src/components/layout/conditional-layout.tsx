@@ -12,11 +12,10 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 	const pathname = usePathname()
 
 	// Hide header and footer on create profile page
-	const hideLayout = pathname === '/profile/create'
+	const hideLayout = pathname === '/applicant-profile/create'
 
 	// Hide only footer on profile pages and messages page
-	const hideFooter =
-		pathname.startsWith('/profile/') || pathname === '/messages'
+	const hideFooter = pathname.startsWith('/applicant-profile/')
 
 	if (hideLayout) {
 		return <>{children}</>
@@ -24,7 +23,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 
 	return (
 		<>
-			<EduMatchHeader />
+			{/* <EduMatchHeader /> */}
 			{children}
 			{!hideFooter && <Footer />}
 		</>

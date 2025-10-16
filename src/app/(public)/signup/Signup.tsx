@@ -4,13 +4,14 @@ import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
+
+import { authClient } from '@/app/lib/auth-client'
 import {
 	AuthLayout,
 	FormField,
 	GoogleButton,
 	PasswordField,
-} from '../../components/auth'
-import { authClient } from '../lib/auth-client'
+} from '@/components/auth'
 
 const LEFT_IMAGE = '/hero1.png'
 

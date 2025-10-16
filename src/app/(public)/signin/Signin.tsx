@@ -11,7 +11,7 @@ import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
-import { authClient } from '../lib/auth-client'
+import { authClient } from '@/app/lib/auth-client'
 
 const LEFT_IMAGE =
 	'https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg'

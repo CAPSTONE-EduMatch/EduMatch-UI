@@ -7,22 +7,30 @@ import { FeaturesSection } from '@/components/homepage/features-section'
 import { BlogSection } from '@/components/homepage/blog-section'
 import { CTASection } from '@/components/homepage/cta-section'
 import { motion } from 'framer-motion'
+import { EduMatchHeader } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 
 export default function HomePage() {
 	return (
-		<main className="min-h-screen">
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.8 }}
-			>
-				<HeroSection />
-				<AboutSection />
-				<DisciplinesSection />
-				<FeaturesSection />
-				<BlogSection />
-				<CTASection />
-			</motion.div>
-		</main>
+		<>
+			<EduMatchHeader />
+
+			<main className="min-h-screen">
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.8 }}
+				>
+					<HeroSection />
+					<AboutSection />
+					<DisciplinesSection />
+					<FeaturesSection />
+					<BlogSection />
+					<CTASection />
+				</motion.div>
+			</main>
+
+			<Footer />
+		</>
 	)
 }

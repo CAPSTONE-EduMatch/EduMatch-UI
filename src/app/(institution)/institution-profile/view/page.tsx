@@ -7,7 +7,10 @@ import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthRequiredModal } from '@/components/auth'
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ProfileLayout } from '@/components/profile/ProfileLayout'
+import {
+	InstitutionProfileLayout,
+	InstitutionProfileSection,
+} from '@/components/profile/InstitutionProfileLayout'
 import { ProfileInfoSection } from '@/components/profile/menu/ProfileInfoSection'
 import { AcademicSection } from '@/components/profile/menu/AcademicSection'
 import { WishlistSection } from '@/components/profile/menu/WishlistSection'
@@ -153,14 +156,6 @@ interface ProfileData {
 	updatedAt: string
 }
 
-type ProfileSection =
-	| 'profile'
-	| 'academic'
-	| 'wishlist'
-	| 'application'
-	| 'payment'
-	| 'settings'
-
 export default function ViewProfile() {
 	const searchParams = useSearchParams()
 	const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -168,23 +163,24 @@ export default function ViewProfile() {
 	const [error, setError] = useState<string | null>(null)
 
 	// Initialize active section from URL parameter or default to 'profile'
-	const getInitialSection = useCallback((): ProfileSection => {
+	const getInitialSection = useCallback((): InstitutionProfileSection => {
 		const tab = searchParams.get('tab')
-		const validSections: ProfileSection[] = [
+		const validSections: InstitutionProfileSection[] = [
 			'profile',
-			'academic',
-			'wishlist',
+			'programs',
 			'application',
+			'students',
+			'analytics',
 			'payment',
 			'settings',
 		]
-		return validSections.includes(tab as ProfileSection)
-			? (tab as ProfileSection)
+		return validSections.includes(tab as InstitutionProfileSection)
+			? (tab as InstitutionProfileSection)
 			: 'profile'
 	}, [searchParams])
 
 	const [activeSection, setActiveSection] =
-		useState<ProfileSection>(getInitialSection())
+		useState<InstitutionProfileSection>(getInitialSection())
 
 	// Update active section when URL parameters change
 	useEffect(() => {
@@ -225,6 +221,13 @@ export default function ViewProfile() {
 			try {
 				// Fetch profile data using cached API service
 				const data = await ApiService.getProfile()
+
+				// Verify user role is institution
+				if (data.profile.role !== 'institution') {
+					setError('This profile page is for institutions only')
+					return
+				}
+
 				setProfile(data.profile)
 			} catch (error) {
 				setError('Failed to load profile')
@@ -326,7 +329,7 @@ export default function ViewProfile() {
 
 	// Render section content based on active section
 	const renderSectionContent = () => {
-		const navigationHandler = (targetSection: string) => {
+		const navigationHandler = (_targetSection: string) => {
 			// This will be handled by the ProfileLayout
 			return true
 		}
@@ -339,7 +342,7 @@ export default function ViewProfile() {
 						onNavigationAttempt={navigationHandler}
 					/>
 				)
-			case 'academic':
+			case 'programs':
 				return (
 					<AcademicSection
 						profile={profile}
@@ -347,7 +350,7 @@ export default function ViewProfile() {
 						onNavigationAttempt={navigationHandler}
 					/>
 				)
-			case 'wishlist':
+			case 'students':
 				return <WishlistSection profile={profile} />
 			case 'application':
 				return <ApplicationSection profile={profile} />
@@ -370,13 +373,13 @@ export default function ViewProfile() {
 	}
 
 	return (
-		<ProfileLayout
+		<InstitutionProfileLayout
 			activeSection={activeSection}
 			onSectionChange={setActiveSection}
 			profile={profile}
 			onEditProfile={handleEditProfile}
 		>
 			{renderSectionContent()}
-		</ProfileLayout>
+		</InstitutionProfileLayout>
 	)
 }

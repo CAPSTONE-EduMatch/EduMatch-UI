@@ -20,7 +20,7 @@ import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
-import student from '../../../public/student.png'
+import student from '../../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
 	{ id: 'scholarships', label: 'Scholarships' },

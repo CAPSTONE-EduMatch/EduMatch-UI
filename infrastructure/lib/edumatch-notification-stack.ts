@@ -164,7 +164,7 @@ async function storeNotificationInDatabase(message) {
       case "WELCOME":
         title = "Welcome to EduMatch!";
         bodyText = \`Welcome \${message.metadata?.firstName || "User"}! Your account has been created successfully.\`;
-        url = "/profile/create";
+        url = "/applicant-profile/create";
         break;
       case "PROFILE_CREATED":
         title = "Profile Created Successfully!";

@@ -6,8 +6,24 @@ export { InstitutionInfoStep } from "./create/steps/InstitutionInfoStep";
 export { InstitutionDetailsStep } from "./create/steps/InstitutionDetailsStep";
 export { CompletionStep } from "./create/steps/CompletionStep";
 
-// Profile View Components
+// Profile View Layout Components
+export { ProfileLayoutBase } from "./ProfileLayoutBase";
+export type { NavItem, ProfileSection } from "./ProfileLayoutBase";
+
+export {
+	InstitutionProfileLayout,
+	type InstitutionProfileSection,
+} from "./InstitutionProfileLayout";
+
+export {
+	ApplicantProfileLayout,
+	type ApplicantProfileSection,
+} from "./ApplicantProfileLayout";
+
+// Legacy Layout (for backward compatibility)
 export { ProfileLayout } from "./ProfileLayout";
+
+// Profile View Section Components
 export { ProfileInfoSection } from "./menu/ProfileInfoSection";
 export { AcademicSection } from "./menu/AcademicSection";
 export { WishlistSection } from "./menu/WishlistSection";

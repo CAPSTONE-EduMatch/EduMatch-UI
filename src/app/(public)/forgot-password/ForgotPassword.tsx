@@ -1,12 +1,12 @@
 'use client'
 
+import { authClient } from '@/app/lib/auth-client'
 import { PasswordField } from '@/components/auth'
 import { Input } from '@/components/ui'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
-import { authClient } from '../lib/auth-client'
 // import { set } from 'better-auth'
 
 const LEFT_IMAGE = '/assets/campus-image.jpg'

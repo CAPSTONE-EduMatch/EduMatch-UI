@@ -12,7 +12,7 @@ import {
 } from '../../components/auth'
 import { authClient } from '../lib/auth-client'
 
-const LEFT_IMAGE = '/assets/campus-image.jpg'
+const LEFT_IMAGE = '/hero1.png'
 
 // Animation variants for staggered animations
 const containerVariants = {
@@ -440,7 +440,7 @@ const Signup = () => {
 		// <AuthRedirect redirectTo="/dashboard">
 		<AuthLayout imageSrc={LEFT_IMAGE}>
 			<motion.div
-				className="relative z-10 max-w-3xl ml-4 md:ml-12"
+				className="relative z-10 max-w-3xl ml-4 md:ml-12 "
 				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{

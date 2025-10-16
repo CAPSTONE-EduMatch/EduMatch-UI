@@ -13,6 +13,7 @@ import {
 	FileText,
 	Bookmark,
 	Settings,
+	CreditCard,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -356,7 +357,7 @@ export function EduMatchHeader() {
 
 							{/* User Dropdown Menu */}
 							{isUserMenuOpen && (
-								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-0 min-w-[200px] z-[99999]">
+								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-0 min-w-[250px] z-[99999]">
 									{isAuthenticated ? (
 										// Logged in - show user profile and menu
 										<>
@@ -395,6 +396,17 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
+														router.push('/profile/wishlist')
+														setIsUserMenuOpen(false)
+													}}
+												>
+													<Bookmark className="w-4 h-4" />
+													<span className="text-sm">Wishlist</span>
+												</div>
+
+												<div
+													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+													onClick={() => {
 														router.push('/profile/applications')
 														setIsUserMenuOpen(false)
 													}}
@@ -406,12 +418,12 @@ export function EduMatchHeader() {
 												<div
 													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 													onClick={() => {
-														router.push('/profile/saved')
+														router.push('/profile/payment')
 														setIsUserMenuOpen(false)
 													}}
 												>
-													<Bookmark className="w-4 h-4" />
-													<span className="text-sm">Saved</span>
+													<CreditCard className="w-4 h-4" />
+													<span className="text-sm">Payment</span>
 												</div>
 
 												<div

@@ -13,8 +13,8 @@ import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { authClient } from '../lib/auth-client'
 
-const LEFT_IMAGE = '/assets/campus-image.jpg'
-
+const LEFT_IMAGE =
+	'https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg'
 // Animation variants for staggered animations
 const containerVariants = {
 	hidden: { opacity: 0 },

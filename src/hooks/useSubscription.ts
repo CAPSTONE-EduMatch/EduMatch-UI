@@ -7,15 +7,21 @@ export interface Subscription {
 	id: string;
 	status: "active" | "trialing" | "past_due" | "canceled" | "unpaid";
 	plan: string;
-	priceId?: string;
-	amount?: number;
-	currency?: string;
-	interval?: string;
-	currentPeriodStart: Date;
-	currentPeriodEnd: Date;
-	cancelAtPeriodEnd?: boolean;
-	canceledAt?: Date;
-	endedAt?: Date;
+	priceId: string;
+	referenceId: string;
+	stripeCustomerId: string;
+	stripeSubscriptionId: string;
+	periodStart: Date;
+	periodEnd: Date;
+	cancelAtPeriodEnd: boolean;
+	seats: number;
+	limits: {
+		applications: number;
+		scholarships: number;
+		programs: number;
+	};
+	trialStart: Date | null;
+	trialEnd: Date | null;
 }
 
 export interface SubscriptionHook {
@@ -67,7 +73,6 @@ export function useSubscription(): SubscriptionHook {
 
 			// Use the authClient to fetch subscriptions
 			const { data } = await authClient.subscription.list();
-			console.log("Fetched subscriptions:", data);
 
 			if (data) {
 				// Map the BetterAuth subscription data to our interface
@@ -77,19 +82,18 @@ export function useSubscription(): SubscriptionHook {
 						status: sub.status,
 						plan: sub.plan,
 						priceId: sub.priceId,
-						currentPeriodStart: new Date(
-							sub.currentPeriodStart || Date.now()
-						),
-						currentPeriodEnd: new Date(
-							sub.currentPeriodEnd || Date.now()
-						),
+						referenceId: sub.referenceId,
+						stripeCustomerId: sub.stripeCustomerId,
+						stripeSubscriptionId: sub.stripeSubscriptionId,
+						periodStart: new Date(sub.periodStart),
+						periodEnd: new Date(sub.periodEnd),
 						cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-						canceledAt: sub.canceledAt
-							? new Date(sub.canceledAt)
-							: undefined,
-						endedAt: sub.endedAt
-							? new Date(sub.endedAt)
-							: undefined,
+						seats: sub.seats,
+						limits: sub.limits,
+						trialStart: sub.trialStart
+							? new Date(sub.trialStart)
+							: null,
+						trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
 					})
 				);
 				setSubscriptions(mappedSubscriptions);
@@ -128,8 +132,6 @@ export function useSubscription(): SubscriptionHook {
 			const activeSubscription = subscriptions.find(
 				(sub) => sub.status === "active"
 			);
-			console.log("Active subscription:", activeSubscription);
-			console.log("Upgrading to plan:", planId);
 
 			// Prepare upgrade parameters for Checkout Session
 			// Always create a new subscription via Checkout Session to avoid Customer Portal issues

@@ -121,7 +121,8 @@ export const auth = betterAuth({
 						name: "standard",
 						priceId:
 							process.env.STRIPE_STANDARD_PRICE_ID ||
-							process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID,
+							process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID ||
+							"price_1SFXgR1f58RNYg0098jAKotV",
 						limits: {
 							applications: 10,
 							scholarships: 50,
@@ -132,7 +133,8 @@ export const auth = betterAuth({
 						name: "premium",
 						priceId:
 							process.env.STRIPE_PREMIUM_PRICE_ID ||
-							process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID,
+							process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ||
+							"price_1S4fZ61f58RNYg00FWakIrLm",
 						limits: {
 							applications: 25,
 							scholarships: 100,

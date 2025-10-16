@@ -9,7 +9,8 @@ import { ErrorModal } from '@/components/ui'
 import { Upload, User } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { ProfileFormData } from '@/types/profile'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -41,6 +42,49 @@ export function BasicInfoStep({
 	const [errorMessage, setErrorMessage] = useState('')
 	const [phoneValidationError, setPhoneValidationError] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	// Auto-fill Google login data when component mounts
+	useEffect(() => {
+		if (user) {
+			// Auto-fill first name from Google profile
+			if (user.name && !formData.firstName) {
+				const nameParts = user.name.trim().split(' ')
+				if (nameParts.length > 0 && nameParts[0]) {
+					onInputChange('firstName', nameParts[0])
+				}
+			}
+
+			// Auto-fill last name from Google profile
+			if (user.name && !formData.lastName) {
+				const nameParts = user.name.trim().split(' ')
+				if (nameParts.length > 1) {
+					const lastName = nameParts.slice(1).join(' ').trim()
+					if (lastName) {
+						onInputChange('lastName', lastName)
+					}
+				}
+			}
+
+			// Note: Profile photo auto-fill is handled in separate useEffect below
+		}
+	}, [user, formData.firstName, formData.lastName, onInputChange])
+
+	// Auto-fill Google image if available and no profile photo set
+	useEffect(() => {
+		// Auto-fill Google image if available and no profile photo set
+		if (!formData.profilePhoto && user?.image) {
+			// Clean up Google image URL to get a better size
+			let imageUrl = user.image
+			if (imageUrl.includes('=s96-c')) {
+				// Replace s96-c with s400-c for a larger, better quality image
+				imageUrl = imageUrl.replace('=s96-c', '=s400-c')
+			} else if (imageUrl.includes('=s')) {
+				// If it has other size parameters, replace with s400-c
+				imageUrl = imageUrl.replace(/=s\d+-c/, '=s400-c')
+			}
+			onInputChange('profilePhoto', imageUrl)
+		}
+	}, [formData.profilePhoto, user?.image, onInputChange])
 
 	const handleFileSelect = async (
 		event: React.ChangeEvent<HTMLInputElement>
@@ -156,8 +200,7 @@ export function BasicInfoStep({
 					Basic information
 				</h2>
 				<p className="text-muted-foreground">
-					Lorem Ipsum is simply dummy text of the printing and typesetting
-					industry. Lorem Ipsum is simply dummy text
+					Please provide your basic personal information to create your profile.
 				</p>
 			</div>
 
@@ -166,8 +209,8 @@ export function BasicInfoStep({
 				<div className="flex items-center gap-4">
 					<div className="relative">
 						<Avatar className="w-20 h-20">
-							<AvatarImage src={formData.profilePhoto} />
-							<AvatarFallback className="bg-orange-500 text-white">
+							<AvatarImage src={formData.profilePhoto} alt="Profile photo" />
+							<AvatarFallback className="bg-gray-200 text-gray-600">
 								<User className="w-8 h-8" />
 							</AvatarFallback>
 						</Avatar>
@@ -185,7 +228,7 @@ export function BasicInfoStep({
 							{isUploading ? 'Uploading...' : 'Upload your photo'}
 						</Button>
 						<p className="text-xs text-muted-foreground">
-							Must be PNG or JPG file (max 5MB)
+							Must be PNG, JPG, or WebP file (max 5MB)
 						</p>
 					</div>
 					{/* Hidden file input */}
@@ -432,14 +475,18 @@ export function BasicInfoStep({
 				</Button>
 			</div>
 
-			{/* Error Modal */}
-			<ErrorModal
-				isOpen={showErrorModal}
-				onClose={() => setShowErrorModal(false)}
-				title="Upload Failed"
-				message={errorMessage}
-				buttonText="Try Again"
-			/>
+			{/* Error Modal - Rendered via Portal to blur entire page */}
+			{showErrorModal &&
+				createPortal(
+					<ErrorModal
+						isOpen={showErrorModal}
+						onClose={() => setShowErrorModal(false)}
+						title="Upload Failed"
+						message={errorMessage}
+						buttonText="Try Again"
+					/>,
+					document.body
+				)}
 		</div>
 	)
 }

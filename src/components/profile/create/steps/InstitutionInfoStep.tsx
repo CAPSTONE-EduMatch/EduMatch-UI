@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ProfileFormData } from '@/types/profile'
 import { Label } from '@/components/ui'
 import { Input } from '@/components/ui'
@@ -11,6 +12,7 @@ import { getCountriesWithSvgFlags } from '@/data/countries'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { Upload, Building2, Info } from 'lucide-react'
 import { Tooltip } from '@/components/ui'
+import { ErrorModal } from '@/components/ui'
 
 interface InstitutionInfoStepProps {
 	formData: ProfileFormData
@@ -35,18 +37,14 @@ export function InstitutionInfoStep({
 	onShowManageModal,
 	user,
 }: InstitutionInfoStepProps) {
-	const [showCampusForm, setShowCampusForm] = useState(false)
 	const [isUploading, setIsUploading] = useState(false)
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
 	const [validationErrors, setValidationErrors] = useState<
 		Record<string, boolean>
 	>({})
 	const [emailErrors, setEmailErrors] = useState<Record<string, string>>({})
 	const fileInputRef = useRef<HTMLInputElement>(null)
-	const [newCampus, setNewCampus] = useState({
-		name: '',
-		country: '',
-		address: '',
-	})
 
 	// Pre-fill institution email with user's email
 	useEffect(() => {
@@ -54,6 +52,22 @@ export function InstitutionInfoStep({
 			onInputChange('institutionEmail', user.email)
 		}
 	}, [user?.email, formData.institutionEmail, onInputChange])
+
+	// Auto-fill Google image as institution logo if available and no logo set
+	useEffect(() => {
+		if (!formData.institutionCoverImage && user?.image) {
+			// Clean up Google image URL to get a better size
+			let imageUrl = user.image
+			if (imageUrl.includes('=s96-c')) {
+				// Replace s96-c with s400-c for a larger, better quality image
+				imageUrl = imageUrl.replace('=s96-c', '=s400-c')
+			} else if (imageUrl.includes('=s')) {
+				// If it has other size parameters, replace with s400-c
+				imageUrl = imageUrl.replace(/=s\d+-c/, '=s400-c')
+			}
+			onInputChange('institutionCoverImage', imageUrl)
+		}
+	}, [formData.institutionCoverImage, user?.image, onInputChange])
 
 	const validateEmail = (email: string): boolean => {
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -189,29 +203,30 @@ export function InstitutionInfoStep({
 
 		// Validate file type
 		if (!file.type.startsWith('image/')) {
+			setErrorMessage('Please select an image file')
+			setShowErrorModal(true)
 			return
 		}
 
 		// Validate file size (5MB max)
 		if (file.size > 5 * 1024 * 1024) {
+			setErrorMessage('File size must be less than 5MB')
+			setShowErrorModal(true)
 			return
 		}
 
 		setIsUploading(true)
 
 		try {
-			// Create FormData for upload
-			const formData = new FormData()
-			formData.append('file', file)
-
 			// Upload to S3
 			const { ApiService } = await import('@/lib/axios-config')
 			const result = await ApiService.uploadFile(file)
 
-			// Update the profile photo with the S3 URL
-			onInputChange('profilePhoto', result.url)
+			// Update the institution logo with the S3 URL
+			onInputChange('institutionCoverImage', result.url)
 		} catch (error) {
-			console.error('Upload error:', error)
+			setErrorMessage('Failed to upload image. Please try again.')
+			setShowErrorModal(true)
 		} finally {
 			setIsUploading(false)
 			// Reset file input
@@ -255,8 +270,11 @@ export function InstitutionInfoStep({
 			<div className="flex items-center gap-4">
 				<div className="relative">
 					<Avatar className="w-20 h-20">
-						<AvatarImage src={formData.profilePhoto} />
-						<AvatarFallback className="bg-blue-500 text-white">
+						<AvatarImage
+							src={formData.institutionCoverImage}
+							alt="Institution logo"
+						/>
+						<AvatarFallback className="bg-gray-200 text-gray-600">
 							<Building2 className="w-8 h-8" />
 						</AvatarFallback>
 					</Avatar>
@@ -274,7 +292,7 @@ export function InstitutionInfoStep({
 						{isUploading ? 'Uploading...' : 'Upload institution logo'}
 					</Button>
 					<p className="text-xs text-muted-foreground">
-						Must be PNG or JPG file (max 5MB)
+						Must be PNG, JPG, or WebP file (max 5MB)
 					</p>
 				</div>
 				<input
@@ -709,6 +727,19 @@ export function InstitutionInfoStep({
 					</Button>
 				</div>
 			</div>
+
+			{/* Error Modal - Rendered via Portal to blur entire page */}
+			{showErrorModal &&
+				createPortal(
+					<ErrorModal
+						isOpen={showErrorModal}
+						onClose={() => setShowErrorModal(false)}
+						title="Upload Failed"
+						message={errorMessage}
+						buttonText="Try Again"
+					/>,
+					document.body
+				)}
 		</div>
 	)
 }

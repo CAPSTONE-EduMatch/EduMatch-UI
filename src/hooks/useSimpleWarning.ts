@@ -82,6 +82,11 @@ export const useSimpleWarning = ({
 		setPendingNavigation(null);
 	};
 
+	// Function to manually show the warning modal (for cancel button)
+	const showWarning = () => {
+		setShowWarningModal(true);
+	};
+
 	// Debug modal state
 	console.log("useSimpleWarning - Modal state:", {
 		showWarningModal,
@@ -95,6 +100,7 @@ export const useSimpleWarning = ({
 		handleSaveAndContinue,
 		handleDiscardChanges,
 		handleCancelNavigation,
+		showWarning,
 		isSaving,
 	};
 };

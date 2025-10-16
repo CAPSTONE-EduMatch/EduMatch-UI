@@ -125,6 +125,13 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	}
 
 	const handleCancel = () => {
+		// Check if there are unsaved changes
+		if (hasUnsavedChanges) {
+			// Show warning modal instead of directly canceling
+			showWarning()
+			return
+		}
+		// No changes, proceed with cancel
 		setEditedProfile(profile)
 		setIsEditing(false)
 		setHasUnsavedChanges(false)
@@ -137,12 +144,24 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		handleSaveAndContinue,
 		handleDiscardChanges,
 		handleCancelNavigation,
+		showWarning,
 		isSaving: isWarningSaving,
 	} = useSimpleWarning({
 		hasUnsavedChanges,
 		onSave: handleSave,
-		onCancel: handleCancel,
+		onCancel: () => {
+			// Reset form and exit edit mode
+			setEditedProfile(profile)
+			setIsEditing(false)
+			setHasUnsavedChanges(false)
+		},
 	})
+
+	// Custom handler for canceling the warning modal (stays in edit mode)
+	const handleCancelWarning = () => {
+		// Just close the modal, stay in edit mode
+		handleCancelNavigation()
+	}
 
 	// Expose navigation handler to parent
 	useEffect(() => {
@@ -798,7 +817,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				isOpen={showWarningModal}
 				onSaveAndContinue={handleSaveAndContinue}
 				onDiscardChanges={handleDiscardChanges}
-				onCancel={handleCancelNavigation}
+				onCancel={handleCancelWarning}
 				isSaving={isWarningSaving}
 			/>
 		</div>

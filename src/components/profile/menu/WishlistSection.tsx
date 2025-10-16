@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { SortDropdown } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
@@ -17,8 +17,12 @@ import {
 	Globe,
 	DollarSign,
 	Search,
+	Loader2,
+	AlertCircle,
 } from 'lucide-react'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
+import { useWishlist } from '@/hooks/useWishlist'
+import { WishlistItem, WishlistQueryParams } from '@/types/wishlist-api'
 
 interface WishlistSectionProps {
 	profile: any
@@ -27,6 +31,7 @@ interface WishlistSectionProps {
 export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	const [sortBy, setSortBy] = useState<SortOption>('newest')
 	const [activeTab, setActiveTab] = useState<string>('programmes')
+	const [searchQuery, setSearchQuery] = useState<string>('')
 
 	// Main category tabs
 	const categories = [
@@ -34,6 +39,42 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		{ id: 'scholarships', label: 'Scholarships' },
 		{ id: 'research', label: 'Research Labs' },
 	]
+
+	// Initialize wishlist hook with parameters
+	const wishlistParams: WishlistQueryParams = useMemo(
+		() => ({
+			page: 1,
+			limit: 50,
+			status: 1, // Only active items
+			search: searchQuery || undefined,
+			sortBy:
+				sortBy === 'newest'
+					? 'newest'
+					: sortBy === 'oldest'
+						? 'oldest'
+						: 'newest',
+			postType:
+				activeTab === 'programmes'
+					? 'program'
+					: activeTab === 'scholarships'
+						? 'scholarship'
+						: activeTab === 'research'
+							? 'job'
+							: undefined,
+		}),
+		[activeTab, sortBy, searchQuery]
+	)
+
+	const {
+		items: wishlistItems,
+		loading,
+		error,
+		meta,
+		refresh,
+	} = useWishlist({
+		autoFetch: true,
+		initialParams: wishlistParams,
+	})
 
 	// Detailed filter options
 	const filterOptions = [
@@ -47,125 +88,122 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		{ id: 'expired', label: 'Expired', icon: X },
 	]
 
-	// Mock data for wishlist - replace with actual API calls
-	const wishlistPrograms: Program[] = useMemo(
-		() => [
-			{
-				id: 1,
-				title: 'Master of Science in Computer Science',
-				description:
-					'Advanced program in computer science with focus on AI and machine learning',
-				university: 'Harvard University',
-				logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png',
-				field: 'Computer Science',
-				country: 'United States',
-				date: '2025-01-15',
-				daysLeft: 15,
-				price: '234,567 USD / year',
-				match: '95%',
-				funding: 'Available',
-				attendance: 'Hybrid',
-			},
-			{
-				id: 2,
-				title: 'Master of Science in Data Science',
-				description:
-					'Comprehensive data science program covering analytics and big data',
-				university: 'Stanford University',
-				logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Stanford_University_logo_%28seal%29.svg/1200px-Stanford_University_logo_%28seal%29.svg.png',
-				field: 'Data Science',
-				country: 'United States',
-				date: '2025-01-30',
-				daysLeft: 30,
-				price: '198,500 USD / year',
-				match: '88%',
-				funding: 'Available',
-				attendance: 'On-campus',
-			},
-			{
-				id: 3,
-				title: 'Master of Philosophy in AI',
-				description:
-					'Research-focused program in artificial intelligence and machine learning',
-				university: 'University of Cambridge',
-				logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/University_of_Cambridge_coat_of_arms.svg/1200px-University_of_Cambridge_coat_of_arms.svg.png',
-				field: 'Artificial Intelligence',
-				country: 'United Kingdom',
-				date: '2025-02-15',
-				daysLeft: 45,
-				price: '156,000 GBP / year',
-				match: '92%',
-				funding: 'Available',
-				attendance: 'Online',
-			},
-		],
+	// Transform wishlist items to the expected format for each tab
+	const transformToPrograms = useCallback(
+		(items: WishlistItem[]): Program[] => {
+			return items
+				.filter((item) => item.post.program)
+				.map((item) => ({
+					id: parseInt(item.id),
+					title: item.post.title,
+					description: item.post.content || '',
+					university: item.post.institution?.name || 'Unknown University',
+					logo: item.post.institution?.logo || '',
+					field: item.post.program?.degreeLevel || 'Unknown Field',
+					country: item.post.institution?.country || 'Unknown Country',
+					date: item.post.createdAt,
+					daysLeft: Math.max(
+						0,
+						Math.ceil(
+							(new Date(item.post.createdAt).getTime() - Date.now()) /
+								(1000 * 60 * 60 * 24)
+						)
+					),
+					price: item.post.program?.tuition_fee || 'Contact for details',
+					match: '95%', // This would need to be calculated based on user profile
+					funding: item.post.program?.scholarship_info
+						? 'Available'
+						: 'Not specified',
+					attendance: 'Contact for details',
+				}))
+		},
 		[]
 	)
 
-	const wishlistScholarships: Scholarship[] = useMemo(
-		() => [
-			{
-				id: 4,
-				title: 'Fulbright Scholarship for International Students',
-				description:
-					'Full scholarship for international students pursuing graduate studies',
-				provider: 'Fulbright Commission',
-				university: 'Various Universities',
-				essayRequired: 'Yes',
-				country: 'United States',
-				date: '2025-03-01',
-				daysLeft: 60,
-				amount: 'Full Tuition + Living',
-				match: '85%',
-			},
-			{
-				id: 5,
-				title: 'Chevening Scholarship',
-				description:
-					'UK government scholarship for future leaders and influencers',
-				provider: 'UK Government',
-				university: 'UK Universities',
-				essayRequired: 'Yes',
-				country: 'United Kingdom',
-				date: '2025-02-28',
-				daysLeft: 58,
-				amount: 'Full Coverage',
-				match: '90%',
-			},
-		],
+	const transformToScholarships = useCallback(
+		(items: WishlistItem[]): Scholarship[] => {
+			return items
+				.filter((item) => item.post.scholarship)
+				.map((item) => ({
+					id: parseInt(item.id),
+					title: item.post.title,
+					description: item.post.content || '',
+					provider: item.post.institution?.name || 'Unknown Provider',
+					university: item.post.institution?.name || 'Various Universities',
+					essayRequired: item.post.scholarship?.essay_required ? 'Yes' : 'No',
+					country: item.post.institution?.country || 'Unknown Country',
+					date: item.post.createdAt,
+					daysLeft: Math.max(
+						0,
+						Math.ceil(
+							(new Date(item.post.createdAt).getTime() - Date.now()) /
+								(1000 * 60 * 60 * 24)
+						)
+					),
+					amount: item.post.scholarship?.grant || 'Contact for details',
+					match: '90%', // This would need to be calculated based on user profile
+				}))
+		},
 		[]
 	)
 
-	const wishlistResearchLabs: ResearchLab[] = useMemo(
-		() => [
-			{
-				id: 6,
-				title: 'AI Research Lab - MIT',
-				description:
-					'Cutting-edge research in artificial intelligence and robotics',
-				professor: 'Dr. Sarah Johnson',
-				field: 'Artificial Intelligence',
-				country: 'United States',
-				position: 'PhD Research Assistant',
-				date: '2025-04-01',
-				daysLeft: 90,
-				match: '95%',
-			},
-			{
-				id: 7,
-				title: 'Machine Learning Lab - Stanford',
-				description: 'Research in deep learning and neural networks',
-				professor: 'Dr. Michael Chen',
-				field: 'Machine Learning',
-				country: 'United States',
-				position: 'Postdoc Researcher',
-				date: '2025-03-15',
-				daysLeft: 75,
-				match: '88%',
-			},
-		],
+	const transformToResearchLabs = useCallback(
+		(items: WishlistItem[]): ResearchLab[] => {
+			return items
+				.filter((item) => item.post.job)
+				.map((item) => ({
+					id: parseInt(item.id),
+					title: item.post.title,
+					description: item.post.content || '',
+					professor: item.post.program?.professor_name || 'Contact for details',
+					field: item.post.job?.job_type || 'Research',
+					country: item.post.institution?.country || 'Unknown Country',
+					position: item.post.job?.job_type || 'Research Position',
+					date: item.post.createdAt,
+					daysLeft: Math.max(
+						0,
+						Math.ceil(
+							(new Date(item.post.createdAt).getTime() - Date.now()) /
+								(1000 * 60 * 60 * 24)
+						)
+					),
+					match: '88%', // This would need to be calculated based on user profile
+				}))
+		},
 		[]
 	)
+
+	// Get transformed data for current tab
+	const wishlistPrograms = useMemo(
+		() => transformToPrograms(wishlistItems),
+		[wishlistItems, transformToPrograms]
+	)
+	const wishlistScholarships = useMemo(
+		() => transformToScholarships(wishlistItems),
+		[wishlistItems, transformToScholarships]
+	)
+	const wishlistResearchLabs = useMemo(
+		() => transformToResearchLabs(wishlistItems),
+		[wishlistItems, transformToResearchLabs]
+	)
+
+	// Handle search input
+	const handleSearchChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			setSearchQuery(e.target.value)
+		},
+		[]
+	)
+
+	// Handle tab change
+	const handleTabChange = useCallback((tabId: string) => {
+		setActiveTab(tabId)
+	}, [])
+
+	// Handle sort change
+	const handleSortChange = useCallback((sort: SortOption) => {
+		setSortBy(sort)
+	}, [])
 
 	// Get current tab data
 	const getCurrentTabData = () => {
@@ -173,22 +211,22 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			case 'programmes':
 				return {
 					data: wishlistPrograms,
-					totalItems: wishlistPrograms.length,
+					totalItems: meta?.total || wishlistPrograms.length,
 				}
 			case 'scholarships':
 				return {
 					data: wishlistScholarships,
-					totalItems: wishlistScholarships.length,
+					totalItems: meta?.total || wishlistScholarships.length,
 				}
 			case 'research':
 				return {
 					data: wishlistResearchLabs,
-					totalItems: wishlistResearchLabs.length,
+					totalItems: meta?.total || wishlistResearchLabs.length,
 				}
 			default:
 				return {
 					data: wishlistPrograms,
-					totalItems: wishlistPrograms.length,
+					totalItems: meta?.total || wishlistPrograms.length,
 				}
 		}
 	}
@@ -209,6 +247,34 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		}
 	}
 
+	// Show loading state
+	if (loading) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center">
+					<Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-teal-500" />
+					<p className="text-gray-600">Loading your wishlist...</p>
+				</div>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center">
+					<AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
+					<p className="text-red-600 mb-4">Failed to load wishlist</p>
+					<p className="text-gray-600 mb-4">{error}</p>
+					<Button onClick={refresh} variant="outline">
+						Try Again
+					</Button>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -221,7 +287,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 						<TabSelector
 							tabs={categories}
 							activeTab={activeTab}
-							onTabChange={setActiveTab}
+							onTabChange={handleTabChange}
 						/>
 
 						{/* Search and Sort Controls */}
@@ -231,6 +297,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 									<input
 										type="text"
 										placeholder="Search..."
+										value={searchQuery}
+										onChange={handleSearchChange}
 										className="w-full py-2 pl-4 pr-10 text-sm border border-gray-200 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
 									/>
 									<button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-teal-500">
@@ -238,7 +306,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 									</button>
 								</div>
 							</div>
-							<SortDropdown value={sortBy} onChange={setSortBy} />
+							<SortDropdown value={sortBy} onChange={handleSortChange} />
 						</div>
 					</div>
 
@@ -269,7 +337,26 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 				</div>
 
 				{/* Tab Content */}
-				{renderTabContent()}
+				{currentTabData.totalItems === 0 ? (
+					<div className="text-center py-12">
+						<div className="text-6xl mb-4">📝</div>
+						<h3 className="text-xl font-semibold text-gray-900 mb-2">
+							No items in your wishlist
+						</h3>
+						<p className="text-gray-600 mb-6">
+							Start exploring and add programs, scholarships, or research
+							opportunities to your wishlist.
+						</p>
+						<Button
+							onClick={() => (window.location.href = '/explore')}
+							className="bg-teal-600 hover:bg-teal-700 text-white"
+						>
+							Explore Opportunities
+						</Button>
+					</div>
+				) : (
+					renderTabContent()
+				)}
 			</div>
 		</div>
 	)

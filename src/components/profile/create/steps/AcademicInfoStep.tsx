@@ -3,9 +3,11 @@ import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
 import { FileUploadManager } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
+import { ErrorModal } from '@/components/ui'
 import { FileItem } from '@/lib/file-utils'
 import { ProfileFormData } from '@/types/profile'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 
 interface AcademicInfoStepProps {
@@ -39,6 +41,8 @@ export function AcademicInfoStep({
 	onNext,
 	onShowManageModal,
 }: AcademicInfoStepProps) {
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
 	// Add default research paper when component mounts
 	useEffect(() => {
 		if (formData.researchPapers?.length === 0) {
@@ -58,15 +62,20 @@ export function AcademicInfoStep({
 		}
 	}, [formData.hasForeignLanguage])
 	const handleCategoryFilesUploaded = (category: string, files: FileItem[]) => {
-		// Get existing files for this category
-		const existingFiles =
-			(formData[category as keyof ProfileFormData] as FileItem[]) || []
+		try {
+			// Get existing files for this category
+			const existingFiles =
+				(formData[category as keyof ProfileFormData] as FileItem[]) || []
 
-		// Merge new files with existing files
-		const mergedFiles = [...existingFiles, ...files]
+			// Merge new files with existing files
+			const mergedFiles = [...existingFiles, ...files]
 
-		// Store merged file metadata in form state
-		onInputChange(category as keyof ProfileFormData, mergedFiles as any)
+			// Store merged file metadata in form state
+			onInputChange(category as keyof ProfileFormData, mergedFiles as any)
+		} catch (error) {
+			setErrorMessage('Failed to process uploaded files. Please try again.')
+			setShowErrorModal(true)
+		}
 	}
 
 	// Function to get certificate options based on selected language
@@ -836,36 +845,43 @@ export function AcademicInfoStep({
 								</Label>
 								<FileUploadManager
 									onFilesUploaded={(files) => {
-										// Get current paper info for context
-										const currentPaper = formData.researchPapers?.[index]
-										const paperTitle =
-											currentPaper?.title || `Research Paper ${index + 1}`
-										const paperDiscipline =
-											currentPaper?.discipline || 'No discipline specified'
+										try {
+											// Get current paper info for context
+											const currentPaper = formData.researchPapers?.[index]
+											const paperTitle =
+												currentPaper?.title || `Research Paper ${index + 1}`
+											const paperDiscipline =
+												currentPaper?.discipline || 'No discipline specified'
 
-										// Enhance files with research paper context
-										const processedFiles = files.map((file) => ({
-											...file,
-											// Add research paper context
-											researchPaperTitle: paperTitle,
-											researchPaperDiscipline: paperDiscipline,
-											researchPaperIndex: index,
-											// Enhanced display name
-											displayName: `${file.name} (${paperTitle})`,
-											// Enhanced category with context
-											category: `research-paper-${index}-${paperTitle.replace(/\s+/g, '-').toLowerCase()}`,
-										}))
+											// Enhance files with research paper context
+											const processedFiles = files.map((file) => ({
+												...file,
+												// Add research paper context
+												researchPaperTitle: paperTitle,
+												researchPaperDiscipline: paperDiscipline,
+												researchPaperIndex: index,
+												// Enhanced display name
+												displayName: `${file.name} (${paperTitle})`,
+												// Enhanced category with context
+												category: `research-paper-${index}-${paperTitle.replace(/\s+/g, '-').toLowerCase()}`,
+											}))
 
-										const newPapers = [...(formData.researchPapers || [])]
-										const existingFiles = newPapers[index]?.files || []
+											const newPapers = [...(formData.researchPapers || [])]
+											const existingFiles = newPapers[index]?.files || []
 
-										newPapers[index] = {
-											...newPapers[index],
-											files: [...existingFiles, ...processedFiles],
+											newPapers[index] = {
+												...newPapers[index],
+												files: [...existingFiles, ...processedFiles],
+											}
+
+											// Update the research papers
+											onInputChange('researchPapers', newPapers)
+										} catch (error) {
+											setErrorMessage(
+												'Failed to upload research paper files. Please try again.'
+											)
+											setShowErrorModal(true)
 										}
-
-										// Update the research papers
-										onInputChange('researchPapers', newPapers)
 									}}
 									category={`research-paper-${index}`}
 									acceptedTypes={[
@@ -928,6 +944,19 @@ export function AcademicInfoStep({
 					Next
 				</Button>
 			</div>
+
+			{/* Error Modal - Rendered via Portal to blur entire page */}
+			{showErrorModal &&
+				createPortal(
+					<ErrorModal
+						isOpen={showErrorModal}
+						onClose={() => setShowErrorModal(false)}
+						title="Upload Failed"
+						message={errorMessage}
+						buttonText="Try Again"
+					/>,
+					document.body
+				)}
 		</div>
 	)
 }

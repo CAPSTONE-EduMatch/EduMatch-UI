@@ -153,7 +153,7 @@ export function useSubscription(): SubscriptionHook {
 			// Always create a new subscription via Checkout Session to avoid Customer Portal issues
 			const upgradeParams: any = {
 				plan: planId,
-				price: priceId, // Add the Stripe price ID
+				// price: priceId, // Add the Stripe price ID
 				successUrl: `${window.location.origin}/pricing?success=true`,
 				cancelUrl: `${window.location.origin}/pricing?canceled=true`,
 			};

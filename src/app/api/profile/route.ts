@@ -300,6 +300,43 @@ export async function POST(request: NextRequest) {
 			newProfile ? "Success" : "Failed"
 		);
 
+		// Send notifications
+		if (newProfile) {
+			try {
+				const { NotificationUtils } = await import(
+					"@/lib/sqs-handlers"
+				);
+
+				// Send welcome notification (for new users)
+				await NotificationUtils.sendWelcomeNotification(
+					userId,
+					session.user.email || "",
+					formData.firstName || "",
+					formData.lastName || ""
+				);
+				console.log("✅ API: Welcome notification sent");
+
+				// Send profile created notification
+				await NotificationUtils.sendProfileCreatedNotification(
+					userId,
+					session.user.email || "",
+					("applicant_id" in newProfile
+						? newProfile.applicant_id
+						: newProfile.institution_id) || userId,
+					formData.firstName || "",
+					formData.lastName || "",
+					formData.role || "applicant"
+				);
+				console.log("✅ API: Profile created notification sent");
+			} catch (notificationError) {
+				console.error(
+					"❌ API: Failed to send notifications:",
+					notificationError
+				);
+				// Don't fail the profile creation if notification fails
+			}
+		}
+
 		return NextResponse.json({
 			success: true,
 			message: "Profile created successfully",

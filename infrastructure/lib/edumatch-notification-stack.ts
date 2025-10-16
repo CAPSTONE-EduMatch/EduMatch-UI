@@ -113,12 +113,9 @@ const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 const sqsClient = new SQSClient({ region: 'ap-northeast-1' });
 
 exports.handler = async (event) => {
-  console.log('Processing notification messages:', JSON.stringify(event, null, 2));
-  
   for (const record of event.Records) {
     try {
       const message = JSON.parse(record.body);
-      console.log('Processing notification:', message.type, 'for user:', message.userId);
       
       // Store notification in database
       await storeNotificationInDatabase(message);
@@ -142,7 +139,6 @@ exports.handler = async (event) => {
       });
       
       await sqsClient.send(emailCommand);
-      console.log('Message forwarded to email queue:', message.type, 'for:', message.userEmail);
       
     } catch (error) {
       console.error('Error processing notification:', error);
@@ -153,8 +149,6 @@ exports.handler = async (event) => {
 
 async function storeNotificationInDatabase(message) {
   try {
-    console.log('Storing notification in database:', message.type, 'for user:', message.userId);
-    
     // Create notification title and body based on type
     let title = "";
     let bodyText = "";
@@ -195,18 +189,15 @@ async function storeNotificationInDatabase(message) {
         title,
         bodyText,
         url,
+        createAt: message.createAt || new Date().toISOString(),
+        queuedAt: message.queuedAt || new Date().toISOString(),
         payload: message.metadata || {},
-        createAt: new Date().toISOString(),
-        queuedAt: new Date().toISOString(),
-        status: "sent",
       }),
     });
 
     if (!response.ok) {
       throw new Error(\`Failed to store notification: \${response.status}\`);
     }
-
-    console.log('✅ Notification stored in database successfully');
   } catch (error) {
     console.error('❌ Error storing notification in database:', error);
     throw error;
@@ -310,12 +301,9 @@ const emailTemplates = {
 };
 
 exports.handler = async (event) => {
-  console.log('Processing email messages:', JSON.stringify(event, null, 2));
-  
   for (const record of event.Records) {
     try {
       const message = JSON.parse(record.body);
-      console.log('Processing email:', message.type, 'for:', message.userEmail);
       
       // Get email template
       const template = emailTemplates[message.type];
@@ -349,18 +337,10 @@ exports.handler = async (event) => {
         });
         
         if (localhostResponse.ok) {
-          const result = await localhostResponse.json();
-          console.log('Email sent successfully via localhost:', {
-            to: message.userEmail,
-            subject: emailContent.subject,
-            type: message.type,
-            messageId: result.messageId,
-            timestamp: new Date().toISOString()
-          });
           continue; // Skip to next message
         }
       } catch (localhostError) {
-        console.log('Localhost not available, trying deployed URL...');
+        // Localhost not available, continue to deployed URL
       }
       
       // Fallback to deployed URL
@@ -373,16 +353,7 @@ exports.handler = async (event) => {
         body: JSON.stringify(emailPayload)
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Email sent successfully via deployed URL:', {
-          to: message.userEmail,
-          subject: emailContent.subject,
-          type: message.type,
-          messageId: result.messageId,
-          timestamp: new Date().toISOString()
-        });
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         console.error('Failed to send email via deployed URL:', response.status, errorData);
         throw new Error(\`Email sending failed: \${response.status} - \${errorData.error}\`);
@@ -481,8 +452,6 @@ const { marshall } = require('@aws-sdk/util-dynamodb');
 const dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });
 
 exports.handler = async (event) => {
-  console.log('Thread manager event:', JSON.stringify(event, null, 2));
-  
   try {
     const { currentUserId, participantId, threadId, createdAt, userName, userEmail, userImage } = event.arguments.input;
     
@@ -546,8 +515,6 @@ exports.handler = async (event) => {
       dynamoClient.send(participantCommand)
     ]);
     
-    console.log('Successfully created thread entries for both users:', threadId);
-    
     // Return the current user's thread entry
     return currentUserThread;
     
@@ -582,8 +549,6 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });
 
 exports.handler = async (event) => {
-  console.log('Message manager event:', JSON.stringify(event, null, 2));
-  
   try {
     const { threadId, content, senderId, senderName, senderImage, fileUrl, fileName, mimeType } = event.arguments.input;
     
@@ -691,8 +656,6 @@ exports.handler = async (event) => {
       }
     }
     
-    console.log('Successfully created message and updated threads:', messageId);
-    
     return message;
     
   } catch (error) {
@@ -728,8 +691,6 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });
 
 exports.handler = async (event) => {
-  console.log('Mark read manager event:', JSON.stringify(event, null, 2));
-  
   try {
     const { messageId, userId } = event.arguments.input;
     
@@ -817,11 +778,8 @@ exports.handler = async (event) => {
         await dynamoClient.send(updateCommand);
       } catch (error) {
         // If unreadCount is already 0, that's fine
-        console.log('Unread count already at 0 or update failed:', error.message);
       }
     }
-    
-    console.log('Successfully marked message as read:', messageId);
     
     return readRecord;
     
@@ -862,8 +820,6 @@ const { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb'
 const dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });
 
 exports.handler = async (event) => {
-  console.log('Clear unread manager event:', JSON.stringify(event, null, 2));
-  
   try {
     const { threadId, userId } = event.arguments.input;
     
@@ -886,8 +842,6 @@ exports.handler = async (event) => {
     });
     
     const result = await dynamoClient.send(updateCommand);
-    
-    console.log('Successfully cleared unread count for thread:', threadId);
     
     return {
       id: threadId,

@@ -405,6 +405,8 @@ model Notification {
   url             String?
   send_at         DateTime  @db.Timestamptz(6)
   read_at         DateTime? @db.Timestamptz(6)
+  create_at       DateTime? @db.Timestamptz(6)
+  queued_at       DateTime? @db.Timestamptz(6)
   user            user      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([user_id])

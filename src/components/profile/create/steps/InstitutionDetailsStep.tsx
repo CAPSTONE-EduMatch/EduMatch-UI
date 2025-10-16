@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { Label } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { FileUploadManager } from '@/components/ui'

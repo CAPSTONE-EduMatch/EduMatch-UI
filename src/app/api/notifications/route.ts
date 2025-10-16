@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause
 		const whereClause: any = {
-			userId: session.user.id,
+			user_id: session.user.id,
 		};
 
 		if (unreadOnly) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 		const notifications = await prismaClient.notification.findMany({
 			where: whereClause,
 			orderBy: {
-				createAt: "desc",
+				send_at: "desc",
 			},
 			take: limit,
 			skip: offset,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 		// Get unread count
 		const unreadCount = await prismaClient.notification.count({
 			where: {
-				userId: session.user.id,
+				user_id: session.user.id,
 				read_at: null,
 			},
 		});
@@ -105,7 +105,7 @@ export async function PUT(request: NextRequest) {
 			// Mark all notifications as read for the user
 			await prismaClient.notification.updateMany({
 				where: {
-					userId: session.user.id,
+					user_id: session.user.id,
 					read_at: null,
 				},
 				data: {
@@ -116,10 +116,10 @@ export async function PUT(request: NextRequest) {
 			// Mark specific notifications as read
 			await prismaClient.notification.updateMany({
 				where: {
-					id: {
+					notification_id: {
 						in: notificationIds,
 					},
-					userId: session.user.id,
+					user_id: session.user.id,
 				},
 				data: {
 					read_at: new Date(),

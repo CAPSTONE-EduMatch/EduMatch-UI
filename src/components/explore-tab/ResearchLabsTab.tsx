@@ -1,29 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import React from 'react'
 import { ResearchLabCard } from '@/components/ui'
 import { ResearchLab } from '@/types/explore-api'
 import { useRouter } from 'next/navigation'
 
 interface ResearchLabsTabProps {
 	researchLabs?: ResearchLab[]
+	// eslint-disable-next-line no-unused-vars
+	isInWishlist?: (_id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
+	onWishlistToggle?: (_id: string) => void
 }
 
-export function ResearchLabsTab({ researchLabs = [] }: ResearchLabsTabProps) {
+export function ResearchLabsTab({
+	researchLabs = [],
+	isInWishlist = () => false,
+	onWishlistToggle = () => {},
+}: ResearchLabsTabProps) {
 	const router = useRouter()
-	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
-
-	const toggleWishlist = (id: number) => {
-		setWishlistItems((prev) => {
-			const newSet = new Set(prev)
-			if (newSet.has(id)) {
-				newSet.delete(id)
-			} else {
-				newSet.add(id)
-			}
-			return newSet
-		})
-	}
 
 	const handleLabClick = (labId: number) => {
 		router.push(`/explore/research-labs/${labId}?from=research`)
@@ -37,8 +32,8 @@ export function ResearchLabsTab({ researchLabs = [] }: ResearchLabsTabProps) {
 						key={lab.id}
 						lab={lab}
 						index={index}
-						isWishlisted={wishlistItems.has(lab.id)}
-						onWishlistToggle={toggleWishlist}
+						isWishlisted={isInWishlist(lab.postId)}
+						onWishlistToggle={() => onWishlistToggle(lab.postId)}
 						onClick={handleLabClick}
 					/>
 				))

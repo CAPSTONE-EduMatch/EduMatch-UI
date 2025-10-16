@@ -270,21 +270,18 @@ class CacheManager {
 		}
 	}
 
-	// Profile-specific cache methods
+	// Profile-specific cache methods (deprecated - profile caching removed)
 	async getProfile(userId: string): Promise<any | null> {
-		return await this.get(CACHE_CONFIG.KEYS.PROFILE(userId));
+		// Profile caching removed - always return null
+		return null;
 	}
 
 	async setProfile(userId: string, profile: any): Promise<void> {
-		await this.set(
-			CACHE_CONFIG.KEYS.PROFILE(userId),
-			profile,
-			CACHE_CONFIG.TTL.PROFILE
-		);
+		// Profile caching removed - no action needed
 	}
 
 	async deleteProfile(userId: string): Promise<void> {
-		await this.delete(CACHE_CONFIG.KEYS.PROFILE(userId));
+		// Profile caching removed - no action needed
 	}
 
 	// User session cache methods
@@ -391,13 +388,10 @@ export function cached(ttl: number = CACHE_CONFIG.TTL.PROFILE) {
 
 // Cache invalidation helpers
 export const cacheInvalidation = {
-	// Invalidate all profile-related cache
+	// Invalidate all profile-related cache (deprecated - profile caching removed)
 	async invalidateUserProfile(userId: string): Promise<void> {
-		await Promise.all([
-			cacheManager.deleteProfile(userId),
-			cacheManager.delete(CACHE_CONFIG.KEYS.USER_PROFILE_CHECK(userId)),
-			cacheManager.delete(CACHE_CONFIG.KEYS.USER_SESSION(userId)),
-		]);
+		// Profile caching removed - only clear session cache
+		await cacheManager.delete(CACHE_CONFIG.KEYS.USER_SESSION(userId));
 	},
 
 	// Invalidate all cache for a user

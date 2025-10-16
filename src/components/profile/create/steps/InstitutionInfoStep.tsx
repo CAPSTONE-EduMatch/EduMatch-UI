@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { Label } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'

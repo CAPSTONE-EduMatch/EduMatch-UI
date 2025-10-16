@@ -28,56 +28,56 @@ export async function GET(request: NextRequest) {
 
 		// Get all wishlist items for the user
 		const wishlistItems = await prismaClient.wishlist.findMany({
-			where: { userId },
+			where: { applicant_id: userId },
 		});
 
 		// Get posts data for wishlist items
-		const postIds = wishlistItems.map((item) => item.postId);
-		const posts = await prismaClient.post.findMany({
+		const postIds = wishlistItems.map((item) => item.post_id);
+		const posts = await prismaClient.opportunityPost.findMany({
 			where: {
-				id: { in: postIds },
+				post_id: { in: postIds },
 			},
 		});
 
 		// Get related data separately
 		const [postPrograms, postScholarships, postJobs] = await Promise.all([
-			prismaClient.postProgram.findMany({
-				where: { PostId: { in: postIds } },
+			prismaClient.programPost.findMany({
+				where: { post_id: { in: postIds } },
 			}),
-			prismaClient.postScholarship.findMany({
-				where: { PostId: { in: postIds } },
+			prismaClient.scholarshipPost.findMany({
+				where: { post_id: { in: postIds } },
 			}),
-			prismaClient.postJob.findMany({
-				where: { PostId: { in: postIds } },
+			prismaClient.jobPost.findMany({
+				where: { post_id: { in: postIds } },
 			}),
 		]);
 
 		// Get institution data for posts
-		const institutions = await prismaClient.institution_profile.findMany({
+		const institutions = await prismaClient.institution.findMany({
 			where: {
-				profile_id: { in: postIds },
+				institution_id: {
+					in: posts.map((p) => p.institution_id).filter(Boolean),
+				},
 			},
 		});
 
 		// Create maps for quick lookups
-		const postMap = new Map(posts.map((post) => [post.id, post]));
+		const postMap = new Map(posts.map((post) => [post.post_id, post]));
 		const postProgramMap = new Map(
-			postPrograms.map((pp) => [pp.PostId, pp])
+			postPrograms.map((pp) => [pp.post_id, pp])
 		);
 		const postScholarshipMap = new Map(
-			postScholarships.map((ps) => [ps.PostId, ps])
+			postScholarships.map((ps) => [ps.post_id, ps])
 		);
-		const postJobMap = new Map(postJobs.map((pj) => [pj.PostId, pj]));
+		const postJobMap = new Map(postJobs.map((pj) => [pj.post_id, pj]));
 		const institutionMap = new Map(
-			institutions.map((inst) => [inst.profile_id, inst])
+			institutions.map((inst) => [inst.institution_id, inst])
 		);
 
 		// Calculate statistics
 		const total = wishlistItems.length;
-		const active = wishlistItems.filter((item) => item.status === 1).length;
-		const inactive = wishlistItems.filter(
-			(item) => item.status === 0
-		).length;
+		const active = total; // All items are active in new schema
+		const inactive = 0; // No inactive status in new schema
 
 		// Count by type
 		let programs = 0;
@@ -89,30 +89,30 @@ export async function GET(request: NextRequest) {
 		const byDiscipline: Record<string, number> = {};
 
 		wishlistItems.forEach((item) => {
-			const post = postMap.get(item.postId);
+			const post = postMap.get(item.post_id);
 			if (!post) return;
 
 			// Count by type
-			if (postProgramMap.has(item.postId)) {
+			if (postProgramMap.has(item.post_id)) {
 				programs++;
-			} else if (postScholarshipMap.has(item.postId)) {
+			} else if (postScholarshipMap.has(item.post_id)) {
 				scholarships++;
-			} else if (postJobMap.has(item.postId)) {
+			} else if (postJobMap.has(item.post_id)) {
 				jobs++;
 			}
 
 			// Count by country
-			const institution = institutionMap.get(item.postId);
+			const institution = institutionMap.get(post.institution_id);
 			if (institution?.country) {
 				byCountry[institution.country] =
 					(byCountry[institution.country] || 0) + 1;
 			}
 
 			// Count by discipline
-			const program = postProgramMap.get(item.postId);
-			if (program?.degreeLevel) {
-				byDiscipline[program.degreeLevel] =
-					(byDiscipline[program.degreeLevel] || 0) + 1;
+			const program = postProgramMap.get(item.post_id);
+			if (program?.degree_level) {
+				byDiscipline[program.degree_level] =
+					(byDiscipline[program.degree_level] || 0) + 1;
 			}
 		});
 

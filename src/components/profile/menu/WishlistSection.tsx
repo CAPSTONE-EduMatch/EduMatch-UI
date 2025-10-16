@@ -95,6 +95,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 				.filter((item) => item.post.program)
 				.map((item) => ({
 					id: parseInt(item.id),
+					postId: item.postId,
 					title: item.post.title,
 					description: item.post.content || '',
 					university: item.post.institution?.name || 'Unknown University',
@@ -126,6 +127,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 				.filter((item) => item.post.scholarship)
 				.map((item) => ({
 					id: parseInt(item.id),
+					postId: item.postId,
 					title: item.post.title,
 					description: item.post.content || '',
 					provider: item.post.institution?.name || 'Unknown Provider',
@@ -153,6 +155,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 				.filter((item) => item.post.job)
 				.map((item) => ({
 					id: parseInt(item.id),
+					postId: item.postId,
 					title: item.post.title,
 					description: item.post.content || '',
 					professor: item.post.program?.professor_name || 'Contact for details',

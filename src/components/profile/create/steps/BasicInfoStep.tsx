@@ -8,7 +8,7 @@ import { DateInput } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { Upload, User } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 

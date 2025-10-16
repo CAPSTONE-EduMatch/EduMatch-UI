@@ -27,9 +27,23 @@ export function useAuthCheck() {
 					// Check if user has a profile
 					try {
 						await ApiService.getProfile();
-					} catch (profileError) {
-						// No profile found, redirect to create profile
-						router.push("/applicant-profile/create");
+						// Profile exists, user is good to go
+					} catch (profileError: any) {
+						// Check if it's specifically a 404 (profile not found) vs other errors
+						if (profileError?.response?.status === 404) {
+							// No profile found, redirect to create profile
+							console.log(
+								"No profile found, redirecting to create profile"
+							);
+							router.push("/applicant-profile/create");
+						} else {
+							// Other error (server issue, auth issue, etc.)
+							console.error(
+								"Profile check failed with error:",
+								profileError
+							);
+							// Don't redirect on server errors, let user continue
+						}
 					}
 				} else {
 					setShowAuthModal(true); // Show modal if not authenticated

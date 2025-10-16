@@ -63,6 +63,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		() => [
 			{
 				id: 1,
+				postId: 'program_1',
 				title: 'Master of Science in Computer Science',
 				description:
 					'Advanced program in computer science with focus on AI and machine learning',
@@ -80,6 +81,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			},
 			{
 				id: 2,
+				postId: 'program_2',
 				title: 'Master of Science in Data Science',
 				description:
 					'Comprehensive data science program covering analytics and big data',
@@ -103,6 +105,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		() => [
 			{
 				id: 3,
+				postId: 'scholarship_1',
 				title: 'Fulbright Scholarship for International Students',
 				description:
 					'Full scholarship for international students pursuing graduate studies',
@@ -124,6 +127,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		() => [
 			{
 				id: 4,
+				postId: 'research_1',
 				title: 'AI Research Lab - MIT',
 				description:
 					'Cutting-edge research in artificial intelligence and robotics',

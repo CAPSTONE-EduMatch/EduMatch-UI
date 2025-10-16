@@ -55,55 +55,55 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause for filtering
 		const whereClause: any = {
-			published: true, // Only show published posts
+			status: "PUBLISHED", // Only show published posts
 		};
 
 		// Add search filter
 		if (search) {
 			whereClause.OR = [
 				{ title: { contains: search, mode: "insensitive" } },
-				{ content: { contains: search, mode: "insensitive" } },
+				{ other_info: { contains: search, mode: "insensitive" } },
 			];
 		}
 
 		// Query ALL posts first (without pagination) to apply filtering
-		const allPosts = await prismaClient.post.findMany({
+		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
 			orderBy:
 				sortBy === "newest"
-					? { createdAt: "desc" }
+					? { create_at: "desc" }
 					: sortBy === "oldest"
-						? { createdAt: "asc" }
-						: { createdAt: "desc" }, // default to newest
+						? { create_at: "asc" }
+						: { create_at: "desc" }, // default to newest
 		});
 
-		// Get PostProgram data for all posts
-		const allPostIds = allPosts.map((post) => post.id);
-		const postPrograms = await prismaClient.postProgram.findMany({
+		// Get ProgramPost data for all posts
+		const allPostIds = allPosts.map((post) => post.post_id);
+		const postPrograms = await prismaClient.programPost.findMany({
 			where: {
-				PostId: { in: allPostIds },
+				post_id: { in: allPostIds },
 			},
 		});
 
 		// Get application counts for each post (for popularity sorting)
 		const applicationCounts = await prismaClient.application.groupBy({
-			by: ["postId"],
+			by: ["post_id"],
 			where: {
-				postId: { in: allPostIds },
+				post_id: { in: allPostIds },
 			},
 			_count: {
-				id: true,
+				application_id: true,
 			},
 		});
 
 		// Get institution data
-		const institutions = await prismaClient.institution_profile.findMany();
+		const institutions = await prismaClient.institution.findMany();
 
 		// Get disciplines and subdisciplines from database
 		const disciplines = await prismaClient.discipline.findMany({
 			where: { status: true },
 			include: {
-				Sub_Discipline: {
+				subdisciplines: {
 					where: { status: true },
 				},
 			},
@@ -111,26 +111,29 @@ export async function GET(request: NextRequest) {
 
 		// Create maps for quick lookups
 		const postProgramMap = new Map(
-			postPrograms.map((pp) => [pp.PostId, pp])
+			postPrograms.map((pp) => [pp.post_id, pp])
 		);
 
 		// Create application count map
 		const applicationCountMap = new Map(
-			applicationCounts.map((ac) => [ac.postId, ac._count.id])
+			applicationCounts.map((ac) => [
+				ac.post_id,
+				ac._count.application_id,
+			])
 		);
 
 		// Create institution map
 		const institutionMap = new Map(
-			institutions.map((inst) => [inst.profile_id, inst])
+			institutions.map((inst) => [inst.institution_id, inst])
 		);
 
 		// Create subdiscipline map for discipline lookup
 		const subdisciplineMap = new Map();
 		const disciplineMap = new Map();
 		disciplines.forEach((discipline) => {
-			disciplineMap.set(discipline.id, discipline.name);
-			discipline.Sub_Discipline.forEach((sub) => {
-				subdisciplineMap.set(sub.id, {
+			disciplineMap.set(discipline.discipline_id, discipline.name);
+			discipline.subdisciplines.forEach((sub) => {
+				subdisciplineMap.set(sub.subdiscipline_id, {
 					name: sub.name,
 					disciplineName: discipline.name,
 				});
@@ -140,7 +143,7 @@ export async function GET(request: NextRequest) {
 		// Transform ALL data to Program format first
 		let allPrograms: Program[] = allPosts
 			.map((post) => {
-				const postProgram = postProgramMap.get(post.id);
+				const postProgram = postProgramMap.get(post.post_id);
 				if (!postProgram) return null;
 
 				// Find the appropriate institution for this program
@@ -152,14 +155,15 @@ export async function GET(request: NextRequest) {
 						inst.name && inst.country
 				) || {
 					name: "University",
-					logo: "/logos/default.png",
+					image: "/logos/default.png",
 					country: "Unknown",
 				};
 
-				const applicationCount = applicationCountMap.get(post.id) || 0;
+				const applicationCount =
+					applicationCountMap.get(post.post_id) || 0;
 
 				// Map degree level to proper discipline name
-				let fieldName = postProgram.degreeLevel || "General Studies";
+				let fieldName = postProgram.degree_level || "General Studies";
 
 				// Try to find a matching discipline/subdiscipline
 				for (const [, subInfo] of Array.from(subdisciplineMap)) {
@@ -175,7 +179,7 @@ export async function GET(request: NextRequest) {
 
 				// If no subdiscipline match, try main disciplines
 				if (
-					fieldName === postProgram.degreeLevel ||
+					fieldName === postProgram.degree_level ||
 					fieldName === "General Studies"
 				) {
 					for (const [, discName] of Array.from(disciplineMap)) {
@@ -202,22 +206,22 @@ export async function GET(request: NextRequest) {
 				};
 
 				const program: Program = {
-					id: hashCode(post.id),
+					id: hashCode(post.post_id),
 					title: post.title,
-					description: post.content || "No description available",
+					description: post.other_info || "No description available",
 					university: institution.name,
-					logo: institution.logo || "/logos/default.png",
+					logo: "/logos/default.png", // Default logo since image field doesn't exist
 					field: fieldName, // Use the mapped discipline/subdiscipline name
 					country: institution.country || "Unknown",
-					date: post.createdAt.toISOString().split("T")[0],
-					daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
+					date: post.create_at.toISOString().split("T")[0],
+					daysLeft: calculateDaysLeft(post.create_at.toISOString()),
 					price: postProgram.tuition_fee
 						? `${postProgram.tuition_fee} USD`
 						: "Contact for pricing",
 					match: calculateMatchPercentage(),
 					funding:
 						postProgram.scholarship_info || "Contact for details",
-					attendance: "On-campus", // Default value
+					attendance: postProgram.attendance || "On-campus",
 					applicationCount, // Add application count for popularity sorting
 				};
 
@@ -363,7 +367,7 @@ export async function GET(request: NextRequest) {
 				attendanceTypes: availableAttendanceTypes,
 				subdisciplines: disciplines.reduce(
 					(acc, discipline) => {
-						acc[discipline.name] = discipline.Sub_Discipline.map(
+						acc[discipline.name] = discipline.subdisciplines.map(
 							(sub) => sub.name
 						);
 						return acc;

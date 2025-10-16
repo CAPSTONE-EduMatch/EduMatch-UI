@@ -5,6 +5,7 @@ import { prismaClient } from "../../../../../prisma";
 // Define ResearchLab type locally since it's not exported
 interface ResearchLab {
 	id: number;
+	postId: string; // Original post ID for API calls
 	title: string;
 	description: string;
 	professor: string;
@@ -52,13 +53,13 @@ export async function GET(request: NextRequest) {
 		); // Max 50 per page
 		const skip = (page - 1) * limit;
 
-		// Build where clause for filtering - only posts with PostJob records (research positions)
+		// Build where clause for filtering - only posts with JobPost records (research positions)
 		const whereClause: any = {
-			published: true, // Only show published posts
-			id: {
-				in: await prismaClient.postJob
-					.findMany({ select: { PostId: true } })
-					.then((jobs) => jobs.map((j) => j.PostId)),
+			status: "PUBLISHED", // Only show published posts
+			post_id: {
+				in: await prismaClient.jobPost
+					.findMany({ select: { post_id: true } })
+					.then((jobs: any) => jobs.map((j: any) => j.post_id)),
 			},
 		};
 
@@ -66,72 +67,75 @@ export async function GET(request: NextRequest) {
 		if (search) {
 			whereClause.OR = [
 				{ title: { contains: search, mode: "insensitive" } },
-				{ content: { contains: search, mode: "insensitive" } },
+				{ other_info: { contains: search, mode: "insensitive" } },
 			];
 		}
 
 		// Get total count for pagination
-		const totalCount = await prismaClient.post.count({
+		const totalCount = await prismaClient.opportunityPost.count({
 			where: whereClause,
 		});
 
-		// Query posts with PostJob data (for research positions)
-		const posts = await prismaClient.post.findMany({
+		// Query posts with JobPost data (for research positions)
+		const posts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
 			orderBy:
 				sortBy === "newest"
-					? { createdAt: "desc" }
+					? { create_at: "desc" }
 					: sortBy === "oldest"
-						? { createdAt: "asc" }
-						: { createdAt: "desc" }, // default to newest
+						? { create_at: "asc" }
+						: { create_at: "desc" }, // default to newest
 			skip,
 			take: limit,
 		});
 
-		// Get PostJob data for each post (research positions)
-		const postIds = posts.map((post) => post.id);
-		const postJobs = await prismaClient.postJob.findMany({
+		// Get JobPost data for each post (research positions)
+		const postIds = posts.map((post: any) => post.post_id);
+		const postJobs = await prismaClient.jobPost.findMany({
 			where: {
-				PostId: { in: postIds },
+				post_id: { in: postIds },
 			},
 		});
 
 		// Get application counts for each post (for popularity sorting)
 		const applicationCounts = await prismaClient.application.groupBy({
-			by: ["postId"],
+			by: ["post_id"],
 			where: {
-				postId: { in: postIds },
+				post_id: { in: postIds },
 			},
 			_count: {
-				id: true,
+				application_id: true,
 			},
 		});
 
 		// Get institution data
-		const institutions = await prismaClient.institution_profile.findMany();
+		const institutions = await prismaClient.institution.findMany();
 
-		// Get disciplines and subdisciplines from database
-		const disciplines = await prismaClient.discipline.findMany({
-			where: { status: true },
-			include: {
-				Sub_Discipline: {
-					where: { status: true },
-				},
-			},
-		});
+		// Get disciplines and subdisciplines from database (for future use)
+		// const disciplines = await prismaClient.discipline.findMany({
+		// 	where: { status: true },
+		// 	include: {
+		// 		Sub_Discipline: {
+		// 			where: { status: true },
+		// 		},
+		// 	},
+		// });
 
 		// Create a map for quick lookups
-		const postJobMap = new Map(postJobs.map((pj) => [pj.PostId, pj]));
+		const postJobMap = new Map(postJobs.map((pj: any) => [pj.post_id, pj]));
 
 		// Create application count map
 		const applicationCountMap = new Map(
-			applicationCounts.map((ac) => [ac.postId, ac._count.id])
+			applicationCounts.map((ac: any) => [
+				ac.post_id,
+				ac._count.application_id,
+			])
 		);
 
 		// Transform data to ResearchLab format
 		let labs: ResearchLab[] = posts
-			.map((post) => {
-				const postJob = postJobMap.get(post.id);
+			.map((post: any) => {
+				const postJob = postJobMap.get(post.post_id);
 				if (!postJob) return null;
 
 				// Find a matching institution (simplified logic)
@@ -140,7 +144,8 @@ export async function GET(request: NextRequest) {
 					country: "Unknown",
 				};
 
-				const applicationCount = applicationCountMap.get(post.id) || 0;
+				const applicationCount =
+					applicationCountMap.get(post.post_id) || 0;
 
 				// Create unique numeric ID by hashing the post ID
 				const hashCode = (str: string) => {
@@ -154,22 +159,23 @@ export async function GET(request: NextRequest) {
 				};
 
 				const lab: ResearchLab = {
-					id: hashCode(post.id),
+					id: hashCode(post.post_id),
+					postId: post.post_id, // Include original post ID for API calls
 					title: post.title,
-					description: post.content || "No description available",
-					professor: "Prof. Researcher", // Default value since not in PostJob
-					field: postJob.job_type || "Research",
+					description: post.other_info || "No description available",
+					professor: "Prof. Researcher", // Default value since not in JobPost
+					field: (postJob as any)?.job_type || "Research",
 					country: institution.country || "Unknown",
-					position: postJob.job_type || "Research Position",
-					date: post.createdAt.toISOString().split("T")[0],
-					daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
+					position: (postJob as any)?.job_type || "Research Position",
+					date: post.create_at.toISOString().split("T")[0],
+					daysLeft: calculateDaysLeft(post.create_at.toISOString()),
 					match: calculateMatchPercentage(),
-					applicationCount, // Add application count for popularity sorting
+					applicationCount: applicationCount || 0, // Add application count for popularity sorting
 				};
 
 				return lab;
 			})
-			.filter((lab): lab is ResearchLab => lab !== null);
+			.filter((lab: any): lab is ResearchLab => lab !== null);
 
 		// Apply client-side filters
 		if (researchField.length > 0) {

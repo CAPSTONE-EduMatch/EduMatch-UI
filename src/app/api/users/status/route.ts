@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 		await prismaClient.user.update({
 			where: { id: session.user.id },
 			data: {
-				lastSeen: new Date(),
+				updatedAt: new Date(),
 			},
 		});
 
@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
 				name: true,
 				email: true,
 				image: true,
-				lastSeen: true,
+				updatedAt: true, // Use updatedAt as last seen indicator
 			},
 			orderBy: {
-				name: "asc",
+				email: "asc", // Order by email since name might be null
 			},
 		});
 
@@ -80,10 +80,10 @@ export async function GET(request: NextRequest) {
 			email: user.email || "",
 			image: user.image,
 			status:
-				user.lastSeen && user.lastSeen > fiveMinutesAgo
+				user.updatedAt && user.updatedAt > fiveMinutesAgo
 					? "online"
 					: "offline",
-			lastSeen: user.lastSeen,
+			lastSeen: user.updatedAt,
 		}));
 
 		return new Response(

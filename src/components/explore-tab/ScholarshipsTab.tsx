@@ -1,29 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import React from 'react'
 import { ScholarshipCard } from '@/components/ui'
 import { Scholarship } from '@/types/explore-api'
 import { useRouter } from 'next/navigation'
 
 interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
+	isInWishlist?: (id: string) => boolean
+	onWishlistToggle?: (id: string) => void
 }
 
-export function ScholarshipsTab({ scholarships = [] }: ScholarshipsTabProps) {
+export function ScholarshipsTab({
+	scholarships = [],
+	isInWishlist = () => false,
+	onWishlistToggle = () => {},
+}: ScholarshipsTabProps) {
 	const router = useRouter()
-	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
-
-	const toggleWishlist = (id: number) => {
-		setWishlistItems((prev) => {
-			const newSet = new Set(prev)
-			if (newSet.has(id)) {
-				newSet.delete(id)
-			} else {
-				newSet.add(id)
-			}
-			return newSet
-		})
-	}
 
 	const handleScholarshipClick = (scholarshipId: number) => {
 		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
@@ -37,8 +30,10 @@ export function ScholarshipsTab({ scholarships = [] }: ScholarshipsTabProps) {
 						key={scholarship.id}
 						scholarship={scholarship}
 						index={index}
-						isWishlisted={wishlistItems.has(scholarship.id)}
-						onWishlistToggle={toggleWishlist}
+						isWishlisted={isInWishlist(scholarship.postId)}
+						onWishlistToggle={(scholarshipId) =>
+							onWishlistToggle(scholarship.postId)
+						}
 						onClick={handleScholarshipClick}
 					/>
 				))

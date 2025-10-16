@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { ProgramCard } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { Program } from '@/types/explore-api'
@@ -9,23 +9,18 @@ import { useRouter } from 'next/navigation'
 interface ProgramsTabProps {
 	sortBy?: SortOption
 	programs?: Program[]
+	// eslint-disable-next-line no-unused-vars
+	isInWishlist?: (id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
+	onWishlistToggle?: (id: string) => void
 }
 
-export function ProgramsTab({ programs = [] }: ProgramsTabProps) {
+export function ProgramsTab({
+	programs = [],
+	isInWishlist = () => false,
+	onWishlistToggle = () => {},
+}: ProgramsTabProps) {
 	const router = useRouter()
-	const [wishlistItems, setWishlistItems] = useState<Set<number>>(new Set())
-
-	const toggleWishlist = (id: number) => {
-		setWishlistItems((prev) => {
-			const newSet = new Set(prev)
-			if (newSet.has(id)) {
-				newSet.delete(id)
-			} else {
-				newSet.add(id)
-			}
-			return newSet
-		})
-	}
 
 	const handleProgramClick = (programId: number) => {
 		router.push(`/explore/programmes/${programId}?from=programmes`)
@@ -44,8 +39,8 @@ export function ProgramsTab({ programs = [] }: ProgramsTabProps) {
 						key={program.id}
 						program={program}
 						index={index}
-						isWishlisted={wishlistItems.has(program.id)}
-						onWishlistToggle={toggleWishlist}
+						isWishlisted={isInWishlist(program.postId)}
+						onWishlistToggle={() => onWishlistToggle(program.postId)}
 						onClick={handleProgramClick}
 					/>
 				))

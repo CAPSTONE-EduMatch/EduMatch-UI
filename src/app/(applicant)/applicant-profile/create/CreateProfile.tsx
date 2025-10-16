@@ -10,7 +10,7 @@ import { AcademicInfoStep } from '@/components/profile/create/steps/AcademicInfo
 import { InstitutionInfoStep } from '@/components/profile/create/steps/InstitutionInfoStep'
 import { InstitutionDetailsStep } from '@/components/profile/create/steps/InstitutionDetailsStep'
 import { CompletionStep } from '@/components/profile/create/steps/CompletionStep'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { Button } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthRequiredModal } from '@/components/auth'
@@ -36,40 +36,26 @@ export default function CreateProfile() {
 	// Check if user already has a profile
 	useEffect(() => {
 		const checkExistingProfile = async () => {
-			console.log('Checking profile, isAuthenticated:', isAuthenticated) // Debug log
 			if (!isAuthenticated) {
-				console.log('Not authenticated, stopping profile check') // Debug log
 				setIsCheckingProfile(false)
 				return
 			}
 
 			try {
-				console.log('Making API call to /api/profile') // Debug log
 				const response = await fetch('/api/profile')
-				console.log('Profile API response status:', response.status) // Debug log
 
 				if (response.ok) {
 					const profileData = await response.json()
-					console.log('Profile data:', profileData) // Debug log
-					if (profileData && profileData.profile && profileData.profile.id) {
-						// User already has a profile, redirect to view profile
-						console.log('User has existing profile, redirecting') // Debug log
+					if (profileData && profileData.profile) {
+						// User already has a profile, redirect to dashboard
 						setHasExistingProfile(true)
-						router.push('/profile/view')
+						router.push('/dashboard')
 						return
 					}
-				} else if (response.status === 404) {
-					// Profile not found, user can create one
-					console.log('No existing profile found, user can create one')
-				} else {
-					// Other error, still allow creation
-					console.log('Error checking profile, allowing creation')
 				}
 			} catch (error) {
-				console.error('Error checking existing profile:', error)
 				// On error, allow creation
 			} finally {
-				console.log('Setting isCheckingProfile to false') // Debug log
 				setIsCheckingProfile(false)
 			}
 		}
@@ -101,7 +87,6 @@ export default function CreateProfile() {
 		institutionEmail: '',
 		institutionCountry: '',
 		institutionAddress: '',
-		campuses: [],
 		representativeName: '',
 		representativeAppellation: '',
 		representativePosition: '',
@@ -118,19 +103,13 @@ export default function CreateProfile() {
 		degree: '',
 		fieldOfStudy: '',
 		university: '',
-		graduationYear: '',
-		gpa: '',
 		countryOfStudy: '',
-		scoreType: '',
 		scoreValue: '',
 		// Foreign Language fields
 		hasForeignLanguage: '',
 		languages: [],
 		researchPapers: [],
 		// File upload fields
-		cvFile: '',
-		certificateFile: '',
-		uploadedFiles: [],
 		cvFiles: [],
 		languageCertFiles: [],
 		degreeFiles: [],
@@ -221,8 +200,6 @@ export default function CreateProfile() {
 					...verificationDocs,
 				],
 			})
-		} else {
-			setFormData({ ...formData, uploadedFiles: files })
 		}
 	}
 
@@ -285,9 +262,8 @@ export default function CreateProfile() {
 			const { ApiService } = await import('@/lib/axios-config')
 			await ApiService.createProfile(formData)
 
-			// Profile saved successfully
-			// Redirect to home page
-			window.location.href = '/'
+			// Profile saved successfully, redirect to dashboard
+			router.push('/dashboard')
 		} catch (error: any) {
 			// Error saving profile
 			alert(

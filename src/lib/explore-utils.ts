@@ -83,25 +83,25 @@ export async function fetchExploreData(postIds: string[]) {
 		institutions,
 		disciplines,
 	] = await Promise.all([
-		prismaClient.postProgram.findMany({
-			where: { PostId: { in: postIds } },
+		prismaClient.programPost.findMany({
+			where: { post_id: { in: postIds } },
 		}),
-		prismaClient.postScholarship.findMany({
-			where: { PostId: { in: postIds } },
+		prismaClient.scholarshipPost.findMany({
+			where: { post_id: { in: postIds } },
 		}),
-		prismaClient.postJob.findMany({
-			where: { PostId: { in: postIds } },
+		prismaClient.jobPost.findMany({
+			where: { post_id: { in: postIds } },
 		}),
 		prismaClient.application.groupBy({
-			by: ["postId"],
-			where: { postId: { in: postIds } },
-			_count: { id: true },
+			by: ["post_id"],
+			where: { post_id: { in: postIds } },
+			_count: { application_id: true },
 		}),
-		prismaClient.institution_profile.findMany(),
+		prismaClient.institution.findMany(),
 		prismaClient.discipline.findMany({
 			where: { status: true },
 			include: {
-				Sub_Discipline: {
+				subdisciplines: {
 					where: { status: true },
 				},
 			},
@@ -109,28 +109,28 @@ export async function fetchExploreData(postIds: string[]) {
 	]);
 
 	// Create maps for quick lookups
-	const postProgramMap = new Map(postPrograms.map((pp) => [pp.PostId, pp]));
+	const postProgramMap = new Map(postPrograms.map((pp) => [pp.post_id, pp]));
 	const postScholarshipMap = new Map(
-		postScholarships.map((ps) => [ps.PostId, ps])
+		postScholarships.map((ps) => [ps.post_id, ps])
 	);
-	const postJobMap = new Map(postJobs.map((pj) => [pj.PostId, pj]));
+	const postJobMap = new Map(postJobs.map((pj) => [pj.post_id, pj]));
 	const applicationCountMap = new Map(
-		applicationCounts.map((ac) => [ac.postId, ac._count.id])
+		applicationCounts.map((ac) => [ac.post_id, ac._count.application_id])
 	);
 	const institutionMap = new Map(
-		institutions.map((inst) => [inst.profile_id, inst])
+		institutions.map((inst) => [inst.institution_id, inst])
 	);
 
 	// Create subdiscipline map for discipline lookup
 	const subdisciplineMap = new Map<
-		number,
+		string,
 		{ name: string; disciplineName: string }
 	>();
-	const disciplineMap = new Map<number, string>();
+	const disciplineMap = new Map<string, string>();
 	disciplines.forEach((discipline) => {
-		disciplineMap.set(discipline.id, discipline.name);
-		discipline.Sub_Discipline.forEach((sub) => {
-			subdisciplineMap.set(sub.id, {
+		disciplineMap.set(discipline.discipline_id, discipline.name);
+		discipline.subdisciplines.forEach((sub) => {
+			subdisciplineMap.set(sub.subdiscipline_id, {
 				name: sub.name,
 				disciplineName: discipline.name,
 			});
@@ -161,7 +161,7 @@ export function transformToProgram(
 	isInWishlist: boolean = false
 ): Program {
 	// Map degree level to proper discipline name
-	let fieldName = postProgram.degreeLevel || "General Studies";
+	let fieldName = postProgram.degree_level || "General Studies";
 
 	// Try to find a matching discipline/subdiscipline
 	for (const [, subInfo] of Array.from(subdisciplineMap)) {
@@ -173,7 +173,7 @@ export function transformToProgram(
 
 	// If no subdiscipline match, try main disciplines
 	if (
-		fieldName === postProgram.degreeLevel ||
+		fieldName === postProgram.degree_level ||
 		fieldName === "General Studies"
 	) {
 		for (const [, discName] of Array.from(disciplineMap)) {
@@ -185,21 +185,21 @@ export function transformToProgram(
 	}
 
 	return {
-		id: generateHashId(post.id),
+		id: generateHashId(post.post_id),
 		title: post.title,
-		description: post.content || "No description available",
+		description: post.other_info || "No description available",
 		university: institution.name,
-		logo: institution.logo || "/logos/default.png",
+		logo: institution.image || "/logos/default.png",
 		field: fieldName,
 		country: institution.country || "Unknown",
-		date: post.createdAt.toISOString().split("T")[0],
-		daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
+		date: post.create_at.toISOString().split("T")[0],
+		daysLeft: calculateDaysLeft(post.create_at.toISOString()),
 		price: postProgram.tuition_fee
 			? `${postProgram.tuition_fee} USD`
 			: "Contact for pricing",
 		match: calculateMatchPercentage(),
 		funding: postProgram.scholarship_info || "Contact for details",
-		attendance: "On-campus", // Default value
+		attendance: postProgram.attendance || "On-campus",
 		applicationCount,
 		isInWishlist,
 	};
@@ -213,15 +213,15 @@ export function transformToScholarship(
 	isInWishlist: boolean = false
 ): Scholarship {
 	return {
-		id: generateHashId(post.id),
+		id: generateHashId(post.post_id),
 		title: post.title,
-		description: post.content || "No description available",
+		description: post.other_info || "No description available",
 		provider: institution.name,
 		university: institution.name,
 		essayRequired: postScholarship.essay_required ? "Yes" : "No",
 		country: institution.country || "Unknown",
-		date: post.createdAt.toISOString().split("T")[0],
-		daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
+		date: post.create_at.toISOString().split("T")[0],
+		daysLeft: calculateDaysLeft(post.create_at.toISOString()),
 		amount: postScholarship.grant || "Contact for details",
 		match: calculateMatchPercentage(),
 		applicationCount,
@@ -237,15 +237,15 @@ export function transformToResearchLab(
 	isInWishlist: boolean = false
 ): ResearchLab {
 	return {
-		id: generateHashId(post.id),
+		id: generateHashId(post.post_id),
 		title: post.title,
-		description: post.content || "No description available",
+		description: post.other_info || "No description available",
 		professor: "Dr. Professor", // Default value
 		field: "Research", // Default value
 		country: institution.country || "Unknown",
 		position: postJob.job_type || "Research Position",
-		date: post.createdAt.toISOString().split("T")[0],
-		daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
+		date: post.create_at.toISOString().split("T")[0],
+		daysLeft: calculateDaysLeft(post.create_at.toISOString()),
 		match: calculateMatchPercentage(),
 		applicationCount,
 		isInWishlist,
@@ -426,7 +426,7 @@ export function extractAvailableFilters(
 		attendanceTypes: availableAttendanceTypes,
 		subdisciplines: disciplines.reduce(
 			(acc, discipline) => {
-				acc[discipline.name] = discipline.Sub_Discipline.map(
+				acc[discipline.name] = discipline.subdisciplines.map(
 					(sub: any) => sub.name
 				);
 				return acc;

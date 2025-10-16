@@ -43,6 +43,13 @@ const PLAN_HIERARCHY = {
 	premium: 2,
 } as const;
 
+// Map plan names to Stripe price IDs
+// IMPORTANT: Update these with your actual Stripe price IDs from your Stripe Dashboard
+const PLAN_PRICE_MAPPING = {
+	standard: "price_1SFXgR1f58RNYg0098jAKotV", // Your actual standard plan price ID
+	premium: "price_1S4fZ61f58RNYg00FWakIrLm", // Your actual premium plan price ID
+} as const;
+
 export function useSubscription(): SubscriptionHook {
 	const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -133,10 +140,20 @@ export function useSubscription(): SubscriptionHook {
 				(sub) => sub.status === "active"
 			);
 
+			// Get the price ID for the plan
+			const priceId =
+				PLAN_PRICE_MAPPING[planId as keyof typeof PLAN_PRICE_MAPPING];
+			if (!priceId) {
+				throw new Error(
+					`Invalid plan: ${planId}. Supported plans: standard, premium`
+				);
+			}
+
 			// Prepare upgrade parameters for Checkout Session
 			// Always create a new subscription via Checkout Session to avoid Customer Portal issues
 			const upgradeParams: any = {
 				plan: planId,
+				price: priceId, // Add the Stripe price ID
 				successUrl: `${window.location.origin}/pricing?success=true`,
 				cancelUrl: `${window.location.origin}/pricing?canceled=true`,
 			};

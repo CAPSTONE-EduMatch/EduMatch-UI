@@ -9,12 +9,18 @@ interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
 	isInWishlist?: (id: string) => boolean
 	onWishlistToggle?: (id: string) => void
+	hasApplied?: (id: string) => boolean
+	isApplying?: (id: string) => boolean
+	onApply?: (id: string) => void
 }
 
 export function ScholarshipsTab({
 	scholarships = [],
 	isInWishlist = () => false,
 	onWishlistToggle = () => {},
+	hasApplied = () => false,
+	isApplying = () => false,
+	onApply = () => {},
 }: ScholarshipsTabProps) {
 	const router = useRouter()
 
@@ -32,6 +38,9 @@ export function ScholarshipsTab({
 						index={index}
 						isWishlisted={isInWishlist(scholarship.id)}
 						onWishlistToggle={() => onWishlistToggle(scholarship.id)}
+						hasApplied={hasApplied(scholarship.id)}
+						isApplying={isApplying(scholarship.id)}
+						onApply={() => onApply(scholarship.id)}
 						onClick={handleScholarshipClick}
 					/>
 				))

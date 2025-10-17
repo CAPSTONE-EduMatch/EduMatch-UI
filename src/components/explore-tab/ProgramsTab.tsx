@@ -13,12 +13,18 @@ interface ProgramsTabProps {
 	isInWishlist?: (id: string) => boolean
 	// eslint-disable-next-line no-unused-vars
 	onWishlistToggle?: (id: string) => void
+	hasApplied?: (id: string) => boolean
+	isApplying?: (id: string) => boolean
+	onApply?: (id: string) => void
 }
 
 export function ProgramsTab({
 	programs = [],
 	isInWishlist = () => false,
 	onWishlistToggle = () => {},
+	hasApplied = () => false,
+	isApplying = () => false,
+	onApply = () => {},
 }: ProgramsTabProps) {
 	const router = useRouter()
 
@@ -42,6 +48,9 @@ export function ProgramsTab({
 						isWishlisted={isInWishlist(program.id)}
 						onWishlistToggle={() => onWishlistToggle(program.id)}
 						onClick={handleProgramClick}
+						hasApplied={hasApplied(program.id)}
+						isApplying={isApplying(program.id)}
+						onApply={() => onApply(program.id)}
 					/>
 				))
 			) : (

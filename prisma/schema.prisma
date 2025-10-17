@@ -133,14 +133,21 @@ model Institution {
   name                String
   abbreviation        String?
   hotline             String
+  hotline_code        String?                    // Added: institution hotline country code
   type                String
+  website             String?                    // Added: institution website
+  email               String?                    // Added: institution email
   country             String
   address             String
   rep_name            String
+  rep_appellation     String?                    // Added: representative appellation
   rep_position        String
   rep_email           String
   rep_phone           String
+  rep_phone_code      String?                    // Added: representative phone country code
   about               String
+  logo                String?                    // Institution logo (small brand mark)
+  cover_image         String?                    // Institution cover image (large banner)
   user_id             String                     @unique
   user                user                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents           InstitutionDocument[]

@@ -80,7 +80,7 @@ export const InstitutionProfileLayout: React.FC<
 			navItems={institutionNavItems}
 			roleLabel="Institution"
 			roleIcon={<Building2 className="w-8 h-8 text-white" />}
-			containerPaddingTop="pt-0"
+			containerPaddingTop="pt-22"
 		>
 			{children}
 		</ProfileLayoutBase>

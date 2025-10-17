@@ -60,7 +60,8 @@ export interface ProfileFormData {
 	representativePhoneCode: string;
 	aboutInstitution: string;
 	institutionDisciplines: string[];
-	institutionCoverImage: string;
+	institutionLogo: string; // Institution logo (small brand mark)
+	institutionCoverImage: string; // Institution cover image (large banner)
 	institutionVerificationDocuments: any[];
 }
 
@@ -125,14 +126,21 @@ export interface InstitutionProfile {
 	name: string;
 	abbreviation: string | null;
 	hotline: string;
+	hotline_code: string | null; // Added: institution hotline country code
 	type: string;
+	website: string | null; // Added: institution website
+	email: string | null; // Added: institution email
 	country: string;
 	address: string;
 	rep_name: string;
+	rep_appellation: string | null; // Added: representative appellation
 	rep_position: string;
 	rep_email: string;
 	rep_phone: string;
+	rep_phone_code: string | null; // Added: representative phone country code
 	about: string;
+	logo: string | null; // Institution logo (small brand mark)
+	cover_image: string | null; // Institution cover image (large banner)
 	user_id: string;
 	user: {
 		id: string;
@@ -410,50 +418,139 @@ export class ProfileService {
 		formData: ProfileFormData
 	): Promise<InstitutionProfile | null> {
 		try {
+			// Helper function to extract string value from form data
+			const getStringValue = (value: any): string => {
+				if (typeof value === "string") return value;
+				if (value && typeof value === "object" && value.value)
+					return value.value;
+				return "";
+			};
+
+			// Validate required fields
+			const requiredFields = {
+				name: getStringValue(formData.institutionName),
+				hotline: getStringValue(formData.institutionHotline),
+				type: getStringValue(formData.institutionType),
+				country: getStringValue(formData.institutionCountry),
+				address: getStringValue(formData.institutionAddress),
+				rep_name: getStringValue(formData.representativeName),
+				rep_position: getStringValue(formData.representativePosition),
+				rep_email: getStringValue(
+					formData.representativeEmail || formData.institutionEmail
+				),
+				rep_phone: getStringValue(formData.representativePhone),
+				about: getStringValue(formData.aboutInstitution),
+			};
+
+			const missingFields = Object.entries(requiredFields)
+				.filter(
+					([, value]) =>
+						!value ||
+						(typeof value === "string" && value.trim() === "")
+				)
+				.map(([key]) => key);
+
+			if (missingFields.length > 0) {
+				console.error(
+					"❌ ProfileService: Missing required fields:",
+					missingFields
+				);
+				throw new Error(
+					`Missing required fields: ${missingFields.join(", ")}`
+				);
+			}
+
+			console.log("✅ ProfileService: All required fields validated");
+			console.log("📋 ProfileService: Institution data:", {
+				name: formData.institutionName,
+				type: formData.institutionType,
+				country: formData.institutionCountry,
+				hasDisciplines: formData.institutionDisciplines?.length || 0,
+			});
+			console.log("🔍 ProfileService: Field types:", {
+				name: typeof formData.institutionName,
+				type: typeof formData.institutionType,
+				country: typeof formData.institutionCountry,
+				hotline: typeof formData.institutionHotline,
+				address: typeof formData.institutionAddress,
+			});
+
 			// Create or update institution
 			const institution = await prismaClient.institution.upsert({
 				where: { user_id: userId },
 				update: {
-					name: formData.institutionName || "",
-					abbreviation: formData.institutionAbbreviation || null,
-					hotline: formData.institutionHotline || "",
-					type: formData.institutionType || "",
-					country: formData.institutionCountry || "",
-					address: formData.institutionAddress || "",
-					rep_name: formData.representativeName || "",
-					rep_position: formData.representativePosition || "",
-					rep_email:
-						formData.representativeEmail ||
-						formData.institutionEmail ||
-						"",
-					rep_phone: formData.representativePhone || "",
-					about: formData.aboutInstitution || "",
+					name: requiredFields.name,
+					abbreviation:
+						getStringValue(formData.institutionAbbreviation) ||
+						null,
+					hotline: requiredFields.hotline,
+					hotline_code:
+						getStringValue(formData.institutionHotlineCode) || null,
+					type: requiredFields.type,
+					website:
+						getStringValue(formData.institutionWebsite) || null,
+					email: getStringValue(formData.institutionEmail) || null,
+					country: requiredFields.country,
+					address: requiredFields.address,
+					rep_name: requiredFields.rep_name,
+					rep_appellation:
+						getStringValue(formData.representativeAppellation) ||
+						null,
+					rep_position: requiredFields.rep_position,
+					rep_email: requiredFields.rep_email,
+					rep_phone: requiredFields.rep_phone,
+					rep_phone_code:
+						getStringValue(formData.representativePhoneCode) ||
+						null,
+					about: requiredFields.about,
+					logo: getStringValue(formData.institutionLogo) || null,
+					cover_image:
+						getStringValue(formData.institutionCoverImage) || null,
 				},
 				create: {
 					institution_id: `institution_${userId}`,
 					user_id: userId,
-					name: formData.institutionName || "",
-					abbreviation: formData.institutionAbbreviation || null,
-					hotline: formData.institutionHotline || "",
-					type: formData.institutionType || "",
-					country: formData.institutionCountry || "",
-					address: formData.institutionAddress || "",
-					rep_name: formData.representativeName || "",
-					rep_position: formData.representativePosition || "",
-					rep_email:
-						formData.representativeEmail ||
-						formData.institutionEmail ||
-						"",
-					rep_phone: formData.representativePhone || "",
-					about: formData.aboutInstitution || "",
+					name: requiredFields.name,
+					abbreviation:
+						getStringValue(formData.institutionAbbreviation) ||
+						null,
+					hotline: requiredFields.hotline,
+					hotline_code:
+						getStringValue(formData.institutionHotlineCode) || null,
+					type: requiredFields.type,
+					website:
+						getStringValue(formData.institutionWebsite) || null,
+					email: getStringValue(formData.institutionEmail) || null,
+					country: requiredFields.country,
+					address: requiredFields.address,
+					rep_name: requiredFields.rep_name,
+					rep_appellation:
+						getStringValue(formData.representativeAppellation) ||
+						null,
+					rep_position: requiredFields.rep_position,
+					rep_email: requiredFields.rep_email,
+					rep_phone: requiredFields.rep_phone,
+					rep_phone_code:
+						getStringValue(formData.representativePhoneCode) ||
+						null,
+					about: requiredFields.about,
+					logo: getStringValue(formData.institutionLogo) || null,
+					cover_image:
+						getStringValue(formData.institutionCoverImage) || null,
 				},
 			});
 
+			console.log(
+				"✅ ProfileService: Institution created/updated:",
+				institution.institution_id
+			);
+
 			// Update user image
-			if (formData.profilePhoto) {
+			const profilePhoto = getStringValue(formData.profilePhoto);
+			if (profilePhoto) {
 				await prismaClient.user.update({
 					where: { id: userId },
-					data: { image: formData.profilePhoto },
+					data: { image: profilePhoto },
 				});
 			}
 
@@ -497,6 +594,10 @@ export class ProfileService {
 			// Return updated profile
 			return (await this.getProfile(userId)) as InstitutionProfile;
 		} catch (error) {
+			console.error(
+				"❌ ProfileService: Error creating institution profile:",
+				error
+			);
 			return null;
 		}
 	}
@@ -551,6 +652,12 @@ export class ProfileService {
 			throw new Error("Invalid role specified");
 		} catch (error) {
 			console.error("❌ ProfileService: Error upserting profile:", error);
+			console.error("❌ ProfileService: Error details:", {
+				userId,
+				role: formData.role,
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+			});
 			return null;
 		}
 	}

@@ -11,12 +11,21 @@ interface ResearchLabsTabProps {
 	isInWishlist?: (_id: string) => boolean
 	// eslint-disable-next-line no-unused-vars
 	onWishlistToggle?: (_id: string) => void
+	// eslint-disable-next-line no-unused-vars
+	hasApplied?: (_id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
+	isApplying?: (_id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
+	onApply?: (_id: string) => void
 }
 
 export function ResearchLabsTab({
 	researchLabs = [],
 	isInWishlist = () => false,
 	onWishlistToggle = () => {},
+	hasApplied = () => false,
+	isApplying = () => false,
+	onApply = () => {},
 }: ResearchLabsTabProps) {
 	const router = useRouter()
 
@@ -34,6 +43,9 @@ export function ResearchLabsTab({
 						index={index}
 						isWishlisted={isInWishlist(lab.id)}
 						onWishlistToggle={() => onWishlistToggle(lab.id)}
+						hasApplied={hasApplied(lab.id)}
+						isApplying={isApplying(lab.id)}
+						onApply={() => onApply(lab.id)}
 						onClick={handleLabClick}
 					/>
 				))

@@ -1,11 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ProfileFormData } from '@/lib/profile-service'
 import { Label } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { FileUploadManager } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
+import { ApiService } from '@/lib/axios-config'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData
@@ -13,7 +14,6 @@ interface InstitutionDetailsStepProps {
 	onMultiSelectChange: (
 		field: keyof ProfileFormData
 	) => (values: string[]) => void
-	onFilesUploaded: (files: any[]) => void
 	onBack: () => void
 	onNext: () => void
 	onShowManageModal: () => void
@@ -23,26 +23,37 @@ export function InstitutionDetailsStep({
 	formData,
 	onInputChange,
 	onMultiSelectChange,
-	onFilesUploaded,
 	onBack,
 	onNext,
 	onShowManageModal,
 }: InstitutionDetailsStepProps) {
-	const disciplines = [
-		{ value: 'Computer Science', label: 'Computer Science' },
-		{ value: 'Business Administration', label: 'Business Administration' },
-		{ value: 'Engineering', label: 'Engineering' },
-		{ value: 'Medicine', label: 'Medicine' },
-		{ value: 'Law', label: 'Law' },
-		{ value: 'Arts & Humanities', label: 'Arts & Humanities' },
-		{ value: 'Sciences', label: 'Sciences' },
-		{ value: 'Social Sciences', label: 'Social Sciences' },
-		{ value: 'Education', label: 'Education' },
-		{ value: 'Architecture', label: 'Architecture' },
-		{ value: 'Agriculture', label: 'Agriculture' },
-		{ value: 'Veterinary Science', label: 'Veterinary Science' },
-		{ value: 'Other', label: 'Other' },
-	]
+	// State for disciplines loaded from database
+	const [disciplines, setDisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+	const [isLoadingDisciplines, setIsLoadingDisciplines] = useState(true)
+	const [disciplinesError, setDisciplinesError] = useState<string | null>(null)
+
+	// Load disciplines from database
+	useEffect(() => {
+		const loadDisciplines = async () => {
+			try {
+				setIsLoadingDisciplines(true)
+				setDisciplinesError(null)
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setDisciplines(response.subdisciplines)
+				} else {
+					setDisciplinesError('Failed to load disciplines')
+				}
+			} catch (error) {
+				setDisciplinesError('Failed to load disciplines from database')
+			} finally {
+				setIsLoadingDisciplines(false)
+			}
+		}
+		loadDisciplines()
+	}, [])
 
 	const handleCategoryFilesUploaded = (category: string, files: any[]) => {
 		// Add to existing files instead of replacing
@@ -86,27 +97,70 @@ export function InstitutionDetailsStep({
 					<Label className="text-sm font-medium text-foreground">
 						Institution Sub-Disciplines <span className="text-red-500">*</span>
 					</Label>
-					<CustomSelect
-						options={disciplines}
-						value={
-							formData.institutionDisciplines?.map((discipline) => ({
-								value: discipline,
-								label: discipline,
-							})) || []
-						}
-						onChange={(selectedOptions) => {
-							const values = selectedOptions
-								? selectedOptions.map((option: any) => option.value)
-								: []
-							onMultiSelectChange('institutionDisciplines')(values)
-						}}
-						placeholder="Select sub-disciplines..."
-						isMulti
-						isClearable
-						className="w-full"
-						isSearchable
-						maxSelectedHeight="120px"
-					/>
+
+					{isLoadingDisciplines ? (
+						<div className="flex items-center justify-center p-4 border border-gray-200 rounded-lg">
+							<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2"></div>
+							<span className="text-sm text-muted-foreground">
+								Loading disciplines...
+							</span>
+						</div>
+					) : disciplinesError ? (
+						<div className="p-4 border border-red-200 rounded-lg bg-red-50">
+							<p className="text-sm text-red-600">{disciplinesError}</p>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									setDisciplinesError(null)
+									setIsLoadingDisciplines(true)
+									// Retry loading
+									const loadDisciplines = async () => {
+										try {
+											const response = await ApiService.getSubdisciplines()
+											if (response.success) {
+												setDisciplines(response.subdisciplines)
+											} else {
+												setDisciplinesError('Failed to load disciplines')
+											}
+										} catch (error) {
+											setDisciplinesError(
+												'Failed to load disciplines from database'
+											)
+										} finally {
+											setIsLoadingDisciplines(false)
+										}
+									}
+									loadDisciplines()
+								}}
+								className="mt-2"
+							>
+								Retry
+							</Button>
+						</div>
+					) : (
+						<CustomSelect
+							options={disciplines}
+							value={
+								formData.institutionDisciplines?.map((discipline) => ({
+									value: discipline,
+									label: discipline,
+								})) || []
+							}
+							onChange={(selectedOptions) => {
+								const values = selectedOptions
+									? selectedOptions.map((option: any) => option.value)
+									: []
+								onMultiSelectChange('institutionDisciplines')(values)
+							}}
+							placeholder="Select sub-disciplines..."
+							isMulti
+							isClearable
+							className="w-full"
+							isSearchable
+							maxSelectedHeight="120px"
+						/>
+					)}
 				</div>
 			)}
 

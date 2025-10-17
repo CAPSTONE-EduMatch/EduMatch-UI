@@ -25,6 +25,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { authClient } from '@/app/lib/auth-client'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useUnreadMessageCount } from '@/hooks/useUnreadMessageCount'
 
 export function EduMatchHeader() {
 	const router = useRouter()
@@ -36,6 +37,9 @@ export function EduMatchHeader() {
 
 	// Get notifications
 	const { notifications, unreadCount, markAsRead } = useNotifications()
+
+	// Get unread message count
+	const unreadMessageCount = useUnreadMessageCount()
 
 	const [isVisible, setIsVisible] = useState(true)
 	const [lastScrollY, setLastScrollY] = useState(0)
@@ -228,8 +232,19 @@ export function EduMatchHeader() {
 					{/* Desktop Profile Icons - hidden on mobile */}
 					<div className="hidden md:flex items-center gap-3">
 						{/* Teal Chat Icon */}
-						<div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-							<MessageCircle className="w-5 h-5 text-[#126e64]" />
+						<div className="relative">
+							<div
+								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+								onClick={() => router.push('/messages')}
+							>
+								<MessageCircle className="w-5 h-5 text-[#126e64]" />
+								{/* Badge for unread messages */}
+								{unreadMessageCount > 0 && (
+									<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+										{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+									</div>
+								)}
+							</div>
 						</div>
 
 						{/* Orange Bell Icon */}
@@ -540,8 +555,22 @@ export function EduMatchHeader() {
 
 						{/* Mobile Profile Icons */}
 						<div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-							<div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-								<MessageCircle className="w-5 h-5 text-[#126e64]" />
+							<div className="relative">
+								<div
+									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+									onClick={() => {
+										router.push('/messages')
+										setIsMobileMenuOpen(false)
+									}}
+								>
+									<MessageCircle className="w-5 h-5 text-[#126e64]" />
+									{/* Badge for unread messages */}
+									{unreadMessageCount > 0 && (
+										<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+											{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+										</div>
+									)}
+								</div>
 							</div>
 
 							{/* Orange Bell Icon */}

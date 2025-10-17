@@ -25,6 +25,9 @@ interface ProgramCardProps {
 	onWishlistToggle: (id: string) => void
 	// eslint-disable-next-line no-unused-vars
 	onClick?: (programId: string) => void
+	hasApplied?: boolean
+	isApplying?: boolean
+	onApply?: (programId: string) => void
 }
 
 export function ProgramCard({
@@ -33,6 +36,9 @@ export function ProgramCard({
 	isWishlisted,
 	onWishlistToggle,
 	onClick,
+	hasApplied = false,
+	isApplying = false,
+	onApply,
 }: ProgramCardProps) {
 	return (
 		<motion.div

@@ -46,15 +46,28 @@ export default function CreateProfile() {
 
 				if (response.ok) {
 					const profileData = await response.json()
-					if (profileData && profileData.profile) {
-						// User already has a profile, redirect to dashboard
+					if (profileData && profileData.profile && profileData.profile.id) {
+						// User already has a profile, redirect to appropriate dashboard
 						setHasExistingProfile(true)
-						router.push('/dashboard')
+						if (profileData.profile.role === 'applicant') {
+							router.push('/explore')
+						} else if (profileData.profile.role === 'institution') {
+							router.push('/institution-profile/view')
+						} else {
+							router.push('/')
+						}
 						return
 					}
+				} else if (response.status === 404) {
+					// Profile not found, user can create one
+					// User can proceed with profile creation
+				} else {
+					// Other error, still allow creation
+					// Allow user to proceed with profile creation
 				}
 			} catch (error) {
 				// On error, allow creation
+				// Error is logged but user can still create profile
 			} finally {
 				setIsCheckingProfile(false)
 			}
@@ -96,15 +109,16 @@ export default function CreateProfile() {
 		aboutInstitution: '',
 		// Institution Details fields
 		institutionDisciplines: [],
-		institutionCoverImage: '',
+		institutionLogo: '', // Institution logo (small brand mark)
+		institutionCoverImage: '', // Institution cover image (large banner)
 		institutionVerificationDocuments: [],
 		// Academic fields
 		graduationStatus: '',
 		degree: '',
 		fieldOfStudy: '',
 		university: '',
-		countryOfStudy: '',
 		gpa: '',
+		countryOfStudy: '',
 		scoreValue: '',
 		// Foreign Language fields
 		hasForeignLanguage: '',
@@ -201,6 +215,9 @@ export default function CreateProfile() {
 					...verificationDocs,
 				],
 			})
+		} else {
+			// Handle other file types as needed
+			// Files uploaded successfully
 		}
 	}
 
@@ -259,33 +276,21 @@ export default function CreateProfile() {
 		}
 
 		try {
-			// Debug: Log the form data being sent
-			console.log('🎓 Academic data being saved:', {
-				graduationStatus: formData.graduationStatus,
-				degree: formData.degree,
-				fieldOfStudy: formData.fieldOfStudy,
-				university: formData.university,
-				countryOfStudy: formData.countryOfStudy,
-				gpa: formData.gpa,
-				scoreValue: formData.scoreValue,
-				hasForeignLanguage: formData.hasForeignLanguage,
-				languages: formData.languages,
-				researchPapers: formData.researchPapers,
-				cvFiles: formData.cvFiles?.length || 0,
-				languageCertFiles: formData.languageCertFiles?.length || 0,
-				degreeFiles: formData.degreeFiles?.length || 0,
-				transcriptFiles: formData.transcriptFiles?.length || 0,
-			})
-
 			// Save profile to database
 			const { ApiService } = await import('@/lib/axios-config')
 			await ApiService.createProfile(formData)
 
-			console.log('✅ Profile created successfully with academic data')
-			// Profile saved successfully, redirect to explore page
-			router.push('/explore')
+			// Profile created successfully
+
+			// Redirect based on role
+			if (formData.role === 'applicant') {
+				router.push('/explore')
+			} else if (formData.role === 'institution') {
+				router.push('/institution-profile/view')
+			} else {
+				router.push('/')
+			}
 		} catch (error: any) {
-			console.error('❌ Error saving profile:', error)
 			// Error saving profile
 			alert(
 				error.response?.data?.error ||
@@ -445,7 +450,6 @@ export default function CreateProfile() {
 										formData={formData}
 										onInputChange={handleInputChange}
 										onMultiSelectChange={handleMultiSelectChange}
-										onFilesUploaded={handleFilesUploaded}
 										onBack={handleBack}
 										onNext={handleNext}
 										onShowManageModal={handleOpenModal}

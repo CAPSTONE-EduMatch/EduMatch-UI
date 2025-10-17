@@ -12,6 +12,10 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || "edumatch-file-12";
 
+// Configure route to handle larger file uploads (up to 10MB)
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
 	try {
 		// Check if user is authenticated

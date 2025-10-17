@@ -9,6 +9,7 @@ import { ProfileFormData } from '@/lib/profile-service'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getCountriesWithSvgFlags } from '@/data/countries'
+import { ApiService } from '@/lib/axios-config'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData
@@ -43,6 +44,27 @@ export function AcademicInfoStep({
 }: AcademicInfoStepProps) {
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+
+	// State for subdisciplines loaded from database
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
+
 	// Add default research paper when component mounts
 	useEffect(() => {
 		if (formData.researchPapers?.length === 0) {
@@ -137,12 +159,12 @@ export function AcademicInfoStep({
 	}
 
 	// Function to validate and format GPA score (4.0 scale)
-	const handleScoreInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleGpaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value
 
 		// Allow empty string
 		if (value === '') {
-			onInputChange('scoreValue', '')
+			onInputChange('gpa', '')
 			return
 		}
 
@@ -151,7 +173,7 @@ export function AcademicInfoStep({
 
 		// Allow partial input like "3." or "3," while typing
 		if (cleanValue.endsWith('.') || cleanValue.endsWith(',')) {
-			onInputChange('scoreValue', cleanValue)
+			onInputChange('gpa', cleanValue)
 			return
 		}
 
@@ -169,7 +191,7 @@ export function AcademicInfoStep({
 		if (!isNaN(numValue) && numValue >= 0 && numValue <= 4.0) {
 			// Format to max 2 decimal places
 			cleanValue = numValue.toFixed(2).replace(/\.?0+$/, '')
-			onInputChange('scoreValue', cleanValue)
+			onInputChange('gpa', cleanValue)
 		} else if (
 			cleanValue === '0' ||
 			cleanValue === '1' ||
@@ -178,7 +200,7 @@ export function AcademicInfoStep({
 			cleanValue === '4'
 		) {
 			// Allow single digits 0-4
-			onInputChange('scoreValue', cleanValue)
+			onInputChange('gpa', cleanValue)
 		}
 	}
 
@@ -318,18 +340,7 @@ export function AcademicInfoStep({
 										onSelectChange('fieldOfStudy')(option?.value || '')
 									}
 									placeholder="Choose discipline"
-									options={[
-										{ value: 'Computer Science', label: 'Computer Science' },
-										{
-											value: 'Business Administration',
-											label: 'Business Administration',
-										},
-										{ value: 'Engineering', label: 'Engineering' },
-										{ value: 'Medicine', label: 'Medicine' },
-										{ value: 'Law', label: 'Law' },
-										{ value: 'Arts', label: 'Arts' },
-										{ value: 'Sciences', label: 'Sciences' },
-									]}
+									options={subdisciplines}
 									variant="default"
 									menuPortalTarget={document.body}
 									isClearable={false}
@@ -348,8 +359,8 @@ export function AcademicInfoStep({
 									</span>
 									<Input
 										placeholder="0.0-4.0"
-										value={formData.scoreValue || ''}
-										onChange={handleScoreInput}
+										value={formData.gpa || ''}
+										onChange={handleGpaInput}
 										inputSize="select"
 										fullWidth={false}
 										width="w-24"
@@ -807,29 +818,7 @@ export function AcademicInfoStep({
 											onInputChange('researchPapers', newPapers)
 										}}
 										placeholder="Choose disciplines"
-										options={[
-											{ value: 'Computer Science', label: 'Computer Science' },
-											{
-												value: 'Business Administration',
-												label: 'Business Administration',
-											},
-											{ value: 'Engineering', label: 'Engineering' },
-											{ value: 'Medicine', label: 'Medicine' },
-											{ value: 'Law', label: 'Law' },
-											{ value: 'Arts', label: 'Arts' },
-											{ value: 'Sciences', label: 'Sciences' },
-											{ value: 'Mathematics', label: 'Mathematics' },
-											{ value: 'Physics', label: 'Physics' },
-											{ value: 'Chemistry', label: 'Chemistry' },
-											{ value: 'Biology', label: 'Biology' },
-											{ value: 'Psychology', label: 'Psychology' },
-											{ value: 'Sociology', label: 'Sociology' },
-											{ value: 'Economics', label: 'Economics' },
-											{
-												value: 'Political Science',
-												label: 'Political Science',
-											},
-										]}
+										options={subdisciplines}
 										isMulti
 										isSearchable
 										isClearable

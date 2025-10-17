@@ -259,13 +259,33 @@ export default function CreateProfile() {
 		}
 
 		try {
+			// Debug: Log the form data being sent
+			console.log('🎓 Academic data being saved:', {
+				graduationStatus: formData.graduationStatus,
+				degree: formData.degree,
+				fieldOfStudy: formData.fieldOfStudy,
+				university: formData.university,
+				countryOfStudy: formData.countryOfStudy,
+				gpa: formData.gpa,
+				scoreValue: formData.scoreValue,
+				hasForeignLanguage: formData.hasForeignLanguage,
+				languages: formData.languages,
+				researchPapers: formData.researchPapers,
+				cvFiles: formData.cvFiles?.length || 0,
+				languageCertFiles: formData.languageCertFiles?.length || 0,
+				degreeFiles: formData.degreeFiles?.length || 0,
+				transcriptFiles: formData.transcriptFiles?.length || 0,
+			})
+
 			// Save profile to database
 			const { ApiService } = await import('@/lib/axios-config')
 			await ApiService.createProfile(formData)
 
+			console.log('✅ Profile created successfully with academic data')
 			// Profile saved successfully, redirect to explore page
 			router.push('/explore')
 		} catch (error: any) {
+			console.error('❌ Error saving profile:', error)
 			// Error saving profile
 			alert(
 				error.response?.data?.error ||

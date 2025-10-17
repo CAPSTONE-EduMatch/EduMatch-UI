@@ -18,7 +18,7 @@ export function ScholarshipsTab({
 }: ScholarshipsTabProps) {
 	const router = useRouter()
 
-	const handleScholarshipClick = (scholarshipId: number) => {
+	const handleScholarshipClick = (scholarshipId: string) => {
 		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
 	}
 
@@ -30,10 +30,8 @@ export function ScholarshipsTab({
 						key={scholarship.id}
 						scholarship={scholarship}
 						index={index}
-						isWishlisted={isInWishlist(scholarship.postId)}
-						onWishlistToggle={(scholarshipId) =>
-							onWishlistToggle(scholarship.postId)
-						}
+						isWishlisted={isInWishlist(scholarship.id)}
+						onWishlistToggle={() => onWishlistToggle(scholarship.id)}
 						onClick={handleScholarshipClick}
 					/>
 				))

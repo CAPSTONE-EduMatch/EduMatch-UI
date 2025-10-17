@@ -52,3 +52,14 @@ frontend:
   runtime:
     name: node
     version: 20
+customHeaders:
+  - pattern: '/api/files/s3-upload'
+    headers:
+      - key: 'Access-Control-Allow-Origin'
+        value: '*'
+      - key: 'Access-Control-Allow-Headers'
+        value: 'Content-Type, Authorization'
+      - key: 'Access-Control-Allow-Methods'
+        value: 'POST, OPTIONS'
+      - key: 'Access-Control-Max-Age'
+        value: '86400'

@@ -31,6 +31,20 @@ export async function GET(request: NextRequest) {
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		// Parse query parameters
 		const queryParams: WishlistQueryParams = {
 			page: Math.max(1, parseInt(searchParams.get("page") || "1")),
@@ -50,7 +64,7 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause
 		const whereClause: any = {
-			applicant_id: userId,
+			applicant_id: applicant.applicant_id,
 		};
 
 		// Note: We'll filter by post data after fetching wishlist items
@@ -267,6 +281,20 @@ export async function POST(request: NextRequest) {
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const body: WishlistCreateRequest = await request.json();
 
 		if (!body.postId) {
@@ -296,7 +324,7 @@ export async function POST(request: NextRequest) {
 		const existingItem = await prismaClient.wishlist.findFirst({
 			where: {
 				post_id: body.postId,
-				applicant_id: userId,
+				applicant_id: applicant.applicant_id,
 			},
 		});
 
@@ -305,7 +333,7 @@ export async function POST(request: NextRequest) {
 			const updatedItem = await prismaClient.wishlist.update({
 				where: {
 					applicant_id_post_id: {
-						applicant_id: userId,
+						applicant_id: applicant.applicant_id,
 						post_id: body.postId,
 					},
 				},
@@ -380,7 +408,7 @@ export async function POST(request: NextRequest) {
 			const newItem = await prismaClient.wishlist.create({
 				data: {
 					post_id: body.postId,
-					applicant_id: userId,
+					applicant_id: applicant.applicant_id,
 					add_at: new Date(),
 				},
 			});

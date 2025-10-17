@@ -160,7 +160,16 @@ export function EduMatchHeader() {
 	}
 
 	const formatNotificationTime = (dateString: string) => {
+		if (!dateString) return 'Unknown time'
+
 		const date = new Date(dateString)
+
+		// Check if date is valid
+		if (isNaN(date.getTime())) {
+			console.warn('Invalid date string:', dateString)
+			return 'Invalid date'
+		}
+
 		const now = new Date()
 		const diffInMinutes = Math.floor(
 			(now.getTime() - date.getTime()) / (1000 * 60)

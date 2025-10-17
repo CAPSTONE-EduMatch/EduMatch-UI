@@ -29,12 +29,26 @@ export async function GET(
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const { postId } = params;
 
 		const wishlistItem = await prismaClient.wishlist.findFirst({
 			where: {
 				post_id: postId,
-				applicant_id: userId,
+				applicant_id: applicant.applicant_id,
 			},
 		});
 
@@ -136,6 +150,20 @@ export async function PUT(
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const { postId } = params;
 		const body: WishlistUpdateRequest = await request.json();
 
@@ -143,7 +171,7 @@ export async function PUT(
 		const existingItem = await prismaClient.wishlist.findUnique({
 			where: {
 				applicant_id_post_id: {
-					applicant_id: userId,
+					applicant_id: applicant.applicant_id,
 					post_id: postId,
 				},
 			},
@@ -162,7 +190,7 @@ export async function PUT(
 		const updatedItem = await prismaClient.wishlist.update({
 			where: {
 				applicant_id_post_id: {
-					applicant_id: userId,
+					applicant_id: applicant.applicant_id,
 					post_id: postId,
 				},
 			},
@@ -260,13 +288,27 @@ export async function DELETE(
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const { postId } = params;
 
 		// Check if wishlist item exists
 		const existingItem = await prismaClient.wishlist.findUnique({
 			where: {
 				applicant_id_post_id: {
-					applicant_id: userId,
+					applicant_id: applicant.applicant_id,
 					post_id: postId,
 				},
 			},
@@ -285,7 +327,7 @@ export async function DELETE(
 		await prismaClient.wishlist.delete({
 			where: {
 				applicant_id_post_id: {
-					applicant_id: userId,
+					applicant_id: applicant.applicant_id,
 					post_id: postId,
 				},
 			},

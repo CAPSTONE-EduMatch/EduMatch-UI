@@ -21,8 +21,8 @@ const ScholarshipDetail = () => {
 	const params = useParams()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('detail')
-	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
-	const [programWishlist, setProgramWishlist] = useState<number[]>([])
+	const [scholarshipWishlist, setScholarshipWishlist] = useState<string[]>([])
+	const [programWishlist, setProgramWishlist] = useState<string[]>([])
 	const [eligibilityProgramsPage, setEligibilityProgramsPage] = useState(1)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
@@ -111,19 +111,15 @@ const ScholarshipDetail = () => {
 		updateBreadcrumb()
 	}, [params.id, searchParams])
 
-	const handleProgramWishlistToggle = (programId: number) => {
+	const handleProgramWishlistToggle = (id: string) => {
 		setProgramWishlist((prev) =>
-			prev.includes(programId)
-				? prev.filter((id) => id !== programId)
-				: [...prev, programId]
+			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
 		)
 	}
 
-	const handleScholarshipWishlistToggle = (scholarshipId: number) => {
+	const handleScholarshipWishlistToggle = (id: string) => {
 		setScholarshipWishlist((prev) =>
-			prev.includes(scholarshipId)
-				? prev.filter((id) => id !== scholarshipId)
-				: [...prev, scholarshipId]
+			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
 		)
 	}
 
@@ -167,12 +163,12 @@ const ScholarshipDetail = () => {
 		setIsClosing(false)
 	}
 
-	const handleProgramClick = (programId: number) => {
+	const handleProgramClick = (programId: string) => {
 		// Navigate to programmes detail page
 		router.push(`/explore/programmes/${programId}?from=scholarships`)
 	}
 
-	const handleScholarshipClick = (scholarshipId: number) => {
+	const handleScholarshipClick = (scholarshipId: string) => {
 		// Navigate to scholarship detail page
 		router.push(`/explore/scholarships/${scholarshipId}`)
 	}

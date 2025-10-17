@@ -22,7 +22,7 @@ export function ProgramsTab({
 }: ProgramsTabProps) {
 	const router = useRouter()
 
-	const handleProgramClick = (programId: number) => {
+	const handleProgramClick = (programId: string) => {
 		router.push(`/explore/programmes/${programId}?from=programmes`)
 	}
 
@@ -39,8 +39,8 @@ export function ProgramsTab({
 						key={program.id}
 						program={program}
 						index={index}
-						isWishlisted={isInWishlist(program.postId)}
-						onWishlistToggle={() => onWishlistToggle(program.postId)}
+						isWishlisted={isInWishlist(program.id)}
+						onWishlistToggle={() => onWishlistToggle(program.id)}
 						onClick={handleProgramClick}
 					/>
 				))

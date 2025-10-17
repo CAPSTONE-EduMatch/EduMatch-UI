@@ -21,9 +21,9 @@ const ProgramDetail = () => {
 	const params = useParams()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('overview')
-	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
+	const [scholarshipWishlist, setScholarshipWishlist] = useState<string[]>([])
 	const [currentPage, setCurrentPage] = useState(1)
-	const [programWishlist, setProgramWishlist] = useState<number[]>([])
+	const [programWishlist, setProgramWishlist] = useState<string[]>([])
 	const [carouselIndex, setCarouselIndex] = useState(0)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
@@ -108,19 +108,15 @@ const ProgramDetail = () => {
 		updateBreadcrumb()
 	}, [params.id, searchParams])
 
-	const handleWishlistToggle = (scholarshipId: number) => {
+	const handleWishlistToggle = (id: string) => {
 		setScholarshipWishlist((prev) =>
-			prev.includes(scholarshipId)
-				? prev.filter((id) => id !== scholarshipId)
-				: [...prev, scholarshipId]
+			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
 		)
 	}
 
-	const handleProgramWishlistToggle = (programId: number) => {
+	const handleProgramWishlistToggle = (id: string) => {
 		setProgramWishlist((prev) =>
-			prev.includes(programId)
-				? prev.filter((id) => id !== programId)
-				: [...prev, programId]
+			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
 		)
 	}
 
@@ -178,7 +174,7 @@ const ProgramDetail = () => {
 		setIsClosing(false)
 	}
 
-	const handleProgramClick = (programId: number) => {
+	const handleProgramClick = (programId: string) => {
 		// Get current tab context from referrer or default to programmes
 		const referrer = document.referrer
 		let fromTab = 'programmes'
@@ -191,7 +187,7 @@ const ProgramDetail = () => {
 		router.push(`/explore/${programId}?from=${fromTab}`)
 	}
 
-	const handleScholarshipClick = (scholarshipId: number) => {
+	const handleScholarshipClick = (scholarshipId: string) => {
 		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
 	}
 

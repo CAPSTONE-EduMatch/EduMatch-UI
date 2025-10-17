@@ -44,7 +44,12 @@ export async function GET(request: NextRequest) {
 					id: profile.applicant_id,
 					firstName: profile.first_name,
 					lastName: profile.last_name,
-					gender: profile.gender ? "male" : "female",
+					gender:
+						profile.gender === true
+							? "male"
+							: profile.gender === false
+								? "female"
+								: "",
 					birthday:
 						profile.birthday?.toISOString().split("T")[0] || "",
 					nationality: profile.nationality || "",

@@ -150,8 +150,8 @@ const WishlistTab = ({
 								<ProgramCard
 									program={program}
 									index={index}
-									isWishlisted={isInWishlist(program.postId)}
-									onWishlistToggle={() => onWishlistToggle(program.postId)}
+									isWishlisted={isInWishlist(program.id)}
+									onWishlistToggle={() => onWishlistToggle(program.id)}
 								/>
 							</motion.div>
 						))}
@@ -187,8 +187,8 @@ const WishlistTab = ({
 								<ScholarshipCard
 									scholarship={scholarship}
 									index={index}
-									isWishlisted={isInWishlist(scholarship.postId)}
-									onWishlistToggle={() => onWishlistToggle(scholarship.postId)}
+									isWishlisted={isInWishlist(scholarship.id)}
+									onWishlistToggle={() => onWishlistToggle(scholarship.id)}
 								/>
 							</motion.div>
 						))}
@@ -224,8 +224,8 @@ const WishlistTab = ({
 								<ResearchLabCard
 									lab={lab}
 									index={index}
-									isWishlisted={isInWishlist(lab.postId)}
-									onWishlistToggle={() => onWishlistToggle(lab.postId)}
+									isWishlisted={isInWishlist(lab.id)}
+									onWishlistToggle={() => onWishlistToggle(lab.id)}
 								/>
 							</motion.div>
 						))}

@@ -13,7 +13,7 @@ const ResearchLabDetail = () => {
 	const params = useParams()
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('job-description')
-	const [researchLabWishlist, setResearchLabWishlist] = useState<number[]>([])
+	const [researchLabWishlist, setResearchLabWishlist] = useState<string[]>([])
 	const [currentLab, setCurrentLab] = useState<any>(null)
 
 	// Dynamic info items based on current lab data
@@ -86,11 +86,9 @@ const ResearchLabDetail = () => {
 		updateBreadcrumb()
 	}, [params.id, searchParams])
 
-	const handleRResearchLabWishlistToggle = (researchLabId: number) => {
+	const handleRResearchLabWishlistToggle = (id: string) => {
 		setResearchLabWishlist((prev) =>
-			prev.includes(researchLabId)
-				? prev.filter((id) => id !== researchLabId)
-				: [...prev, researchLabId]
+			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
 		)
 	}
 
@@ -134,7 +132,7 @@ const ResearchLabDetail = () => {
 		setIsClosing(false)
 	}
 
-	const handleResearchLabClick = (researchLabId: number) => {
+	const handleResearchLabClick = (researchLabId: string) => {
 		// Navigate to research lab detail page
 		router.push(`/explore/research-labs/${researchLabId}?from=research`)
 	}

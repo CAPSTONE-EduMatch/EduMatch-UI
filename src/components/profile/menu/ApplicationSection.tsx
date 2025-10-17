@@ -5,13 +5,10 @@ import { Button } from '@/components/ui'
 import { SortDropdown } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { TabSelector } from '@/components/ui'
-import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
-import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
-import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
+// Removed unused tab components since we're using custom application cards
 import {
 	BookOpen,
 	Clock,
-	GraduationCap,
 	Users,
 	X,
 	Globe,
@@ -19,6 +16,7 @@ import {
 	Search,
 } from 'lucide-react'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
+import Image from 'next/image'
 
 // Extended interfaces for applications with status
 interface ApplicationProgram extends Program {
@@ -62,8 +60,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	const applicationPrograms: ApplicationProgram[] = useMemo(
 		() => [
 			{
-				id: 1,
-				postId: 'program_1',
+				id: 'program_1',
 				title: 'Master of Science in Computer Science',
 				description:
 					'Advanced program in computer science with focus on AI and machine learning',
@@ -80,8 +77,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				status: 'submitted',
 			},
 			{
-				id: 2,
-				postId: 'program_2',
+				id: 'program_2',
 				title: 'Master of Science in Data Science',
 				description:
 					'Comprehensive data science program covering analytics and big data',
@@ -104,8 +100,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	const applicationScholarships: ApplicationScholarship[] = useMemo(
 		() => [
 			{
-				id: 3,
-				postId: 'scholarship_1',
+				id: 'scholarship_1',
 				title: 'Fulbright Scholarship for International Students',
 				description:
 					'Full scholarship for international students pursuing graduate studies',
@@ -126,8 +121,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	const applicationResearchLabs: ApplicationResearchLab[] = useMemo(
 		() => [
 			{
-				id: 4,
-				postId: 'research_1',
+				id: 'research_1',
 				title: 'AI Research Lab - MIT',
 				description:
 					'Cutting-edge research in artificial intelligence and robotics',
@@ -221,10 +215,10 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	}
 
 	// Render application cards with status
-	const renderApplicationCards = (items: any[], type: string) => {
+	const renderApplicationCards = (items: any[]) => {
 		return (
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{items.map((item, index) => (
+				{items.map((item) => (
 					<div
 						key={item.id}
 						className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
@@ -232,7 +226,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						{/* Header with logo */}
 						<div className="flex justify-between items-start mb-4 gap-4">
 							<div className="flex-1">
-								<img
+								<Image
 									src={item.logo}
 									alt={item.university || item.provider}
 									width={120}
@@ -305,13 +299,13 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'programmes':
-				return renderApplicationCards(applicationPrograms, 'programmes')
+				return renderApplicationCards(applicationPrograms)
 			case 'scholarships':
-				return renderApplicationCards(applicationScholarships, 'scholarships')
+				return renderApplicationCards(applicationScholarships)
 			case 'research':
-				return renderApplicationCards(applicationResearchLabs, 'research')
+				return renderApplicationCards(applicationResearchLabs)
 			default:
-				return renderApplicationCards(applicationPrograms, 'programmes')
+				return renderApplicationCards(applicationPrograms)
 		}
 	}
 

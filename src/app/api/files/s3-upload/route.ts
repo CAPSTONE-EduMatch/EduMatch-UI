@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+	S3Client,
+	PutObjectCommand,
+	CreateMultipartUploadCommand,
+	UploadPartCommand,
+	CompleteMultipartUploadCommand,
+} from "@aws-sdk/client-s3";
 import { auth } from "@/app/lib/auth";
 
 const s3Client = new S3Client({
@@ -16,6 +22,58 @@ const BUCKET_NAME = process.env.S3_BUCKET_NAME || "edumatch-file-12";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+// Helper function for multipart upload (for files > 5MB)
+async function uploadLargeFile(
+	buffer: Buffer,
+	fileName: string,
+	contentType: string
+) {
+	const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+	const chunks = [];
+
+	for (let i = 0; i < buffer.length; i += chunkSize) {
+		chunks.push(buffer.slice(i, i + chunkSize));
+	}
+
+	// Create multipart upload
+	const createCommand = new CreateMultipartUploadCommand({
+		Bucket: BUCKET_NAME,
+		Key: fileName,
+		ContentType: contentType,
+	});
+
+	const { UploadId } = await s3Client.send(createCommand);
+
+	// Upload parts
+	const uploadPromises = chunks.map(async (chunk, index) => {
+		const uploadCommand = new UploadPartCommand({
+			Bucket: BUCKET_NAME,
+			Key: fileName,
+			PartNumber: index + 1,
+			UploadId,
+			Body: chunk,
+		});
+
+		const result = await s3Client.send(uploadCommand);
+		return {
+			ETag: result.ETag,
+			PartNumber: index + 1,
+		};
+	});
+
+	const parts = await Promise.all(uploadPromises);
+
+	// Complete multipart upload
+	const completeCommand = new CompleteMultipartUploadCommand({
+		Bucket: BUCKET_NAME,
+		Key: fileName,
+		UploadId,
+		MultipartUpload: { Parts: parts },
+	});
+
+	await s3Client.send(completeCommand);
+}
+
 export async function POST(request: NextRequest) {
 	try {
 		// Check if user is authenticated
@@ -30,6 +88,21 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Check content length before processing
+		const contentLength = request.headers.get("content-length");
+		if (contentLength) {
+			const sizeInMB = parseInt(contentLength) / (1024 * 1024);
+			// eslint-disable-next-line no-console
+			console.log(`📁 S3 Upload: Request size: ${sizeInMB.toFixed(2)}MB`);
+
+			if (sizeInMB > 10) {
+				return NextResponse.json(
+					{ error: "Request size exceeds 10MB limit" },
+					{ status: 413 }
+				);
+			}
+		}
+
 		const formData = await request.formData();
 		const file = formData.get("file") as File;
 		const category = (formData.get("category") as string) || "uploads";
@@ -41,12 +114,17 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// eslint-disable-next-line no-console
+		console.log(
+			`📁 S3 Upload: File ${file.name}, size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`
+		);
+
 		// Validate file size (10MB limit)
 		const maxSize = 10 * 1024 * 1024; // 10MB
 		if (file.size > maxSize) {
 			return NextResponse.json(
 				{ error: "File size exceeds 10MB limit" },
-				{ status: 400 }
+				{ status: 413 }
 			);
 		}
 
@@ -59,15 +137,22 @@ export async function POST(request: NextRequest) {
 		// Convert file to buffer
 		const buffer = Buffer.from(await file.arrayBuffer());
 
-		// Upload to S3
-		const command = new PutObjectCommand({
-			Bucket: BUCKET_NAME,
-			Key: fileName,
-			Body: buffer,
-			ContentType: file.type,
-		});
+		// Use multipart upload for files larger than 5MB
+		if (file.size > 5 * 1024 * 1024) {
+			// eslint-disable-next-line no-console
+			console.log(`📁 S3 Upload: Using multipart upload for large file`);
+			await uploadLargeFile(buffer, fileName, file.type);
+		} else {
+			// Use regular upload for smaller files
+			const command = new PutObjectCommand({
+				Bucket: BUCKET_NAME,
+				Key: fileName,
+				Body: buffer,
+				ContentType: file.type,
+			});
 
-		await s3Client.send(command);
+			await s3Client.send(command);
+		}
 
 		// Generate the public URL
 		const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${fileName}`;
@@ -85,9 +170,40 @@ export async function POST(request: NextRequest) {
 			id: `${timestamp}-${randomString}`,
 		});
 	} catch (error) {
-		// S3 upload error occurred
+		// eslint-disable-next-line no-console
+		console.error("❌ S3 Upload Error:", error);
+
+		// Check if it's a 413 error from the server
+		if (error instanceof Error && error.message.includes("413")) {
+			return NextResponse.json(
+				{
+					error: "File too large. Please reduce file size and try again.",
+				},
+				{ status: 413 }
+			);
+		}
+
+		// Check if it's a network or timeout error
+		if (
+			error instanceof Error &&
+			(error.message.includes("timeout") ||
+				error.message.includes("network"))
+		) {
+			return NextResponse.json(
+				{
+					error: "Upload timeout. Please try again with a smaller file.",
+				},
+				{ status: 408 }
+			);
+		}
+
+		// Generic S3 upload error
 		return NextResponse.json(
-			{ error: "Failed to upload file" },
+			{
+				error: "Failed to upload file",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
 			{ status: 500 }
 		);
 	}

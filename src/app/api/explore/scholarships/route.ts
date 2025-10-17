@@ -4,8 +4,7 @@ import { prismaClient } from "../../../../../prisma";
 
 // Define Scholarship type locally since it's not exported from explore-api
 interface Scholarship {
-	id: number;
-	postId: string; // Original post ID for API calls
+	id: string;
 	title: string;
 	description: string;
 	provider: string;
@@ -149,20 +148,8 @@ export async function GET(request: NextRequest) {
 				const applicationCount =
 					applicationCountMap.get(post.post_id) || 0;
 
-				// Create unique numeric ID by hashing the post ID
-				const hashCode = (str: string) => {
-					let hash = 0;
-					for (let i = 0; i < str.length; i++) {
-						const char = str.charCodeAt(i);
-						hash = (hash << 5) - hash + char;
-						hash = hash & hash; // Convert to 32bit integer
-					}
-					return Math.abs(hash);
-				};
-
 				const scholarship: Scholarship = {
-					id: hashCode(post.post_id),
-					postId: post.post_id, // Include original post ID for API calls
+					id: post.post_id, // Use the original post ID directly
 					title: post.title,
 					description: post.other_info || "No description available",
 					provider: postScholarship.type || "Provided by institution",

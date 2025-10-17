@@ -60,8 +60,7 @@ export interface ExploreApiResponse<T> {
 
 // Legacy interfaces for backward compatibility
 export interface Program {
-	id: number;
-	postId: string; // Original post ID for API calls
+	id: string;
 	title: string;
 	description: string;
 	university: string;
@@ -78,8 +77,7 @@ export interface Program {
 }
 
 export interface Scholarship {
-	id: number;
-	postId: string; // Original post ID for API calls
+	id: string;
 	title: string;
 	description: string;
 	provider: string;
@@ -94,8 +92,7 @@ export interface Scholarship {
 }
 
 export interface ResearchLab {
-	id: number;
-	postId: string; // Original post ID for API calls
+	id: string;
 	title: string;
 	description: string;
 	professor: string;

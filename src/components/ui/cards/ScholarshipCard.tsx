@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 
 interface ScholarshipCardProps {
 	scholarship: {
-		id: number
+		id: string
 		title: string
 		description: string
 		provider: string
@@ -19,8 +19,8 @@ interface ScholarshipCardProps {
 	}
 	index: number
 	isWishlisted: boolean
-	onWishlistToggle: (scholarshipId: number) => void
-	onClick?: (scholarshipId: number) => void
+	onWishlistToggle: (id: string) => void
+	onClick?: (scholarshipId: string) => void
 }
 
 export function ScholarshipCard({

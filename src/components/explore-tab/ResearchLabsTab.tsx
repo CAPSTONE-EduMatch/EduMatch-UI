@@ -20,7 +20,7 @@ export function ResearchLabsTab({
 }: ResearchLabsTabProps) {
 	const router = useRouter()
 
-	const handleLabClick = (labId: number) => {
+	const handleLabClick = (labId: string) => {
 		router.push(`/explore/research-labs/${labId}?from=research`)
 	}
 
@@ -32,8 +32,8 @@ export function ResearchLabsTab({
 						key={lab.id}
 						lab={lab}
 						index={index}
-						isWishlisted={isInWishlist(lab.postId)}
-						onWishlistToggle={() => onWishlistToggle(lab.postId)}
+						isWishlisted={isInWishlist(lab.id)}
+						onWishlistToggle={() => onWishlistToggle(lab.id)}
 						onClick={handleLabClick}
 					/>
 				))

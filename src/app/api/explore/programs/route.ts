@@ -2,9 +2,9 @@ import { ExploreApiResponse, PaginationMeta } from "@/types/explore-api";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 
-// Legacy Program interface for backward compatibility
+// Program interface with single string ID
 interface Program {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	university: string;
@@ -194,19 +194,8 @@ export async function GET(request: NextRequest) {
 					}
 				}
 
-				// Create unique numeric ID by hashing the post ID
-				const hashCode = (str: string) => {
-					let hash = 0;
-					for (let i = 0; i < str.length; i++) {
-						const char = str.charCodeAt(i);
-						hash = (hash << 5) - hash + char;
-						hash = hash & hash; // Convert to 32bit integer
-					}
-					return Math.abs(hash);
-				};
-
 				const program: Program = {
-					id: hashCode(post.post_id),
+					id: post.post_id, // Use the original post ID directly
 					title: post.title,
 					description: post.other_info || "No description available",
 					university: institution.name,

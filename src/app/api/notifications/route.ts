@@ -56,9 +56,26 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
+		// Transform notifications to match frontend interface
+		const transformedNotifications = notifications.map((notification) => ({
+			id: notification.notification_id,
+			userId: notification.user_id,
+			type: notification.type,
+			title: notification.title,
+			bodyText: notification.body,
+			url: notification.url || "",
+			payload: {}, // Empty payload for now
+			createAt: notification.send_at.toISOString(),
+			queuedAt:
+				notification.queued_at?.toISOString() ||
+				notification.send_at.toISOString(),
+			read_at: notification.read_at?.toISOString() || null,
+			status: "delivered", // Default status
+		}));
+
 		return NextResponse.json({
 			success: true,
-			notifications,
+			notifications: transformedNotifications,
 			pagination: {
 				total: totalCount,
 				unread: unreadCount,

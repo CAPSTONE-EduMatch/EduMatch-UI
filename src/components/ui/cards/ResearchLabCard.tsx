@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 
 interface ResearchLabCardProps {
 	lab: {
-		id: number
+		id: string
 		title: string
 		description: string
 		professor: string
@@ -18,8 +18,8 @@ interface ResearchLabCardProps {
 	}
 	index: number
 	isWishlisted: boolean
-	onWishlistToggle: (labId: number) => void
-	onClick?: (labId: number) => void
+	onWishlistToggle: (id: string) => void
+	onClick?: (labId: string) => void
 }
 
 export function ResearchLabCard({

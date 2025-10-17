@@ -20,6 +20,7 @@ import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
+import { useWishlist } from '@/hooks/useWishlist'
 import student from '../../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -36,6 +37,19 @@ const Explore = () => {
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist()
+
+	// Handle wishlist toggle
+	const handleWishlistToggle = async (postId: string) => {
+		try {
+			await toggleWishlistItem(postId)
+		} catch (error) {
+			console.error('Failed to toggle wishlist item:', error)
+			// You could add a toast notification here
+		}
+	}
 
 	// Initialize tab from URL parameter
 	useEffect(() => {
@@ -192,13 +206,37 @@ const Explore = () => {
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'programmes':
-				return <ProgramsTab programs={programs} />
+				return (
+					<ProgramsTab
+						programs={programs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 			case 'scholarships':
-				return <ScholarshipsTab scholarships={scholarships} />
+				return (
+					<ScholarshipsTab
+						scholarships={scholarships}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 			case 'research':
-				return <ResearchLabsTab researchLabs={researchLabs} />
+				return (
+					<ResearchLabsTab
+						researchLabs={researchLabs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 			default:
-				return <ProgramsTab programs={programs} />
+				return (
+					<ProgramsTab
+						programs={programs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 		}
 	}
 
@@ -251,7 +289,8 @@ const Explore = () => {
 					<div className="text-white">
 						<h1 className="text-2xl font-bold mb-2">John Dewey:</h1>
 						<p className="text-sm max-w-xl">
-							&ldquo;{t('quote.JohnDewey')}&rdquo;
+							&ldquo;Education is not preparation for life; education is life
+							itself.&rdquo;
 						</p>
 					</div>
 				</div>

@@ -1,7 +1,10 @@
 'use client'
 
 import { Button, Card, CardContent } from '@/components/ui'
-import { useUserManagement, type User } from '@/hooks/useUserManagementQuery'
+import {
+	useAdminUserManagement,
+	type User,
+} from '@/hooks/useAdminUserManagement'
 import { motion } from 'framer-motion'
 import {
 	Ban,
@@ -16,7 +19,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 interface UserManagementTableProps {
 	userType: 'applicant' | 'institution'
-	onViewDetails: (userId: string) => void
+	onViewDetails: (_userId: string) => void
 }
 
 const UserManagementTable = memo(function UserManagementTable({
@@ -35,12 +38,16 @@ const UserManagementTable = memo(function UserManagementTable({
 		banUser,
 		unbanUser,
 		removeUser,
-	} = useUserManagement()
+	} = useAdminUserManagement()
 
 	// Local state for UI - independent of query filters to prevent focus loss
 	const [searchInput, setSearchInput] = useState('')
-	const [statusFilter, setStatusFilter] = useState<string>('all')
-	const [sortBy, setSortBy] = useState(filters.sortBy || 'name')
+	const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>(
+		'all'
+	)
+	const [sortBy, setSortBy] = useState<'name' | 'email' | 'createdAt'>(
+		filters.sortBy || 'name'
+	)
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
 		filters.sortDirection || 'desc'
 	)
@@ -80,9 +87,7 @@ const UserManagementTable = memo(function UserManagementTable({
 			searchTimeoutRef.current = setTimeout(() => {
 				isSearchingRef.current = true
 				updateFilters({
-					searchValue: value.trim(),
-					searchField: 'name',
-					searchOperator: 'contains',
+					search: value.trim(),
 				})
 				setTimeout(() => {
 					isSearchingRef.current = false
@@ -111,39 +116,25 @@ const UserManagementTable = memo(function UserManagementTable({
 		}
 	}, [])
 
-	// Handle status filter with BetterAuth admin API - Updated for correct API values
+	// Handle status filter with new admin API
 	const handleStatusFilter = useCallback(
 		(status: string) => {
-			setStatusFilter(status)
-			if (status === 'all') {
-				updateFilters({
-					filterField: undefined,
-					filterValue: undefined,
-					filterOperator: undefined,
-				})
-			} else if (status === 'active') {
-				updateFilters({
-					filterField: 'banned',
-					filterValue: false,
-					filterOperator: 'eq',
-				})
-			} else if (status === 'banned') {
-				updateFilters({
-					filterField: 'banned',
-					filterValue: true,
-					filterOperator: 'eq',
-				})
-			}
+			const validStatus = status as 'all' | 'active' | 'banned'
+			setStatusFilter(validStatus)
+			updateFilters({
+				status: validStatus,
+			})
 		},
 		[updateFilters]
 	)
 
-	// Handle sorting with BetterAuth admin API
+	// Handle sorting with new admin API
 	const handleSort = useCallback(
 		(field: string) => {
-			setSortBy(field)
+			const validField = field as 'name' | 'email' | 'createdAt'
+			setSortBy(validField)
 			updateFilters({
-				sortBy: field,
+				sortBy: validField,
 				sortDirection: sortDirection,
 			})
 		},
@@ -161,7 +152,7 @@ const UserManagementTable = memo(function UserManagementTable({
 		[updateFilters, sortBy]
 	)
 
-	// Handle pagination with BetterAuth admin API
+	// Handle pagination with new admin API
 	const handlePageChange = useCallback(
 		(page: number) => {
 			setPage(page)

@@ -1,3 +1,4 @@
+import { checkAdminRole } from "@/lib/admin-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 // Inline route configuration to avoid Edge Runtime issues
@@ -13,6 +14,7 @@ const routeConfig = {
 		afterLogin: "/dashboard",
 		afterLogout: "/signin",
 		createProfile: "/profile/create-profile",
+		accessDenied: "/", // Redirect non-admin users here
 	},
 };
 
@@ -81,6 +83,7 @@ async function hasUserProfile(userId: string, request: NextRequest) {
 		}
 		return false;
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[MIDDLEWARE] Profile check error:", error);
 		return false;
 	}
@@ -90,6 +93,7 @@ export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
 	// Debug: Log all requests
+	// eslint-disable-next-line no-console
 	console.log(`[MIDDLEWARE] Processing: ${pathname}`);
 
 	// Skip middleware for static files and API routes (except auth API)
@@ -99,6 +103,7 @@ export async function middleware(request: NextRequest) {
 		pathname.includes(".") ||
 		pathname.startsWith("/favicon")
 	) {
+		// eslint-disable-next-line no-console
 		console.log(`[MIDDLEWARE] Skipping: ${pathname}`);
 		return NextResponse.next();
 	}
@@ -108,6 +113,7 @@ export async function middleware(request: NextRequest) {
 		const { isAuthenticated, userId } = await checkAuthentication(request);
 
 		// Debug logging
+		// eslint-disable-next-line no-console
 		console.log(`[MIDDLEWARE] ${pathname} - Auth: ${isAuthenticated}`);
 
 		// Route flags
@@ -121,6 +127,10 @@ export async function middleware(request: NextRequest) {
 		);
 
 		const isAuthModalRoute = routeConfig.authModalRoutes.includes(pathname);
+
+		const isAdminRoute = routeConfig.adminRoutes.some((route: string) =>
+			pathname.startsWith(route)
+		);
 
 		const requiresProfile = routeConfig.profileRequiredRoutes.some(
 			(route: string) => pathname.startsWith(route)
@@ -147,6 +157,33 @@ export async function middleware(request: NextRequest) {
 		// Handle auth modal routes - allow access but let component handle auth
 		if (isAuthModalRoute) {
 			return NextResponse.next();
+		}
+
+		// Handle admin routes - require authentication and admin role
+		if (isAdminRoute) {
+			if (!isAuthenticated) {
+				// Store the attempted URL to redirect after login
+				const response = NextResponse.redirect(
+					new URL(
+						routeConfig.defaultRedirects.afterLogout,
+						request.url
+					)
+				);
+				response.cookies.set("redirectAfterLogin", pathname);
+				return response;
+			}
+
+			// Check if user has admin role
+			const isAdmin = await checkAdminRole(request);
+			if (!isAdmin) {
+				// Redirect non-admin users to dashboard with access denied
+				return NextResponse.redirect(
+					new URL(
+						routeConfig.defaultRedirects.accessDenied,
+						request.url
+					)
+				);
+			}
 		}
 
 		// Handle protected routes

@@ -1,8 +1,8 @@
+import { QueryProvider } from '@/providers/query-provider'
 import type { Metadata } from 'next'
+import { NextIntlClientProvider } from 'next-intl'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { NextIntlClientProvider } from 'next-intl'
-import { ConditionalLayout } from '@/components/layout/conditional-layout'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -18,11 +18,13 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={inter.className}>
-				<NextIntlClientProvider>
-					{/* <ConditionalLayout> */}
-					{children}
-					{/* </ConditionalLayout> */}
-				</NextIntlClientProvider>
+				<QueryProvider>
+					<NextIntlClientProvider>
+						{/* <ConditionalLayout> */}
+						{children}
+						{/* </ConditionalLayout> */}
+					</NextIntlClientProvider>
+				</QueryProvider>
 			</body>
 		</html>
 	)

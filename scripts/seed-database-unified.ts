@@ -669,6 +669,8 @@ async function seedOpportunityPosts() {
 	console.log("📝 Seeding opportunity posts...");
 
 	const posts = [];
+	const now = new Date();
+
 	for (let i = 1; i <= 200; i++) {
 		const field = getRandomElement(fields);
 		const university = getRandomElement(universities);
@@ -677,11 +679,23 @@ async function seedOpportunityPosts() {
 		const status: "PUBLISHED" | "DRAFT" =
 			Math.random() < 0.7 ? "PUBLISHED" : "DRAFT";
 
+		// Create random start_date in the past (within last 30 days)
+		const startDate = new Date(
+			now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000
+		);
+
+		// Create end_date between 30 to 180 days in the future from start_date
+		const daysUntilDeadline = Math.floor(Math.random() * 150) + 30; // 30-180 days
+		const endDate = new Date(
+			startDate.getTime() + daysUntilDeadline * 24 * 60 * 60 * 1000
+		);
+
 		posts.push({
 			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
 			title: `${university} ${field} Program`,
-			start_date: new Date(),
-			create_at: new Date(),
+			start_date: startDate,
+			end_date: endDate,
+			create_at: startDate,
 			institution_id: `user-${(Math.floor(Math.random() * 10) + 11).toString().padStart(3, "0")}`,
 			status: status,
 		});

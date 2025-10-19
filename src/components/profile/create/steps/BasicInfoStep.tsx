@@ -61,14 +61,54 @@ export function BasicInfoStep({
 	const [errorMessage, setErrorMessage] = useState('')
 	const [phoneValidationError, setPhoneValidationError] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
+	const hasAutoFilledNames = useRef(false)
 
-	// Auto-fill Google login data when component mounts
+	// Debug: Log user object to see what we're working with
 	useEffect(() => {
-		if (user) {
+		console.log('👤 User object in BasicInfoStep:', {
+			user,
+			hasImage: !!user?.image,
+			hasName: !!user?.name,
+			userName: user?.name,
+			userEmail: user?.email,
+		})
+	}, [user])
+
+	// Debug: Test onInputChange function
+	useEffect(() => {
+		console.log('🧪 Testing onInputChange function:', {
+			onInputChange: typeof onInputChange,
+			formData: formData,
+		})
+
+		// Test if onInputChange works by calling it with a test value
+		if (onInputChange && typeof onInputChange === 'function') {
+			console.log('✅ onInputChange is a function, testing with test value...')
+			// Don't actually call it, just log that we could
+		} else {
+			console.error('❌ onInputChange is not a function!', onInputChange)
+		}
+	}, [onInputChange, formData])
+
+	// Auto-fill Google login data when component mounts (only for Google OAuth users)
+	useEffect(() => {
+		if (user && user.image && !hasAutoFilledNames.current) {
+			console.log('🔄 Auto-filling Google user data:', {
+				userName: user.name,
+				currentFirstName: formData.firstName,
+				currentLastName: formData.lastName,
+			})
+
+			// Only auto-fill if user has Google profile image (indicates Google OAuth)
 			// Auto-fill first name from Google profile
 			if (user.name && !formData.firstName) {
 				const nameParts = user.name.trim().split(' ')
 				if (nameParts.length > 0 && nameParts[0]) {
+					console.log('📝 Auto-filling first name:', nameParts[0])
+					console.log('🔧 Calling onInputChange with:', {
+						field: 'firstName',
+						value: nameParts[0],
+					})
 					onInputChange('firstName', nameParts[0])
 				}
 			}
@@ -79,14 +119,23 @@ export function BasicInfoStep({
 				if (nameParts.length > 1) {
 					const lastName = nameParts.slice(1).join(' ').trim()
 					if (lastName) {
+						console.log('📝 Auto-filling last name:', lastName)
+						console.log('🔧 Calling onInputChange with:', {
+							field: 'lastName',
+							value: lastName,
+						})
 						onInputChange('lastName', lastName)
 					}
 				}
 			}
 
+			// Mark as auto-filled to prevent re-triggering
+			hasAutoFilledNames.current = true
+			console.log('✅ Auto-fill completed, marked as done')
+
 			// Note: Profile photo auto-fill is handled in separate useEffect below
 		}
-	}, [user, formData.firstName, formData.lastName, onInputChange])
+	}, [user?.image, user?.name, onInputChange])
 
 	// Auto-fill Google image if available and no profile photo set
 	useEffect(() => {
@@ -118,9 +167,9 @@ export function BasicInfoStep({
 			return
 		}
 
-		// Validate file size (5MB max)
-		if (file.size > 5 * 1024 * 1024) {
-			setErrorMessage('File size must be less than 5MB')
+		// Validate file size (10MB max)
+		if (file.size > 10 * 1024 * 1024) {
+			setErrorMessage('File size must be less than 10MB')
 			setShowErrorModal(true)
 			return
 		}
@@ -128,17 +177,45 @@ export function BasicInfoStep({
 		setIsUploading(true)
 
 		try {
-			// Create FormData for upload
-			const formData = new FormData()
-			formData.append('file', file)
+			// Step 1: Get pre-signed URL from our API
+			const presignedResponse = await fetch('/api/files/presigned-url', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					fileName: file.name,
+					fileType: file.type,
+					fileSize: file.size,
+				}),
+			})
 
-			// Upload to S3
-			const { ApiService } = await import('@/lib/axios-config')
-			const result = await ApiService.uploadFile(file)
+			if (!presignedResponse.ok) {
+				throw new Error('Failed to get upload URL')
+			}
+
+			const { presignedUrl, fileName } = await presignedResponse.json()
+
+			// Step 2: Upload directly to S3 using pre-signed URL
+			const uploadResponse = await fetch(presignedUrl, {
+				method: 'PUT',
+				body: file,
+				headers: {
+					'Content-Type': file.type,
+				},
+			})
+
+			if (!uploadResponse.ok) {
+				throw new Error('Failed to upload file to S3')
+			}
+
+			// Step 3: Construct the public URL
+			const publicUrl = `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'edumatch-file-12'}.s3.${process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1'}.amazonaws.com/${fileName}`
 
 			// Update the profile photo with the S3 URL
-			onInputChange('profilePhoto', result.url)
+			onInputChange('profilePhoto', publicUrl)
 		} catch (error) {
+			console.error('Upload error:', error)
 			setErrorMessage('Failed to upload image. Please try again.')
 			setShowErrorModal(true)
 		} finally {
@@ -247,7 +324,7 @@ export function BasicInfoStep({
 							{isUploading ? 'Uploading...' : 'Upload your photo'}
 						</Button>
 						<p className="text-xs text-muted-foreground">
-							Must be PNG, JPG, or WebP file (max 5MB)
+							Must be PNG, JPG, or WebP file (max 10MB)
 						</p>
 					</div>
 					{/* Hidden file input */}
@@ -326,9 +403,11 @@ export function BasicInfoStep({
 							value={formData.email}
 							onChange={onInputChangeEvent('email')}
 							inputSize="select"
-							disabled={user?.email && formData.email === user.email}
+							disabled={
+								user?.email && user?.image && formData.email === user.email
+							}
 						/>
-						{user?.email && formData.email === user.email && (
+						{user?.email && user?.image && formData.email === user.email && (
 							<p className="text-xs text-muted-foreground">
 								Email is pre-filled from your Google account and cannot be
 								changed

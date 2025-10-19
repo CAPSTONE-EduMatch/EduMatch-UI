@@ -21,8 +21,6 @@ export default function CreateProfile() {
 	const [isTransitioning, setIsTransitioning] = useState(false)
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
-	const [hasExistingProfile, setHasExistingProfile] = useState(false)
-	const [isCheckingProfile, setIsCheckingProfile] = useState(true)
 
 	// Use the authentication check hook
 	const {
@@ -32,49 +30,6 @@ export default function CreateProfile() {
 		isLoading,
 		user,
 	} = useAuthCheck()
-
-	// Check if user already has a profile
-	useEffect(() => {
-		const checkExistingProfile = async () => {
-			if (!isAuthenticated) {
-				setIsCheckingProfile(false)
-				return
-			}
-
-			try {
-				const response = await fetch('/api/profile')
-
-				if (response.ok) {
-					const profileData = await response.json()
-					if (profileData && profileData.profile && profileData.profile.id) {
-						// User already has a profile, redirect to appropriate dashboard
-						setHasExistingProfile(true)
-						if (profileData.profile.role === 'applicant') {
-							router.push('/explore')
-						} else if (profileData.profile.role === 'institution') {
-							router.push('/institution-profile/view')
-						} else {
-							router.push('/')
-						}
-						return
-					}
-				} else if (response.status === 404) {
-					// Profile not found, user can create one
-					// User can proceed with profile creation
-				} else {
-					// Other error, still allow creation
-					// Allow user to proceed with profile creation
-				}
-			} catch (error) {
-				// On error, allow creation
-				// Error is logged but user can still create profile
-			} finally {
-				setIsCheckingProfile(false)
-			}
-		}
-
-		checkExistingProfile()
-	}, [isAuthenticated, router])
 
 	const [formData, setFormData] = useState<ProfileFormData>({
 		role: '',
@@ -131,15 +86,29 @@ export default function CreateProfile() {
 		transcriptFiles: [],
 	})
 
-	// Pre-fill email if user is authenticated
+	// Debug: Log user object in CreateProfile
 	useEffect(() => {
-		if (isAuthenticated && user?.email && !formData.email) {
+		console.log('🏠 CreateProfile - User object:', {
+			user,
+			hasUser: !!user,
+			hasImage: !!user?.image,
+			hasName: !!user?.name,
+			userName: user?.name,
+			userEmail: user?.email,
+			isAuthenticated,
+		})
+	}, [user, isAuthenticated])
+
+	// Pre-fill email if user is authenticated (only for Google OAuth users)
+	useEffect(() => {
+		if (isAuthenticated && user?.email && user?.image && !formData.email) {
+			// Only pre-fill email for Google OAuth users (indicated by user.image)
 			setFormData((prev) => ({
 				...prev,
 				email: user.email,
 			}))
 		}
-	}, [isAuthenticated, user, formData.email])
+	}, [isAuthenticated, user?.email, user?.image, formData.email])
 
 	const handleNext = () => {
 		const maxStep = formData.role === 'applicant' ? 4 : 4
@@ -248,10 +217,11 @@ export default function CreateProfile() {
 	}
 
 	const handleCheckboxChange =
-		(field: keyof ProfileFormData) => (_checked: boolean) => {
+		(field: keyof ProfileFormData) => (checked: boolean) => {
 			if (field === 'graduationStatus') {
 				// This will be handled by the AcademicInfoStep component directly
 				// We just need to provide the function signature
+				console.log('Checkbox changed:', field, checked)
 			}
 		}
 
@@ -299,17 +269,15 @@ export default function CreateProfile() {
 		}
 	}
 
-	// Show loading state while checking profile or auth
-	if (isCheckingProfile || isLoading) {
+	// Show loading state only while checking auth
+	if (isLoading) {
 		return (
 			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
 				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
 					<CardContent className="p-8">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-							<p className="text-muted-foreground">
-								Checking profile status...
-							</p>
+							<p className="text-muted-foreground">Loading...</p>
 						</div>
 					</CardContent>
 				</Card>
@@ -355,11 +323,6 @@ export default function CreateProfile() {
 				<AuthRequiredModal isOpen={showAuthModal} onClose={closeAuthModal} />
 			</div>
 		)
-	}
-
-	// Don't render the form if user already has a profile
-	if (hasExistingProfile) {
-		return null
 	}
 
 	return (

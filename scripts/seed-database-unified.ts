@@ -366,6 +366,13 @@ async function cleanDatabase() {
 		await prismaClient.applicantDocument.deleteMany({});
 		await prismaClient.institutionDocument.deleteMany({});
 
+		// Delete records that reference applicants before deleting applicants
+		await prismaClient.applicantInterest.deleteMany({});
+		await prismaClient.applicantSubscription.deleteMany({});
+		await prismaClient.supportRequirement.deleteMany({
+			where: { applicant_id: { not: null } },
+		});
+
 		// Delete profiles before sub_disciplines (since profiles reference sub_disciplines)
 		await prismaClient.applicant.deleteMany({});
 		await prismaClient.institution.deleteMany({});
@@ -375,12 +382,14 @@ async function cleanDatabase() {
 		await prismaClient.verification.deleteMany({});
 		await prismaClient.account.deleteMany({});
 
+		// Delete users before roles (since users reference roles)
+		await prismaClient.user.deleteMany({});
+
 		// Delete main entities
 		await prismaClient.subdiscipline.deleteMany({});
 		await prismaClient.discipline.deleteMany({});
 		await prismaClient.plan.deleteMany({});
 		await prismaClient.role.deleteMany({});
-		await prismaClient.user.deleteMany({});
 
 		console.log("✅ Database cleaned successfully");
 	} catch (error) {

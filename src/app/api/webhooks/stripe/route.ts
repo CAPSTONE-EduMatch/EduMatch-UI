@@ -254,6 +254,10 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 		);
 	}
 
+	// NOTE: For subscription.created events, we always create NEW subscription records
+	// This maintains proper subscription history when users cancel and resubscribe
+	// We only update existing records if they have the exact same stripeSubscriptionId
+
 	try {
 		// eslint-disable-next-line no-console
 		console.log(
@@ -309,15 +313,10 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 
 			// Continue with Better Auth subscription creation only
 			// Create or update subscription in Better Auth table
-			// Check for existing subscription by either referenceId or stripeSubscriptionId
+			// For subscription.created events, only check by stripeSubscriptionId
 			const existingSubscription =
 				await prismaClient.subscription.findFirst({
-					where: {
-						OR: [
-							{ referenceId: user.id },
-							{ stripeSubscriptionId: subscription.id },
-						],
-					},
+					where: { stripeSubscriptionId: subscription.id },
 				});
 
 			try {
@@ -412,19 +411,15 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 		console.log("✅ Found plan ID:", planId);
 
 		// Create or update subscription in Better Auth table
-		// Check for existing subscription by either referenceId or stripeSubscriptionId
+		// For subscription.created events, we should create a new record unless
+		// a subscription with the exact same stripeSubscriptionId already exists
 		const existingSubscription = await prismaClient.subscription.findFirst({
-			where: {
-				OR: [
-					{ referenceId: user.id },
-					{ stripeSubscriptionId: subscription.id },
-				],
-			},
+			where: { stripeSubscriptionId: subscription.id },
 		});
 
 		// eslint-disable-next-line no-console
 		console.log(
-			"🔍 Existing Better Auth subscription:",
+			"🔍 Existing Better Auth subscription by Stripe ID:",
 			existingSubscription ? existingSubscription.id : "None"
 		);
 
@@ -433,7 +428,9 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 		try {
 			if (existingSubscription) {
 				// eslint-disable-next-line no-console
-				console.log("🔄 Updating existing Better Auth subscription");
+				console.log(
+					"🔄 Updating existing Better Auth subscription (same Stripe ID)"
+				);
 
 				// Ensure the subscription belongs to the correct user
 				const updatedSubscription =
@@ -470,7 +467,9 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 				);
 			} else {
 				// eslint-disable-next-line no-console
-				console.log("🆕 Creating new Better Auth subscription");
+				console.log(
+					"🆕 Creating new Better Auth subscription (new subscription)"
+				);
 
 				const newSubscription = await prismaClient.subscription.create({
 					data: {
@@ -540,7 +539,8 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 			}
 		}
 
-		// Create or update in the appropriate subscription table
+		// Create in the appropriate subscription table
+		// For subscription.created events, always create new records
 		const subscriptionStatus = convertSubscriptionStatus(
 			subscription.status
 		);
@@ -551,35 +551,21 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 			});
 
 			if (applicant) {
-				// Check for existing applicant subscription
-				const existingApplicantSub =
-					await prismaClient.applicantSubscription.findFirst({
-						where: { applicant_id: applicant.applicant_id },
-					});
+				// eslint-disable-next-line no-console
+				console.log("🆕 Creating new applicant subscription record");
 
-				if (existingApplicantSub) {
-					await prismaClient.applicantSubscription.update({
-						where: {
-							subscription_id:
-								existingApplicantSub.subscription_id,
-						},
-						data: {
-							plan_id: planId,
-							status: subscriptionStatus,
-							better_auth_sub_id: betterAuthSubscriptionId,
-						},
-					});
-				} else {
-					await prismaClient.applicantSubscription.create({
-						data: {
-							subscription_id: crypto.randomUUID(),
-							applicant_id: applicant.applicant_id,
-							plan_id: planId,
-							status: subscriptionStatus,
-							better_auth_sub_id: betterAuthSubscriptionId,
-						},
-					});
-				}
+				await prismaClient.applicantSubscription.create({
+					data: {
+						subscription_id: crypto.randomUUID(),
+						applicant_id: applicant.applicant_id,
+						plan_id: planId,
+						status: subscriptionStatus,
+						better_auth_sub_id: betterAuthSubscriptionId,
+					},
+				});
+
+				// eslint-disable-next-line no-console
+				console.log("✅ Created new applicant subscription");
 			}
 		} else if (userType === "institution") {
 			const institution = await prismaClient.institution.findUnique({
@@ -587,35 +573,21 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 			});
 
 			if (institution) {
-				// Check for existing institution subscription
-				const existingInstitutionSub =
-					await prismaClient.institutionSubscription.findFirst({
-						where: { institution_id: institution.institution_id },
-					});
+				// eslint-disable-next-line no-console
+				console.log("🆕 Creating new institution subscription record");
 
-				if (existingInstitutionSub) {
-					await prismaClient.institutionSubscription.update({
-						where: {
-							subscription_id:
-								existingInstitutionSub.subscription_id,
-						},
-						data: {
-							plan_id: planId,
-							status: subscriptionStatus,
-							better_auth_sub_id: betterAuthSubscriptionId,
-						},
-					});
-				} else {
-					await prismaClient.institutionSubscription.create({
-						data: {
-							subscription_id: crypto.randomUUID(),
-							institution_id: institution.institution_id,
-							plan_id: planId,
-							status: subscriptionStatus,
-							better_auth_sub_id: betterAuthSubscriptionId,
-						},
-					});
-				}
+				await prismaClient.institutionSubscription.create({
+					data: {
+						subscription_id: crypto.randomUUID(),
+						institution_id: institution.institution_id,
+						plan_id: planId,
+						status: subscriptionStatus,
+						better_auth_sub_id: betterAuthSubscriptionId,
+					},
+				});
+
+				// eslint-disable-next-line no-console
+				console.log("✅ Created new institution subscription");
 			}
 		}
 

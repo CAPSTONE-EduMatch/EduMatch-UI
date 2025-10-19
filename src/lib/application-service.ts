@@ -93,6 +93,14 @@ class ApplicationService {
 		});
 	}
 
+	// Update application status (alias for updateApplication)
+	async updateApplicationStatus(
+		applicationId: string,
+		updateData: ApplicationUpdateRequest
+	): Promise<ApplicationUpdateResponse> {
+		return this.updateApplication(applicationId, updateData);
+	}
+
 	// Cancel/delete application
 	async cancelApplication(
 		applicationId: string

@@ -49,6 +49,14 @@ export const useWishlist = (
 ): UseWishlistReturn => {
 	const { autoFetch = true, initialParams = {} } = options;
 
+	// Default params for better UX - fetch more items by default
+	const defaultParams: WishlistQueryParams = {
+		page: 1,
+		limit: 100, // Increased default limit
+		status: 1, // Only active items
+		...initialParams, // Override with provided params
+	};
+
 	// State
 	const [items, setItems] = useState<WishlistItem[]>([]);
 	const [stats, setStats] = useState<WishlistStats | null>(null);
@@ -61,7 +69,7 @@ export const useWishlist = (
 		totalPages: number;
 	} | null>(null);
 	const [params, setParamsState] =
-		useState<WishlistQueryParams>(initialParams);
+		useState<WishlistQueryParams>(defaultParams);
 
 	// Fetch wishlist items
 	const fetchWishlist = useCallback(

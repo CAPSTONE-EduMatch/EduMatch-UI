@@ -102,8 +102,12 @@ export async function GET(request: NextRequest) {
 								select: {
 									name: true,
 									logo: true,
+									country: true,
 								},
 							},
+							programPost: true,
+							scholarshipPost: true,
+							jobPost: true,
 						},
 					},
 					details: {
@@ -136,10 +140,90 @@ export async function GET(request: NextRequest) {
 			post: {
 				id: app.post.post_id,
 				title: app.post.title,
+				startDate: app.post.start_date.toISOString(),
+				endDate: app.post.end_date?.toISOString(),
+				location: app.post.location || undefined,
+				otherInfo: app.post.other_info || undefined,
 				institution: {
 					name: app.post.institution.name,
 					logo: app.post.institution.logo,
+					country: app.post.institution.country || undefined,
 				},
+				program: app.post.programPost
+					? {
+							post_id: app.post.programPost.post_id,
+							duration: app.post.programPost.duration,
+							degree_level: app.post.programPost.degree_level,
+							attendance: app.post.programPost.attendance,
+							course_include:
+								app.post.programPost.course_include ||
+								undefined,
+							gpa: app.post.programPost.gpa
+								? Number(app.post.programPost.gpa)
+								: undefined,
+							gre: app.post.programPost.gre || undefined,
+							gmat: app.post.programPost.gmat || undefined,
+							tuition_fee: app.post.programPost.tuition_fee
+								? Number(app.post.programPost.tuition_fee)
+								: undefined,
+							fee_description:
+								app.post.programPost.fee_description ||
+								undefined,
+							scholarship_info:
+								app.post.programPost.scholarship_info ||
+								undefined,
+						}
+					: undefined,
+				scholarship: app.post.scholarshipPost
+					? {
+							post_id: app.post.scholarshipPost.post_id,
+							description: app.post.scholarshipPost.description,
+							type: app.post.scholarshipPost.type,
+							number: app.post.scholarshipPost.number,
+							grant: app.post.scholarshipPost.grant || undefined,
+							scholarship_coverage:
+								app.post.scholarshipPost.scholarship_coverage ||
+								undefined,
+							essay_required:
+								app.post.scholarshipPost.essay_required ||
+								undefined,
+							eligibility:
+								app.post.scholarshipPost.eligibility ||
+								undefined,
+						}
+					: undefined,
+				job: app.post.jobPost
+					? {
+							post_id: app.post.jobPost.post_id,
+							contract_type: app.post.jobPost.contract_type,
+							attendance: app.post.jobPost.attendance,
+							job_type: app.post.jobPost.job_type,
+							min_salary: app.post.jobPost.min_salary
+								? Number(app.post.jobPost.min_salary)
+								: undefined,
+							max_salary: app.post.jobPost.max_salary
+								? Number(app.post.jobPost.max_salary)
+								: undefined,
+							salary_description:
+								app.post.jobPost.salary_description ||
+								undefined,
+							benefit: app.post.jobPost.benefit || undefined,
+							main_responsibility:
+								app.post.jobPost.main_responsibility ||
+								undefined,
+							qualification_requirement:
+								app.post.jobPost.qualification_requirement ||
+								undefined,
+							experience_requirement:
+								app.post.jobPost.experience_requirement ||
+								undefined,
+							assessment_criteria:
+								app.post.jobPost.assessment_criteria ||
+								undefined,
+							other_requirement:
+								app.post.jobPost.other_requirement || undefined,
+						}
+					: undefined,
 			},
 		}));
 
@@ -323,6 +407,7 @@ export async function POST(request: NextRequest) {
 				post: {
 					id: post.post_id,
 					title: post.title,
+					startDate: new Date().toISOString(), // Default value
 					institution: {
 						name: "Institution Name", // Will be populated in full response
 					},

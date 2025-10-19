@@ -32,9 +32,52 @@ export interface Application {
 	post: {
 		id: string;
 		title: string;
+		startDate: string;
+		endDate?: string;
+		location?: string;
+		otherInfo?: string;
 		institution: {
 			name: string;
 			logo?: string | null;
+			country?: string;
+		};
+		program?: {
+			post_id: string;
+			duration: string;
+			degree_level: string;
+			attendance: string;
+			course_include?: string;
+			gpa?: number;
+			gre?: number;
+			gmat?: number;
+			tuition_fee?: number;
+			fee_description?: string;
+			scholarship_info?: string;
+		};
+		scholarship?: {
+			post_id: string;
+			description: string;
+			type: string;
+			number: number;
+			grant?: string;
+			scholarship_coverage?: string;
+			essay_required?: boolean;
+			eligibility?: string;
+		};
+		job?: {
+			post_id: string;
+			contract_type: string;
+			attendance: string;
+			job_type: string;
+			min_salary?: number;
+			max_salary?: number;
+			salary_description?: string;
+			benefit?: string;
+			main_responsibility?: string;
+			qualification_requirement?: string;
+			experience_requirement?: string;
+			assessment_criteria?: string;
+			other_requirement?: string;
 		};
 	};
 }

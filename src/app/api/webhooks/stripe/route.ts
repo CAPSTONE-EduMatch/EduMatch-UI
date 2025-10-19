@@ -157,10 +157,33 @@ export async function POST(req: NextRequest) {
 		const body = await req.text();
 		const signature = (await headers()).get("stripe-signature");
 
+		// Debug logging
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.log("🔍 Webhook Debug Info:");
+			// eslint-disable-next-line no-console
+			console.log("Body length:", body.length);
+			// eslint-disable-next-line no-console
+			console.log("Signature present:", !!signature);
+			// eslint-disable-next-line no-console
+			console.log("Webhook secret configured:", !!webhookSecret);
+		}
+
 		if (!signature) {
+			// eslint-disable-next-line no-console
+			console.error("❌ No stripe-signature header found");
 			return NextResponse.json(
 				{ error: "No signature found" },
 				{ status: 400 }
+			);
+		}
+
+		if (!webhookSecret) {
+			// eslint-disable-next-line no-console
+			console.error("❌ STRIPE_WEBHOOK_SECRET not configured");
+			return NextResponse.json(
+				{ error: "Webhook secret not configured" },
+				{ status: 500 }
 			);
 		}
 
@@ -176,12 +199,46 @@ export async function POST(req: NextRequest) {
 			const error = err as Error;
 			// eslint-disable-next-line no-console
 			console.error(
-				`Webhook signature verification failed: ${error.message}`
+				`❌ Webhook signature verification failed: ${error.message}`
 			);
-			return NextResponse.json(
-				{ error: `Webhook Error: ${error.message}` },
-				{ status: 400 }
-			);
+			// eslint-disable-next-line no-console
+			console.error("Signature header:", signature);
+			// eslint-disable-next-line no-console
+			console.error("Body sample:", body.substring(0, 200));
+
+			// In development, allow processing without signature verification
+			// This is ONLY for debugging - remove in production
+			if (
+				process.env.NODE_ENV === "development" &&
+				process.env.ALLOW_UNSAFE_WEBHOOK === "true"
+			) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Processing webhook without signature verification (DEVELOPMENT ONLY)"
+				);
+
+				try {
+					event = JSON.parse(body);
+				} catch (parseError) {
+					// eslint-disable-next-line no-console
+					console.error(
+						"❌ Failed to parse webhook body:",
+						parseError
+					);
+					return NextResponse.json(
+						{ error: "Invalid JSON body" },
+						{ status: 400 }
+					);
+				}
+			} else {
+				return NextResponse.json(
+					{
+						error: `Webhook Error: ${error.message}`,
+						code: "WEBHOOK_ERROR_NO_SIGNATURES_FOUND_MATCHING_THE_EXPECTED_SIGNATURE_FOR_PAYLOAD_ARE_YOU_PASSING_THE_RAW_REQUEST_BODY_YOU_RECEIVED_FROM_STRIPE__IF_A_WEBHOOK_REQUEST_IS_BEING_FORWARDED_BY_A_THIRDPARTY_TOOL_ENSURE_THAT_THE_EXACT_REQUEST_BODY_INCLUDING_JSON_FORMATTING_AND_NEW_LINE_STYLE_IS_PRESERVEDLEARN_MORE_ABOUT_WEBHOOK_SIGNING_AND_EXPLORE_WEBHOOK_INTEGRATION_EXAMPLES_FOR_VARIOUS_FRAMEWORKS_AT_HTTPSDOCSSTRIPECOMWEBHOOKSSIGNATURE",
+					},
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Handle the event

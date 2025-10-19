@@ -37,100 +37,133 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Verify user has access to this thread
+		// Verify user has access to this thread (now called Box)
 		console.log(
-			"Checking thread access for user:",
+			"Checking box access for user:",
 			session.user.id,
-			"thread:",
+			"box:",
 			threadId
 		);
-		const thread = await prismaClient.thread.findFirst({
+		const box = await prismaClient.box.findFirst({
 			where: {
-				id: threadId,
+				box_id: threadId,
 				OR: [
-					{ createdBy: session.user.id },
-					{ participantId: session.user.id },
+					{ user_one_id: session.user.id },
+					{ user_two_id: session.user.id },
 				],
 			},
 		});
 
 		console.log(
-			"Thread found:",
-			thread ? "Yes" : "No",
-			thread
+			"Box found:",
+			box ? "Yes" : "No",
+			box
 				? {
-						id: thread.id,
-						createdBy: thread.createdBy,
-						participantId: thread.participantId,
+						box_id: box.box_id,
+						user_one_id: box.user_one_id,
+						user_two_id: box.user_two_id,
 					}
 				: null
 		);
 
-		if (!thread) {
-			// Thread doesn't exist in PostgreSQL, but might exist in AppSync
+		if (!box) {
+			// Box doesn't exist in PostgreSQL, but might exist in AppSync
 			// This can happen when using the hybrid approach
 			console.log(
-				"Thread not found in PostgreSQL, this might be an AppSync-only thread"
+				"Box not found in PostgreSQL, this might be an AppSync-only box"
 			);
 			return NextResponse.json(
 				{
-					error: "Thread not found in database. Please refresh and try again.",
+					error: "Box not found in database. Please refresh and try again.",
 				},
 				{ status: 404 }
 			);
 		}
 
 		// Create message
-		const message = await prismaClient.mesage.create({
+		const message = await prismaClient.message.create({
 			data: {
-				id: crypto.randomUUID(),
-				senderId: session.user.id,
-				threadId,
+				message_id: crypto.randomUUID(),
+				box_id: threadId,
+				sender_id: session.user.id,
 				body: content || "",
-				fileUrl: fileUrl || null,
-				fileName: fileName || null,
-				fileSize: fileSize || null,
-				mimeType: mimeType || null,
-				createdAt: new Date(),
+				send_at: new Date(),
 			},
-			include: {
-				User: {
+		});
+
+		// Update box's last message
+		await prismaClient.box.update({
+			where: { box_id: threadId },
+			data: {
+				last_message_id: message.message_id,
+				last_message_at: message.send_at,
+			},
+		});
+
+		// Get sender information
+		const user = await prismaClient.user.findUnique({
+			where: { id: session.user.id },
+			select: {
+				id: true,
+				name: true,
+				image: true,
+				applicant: {
 					select: {
-						id: true,
+						first_name: true,
+						last_name: true,
+					},
+				},
+				institution: {
+					select: {
 						name: true,
-						image: true,
 					},
 				},
 			},
 		});
 
-		// Update thread's last message
-		await prismaClient.thread.update({
-			where: { id: threadId },
-			data: {
-				lastMessageId: message.id,
-				lastMessageAt: message.createdAt,
-			},
-		});
+		let sender = null;
+		if (user) {
+			let name = user.name || "Unknown User";
+			if (!name || name === "Unknown User") {
+				if (user.applicant) {
+					name =
+						`${user.applicant.first_name || ""} ${user.applicant.last_name || ""}`.trim() ||
+						"Applicant";
+				} else if (user.institution) {
+					name = user.institution.name;
+				}
+			}
+			sender = {
+				id: user.id,
+				name,
+				image: user.image,
+			};
+		}
 
 		return NextResponse.json({
 			success: true,
 			message: {
-				id: message.id,
-				threadId: message.threadId,
-				senderId: message.senderId,
+				id: message.message_id,
+				threadId: message.box_id,
+				senderId: message.sender_id,
 				content: message.body,
-				sender: {
-					id: message.User.id,
-					name: message.User.name,
-					image: message.User.image,
-				},
-				fileUrl: message.fileUrl,
-				fileName: message.fileName,
-				fileSize: message.fileSize,
-				mimeType: message.mimeType,
-				createdAt: message.createdAt,
-				isRead: false,
+				sender: sender
+					? {
+							id: sender.id,
+							name: sender.name,
+							image: sender.image,
+						}
+					: {
+							id: session.user.id,
+							name: "Unknown User",
+							image: null,
+						},
+				fileUrl: null, // Not in new schema
+				fileName: null, // Not in new schema
+				fileSize: null, // Not in new schema
+				mimeType: null, // Not in new schema
+				createdAt: message.send_at,
+				isRead: false, // Not in new schema
 			},
 		});
 	} catch (error) {

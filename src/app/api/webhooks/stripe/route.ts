@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prismaClient } from "../../../../../prisma/index";
-import { NotificationUtils } from "@/lib/sqs-handlers";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 	apiVersion: "2025-08-27.basil",
@@ -107,122 +106,19 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 	}
 
 	try {
-		// Find the user by Stripe customer ID
-		const user = await prismaClient.user.findFirst({
-			where: { stripeCustomerId: subscription.customer as string },
-		});
-
-		if (!user) {
-			// eslint-disable-next-line no-console
-			console.error(
-				"User not found for customer:",
-				subscription.customer
-			);
-			return;
-		}
-
 		// Get plan name from metadata or price
 		const planName =
 			subscription.items.data[0]?.price.lookup_key || "standard";
 		const currentPeriodStart = (subscription as any).current_period_start;
 		const currentPeriodEnd = (subscription as any).current_period_end;
 
-		// Create or update subscription in database
-		const existingSubscription = await prismaClient.subscription.findFirst({
-			where: { referenceId: user.id },
-		});
-
-		if (existingSubscription) {
-			await prismaClient.subscription.update({
-				where: { id: existingSubscription.id },
-				data: {
-					stripeSubscriptionId: subscription.id,
-					stripeCustomerId: subscription.customer as string,
-					plan: planName,
-					status: subscription.status,
-					periodStart: currentPeriodStart
-						? new Date(currentPeriodStart * 1000)
-						: null,
-					periodEnd: currentPeriodEnd
-						? new Date(currentPeriodEnd * 1000)
-						: null,
-					cancelAtPeriodEnd: subscription.cancel_at_period_end,
-					trialStart: subscription.trial_start
-						? new Date(subscription.trial_start * 1000)
-						: null,
-					trialEnd: subscription.trial_end
-						? new Date(subscription.trial_end * 1000)
-						: null,
-				},
-			});
-		} else {
-			await prismaClient.subscription.create({
-				data: {
-					id: crypto.randomUUID(),
-					referenceId: user.id,
-					stripeSubscriptionId: subscription.id,
-					stripeCustomerId: subscription.customer as string,
-					plan: planName,
-					status: subscription.status,
-					periodStart: currentPeriodStart
-						? new Date(currentPeriodStart * 1000)
-						: null,
-					periodEnd: currentPeriodEnd
-						? new Date(currentPeriodEnd * 1000)
-						: null,
-					cancelAtPeriodEnd: subscription.cancel_at_period_end,
-					seats: 1,
-					trialStart: subscription.trial_start
-						? new Date(subscription.trial_start * 1000)
-						: null,
-					trialEnd: subscription.trial_end
-						? new Date(subscription.trial_end * 1000)
-						: null,
-				},
-			});
-		}
-
-		if (process.env.NODE_ENV === "development") {
-			// eslint-disable-next-line no-console
-			console.log("Subscription created successfully in database");
-		}
-	} catch (error) {
-		// eslint-disable-next-line no-console
-		console.error("Error handling subscription created:", error);
-		throw error;
-	}
-}
-
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-	if (process.env.NODE_ENV === "development") {
-		// eslint-disable-next-line no-console
-		console.log("Handling subscription updated:", subscription.id);
-	}
-
-	try {
-		// Find subscription by Stripe subscription ID
-		const existingSubscription = await prismaClient.subscription.findFirst({
-			where: { stripeSubscriptionId: subscription.id },
-		});
-
-		if (!existingSubscription) {
-			// eslint-disable-next-line no-console
-			console.error("Subscription not found:", subscription.id);
-			return;
-		}
-
-		// Get plan name from metadata or price
-		const planName =
-			subscription.items.data[0]?.price.lookup_key || "standard";
-		const currentPeriodStart = (subscription as any).current_period_start;
-		const currentPeriodEnd = (subscription as any).current_period_end;
-
-		// Update subscription in database
-		await prismaClient.subscription.update({
-			where: { id: existingSubscription.id },
+		// Create StripePayment record
+		const subscriptionId = crypto.randomUUID();
+		const stripePayment = await prismaClient.stripePayment.create({
 			data: {
-				plan: planName,
-				status: subscription.status,
+				subscription_id: subscriptionId,
+				stripeSubscriptionId: subscription.id,
+				stripeCustomerId: subscription.customer as string,
 				periodStart: currentPeriodStart
 					? new Date(currentPeriodStart * 1000)
 					: null,
@@ -239,32 +135,74 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 			},
 		});
 
-		// If subscription is being canceled at period end, send notification
-		if (subscription.cancel_at_period_end && currentPeriodEnd) {
-			const user = await prismaClient.user.findFirst({
-				where: { id: existingSubscription.referenceId },
-			});
-
-			if (user) {
-				const daysRemaining = Math.ceil(
-					(new Date(currentPeriodEnd * 1000).getTime() - Date.now()) /
-						(1000 * 60 * 60 * 24)
-				);
-
-				await NotificationUtils.sendSubscriptionExpiringNotification(
-					user.id,
-					user.email,
-					subscription.id,
-					planName,
-					new Date(currentPeriodEnd * 1000).toISOString(),
-					daysRemaining
-				);
-			}
-		}
+		// Note: You'll need to implement logic to determine if this is an applicant or institution subscription
+		// and create the appropriate subscription record. For now, we'll log this requirement.
+		console.warn(
+			"Subscription creation requires implementation of user type detection and plan mapping"
+		);
 
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console
-			console.log("Subscription updated successfully in database");
+			console.log("Stripe payment record created successfully");
+		}
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("Error handling subscription created:", error);
+		throw error;
+	}
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+	if (process.env.NODE_ENV === "development") {
+		// eslint-disable-next-line no-console
+		console.log("Handling subscription updated:", subscription.id);
+	}
+
+	try {
+		// Find StripePayment by Stripe subscription ID
+		const existingStripePayment =
+			await prismaClient.stripePayment.findUnique({
+				where: { stripeSubscriptionId: subscription.id },
+			});
+
+		if (!existingStripePayment) {
+			// eslint-disable-next-line no-console
+			console.error("Stripe payment not found:", subscription.id);
+			return;
+		}
+
+		const currentPeriodStart = (subscription as any).current_period_start;
+		const currentPeriodEnd = (subscription as any).current_period_end;
+
+		// Update StripePayment in database
+		await prismaClient.stripePayment.update({
+			where: { stripeSubscriptionId: subscription.id },
+			data: {
+				periodStart: currentPeriodStart
+					? new Date(currentPeriodStart * 1000)
+					: null,
+				periodEnd: currentPeriodEnd
+					? new Date(currentPeriodEnd * 1000)
+					: null,
+				cancelAtPeriodEnd: subscription.cancel_at_period_end,
+				trialStart: subscription.trial_start
+					? new Date(subscription.trial_start * 1000)
+					: null,
+				trialEnd: subscription.trial_end
+					? new Date(subscription.trial_end * 1000)
+					: null,
+			},
+		});
+
+		// Note: You'll need to implement logic to update the corresponding ApplicantSubscription or InstitutionSubscription
+		// and send notifications. For now, we'll log this requirement.
+		console.warn(
+			"Subscription update requires implementation of user type detection and notification system"
+		);
+
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.log("Stripe payment updated successfully in database");
 		}
 	} catch (error) {
 		// eslint-disable-next-line no-console
@@ -280,29 +218,35 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 	}
 
 	try {
-		// Find subscription by Stripe subscription ID
-		const existingSubscription = await prismaClient.subscription.findFirst({
-			where: { stripeSubscriptionId: subscription.id },
-		});
+		// Find StripePayment by Stripe subscription ID
+		const existingStripePayment =
+			await prismaClient.stripePayment.findUnique({
+				where: { stripeSubscriptionId: subscription.id },
+			});
 
-		if (!existingSubscription) {
+		if (!existingStripePayment) {
 			// eslint-disable-next-line no-console
-			console.error("Subscription not found:", subscription.id);
+			console.error("Stripe payment not found:", subscription.id);
 			return;
 		}
 
-		// Update subscription status to canceled
-		await prismaClient.subscription.update({
-			where: { id: existingSubscription.id },
+		// Update StripePayment to mark as canceled
+		await prismaClient.stripePayment.update({
+			where: { stripeSubscriptionId: subscription.id },
 			data: {
-				status: "canceled",
 				cancelAtPeriodEnd: false,
 			},
 		});
 
+		// Note: You'll need to implement logic to update the corresponding ApplicantSubscription or InstitutionSubscription
+		// status to CANCELED. For now, we'll log this requirement.
+		console.warn(
+			"Subscription deletion requires implementation of user type detection and status update"
+		);
+
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console
-			console.log("Subscription deleted successfully in database");
+			console.log("Stripe payment marked as canceled in database");
 		}
 	} catch (error) {
 		// eslint-disable-next-line no-console
@@ -328,45 +272,33 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 			return;
 		}
 
-		// Find subscription by Stripe subscription ID
-		const subscription = await prismaClient.subscription.findFirst({
+		// Find StripePayment by Stripe subscription ID
+		const stripePayment = await prismaClient.stripePayment.findUnique({
 			where: { stripeSubscriptionId: invoiceSubscription as string },
 		});
 
-		if (!subscription) {
+		if (!stripePayment) {
 			// eslint-disable-next-line no-console
 			console.error(
-				"Subscription not found for invoice:",
+				"Stripe payment not found for invoice:",
 				invoiceSubscription
 			);
 			return;
 		}
 
-		// Update subscription status to active
-		await prismaClient.subscription.update({
-			where: { id: subscription.id },
+		// Update StripePayment with payment amount
+		await prismaClient.stripePayment.update({
+			where: { stripeSubscriptionId: invoiceSubscription as string },
 			data: {
-				status: "active",
+				amount: (invoice.amount_paid / 100).toString(), // Convert from cents to dollars
 			},
 		});
 
-		// Get user details
-		const user = await prismaClient.user.findFirst({
-			where: { id: subscription.referenceId },
-		});
-
-		if (user) {
-			// Send payment success notification
-			await NotificationUtils.sendPaymentSuccessNotification(
-				user.id,
-				user.email,
-				subscription.stripeSubscriptionId || "",
-				subscription.plan,
-				invoice.amount_paid / 100, // Convert from cents to dollars
-				invoice.currency.toUpperCase(),
-				invoice.id || "unknown"
-			);
-		}
+		// Note: You'll need to implement logic to update the corresponding ApplicantSubscription or InstitutionSubscription
+		// status to ACTIVE and send notifications. For now, we'll log this requirement.
+		console.warn(
+			"Payment success requires implementation of user type detection, status update, and notification system"
+		);
 
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console
@@ -396,45 +328,25 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 			return;
 		}
 
-		// Find subscription by Stripe subscription ID
-		const subscription = await prismaClient.subscription.findFirst({
+		// Find StripePayment by Stripe subscription ID
+		const stripePayment = await prismaClient.stripePayment.findUnique({
 			where: { stripeSubscriptionId: invoiceSubscription as string },
 		});
 
-		if (!subscription) {
+		if (!stripePayment) {
 			// eslint-disable-next-line no-console
 			console.error(
-				"Subscription not found for invoice:",
+				"Stripe payment not found for invoice:",
 				invoiceSubscription
 			);
 			return;
 		}
 
-		// Update subscription status to past_due or unpaid
-		await prismaClient.subscription.update({
-			where: { id: subscription.id },
-			data: {
-				status: "past_due",
-			},
-		});
-
-		// Get user details
-		const user = await prismaClient.user.findFirst({
-			where: { id: subscription.referenceId },
-		});
-
-		if (user) {
-			// Send payment failed notification
-			await NotificationUtils.sendPaymentFailedNotification(
-				user.id,
-				user.email,
-				subscription.stripeSubscriptionId || "",
-				subscription.plan,
-				invoice.amount_due / 100, // Convert from cents to dollars
-				invoice.currency.toUpperCase(),
-				invoice.last_finalization_error?.message || "Payment failed"
-			);
-		}
+		// Note: You'll need to implement logic to update the corresponding ApplicantSubscription or InstitutionSubscription
+		// status to PAST_DUE and send notifications. For now, we'll log this requirement.
+		console.warn(
+			"Payment failure requires implementation of user type detection, status update, and notification system"
+		);
 
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console

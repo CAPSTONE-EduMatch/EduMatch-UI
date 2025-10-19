@@ -4,7 +4,7 @@ import { prismaClient } from "../../../../../prisma";
 
 // Define Scholarship type locally since it's not exported from explore-api
 interface Scholarship {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	provider: string;
@@ -52,13 +52,13 @@ export async function GET(request: NextRequest) {
 		); // Max 50 per page
 		const skip = (page - 1) * limit;
 
-		// Build where clause for filtering - only posts with PostScholarship records
+		// Build where clause for filtering - only posts with ScholarshipPost records
 		const whereClause: any = {
-			published: true, // Only show published posts
-			id: {
-				in: await prismaClient.postScholarship
-					.findMany({ select: { PostId: true } })
-					.then((scholarships) => scholarships.map((s) => s.PostId)),
+			status: "PUBLISHED", // Only show published posts
+			post_id: {
+				in: await prismaClient.scholarshipPost
+					.findMany({ select: { post_id: true } })
+					.then((scholarships) => scholarships.map((s) => s.post_id)),
 			},
 		};
 
@@ -66,55 +66,55 @@ export async function GET(request: NextRequest) {
 		if (search) {
 			whereClause.OR = [
 				{ title: { contains: search, mode: "insensitive" } },
-				{ content: { contains: search, mode: "insensitive" } },
+				{ other_info: { contains: search, mode: "insensitive" } },
 			];
 		}
 
 		// Get total count for pagination
-		const totalCount = await prismaClient.post.count({
+		const totalCount = await prismaClient.opportunityPost.count({
 			where: whereClause,
 		});
 
-		// Query posts with PostScholarship data
-		const posts = await prismaClient.post.findMany({
+		// Query posts with ScholarshipPost data
+		const posts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
 			orderBy:
 				sortBy === "newest"
-					? { createdAt: "desc" }
+					? { create_at: "desc" }
 					: sortBy === "oldest"
-						? { createdAt: "asc" }
-						: { createdAt: "desc" }, // default to newest
+						? { create_at: "asc" }
+						: { create_at: "desc" }, // default to newest
 			skip,
 			take: limit,
 		});
 
-		// Get PostScholarship data for each post
-		const postIds = posts.map((post) => post.id);
-		const postScholarships = await prismaClient.postScholarship.findMany({
+		// Get ScholarshipPost data for each post
+		const postIds = posts.map((post) => post.post_id);
+		const postScholarships = await prismaClient.scholarshipPost.findMany({
 			where: {
-				PostId: { in: postIds },
+				post_id: { in: postIds },
 			},
 		});
 
 		// Get application counts for each post (for popularity sorting)
 		const applicationCounts = await prismaClient.application.groupBy({
-			by: ["postId"],
+			by: ["post_id"],
 			where: {
-				postId: { in: postIds },
+				post_id: { in: postIds },
 			},
 			_count: {
-				id: true,
+				application_id: true,
 			},
 		});
 
 		// Get institution data
-		const institutions = await prismaClient.institution_profile.findMany();
+		const institutions = await prismaClient.institution.findMany();
 
 		// Get disciplines and subdisciplines from database
 		const disciplines = await prismaClient.discipline.findMany({
 			where: { status: true },
 			include: {
-				Sub_Discipline: {
+				subdisciplines: {
 					where: { status: true },
 				},
 			},
@@ -122,18 +122,21 @@ export async function GET(request: NextRequest) {
 
 		// Create a map for quick lookups
 		const postScholarshipMap = new Map(
-			postScholarships.map((ps) => [ps.PostId, ps])
+			postScholarships.map((ps) => [ps.post_id, ps])
 		);
 
 		// Create application count map
 		const applicationCountMap = new Map(
-			applicationCounts.map((ac) => [ac.postId, ac._count.id])
+			applicationCounts.map((ac) => [
+				ac.post_id,
+				ac._count.application_id,
+			])
 		);
 
 		// Transform data to Scholarship format
 		let scholarships: Scholarship[] = posts
 			.map((post) => {
-				const postScholarship = postScholarshipMap.get(post.id);
+				const postScholarship = postScholarshipMap.get(post.post_id);
 				if (!postScholarship) return null;
 
 				// Find a matching institution (simplified logic)
@@ -142,31 +145,21 @@ export async function GET(request: NextRequest) {
 					country: "Unknown",
 				};
 
-				const applicationCount = applicationCountMap.get(post.id) || 0;
-
-				// Create unique numeric ID by hashing the post ID
-				const hashCode = (str: string) => {
-					let hash = 0;
-					for (let i = 0; i < str.length; i++) {
-						const char = str.charCodeAt(i);
-						hash = (hash << 5) - hash + char;
-						hash = hash & hash; // Convert to 32bit integer
-					}
-					return Math.abs(hash);
-				};
+				const applicationCount =
+					applicationCountMap.get(post.post_id) || 0;
 
 				const scholarship: Scholarship = {
-					id: hashCode(post.id),
+					id: post.post_id, // Use the original post ID directly
 					title: post.title,
-					description: post.content || "No description available",
+					description: post.other_info || "No description available",
 					provider: postScholarship.type || "Provided by institution",
 					university: institution.name,
 					essayRequired: postScholarship.essay_required
 						? "Yes"
 						: "No",
 					country: institution.country || "Unknown",
-					date: post.createdAt.toISOString().split("T")[0],
-					daysLeft: calculateDaysLeft(post.createdAt.toISOString()),
+					date: post.create_at.toISOString().split("T")[0],
+					daysLeft: calculateDaysLeft(post.create_at.toISOString()),
 					amount: postScholarship.grant || "Contact for details",
 					match: calculateMatchPercentage(),
 					applicationCount, // Add application count for popularity sorting
@@ -322,7 +315,7 @@ export async function GET(request: NextRequest) {
 				essayRequired: availableEssayRequired,
 				subdisciplines: disciplines.reduce(
 					(acc, discipline) => {
-						acc[discipline.name] = discipline.Sub_Discipline.map(
+						acc[discipline.name] = discipline.subdisciplines.map(
 							(sub) => sub.name
 						);
 						return acc;

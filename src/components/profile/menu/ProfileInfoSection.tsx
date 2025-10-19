@@ -12,6 +12,7 @@ import { DateInput } from '@/components/ui'
 import { Upload, User, Building2, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/lib/date-utils'
+import { ApiService } from '@/lib/axios-config'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
@@ -38,6 +39,26 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 	// Track if there are unsaved changes
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+	// State for subdisciplines loaded from database
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
 
 	// Initialize edited profile when profile changes
 	useEffect(() => {
@@ -70,10 +91,12 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 			// Prepare the profile data for saving
 			const profileData = {
+				role: profile.role, // Include the role field
 				firstName: editedProfile?.firstName || '',
 				lastName: editedProfile?.lastName || '',
 				gender: editedProfile?.gender || '',
 				birthday: editedProfile?.birthday || '',
+				email: editedProfile?.user?.email || profile?.user?.email || '',
 				nationality: editedProfile?.nationality || '',
 				phoneNumber: editedProfile?.phoneNumber || '',
 				countryCode: editedProfile?.countryCode || '',
@@ -83,12 +106,25 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				// Institution fields
 				institutionName: editedProfile?.institutionName || '',
 				institutionAbbreviation: editedProfile?.institutionAbbreviation || '',
+				institutionHotline: editedProfile?.institutionHotline || '',
+				institutionHotlineCode: editedProfile?.institutionHotlineCode || '',
 				institutionType: editedProfile?.institutionType || '',
 				institutionWebsite: editedProfile?.institutionWebsite || '',
 				institutionEmail: editedProfile?.institutionEmail || '',
 				institutionCountry: editedProfile?.institutionCountry || '',
+				institutionAddress: editedProfile?.institutionAddress || '',
 				representativeName: editedProfile?.representativeName || '',
+				representativeAppellation:
+					editedProfile?.representativeAppellation || '',
 				representativePosition: editedProfile?.representativePosition || '',
+				representativeEmail: editedProfile?.representativeEmail || '',
+				representativePhone: editedProfile?.representativePhone || '',
+				representativePhoneCode: editedProfile?.representativePhoneCode || '',
+				aboutInstitution: editedProfile?.aboutInstitution || '',
+				institutionDisciplines: editedProfile?.institutionDisciplines || [],
+				institutionCoverImage: editedProfile?.institutionCoverImage || '',
+				institutionVerificationDocuments:
+					editedProfile?.institutionVerificationDocuments || [],
 			}
 
 			console.log('ProfileInfoSection - Sending profile data:', profileData)
@@ -644,19 +680,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 												)
 											}
 											placeholder="Choose subject(s)/field(s) you interested in"
-											options={[
-												{ value: 'Data Science', label: 'Data Science' },
-												{ value: 'Data Engineer', label: 'Data Engineer' },
-												{
-													value: 'Information System',
-													label: 'Information System',
-												},
-												{
-													value: 'Computer Science',
-													label: 'Computer Science',
-												},
-												{ value: 'Business', label: 'Business' },
-											]}
+											options={subdisciplines}
 											isMulti
 											isSearchable
 											isClearable

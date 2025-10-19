@@ -16,99 +16,141 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Get user's threads
-		const threads = await prismaClient.thread.findMany({
+		// Get user's threads (boxes)
+		const boxes = await prismaClient.box.findMany({
 			where: {
 				OR: [
-					{ createdBy: session.user.id },
-					{ participantId: session.user.id },
+					{ user_one_id: session.user.id },
+					{ user_two_id: session.user.id },
 				],
 			},
-			include: {
-				User_thread_createdByToUser: {
-					select: {
-						id: true,
-						name: true,
-						image: true,
-					},
-				},
-				User_thread_participantIdToUser: {
-					select: {
-						id: true,
-						name: true,
-						image: true,
-					},
-				},
-				mesage: {
-					take: 1,
-					orderBy: { createdAt: "desc" },
-					include: {
-						User: {
-							select: {
-								id: true,
-								name: true,
-								image: true,
-							},
-						},
-					},
-				},
-			},
-			orderBy: { lastMessageAt: "desc" },
+			orderBy: { last_message_at: "desc" },
 		});
 
 		// Format threads with new simplified schema
 		const formattedThreads = await Promise.all(
-			threads.map(async (thread) => {
+			boxes.map(async (box) => {
 				// Determine the other participant
-				const otherParticipant =
-					thread.createdBy === session.user.id
-						? thread.User_thread_participantIdToUser
-						: thread.User_thread_createdByToUser;
+				const otherUserId =
+					box.user_one_id === session.user.id
+						? box.user_two_id
+						: box.user_one_id;
+
+				// Get other participant info
+				const otherAccount = await prismaClient.user.findUnique({
+					where: { id: otherUserId },
+					select: {
+						id: true,
+						email: true,
+						image: true,
+						name: true,
+						applicant: {
+							select: {
+								first_name: true,
+								last_name: true,
+							},
+						},
+						institution: {
+							select: {
+								name: true,
+							},
+						},
+					},
+				});
+
+				let otherParticipant = null;
+				if (otherAccount) {
+					let name = otherAccount.name || "Unknown User";
+					if (!name || name === "Unknown User") {
+						if (otherAccount.applicant) {
+							name =
+								`${otherAccount.applicant.first_name || ""} ${otherAccount.applicant.last_name || ""}`.trim() ||
+								"Applicant";
+						} else if (otherAccount.institution) {
+							name = otherAccount.institution.name;
+						}
+					}
+
+					otherParticipant = {
+						id: otherAccount.id,
+						name,
+						email: otherAccount.email,
+						image: otherAccount.image,
+					};
+				}
 
 				// Get last message
-				const lastMessage = thread.mesage[0];
+				const lastMessage = await prismaClient.message.findFirst({
+					where: { box_id: box.box_id },
+					orderBy: { send_at: "desc" },
+				});
+
 				let lastMessageContent = "";
 				let lastMessageSenderId = null;
 				let lastMessageSenderName = null;
 				let lastMessageSenderImage = null;
 
 				if (lastMessage) {
-					// Use message body directly (encryption removed for simplicity)
 					lastMessageContent = lastMessage.body;
+					lastMessageSenderId = lastMessage.sender_id;
 
-					lastMessageSenderId = lastMessage.User.id;
-					lastMessageSenderName = lastMessage.User.name;
-					lastMessageSenderImage = lastMessage.User.image;
+					// Get sender info
+					const senderAccount = await prismaClient.user.findUnique({
+						where: { id: lastMessage.sender_id },
+						select: {
+							name: true,
+							email: true,
+							image: true,
+							applicant: {
+								select: {
+									first_name: true,
+									last_name: true,
+								},
+							},
+							institution: {
+								select: {
+									name: true,
+								},
+							},
+						},
+					});
+
+					if (senderAccount) {
+						lastMessageSenderName =
+							senderAccount.name || "Unknown User";
+						if (
+							!lastMessageSenderName ||
+							lastMessageSenderName === "Unknown User"
+						) {
+							if (senderAccount.applicant) {
+								lastMessageSenderName =
+									`${senderAccount.applicant.first_name || ""} ${senderAccount.applicant.last_name || ""}`.trim() ||
+									"Applicant";
+							} else if (senderAccount.institution) {
+								lastMessageSenderName =
+									senderAccount.institution.name;
+							}
+						}
+						lastMessageSenderImage = senderAccount.image;
+					}
 				}
 
-				// Calculate unread count from messages
-				const unreadCount = await prismaClient.mesage.count({
-					where: {
-						threadId: thread.id,
-						senderId: { not: session.user.id }, // Messages not from current user
-						isRead: false,
-					},
-				});
+				// Calculate unread count from messages (simplified - no isRead field in new schema)
+				const unreadCount = 0; // Since isRead field doesn't exist in new schema
 
 				return {
-					id: thread.id,
+					id: box.box_id,
 					// New simplified schema for 1-on-1 chats
-					user1Id: thread.createdBy,
-					user2Id: thread.participantId,
+					user1Id: box.user_one_id,
+					user2Id: box.user_two_id,
 					lastMessage: lastMessageContent,
-					lastMessageAt: thread.lastMessageAt,
+					lastMessageAt: box.last_message_at,
 					lastMessageSenderId,
 					lastMessageSenderName,
 					lastMessageSenderImage,
-					createdAt: thread.createdAt,
-					updatedAt: thread.lastMessageAt || thread.createdAt,
+					createdAt: box.created_at,
+					updatedAt: box.last_message_at || box.created_at,
 					unreadCount,
-					// Include file data if it's a file message
-					...(lastMessage && {
-						lastMessageFileUrl: lastMessage.fileUrl,
-						lastMessageFileName: lastMessage.fileName,
-						lastMessageMimeType: lastMessage.mimeType,
-					}),
 					// Keep otherParticipant for backward compatibility with UI
 					otherParticipant,
 				};
@@ -167,44 +209,56 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Check if thread already exists between these users
-		const existingThread = await prismaClient.thread.findFirst({
+		// Check if box already exists between these users
+		const existingBox = await prismaClient.box.findFirst({
 			where: {
 				OR: [
 					{
-						createdBy: session.user.id,
-						participantId: participantId,
+						user_one_id: session.user.id,
+						user_two_id: participantId,
 					},
 					{
-						createdBy: participantId,
-						participantId: session.user.id,
+						user_one_id: participantId,
+						user_two_id: session.user.id,
 					},
 				],
 			},
 		});
 
-		if (existingThread) {
-			console.log("Thread already exists:", existingThread.id);
+		if (existingBox) {
+			console.log("Box already exists:", existingBox.box_id);
 			return NextResponse.json({
 				success: true,
 				thread: {
-					id: existingThread.id,
+					id: existingBox.box_id,
 					alreadyExists: true,
 				},
 			});
 		}
 
 		// Verify participant exists
-		const participant = await prismaClient.user.findUnique({
+		const participantAccount = await prismaClient.user.findUnique({
 			where: { id: participantId },
 			select: {
 				id: true,
 				name: true,
+				email: true,
 				image: true,
+				applicant: {
+					select: {
+						first_name: true,
+						last_name: true,
+					},
+				},
+				institution: {
+					select: {
+						name: true,
+					},
+				},
 			},
 		});
 
-		if (!participant) {
+		if (!participantAccount) {
 			console.log("Participant not found:", participantId);
 			return NextResponse.json(
 				{ error: "Participant not found" },
@@ -212,48 +266,53 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Create new thread
-		const thread = await prismaClient.thread.create({
+		// Create participant object for response
+		let participant = null;
+		if (participantAccount) {
+			let name = participantAccount.name || "Unknown User";
+			if (!name || name === "Unknown User") {
+				if (participantAccount.applicant) {
+					name =
+						`${participantAccount.applicant.first_name || ""} ${participantAccount.applicant.last_name || ""}`.trim() ||
+						"Applicant";
+				} else if (participantAccount.institution) {
+					name = participantAccount.institution.name;
+				}
+			}
+
+			participant = {
+				id: participantAccount.id,
+				name,
+				email: participantAccount.email,
+				image: participantAccount.image,
+			};
+		}
+
+		// Create new box
+		const box = await prismaClient.box.create({
 			data: {
-				id: threadId || crypto.randomUUID(), // Use provided threadId or generate new one
-				createdBy: session.user.id,
-				participantId: participantId,
-				lastMessageId: "",
-				lastMessageAt: new Date(),
-				createdAt: new Date(),
-			},
-			include: {
-				User_thread_createdByToUser: {
-					select: {
-						id: true,
-						name: true,
-						image: true,
-					},
-				},
-				User_thread_participantIdToUser: {
-					select: {
-						id: true,
-						name: true,
-						image: true,
-					},
-				},
+				box_id: threadId || crypto.randomUUID(), // Use provided threadId or generate new one
+				user_one_id: session.user.id,
+				user_two_id: participantId,
+				created_at: new Date(),
+				updated_at: new Date(),
 			},
 		});
 
 		return NextResponse.json({
 			success: true,
 			thread: {
-				id: thread.id,
+				id: box.box_id,
 				// New simplified schema for 1-on-1 chats
-				user1Id: thread.createdBy,
-				user2Id: thread.participantId,
+				user1Id: box.user_one_id,
+				user2Id: box.user_two_id,
 				lastMessage: "",
-				lastMessageAt: thread.lastMessageAt,
+				lastMessageAt: null,
 				lastMessageSenderId: null,
 				lastMessageSenderName: null,
 				lastMessageSenderImage: null,
-				createdAt: thread.createdAt,
-				updatedAt: thread.lastMessageAt || thread.createdAt,
+				createdAt: box.created_at,
+				updatedAt: box.created_at,
 				unreadCount: 0,
 				// Keep otherParticipant for backward compatibility with UI
 				otherParticipant: participant,

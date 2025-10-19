@@ -53,16 +53,10 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					: sortBy === 'oldest'
 						? 'oldest'
 						: 'newest',
-			postType:
-				activeTab === 'programmes'
-					? 'program'
-					: activeTab === 'scholarships'
-						? 'scholarship'
-						: activeTab === 'research'
-							? 'job'
-							: undefined,
+			// Remove postType filter to get all wishlist items
+			// The transformation functions will handle filtering by type
 		}),
-		[activeTab, sortBy, searchQuery]
+		[sortBy, searchQuery] // Remove activeTab from dependencies
 	)
 
 	const {
@@ -71,6 +65,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		error,
 		meta,
 		refresh,
+		isInWishlist,
+		toggleWishlistItem,
 	} = useWishlist({
 		autoFetch: true,
 		initialParams: wishlistParams,
@@ -94,7 +90,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			return items
 				.filter((item) => item.post.program)
 				.map((item) => ({
-					id: parseInt(item.id),
+					id: item.postId, // Use the actual postId as the single ID
 					title: item.post.title,
 					description: item.post.content || '',
 					university: item.post.institution?.name || 'Unknown University',
@@ -125,7 +121,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			return items
 				.filter((item) => item.post.scholarship)
 				.map((item) => ({
-					id: parseInt(item.id),
+					id: item.postId, // Use the actual postId as the single ID
 					title: item.post.title,
 					description: item.post.content || '',
 					provider: item.post.institution?.name || 'Unknown Provider',
@@ -152,7 +148,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			return items
 				.filter((item) => item.post.job)
 				.map((item) => ({
-					id: parseInt(item.id),
+					id: item.postId, // Use the actual postId as the single ID
 					title: item.post.title,
 					description: item.post.content || '',
 					professor: item.post.program?.professor_name || 'Contact for details',
@@ -205,6 +201,19 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		setSortBy(sort)
 	}, [])
 
+	// Handle wishlist toggle
+	const handleWishlistToggle = useCallback(
+		async (id: string) => {
+			try {
+				await toggleWishlistItem(id)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to toggle wishlist item:', error)
+			}
+		},
+		[toggleWishlistItem]
+	)
+
 	// Get current tab data
 	const getCurrentTabData = () => {
 		switch (activeTab) {
@@ -237,13 +246,39 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'programmes':
-				return <ProgramsTab programs={wishlistPrograms} sortBy={sortBy} />
+				return (
+					<ProgramsTab
+						programs={wishlistPrograms}
+						sortBy={sortBy}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 			case 'scholarships':
-				return <ScholarshipsTab scholarships={wishlistScholarships} />
+				return (
+					<ScholarshipsTab
+						scholarships={wishlistScholarships}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 			case 'research':
-				return <ResearchLabsTab researchLabs={wishlistResearchLabs} />
+				return (
+					<ResearchLabsTab
+						researchLabs={wishlistResearchLabs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 			default:
-				return <ProgramsTab programs={wishlistPrograms} sortBy={sortBy} />
+				return (
+					<ProgramsTab
+						programs={wishlistPrograms}
+						sortBy={sortBy}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+					/>
+				)
 		}
 	}
 

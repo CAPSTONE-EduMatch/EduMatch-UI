@@ -16,38 +16,81 @@ export async function GET(
 		}
 
 		// Fetch messages for the thread
-		const messages = await prismaClient.mesage.findMany({
-			where: { threadId },
-			include: {
-				User: {
+		const messages = await prismaClient.message.findMany({
+			where: { box_id: threadId },
+			orderBy: { send_at: "asc" },
+		});
+
+		// Get user information for senders
+		const senderIds = Array.from(
+			new Set(messages.map((msg) => msg.sender_id))
+		);
+		const users = await prismaClient.user.findMany({
+			where: { id: { in: senderIds } },
+			select: {
+				id: true,
+				name: true,
+				image: true,
+				applicant: {
 					select: {
-						id: true,
+						first_name: true,
+						last_name: true,
+					},
+				},
+				institution: {
+					select: {
 						name: true,
-						image: true,
 					},
 				},
 			},
-			orderBy: { createdAt: "asc" },
+		});
+
+		const userMap = new Map();
+		users.forEach((user) => {
+			let name = user.name || "Unknown User";
+			if (!name || name === "Unknown User") {
+				if (user.applicant) {
+					name =
+						`${user.applicant.first_name || ""} ${user.applicant.last_name || ""}`.trim() ||
+						"Applicant";
+				} else if (user.institution) {
+					name = user.institution.name;
+				}
+			}
+			userMap.set(user.id, {
+				id: user.id,
+				name,
+				image: user.image,
+			});
 		});
 
 		// Transform messages to match client format
-		const formattedMessages = messages.map((msg) => ({
-			id: msg.id,
-			threadId: msg.threadId,
-			senderId: msg.senderId,
-			content: msg.body,
-			sender: {
-				id: msg.User.id,
-				name: msg.User.name,
-				image: msg.User.image,
-			},
-			fileUrl: msg.fileUrl,
-			fileName: msg.fileName,
-			fileSize: msg.fileSize,
-			mimeType: msg.mimeType,
-			createdAt: msg.createdAt.toISOString(),
-			isRead: msg.isRead,
-		}));
+		const formattedMessages = messages.map((msg) => {
+			const sender = userMap.get(msg.sender_id);
+			return {
+				id: msg.message_id,
+				threadId: msg.box_id,
+				senderId: msg.sender_id,
+				content: msg.body,
+				sender: sender
+					? {
+							id: sender.id,
+							name: sender.name,
+							image: sender.image,
+						}
+					: {
+							id: msg.sender_id,
+							name: "Unknown User",
+							image: null,
+						},
+				fileUrl: null, // Not in new schema
+				fileName: null, // Not in new schema
+				fileSize: null, // Not in new schema
+				mimeType: null, // Not in new schema
+				createdAt: msg.send_at.toISOString(),
+				isRead: false, // Not in new schema
+			};
+		});
 
 		return NextResponse.json({
 			success: true,

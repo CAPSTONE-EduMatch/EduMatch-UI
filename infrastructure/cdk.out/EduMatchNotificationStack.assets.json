@@ -1,16 +1,16 @@
 {
   "version": "48.0.0",
   "files": {
-    "7a6d060c1a4c6f34db6b4be0a59a40f183b43695ca9c2fc79c5d77ba193bf2c4": {
+    "0d1e611c3a3e655a7ac8f35805e3a4d91c152d05f7ca161e051e9c1f609b99f9": {
       "displayName": "EduMatchNotificationStack Template",
       "source": {
         "path": "EduMatchNotificationStack.template.json",
         "packaging": "file"
       },
       "destinations": {
-        "555225979596-ap-northeast-1-e3b8c439": {
+        "555225979596-ap-northeast-1-2b96c543": {
           "bucketName": "cdk-hnb659fds-assets-555225979596-ap-northeast-1",
-          "objectKey": "7a6d060c1a4c6f34db6b4be0a59a40f183b43695ca9c2fc79c5d77ba193bf2c4.json",
+          "objectKey": "0d1e611c3a3e655a7ac8f35805e3a4d91c152d05f7ca161e051e9c1f609b99f9.json",
           "region": "ap-northeast-1",
           "assumeRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-file-publishing-role-555225979596-ap-northeast-1"
         }

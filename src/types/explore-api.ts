@@ -1,34 +1,34 @@
 // Types for Explore API responses using Prisma types
 import type {
-	institution_profile,
-	Post,
-	PostJob,
-	PostProgram,
-	PostScholarship,
-} from "../../generated/prisma";
+	Institution,
+	OpportunityPost,
+	JobPost,
+	ProgramPost,
+	ScholarshipPost,
+} from "@prisma/client";
 
 // Enhanced types that include computed fields and relations
-export interface EnhancedProgram extends Post {
-	postProgram?: PostProgram;
-	institution?: institution_profile;
+export interface EnhancedProgram extends OpportunityPost {
+	programPost?: ProgramPost;
+	institution?: Institution;
 	// Computed fields
 	daysLeft: number;
 	match: string;
 	applicationCount: number;
 }
 
-export interface EnhancedScholarship extends Post {
-	postScholarship?: PostScholarship;
-	institution?: institution_profile;
+export interface EnhancedScholarship extends OpportunityPost {
+	scholarshipPost?: ScholarshipPost;
+	institution?: Institution;
 	// Computed fields
 	daysLeft: number;
 	match: string;
 	applicationCount: number;
 }
 
-export interface EnhancedResearchPosition extends Post {
-	postJob?: PostJob;
-	institution?: institution_profile;
+export interface EnhancedResearchPosition extends OpportunityPost {
+	jobPost?: JobPost;
+	institution?: Institution;
 	// Computed fields
 	daysLeft: number;
 	match: string;
@@ -60,7 +60,7 @@ export interface ExploreApiResponse<T> {
 
 // Legacy interfaces for backward compatibility
 export interface Program {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	university: string;
@@ -77,7 +77,7 @@ export interface Program {
 }
 
 export interface Scholarship {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	provider: string;
@@ -92,7 +92,7 @@ export interface Scholarship {
 }
 
 export interface ResearchLab {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	professor: string;

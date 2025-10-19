@@ -6,7 +6,7 @@ import Image from 'next/image'
 
 interface ProgramCardProps {
 	program: {
-		id: number
+		id: string
 		title: string
 		description: string
 		university: string
@@ -22,9 +22,12 @@ interface ProgramCardProps {
 	index: number
 	isWishlisted: boolean
 	// eslint-disable-next-line no-unused-vars
-	onWishlistToggle: (programId: number) => void
+	onWishlistToggle: (id: string) => void
 	// eslint-disable-next-line no-unused-vars
-	onClick?: (programId: number) => void
+	onClick?: (programId: string) => void
+	hasApplied?: boolean
+	isApplying?: boolean
+	onApply?: (programId: string) => void
 }
 
 export function ProgramCard({
@@ -33,6 +36,9 @@ export function ProgramCard({
 	isWishlisted,
 	onWishlistToggle,
 	onClick,
+	hasApplied = false,
+	isApplying = false,
+	onApply,
 }: ProgramCardProps) {
 	return (
 		<motion.div

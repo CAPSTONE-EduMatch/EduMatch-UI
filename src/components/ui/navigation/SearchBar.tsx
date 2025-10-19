@@ -26,13 +26,7 @@ export function SearchBar() {
 				className="w-full rounded-l-full rounded-r-none border-r-0 focus:border-teal-500"
 			/>
 			<motion.div>
-				<div
-					shadow-md
-					transition-all
-					duration-100
-					font-medium
-					className="text-white p-5 px-7 rounded-r-full rounded-l-none bg-[#116E63] hover:bg-teal-700"
-				>
+				<div className="text-white p-5 px-7 rounded-r-full rounded-l-none bg-[#116E63] hover:bg-teal-700 shadow-md transition-all duration-100 font-medium">
 					<Search className="w-[25px] h-[25px]" />
 				</div>
 			</motion.div>

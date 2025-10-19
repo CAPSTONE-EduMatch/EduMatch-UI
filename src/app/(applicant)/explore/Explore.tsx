@@ -20,6 +20,8 @@ import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
+import { useWishlist } from '@/hooks/useWishlist'
+import { applicationService } from '@/lib/application-service'
 import student from '../../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -36,6 +38,56 @@ const Explore = () => {
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist()
+
+	// Application functionality
+	const [appliedPosts, setAppliedPosts] = useState<Set<string>>(new Set())
+	const [applyingPosts, setApplyingPosts] = useState<Set<string>>(new Set())
+
+	// Handle wishlist toggle
+	const handleWishlistToggle = async (postId: string) => {
+		try {
+			await toggleWishlistItem(postId)
+		} catch (error) {
+			console.error('Failed to toggle wishlist item:', error)
+			// You could add a toast notification here
+		}
+	}
+
+	// Handle application submission
+	const handleApply = async (postId: string) => {
+		try {
+			setApplyingPosts((prev) => new Set(prev).add(postId))
+
+			const response = await applicationService.submitApplication({
+				postId,
+				documents: [], // Can be enhanced later to include document upload
+			})
+
+			if (response.success) {
+				setAppliedPosts((prev) => new Set(prev).add(postId))
+				// You could add a success toast notification here
+				console.log('Application submitted successfully')
+			}
+		} catch (error) {
+			console.error('Failed to submit application:', error)
+			// You could add an error toast notification here
+		} finally {
+			setApplyingPosts((prev) => {
+				const newSet = new Set(prev)
+				newSet.delete(postId)
+				return newSet
+			})
+		}
+	}
+
+	// Check if user has applied to a post
+	const hasApplied = (postId: string) => appliedPosts.has(postId)
+
+	// Check if application is in progress
+	const isApplying = (postId: string) => applyingPosts.has(postId)
 
 	// Initialize tab from URL parameter
 	useEffect(() => {
@@ -192,13 +244,49 @@ const Explore = () => {
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'programmes':
-				return <ProgramsTab programs={programs} />
+				return (
+					<ProgramsTab
+						programs={programs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+						hasApplied={hasApplied}
+						isApplying={isApplying}
+						onApply={handleApply}
+					/>
+				)
 			case 'scholarships':
-				return <ScholarshipsTab scholarships={scholarships} />
+				return (
+					<ScholarshipsTab
+						scholarships={scholarships}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+						hasApplied={hasApplied}
+						isApplying={isApplying}
+						onApply={handleApply}
+					/>
+				)
 			case 'research':
-				return <ResearchLabsTab researchLabs={researchLabs} />
+				return (
+					<ResearchLabsTab
+						researchLabs={researchLabs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+						hasApplied={hasApplied}
+						isApplying={isApplying}
+						onApply={handleApply}
+					/>
+				)
 			default:
-				return <ProgramsTab programs={programs} />
+				return (
+					<ProgramsTab
+						programs={programs}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={handleWishlistToggle}
+						hasApplied={hasApplied}
+						isApplying={isApplying}
+						onApply={handleApply}
+					/>
+				)
 		}
 	}
 
@@ -251,7 +339,8 @@ const Explore = () => {
 					<div className="text-white">
 						<h1 className="text-2xl font-bold mb-2">John Dewey:</h1>
 						<p className="text-sm max-w-xl">
-							&ldquo;{t('quote.JohnDewey')}&rdquo;
+							&ldquo;Education is not preparation for life; education is life
+							itself.&rdquo;
 						</p>
 					</div>
 				</div>

@@ -8,9 +8,10 @@ import { DateInput } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { Upload, User } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { ApiService } from '@/lib/axios-config'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -37,6 +38,24 @@ export function BasicInfoStep({
 	onNext,
 	user,
 }: BasicInfoStepProps) {
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
 	const [isUploading, setIsUploading] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
@@ -394,26 +413,7 @@ export function BasicInfoStep({
 								)
 							}
 							placeholder="Choose subject(s)/field(s) you interested in"
-							options={[
-								{ value: 'Data Science', label: 'Data Science' },
-								{ value: 'Data Engineer', label: 'Data Engineer' },
-								{ value: 'Information System', label: 'Information System' },
-								{ value: 'Computer Science', label: 'Computer Science' },
-								{ value: 'Business', label: 'Business' },
-								{
-									value: 'Business Administration',
-									label: 'Business Administration',
-								},
-								{ value: 'Business Analytics', label: 'Business Analytics' },
-								{
-									value: 'Business Intelligence',
-									label: 'Business Intelligence',
-								},
-								{ value: 'Business Finance', label: 'Business Finance' },
-								{ value: 'Business Economics', label: 'Business Economics' },
-								{ value: 'Business Law', label: 'Business Law' },
-								{ value: 'Business Management', label: 'Business Management' },
-							]}
+							options={subdisciplines}
 							isMulti
 							isSearchable
 							isClearable

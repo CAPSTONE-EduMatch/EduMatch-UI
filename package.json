@@ -11,6 +11,7 @@
 		"format": "prettier --write .",
 		"prepare": "husky",
 		"prisma:refresh-schema": "prisma db pull && prisma generate",
+		"seed": "npx ts-node scripts/seed-database-unified.ts",
 		"pre-commit": "next build && lint-staged",
 		"deploy:infrastructure": "cdk deploy --app \"npx ts-node --project tsconfig.json infrastructure/app.ts\"",
 		"deploy:infrastructure:diff": "cdk diff --app \"npx ts-node --project tsconfig.json infrastructure/app.ts\""

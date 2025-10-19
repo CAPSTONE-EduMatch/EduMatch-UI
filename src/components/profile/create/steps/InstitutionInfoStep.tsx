@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { Label } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
@@ -55,7 +55,7 @@ export function InstitutionInfoStep({
 
 	// Auto-fill Google image as institution logo if available and no logo set
 	useEffect(() => {
-		if (!formData.institutionCoverImage && user?.image) {
+		if (!formData.institutionLogo && user?.image) {
 			// Clean up Google image URL to get a better size
 			let imageUrl = user.image
 			if (imageUrl.includes('=s96-c')) {
@@ -65,9 +65,9 @@ export function InstitutionInfoStep({
 				// If it has other size parameters, replace with s400-c
 				imageUrl = imageUrl.replace(/=s\d+-c/, '=s400-c')
 			}
-			onInputChange('institutionCoverImage', imageUrl)
+			onInputChange('institutionLogo', imageUrl)
 		}
-	}, [formData.institutionCoverImage, user?.image, onInputChange])
+	}, [formData.institutionLogo, user?.image, onInputChange])
 
 	const validateEmail = (email: string): boolean => {
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -223,7 +223,7 @@ export function InstitutionInfoStep({
 			const result = await ApiService.uploadFile(file)
 
 			// Update the institution logo with the S3 URL
-			onInputChange('institutionCoverImage', result.url)
+			onInputChange('institutionLogo', result.url)
 		} catch (error) {
 			setErrorMessage('Failed to upload image. Please try again.')
 			setShowErrorModal(true)
@@ -271,7 +271,7 @@ export function InstitutionInfoStep({
 				<div className="relative">
 					<Avatar className="w-20 h-20">
 						<AvatarImage
-							src={formData.institutionCoverImage}
+							src={formData.institutionLogo}
 							alt="Institution logo"
 						/>
 						<AvatarFallback className="bg-gray-200 text-gray-600">

@@ -132,6 +132,7 @@ export const InstitutionProfileSection: React.FC<
 
 			// Prepare the profile data for saving
 			const profileData = {
+				role: profile.role, // Include the role field
 				firstName: editedProfile?.firstName || '',
 				lastName: editedProfile?.lastName || '',
 				gender: editedProfile?.gender || '',

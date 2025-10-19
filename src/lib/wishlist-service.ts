@@ -131,30 +131,40 @@ class WishlistService {
 	// Utility methods
 	async toggleWishlistItem(postId: string): Promise<WishlistItemResponse> {
 		try {
-			// First, try to get the existing item
-			const existingItem = await this.getWishlistItem(postId);
+			// Check if item exists in wishlist
+			const isInWishlist = await this.isInWishlist(postId);
 
-			// If it exists, remove it
-			await this.removeFromWishlist(postId);
+			if (isInWishlist) {
+				// Item exists, remove it
+				await this.removeFromWishlist(postId);
 
-			// Return a response indicating it was removed
-			return {
-				success: true,
-				data: {
-					...existingItem.data,
-					status: 0, // Mark as inactive/removed
-				},
-			};
+				// Return a response indicating it was removed
+				return {
+					success: true,
+					data: {
+						id: `${postId}-removed`,
+						postId: postId,
+						userId: "current-user",
+						createdAt: new Date().toISOString(),
+						status: 0, // Mark as inactive/removed
+						post: {} as any, // Empty post data for removed item
+					},
+				};
+			} else {
+				// Item doesn't exist, add it
+				return this.addToWishlist({ postId, status: 1 });
+			}
 		} catch (error) {
-			// If item doesn't exist, add it
+			// If there's an error checking or adding, try to add it
 			return this.addToWishlist({ postId, status: 1 });
 		}
 	}
 
 	async isInWishlist(postId: string): Promise<boolean> {
 		try {
-			await this.getWishlistItem(postId);
-			return true;
+			// Get all wishlist items and check if the postId exists
+			const response = await this.getWishlist();
+			return response.data.some((item) => item.postId === postId);
 		} catch (error) {
 			return false;
 		}

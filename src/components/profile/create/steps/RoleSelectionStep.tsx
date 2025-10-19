@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui'
 import Image from 'next/image'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 
 interface RoleSelectionStepProps {
 	formData: ProfileFormData

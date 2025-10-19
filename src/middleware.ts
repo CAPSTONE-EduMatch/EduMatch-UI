@@ -9,11 +9,14 @@ const routeConfig = {
 	adminRoutes: ["/admin"],
 	profileRequiredRoutes: ["/dashboard", "/files"],
 	// Routes that should show auth modal instead of redirecting
-	authModalRoutes: ["/profile/create-profile"],
+	authModalRoutes: [
+		"/applicant-profile/create",
+		"/institution-profile/create",
+	],
 	defaultRedirects: {
 		afterLogin: "/dashboard",
 		afterLogout: "/signin",
-		createProfile: "/profile/create-profile",
+		createProfile: "/applicant-profile/create",
 		accessDenied: "/", // Redirect non-admin users here
 	},
 };

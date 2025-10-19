@@ -1,1 +1,1 @@
-export type TabType = "programmes" | "scholarships" | "research";
+export type TabType = "programmes" | "scholarships" | "research" | "wishlist";

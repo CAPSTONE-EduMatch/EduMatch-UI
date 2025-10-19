@@ -1,7 +1,7 @@
 // Mock data for explore tabs
 
 export interface Program {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	university: string;
@@ -17,7 +17,7 @@ export interface Program {
 }
 
 export interface Scholarship {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	provider: string;
@@ -32,7 +32,7 @@ export interface Scholarship {
 }
 
 export interface ResearchLab {
-	id: number;
+	id: string;
 	title: string;
 	description: string;
 	professor: string;
@@ -48,7 +48,7 @@ export interface ResearchLab {
 // Programs mock data
 export const mockPrograms: Program[] = [
 	{
-		id: 1,
+		id: "program-1",
 		title: "Master of Computer Science with Artificial Intelligence Specialization",
 		description:
 			"Comprehensive program covering advanced AI, machine learning, and deep learning techniques. Students will work on cutting-edge research projects and collaborate with industry partners.",
@@ -64,7 +64,7 @@ export const mockPrograms: Program[] = [
 		popular: 9500,
 	},
 	{
-		id: 2,
+		id: "program-2",
 		title: "PhD in Biomedical Engineering and Innovation",
 		description:
 			"Interdisciplinary research program focusing on medical device development, tissue engineering, and biomedical imaging technologies for next-generation healthcare solutions.",
@@ -80,7 +80,7 @@ export const mockPrograms: Program[] = [
 		popular: 8800,
 	},
 	{
-		id: 3,
+		id: "program-3",
 		title: "Master of Business Administration - Technology Leadership",
 		description:
 			"Executive MBA program designed for technology professionals seeking leadership roles. Includes case studies from Fortune 500 companies and startup ecosystems.",
@@ -96,7 +96,7 @@ export const mockPrograms: Program[] = [
 		popular: 9200,
 	},
 	{
-		id: 4,
+		id: "program-4",
 		title: "Master of Data Science and Analytics",
 		description:
 			"Comprehensive program covering statistical analysis, machine learning, data visualization, and big data technologies. Industry partnerships provide real-world project experience.",
@@ -112,7 +112,7 @@ export const mockPrograms: Program[] = [
 		popular: 9000,
 	},
 	{
-		id: 5,
+		id: "program-5",
 		title: "PhD in Sustainable Energy Engineering",
 		description:
 			"Research-intensive program focusing on renewable energy systems, smart grid technology, and environmental sustainability. Collaboration with leading energy companies.",
@@ -128,7 +128,7 @@ export const mockPrograms: Program[] = [
 		popular: 8500,
 	},
 	{
-		id: 6,
+		id: "program-6",
 		title: "Master of International Relations and Diplomacy",
 		description:
 			"Comprehensive study of global politics, international law, and diplomatic practices. Includes internships at international organizations and embassies.",
@@ -144,7 +144,7 @@ export const mockPrograms: Program[] = [
 		popular: 8700,
 	},
 	{
-		id: 7,
+		id: "program-7",
 		title: "Master of Cybersecurity and Information Assurance",
 		description:
 			"Advanced program covering network security, cryptography, digital forensics, and risk management. Hands-on experience with industry-standard security tools.",
@@ -160,7 +160,7 @@ export const mockPrograms: Program[] = [
 		popular: 9300,
 	},
 	{
-		id: 8,
+		id: "program-8",
 		title: "PhD in Quantum Computing and Physics",
 		description:
 			"Cutting-edge research program exploring quantum algorithms, quantum cryptography, and quantum hardware development. Access to state-of-the-art quantum laboratories.",
@@ -176,7 +176,7 @@ export const mockPrograms: Program[] = [
 		popular: 8200,
 	},
 	{
-		id: 9,
+		id: "program-9",
 		title: "Master of Financial Technology (FinTech)",
 		description:
 			"Innovative program combining finance, technology, and entrepreneurship. Focus on blockchain, digital payments, and algorithmic trading with industry partnerships.",
@@ -192,7 +192,7 @@ export const mockPrograms: Program[] = [
 		popular: 8900,
 	},
 	{
-		id: 10,
+		id: "program-10",
 		title: "Master of Environmental Science and Policy",
 		description:
 			"Interdisciplinary program addressing climate change, environmental policy, and sustainable development. Field research opportunities in diverse ecosystems.",
@@ -208,7 +208,7 @@ export const mockPrograms: Program[] = [
 		popular: 8600,
 	},
 	{
-		id: 11,
+		id: "program-11",
 		title: "PhD in Neuroscience and Brain Technology",
 		description:
 			"Advanced research in neurobiology, brain-computer interfaces, and neurological disorders. Access to cutting-edge neuroimaging and electrophysiology facilities.",
@@ -224,7 +224,7 @@ export const mockPrograms: Program[] = [
 		popular: 8400,
 	},
 	{
-		id: 12,
+		id: "program-12",
 		title: "Master of Game Design and Interactive Media",
 		description:
 			"Creative program combining art, technology, and storytelling. Students develop games, VR experiences, and interactive installations using industry tools.",
@@ -240,7 +240,7 @@ export const mockPrograms: Program[] = [
 		popular: 9100,
 	},
 	{
-		id: 13,
+		id: "program-13",
 		title: "Master of Public Health - Global Health Focus",
 		description:
 			"Comprehensive public health education with emphasis on global health challenges, epidemiology, and health policy. International field placement opportunities.",
@@ -256,7 +256,7 @@ export const mockPrograms: Program[] = [
 		popular: 8800,
 	},
 	{
-		id: 14,
+		id: "program-14",
 		title: "PhD in Aerospace Engineering and Space Technology",
 		description:
 			"Research program focusing on spacecraft design, propulsion systems, and space exploration technologies. Collaboration with space agencies and aerospace industry.",
@@ -272,7 +272,7 @@ export const mockPrograms: Program[] = [
 		popular: 8300,
 	},
 	{
-		id: 15,
+		id: "program-15",
 		title: "Master of Architecture and Urban Design",
 		description:
 			"Innovative design program combining architectural theory, sustainable design, and urban planning. Studio-based learning with real-world design projects.",
@@ -292,7 +292,7 @@ export const mockPrograms: Program[] = [
 // Scholarships mock data
 export const mockScholarships: Scholarship[] = [
 	{
-		id: 1,
+		id: "scholarship-1",
 		title: "Global Excellence Scholarship for STEM Fields",
 		description:
 			"Full tuition scholarship for outstanding international students pursuing degrees in Science, Technology, Engineering, and Mathematics. Includes living stipend and research funding.",
@@ -307,7 +307,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 9400,
 	},
 	{
-		id: 2,
+		id: "scholarship-2",
 		title: "Future Leaders in Technology Scholarship",
 		description:
 			"Merit-based scholarship supporting women and underrepresented minorities in computer science and engineering programs. Mentorship and networking opportunities included.",
@@ -322,7 +322,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8900,
 	},
 	{
-		id: 3,
+		id: "scholarship-3",
 		title: "Rhodes Scholarship for Graduate Study",
 		description:
 			"Prestigious scholarship covering all expenses for graduate study. Selection based on academic excellence, leadership potential, and commitment to service.",
@@ -337,7 +337,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 9600,
 	},
 	{
-		id: 4,
+		id: "scholarship-4",
 		title: "Erasmus+ Joint Master's Scholarship",
 		description:
 			"European Union scholarship for students pursuing joint master's degrees across multiple European universities. Cultural exchange and language learning opportunities.",
@@ -352,7 +352,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8700,
 	},
 	{
-		id: 5,
+		id: "scholarship-5",
 		title: "Chevening Scholarship for Leadership Development",
 		description:
 			"UK government scholarship for emerging leaders worldwide. Covers tuition, living costs, and return airfare. Strong alumni network and career support.",
@@ -367,7 +367,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 9100,
 	},
 	{
-		id: 6,
+		id: "scholarship-6",
 		title: "MEXT Scholarship for Japanese Studies",
 		description:
 			"Japanese government scholarship for international students. Covers tuition, living allowance, and airfare. Includes Japanese language training program.",
@@ -382,7 +382,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8500,
 	},
 	{
-		id: 7,
+		id: "scholarship-7",
 		title: "Gates Cambridge Scholarship",
 		description:
 			"Full scholarship for outstanding students from outside the UK to pursue graduate study at Cambridge. Focus on academic excellence and leadership potential.",
@@ -397,7 +397,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 9300,
 	},
 	{
-		id: 8,
+		id: "scholarship-8",
 		title: "Fulbright Foreign Student Program",
 		description:
 			"US government scholarship for international graduate students. Promotes mutual understanding through educational and cultural exchange.",
@@ -412,7 +412,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8800,
 	},
 	{
-		id: 9,
+		id: "scholarship-9",
 		title: "Commonwealth Scholarship and Fellowship",
 		description:
 			"Scholarship for students from Commonwealth countries. Supports master's and PhD studies with focus on development impact and knowledge sharing.",
@@ -427,7 +427,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8600,
 	},
 	{
-		id: 10,
+		id: "scholarship-10",
 		title: "DAAD Scholarship for German Excellence",
 		description:
 			"German academic exchange scholarship supporting international students in all academic fields. Cultural integration and language support programs included.",
@@ -442,7 +442,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8400,
 	},
 	{
-		id: 11,
+		id: "scholarship-11",
 		title: "Australia Awards Scholarship",
 		description:
 			"Australian government scholarship for students from developing countries. Covers tuition, living expenses, and health insurance with leadership development.",
@@ -457,7 +457,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8200,
 	},
 	{
-		id: 12,
+		id: "scholarship-12",
 		title: "Swiss Excellence Scholarship",
 		description:
 			"Swiss government scholarship for foreign scholars and artists. Supports research and artistic work at Swiss higher education institutions.",
@@ -472,7 +472,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 9000,
 	},
 	{
-		id: 13,
+		id: "scholarship-13",
 		title: "Korean Government Scholarship Program",
 		description:
 			"Comprehensive scholarship for international students studying in Korea. Includes Korean language training, cultural programs, and research opportunities.",
@@ -487,7 +487,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 8100,
 	},
 	{
-		id: 14,
+		id: "scholarship-14",
 		title: "Chinese Government Scholarship",
 		description:
 			"Scholarship program supporting international students in China. Covers tuition, accommodation, and living stipend with Chinese language and culture courses.",
@@ -502,7 +502,7 @@ export const mockScholarships: Scholarship[] = [
 		popular: 7900,
 	},
 	{
-		id: 15,
+		id: "scholarship-15",
 		title: "Canada Graduate Scholarships",
 		description:
 			"Canadian government scholarship for domestic and international students pursuing graduate studies. Focus on research excellence and innovation potential.",
@@ -521,7 +521,7 @@ export const mockScholarships: Scholarship[] = [
 // Research Labs mock data
 export const mockResearchLabs: ResearchLab[] = [
 	{
-		id: 1,
+		id: "research-1",
 		title: "Artificial Intelligence and Machine Learning Research Laboratory",
 		description:
 			"Cutting-edge research in deep learning, natural language processing, and computer vision. Current projects include autonomous systems, medical AI, and ethical AI frameworks.",
@@ -535,7 +535,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 9500,
 	},
 	{
-		id: 2,
+		id: "research-2",
 		title: "Quantum Computing and Information Systems Lab",
 		description:
 			"Advanced research in quantum algorithms, quantum cryptography, and quantum error correction. Collaboration with industry partners and access to quantum hardware.",
@@ -549,7 +549,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 9200,
 	},
 	{
-		id: 3,
+		id: "research-3",
 		title: "Biomedical Engineering and Regenerative Medicine Lab",
 		description:
 			"Interdisciplinary research combining engineering and biology to develop novel therapeutic approaches. Focus on tissue engineering, drug delivery, and biomedical devices.",
@@ -563,7 +563,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8900,
 	},
 	{
-		id: 4,
+		id: "research-4",
 		title: "Climate Change and Sustainability Research Center",
 		description:
 			"Global climate research addressing environmental challenges through innovative technologies. Projects include renewable energy, carbon capture, and climate modeling.",
@@ -577,7 +577,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8700,
 	},
 	{
-		id: 5,
+		id: "research-5",
 		title: "Neuroscience and Brain-Computer Interface Laboratory",
 		description:
 			"Pioneering research in neurotechnology, brain stimulation, and neural prosthetics. Development of therapeutic interventions for neurological disorders.",
@@ -591,7 +591,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 9000,
 	},
 	{
-		id: 6,
+		id: "research-6",
 		title: "Space Technology and Astrophysics Research Group",
 		description:
 			"Space exploration research including satellite technology, planetary science, and space propulsion systems. Collaboration with space agencies and aerospace industry.",
@@ -605,7 +605,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8500,
 	},
 	{
-		id: 7,
+		id: "research-7",
 		title: "Cybersecurity and Digital Privacy Laboratory",
 		description:
 			"Research in network security, cryptography, and privacy-preserving technologies. Development of secure systems for emerging technologies like IoT and blockchain.",
@@ -619,7 +619,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 9300,
 	},
 	{
-		id: 8,
+		id: "research-8",
 		title: "Materials Science and Nanotechnology Lab",
 		description:
 			"Advanced materials research for next-generation technologies. Focus on nanomaterials, smart materials, and applications in electronics and energy storage.",
@@ -633,7 +633,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8600,
 	},
 	{
-		id: 9,
+		id: "research-9",
 		title: "Financial Technology and Blockchain Research Center",
 		description:
 			"Research in digital finance, cryptocurrency, and distributed ledger technologies. Analysis of market dynamics and development of new financial instruments.",
@@ -647,7 +647,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8800,
 	},
 	{
-		id: 10,
+		id: "research-10",
 		title: "Robotics and Autonomous Systems Laboratory",
 		description:
 			"Development of intelligent robotic systems for manufacturing, healthcare, and service applications. Research in human-robot interaction and swarm robotics.",
@@ -661,7 +661,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 9100,
 	},
 	{
-		id: 11,
+		id: "research-11",
 		title: "Digital Health and Medical Informatics Lab",
 		description:
 			"Research at the intersection of healthcare and technology. Development of digital health solutions, medical data analytics, and telemedicine platforms.",
@@ -675,7 +675,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8400,
 	},
 	{
-		id: 12,
+		id: "research-12",
 		title: "Energy Storage and Battery Technology Research",
 		description:
 			"Advanced research in energy storage systems, battery technology, and grid integration. Development of sustainable energy solutions for transportation and utilities.",
@@ -689,7 +689,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8300,
 	},
 	{
-		id: 13,
+		id: "research-13",
 		title: "Social Media and Digital Communication Laboratory",
 		description:
 			"Research in social networks, digital communication patterns, and online behavior. Analysis of information spread, digital influence, and social media impact.",
@@ -703,7 +703,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8200,
 	},
 	{
-		id: 14,
+		id: "research-14",
 		title: "Urban Planning and Smart Cities Research Center",
 		description:
 			"Interdisciplinary research in urban development, smart city technologies, and sustainable urban planning. Focus on IoT integration and data-driven city management.",
@@ -717,7 +717,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		popular: 8600,
 	},
 	{
-		id: 15,
+		id: "research-15",
 		title: "Agricultural Technology and Food Security Lab",
 		description:
 			"Research in precision agriculture, food technology, and sustainable farming practices. Development of solutions for global food security and climate-resilient agriculture.",

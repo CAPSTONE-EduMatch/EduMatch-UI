@@ -10,7 +10,7 @@ import { AcademicInfoStep } from '@/components/profile/create/steps/AcademicInfo
 import { InstitutionInfoStep } from '@/components/profile/create/steps/InstitutionInfoStep'
 import { InstitutionDetailsStep } from '@/components/profile/create/steps/InstitutionDetailsStep'
 import { CompletionStep } from '@/components/profile/create/steps/CompletionStep'
-import { ProfileFormData } from '@/types/profile'
+import { ProfileFormData } from '@/lib/profile-service'
 import { Button } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthRequiredModal } from '@/components/auth'
@@ -36,40 +36,39 @@ export default function CreateProfile() {
 	// Check if user already has a profile
 	useEffect(() => {
 		const checkExistingProfile = async () => {
-			console.log('Checking profile, isAuthenticated:', isAuthenticated) // Debug log
 			if (!isAuthenticated) {
-				console.log('Not authenticated, stopping profile check') // Debug log
 				setIsCheckingProfile(false)
 				return
 			}
 
 			try {
-				console.log('Making API call to /api/profile') // Debug log
 				const response = await fetch('/api/profile')
-				console.log('Profile API response status:', response.status) // Debug log
 
 				if (response.ok) {
 					const profileData = await response.json()
-					console.log('Profile data:', profileData) // Debug log
 					if (profileData && profileData.profile && profileData.profile.id) {
-						// User already has a profile, redirect to view profile
-						console.log('User has existing profile, redirecting') // Debug log
+						// User already has a profile, redirect to appropriate dashboard
 						setHasExistingProfile(true)
-						router.push('/profile/view')
+						if (profileData.profile.role === 'applicant') {
+							router.push('/explore')
+						} else if (profileData.profile.role === 'institution') {
+							router.push('/institution-profile/view')
+						} else {
+							router.push('/')
+						}
 						return
 					}
 				} else if (response.status === 404) {
 					// Profile not found, user can create one
-					console.log('No existing profile found, user can create one')
+					// User can proceed with profile creation
 				} else {
 					// Other error, still allow creation
-					console.log('Error checking profile, allowing creation')
+					// Allow user to proceed with profile creation
 				}
 			} catch (error) {
-				console.error('Error checking existing profile:', error)
 				// On error, allow creation
+				// Error is logged but user can still create profile
 			} finally {
-				console.log('Setting isCheckingProfile to false') // Debug log
 				setIsCheckingProfile(false)
 			}
 		}
@@ -101,7 +100,6 @@ export default function CreateProfile() {
 		institutionEmail: '',
 		institutionCountry: '',
 		institutionAddress: '',
-		campuses: [],
 		representativeName: '',
 		representativeAppellation: '',
 		representativePosition: '',
@@ -111,26 +109,22 @@ export default function CreateProfile() {
 		aboutInstitution: '',
 		// Institution Details fields
 		institutionDisciplines: [],
-		institutionCoverImage: '',
+		institutionLogo: '', // Institution logo (small brand mark)
+		institutionCoverImage: '', // Institution cover image (large banner)
 		institutionVerificationDocuments: [],
 		// Academic fields
 		graduationStatus: '',
 		degree: '',
 		fieldOfStudy: '',
 		university: '',
-		graduationYear: '',
 		gpa: '',
 		countryOfStudy: '',
-		scoreType: '',
 		scoreValue: '',
 		// Foreign Language fields
 		hasForeignLanguage: '',
 		languages: [],
 		researchPapers: [],
 		// File upload fields
-		cvFile: '',
-		certificateFile: '',
-		uploadedFiles: [],
 		cvFiles: [],
 		languageCertFiles: [],
 		degreeFiles: [],
@@ -222,7 +216,8 @@ export default function CreateProfile() {
 				],
 			})
 		} else {
-			setFormData({ ...formData, uploadedFiles: files })
+			// Handle other file types as needed
+			// Files uploaded successfully
 		}
 	}
 
@@ -285,9 +280,16 @@ export default function CreateProfile() {
 			const { ApiService } = await import('@/lib/axios-config')
 			await ApiService.createProfile(formData)
 
-			// Profile saved successfully
-			// Redirect to home page
-			window.location.href = '/'
+			// Profile created successfully
+
+			// Redirect based on role
+			if (formData.role === 'applicant') {
+				router.push('/explore')
+			} else if (formData.role === 'institution') {
+				router.push('/institution-profile/view')
+			} else {
+				router.push('/')
+			}
 		} catch (error: any) {
 			// Error saving profile
 			alert(
@@ -448,7 +450,6 @@ export default function CreateProfile() {
 										formData={formData}
 										onInputChange={handleInputChange}
 										onMultiSelectChange={handleMultiSelectChange}
-										onFilesUploaded={handleFilesUploaded}
 										onBack={handleBack}
 										onNext={handleNext}
 										onShowManageModal={handleOpenModal}

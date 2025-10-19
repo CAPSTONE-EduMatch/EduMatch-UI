@@ -84,34 +84,32 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
 					<h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
 					<p className="text-sm text-gray-600 mb-6">{message}</p>
 
-					<div className="flex flex-col sm:flex-row gap-3">
-						{showButton && (
-							<Button
-								onClick={handleButtonClick}
-								className="flex-1 bg-gray-600 hover:bg-gray-700 text-white"
-							>
-								{buttonText}
-							</Button>
-						)}
-						{showSecondButton && (
-							<Button
-								onClick={handleSecondButtonClick}
-								variant="outline"
-								className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50"
-							>
-								{secondButtonText}
-							</Button>
-						)}
-						{showRetry && (
-							<Button
-								onClick={handleRetry}
-								variant="outline"
-								className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-							>
-								{retryText}
-							</Button>
-						)}
-					</div>
+					{showButton && (
+						<Button
+							onClick={handleButtonClick}
+							className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+						>
+							{buttonText}
+						</Button>
+					)}
+					{showSecondButton && (
+						<Button
+							onClick={handleSecondButtonClick}
+							variant="outline"
+							className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 mt-3"
+						>
+							{secondButtonText}
+						</Button>
+					)}
+					{showRetry && (
+						<Button
+							onClick={handleRetry}
+							variant="outline"
+							className="w-full border-red-300 text-red-700 hover:bg-red-50 mt-3"
+						>
+							{retryText}
+						</Button>
+					)}
 				</div>
 			</div>
 		</Modal>

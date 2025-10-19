@@ -14,25 +14,58 @@ import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
+import { applicationService } from '@/lib/application-service'
+import { useWishlist } from '@/hooks/useWishlist'
+import { useFileUpload } from '@/hooks/useFileUpload'
+import { useNotification } from '@/contexts/NotificationContext'
+import { useApiWrapper } from '@/lib/api-wrapper'
 
 const ProgramDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const params = useParams()
-	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('overview')
-	const [scholarshipWishlist, setScholarshipWishlist] = useState<number[]>([])
 	const [currentPage, setCurrentPage] = useState(1)
-	const [programWishlist, setProgramWishlist] = useState<number[]>([])
 	const [carouselIndex, setCarouselIndex] = useState(0)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+
+	// Document type categories
+	const documentTypes = [
+		{
+			id: 'research-proposal',
+			label: 'Research Proposal',
+			key: 'research-proposal',
+		},
+		{ id: 'cv-resume', label: 'CV/Resume', key: 'cv-resume' },
+		{ id: 'portfolio', label: 'Portfolio', key: 'portfolio' },
+	]
+
+	// S3 File upload functionality
+	const { uploadFiles, isUploading, uploadProgress } = useFileUpload({
+		category: 'application-documents',
+		onProgress: (progress) => {
+			console.log('Upload progress:', progress)
+		},
+	})
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
+
+	// Application state
+	const [hasApplied, setHasApplied] = useState(false)
+	const [isApplying, setIsApplying] = useState(false)
+	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist()
+
+	// Notification system
+	const { showSuccess, showError } = useNotification()
+	const apiWrapper = useApiWrapper()
 
 	// Dynamic info items based on current program data
 	const infoItems = [
@@ -108,33 +141,48 @@ const ProgramDetail = () => {
 		updateBreadcrumb()
 	}, [params.id, searchParams])
 
-	const handleWishlistToggle = (scholarshipId: number) => {
-		setScholarshipWishlist((prev) =>
-			prev.includes(scholarshipId)
-				? prev.filter((id) => id !== scholarshipId)
-				: [...prev, scholarshipId]
-		)
-	}
+	// Check for existing application when component loads
+	useEffect(() => {
+		const programId = currentProgram?.id || params.id
+		if (programId) {
+			checkExistingApplication(programId as string)
+		}
+	}, [currentProgram, params.id])
 
-	const handleProgramWishlistToggle = (programId: number) => {
-		setProgramWishlist((prev) =>
-			prev.includes(programId)
-				? prev.filter((id) => id !== programId)
-				: [...prev, programId]
-		)
-	}
-
-	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileUpload = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+		documentType: string
+	) => {
 		const files = event.target.files
-		if (files) {
-			const fileArray = Array.from(files).map((file, index) => ({
-				id: Date.now() + index,
-				name: file.name,
-				size: file.size,
-				type: file.type,
-				file: file,
-			}))
-			setUploadedFiles((prev) => [...prev, ...fileArray])
+		if (files && files.length > 0) {
+			try {
+				// Upload files to S3
+				const uploadedFileData = await uploadFiles(Array.from(files))
+
+				// Add uploaded files to state with document type
+				if (uploadedFileData) {
+					const filesWithType = uploadedFileData.map((file) => ({
+						...file,
+						documentType: documentType,
+					}))
+					setUploadedFiles((prev) => [...prev, ...filesWithType])
+				}
+				showSuccess(
+					'Files Uploaded Successfully',
+					`${uploadedFileData?.length || 0} file(s) have been uploaded successfully.`
+				)
+			} catch (error) {
+				console.error('❌ Failed to upload files to S3:', error)
+				showError(
+					'Upload Failed',
+					'Failed to upload files. Please try again.',
+					{
+						onRetry: () => handleFileUpload(event, documentType),
+						showRetry: true,
+						retryText: 'Retry Upload',
+					}
+				)
+			}
 		}
 	}
 
@@ -178,7 +226,7 @@ const ProgramDetail = () => {
 		setIsClosing(false)
 	}
 
-	const handleProgramClick = (programId: number) => {
+	const handleProgramClick = (programId: string) => {
 		// Get current tab context from referrer or default to programmes
 		const referrer = document.referrer
 		let fromTab = 'programmes'
@@ -191,8 +239,187 @@ const ProgramDetail = () => {
 		router.push(`/explore/${programId}?from=${fromTab}`)
 	}
 
-	const handleScholarshipClick = (scholarshipId: number) => {
+	const handleScholarshipClick = (scholarshipId: string) => {
 		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
+	}
+
+	// Check if user has already applied to this post
+	const checkExistingApplication = async (programId: string) => {
+		try {
+			setIsCheckingApplication(true)
+			const response = await applicationService.getApplications({
+				page: 1,
+				limit: 100, // Get more applications to search through
+			})
+
+			if (
+				response.success &&
+				response.applications &&
+				response.applications.length > 0
+			) {
+				// Check if any application is for this specific post
+				const existingApplication = response.applications.find(
+					(app) => app.postId === programId
+				)
+
+				if (existingApplication) {
+					setHasApplied(true)
+					return true
+				}
+			}
+			return false
+		} catch (error) {
+			console.error('Failed to check existing application:', error)
+			return false
+		} finally {
+			setIsCheckingApplication(false)
+		}
+	}
+
+	// Handle application submission
+	const handleApply = async () => {
+		// Use program ID from URL params as fallback
+		const programId = currentProgram?.id || params.id
+		if (!programId) {
+			console.log('❌ No program ID found')
+			return
+		}
+
+		// Check if already applied
+		if (hasApplied) {
+			showError(
+				'Already Applied',
+				'You have already applied to this program. You cannot submit multiple applications.',
+				{
+					showRetry: false,
+				}
+			)
+			return
+		}
+
+		try {
+			setIsApplying(true)
+
+			const response = await applicationService.submitApplication({
+				postId: programId,
+				documents: uploadedFiles.map((file) => ({
+					documentTypeId: file.documentType || getDocumentType(file.name), // Use stored document type or fallback to filename detection
+					name: file.name,
+					url: file.url, // S3 URL from upload
+					size: file.size,
+				})),
+			})
+
+			if (response.success) {
+				setHasApplied(true)
+				showSuccess(
+					'Application Submitted!',
+					'Your application has been submitted successfully. You will receive updates via email.'
+				)
+			} else {
+				showError(
+					'Application Failed',
+					response.error || 'Failed to submit application. Please try again.',
+					{
+						onRetry: handleApply,
+						showRetry: true,
+						retryText: 'Retry',
+					}
+				)
+			}
+		} catch (error: any) {
+			console.error('Failed to submit application:', error)
+
+			// Handle specific "already applied" error
+			if (error.message && error.message.includes('already applied')) {
+				setHasApplied(true)
+				showError(
+					'Already Applied',
+					'You have already applied to this program. You cannot submit multiple applications.',
+					{
+						showRetry: false,
+					}
+				)
+			} else {
+				showError(
+					'Application Error',
+					'An unexpected error occurred. Please try again.',
+					{
+						onRetry: handleApply,
+						showRetry: true,
+						retryText: 'Retry',
+					}
+				)
+			}
+		} finally {
+			setIsApplying(false)
+		}
+	}
+
+	// Handle wishlist toggle
+	const handleWishlistToggle = async () => {
+		const programId = currentProgram?.id || params.id
+		if (!programId) return
+
+		try {
+			await toggleWishlistItem(programId)
+			const isWishlisted = isInWishlist(programId)
+			showSuccess(
+				isWishlisted ? 'Added to Wishlist' : 'Removed from Wishlist',
+				isWishlisted
+					? 'This program has been added to your wishlist.'
+					: 'This program has been removed from your wishlist.'
+			)
+		} catch (error) {
+			console.error('Failed to toggle wishlist item:', error)
+			showError(
+				'Wishlist Error',
+				'Failed to update wishlist. Please try again.',
+				{
+					onRetry: handleWishlistToggle,
+					showRetry: true,
+					retryText: 'Retry',
+				}
+			)
+		}
+	}
+
+	// Helper function to determine document type based on file name
+	const getDocumentType = (fileName: string): string => {
+		const lowerName = fileName.toLowerCase()
+
+		if (lowerName.includes('cv') || lowerName.includes('resume')) {
+			return 'cv-resume'
+		} else if (
+			lowerName.includes('transcript') ||
+			lowerName.includes('academic')
+		) {
+			return 'transcript'
+		} else if (
+			lowerName.includes('certificate') ||
+			lowerName.includes('cert')
+		) {
+			return 'certificate'
+		} else if (
+			lowerName.includes('proposal') ||
+			lowerName.includes('research')
+		) {
+			return 'research-proposal'
+		} else if (lowerName.includes('portfolio')) {
+			return 'portfolio'
+		} else if (
+			lowerName.includes('letter') ||
+			lowerName.includes('recommendation')
+		) {
+			return 'recommendation-letter'
+		} else if (
+			lowerName.includes('statement') ||
+			lowerName.includes('motivation')
+		) {
+			return 'personal-statement'
+		} else {
+			return 'application-document'
+		}
 	}
 
 	const menuItems = [
@@ -424,8 +651,8 @@ const ProgramDetail = () => {
 										key={scholarship.id}
 										scholarship={scholarship}
 										index={index}
-										isWishlisted={scholarshipWishlist.includes(scholarship.id)}
-										onWishlistToggle={handleWishlistToggle}
+										isWishlisted={isInWishlist(scholarship.id)}
+										onWishlistToggle={() => toggleWishlistItem(scholarship.id)}
 										onClick={handleScholarshipClick}
 									/>
 								))}
@@ -499,12 +726,31 @@ const ProgramDetail = () => {
 
 						<div className="flex items-center gap-3 mb-4">
 							<Button className="">Visit website</Button>
-							<Button className="">Apply</Button>
+							{/* <Button
+								className={
+									hasApplied
+										? 'bg-green-600 hover:bg-green-700'
+										: 'bg-[#116E63] hover:bg-teal-700'
+								}
+								onClick={handleApply}
+								disabled={hasApplied || isApplying}
+							>
+								{hasApplied ? (
+									'✓ Applied'
+								) : isApplying ? (
+									<div className="flex items-center gap-2">
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+										Applying...
+									</div>
+								) : (
+									'Apply'
+								)}
+							</Button> */}
 							<motion.button
 								onClick={(e) => {
 									e.preventDefault()
 									e.stopPropagation()
-									setIsWishlisted(!isWishlisted)
+									handleWishlistToggle()
 								}}
 								className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 								whileHover={{ scale: 1.1 }}
@@ -512,7 +758,7 @@ const ProgramDetail = () => {
 							>
 								<Heart
 									className={`w-6 h-6 transition-all duration-200 ${
-										isWishlisted
+										isInWishlist(currentProgram?.id || params.id)
 											? 'fill-red-500 text-red-500'
 											: 'text-gray-400 hover:text-red-500'
 									}`}
@@ -663,13 +909,21 @@ const ProgramDetail = () => {
 					</p>
 
 					{/* File Upload Area */}
-					{/* File Upload Area */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-						{['Research Proposal', 'CV/Resume', 'Portfolio'].map(
-							(label, index) => (
-								<div key={index} className="space-y-2">
+						{documentTypes.map((docType, index) => {
+							const filesForThisType = uploadedFiles.filter(
+								(file) => file.documentType === docType.id
+							)
+							return (
+								<div key={docType.id} className="space-y-2">
 									<label className="text-sm font-medium text-gray-700">
-										{label}
+										{docType.label}
+										{filesForThisType.length > 0 && (
+											<span className="ml-2 text-xs text-green-600">
+												({filesForThisType.length} file
+												{filesForThisType.length !== 1 ? 's' : ''})
+											</span>
+										)}
 									</label>
 									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
 										<div className="text-4xl mb-4">📁</div>
@@ -677,39 +931,82 @@ const ProgramDetail = () => {
 											<input
 												type="file"
 												multiple
-												onChange={handleFileUpload}
+												onChange={(e) => handleFileUpload(e, docType.id)}
 												className="hidden"
-												id={`file-upload-${index}`}
+												id={`file-upload-${docType.id}`}
 											/>
 											<label
-												htmlFor={`file-upload-${index}`}
+												htmlFor={`file-upload-${docType.id}`}
 												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
 											>
 												Click here to upload file
 											</label>
 										</div>
 									</div>
+
+									{/* Show uploaded files for this document type */}
+									{filesForThisType.length > 0 && (
+										<div className="space-y-1">
+											{filesForThisType.map((file) => (
+												<div
+													key={file.id}
+													className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
+												>
+													<span className="truncate flex-1">{file.name}</span>
+													<button
+														onClick={() => removeFile(file.id)}
+														className="text-red-500 hover:text-red-700 ml-2"
+													>
+														✕
+													</button>
+												</div>
+											))}
+										</div>
+									)}
 								</div>
 							)
-						)}
+						})}
 					</div>
 
 					{/* File Management */}
-					{uploadedFiles.length > 0 && (
+					{(uploadedFiles.length > 0 || isUploading) && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium">
-									Manage files: {uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''}
+									{isUploading
+										? 'Uploading files...'
+										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
 								</span>
-								<Button
-									variant="outline"
-									onClick={handleOpenModal}
-									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-								>
-									Manage Files
-								</Button>
+								{uploadedFiles.length > 0 && (
+									<Button
+										variant="outline"
+										onClick={handleOpenModal}
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+									>
+										Manage Files
+									</Button>
+								)}
 							</div>
+
+							{/* Upload Progress */}
+							{isUploading && uploadProgress.length > 0 && (
+								<div className="space-y-2 mb-4">
+									{uploadProgress.map((progress) => (
+										<div key={progress.fileIndex} className="space-y-1">
+											<div className="flex justify-between text-sm">
+												<span>File {progress.fileIndex + 1}</span>
+												<span>{progress.progress}%</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+													style={{ width: `${progress.progress}%` }}
+												></div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
 						</div>
 					)}
 
@@ -723,8 +1020,37 @@ const ProgramDetail = () => {
 								Remove all
 							</Button>
 						)}
-						<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-							Submit Application
+						<Button
+							className={
+								hasApplied
+									? 'bg-green-600 hover:bg-green-700 text-white'
+									: 'bg-[#126E64] hover:bg-teal-700 text-white'
+							}
+							onClick={handleApply}
+							disabled={
+								hasApplied || isApplying || isUploading || isCheckingApplication
+							}
+						>
+							{hasApplied ? (
+								'✓ Application Submitted'
+							) : isApplying ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Submitting...
+								</div>
+							) : isUploading ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Uploading Files...
+								</div>
+							) : isCheckingApplication ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Checking...
+								</div>
+							) : (
+								'Submit Application'
+							)}
 						</Button>
 					</div>
 				</motion.div>
@@ -769,8 +1095,8 @@ const ProgramDetail = () => {
 											<ProgramCard
 												program={program}
 												index={index}
-												isWishlisted={programWishlist.includes(program.id)}
-												onWishlistToggle={handleProgramWishlistToggle}
+												isWishlisted={isInWishlist(program.id)}
+												onWishlistToggle={() => toggleWishlistItem(program.id)}
 												onClick={handleProgramClick}
 											/>
 										</div>
@@ -827,53 +1153,64 @@ const ProgramDetail = () => {
 
 					<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
 						<div className="space-y-8">
-							{/* Uploaded Files Section */}
+							{/* Uploaded Files Section - Grouped by Document Type */}
 							{uploadedFiles.length > 0 && (
-								<div className="space-y-4">
+								<div className="space-y-6">
 									<h3 className="text-lg font-medium text-foreground border-b pb-2">
 										Uploaded Files ({uploadedFiles.length})
 									</h3>
-									<div className="grid grid-cols-1 gap-4">
-										{uploadedFiles.map((file) => (
-											<div
-												key={file.id}
-												className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-											>
-												<div className="text-2xl">📄</div>
-												<div className="flex-1 min-w-0">
-													<p className="text-sm font-medium text-foreground truncate">
-														{file.name}
-													</p>
-													<p className="text-xs text-muted-foreground">
-														{(file.size / 1024).toFixed(1)} KB
-													</p>
-												</div>
-												<div className="flex gap-2">
-													<Button
-														variant="outline"
-														onClick={() => {
-															// Create a download link for the file
-															const url = URL.createObjectURL(file.file)
-															const a = document.createElement('a')
-															a.href = url
-															a.download = file.name
-															a.click()
-															URL.revokeObjectURL(url)
-														}}
-													>
-														View
-													</Button>
-													<Button
-														variant="outline"
-														onClick={() => removeFile(file.id)}
-														className="text-red-500 hover:text-red-700"
-													>
-														Delete
-													</Button>
+									{documentTypes.map((docType) => {
+										const filesForThisType = uploadedFiles.filter(
+											(file) => file.documentType === docType.id
+										)
+										if (filesForThisType.length === 0) return null
+
+										return (
+											<div key={docType.id} className="space-y-3">
+												<h4 className="text-md font-medium text-gray-700 border-b border-gray-200 pb-1">
+													{docType.label} ({filesForThisType.length})
+												</h4>
+												<div className="grid grid-cols-1 gap-3">
+													{filesForThisType.map((file) => (
+														<div
+															key={file.id}
+															className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+														>
+															<div className="text-2xl">📄</div>
+															<div className="flex-1 min-w-0">
+																<p className="text-sm font-medium text-foreground truncate">
+																	{file.name}
+																</p>
+																<p className="text-xs text-muted-foreground">
+																	{(file.size / 1024).toFixed(1)} KB
+																</p>
+															</div>
+															<div className="flex gap-2">
+																<Button
+																	variant="outline"
+																	size="sm"
+																	onClick={() => {
+																		// Open S3 file URL in new tab
+																		window.open(file.url, '_blank')
+																	}}
+																>
+																	View
+																</Button>
+																<Button
+																	variant="outline"
+																	size="sm"
+																	onClick={() => removeFile(file.id)}
+																	className="text-red-500 hover:text-red-700"
+																>
+																	Delete
+																</Button>
+															</div>
+														</div>
+													))}
 												</div>
 											</div>
-										))}
-									</div>
+										)
+									})}
 								</div>
 							)}
 

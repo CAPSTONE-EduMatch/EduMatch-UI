@@ -8,13 +8,17 @@ interface ConditionalLayoutProps {
 	children: React.ReactNode
 }
 
-const hideFooterPaths = ['/applicant-profile/', '/admin/']
-
+const hideFooterPaths = [
+	'/applicant-profile/',
+	'/admin/',
+	'/messages',
+	'institution-profile',
+]
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 	const pathname = usePathname()
 
-	// Hide header and footer on create profile page
-	const hideLayout = pathname === '/applicant-profile/create'
+	// Hide header and footer on create profile pages
+	const hideLayout = pathname.startsWith('/profile/create')
 
 	// Hide only footer on profile pages and messages page
 	const hideFooter = hideFooterPaths.some((path) => pathname.startsWith(path))
@@ -25,7 +29,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 
 	return (
 		<>
-			{/* <EduMatchHeader /> */}
+			<EduMatchHeader />
 			{children}
 			{!hideFooter && <Footer />}
 		</>

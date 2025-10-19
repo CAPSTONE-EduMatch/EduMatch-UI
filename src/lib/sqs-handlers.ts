@@ -187,16 +187,13 @@ export class SQSMessageHandler {
 			// Save notification to database
 			await prismaClient.notification.create({
 				data: {
-					id: message.id,
-					userId: message.userId,
+					notification_id: message.id,
+					user_id: message.userId,
 					type: message.type,
 					title,
-					bodyText,
+					body: bodyText,
 					url,
-					payload: message.metadata || {},
-					createAt: new Date(),
-					queuedAt: new Date(),
-					status: "sent",
+					send_at: new Date(),
 				},
 			});
 
@@ -384,16 +381,13 @@ export class NotificationUtils {
 			// Save notification to database
 			await prismaClient.notification.create({
 				data: {
-					id: message.id,
-					userId: message.userId,
+					notification_id: message.id,
+					user_id: message.userId,
 					type: message.type,
 					title,
-					bodyText,
+					body: bodyText,
 					url,
-					payload: message.metadata || {},
-					createAt: new Date(),
-					queuedAt: new Date(),
-					status: "sent",
+					send_at: new Date(),
 				},
 			});
 

@@ -12,6 +12,7 @@ import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/useSimpleWarning'
+import { ApiService } from '@/lib/axios-config'
 
 interface AcademicSectionProps {
 	profile: any
@@ -34,6 +35,26 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 
 	// Track if there are unsaved changes
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+	// State for subdisciplines loaded from database
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
 
 	// Initialize edited profile when profile changes
 	useEffect(() => {
@@ -80,7 +101,17 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			const { ApiService } = await import('@/lib/axios-config')
 
 			const profileData = {
+				role: profile.role, // Include the role field
 				// Preserve existing profile fields
+				firstName: profile?.firstName || '',
+				lastName: profile?.lastName || '',
+				gender: profile?.gender || '',
+				birthday: profile?.birthday || '',
+				email: profile?.user?.email || '',
+				nationality: profile?.nationality || '',
+				phoneNumber: profile?.phoneNumber || '',
+				countryCode: profile?.countryCode || '',
+				profilePhoto: profile?.profilePhoto || '',
 				interests: profile?.interests || [],
 				favoriteCountries: profile?.favoriteCountries || [],
 				// Academic fields
@@ -570,21 +601,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 												handleFieldChange('fieldOfStudy', option?.value || '')
 											}
 											placeholder="Choose discipline"
-											options={[
-												{
-													value: 'Computer Science',
-													label: 'Computer Science',
-												},
-												{
-													value: 'Business Administration',
-													label: 'Business Administration',
-												},
-												{ value: 'Engineering', label: 'Engineering' },
-												{ value: 'Medicine', label: 'Medicine' },
-												{ value: 'Law', label: 'Law' },
-												{ value: 'Arts', label: 'Arts' },
-												{ value: 'Sciences', label: 'Sciences' },
-											]}
+											options={subdisciplines}
 											menuPortalTarget={document.body}
 											isClearable={false}
 											className="min-w-[12rem]"
@@ -1440,77 +1457,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 															handleFieldChange('researchPapers', newPapers)
 														}}
 														placeholder="Choose disciplines"
-														options={[
-															{
-																value: 'Computer Science',
-																label: 'Computer Science',
-															},
-															{
-																value: 'Business Administration',
-																label: 'Business Administration',
-															},
-															{ value: 'Engineering', label: 'Engineering' },
-															{ value: 'Medicine', label: 'Medicine' },
-															{ value: 'Law', label: 'Law' },
-															{ value: 'Arts', label: 'Arts' },
-															{ value: 'Sciences', label: 'Sciences' },
-															{ value: 'Mathematics', label: 'Mathematics' },
-															{ value: 'Physics', label: 'Physics' },
-															{ value: 'Chemistry', label: 'Chemistry' },
-															{ value: 'Biology', label: 'Biology' },
-															{ value: 'Psychology', label: 'Psychology' },
-															{ value: 'Sociology', label: 'Sociology' },
-															{ value: 'Economics', label: 'Economics' },
-															{
-																value: 'Economics and Finance',
-																label: 'Economics and Finance',
-															},
-															{
-																value: 'Economics and Business',
-																label: 'Economics and Business',
-															},
-															{
-																value: 'Economics and Management',
-																label: 'Economics and Management',
-															},
-															{
-																value: 'Economics and Accounting',
-																label: 'Economics and Accounting',
-															},
-															{
-																value: 'Economics and Marketing',
-																label: 'Economics and Marketing',
-															},
-															{
-																value: 'Economics and Human Resources',
-																label: 'Economics and Human Resources',
-															},
-															{
-																value: 'Economics and International Relations',
-																label: 'Economics and International Relations',
-															},
-															{
-																value: 'Economics and Public Policy',
-																label: 'Economics and Public Policy',
-															},
-															{
-																value: 'Economics and Development',
-																label: 'Economics and Development',
-															},
-															{
-																value: 'Economics and Policy',
-																label: 'Economics and Policy',
-															},
-															{
-																value: 'Economics and Policy',
-																label: 'Economics and Policy',
-															},
-
-															{
-																value: 'Political Science',
-																label: 'Political Science',
-															},
-														]}
+														options={subdisciplines}
 														isMulti
 														isSearchable
 														isClearable

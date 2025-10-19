@@ -141,7 +141,7 @@ const shouldCache = (config: AxiosRequestConfig): boolean => {
 	// Don't cache auth endpoints
 	if (config.url?.includes("/auth/")) return false;
 
-	// Don't cache profile endpoints - server handles caching
+	// Don't cache profile endpoints
 	if (config.url?.includes("/api/profile")) return false;
 
 	// Cache users/status endpoint for 1 minute
@@ -247,6 +247,12 @@ export class ApiService {
 		);
 		return response.data;
 	}
+
+	// Subdisciplines endpoints
+	static async getSubdisciplines() {
+		const response = await apiClient.get("/api/subdisciplines");
+		return response.data;
+	}
 }
 
 // Cache management utilities
@@ -261,9 +267,9 @@ export const cacheUtils = {
 		await cacheInvalidation.invalidateUser(userId);
 	},
 
-	// Clear profile cache
+	// Clear profile cache (deprecated - no longer using profile caching)
 	async clearProfileCache(userId: string): Promise<void> {
-		await cacheInvalidation.invalidateUserProfile(userId);
+		// Profile caching removed - no action needed
 	},
 
 	// Clear specific cache by key
@@ -276,9 +282,9 @@ export const cacheUtils = {
 		await cacheInvalidation.invalidateApiCache(pattern);
 	},
 
-	// Force refresh profile data
+	// Force refresh profile data (deprecated - no longer using profile caching)
 	async refreshProfile(userId: string): Promise<void> {
-		await cacheInvalidation.invalidateUserProfile(userId);
+		// Profile caching removed - no action needed
 	},
 
 	// Get cache statistics

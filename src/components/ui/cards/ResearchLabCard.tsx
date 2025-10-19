@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 
 interface ResearchLabCardProps {
 	lab: {
-		id: number
+		id: string
 		title: string
 		description: string
 		professor: string
@@ -18,8 +18,11 @@ interface ResearchLabCardProps {
 	}
 	index: number
 	isWishlisted: boolean
-	onWishlistToggle: (labId: number) => void
-	onClick?: (labId: number) => void
+	onWishlistToggle: (id: string) => void
+	hasApplied?: boolean
+	isApplying?: boolean
+	onApply?: (id: string) => void
+	onClick?: (labId: string) => void
 }
 
 export function ResearchLabCard({
@@ -27,6 +30,9 @@ export function ResearchLabCard({
 	index,
 	isWishlisted,
 	onWishlistToggle,
+	hasApplied = false,
+	isApplying = false,
+	onApply,
 	onClick,
 }: ResearchLabCardProps) {
 	return (
@@ -68,10 +74,44 @@ export function ResearchLabCard({
 			<p className="text-gray-600 mb-4 line-clamp-3">{lab.description}</p>
 
 			{/* Professor */}
-			<div className="flex items-center gap-2 mb-6 text-[#116E63] font-medium">
+			<div className="flex items-center gap-2 mb-4 text-[#116E63] font-medium">
 				<Users className="w-4 h-4" />
 				<span>{lab.professor}</span>
 			</div>
+
+			{/* Apply Button */}
+			{onApply && (
+				<div className="mb-4">
+					<motion.button
+						onClick={(e) => {
+							e.preventDefault()
+							e.stopPropagation()
+							onApply(lab.id)
+						}}
+						disabled={hasApplied || isApplying}
+						className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+							hasApplied
+								? 'bg-green-600 text-white cursor-not-allowed'
+								: isApplying
+									? 'bg-gray-400 text-white cursor-not-allowed'
+									: 'bg-[#116E63] text-white hover:bg-teal-700'
+						}`}
+						whileHover={!hasApplied && !isApplying ? { scale: 1.02 } : {}}
+						whileTap={!hasApplied && !isApplying ? { scale: 0.98 } : {}}
+					>
+						{hasApplied ? (
+							'✓ Applied'
+						) : isApplying ? (
+							<div className="flex items-center justify-center gap-2">
+								<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+								Applying...
+							</div>
+						) : (
+							'Apply Now'
+						)}
+					</motion.button>
+				</div>
+			)}
 
 			{/* Bottom section */}
 			<div className="flex justify-between gap-3 items-center">

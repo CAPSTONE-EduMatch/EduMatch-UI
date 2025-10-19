@@ -60,31 +60,30 @@ export async function GET(request: NextRequest) {
 		}
 
 		// Query ALL posts first (without pagination) to apply filtering
-		const allPosts = await prismaClient.post.findMany({
+		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
 			orderBy:
 				sortBy === "newest"
-					? { createdAt: "desc" }
+					? { create_at: "desc" }
 					: sortBy === "oldest"
-						? { createdAt: "asc" }
-						: { createdAt: "desc" }, // default to newest
+						? { create_at: "asc" }
+						: { create_at: "desc" }, // default to newest
 		});
 
 		// Get all post IDs for wishlist check
-		const allPostIds = allPosts.map((post) => post.id);
+		const allPostIds = allPosts.map((post: any) => post.post_id);
 
 		// Get user's wishlist items
 		const userWishlist = await prismaClient.wishlist.findMany({
 			where: {
-				userId: userId,
-				postId: { in: allPostIds },
-				status: 1, // Only active wishlist items
+				applicant_id: userId,
+				post_id: { in: allPostIds },
 			},
 		});
 
 		// Create wishlist map for quick lookup
 		const wishlistMap = new Map(
-			userWishlist.map((item) => [item.postId, true])
+			userWishlist.map((item: any) => [item.post_id, true])
 		);
 
 		// Fetch all explore data using shared utility
@@ -105,8 +104,8 @@ export async function GET(request: NextRequest) {
 		if (type === "all" || type === "programs") {
 			// Transform programs
 			const programs: Program[] = allPosts
-				.map((post) => {
-					const postProgram = postProgramMap.get(post.id);
+				.map((post: any) => {
+					const postProgram = postProgramMap.get(post.post_id);
 					if (!postProgram) return null;
 
 					// Find the appropriate institution for this program
@@ -119,8 +118,8 @@ export async function GET(request: NextRequest) {
 					};
 
 					const applicationCount =
-						applicationCountMap.get(post.id) || 0;
-					const isInWishlist = wishlistMap.has(post.id);
+						applicationCountMap.get(post.post_id) || 0;
+					const isInWishlist = wishlistMap.has(post.post_id);
 
 					return transformToProgram(
 						post,
@@ -132,7 +131,7 @@ export async function GET(request: NextRequest) {
 						isInWishlist
 					);
 				})
-				.filter((program): program is Program => program !== null);
+				.filter((program: any): program is Program => program !== null);
 
 			allItems = [...allItems, ...programs];
 		}
@@ -140,8 +139,10 @@ export async function GET(request: NextRequest) {
 		if (type === "all" || type === "scholarships") {
 			// Transform scholarships
 			const scholarships: Scholarship[] = allPosts
-				.map((post) => {
-					const postScholarship = postScholarshipMap.get(post.id);
+				.map((post: any) => {
+					const postScholarship = postScholarshipMap.get(
+						post.post_id
+					);
 					if (!postScholarship) return null;
 
 					// Find the appropriate institution for this scholarship
@@ -154,8 +155,8 @@ export async function GET(request: NextRequest) {
 					};
 
 					const applicationCount =
-						applicationCountMap.get(post.id) || 0;
-					const isInWishlist = wishlistMap.has(post.id);
+						applicationCountMap.get(post.post_id) || 0;
+					const isInWishlist = wishlistMap.has(post.post_id);
 
 					return transformToScholarship(
 						post,
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest) {
 					);
 				})
 				.filter(
-					(scholarship): scholarship is Scholarship =>
+					(scholarship: any): scholarship is Scholarship =>
 						scholarship !== null
 				);
 
@@ -176,8 +177,8 @@ export async function GET(request: NextRequest) {
 		if (type === "all" || type === "research") {
 			// Transform research labs
 			const researchLabs: ResearchLab[] = allPosts
-				.map((post) => {
-					const postJob = postJobMap.get(post.id);
+				.map((post: any) => {
+					const postJob = postJobMap.get(post.post_id);
 					if (!postJob) return null;
 
 					// Find the appropriate institution for this research lab
@@ -190,8 +191,8 @@ export async function GET(request: NextRequest) {
 					};
 
 					const applicationCount =
-						applicationCountMap.get(post.id) || 0;
-					const isInWishlist = wishlistMap.has(post.id);
+						applicationCountMap.get(post.post_id) || 0;
+					const isInWishlist = wishlistMap.has(post.post_id);
 
 					return transformToResearchLab(
 						post,
@@ -202,7 +203,7 @@ export async function GET(request: NextRequest) {
 					);
 				})
 				.filter(
-					(researchLab): researchLab is ResearchLab =>
+					(researchLab: any): researchLab is ResearchLab =>
 						researchLab !== null
 				);
 

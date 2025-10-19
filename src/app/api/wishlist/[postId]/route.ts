@@ -29,14 +29,26 @@ export async function GET(
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const { postId } = params;
 
-		const wishlistItem = await prismaClient.wishlist.findUnique({
+		const wishlistItem = await prismaClient.wishlist.findFirst({
 			where: {
-				postId_userId: {
-					postId: postId,
-					userId: userId,
-				},
+				post_id: postId,
+				applicant_id: applicant.applicant_id,
 			},
 		});
 
@@ -50,17 +62,17 @@ export async function GET(
 		}
 
 		// Get post data
-		const post = await prismaClient.post.findUnique({
-			where: { id: postId },
+		const post = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: postId },
 		});
 
 		// Get related data separately
 		const [postProgram, postScholarship, postJob] = await Promise.all([
-			prismaClient.postProgram.findUnique({ where: { PostId: postId } }),
-			prismaClient.postScholarship.findUnique({
-				where: { PostId: postId },
+			prismaClient.programPost.findFirst({ where: { post_id: postId } }),
+			prismaClient.scholarshipPost.findFirst({
+				where: { post_id: postId },
 			}),
-			prismaClient.postJob.findUnique({ where: { PostId: postId } }),
+			prismaClient.jobPost.findFirst({ where: { post_id: postId } }),
 		]);
 
 		if (!post) {
@@ -73,43 +85,32 @@ export async function GET(
 		}
 
 		// Get institution data
-		const institution = await prismaClient.institution_profile.findUnique({
-			where: { profile_id: postId },
+		const institution = await prismaClient.institution.findFirst({
+			where: { institution_id: post.institution_id },
 		});
 
 		const response: WishlistItemResponse = {
 			success: true,
 			data: {
-				id: `${wishlistItem.postId}-${wishlistItem.userId}`,
-				postId: wishlistItem.postId,
-				userId: wishlistItem.userId,
-				createdAt: wishlistItem.createdAt.toISOString(),
-				status: wishlistItem.status as 0 | 1,
+				id: `${wishlistItem.post_id}-${wishlistItem.applicant_id}`,
+				postId: wishlistItem.post_id,
+				userId: wishlistItem.applicant_id,
+				createdAt: wishlistItem.add_at.toISOString(),
+				status: 1 as 0 | 1,
 				post: {
-					id: post.id,
+					id: post.post_id,
 					title: post.title,
-					content: post.content,
-					published: post.published,
-					createdAt: post.createdAt.toISOString(),
-					updatedAt: post.updatedAt.toISOString(),
-					authorId: post.authorId,
-					program: postProgram || undefined,
-					scholarship: postScholarship || undefined,
-					job: postJob
-						? {
-								...postJob,
-								min_salary: Number(postJob.min_salary),
-								max_salary: Number(postJob.max_salary),
-							}
-						: undefined,
-					institution: institution
-						? {
-								...institution,
-								rep_appellation: institution.rep_appellation
-									.toISOString()
-									.split("T")[0],
-							}
-						: undefined,
+					content: post.other_info,
+					published: post.status === "PUBLISHED",
+					createdAt: post.create_at.toISOString(),
+					updatedAt:
+						post.update_at?.toISOString() ||
+						post.create_at.toISOString(),
+					authorId: post.institution_id,
+					program: (postProgram as any) || undefined,
+					scholarship: (postScholarship as any) || undefined,
+					job: (postJob as any) || undefined,
+					institution: (institution as any) || undefined,
 				},
 			},
 		};
@@ -149,15 +150,29 @@ export async function PUT(
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const { postId } = params;
 		const body: WishlistUpdateRequest = await request.json();
 
 		// Check if wishlist item exists
 		const existingItem = await prismaClient.wishlist.findUnique({
 			where: {
-				postId_userId: {
-					postId: postId,
-					userId: userId,
+				applicant_id_post_id: {
+					applicant_id: applicant.applicant_id,
+					post_id: postId,
 				},
 			},
 		});
@@ -171,32 +186,31 @@ export async function PUT(
 			return NextResponse.json(errorResponse, { status: 404 });
 		}
 
-		// Update the wishlist item
+		// Update the wishlist item (only timestamp since status field doesn't exist in new schema)
 		const updatedItem = await prismaClient.wishlist.update({
 			where: {
-				postId_userId: {
-					postId: postId,
-					userId: userId,
+				applicant_id_post_id: {
+					applicant_id: applicant.applicant_id,
+					post_id: postId,
 				},
 			},
 			data: {
-				status: body.status,
-				createdAt: new Date(), // Update timestamp
+				add_at: new Date(), // Update timestamp
 			},
 		});
 
 		// Get post data for response
-		const post = await prismaClient.post.findUnique({
-			where: { id: postId },
+		const post = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: postId },
 		});
 
 		// Get related data separately
 		const [postProgram, postScholarship, postJob] = await Promise.all([
-			prismaClient.postProgram.findUnique({ where: { PostId: postId } }),
-			prismaClient.postScholarship.findUnique({
-				where: { PostId: postId },
+			prismaClient.programPost.findFirst({ where: { post_id: postId } }),
+			prismaClient.scholarshipPost.findFirst({
+				where: { post_id: postId },
 			}),
-			prismaClient.postJob.findUnique({ where: { PostId: postId } }),
+			prismaClient.jobPost.findFirst({ where: { post_id: postId } }),
 		]);
 
 		if (!post) {
@@ -209,43 +223,32 @@ export async function PUT(
 		}
 
 		// Get institution data
-		const institution = await prismaClient.institution_profile.findUnique({
-			where: { profile_id: postId },
+		const institution = await prismaClient.institution.findFirst({
+			where: { institution_id: post.institution_id },
 		});
 
 		const response: WishlistItemResponse = {
 			success: true,
 			data: {
-				id: `${updatedItem.postId}-${updatedItem.userId}`,
-				postId: updatedItem.postId,
-				userId: updatedItem.userId,
-				createdAt: updatedItem.createdAt.toISOString(),
-				status: updatedItem.status as 0 | 1,
+				id: `${updatedItem.post_id}-${updatedItem.applicant_id}`,
+				postId: updatedItem.post_id,
+				userId: updatedItem.applicant_id,
+				createdAt: updatedItem.add_at.toISOString(),
+				status: 1 as 0 | 1, // Always active since status field doesn't exist in new schema
 				post: {
-					id: post.id,
+					id: post.post_id,
 					title: post.title,
-					content: post.content,
-					published: post.published,
-					createdAt: post.createdAt.toISOString(),
-					updatedAt: post.updatedAt.toISOString(),
-					authorId: post.authorId,
-					program: postProgram || undefined,
-					scholarship: postScholarship || undefined,
-					job: postJob
-						? {
-								...postJob,
-								min_salary: Number(postJob.min_salary),
-								max_salary: Number(postJob.max_salary),
-							}
-						: undefined,
-					institution: institution
-						? {
-								...institution,
-								rep_appellation: institution.rep_appellation
-									.toISOString()
-									.split("T")[0],
-							}
-						: undefined,
+					content: post.other_info,
+					published: post.status === "PUBLISHED",
+					createdAt: post.create_at.toISOString(),
+					updatedAt:
+						post.update_at?.toISOString() ||
+						post.create_at.toISOString(),
+					authorId: post.institution_id,
+					program: (postProgram as any) || undefined,
+					scholarship: (postScholarship as any) || undefined,
+					job: (postJob as any) || undefined,
+					institution: (institution as any) || undefined,
 				},
 			},
 		};
@@ -285,14 +288,28 @@ export async function DELETE(
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const { postId } = params;
 
 		// Check if wishlist item exists
 		const existingItem = await prismaClient.wishlist.findUnique({
 			where: {
-				postId_userId: {
-					postId: postId,
-					userId: userId,
+				applicant_id_post_id: {
+					applicant_id: applicant.applicant_id,
+					post_id: postId,
 				},
 			},
 		});
@@ -309,9 +326,9 @@ export async function DELETE(
 		// Delete the wishlist item
 		await prismaClient.wishlist.delete({
 			where: {
-				postId_userId: {
-					postId: postId,
-					userId: userId,
+				applicant_id_post_id: {
+					applicant_id: applicant.applicant_id,
+					post_id: postId,
 				},
 			},
 		});

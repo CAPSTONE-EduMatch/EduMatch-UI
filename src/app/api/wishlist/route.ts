@@ -31,6 +31,20 @@ export async function GET(request: NextRequest) {
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		// Parse query parameters
 		const queryParams: WishlistQueryParams = {
 			page: Math.max(1, parseInt(searchParams.get("page") || "1")),
@@ -50,25 +64,21 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause
 		const whereClause: any = {
-			userId: userId,
+			applicant_id: applicant.applicant_id,
 		};
-
-		if (queryParams.status !== undefined) {
-			whereClause.status = queryParams.status;
-		}
 
 		// Note: We'll filter by post data after fetching wishlist items
 		// since the Wishlist model doesn't have a direct relation to Post
 
 		// Build orderBy clause - only use fields available in Wishlist model
-		let orderBy: any = { createdAt: "desc" }; // default
+		let orderBy: any = { add_at: "desc" }; // default
 		switch (queryParams.sortBy) {
 			case "oldest":
-				orderBy = { createdAt: "asc" };
+				orderBy = { add_at: "asc" };
 				break;
 			case "newest":
 			default:
-				orderBy = { createdAt: "desc" };
+				orderBy = { add_at: "desc" };
 				break;
 		}
 
@@ -83,53 +93,53 @@ export async function GET(request: NextRequest) {
 		});
 
 		// Get posts data for wishlist items
-		const postIds = wishlistItems.map((item) => item.postId);
-		const posts = await prismaClient.post.findMany({
+		const postIds = wishlistItems.map((item: any) => item.post_id);
+		const posts = await prismaClient.opportunityPost.findMany({
 			where: {
-				id: { in: postIds },
+				post_id: { in: postIds },
 			},
 		});
 
 		// Get related data separately
 		const [postPrograms, postScholarships, postJobs] = await Promise.all([
-			prismaClient.postProgram.findMany({
-				where: { PostId: { in: postIds } },
+			prismaClient.programPost.findMany({
+				where: { post_id: { in: postIds } },
 			}),
-			prismaClient.postScholarship.findMany({
-				where: { PostId: { in: postIds } },
+			prismaClient.scholarshipPost.findMany({
+				where: { post_id: { in: postIds } },
 			}),
-			prismaClient.postJob.findMany({
-				where: { PostId: { in: postIds } },
+			prismaClient.jobPost.findMany({
+				where: { post_id: { in: postIds } },
 			}),
 		]);
 
 		// Create maps for quick lookups
 		const postProgramMap = new Map(
-			postPrograms.map((pp) => [pp.PostId, pp])
+			postPrograms.map((pp: any) => [pp.post_id, pp])
 		);
 		const postScholarshipMap = new Map(
-			postScholarships.map((ps) => [ps.PostId, ps])
+			postScholarships.map((ps: any) => [ps.post_id, ps])
 		);
-		const postJobMap = new Map(postJobs.map((pj) => [pj.PostId, pj]));
+		const postJobMap = new Map(postJobs.map((pj: any) => [pj.post_id, pj]));
 
 		// Get institution data for posts
-		const institutions = await prismaClient.institution_profile.findMany({
+		const institutions = await prismaClient.institution.findMany({
 			where: {
-				profile_id: { in: postIds },
+				institution_id: { in: postIds },
 			},
 		});
 
 		// Create maps for quick lookups
-		const postMap = new Map(posts.map((post) => [post.id, post]));
+		const postMap = new Map(posts.map((post: any) => [post.post_id, post]));
 		const institutionMap = new Map(
-			institutions.map((inst) => [inst.profile_id, inst])
+			institutions.map((inst: any) => [inst.institution_id, inst])
 		);
 
 		// Transform data to include post and institution information
 		const transformedItems = wishlistItems
-			.map((item) => {
-				const post = postMap.get(item.postId);
-				const institution = institutionMap.get(item.postId);
+			.map((item: any) => {
+				const post = postMap.get(item.post_id);
+				const institution = institutionMap.get(item.post_id);
 
 				if (!post) {
 					// Skip items where post doesn't exist
@@ -137,35 +147,45 @@ export async function GET(request: NextRequest) {
 				}
 
 				return {
-					id: `${item.postId}-${item.userId}`,
-					postId: item.postId,
-					userId: item.userId,
-					createdAt: item.createdAt.toISOString(),
-					status: item.status as 0 | 1,
+					id: `${item.post_id}-${item.applicant_id}`,
+					postId: item.post_id,
+					userId: item.applicant_id,
+					createdAt: item.add_at.toISOString(),
+					status: 1 as 0 | 1, // Default to active status
 					post: {
-						id: post.id,
-						title: post.title,
-						content: post.content,
-						published: post.published,
-						createdAt: post.createdAt.toISOString(),
-						updatedAt: post.updatedAt.toISOString(),
-						authorId: post.authorId,
-						program: postProgramMap.get(post.id) || undefined,
+						id: (post as any).post_id,
+						title: (post as any).title,
+						content: (post as any).other_info,
+						published: (post as any).status === "PUBLISHED",
+						createdAt: (post as any).create_at.toISOString(),
+						updatedAt:
+							(post as any).update_at?.toISOString() ||
+							(post as any).create_at.toISOString(),
+						authorId: (post as any).institution_id,
+						program:
+							(postProgramMap.get(
+								(post as any).post_id
+							) as any) || undefined,
 						scholarship:
-							postScholarshipMap.get(post.id) || undefined,
-						job: postJobMap.get(post.id) || undefined,
+							(postScholarshipMap.get(
+								(post as any).post_id
+							) as any) || undefined,
+						job:
+							(postJobMap.get((post as any).post_id) as any) ||
+							undefined,
 						institution: institution
 							? {
-									...institution,
-									rep_appellation: institution.rep_appellation
-										.toISOString()
-										.split("T")[0], // Convert Date to string
+									...(institution as any),
+									rep_appellation:
+										(institution as any).rep_appellation
+											?.toISOString()
+											?.split("T")[0] || "", // Convert Date to string
 								}
 							: undefined,
 					},
 				};
 			})
-			.filter((item) => item !== null) as WishlistItem[];
+			.filter((item: any) => item !== null) as WishlistItem[];
 
 		// Apply additional filters that require post data
 		let filteredItems = transformedItems;
@@ -261,6 +281,20 @@ export async function POST(request: NextRequest) {
 
 		const userId = session.user.id;
 
+		// Check if user has an applicant profile
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { user_id: userId },
+		});
+
+		if (!applicant) {
+			const errorResponse: WishlistErrorResponse = {
+				success: false,
+				error: "Applicant profile not found. Please complete your profile first.",
+				code: "APPLICANT_NOT_FOUND",
+			};
+			return NextResponse.json(errorResponse, { status: 404 });
+		}
+
 		const body: WishlistCreateRequest = await request.json();
 
 		if (!body.postId) {
@@ -273,8 +307,8 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Check if post exists
-		const post = await prismaClient.post.findUnique({
-			where: { id: body.postId },
+		const post = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: body.postId },
 		});
 
 		if (!post) {
@@ -287,12 +321,10 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Check if item already exists in wishlist
-		const existingItem = await prismaClient.wishlist.findUnique({
+		const existingItem = await prismaClient.wishlist.findFirst({
 			where: {
-				postId_userId: {
-					postId: body.postId,
-					userId: userId,
-				},
+				post_id: body.postId,
+				applicant_id: applicant.applicant_id,
 			},
 		});
 
@@ -300,40 +332,38 @@ export async function POST(request: NextRequest) {
 			// Update existing item
 			const updatedItem = await prismaClient.wishlist.update({
 				where: {
-					postId_userId: {
-						postId: body.postId,
-						userId: userId,
+					applicant_id_post_id: {
+						applicant_id: applicant.applicant_id,
+						post_id: body.postId,
 					},
 				},
 				data: {
-					status: body.status ?? 1, // Default to active
-					createdAt: new Date(), // Update timestamp
+					add_at: new Date(), // Update timestamp
 				},
 			});
 
 			// Get post data
-			const post = await prismaClient.post.findUnique({
-				where: { id: body.postId },
+			const post = await prismaClient.opportunityPost.findUnique({
+				where: { post_id: body.postId },
 			});
 
 			// Get related data separately
 			const [postProgram, postScholarship, postJob] = await Promise.all([
-				prismaClient.postProgram.findUnique({
-					where: { PostId: body.postId },
+				prismaClient.programPost.findFirst({
+					where: { post_id: body.postId },
 				}),
-				prismaClient.postScholarship.findUnique({
-					where: { PostId: body.postId },
+				prismaClient.scholarshipPost.findFirst({
+					where: { post_id: body.postId },
 				}),
-				prismaClient.postJob.findUnique({
-					where: { PostId: body.postId },
+				prismaClient.jobPost.findFirst({
+					where: { post_id: body.postId },
 				}),
 			]);
 
 			// Get institution data
-			const institution =
-				await prismaClient.institution_profile.findUnique({
-					where: { profile_id: body.postId },
-				});
+			const institution = await prismaClient.institution.findFirst({
+				where: { institution_id: post?.institution_id },
+			});
 
 			if (!post) {
 				const errorResponse: WishlistErrorResponse = {
@@ -347,35 +377,26 @@ export async function POST(request: NextRequest) {
 			const response: WishlistItemResponse = {
 				success: true,
 				data: {
-					id: `${updatedItem.postId}-${updatedItem.userId}`,
-					postId: updatedItem.postId,
-					userId: updatedItem.userId,
-					createdAt: updatedItem.createdAt.toISOString(),
-					status: updatedItem.status as 0 | 1,
+					id: `${updatedItem.post_id}-${updatedItem.applicant_id}`,
+					postId: updatedItem.post_id,
+					userId: updatedItem.applicant_id,
+					createdAt: updatedItem.add_at.toISOString(),
+					status: 1 as 0 | 1,
 					post: {
-						id: post.id,
+						id: post.post_id,
 						title: post.title,
-						content: post.content,
-						published: post.published,
-						createdAt: post.createdAt.toISOString(),
-						updatedAt: post.updatedAt.toISOString(),
-						authorId: post.authorId,
-						program: postProgram || undefined,
-						scholarship: postScholarship || undefined,
-						job: postJob
-							? {
-									...postJob,
-									min_salary: Number(postJob.min_salary),
-									max_salary: Number(postJob.max_salary),
-								}
-							: undefined,
+						content: post.other_info,
+						published: post.status === "PUBLISHED",
+						createdAt: post.create_at.toISOString(),
+						updatedAt:
+							post.update_at?.toISOString() ||
+							post.create_at.toISOString(),
+						authorId: post.institution_id,
+						program: (postProgram as any) || undefined,
+						scholarship: (postScholarship as any) || undefined,
+						job: (postJob as any) || undefined,
 						institution: institution
-							? {
-									...institution,
-									rep_appellation: institution.rep_appellation
-										.toISOString()
-										.split("T")[0],
-								}
+							? (institution as any)
 							: undefined,
 					},
 				},
@@ -386,35 +407,34 @@ export async function POST(request: NextRequest) {
 			// Create new wishlist item
 			const newItem = await prismaClient.wishlist.create({
 				data: {
-					postId: body.postId,
-					userId: userId,
-					status: body.status ?? 1, // Default to active
+					post_id: body.postId,
+					applicant_id: applicant.applicant_id,
+					add_at: new Date(),
 				},
 			});
 
 			// Get post data
-			const post = await prismaClient.post.findUnique({
-				where: { id: body.postId },
+			const post = await prismaClient.opportunityPost.findUnique({
+				where: { post_id: body.postId },
 			});
 
 			// Get related data separately
 			const [postProgram, postScholarship, postJob] = await Promise.all([
-				prismaClient.postProgram.findUnique({
-					where: { PostId: body.postId },
+				prismaClient.programPost.findFirst({
+					where: { post_id: body.postId },
 				}),
-				prismaClient.postScholarship.findUnique({
-					where: { PostId: body.postId },
+				prismaClient.scholarshipPost.findFirst({
+					where: { post_id: body.postId },
 				}),
-				prismaClient.postJob.findUnique({
-					where: { PostId: body.postId },
+				prismaClient.jobPost.findFirst({
+					where: { post_id: body.postId },
 				}),
 			]);
 
 			// Get institution data
-			const institution =
-				await prismaClient.institution_profile.findUnique({
-					where: { profile_id: body.postId },
-				});
+			const institution = await prismaClient.institution.findFirst({
+				where: { institution_id: post?.institution_id },
+			});
 
 			if (!post) {
 				const errorResponse: WishlistErrorResponse = {
@@ -428,35 +448,26 @@ export async function POST(request: NextRequest) {
 			const response: WishlistItemResponse = {
 				success: true,
 				data: {
-					id: `${newItem.postId}-${newItem.userId}`,
-					postId: newItem.postId,
-					userId: newItem.userId,
-					createdAt: newItem.createdAt.toISOString(),
-					status: newItem.status as 0 | 1,
+					id: `${newItem.post_id}-${newItem.applicant_id}`,
+					postId: newItem.post_id,
+					userId: newItem.applicant_id,
+					createdAt: newItem.add_at.toISOString(),
+					status: 1 as 0 | 1,
 					post: {
-						id: post.id,
+						id: post.post_id,
 						title: post.title,
-						content: post.content,
-						published: post.published,
-						createdAt: post.createdAt.toISOString(),
-						updatedAt: post.updatedAt.toISOString(),
-						authorId: post.authorId,
-						program: postProgram || undefined,
-						scholarship: postScholarship || undefined,
-						job: postJob
-							? {
-									...postJob,
-									min_salary: Number(postJob.min_salary),
-									max_salary: Number(postJob.max_salary),
-								}
-							: undefined,
+						content: post.other_info,
+						published: post.status === "PUBLISHED",
+						createdAt: post.create_at.toISOString(),
+						updatedAt:
+							post.update_at?.toISOString() ||
+							post.create_at.toISOString(),
+						authorId: post.institution_id,
+						program: (postProgram as any) || undefined,
+						scholarship: (postScholarship as any) || undefined,
+						job: (postJob as any) || undefined,
 						institution: institution
-							? {
-									...institution,
-									rep_appellation: institution.rep_appellation
-										.toISOString()
-										.split("T")[0],
-								}
+							? (institution as any)
 							: undefined,
 					},
 				},

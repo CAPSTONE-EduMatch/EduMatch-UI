@@ -576,25 +576,25 @@ async function seedApplicants() {
 		studentProfiles.push({
 			applicant_id: `user-${i.toString().padStart(3, "0")}`, // Use user ID as profile ID
 			user_id: `user-${i.toString().padStart(3, "0")}`, // Link to user account
-			firstName: `John`,
-			LastName: `Doe${i}`,
-			birthDay: getRandomDate(
+			first_name: `John`,
+			last_name: `Doe${i}`,
+			birthday: getRandomDate(
 				new Date("1990-01-01"),
 				new Date("2005-01-01")
 			),
 			gender: Math.random() > 0.5, // true for male, false for female
-			phone: `+1-555-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
+			phone_number: `+1-555-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
 			graduated: Math.random() > 0.5,
-			degreeLevel: getRandomElement([
+			level: getRandomElement([
 				"High School",
 				"Bachelor",
 				"Master",
 				"PhD",
 			]),
-			institution: getRandomElement(universities),
+			university: getRandomElement(universities),
 			gpa: Math.random() * 2 + 2.5, // 2.5-4.5 GPA
 			subdiscipline_id: (Math.floor(Math.random() * 100) + 1).toString(),
-			fav_country: getRandomElement(countries),
+			favorite_countries: [getRandomElement(countries)],
 		});
 	}
 
@@ -643,7 +643,6 @@ async function seedInstitutions() {
 			rep_email: `rep${i}@${university.toLowerCase().replace(/\s+/g, "")}.edu`,
 			rep_phone: `+1-555-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
 			about: `Leading educational institution specializing in research and academic excellence. ${university} is committed to providing world-class education and fostering innovation.`,
-			subdiscipline: 10, // Use a known valid Sub_Discipline.id
 			cover_image: `https://api.dicebear.com/7.x/shapes/svg?seed=${university}`,
 		});
 	}
@@ -668,13 +667,9 @@ async function seedOpportunityPosts() {
 		posts.push({
 			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
 			title: `${university} ${field} Program`,
-			content: generateProgramDescription(field, university),
-			published:
-				getRandomElement(["PUBLISHED", "DRAFT", "ARCHIVED"]) ===
-				"PUBLISHED",
-			institution_id: `user-${(Math.floor(Math.random() * 10) + 11).toString().padStart(3, "0")}`,
 			start_date: new Date(),
 			create_at: new Date(),
+			institution_id: `user-${(Math.floor(Math.random() * 10) + 11).toString().padStart(3, "0")}`,
 		});
 	}
 
@@ -691,10 +686,10 @@ async function seedProgramPosts() {
 	const programPosts = [];
 	for (let i = 1; i <= 100; i++) {
 		programPosts.push({
-			post_id: `post-program-${i.toString().padStart(4, "0")}`,
+			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
 			duration: `${Math.floor(Math.random() * 4) + 1} years`,
 			degree_level: getRandomElement(["Bachelor", "Master", "PhD"]),
-			CourseInclude: `Core courses in ${getRandomElement(fields)}, electives, research project, thesis`,
+			course_include: `Core courses in ${getRandomElement(fields)}, electives, research project, thesis`,
 			gpa: Math.random() * 2 + 2.5, // 2.5-4.5 GPA
 			gre: Math.floor(Math.random() * 200) + 300, // 300-500 GRE
 			gmat: Math.floor(Math.random() * 200) + 500, // 500-700 GMAT
@@ -720,7 +715,7 @@ async function seedScholarshipPosts() {
 	const scholarshipPosts = [];
 	for (let i = 101; i <= 150; i++) {
 		scholarshipPosts.push({
-			post_id: `post-scholarship-${i.toString().padStart(4, "0")}`,
+			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
 			description: `Scholarship for ${getRandomElement(fields)} students`,
 			type: getRandomElement(scholarshipTypes),
 			number: Math.floor(Math.random() * 50) + 1,
@@ -750,7 +745,7 @@ async function seedJobPosts() {
 	const jobPosts = [];
 	for (let i = 151; i <= 200; i++) {
 		jobPosts.push({
-			post_id: `post-job-${i.toString().padStart(4, "0")}`,
+			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
 			contract_type: getRandomElement(contractTypes),
 			job_type: getRandomElement(jobTypes),
 			min_salary: Math.floor(Math.random() * 50000) + 30000, // $30k-$80k
@@ -789,7 +784,7 @@ async function seedWishlists() {
 			let applicantId, postId, combination;
 			do {
 				applicantId = `user-${String(Math.floor(Math.random() * 10) + 1).padStart(3, "0")}`;
-				postId = `550e8400-e29b-41d4-a716-44665547${String(Math.floor(Math.random() * 200) + 1).padStart(4, "0")}`;
+				postId = `post-opportunity-${String(Math.floor(Math.random() * 200) + 1).padStart(4, "0")}`;
 				combination = `${applicantId}-${postId}`;
 			} while (usedCombinations.has(combination));
 
@@ -816,7 +811,7 @@ async function seedApplications() {
 	for (let i = 1; i <= 5; i++) {
 		applications.push({
 			application_id: `application-${i.toString().padStart(4, "0")}`,
-			post_id: `550e8400-e29b-41d4-a716-44665547${String(Math.floor(Math.random() * 200) + 1).padStart(4, "0")}`,
+			post_id: `post-opportunity-${String(Math.floor(Math.random() * 200) + 1).padStart(4, "0")}`,
 			applicant_id: `user-${String(Math.floor(Math.random() * 10) + 1).padStart(3, "0")}`,
 			apply_at: getRandomDate(
 				new Date("2023-01-01"),
@@ -844,7 +839,6 @@ async function seedNotifications() {
 			body: `This is a test notification for user ${i}`,
 			type: "GENERAL",
 			url: `https://example.com/notification/${i}`,
-			payload: {},
 			send_at: getRandomDate(
 				new Date("2023-01-01"),
 				new Date("2024-01-01")

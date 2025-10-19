@@ -3,7 +3,6 @@ import type { Metadata } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ConditionalLayout } from '@/components/layout/conditional-layout'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,11 +21,7 @@ export default function RootLayout({
 			<body className={inter.className}>
 				<QueryProvider>
 					<NextIntlClientProvider>
-						<NotificationProvider>
-							{/* <ConditionalLayout> */}
-							{children}
-							{/* </ConditionalLayout> */}
-						</NotificationProvider>
+						<NotificationProvider>{children}</NotificationProvider>
 					</NextIntlClientProvider>
 				</QueryProvider>
 			</body>

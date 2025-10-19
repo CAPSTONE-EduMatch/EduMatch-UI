@@ -5,18 +5,40 @@ import { NextRequest, NextResponse } from "next/server";
 const routeConfig = {
 	publicRoutes: ["/", "/about", "/api/health"],
 	authRoutes: ["/signin", "/signup", "/forgot-password"],
-	protectedRoutes: ["/dashboard", "/files", "/admin"],
+	// All routes that require authentication
+	protectedRoutes: [
+		"/files",
+		"/admin",
+		"/applicant-profile",
+		"/institution-profile",
+		"/messages",
+		"/profile",
+	],
 	adminRoutes: ["/admin"],
-	profileRequiredRoutes: ["/dashboard", "/files"],
+	// Routes that require profile creation
+	profileRequiredRoutes: [
+		"/files",
+		"/applicant-profile",
+		"/institution-profile",
+		"/messages",
+	],
 	// Routes that should show auth modal instead of redirecting
 	authModalRoutes: [
 		"/applicant-profile/create",
 		"/institution-profile/create",
 	],
+	// Routes that are exempt from profile check
+	profileExemptRoutes: [
+		"/profile/create",
+		"/signin",
+		"/signup",
+		"/forgot-password",
+		"/",
+	],
 	defaultRedirects: {
-		afterLogin: "/dashboard",
+		afterLogin: "/explore",
 		afterLogout: "/signin",
-		createProfile: "/applicant-profile/create",
+		createProfile: "/profile/create",
 		accessDenied: "/", // Redirect non-admin users here
 	},
 };
@@ -62,33 +84,6 @@ async function checkAuthentication(request: NextRequest) {
 		// eslint-disable-next-line no-console
 		console.error("[MIDDLEWARE] Auth check error:", error);
 		return { isAuthenticated: false, userId: null };
-	}
-}
-
-// Edge Runtime compatible profile check (simplified)
-async function hasUserProfile(userId: string, request: NextRequest) {
-	if (!userId) return false;
-
-	try {
-		// Make API call to check profile - this keeps middleware lightweight
-		const response = await fetch(
-			`${request.nextUrl.origin}/api/profile/check/${userId}`,
-			{
-				headers: {
-					Cookie: request.headers.get("cookie") || "",
-				},
-			}
-		);
-
-		if (response.ok) {
-			const data = await response.json();
-			return data.hasProfile;
-		}
-		return false;
-	} catch (error) {
-		// eslint-disable-next-line no-console
-		console.error("[MIDDLEWARE] Profile check error:", error);
-		return false;
 	}
 }
 
@@ -204,10 +199,20 @@ export async function middleware(request: NextRequest) {
 			}
 
 			// Check if profile is required for this route
-			if (requiresProfile && isAuthenticated && userId) {
+			if (requiresProfile && isAuthenticated) {
 				try {
-					const hasProfile = await hasUserProfile(userId, request);
-					if (!hasProfile) {
+					// Check if user has profile by calling the profile API
+					const profileResponse = await fetch(
+						`${request.nextUrl.origin}/api/profile`,
+						{
+							headers: {
+								Cookie: request.headers.get("cookie") || "",
+							},
+						}
+					);
+
+					if (profileResponse.status === 404 || !profileResponse.ok) {
+						// No profile found, redirect to create profile
 						return NextResponse.redirect(
 							new URL(
 								routeConfig.defaultRedirects.createProfile,
@@ -217,6 +222,7 @@ export async function middleware(request: NextRequest) {
 					}
 				} catch (error) {
 					// On error checking profile, redirect to profile creation to be safe
+					console.error("[MIDDLEWARE] Profile check error:", error);
 					return NextResponse.redirect(
 						new URL(
 							routeConfig.defaultRedirects.createProfile,

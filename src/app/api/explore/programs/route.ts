@@ -56,6 +56,9 @@ export async function GET(request: NextRequest) {
 		// Build where clause for filtering
 		const whereClause: any = {
 			status: "PUBLISHED", // Only show published posts
+			programPost: {
+				isNot: null, // Only get posts that have associated program data
+			},
 		};
 
 		// Add search filter
@@ -69,6 +72,10 @@ export async function GET(request: NextRequest) {
 		// Query ALL posts first (without pagination) to apply filtering
 		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
+			include: {
+				programPost: true,
+				institution: true, // Include institution data directly
+			},
 			orderBy:
 				sortBy === "newest"
 					? { create_at: "desc" }
@@ -77,15 +84,20 @@ export async function GET(request: NextRequest) {
 						: { create_at: "desc" }, // default to newest
 		});
 
-		// Get ProgramPost data for all posts
-		const allPostIds = allPosts.map((post) => post.post_id);
-		const postPrograms = await prismaClient.programPost.findMany({
-			where: {
-				post_id: { in: allPostIds },
-			},
-		});
+		// Debug: Check how many posts were found
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.log("Debug info:", {
+				totalPosts: allPosts.length,
+				postsWithProgram: allPosts.filter((p) => p.programPost).length,
+				postsWithInstitution: allPosts.filter((p) => p.institution)
+					.length,
+				whereClause: JSON.stringify(whereClause),
+			});
+		}
 
 		// Get application counts for each post (for popularity sorting)
+		const allPostIds = allPosts.map((post) => post.post_id);
 		const applicationCounts = await prismaClient.application.groupBy({
 			by: ["post_id"],
 			where: {
@@ -95,9 +107,6 @@ export async function GET(request: NextRequest) {
 				application_id: true,
 			},
 		});
-
-		// Get institution data
-		const institutions = await prismaClient.institution.findMany();
 
 		// Get disciplines and subdisciplines from database
 		const disciplines = await prismaClient.discipline.findMany({
@@ -109,22 +118,12 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
-		// Create maps for quick lookups
-		const postProgramMap = new Map(
-			postPrograms.map((pp) => [pp.post_id, pp])
-		);
-
 		// Create application count map
 		const applicationCountMap = new Map(
 			applicationCounts.map((ac) => [
 				ac.post_id,
 				ac._count.application_id,
 			])
-		);
-
-		// Create institution map
-		const institutionMap = new Map(
-			institutions.map((inst) => [inst.institution_id, inst])
 		);
 
 		// Create subdiscipline map for discipline lookup
@@ -143,21 +142,13 @@ export async function GET(request: NextRequest) {
 		// Transform ALL data to Program format first
 		let allPrograms: Program[] = allPosts
 			.map((post) => {
-				const postProgram = postProgramMap.get(post.post_id);
-				if (!postProgram) return null;
+				// Post already includes programPost and institution from the query
+				const postProgram = post.programPost;
+				const institution = post.institution;
 
-				// Find the appropriate institution for this program
-				// For now, we'll use a more intelligent matching logic
-				const institution = institutions.find(
-					(inst) =>
-						// You can add more sophisticated matching logic here
-						// For example, matching by program content or other criteria
-						inst.name && inst.country
-				) || {
-					name: "University",
-					image: "/logos/default.png",
-					country: "Unknown",
-				};
+				if (!postProgram || !institution) {
+					return null;
+				}
 
 				const applicationCount =
 					applicationCountMap.get(post.post_id) || 0;
@@ -194,16 +185,23 @@ export async function GET(request: NextRequest) {
 					}
 				}
 
+				// Use end_date as deadline, fallback to start_date + 90 days if not available
+				const deadlineDate = post.end_date
+					? post.end_date
+					: new Date(
+							post.start_date.getTime() + 90 * 24 * 60 * 60 * 1000
+						);
+
 				const program: Program = {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
 					description: post.other_info || "No description available",
 					university: institution.name,
-					logo: "/logos/default.png", // Default logo since image field doesn't exist
+					logo: institution.logo || "/logos/default.png",
 					field: fieldName, // Use the mapped discipline/subdiscipline name
 					country: institution.country || "Unknown",
-					date: post.create_at.toISOString().split("T")[0],
-					daysLeft: calculateDaysLeft(post.create_at.toISOString()),
+					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
+					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend
 					price: postProgram.tuition_fee
 						? `${postProgram.tuition_fee} USD`
 						: "Contact for pricing",
@@ -368,8 +366,17 @@ export async function GET(request: NextRequest) {
 
 		return NextResponse.json(response);
 	} catch (error) {
+		// Log error for debugging (will appear in server logs)
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("Error fetching programs:", error);
+		}
 		return NextResponse.json(
-			{ error: "Internal server error" },
+			{
+				error: "Internal server error",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
 			{ status: 500 }
 		);
 	}

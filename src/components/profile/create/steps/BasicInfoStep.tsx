@@ -11,7 +11,7 @@ import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { ProfileFormData } from '@/lib/profile-service'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ApiService } from '@/lib/axios-config'
+import { usePresignedUpload } from '@/hooks/usePresignedUpload'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -46,6 +46,7 @@ export function BasicInfoStep({
 	useEffect(() => {
 		const loadSubdisciplines = async () => {
 			try {
+				const { ApiService } = await import('@/lib/axios-config')
 				const response = await ApiService.getSubdisciplines()
 				if (response.success) {
 					setSubdisciplines(response.subdisciplines)
@@ -56,19 +57,59 @@ export function BasicInfoStep({
 		}
 		loadSubdisciplines()
 	}, [])
-	const [isUploading, setIsUploading] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [phoneValidationError, setPhoneValidationError] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
+	const hasAutoFilledNames = useRef(false)
+	const { uploadFile, isUploading } = usePresignedUpload()
 
-	// Auto-fill Google login data when component mounts
+	// Debug: Log user object to see what we're working with
 	useEffect(() => {
-		if (user) {
+		console.log('👤 User object in BasicInfoStep:', {
+			user,
+			hasImage: !!user?.image,
+			hasName: !!user?.name,
+			userName: user?.name,
+			userEmail: user?.email,
+		})
+	}, [user])
+
+	// Debug: Test onInputChange function
+	useEffect(() => {
+		console.log('🧪 Testing onInputChange function:', {
+			onInputChange: typeof onInputChange,
+			formData: formData,
+		})
+
+		// Test if onInputChange works by calling it with a test value
+		if (onInputChange && typeof onInputChange === 'function') {
+			console.log('✅ onInputChange is a function, testing with test value...')
+			// Don't actually call it, just log that we could
+		} else {
+			console.error('❌ onInputChange is not a function!', onInputChange)
+		}
+	}, [onInputChange, formData])
+
+	// Auto-fill Google login data when component mounts (only for Google OAuth users)
+	useEffect(() => {
+		if (user && user.image && !hasAutoFilledNames.current) {
+			console.log('🔄 Auto-filling Google user data:', {
+				userName: user.name,
+				currentFirstName: formData.firstName,
+				currentLastName: formData.lastName,
+			})
+
+			// Only auto-fill if user has Google profile image (indicates Google OAuth)
 			// Auto-fill first name from Google profile
 			if (user.name && !formData.firstName) {
 				const nameParts = user.name.trim().split(' ')
 				if (nameParts.length > 0 && nameParts[0]) {
+					console.log('📝 Auto-filling first name:', nameParts[0])
+					console.log('🔧 Calling onInputChange with:', {
+						field: 'firstName',
+						value: nameParts[0],
+					})
 					onInputChange('firstName', nameParts[0])
 				}
 			}
@@ -79,14 +120,23 @@ export function BasicInfoStep({
 				if (nameParts.length > 1) {
 					const lastName = nameParts.slice(1).join(' ').trim()
 					if (lastName) {
+						console.log('📝 Auto-filling last name:', lastName)
+						console.log('🔧 Calling onInputChange with:', {
+							field: 'lastName',
+							value: lastName,
+						})
 						onInputChange('lastName', lastName)
 					}
 				}
 			}
 
+			// Mark as auto-filled to prevent re-triggering
+			hasAutoFilledNames.current = true
+			console.log('✅ Auto-fill completed, marked as done')
+
 			// Note: Profile photo auto-fill is handled in separate useEffect below
 		}
-	}, [user, formData.firstName, formData.lastName, onInputChange])
+	}, [user?.image, user?.name, onInputChange])
 
 	// Auto-fill Google image if available and no profile photo set
 	useEffect(() => {
@@ -118,31 +168,20 @@ export function BasicInfoStep({
 			return
 		}
 
-		// Validate file size (5MB max)
-		if (file.size > 5 * 1024 * 1024) {
-			setErrorMessage('File size must be less than 5MB')
-			setShowErrorModal(true)
-			return
-		}
-
-		setIsUploading(true)
-
 		try {
-			// Create FormData for upload
-			const formData = new FormData()
-			formData.append('file', file)
-
-			// Upload to S3
-			const { ApiService } = await import('@/lib/axios-config')
-			const result = await ApiService.uploadFile(file)
-
-			// Update the profile photo with the S3 URL
-			onInputChange('profilePhoto', result.url)
+			await uploadFile(file, {
+				onSuccess: (url) => {
+					onInputChange('profilePhoto', url)
+				},
+				onError: (error) => {
+					setErrorMessage(error)
+					setShowErrorModal(true)
+				},
+				maxSize: 10 * 1024 * 1024, // 10MB
+			})
 		} catch (error) {
-			setErrorMessage('Failed to upload image. Please try again.')
-			setShowErrorModal(true)
+			// Error is already handled by onError callback
 		} finally {
-			setIsUploading(false)
 			// Reset file input
 			if (fileInputRef.current) {
 				fileInputRef.current.value = ''
@@ -247,7 +286,7 @@ export function BasicInfoStep({
 							{isUploading ? 'Uploading...' : 'Upload your photo'}
 						</Button>
 						<p className="text-xs text-muted-foreground">
-							Must be PNG, JPG, or WebP file (max 5MB)
+							Must be PNG, JPG, or WebP file (max 10MB)
 						</p>
 					</div>
 					{/* Hidden file input */}
@@ -326,9 +365,11 @@ export function BasicInfoStep({
 							value={formData.email}
 							onChange={onInputChangeEvent('email')}
 							inputSize="select"
-							disabled={user?.email && formData.email === user.email}
+							disabled={
+								user?.email && user?.image && formData.email === user.email
+							}
 						/>
-						{user?.email && formData.email === user.email && (
+						{user?.email && user?.image && formData.email === user.email && (
 							<p className="text-xs text-muted-foreground">
 								Email is pre-filled from your Google account and cannot be
 								changed

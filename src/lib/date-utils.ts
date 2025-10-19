@@ -52,3 +52,44 @@ export const formatDateForDatabase = (dateString: string): string => {
 
 	return `${year}-${month}-${day}`;
 };
+
+/**
+ * Calculates the number of days remaining from today to a target date
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @returns Number of days left (0 if date has passed or is invalid)
+ */
+export const calculateDaysLeft = (dateString: string): number => {
+	if (!dateString) return 0;
+
+	const targetDate = new Date(dateString);
+	const today = new Date();
+
+	// Reset time to start of day for accurate day calculation
+	today.setHours(0, 0, 0, 0);
+	targetDate.setHours(0, 0, 0, 0);
+
+	const diffTime = targetDate.getTime() - today.getTime();
+	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+	return Math.max(0, diffDays);
+};
+
+/**
+ * Formats a date string to dd-MM-yyyy format
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @returns Formatted date string in dd-MM-yyyy format or original string if invalid
+ */
+export const formatDateToDDMMYYYY = (dateString: string): string => {
+	if (!dateString) return "Not provided";
+
+	const date = new Date(dateString);
+	if (isNaN(date.getTime())) {
+		return dateString; // Return original if invalid
+	}
+
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+
+	return `${day}-${month}-${year}`;
+};

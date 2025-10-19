@@ -2,6 +2,7 @@
 
 import { Heart, Building, FileText, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { formatDateToDDMMYYYY, calculateDaysLeft } from '@/lib/date-utils'
 
 interface ScholarshipCardProps {
 	scholarship: {
@@ -16,6 +17,7 @@ interface ScholarshipCardProps {
 		daysLeft: number
 		amount: string
 		match: string
+		applicationStatus?: string
 	}
 	index: number
 	isWishlisted: boolean
@@ -36,6 +38,10 @@ export function ScholarshipCard({
 	onApply,
 	onClick,
 }: ScholarshipCardProps) {
+	// Format date and calculate days left on the client side
+	const formattedDate = formatDateToDDMMYYYY(scholarship.date)
+	const daysLeft = calculateDaysLeft(scholarship.date)
+
 	return (
 		<motion.div
 			// initial={{ opacity: 0, x: -20 }}
@@ -84,7 +90,7 @@ export function ScholarshipCard({
 			</p>
 
 			{/* Apply Button */}
-			{onApply && (
+			{/* {onApply && (
 				<div className="mb-4">
 					<motion.button
 						onClick={(e) => {
@@ -115,7 +121,7 @@ export function ScholarshipCard({
 						)}
 					</motion.button>
 				</div>
-			)}
+			)} */}
 
 			{/* Bottom section */}
 			<div className="flex justify-between gap-3 items-center">
@@ -136,10 +142,8 @@ export function ScholarshipCard({
 						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
 							<Clock className="w-4 h-4" />
 							<span>
-								{scholarship.date}{' '}
-								<span className="text-red-500">
-									({scholarship.daysLeft} days left)
-								</span>
+								{formattedDate}{' '}
+								<span className="text-red-500">({daysLeft} days left)</span>
 							</span>
 						</div>
 					</div>
@@ -170,6 +174,29 @@ export function ScholarshipCard({
 						</motion.span>
 					</div>
 				</div>
+
+				{/* Application Status */}
+				{scholarship.applicationStatus && (
+					<div className="mt-3 flex justify-center">
+						<span
+							className={`px-4 py-2 rounded-full text-sm font-medium ${
+								scholarship.applicationStatus === 'PENDING'
+									? 'bg-yellow-100 text-yellow-800'
+									: scholarship.applicationStatus === 'REVIEWED'
+										? 'bg-blue-100 text-blue-800'
+										: scholarship.applicationStatus === 'ACCEPTED'
+											? 'bg-green-100 text-green-800'
+											: scholarship.applicationStatus === 'REJECTED'
+												? 'bg-red-100 text-red-800'
+												: 'bg-gray-100 text-gray-800'
+							}`}
+						>
+							<span className="inline-flex items-center gap-1">
+								📋 {scholarship.applicationStatus}
+							</span>
+						</span>
+					</div>
+				)}
 			</div>
 		</motion.div>
 	)

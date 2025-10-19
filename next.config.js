@@ -20,6 +20,9 @@ const nextConfig = {
 			},
 		],
 	},
+	experimental: {
+		serverComponentsExternalPackages: ["@prisma/client", "prisma"],
+	},
 	webpack: (config, { isServer }) => {
 		// Exclude CDK infrastructure files from build
 		config.externals = config.externals || [];

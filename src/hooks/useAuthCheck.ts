@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { authClient } from "@/app/lib/auth-client";
-import { ApiService } from "@/lib/axios-config";
-import { useRouter } from "next/navigation";
 
 // Global cache to prevent multiple simultaneous auth checks
 let authCheckPromise: Promise<any> | null = null;
@@ -15,7 +13,6 @@ export function useAuthCheck() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [user, setUser] = useState<any>(null);
-	const router = useRouter();
 	const hasChecked = useRef(false);
 
 	useEffect(() => {
@@ -44,37 +41,6 @@ export function useAuthCheck() {
 					// Set modal visibility based on authentication status
 					if (hasUser) {
 						setShowAuthModal(false); // Hide modal if authenticated
-
-						// Only check profile if we're on a page that needs it
-						// This prevents unnecessary API calls on every page
-						const currentPath = window.location.pathname;
-						const needsProfileCheck =
-							currentPath.includes("/profile/") ||
-							currentPath.includes("/applicant-profile/") ||
-							currentPath.includes("/institution-profile/");
-
-						if (needsProfileCheck) {
-							try {
-								await ApiService.getProfile();
-								// Profile exists, user is good to go
-							} catch (profileError: any) {
-								// Check if it's specifically a 404 (profile not found) vs other errors
-								if (profileError?.response?.status === 404) {
-									// No profile found, redirect to unified profile creation
-									console.log(
-										"No profile found, redirecting to profile creation"
-									);
-									router.push("/profile/create");
-								} else {
-									// Other error (server issue, auth issue, etc.)
-									console.error(
-										"Profile check failed with error:",
-										profileError
-									);
-									// Don't redirect on server errors, let user continue
-								}
-							}
-						}
 					} else {
 						setShowAuthModal(true); // Show modal if not authenticated
 					}

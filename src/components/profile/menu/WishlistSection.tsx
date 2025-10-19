@@ -23,6 +23,7 @@ import {
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { useWishlist } from '@/hooks/useWishlist'
 import { WishlistItem, WishlistQueryParams } from '@/types/wishlist-api'
+import { ExploreApiService } from '@/lib/explore-api'
 
 interface WishlistSectionProps {
 	profile: any
@@ -40,37 +41,88 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		{ id: 'research', label: 'Research Labs' },
 	]
 
-	// Initialize wishlist hook with parameters
-	const wishlistParams: WishlistQueryParams = useMemo(
-		() => ({
-			page: 1,
-			limit: 50,
-			status: 1, // Only active items
-			search: searchQuery || undefined,
-			sortBy:
-				sortBy === 'newest'
-					? 'newest'
-					: sortBy === 'oldest'
-						? 'oldest'
-						: 'newest',
-			// Remove postType filter to get all wishlist items
-			// The transformation functions will handle filtering by type
-		}),
-		[sortBy, searchQuery] // Remove activeTab from dependencies
-	)
-
-	const {
-		items: wishlistItems,
-		loading,
-		error,
-		meta,
-		refresh,
-		isInWishlist,
-		toggleWishlistItem,
-	} = useWishlist({
+	// Get wishlist IDs only
+	const { items: wishlistItems, loading: wishlistLoading } = useWishlist({
 		autoFetch: true,
-		initialParams: wishlistParams,
+		initialParams: { page: 1, limit: 1000, status: 1 },
 	})
+
+	// Explore data state
+	const [programs, setPrograms] = useState<Program[]>([])
+	const [scholarships, setScholarships] = useState<Scholarship[]>([])
+	const [researchLabs, setResearchLabs] = useState<ResearchLab[]>([])
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+
+	// Fetch explore data and filter by wishlist
+	const fetchWishlistData = useCallback(async () => {
+		// Don't fetch if still loading wishlist
+		if (wishlistLoading) {
+			return
+		}
+
+		// If no wishlist items, clear data but don't show loading
+		if (wishlistItems.length === 0) {
+			setPrograms([])
+			setScholarships([])
+			setResearchLabs([])
+			setLoading(false)
+			return
+		}
+
+		setLoading(true)
+		setError(null)
+
+		try {
+			// Get wishlist post IDs
+			const wishlistPostIds = wishlistItems.map((item) => item.postId)
+
+			// Fetch all explore data
+			const [programsResponse, scholarshipsResponse, researchResponse] =
+				await Promise.all([
+					ExploreApiService.getPrograms({
+						page: 1,
+						limit: 1000, // Fetch large number to get all data
+						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
+					}),
+					ExploreApiService.getScholarships({
+						page: 1,
+						limit: 1000,
+						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
+					}),
+					ExploreApiService.getResearchLabs({
+						page: 1,
+						limit: 1000,
+						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
+					}),
+				])
+
+			// Filter by wishlist post IDs
+			const filteredPrograms = programsResponse.data.filter((program) =>
+				wishlistPostIds.includes(program.id)
+			)
+			const filteredScholarships = scholarshipsResponse.data.filter(
+				(scholarship) => wishlistPostIds.includes(scholarship.id)
+			)
+			const filteredResearchLabs = researchResponse.data.filter((researchLab) =>
+				wishlistPostIds.includes(researchLab.id)
+			)
+
+			setPrograms(filteredPrograms)
+			setScholarships(filteredScholarships)
+			setResearchLabs(filteredResearchLabs)
+		} catch (err) {
+			console.error('Error fetching wishlist data:', err)
+			setError('Failed to load wishlist data')
+		} finally {
+			setLoading(false)
+		}
+	}, [wishlistItems, wishlistLoading, sortBy])
+
+	// Fetch data when wishlist or sort changes
+	React.useEffect(() => {
+		fetchWishlistData()
+	}, [fetchWishlistData])
 
 	// Detailed filter options
 	const filterOptions = [
@@ -84,104 +136,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		{ id: 'expired', label: 'Expired', icon: X },
 	]
 
-	// Transform wishlist items to the expected format for each tab
-	const transformToPrograms = useCallback(
-		(items: WishlistItem[]): Program[] => {
-			return items
-				.filter((item) => item.post.program)
-				.map((item) => ({
-					id: item.postId, // Use the actual postId as the single ID
-					title: item.post.title,
-					description: item.post.content || '',
-					university: item.post.institution?.name || 'Unknown University',
-					logo: item.post.institution?.logo || '',
-					field: item.post.program?.degreeLevel || 'Unknown Field',
-					country: item.post.institution?.country || 'Unknown Country',
-					date: item.post.createdAt,
-					daysLeft: Math.max(
-						0,
-						Math.ceil(
-							(new Date(item.post.createdAt).getTime() - Date.now()) /
-								(1000 * 60 * 60 * 24)
-						)
-					),
-					price: item.post.program?.tuition_fee || 'Contact for details',
-					match: '95%', // This would need to be calculated based on user profile
-					funding: item.post.program?.scholarship_info
-						? 'Available'
-						: 'Not specified',
-					attendance: 'Contact for details',
-				}))
-		},
-		[]
-	)
-
-	const transformToScholarships = useCallback(
-		(items: WishlistItem[]): Scholarship[] => {
-			return items
-				.filter((item) => item.post.scholarship)
-				.map((item) => ({
-					id: item.postId, // Use the actual postId as the single ID
-					title: item.post.title,
-					description: item.post.content || '',
-					provider: item.post.institution?.name || 'Unknown Provider',
-					university: item.post.institution?.name || 'Various Universities',
-					essayRequired: item.post.scholarship?.essay_required ? 'Yes' : 'No',
-					country: item.post.institution?.country || 'Unknown Country',
-					date: item.post.createdAt,
-					daysLeft: Math.max(
-						0,
-						Math.ceil(
-							(new Date(item.post.createdAt).getTime() - Date.now()) /
-								(1000 * 60 * 60 * 24)
-						)
-					),
-					amount: item.post.scholarship?.grant || 'Contact for details',
-					match: '90%', // This would need to be calculated based on user profile
-				}))
-		},
-		[]
-	)
-
-	const transformToResearchLabs = useCallback(
-		(items: WishlistItem[]): ResearchLab[] => {
-			return items
-				.filter((item) => item.post.job)
-				.map((item) => ({
-					id: item.postId, // Use the actual postId as the single ID
-					title: item.post.title,
-					description: item.post.content || '',
-					professor: item.post.program?.professor_name || 'Contact for details',
-					field: item.post.job?.job_type || 'Research',
-					country: item.post.institution?.country || 'Unknown Country',
-					position: item.post.job?.job_type || 'Research Position',
-					date: item.post.createdAt,
-					daysLeft: Math.max(
-						0,
-						Math.ceil(
-							(new Date(item.post.createdAt).getTime() - Date.now()) /
-								(1000 * 60 * 60 * 24)
-						)
-					),
-					match: '88%', // This would need to be calculated based on user profile
-				}))
-		},
-		[]
-	)
-
-	// Get transformed data for current tab
-	const wishlistPrograms = useMemo(
-		() => transformToPrograms(wishlistItems),
-		[wishlistItems, transformToPrograms]
-	)
-	const wishlistScholarships = useMemo(
-		() => transformToScholarships(wishlistItems),
-		[wishlistItems, transformToScholarships]
-	)
-	const wishlistResearchLabs = useMemo(
-		() => transformToResearchLabs(wishlistItems),
-		[wishlistItems, transformToResearchLabs]
-	)
+	// Wishlist functionality for cards
+	const { isInWishlist, toggleWishlistItem } = useWishlist()
 
 	// Handle search input
 	const handleSearchChange = useCallback(
@@ -201,41 +157,28 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		setSortBy(sort)
 	}, [])
 
-	// Handle wishlist toggle
-	const handleWishlistToggle = useCallback(
-		async (id: string) => {
-			try {
-				await toggleWishlistItem(id)
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.error('Failed to toggle wishlist item:', error)
-			}
-		},
-		[toggleWishlistItem]
-	)
-
 	// Get current tab data
 	const getCurrentTabData = () => {
 		switch (activeTab) {
 			case 'programmes':
 				return {
-					data: wishlistPrograms,
-					totalItems: meta?.total || wishlistPrograms.length,
+					data: programs,
+					totalItems: programs.length,
 				}
 			case 'scholarships':
 				return {
-					data: wishlistScholarships,
-					totalItems: meta?.total || wishlistScholarships.length,
+					data: scholarships,
+					totalItems: scholarships.length,
 				}
 			case 'research':
 				return {
-					data: wishlistResearchLabs,
-					totalItems: meta?.total || wishlistResearchLabs.length,
+					data: researchLabs,
+					totalItems: researchLabs.length,
 				}
 			default:
 				return {
-					data: wishlistPrograms,
-					totalItems: meta?.total || wishlistPrograms.length,
+					data: programs,
+					totalItems: programs.length,
 				}
 		}
 	}
@@ -248,42 +191,54 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			case 'programmes':
 				return (
 					<ProgramsTab
-						programs={wishlistPrograms}
+						programs={programs}
 						sortBy={sortBy}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={handleWishlistToggle}
+						onWishlistToggle={toggleWishlistItem}
+						hasApplied={() => false} // Wishlist items are not applied
+						isApplying={() => false}
+						onApply={() => {}} // No-op for wishlist
 					/>
 				)
 			case 'scholarships':
 				return (
 					<ScholarshipsTab
-						scholarships={wishlistScholarships}
+						scholarships={scholarships}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={handleWishlistToggle}
+						onWishlistToggle={toggleWishlistItem}
+						hasApplied={() => false} // Wishlist items are not applied
+						isApplying={() => false}
+						onApply={() => {}} // No-op for wishlist
 					/>
 				)
 			case 'research':
 				return (
 					<ResearchLabsTab
-						researchLabs={wishlistResearchLabs}
+						researchLabs={researchLabs}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={handleWishlistToggle}
+						onWishlistToggle={toggleWishlistItem}
+						hasApplied={() => false} // Wishlist items are not applied
+						isApplying={() => false}
+						onApply={() => {}} // No-op for wishlist
 					/>
 				)
 			default:
 				return (
 					<ProgramsTab
-						programs={wishlistPrograms}
+						programs={programs}
 						sortBy={sortBy}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={handleWishlistToggle}
+						onWishlistToggle={toggleWishlistItem}
+						hasApplied={() => false}
+						isApplying={() => false}
+						onApply={() => {}}
 					/>
 				)
 		}
 	}
 
-	// Show loading state
-	if (loading) {
+	// Show loading state - only show if we're actually loading wishlist or fetching data
+	if (wishlistLoading || loading) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
@@ -302,7 +257,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					<AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
 					<p className="text-red-600 mb-4">Failed to load wishlist</p>
 					<p className="text-gray-600 mb-4">{error}</p>
-					<Button onClick={refresh} variant="outline">
+					<Button onClick={fetchWishlistData} variant="outline">
 						Try Again
 					</Button>
 				</div>

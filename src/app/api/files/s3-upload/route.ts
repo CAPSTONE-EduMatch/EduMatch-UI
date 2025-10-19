@@ -18,6 +18,10 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || "edumatch-file-12";
 
+// Configuration for file upload limits
+const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || "10485760"); // 10MB default
+const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || "5242880"); // 5MB default
+
 // Configure route to handle larger file uploads (up to 10MB)
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -28,7 +32,7 @@ async function uploadLargeFile(
 	fileName: string,
 	contentType: string
 ) {
-	const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+	const chunkSize = CHUNK_SIZE; // Use configured chunk size
 	const chunks = [];
 
 	for (let i = 0; i < buffer.length; i += chunkSize) {
@@ -91,13 +95,16 @@ export async function POST(request: NextRequest) {
 		// Check content length before processing
 		const contentLength = request.headers.get("content-length");
 		if (contentLength) {
-			const sizeInMB = parseInt(contentLength) / (1024 * 1024);
+			const sizeInBytes = parseInt(contentLength);
+			const sizeInMB = sizeInBytes / (1024 * 1024);
 			// eslint-disable-next-line no-console
 			console.log(`📁 S3 Upload: Request size: ${sizeInMB.toFixed(2)}MB`);
 
-			if (sizeInMB > 10) {
+			if (sizeInBytes > MAX_FILE_SIZE) {
 				return NextResponse.json(
-					{ error: "Request size exceeds 10MB limit" },
+					{
+						error: `Request size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`,
+					},
 					{ status: 413 }
 				);
 			}
@@ -119,11 +126,12 @@ export async function POST(request: NextRequest) {
 			`📁 S3 Upload: File ${file.name}, size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`
 		);
 
-		// Validate file size (10MB limit)
-		const maxSize = 10 * 1024 * 1024; // 10MB
-		if (file.size > maxSize) {
+		// Validate file size using environment configuration
+		if (file.size > MAX_FILE_SIZE) {
 			return NextResponse.json(
-				{ error: "File size exceeds 10MB limit" },
+				{
+					error: `File size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`,
+				},
 				{ status: 413 }
 			);
 		}
@@ -137,8 +145,8 @@ export async function POST(request: NextRequest) {
 		// Convert file to buffer
 		const buffer = Buffer.from(await file.arrayBuffer());
 
-		// Use multipart upload for files larger than 5MB
-		if (file.size > 5 * 1024 * 1024) {
+		// Use multipart upload for files larger than chunk size
+		if (file.size > CHUNK_SIZE) {
 			// eslint-disable-next-line no-console
 			console.log(`📁 S3 Upload: Using multipart upload for large file`);
 			await uploadLargeFile(buffer, fileName, file.type);

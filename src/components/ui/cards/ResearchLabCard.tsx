@@ -2,6 +2,7 @@
 
 import { Heart, Building, MapPin, Users, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { formatDateToDDMMYYYY, calculateDaysLeft } from '@/lib/date-utils'
 
 interface ResearchLabCardProps {
 	lab: {
@@ -15,6 +16,7 @@ interface ResearchLabCardProps {
 		date: string
 		daysLeft: number
 		match: string
+		applicationStatus?: string
 	}
 	index: number
 	isWishlisted: boolean
@@ -35,6 +37,10 @@ export function ResearchLabCard({
 	onApply,
 	onClick,
 }: ResearchLabCardProps) {
+	// Format date and calculate days left on the client side
+	const formattedDate = formatDateToDDMMYYYY(lab.date)
+	const daysLeft = calculateDaysLeft(lab.date)
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, x: -20 }}
@@ -80,7 +86,7 @@ export function ResearchLabCard({
 			</div>
 
 			{/* Apply Button */}
-			{onApply && (
+			{/* {onApply && (
 				<div className="mb-4">
 					<motion.button
 						onClick={(e) => {
@@ -111,7 +117,7 @@ export function ResearchLabCard({
 						)}
 					</motion.button>
 				</div>
-			)}
+			)} */}
 
 			{/* Bottom section */}
 			<div className="flex justify-between gap-3 items-center">
@@ -132,8 +138,8 @@ export function ResearchLabCard({
 						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
 							<Clock className="w-4 h-4" />
 							<span>
-								{lab.date}{' '}
-								<span className="text-red-500">({lab.daysLeft} days left)</span>
+								{formattedDate}{' '}
+								<span className="text-red-500">({daysLeft} days left)</span>
 							</span>
 						</div>
 					</div>
@@ -164,6 +170,29 @@ export function ResearchLabCard({
 						</motion.span>
 					</div>
 				</div>
+
+				{/* Application Status */}
+				{lab.applicationStatus && (
+					<div className="mt-3 flex justify-center">
+						<span
+							className={`px-4 py-2 rounded-full text-sm font-medium ${
+								lab.applicationStatus === 'PENDING'
+									? 'bg-yellow-100 text-yellow-800'
+									: lab.applicationStatus === 'REVIEWED'
+										? 'bg-blue-100 text-blue-800'
+										: lab.applicationStatus === 'ACCEPTED'
+											? 'bg-green-100 text-green-800'
+											: lab.applicationStatus === 'REJECTED'
+												? 'bg-red-100 text-red-800'
+												: 'bg-gray-100 text-gray-800'
+							}`}
+						>
+							<span className="inline-flex items-center gap-1">
+								📋 {lab.applicationStatus}
+							</span>
+						</span>
+					</div>
+				)}
 			</div>
 		</motion.div>
 	)

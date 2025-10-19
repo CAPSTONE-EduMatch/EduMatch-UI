@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { FileItem, createFileItemFromSaved } from "@/lib/file-utils";
+import { usePresignedUpload } from "./usePresignedUpload";
 
 interface UploadProgress {
 	fileIndex: number;
@@ -19,6 +20,7 @@ interface UseFileUploadOptions {
 export function useFileUpload(options: UseFileUploadOptions = {}) {
 	const [isUploading, setIsUploading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+	const { uploadFile } = usePresignedUpload();
 
 	const uploadFiles = useCallback(
 		async (files: File[]) => {
@@ -44,21 +46,10 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 							)
 						);
 
-						// Use S3-only upload (no database save)
-						const formData = new FormData();
-						formData.append("file", file);
-						formData.append(
-							"category",
-							options.category || "uploads"
-						);
-
-						const { ApiService } = await import(
-							"@/lib/axios-config"
-						);
-						const result = await ApiService.uploadFile(
-							file,
-							options.category || "uploads"
-						);
+						// Use pre-signed URL upload
+						const result = await uploadFile(file, {
+							maxSize: 10 * 1024 * 1024, // 10MB
+						});
 
 						// Update progress to completed
 						setUploadProgress((prev) =>
@@ -75,12 +66,12 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
 						// Return file metadata for form state (no database save)
 						return {
-							id: result.id,
-							name: result.originalName,
-							originalName: result.originalName,
-							size: result.fileSize,
-							type: result.fileType,
-							category: result.category,
+							id: `temp-${Date.now()}-${index}`, // Generate temporary ID
+							name: file.name,
+							originalName: file.name,
+							size: file.size,
+							type: file.type,
+							category: options.category || "uploads",
 							url: result.url,
 							createdAt: new Date(),
 						};

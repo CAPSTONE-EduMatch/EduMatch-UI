@@ -2,6 +2,7 @@
 
 import { Heart, Building, FileText, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { formatDateToDDMMYYYY, calculateDaysLeft } from '@/lib/date-utils'
 
 interface ScholarshipCardProps {
 	scholarship: {
@@ -36,6 +37,10 @@ export function ScholarshipCard({
 	onApply,
 	onClick,
 }: ScholarshipCardProps) {
+	// Format date and calculate days left on the client side
+	const formattedDate = formatDateToDDMMYYYY(scholarship.date)
+	const daysLeft = calculateDaysLeft(scholarship.date)
+
 	return (
 		<motion.div
 			// initial={{ opacity: 0, x: -20 }}
@@ -84,7 +89,7 @@ export function ScholarshipCard({
 			</p>
 
 			{/* Apply Button */}
-			{onApply && (
+			{/* {onApply && (
 				<div className="mb-4">
 					<motion.button
 						onClick={(e) => {
@@ -115,7 +120,7 @@ export function ScholarshipCard({
 						)}
 					</motion.button>
 				</div>
-			)}
+			)} */}
 
 			{/* Bottom section */}
 			<div className="flex justify-between gap-3 items-center">
@@ -136,10 +141,8 @@ export function ScholarshipCard({
 						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
 							<Clock className="w-4 h-4" />
 							<span>
-								{scholarship.date}{' '}
-								<span className="text-red-500">
-									({scholarship.daysLeft} days left)
-								</span>
+								{formattedDate}{' '}
+								<span className="text-red-500">({daysLeft} days left)</span>
 							</span>
 						</div>
 					</div>

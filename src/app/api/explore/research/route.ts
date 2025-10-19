@@ -146,6 +146,13 @@ export async function GET(request: NextRequest) {
 				const applicationCount =
 					applicationCountMap.get(post.post_id) || 0;
 
+				// Use end_date as deadline, fallback to start_date + 90 days if not available
+				const deadlineDate = post.end_date
+					? post.end_date
+					: new Date(
+							post.start_date.getTime() + 90 * 24 * 60 * 60 * 1000
+						);
+
 				const lab: ResearchLab = {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
@@ -154,8 +161,8 @@ export async function GET(request: NextRequest) {
 					field: (postJob as any)?.job_type || "Research",
 					country: institution.country || "Unknown",
 					position: (postJob as any)?.job_type || "Research Position",
-					date: post.create_at.toISOString().split("T")[0],
-					daysLeft: calculateDaysLeft(post.create_at.toISOString()),
+					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
+					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend
 					match: calculateMatchPercentage(),
 					applicationCount: applicationCount || 0, // Add application count for popularity sorting
 				};

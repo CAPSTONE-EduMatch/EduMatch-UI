@@ -31,6 +31,42 @@ export default function CreateProfile() {
 		user,
 	} = useAuthCheck()
 
+	// Check if user already has a profile
+	useEffect(() => {
+		const checkExistingProfile = async () => {
+			if (isAuthenticated && user?.id) {
+				try {
+					const response = await fetch('/api/profile', {
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						credentials: 'include',
+					})
+
+					if (response.ok) {
+						// User already has a profile, redirect to appropriate dashboard based on role
+						const profileData = await response.json()
+						console.log(
+							'✅ User already has a profile, redirecting to dashboard'
+						)
+
+						if (profileData.role === 'institution') {
+							router.push('/institution-profile')
+						} else {
+							router.push('/explore')
+						}
+					}
+				} catch (error) {
+					console.error('Error checking existing profile:', error)
+					// Continue with profile creation if there's an error
+				}
+			}
+		}
+
+		checkExistingProfile()
+	}, [isAuthenticated, user?.id, router])
+
 	const [formData, setFormData] = useState<ProfileFormData>({
 		role: '',
 		// Student fields
@@ -349,7 +385,7 @@ export default function CreateProfile() {
 					/>
 
 					<div
-						className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[200px]'}`}
+						className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[150px]'}`}
 					>
 						<div
 							className={`transition-all duration-500 ease-in-out ${

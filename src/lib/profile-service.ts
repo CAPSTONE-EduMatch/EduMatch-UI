@@ -177,19 +177,10 @@ export class ProfileService {
 	 */
 	static async hasProfile(userId: string): Promise<boolean> {
 		try {
-			const [applicant, institution] = await Promise.all([
-				prismaClient.applicant.findUnique({
-					where: { user_id: userId },
-					select: { applicant_id: true },
-				}),
-				prismaClient.institution.findUnique({
-					where: { user_id: userId },
-					select: { institution_id: true },
-				}),
-			]);
-
-			return !!(applicant || institution);
+			const profile = await this.getProfile(userId);
+			return !!profile;
 		} catch (error) {
+			console.error("ProfileService.hasProfile error:", error);
 			return false;
 		}
 	}

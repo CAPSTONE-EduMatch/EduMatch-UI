@@ -288,8 +288,8 @@ export async function POST(request: NextRequest) {
 		const userId = session.user.id;
 
 		// Check if profile already exists
-		const existingProfile = await ProfileService.getProfile(userId);
-		if (existingProfile) {
+		const hasExistingProfile = await ProfileService.hasProfile(userId);
+		if (hasExistingProfile) {
 			console.log("⚠️ API: Profile already exists");
 			return NextResponse.json(
 				{ error: "Profile already exists" },

@@ -36,12 +36,49 @@ const routeConfig = {
 		"/",
 	],
 	defaultRedirects: {
-		afterLogin: "/explore",
+		afterLogin: "/explore", // Will be overridden by role-based logic
 		afterLogout: "/signin",
 		createProfile: "/profile/create",
 		accessDenied: "/", // Redirect non-admin users here
 	},
 };
+
+// Get user role for redirect logic - simplified for Edge Runtime
+async function getUserRole(request: NextRequest): Promise<string | null> {
+	try {
+		// For Edge Runtime, we'll use a simpler approach
+		// Check if user has profile by calling the profile API
+		const profileResponse = await fetch(
+			`${request.nextUrl.origin}/api/profile`,
+			{
+				headers: {
+					Cookie: request.headers.get("cookie") || "",
+				},
+			}
+		);
+
+		if (profileResponse.ok) {
+			const profileData = await profileResponse.json();
+			return profileData.role || null;
+		}
+
+		return null;
+	} catch (error) {
+		console.error("[MIDDLEWARE] Error getting user role:", error);
+		return null;
+	}
+}
+
+// Get role-based redirect URL
+function getRoleBasedRedirect(role: string | null): string {
+	if (role === "institution") {
+		return "/institution-profile";
+	} else if (role === "applicant") {
+		return "/explore";
+	}
+	// Default fallback
+	return "/explore";
+}
 
 // Edge Runtime compatible auth check function
 async function checkAuthentication(request: NextRequest) {
@@ -142,12 +179,11 @@ export async function middleware(request: NextRequest) {
 		// Handle auth routes (signin, signup) - redirect authenticated users
 		if (isAuthRoute) {
 			if (isAuthenticated) {
-				return NextResponse.redirect(
-					new URL(
-						routeConfig.defaultRedirects.afterLogin,
-						request.url
-					)
-				);
+				// Get user role and redirect accordingly
+				const userRole = await getUserRole(request);
+				const redirectUrl = getRoleBasedRedirect(userRole);
+
+				return NextResponse.redirect(new URL(redirectUrl, request.url));
 			}
 			return NextResponse.next();
 		}

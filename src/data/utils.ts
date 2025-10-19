@@ -737,3 +737,268 @@ export const getRandomMatch = () => `${Math.floor(Math.random() * 30) + 70}%`;
 export const getRandomDaysLeft = () => Math.floor(Math.random() * 365) + 1;
 export const getRandomAmount = () =>
 	`${Math.floor(Math.random() * 50000) + 10000} USD`;
+
+// Dashboard Statistics Data
+export interface DashboardStats {
+	total: number;
+	new: number;
+	underReview: number;
+	accepted: number;
+}
+
+export interface ChartDataPoint {
+	name: string;
+	data: number[];
+}
+
+export interface DashboardData {
+	stats: DashboardStats;
+	chartSeries: ChartDataPoint[];
+	categories: string[];
+}
+
+// Mock dashboard data for different time periods
+export const mockDashboardData: Record<string, DashboardData> = {
+	today: {
+		stats: {
+			total: 12,
+			new: 8,
+			underReview: 3,
+			accepted: 1,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [2, 3, 5, 4, 6, 8, 12],
+			},
+			{
+				name: "Reviews",
+				data: [1, 1, 2, 2, 3, 3, 3],
+			},
+		],
+		categories: [
+			"2024-10-19T00:00:00.000Z",
+			"2024-10-19T04:00:00.000Z",
+			"2024-10-19T08:00:00.000Z",
+			"2024-10-19T12:00:00.000Z",
+			"2024-10-19T16:00:00.000Z",
+			"2024-10-19T20:00:00.000Z",
+			"2024-10-19T23:59:00.000Z",
+		],
+	},
+	yesterday: {
+		stats: {
+			total: 15,
+			new: 10,
+			underReview: 4,
+			accepted: 1,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [3, 5, 7, 9, 11, 13, 15],
+			},
+			{
+				name: "Reviews",
+				data: [1, 2, 2, 3, 3, 4, 4],
+			},
+		],
+		categories: [
+			"2024-10-18T00:00:00.000Z",
+			"2024-10-18T04:00:00.000Z",
+			"2024-10-18T08:00:00.000Z",
+			"2024-10-18T12:00:00.000Z",
+			"2024-10-18T16:00:00.000Z",
+			"2024-10-18T20:00:00.000Z",
+			"2024-10-18T23:59:00.000Z",
+		],
+	},
+	"this-week": {
+		stats: {
+			total: 89,
+			new: 62,
+			underReview: 20,
+			accepted: 7,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [45, 52, 58, 67, 73, 82, 89],
+			},
+			{
+				name: "Reviews",
+				data: [15, 18, 22, 25, 28, 31, 35],
+			},
+		],
+		categories: [
+			"2024-10-13T00:00:00.000Z",
+			"2024-10-14T00:00:00.000Z",
+			"2024-10-15T00:00:00.000Z",
+			"2024-10-16T00:00:00.000Z",
+			"2024-10-17T00:00:00.000Z",
+			"2024-10-18T00:00:00.000Z",
+			"2024-10-19T00:00:00.000Z",
+		],
+	},
+	"last-week": {
+		stats: {
+			total: 95,
+			new: 68,
+			underReview: 19,
+			accepted: 8,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [42, 50, 61, 70, 78, 87, 95],
+			},
+			{
+				name: "Reviews",
+				data: [12, 16, 20, 24, 28, 32, 36],
+			},
+		],
+		categories: [
+			"2024-10-06T00:00:00.000Z",
+			"2024-10-07T00:00:00.000Z",
+			"2024-10-08T00:00:00.000Z",
+			"2024-10-09T00:00:00.000Z",
+			"2024-10-10T00:00:00.000Z",
+			"2024-10-11T00:00:00.000Z",
+			"2024-10-12T00:00:00.000Z",
+		],
+	},
+	"this-month": {
+		stats: {
+			total: 342,
+			new: 245,
+			underReview: 72,
+			accepted: 25,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [58, 89, 125, 167, 203, 251, 289, 312, 342],
+			},
+			{
+				name: "Reviews",
+				data: [18, 28, 38, 50, 62, 75, 88, 102, 115],
+			},
+		],
+		categories: [
+			"2024-10-01T00:00:00.000Z",
+			"2024-10-04T00:00:00.000Z",
+			"2024-10-07T00:00:00.000Z",
+			"2024-10-10T00:00:00.000Z",
+			"2024-10-13T00:00:00.000Z",
+			"2024-10-16T00:00:00.000Z",
+			"2024-10-19T00:00:00.000Z",
+			"2024-10-22T00:00:00.000Z",
+			"2024-10-25T00:00:00.000Z",
+		],
+	},
+	"last-month": {
+		stats: {
+			total: 378,
+			new: 271,
+			underReview: 79,
+			accepted: 28,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [62, 98, 138, 182, 223, 267, 310, 345, 378],
+			},
+			{
+				name: "Reviews",
+				data: [20, 32, 45, 58, 72, 87, 103, 118, 132],
+			},
+		],
+		categories: [
+			"2024-09-01T00:00:00.000Z",
+			"2024-09-04T00:00:00.000Z",
+			"2024-09-07T00:00:00.000Z",
+			"2024-09-10T00:00:00.000Z",
+			"2024-09-13T00:00:00.000Z",
+			"2024-09-16T00:00:00.000Z",
+			"2024-09-19T00:00:00.000Z",
+			"2024-09-22T00:00:00.000Z",
+			"2024-09-25T00:00:00.000Z",
+		],
+	},
+	"this-year": {
+		stats: {
+			total: 3842,
+			new: 2756,
+			underReview: 812,
+			accepted: 274,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [
+					245, 523, 856, 1203, 1589, 1967, 2345, 2712, 3089, 3456,
+					3689, 3842,
+				],
+			},
+			{
+				name: "Reviews",
+				data: [
+					78, 165, 267, 378, 495, 612, 729, 846, 963, 1080, 1197,
+					1314,
+				],
+			},
+		],
+		categories: [
+			"2024-01-01T00:00:00.000Z",
+			"2024-02-01T00:00:00.000Z",
+			"2024-03-01T00:00:00.000Z",
+			"2024-04-01T00:00:00.000Z",
+			"2024-05-01T00:00:00.000Z",
+			"2024-06-01T00:00:00.000Z",
+			"2024-07-01T00:00:00.000Z",
+			"2024-08-01T00:00:00.000Z",
+			"2024-09-01T00:00:00.000Z",
+			"2024-10-01T00:00:00.000Z",
+			"2024-11-01T00:00:00.000Z",
+			"2024-12-01T00:00:00.000Z",
+		],
+	},
+	"last-year": {
+		stats: {
+			total: 4156,
+			new: 2989,
+			underReview: 878,
+			accepted: 289,
+		},
+		chartSeries: [
+			{
+				name: "Applications",
+				data: [
+					278, 567, 923, 1289, 1678, 2089, 2478, 2867, 3256, 3645,
+					3912, 4156,
+				],
+			},
+			{
+				name: "Reviews",
+				data: [
+					89, 178, 289, 412, 534, 656, 778, 900, 1022, 1144, 1266,
+					1388,
+				],
+			},
+		],
+		categories: [
+			"2023-01-01T00:00:00.000Z",
+			"2023-02-01T00:00:00.000Z",
+			"2023-03-01T00:00:00.000Z",
+			"2023-04-01T00:00:00.000Z",
+			"2023-05-01T00:00:00.000Z",
+			"2023-06-01T00:00:00.000Z",
+			"2023-07-01T00:00:00.000Z",
+			"2023-08-01T00:00:00.000Z",
+			"2023-09-01T00:00:00.000Z",
+			"2023-10-01T00:00:00.000Z",
+			"2023-11-01T00:00:00.000Z",
+			"2023-12-01T00:00:00.000Z",
+		],
+	},
+};

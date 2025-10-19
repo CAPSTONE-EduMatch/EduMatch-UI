@@ -76,7 +76,7 @@ export const ApplicantProfileLayout: React.FC<ApplicantProfileLayoutProps> = ({
 			navItems={applicantNavItems}
 			roleLabel="Student"
 			roleIcon={<User className="w-8 h-8 text-white" />}
-			containerPaddingTop="pt-22"
+			containerPaddingTop="pt-26"
 		>
 			{children}
 		</ProfileLayoutBase>

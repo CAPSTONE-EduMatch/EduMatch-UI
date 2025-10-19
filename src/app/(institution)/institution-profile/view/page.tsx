@@ -330,8 +330,7 @@ export default function ViewProfile() {
 
 	// Render section content based on active section
 	const renderSectionContent = () => {
-		const navigationHandler = (_targetSection: string) => {
-			// This will be handled by the ProfileLayout
+		const navigationHandler = () => {
 			return true
 		}
 

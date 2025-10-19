@@ -23,7 +23,9 @@ export default function RootLayout({
 				<QueryProvider>
 					<NextIntlClientProvider>
 						<NotificationProvider>
-							<ConditionalLayout>{children}</ConditionalLayout>
+							{/* <ConditionalLayout> */}
+							{children}
+							{/* </ConditionalLayout> */}
 						</NotificationProvider>
 					</NextIntlClientProvider>
 				</QueryProvider>

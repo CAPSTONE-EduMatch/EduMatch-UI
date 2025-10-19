@@ -91,12 +91,12 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 	}
 
 	return (
-		<div className={`bg-gray-50 min-h-screen ${containerPaddingTop}`}>
+		<div className={`bg-gray-50 min-h-screen `}>
 			<div className="pr-8">
 				<div className="flex gap-8 min-h-screen">
 					{/* Sidebar */}
 					<div
-						className={`flex-shrink-0 flex flex-col min-h-full ${width}`}
+						className={`flex-shrink-0 flex flex-col min-h-full  ${containerPaddingTop}`}
 						style={{ backgroundColor: bgColor }}
 					>
 						{/* Profile Summary */}
@@ -167,7 +167,7 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 					</div>
 
 					{/* Main Content Area */}
-					<div className="w-full pb-12 pt-10">
+					<div className={`w-full pb-12 pt-10 ${containerPaddingTop}`}>
 						{/* Content */}
 						<div className="w-full">{children}</div>
 					</div>

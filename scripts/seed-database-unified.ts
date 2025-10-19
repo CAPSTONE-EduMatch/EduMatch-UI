@@ -673,12 +673,17 @@ async function seedOpportunityPosts() {
 		const field = getRandomElement(fields);
 		const university = getRandomElement(universities);
 
+		// 70% PUBLISHED, 30% DRAFT
+		const status: "PUBLISHED" | "DRAFT" =
+			Math.random() < 0.7 ? "PUBLISHED" : "DRAFT";
+
 		posts.push({
 			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
 			title: `${university} ${field} Program`,
 			start_date: new Date(),
 			create_at: new Date(),
 			institution_id: `user-${(Math.floor(Math.random() * 10) + 11).toString().padStart(3, "0")}`,
+			status: status,
 		});
 	}
 
@@ -686,7 +691,12 @@ async function seedOpportunityPosts() {
 		data: posts,
 	});
 
-	console.log("✅ 200 Opportunity posts seeded successfully");
+	const publishedCount = posts.filter((p) => p.status === "PUBLISHED").length;
+	const draftCount = posts.filter((p) => p.status === "DRAFT").length;
+
+	console.log(
+		`✅ 200 Opportunity posts seeded successfully (${publishedCount} PUBLISHED, ${draftCount} DRAFT)`
+	);
 }
 
 async function seedProgramPosts() {

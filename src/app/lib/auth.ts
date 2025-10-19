@@ -236,6 +236,7 @@ export const auth = betterAuth({
 												stripeSubscription.cancelAtPeriodEnd ||
 												false,
 											seats: 1,
+											updatedAt: new Date(),
 										},
 									});
 								// eslint-disable-next-line no-console

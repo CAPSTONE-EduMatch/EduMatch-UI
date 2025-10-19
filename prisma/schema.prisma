@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model user {
+model User {
   /// PK - Better Auth required fields
   id               String               @id @default(uuid())
   name             String?
@@ -30,15 +30,15 @@ model user {
   institution      Institution?
   notifications    Notification[]
   notifySetting    NotificationSetting?
-  userManagement   UserManagement[]
-  accounts         account[]
-  sessions         session[]
+  accounts         Account[]
+  sessions         Session[]
   userRole         Role?                @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  managedSupports  SupportRequirement[]
 
   @@map("user")
 }
 
-model account {
+model Account {
   id                    String    @id @default(uuid())
   userId                String
   accountId             String
@@ -52,13 +52,13 @@ model account {
   password              String?
   createdAt             DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt             DateTime  @updatedAt @db.Timestamptz(6)
-  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
   @@map("account")
 }
 
-model session {
+model Session {
   id             String   @id @default(uuid())
   userId         String
   token          String   @unique
@@ -68,12 +68,12 @@ model session {
   createdAt      DateTime @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @db.Timestamptz(6)
   impersonatedBy String?
-  user           user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
 }
 
-model verification {
+model Verification {
   id         String   @id @default(uuid())
   identifier String
   value      String
@@ -88,7 +88,7 @@ model Role {
   role_id String  @id
   name    String
   status  Boolean
-  users   user[]
+  users   User[]
 
   @@map("Role")
 }
@@ -113,7 +113,7 @@ model Applicant {
   languages            Json?
   university           String?
   subdiscipline        Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
-  user                 user                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                 User                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents            ApplicantDocument[]
   interests            ApplicantInterest[]
   subscriptions        ApplicantSubscription[]
@@ -145,7 +145,7 @@ model Institution {
   hotline_code        String?
   rep_phone_code      String?
   cover_image         String?
-  user                user                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                User                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents           InstitutionDocument[]
   subdisciplines      InstitutionSubdiscipline[]
   subscriptions       InstitutionSubscription[]
@@ -205,7 +205,6 @@ model OpportunityPost {
   jobPost         JobPost?
   institution     Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
   postDocs        PostDocument[]
-  postManagement  PostManagement[]
   subdisciplines  PostSubdiscipline[]
   programPost     ProgramPost?
   scholarshipPost ScholarshipPost?
@@ -394,7 +393,7 @@ model NotificationSetting {
   notify_wishlist     Boolean?
   notify_subscription Boolean
   update_at           DateTime @db.Timestamptz(6)
-  user                user     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("NotificationSetting")
 }
@@ -410,7 +409,7 @@ model Notification {
   read_at         DateTime? @db.Timestamptz(6)
   create_at       DateTime? @db.Timestamptz(6)
   queued_at       DateTime? @db.Timestamptz(6)
-  user            user      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user            User      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([user_id])
   @@index([send_at])
@@ -429,8 +428,8 @@ model Box {
   user_one_last_read_message_id String?
   user_two_last_read_message_id String?
   lastMessage                   Message?  @relation("LastMessage", fields: [last_message_id], references: [message_id])
-  userOne                       user      @relation("BoxUserOne", fields: [user_one_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  userTwo                       user      @relation("BoxUserTwo", fields: [user_two_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userOne                       User      @relation("BoxUserOne", fields: [user_one_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userTwo                       User      @relation("BoxUserTwo", fields: [user_two_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   messages                      Message[]
 
   @@map("Box")
@@ -459,70 +458,57 @@ model Plan {
   type            Boolean
   applicantSubs   ApplicantSubscription[]
   institutionSubs InstitutionSubscription[]
-  planMgmt        PlanManagement[]
 
   @@map("Plan")
 }
 
 model ApplicantSubscription {
-  subscription_id String             @id
-  applicant_id    String
-  plan_id         String
-  status          SubscriptionStatus @default(ACTIVE)
-  subscribe_at    DateTime           @default(now()) @db.Timestamptz(6)
-  applicant       Applicant          @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  plan            Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
-  stripe          StripePayment      @relation(fields: [subscription_id], references: [subscription_id])
+  subscription_id        String             @id
+  applicant_id           String
+  plan_id                String
+  status                 SubscriptionStatus @default(ACTIVE)
+  subscribe_at           DateTime           @default(now()) @db.Timestamptz(6)
+  better_auth_sub_id     String?            @unique // Reference to Better Auth subscription
+  applicant              Applicant          @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  plan                   Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
+  betterAuthSubscription Subscription?      @relation("ApplicantToBetterAuth", fields: [better_auth_sub_id], references: [id], onDelete: SetNull)
 
   @@map("ApplicantSubscription")
 }
 
 model InstitutionSubscription {
-  subscription_id String             @id
-  plan_id         String
-  institution_id  String
-  status          SubscriptionStatus @default(ACTIVE)
-  subscribe_at    DateTime           @default(now()) @db.Timestamptz(6)
-  institution     Institution        @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  plan            Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
-  stripe          StripePayment      @relation(fields: [subscription_id], references: [subscription_id])
+  subscription_id        String             @id
+  plan_id                String
+  institution_id         String
+  status                 SubscriptionStatus @default(ACTIVE)
+  subscribe_at           DateTime           @default(now()) @db.Timestamptz(6)
+  better_auth_sub_id     String?            @unique // Reference to Better Auth subscription
+  institution            Institution        @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  plan                   Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
+  betterAuthSubscription Subscription?      @relation("InstitutionToBetterAuth", fields: [better_auth_sub_id], references: [id], onDelete: SetNull)
 
   @@map("InstitutionSubscription")
 }
 
-model subscription {
-  id                   String    @id @default(uuid())
-  referenceId          String?
-  stripeSubscriptionId String?   @unique
-  stripeCustomerId     String?
-  plan                 String?
-  status               String?   @default("active")
-  periodStart          DateTime? @db.Timestamptz(6)
-  periodEnd            DateTime? @db.Timestamptz(6)
-  cancelAtPeriodEnd    Boolean?  @default(false)
-  seats                Int?      @default(1)
-  createdAt            DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt            DateTime  @updatedAt @db.Timestamptz(6)
-  trialEnd             DateTime? @db.Timestamptz(6)
-  trialStart           DateTime? @db.Timestamptz(6)
+model Subscription {
+  id                      String                   @id @default(uuid())
+  referenceId             String?
+  stripeSubscriptionId    String?                  @unique
+  stripeCustomerId        String?
+  plan                    String?
+  status                  String?                  @default("active")
+  periodStart             DateTime?                @db.Timestamptz(6)
+  periodEnd               DateTime?                @db.Timestamptz(6)
+  cancelAtPeriodEnd       Boolean?                 @default(false)
+  seats                   Int?                     @default(1)
+  createdAt               DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime                 @updatedAt @db.Timestamptz(6)
+  trialEnd                DateTime?                @db.Timestamptz(6)
+  trialStart              DateTime?                @db.Timestamptz(6)
+  applicantSubscription   ApplicantSubscription?   @relation("ApplicantToBetterAuth")
+  institutionSubscription InstitutionSubscription? @relation("InstitutionToBetterAuth")
 
   @@map("subscription")
-}
-
-model StripePayment {
-  stripeSubscriptionId String                   @id
-  subscription_id      String                   @unique
-  stripeCustomerId     String                   @unique
-  periodStart          DateTime?                @db.Timestamptz(6)
-  periodEnd            DateTime?                @db.Timestamptz(6)
-  cancelAtPeriodEnd    Boolean?                 @default(false)
-  trialStart           DateTime?                @db.Timestamptz(6)
-  trialEnd             DateTime?                @db.Timestamptz(6)
-  amount               String?
-  applicantSub         ApplicantSubscription?
-  institutionSub       InstitutionSubscription?
-
-  @@map("StripePayment")
 }
 
 model InstitutionSubdiscipline {
@@ -537,60 +523,6 @@ model InstitutionSubdiscipline {
   @@map("InstitutionSubdiscipline")
 }
 
-model SystemManager {
-  manager_id   String               @id
-  name         String
-  phone_number String
-  planMgmt     PlanManagement[]
-  postMgmt     PostManagement[]
-  supportReq   SupportRequirement[]
-  userMgmt     UserManagement[]
-
-  @@map("SystemManager")
-}
-
-model UserManagement {
-  manager_id String
-  user_id    String
-  action     String
-  update_at  DateTime      @db.Timestamptz(6)
-  note       String?
-  manager    SystemManager @relation(fields: [manager_id], references: [manager_id], onDelete: NoAction, onUpdate: NoAction)
-  user       user          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([manager_id, user_id, update_at])
-  @@map("UserManagement")
-}
-
-model PostManagement {
-  manager_id String
-  post_id    String
-  old_info   String
-  new_info   String?
-  action     String
-  update_at  DateTime        @db.Timestamptz(6)
-  note       String?
-  manager    SystemManager   @relation(fields: [manager_id], references: [manager_id], onDelete: NoAction, onUpdate: NoAction)
-  post       OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([manager_id, post_id, update_at])
-  @@map("PostManagement")
-}
-
-model PlanManagement {
-  manager_id String
-  plan_id    String
-  old_info   String
-  new_info   String?
-  action     String
-  update_at  DateTime      @db.Timestamptz(6)
-  note       String?
-  manager    SystemManager @relation(fields: [manager_id], references: [manager_id], onDelete: NoAction, onUpdate: NoAction)
-  plan       Plan          @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([manager_id, plan_id, update_at])
-  @@map("PlanManagement")
-}
 
 model SupportRequirement {
   support_id     String        @id @unique
@@ -603,7 +535,7 @@ model SupportRequirement {
   manager_id     String
   applicant      Applicant?    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
   institution    Institution?  @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  manager        SystemManager @relation(fields: [manager_id], references: [manager_id], onDelete: NoAction, onUpdate: NoAction)
+  manager        User          @relation(fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction) 
 
   @@index([applicant_id])
   @@index([institution_id])

@@ -10,16 +10,18 @@ import {
 	Clock,
 	Users,
 	X,
-	Globe,
-	DollarSign,
 	Search,
 	Loader2,
 	AlertCircle,
 } from 'lucide-react'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { useApplications } from '@/hooks/useApplications'
+import { useWishlist } from '@/hooks/useWishlist'
 import { Application, ApplicationStatus } from '@/types/application-api'
-import Image from 'next/image'
+import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
+import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
+import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
+import { ExploreApiService } from '@/lib/explore-api'
 
 interface ApplicationSectionProps {
 	profile: any
@@ -31,24 +33,118 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set())
 	const [searchQuery, setSearchQuery] = useState<string>('')
 
-	// Initialize applications hook with parameters
-	const applicationParams = useMemo(
-		() => ({
+	// Get application IDs only
+	const { applications, loading: applicationsLoading } = useApplications({
+		autoFetch: true,
+		initialParams: {
 			page: 1,
-			limit: 50,
+			limit: 1000,
 			status:
 				selectedFilters.size > 0
 					? (Array.from(selectedFilters)[0] as ApplicationStatus)
 					: undefined,
-		}),
-		[selectedFilters]
-	)
+		},
+	})
 
-	const { applications, loading, error, meta, refresh, cancelApplication } =
-		useApplications({
-			autoFetch: true,
-			initialParams: applicationParams,
-		})
+	// Explore data state with application status
+	const [programs, setPrograms] = useState<
+		(Program & { applicationStatus?: ApplicationStatus })[]
+	>([])
+	const [scholarships, setScholarships] = useState<
+		(Scholarship & { applicationStatus?: ApplicationStatus })[]
+	>([])
+	const [researchLabs, setResearchLabs] = useState<
+		(ResearchLab & { applicationStatus?: ApplicationStatus })[]
+	>([])
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+
+	// Fetch explore data and filter by applications
+	const fetchApplicationData = useCallback(async () => {
+		// Don't fetch if still loading applications
+		if (applicationsLoading) {
+			return
+		}
+
+		// If no applications, clear data but don't show loading
+		if (applications.length === 0) {
+			setPrograms([])
+			setScholarships([])
+			setResearchLabs([])
+			setLoading(false)
+			return
+		}
+
+		setLoading(true)
+		setError(null)
+
+		try {
+			// Get application post IDs
+			const applicationPostIds = applications.map((app) => app.postId)
+
+			// Fetch all explore data
+			const [programsResponse, scholarshipsResponse, researchResponse] =
+				await Promise.all([
+					ExploreApiService.getPrograms({
+						page: 1,
+						limit: 1000, // Fetch large number to get all data
+						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
+					}),
+					ExploreApiService.getScholarships({
+						page: 1,
+						limit: 1000,
+						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
+					}),
+					ExploreApiService.getResearchLabs({
+						page: 1,
+						limit: 1000,
+						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
+					}),
+				])
+
+			// Create a map of postId to application status
+			const applicationStatusMap = new Map<string, ApplicationStatus>()
+			applications.forEach((app) => {
+				applicationStatusMap.set(app.postId, app.status)
+			})
+
+			// Filter by application post IDs and add application status
+			const filteredPrograms = programsResponse.data
+				.filter((program) => applicationPostIds.includes(program.id))
+				.map((program) => ({
+					...program,
+					applicationStatus: applicationStatusMap.get(program.id),
+				}))
+
+			const filteredScholarships = scholarshipsResponse.data
+				.filter((scholarship) => applicationPostIds.includes(scholarship.id))
+				.map((scholarship) => ({
+					...scholarship,
+					applicationStatus: applicationStatusMap.get(scholarship.id),
+				}))
+
+			const filteredResearchLabs = researchResponse.data
+				.filter((researchLab) => applicationPostIds.includes(researchLab.id))
+				.map((researchLab) => ({
+					...researchLab,
+					applicationStatus: applicationStatusMap.get(researchLab.id),
+				}))
+
+			setPrograms(filteredPrograms)
+			setScholarships(filteredScholarships)
+			setResearchLabs(filteredResearchLabs)
+		} catch (err) {
+			console.error('Error fetching application data:', err)
+			setError('Failed to load application data')
+		} finally {
+			setLoading(false)
+		}
+	}, [applications, applicationsLoading, sortBy])
+
+	// Fetch data when applications or sort changes
+	React.useEffect(() => {
+		fetchApplicationData()
+	}, [fetchApplicationData])
 
 	// Main category tabs
 	const categories = [
@@ -65,126 +161,34 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		{ id: 'REJECTED', label: 'Rejected', icon: X },
 	]
 
-	// Transform applications to the expected format for each tab
-	const transformToPrograms = useCallback((apps: Application[]): Program[] => {
-		return apps
-			.filter((app) => app.post.program)
-			.map((app) => ({
-				id: app.postId,
-				title: app.post.title,
-				description: app.post.otherInfo || '',
-				university: app.post.institution.name,
-				logo: app.post.institution.logo || '',
-				field: app.post.program?.degree_level || 'Unknown Field',
-				country: app.post.institution.country || 'Unknown Country',
-				date: app.post.startDate,
-				daysLeft: Math.max(
-					0,
-					Math.ceil(
-						(new Date(app.post.startDate).getTime() - Date.now()) /
-							(1000 * 60 * 60 * 24)
-					)
-				),
-				price: app.post.program?.tuition_fee
-					? `${app.post.program.tuition_fee} USD / year`
-					: 'Contact for details',
-				match: '95%', // This would need to be calculated based on user profile
-				funding: app.post.program?.scholarship_info
-					? 'Available'
-					: 'Not specified',
-				attendance: app.post.program?.attendance || 'Contact for details',
-			}))
-	}, [])
+	// Application functionality for cards
+	const { cancelApplication } = useApplications()
 
-	const transformToScholarships = useCallback(
-		(apps: Application[]): Scholarship[] => {
-			return apps
-				.filter((app) => app.post.scholarship)
-				.map((app) => ({
-					id: app.postId,
-					title: app.post.title,
-					description: app.post.scholarship?.description || '',
-					provider: app.post.institution.name,
-					university: app.post.institution.name,
-					essayRequired: app.post.scholarship?.essay_required ? 'Yes' : 'No',
-					country: app.post.institution.country || 'Unknown Country',
-					date: app.post.startDate,
-					daysLeft: Math.max(
-						0,
-						Math.ceil(
-							(new Date(app.post.startDate).getTime() - Date.now()) /
-								(1000 * 60 * 60 * 24)
-						)
-					),
-					amount: app.post.scholarship?.grant || 'Contact for details',
-					match: '90%', // This would need to be calculated based on user profile
-				}))
-		},
-		[]
-	)
-
-	const transformToResearchLabs = useCallback(
-		(apps: Application[]): ResearchLab[] => {
-			return apps
-				.filter((app) => app.post.job)
-				.map((app) => ({
-					id: app.postId,
-					title: app.post.title,
-					description: app.post.otherInfo || '',
-					professor: 'Contact for details', // This would need to be added to the job model
-					field: app.post.job?.job_type || 'Research',
-					country: app.post.institution.country || 'Unknown Country',
-					position: app.post.job?.job_type || 'Research Position',
-					date: app.post.startDate,
-					daysLeft: Math.max(
-						0,
-						Math.ceil(
-							(new Date(app.post.startDate).getTime() - Date.now()) /
-								(1000 * 60 * 60 * 24)
-						)
-					),
-					match: '88%', // This would need to be calculated based on user profile
-				}))
-		},
-		[]
-	)
-
-	// Get transformed data for current tab
-	const applicationPrograms = useMemo(
-		() => transformToPrograms(applications),
-		[applications, transformToPrograms]
-	)
-	const applicationScholarships = useMemo(
-		() => transformToScholarships(applications),
-		[applications, transformToScholarships]
-	)
-	const applicationResearchLabs = useMemo(
-		() => transformToResearchLabs(applications),
-		[applications, transformToResearchLabs]
-	)
+	// Wishlist functionality for cards
+	const { isInWishlist, toggleWishlistItem } = useWishlist()
 
 	// Get current tab data
 	const getCurrentTabData = () => {
 		switch (activeTab) {
 			case 'programmes':
 				return {
-					data: applicationPrograms,
-					totalItems: applicationPrograms.length,
+					data: programs,
+					totalItems: programs.length,
 				}
 			case 'scholarships':
 				return {
-					data: applicationScholarships,
-					totalItems: applicationScholarships.length,
+					data: scholarships,
+					totalItems: scholarships.length,
 				}
 			case 'research':
 				return {
-					data: applicationResearchLabs,
-					totalItems: applicationResearchLabs.length,
+					data: researchLabs,
+					totalItems: researchLabs.length,
 				}
 			default:
 				return {
-					data: applicationPrograms,
-					totalItems: applicationPrograms.length,
+					data: programs,
+					totalItems: programs.length,
 				}
 		}
 	}
@@ -234,167 +238,60 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		[cancelApplication]
 	)
 
-	// Handle card click to navigate to post details
-	const handleCardClick = useCallback((postId: string) => {
-		// Navigate to the explore page with the specific post
-		window.location.href = `/explore/programmes/postId=${postId}`
-	}, [])
-
-	// Get status color and label
-	const getStatusColor = (status: ApplicationStatus) => {
-		switch (status) {
-			case 'PENDING':
-				return 'text-blue-600 bg-blue-100'
-			case 'REVIEWED':
-				return 'text-orange-600 bg-orange-100'
-			case 'ACCEPTED':
-				return 'text-green-600 bg-green-100'
-			case 'REJECTED':
-				return 'text-red-600 bg-red-100'
-			default:
-				return 'text-gray-600 bg-gray-100'
-		}
-	}
-
-	const getStatusLabel = (status: ApplicationStatus) => {
-		switch (status) {
-			case 'PENDING':
-				return 'Pending'
-			case 'REVIEWED':
-				return 'Under Review'
-			case 'ACCEPTED':
-				return 'Accepted'
-			case 'REJECTED':
-				return 'Rejected'
-			default:
-				return status
-		}
-	}
-
-	// Render application cards with status
-	const renderApplicationCards = (
-		items: any[],
-		applications: Application[]
-	) => {
-		return (
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{items.map((item) => {
-					// Find the corresponding application for status
-					const application = applications.find((app) => app.postId === item.id)
-					const status = application?.status || 'PENDING'
-
-					return (
-						<div
-							key={item.id}
-							className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
-							onClick={() => handleCardClick(item.id)}
-						>
-							{/* Header with logo */}
-							<div className="flex justify-between items-start mb-4 gap-4">
-								<div className="flex-1">
-									<Image
-										src={item.logo}
-										alt={item.university || item.provider}
-										width={120}
-										height={40}
-										className="rounded-lg object-contain"
-									/>
-								</div>
-							</div>
-
-							{/* Title */}
-							<h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
-								{item.title}
-							</h3>
-
-							{/* Description */}
-							<p className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0">
-								{item.description}
-							</p>
-
-							{/* Tags */}
-							<div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">
-								<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
-									<BookOpen className="w-4 h-4" />
-									{item.field}
-								</span>
-								<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
-									<Globe className="w-4 h-4" />
-									{item.country}
-								</span>
-							</div>
-
-							{/* Date */}
-							<div className="flex flex-wrap gap-2 mb-6 flex-shrink-0">
-								<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
-									<Clock className="w-4 h-4" />
-									{item.date}{' '}
-									<span className="text-red-500 font-semibold">
-										({item.daysLeft} days left)
-									</span>
-								</span>
-							</div>
-
-							{/* Price/Amount */}
-							<div className="text-center mb-6 flex-grow flex items-end justify-center min-h-[60px]">
-								<div className="text-2xl font-bold text-gray-900">
-									{item.price || item.amount}
-								</div>
-							</div>
-
-							{/* Status at bottom */}
-							<div className="mt-auto">
-								<div className="text-sm text-gray-600 mb-2">
-									Application Status:
-								</div>
-								<div className="flex items-center justify-between">
-									<span
-										className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(
-											status
-										)}`}
-									>
-										{getStatusLabel(status)}
-									</span>
-									{status === 'PENDING' && (
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={(e) => {
-												e.stopPropagation()
-												handleCancelApplication(
-													application?.applicationId || ''
-												)
-											}}
-											className="text-red-600 hover:text-red-700 hover:bg-red-50"
-										>
-											Cancel
-										</Button>
-									)}
-								</div>
-							</div>
-						</div>
-					)
-				})}
-			</div>
-		)
-	}
-
 	// Render tab content based on active tab
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'programmes':
-				return renderApplicationCards(applicationPrograms, applications)
+				return (
+					<ProgramsTab
+						programs={programs}
+						sortBy={sortBy}
+						isInWishlist={isInWishlist} // Check if each program is wishlisted
+						onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+						hasApplied={() => true} // All items in applications are applied
+						isApplying={() => false}
+						onApply={() => {}} // No-op for applications
+					/>
+				)
 			case 'scholarships':
-				return renderApplicationCards(applicationScholarships, applications)
+				return (
+					<ScholarshipsTab
+						scholarships={scholarships}
+						isInWishlist={isInWishlist} // Check if each scholarship is wishlisted
+						onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+						hasApplied={() => true} // All items in applications are applied
+						isApplying={() => false}
+						onApply={() => {}} // No-op for applications
+					/>
+				)
 			case 'research':
-				return renderApplicationCards(applicationResearchLabs, applications)
+				return (
+					<ResearchLabsTab
+						researchLabs={researchLabs}
+						isInWishlist={isInWishlist} // Check if each research lab is wishlisted
+						onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+						hasApplied={() => true} // All items in applications are applied
+						isApplying={() => false}
+						onApply={() => {}} // No-op for applications
+					/>
+				)
 			default:
-				return renderApplicationCards(applicationPrograms, applications)
+				return (
+					<ProgramsTab
+						programs={programs}
+						sortBy={sortBy}
+						isInWishlist={isInWishlist}
+						onWishlistToggle={toggleWishlistItem}
+						hasApplied={() => true}
+						isApplying={() => false}
+						onApply={() => {}}
+					/>
+				)
 		}
 	}
 
-	// Show loading state
-	if (loading) {
+	// Show loading state - only show if we're actually loading applications or fetching data
+	if (applicationsLoading || loading) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
@@ -413,7 +310,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					<AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
 					<p className="text-red-600 mb-4">Failed to load applications</p>
 					<p className="text-gray-600 mb-4">{error}</p>
-					<Button onClick={refresh} variant="outline">
+					<Button onClick={fetchApplicationData} variant="outline">
 						Try Again
 					</Button>
 				</div>

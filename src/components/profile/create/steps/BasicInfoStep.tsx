@@ -11,7 +11,7 @@ import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { ProfileFormData } from '@/lib/profile-service'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ApiService } from '@/lib/axios-config'
+import { usePresignedUpload } from '@/hooks/usePresignedUpload'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -46,6 +46,7 @@ export function BasicInfoStep({
 	useEffect(() => {
 		const loadSubdisciplines = async () => {
 			try {
+				const { ApiService } = await import('@/lib/axios-config')
 				const response = await ApiService.getSubdisciplines()
 				if (response.success) {
 					setSubdisciplines(response.subdisciplines)
@@ -56,12 +57,12 @@ export function BasicInfoStep({
 		}
 		loadSubdisciplines()
 	}, [])
-	const [isUploading, setIsUploading] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [phoneValidationError, setPhoneValidationError] = useState('')
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const hasAutoFilledNames = useRef(false)
+	const { uploadFile, isUploading } = usePresignedUpload()
 
 	// Debug: Log user object to see what we're working with
 	useEffect(() => {
@@ -167,59 +168,20 @@ export function BasicInfoStep({
 			return
 		}
 
-		// Validate file size (10MB max)
-		if (file.size > 10 * 1024 * 1024) {
-			setErrorMessage('File size must be less than 10MB')
-			setShowErrorModal(true)
-			return
-		}
-
-		setIsUploading(true)
-
 		try {
-			// Step 1: Get pre-signed URL from our API
-			const presignedResponse = await fetch('/api/files/presigned-url', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
+			await uploadFile(file, {
+				onSuccess: (url) => {
+					onInputChange('profilePhoto', url)
 				},
-				body: JSON.stringify({
-					fileName: file.name,
-					fileType: file.type,
-					fileSize: file.size,
-				}),
-			})
-
-			if (!presignedResponse.ok) {
-				throw new Error('Failed to get upload URL')
-			}
-
-			const { presignedUrl, fileName } = await presignedResponse.json()
-
-			// Step 2: Upload directly to S3 using pre-signed URL
-			const uploadResponse = await fetch(presignedUrl, {
-				method: 'PUT',
-				body: file,
-				headers: {
-					'Content-Type': file.type,
+				onError: (error) => {
+					setErrorMessage(error)
+					setShowErrorModal(true)
 				},
+				maxSize: 10 * 1024 * 1024, // 10MB
 			})
-
-			if (!uploadResponse.ok) {
-				throw new Error('Failed to upload file to S3')
-			}
-
-			// Step 3: Construct the public URL
-			const publicUrl = `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'edumatch-file-12'}.s3.${process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1'}.amazonaws.com/${fileName}`
-
-			// Update the profile photo with the S3 URL
-			onInputChange('profilePhoto', publicUrl)
 		} catch (error) {
-			console.error('Upload error:', error)
-			setErrorMessage('Failed to upload image. Please try again.')
-			setShowErrorModal(true)
+			// Error is already handled by onError callback
 		} finally {
-			setIsUploading(false)
 			// Reset file input
 			if (fileInputRef.current) {
 				fileInputRef.current.value = ''

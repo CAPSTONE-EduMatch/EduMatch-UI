@@ -16,6 +16,7 @@ interface ResearchLabCardProps {
 		date: string
 		daysLeft: number
 		match: string
+		applicationStatus?: string
 	}
 	index: number
 	isWishlisted: boolean
@@ -169,6 +170,29 @@ export function ResearchLabCard({
 						</motion.span>
 					</div>
 				</div>
+
+				{/* Application Status */}
+				{lab.applicationStatus && (
+					<div className="mt-3 flex justify-center">
+						<span
+							className={`px-4 py-2 rounded-full text-sm font-medium ${
+								lab.applicationStatus === 'PENDING'
+									? 'bg-yellow-100 text-yellow-800'
+									: lab.applicationStatus === 'REVIEWED'
+										? 'bg-blue-100 text-blue-800'
+										: lab.applicationStatus === 'ACCEPTED'
+											? 'bg-green-100 text-green-800'
+											: lab.applicationStatus === 'REJECTED'
+												? 'bg-red-100 text-red-800'
+												: 'bg-gray-100 text-gray-800'
+							}`}
+						>
+							<span className="inline-flex items-center gap-1">
+								📋 {lab.applicationStatus}
+							</span>
+						</span>
+					</div>
+				)}
 			</div>
 		</motion.div>
 	)

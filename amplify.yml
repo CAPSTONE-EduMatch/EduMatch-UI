@@ -3,8 +3,9 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Use npm ci for reliable CI/CD builds
-        - npm ci --legacy-peer-deps
+        # Install pnpm and use it for faster builds
+        - npm install -g pnpm
+        - pnpm install --frozen-lockfile
         # Create .env file more efficiently with error handling
         - echo "Creating .env file..."
         - echo "DATABASE_URL=$DATABASE_URL" > .env

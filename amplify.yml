@@ -3,10 +3,15 @@ frontend:
   phases:
     preBuild:
       commands:
+        # Debug: Check if we have environment variables
+        - echo "Starting preBuild phase..."
+        - echo "Node version: $(node --version)"
+        - echo "NPM version: $(npm --version)"
         # Use npm install instead of npm ci for better caching
         - npm install --legacy-peer-deps
-        # Create .env file more efficiently
+        # Create .env file more efficiently with error handling
         - |
+          echo "Creating .env file..."
           cat > .env << EOF
           DATABASE_URL=$DATABASE_URL
           BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
@@ -40,10 +45,15 @@ frontend:
           NEXT_PUBLIC_APPSYNC_API_KEY=$NEXT_PUBLIC_APPSYNC_API_KEY
           NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION
           EOF
+          echo ".env file created successfully"
+        - echo "Generating Prisma client..."
         - npx prisma generate
+        - echo "PreBuild phase completed"
     build:
       commands:
+        - echo "Starting build phase..."
         - npm run build
+        - echo "Build phase completed"
   artifacts:
     baseDirectory: .next
     files:
@@ -56,22 +66,3 @@ frontend:
   runtime:
     name: node
     version: 20
-customHeaders:
-  - pattern: '/api/files/s3-upload'
-    headers:
-      - key: 'Access-Control-Allow-Origin'
-        value: '*'
-      - key: 'Access-Control-Allow-Headers'
-        value: 'Content-Type, Authorization'
-      - key: 'Access-Control-Allow-Methods'
-        value: 'POST, OPTIONS'
-      - key: 'Access-Control-Max-Age'
-        value: '86400'
-  - pattern: '/api/**'
-    headers:
-      - key: 'X-Content-Type-Options'
-        value: 'nosniff'
-      - key: 'X-Frame-Options'
-        value: 'DENY'
-      - key: 'X-XSS-Protection'
-        value: '1; mode=block'

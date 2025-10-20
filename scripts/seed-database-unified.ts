@@ -1008,6 +1008,47 @@ async function seedPostCertificates() {
 	);
 }
 
+async function seedPostSubdisciplines() {
+	console.log("🔗 Seeding post subdisciplines...");
+
+	const postSubdisciplines = [];
+
+	// Seed PostSubdiscipline cho tất cả posts (posts 1-200)
+	for (let i = 1; i <= 200; i++) {
+		const postId = `post-opportunity-${i.toString().padStart(4, "0")}`;
+
+		// Mỗi post sẽ có 1-3 subdisciplines
+		const numSubdisciplines = Math.floor(Math.random() * 3) + 1; // 1-3 subdisciplines
+		const usedSubdisciplines = new Set();
+
+		for (let j = 0; j < numSubdisciplines; j++) {
+			let subdisciplineId;
+			do {
+				// Chọn ngẫu nhiên subdiscipline từ 1-150 (tổng số subdisciplines có thể có)
+				subdisciplineId = (
+					Math.floor(Math.random() * 150) + 1
+				).toString();
+			} while (usedSubdisciplines.has(subdisciplineId));
+
+			usedSubdisciplines.add(subdisciplineId);
+
+			postSubdisciplines.push({
+				post_id: postId,
+				subdiscipline_id: subdisciplineId,
+				add_at: new Date(),
+			});
+		}
+	}
+
+	await prismaClient.postSubdiscipline.createMany({
+		data: postSubdisciplines,
+	});
+
+	console.log(
+		`✅ ${postSubdisciplines.length} Post subdisciplines seeded successfully`
+	);
+}
+
 async function seedWishlists() {
 	console.log("❤️ Seeding wishlists...");
 
@@ -1109,6 +1150,7 @@ async function main() {
 		await seedJobPosts();
 		await seedPostDocuments();
 		await seedPostCertificates();
+		await seedPostSubdisciplines();
 		await seedWishlists();
 		await seedApplications();
 		await seedNotifications();
@@ -1131,6 +1173,9 @@ async function main() {
 		console.log("   - 50 Job Posts");
 		console.log("   - Post Documents (with detailed descriptions)");
 		console.log("   - Post Certificates (language and standardized tests)");
+		console.log(
+			"   - Post Subdisciplines (relationships between posts and fields)"
+		);
 		console.log("   - Wishlist items");
 		console.log("   - 50 Applications");
 		console.log("   - 100 Notifications");

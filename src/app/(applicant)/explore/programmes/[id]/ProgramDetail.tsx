@@ -120,8 +120,13 @@ const ProgramDetail = () => {
 			const data = await response.json()
 
 			if (data.success && data.data) {
-				setCurrentProgram(data.data)
-				return data.data
+				// Map subdiscipline to fields for compatibility with existing UI
+				const programData = {
+					...data.data,
+					fields: data.data.subdiscipline || [],
+				}
+				setCurrentProgram(programData)
+				return programData
 			} else {
 				showError('Error', 'Failed to load program details')
 				return null
@@ -172,6 +177,10 @@ const ProgramDetail = () => {
 
 			// Fetch program data from API
 			const programData = await fetchProgramDetail(programId)
+			console.log(
+				'Program data detailllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll:',
+				programData
+			)
 
 			const programName = programData?.title || 'Information Technology'
 
@@ -668,7 +677,7 @@ const ProgramDetail = () => {
 									<ul className="list-disc pl-5 space-y-1 text-gray-700">
 										{currentProgram.documents.map((doc: any) => (
 											<li key={doc.id}>
-												{doc.documentType.name}
+												{doc.name}
 												{doc.description && `: ${doc.description}`}
 											</li>
 										))}
@@ -676,7 +685,7 @@ const ProgramDetail = () => {
 								</div>
 							)}
 
-						<div>
+						{/* <div>
 							<p className="font-bold text-gray-900 mb-3">Student insurance:</p>
 							<p className="text-gray-700 mb-3">
 								Make sure to cover your health, travel, and stay while studying
@@ -693,7 +702,7 @@ const ProgramDetail = () => {
 								<li>Accidents</li>
 								<li>Legal aid</li>
 							</ul>
-						</div>
+						</div> */}
 					</div>
 				)
 
@@ -1059,11 +1068,9 @@ const ProgramDetail = () => {
 						{currentProgram?.documents &&
 						currentProgram.documents.length > 0 ? (
 							<div className="space-y-3">
-								{currentProgram.documents.map((doc: any, index: number) => (
-									<p key={doc.documentType.id}>
-										{/* <span className="font-medium">
-											{doc.documentType.name}:
-										</span>{' '} */}
+								{currentProgram.documents.map((doc: any) => (
+									<p key={doc.id}>
+										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
 										{doc.description}
 									</p>
 								))}
@@ -1082,12 +1089,12 @@ const ProgramDetail = () => {
 							currentProgram.documents.length > 0 &&
 							currentProgram.documents.map((doc: any) => {
 								const filesForThisType = uploadedFiles.filter(
-									(file) => file.documentType === doc.documentType.id
+									(file) => file.documentType === doc.id
 								)
 								return (
-									<div key={doc.documentType.id} className="space-y-2">
+									<div key={doc.id} className="space-y-2">
 										<label className="text-sm font-medium text-gray-700">
-											{doc.documentType.name}
+											{doc.name}
 											{filesForThisType.length > 0 && (
 												<span className="ml-2 text-xs text-green-600">
 													({filesForThisType.length} file
@@ -1106,14 +1113,12 @@ const ProgramDetail = () => {
 												<input
 													type="file"
 													multiple
-													onChange={(e) =>
-														handleFileUpload(e, doc.documentType.id)
-													}
+													onChange={(e) => handleFileUpload(e, doc.id)}
 													className="hidden"
-													id={`file-upload-${doc.documentType.id}`}
+													id={`file-upload-${doc.id}`}
 												/>
 												<label
-													htmlFor={`file-upload-${doc.documentType.id}`}
+													htmlFor={`file-upload-${doc.id}`}
 													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
 												>
 													Click here to upload file

@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
 				: null,
 
 			// Subdisciplines/Fields
-			fields: opportunityPost.subdisciplines.map((ps) => ({
+			subdiscipline: opportunityPost.subdisciplines.map((ps) => ({
 				subdisciplineId: ps.subdiscipline.subdiscipline_id,
 				subdisciplineName: ps.subdiscipline.name,
 				disciplineId: ps.subdiscipline.discipline.discipline_id,
@@ -228,11 +228,11 @@ export async function GET(request: NextRequest) {
 				id: doc.document_id,
 				name: doc.name,
 				description: doc.description,
-				documentType: {
-					id: doc.documentType.document_type_id,
-					name: doc.documentType.name,
-					description: doc.documentType.description,
-				},
+				// documentType: {
+				// 	id: doc.documentType.document_type_id,
+				// 	name: doc.documentType.name,
+				// 	description: doc.documentType.description,
+				// },
 			})),
 
 			// Statistics

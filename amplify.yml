@@ -3,44 +3,57 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci --legacy-peer-deps
-        # Create .env file with all required environment variables
-        - echo "DATABASE_URL=$DATABASE_URL" > .env
-        - echo "BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET" >> .env
-        - echo "BETTER_AUTH_URL=$BETTER_AUTH_URL" >> .env
-        - echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
-        - echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
-        - echo "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" >> .env
-        - echo "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" >> .env
-        - echo "REDIS_URL=$REDIS_URL" >> .env
-        - echo "SMTP_HOST=$SMTP_HOST" >> .env
-        - echo "SMTP_PORT=$SMTP_PORT" >> .env
-        - echo "SMTP_USER=$SMTP_USER" >> .env
-        - echo "SMTP_PASS=$SMTP_PASS" >> .env
-        - echo "SMTP_FROM=$SMTP_FROM" >> .env
-        - echo "REGION=$REGION" >> .env
-        - echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> .env
-        - echo "SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY" >> .env
-        - echo "ACCESS_KEY_ID=$ACCESS_KEY_ID" >> .env
-        - echo "SQS_NOTIFICATIONS_QUEUE_URL=$SQS_NOTIFICATIONS_QUEUE_URL" >> .env
-        - echo "SQS_EMAILS_QUEUE_URL=$SQS_EMAILS_QUEUE_URL" >> .env
-        - echo "NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL" >> .env
-        - echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID" >> .env
-        - echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" >> .env
-        - echo "NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID=$NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID" >> .env
-        - echo "NEXT_PUBLIC_STRIPE_PRO_PRICE_ID=$NEXT_PUBLIC_STRIPE_PRO_PRICE_ID" >> .env
-        - echo "NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID=$NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID" >> .env
-        - echo "STRIPE_BASIC_PRICE_ID=$STRIPE_BASIC_PRICE_ID" >> .env
-        - echo "STRIPE_PRO_PRICE_ID=$STRIPE_PRO_PRICE_ID" >> .env
-        - echo "STRIPE_ENTERPRISE_PRICE_ID=$STRIPE_ENTERPRISE_PRICE_ID" >> .env
-        - echo "NEXT_PUBLIC_APPSYNC_ENDPOINT=$NEXT_PUBLIC_APPSYNC_ENDPOINT" >> .env
-        - echo "NEXT_PUBLIC_APPSYNC_API_KEY=$NEXT_PUBLIC_APPSYNC_API_KEY" >> .env
-        - echo "NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION" >> .env
+        # Debug: Check if we have environment variables
+        - echo "Starting preBuild phase..."
+        - echo "Node version: $(node --version)"
+        - echo "NPM version: $(npm --version)"
+        # Use npm install instead of npm ci for better caching
+        - npm install --legacy-peer-deps
+        # Create .env file more efficiently with error handling
+        - |
+          echo "Creating .env file..."
+          cat > .env << EOF
+          DATABASE_URL=$DATABASE_URL
+          BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+          BETTER_AUTH_URL=$BETTER_AUTH_URL
+          GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+          GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+          STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
+          STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET
+          REDIS_URL=$REDIS_URL
+          SMTP_HOST=$SMTP_HOST
+          SMTP_PORT=$SMTP_PORT
+          SMTP_USER=$SMTP_USER
+          SMTP_PASS=$SMTP_PASS
+          SMTP_FROM=$SMTP_FROM
+          REGION=$REGION
+          S3_BUCKET_NAME=$S3_BUCKET_NAME
+          SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY
+          ACCESS_KEY_ID=$ACCESS_KEY_ID
+          SQS_NOTIFICATIONS_QUEUE_URL=$SQS_NOTIFICATIONS_QUEUE_URL
+          SQS_EMAILS_QUEUE_URL=$SQS_EMAILS_QUEUE_URL
+          NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID=$NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID
+          NEXT_PUBLIC_STRIPE_PRO_PRICE_ID=$NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
+          NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID=$NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID
+          STRIPE_BASIC_PRICE_ID=$STRIPE_BASIC_PRICE_ID
+          STRIPE_PRO_PRICE_ID=$STRIPE_PRO_PRICE_ID
+          STRIPE_ENTERPRISE_PRICE_ID=$STRIPE_ENTERPRISE_PRICE_ID
+          NEXT_PUBLIC_APPSYNC_ENDPOINT=$NEXT_PUBLIC_APPSYNC_ENDPOINT
+          NEXT_PUBLIC_APPSYNC_API_KEY=$NEXT_PUBLIC_APPSYNC_API_KEY
+          NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION
+          EOF
+          echo ".env file created successfully"
+        - echo "Generating Prisma client..."
         - npx prisma generate
-        # - npx prisma db push
+        - echo "PreBuild phase completed"
     build:
       commands:
+        - echo "Starting build phase..."
         - npm run build
+        - echo "Build phase completed"
   artifacts:
     baseDirectory: .next
     files:
@@ -49,25 +62,7 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+      - prisma/generated/**/*
   runtime:
     name: node
     version: 20
-customHeaders:
-  - pattern: '/api/files/s3-upload'
-    headers:
-      - key: 'Access-Control-Allow-Origin'
-        value: '*'
-      - key: 'Access-Control-Allow-Headers'
-        value: 'Content-Type, Authorization'
-      - key: 'Access-Control-Allow-Methods'
-        value: 'POST, OPTIONS'
-      - key: 'Access-Control-Max-Age'
-        value: '86400'
-  - pattern: '/api/**'
-    headers:
-      - key: 'X-Content-Type-Options'
-        value: 'nosniff'
-      - key: 'X-Frame-Options'
-        value: 'DENY'
-      - key: 'X-XSS-Protection'
-        value: '1; mode=block'

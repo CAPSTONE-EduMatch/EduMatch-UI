@@ -16,9 +16,6 @@ export function useAuthCheck() {
 	const hasChecked = useRef(false);
 
 	useEffect(() => {
-		// Prevent multiple simultaneous auth checks
-		if (hasChecked.current) return;
-
 		const checkAuth = async () => {
 			// Use global cache to prevent multiple simultaneous calls
 			const now = Date.now();
@@ -33,8 +30,17 @@ export function useAuthCheck() {
 
 			authCheckPromise = (async () => {
 				try {
+					console.log("🔐 useAuthCheck: Checking authentication...");
 					const session = await authClient.getSession();
 					const hasUser = session?.data?.user;
+
+					console.log("🔐 useAuthCheck: Session result:", {
+						hasSession: !!session,
+						hasUser: !!hasUser,
+						userId: hasUser?.id,
+						userName: hasUser?.name,
+					});
+
 					setIsAuthenticated(!!hasUser);
 					setUser(hasUser);
 
@@ -48,6 +54,7 @@ export function useAuthCheck() {
 					lastAuthCheck = now;
 					hasChecked.current = true;
 				} catch (error) {
+					console.error("❌ useAuthCheck: Auth check error:", error);
 					setIsAuthenticated(false);
 					setShowAuthModal(true);
 					setUser(null);
@@ -70,9 +77,20 @@ export function useAuthCheck() {
 	// Manual auth check function
 	const refreshAuth = async () => {
 		setIsLoading(true);
+		hasChecked.current = false; // Reset check flag to force re-check
+
 		try {
+			console.log("🔄 useAuthCheck: Refreshing authentication...");
 			const session = await authClient.getSession();
 			const hasUser = session?.data?.user;
+
+			console.log("🔄 useAuthCheck: Refresh result:", {
+				hasSession: !!session,
+				hasUser: !!hasUser,
+				userId: hasUser?.id,
+				userName: hasUser?.name,
+			});
+
 			setIsAuthenticated(!!hasUser);
 			setUser(hasUser);
 
@@ -83,6 +101,7 @@ export function useAuthCheck() {
 				setShowAuthModal(true);
 			}
 		} catch (error) {
+			console.error("❌ useAuthCheck: Refresh auth error:", error);
 			setIsAuthenticated(false);
 			setShowAuthModal(true);
 			setUser(null);

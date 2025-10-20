@@ -64,96 +64,41 @@ export function BasicInfoStep({
 	const hasAutoFilledNames = useRef(false)
 	const { uploadFile, isUploading } = usePresignedUpload()
 
-	// Debug: Log user object to see what we're working with
+	// Auto-fill Google login data when component mounts
 	useEffect(() => {
-		console.log('👤 User object in BasicInfoStep:', {
-			user,
-			hasImage: !!user?.image,
-			hasName: !!user?.name,
-			userName: user?.name,
-			userEmail: user?.email,
-		})
-	}, [user])
+		if (user) {
+			// Auto-fill email from Google account
+			if (user.email && !formData.email) {
+				onInputChange('email', user.email)
+			}
 
-	// Debug: Test onInputChange function
-	useEffect(() => {
-		console.log('🧪 Testing onInputChange function:', {
-			onInputChange: typeof onInputChange,
-			formData: formData,
-		})
-
-		// Test if onInputChange works by calling it with a test value
-		if (onInputChange && typeof onInputChange === 'function') {
-			console.log('✅ onInputChange is a function, testing with test value...')
-			// Don't actually call it, just log that we could
-		} else {
-			console.error('❌ onInputChange is not a function!', onInputChange)
-		}
-	}, [onInputChange, formData])
-
-	// Auto-fill Google login data when component mounts (only for Google OAuth users)
-	useEffect(() => {
-		if (user && user.image && !hasAutoFilledNames.current) {
-			console.log('🔄 Auto-filling Google user data:', {
-				userName: user.name,
-				currentFirstName: formData.firstName,
-				currentLastName: formData.lastName,
-			})
-
-			// Only auto-fill if user has Google profile image (indicates Google OAuth)
-			// Auto-fill first name from Google profile
-			if (user.name && !formData.firstName) {
+			// Auto-fill name from Google account
+			if (user.name) {
 				const nameParts = user.name.trim().split(' ')
-				if (nameParts.length > 0 && nameParts[0]) {
-					console.log('📝 Auto-filling first name:', nameParts[0])
-					console.log('🔧 Calling onInputChange with:', {
-						field: 'firstName',
-						value: nameParts[0],
-					})
+				// Auto-fill first name if empty
+				if (nameParts.length > 0 && !formData.firstName) {
 					onInputChange('firstName', nameParts[0])
 				}
-			}
-
-			// Auto-fill last name from Google profile
-			if (user.name && !formData.lastName) {
-				const nameParts = user.name.trim().split(' ')
-				if (nameParts.length > 1) {
+				// Auto-fill last name if empty
+				if (nameParts.length > 1 && !formData.lastName) {
 					const lastName = nameParts.slice(1).join(' ').trim()
-					if (lastName) {
-						console.log('📝 Auto-filling last name:', lastName)
-						console.log('🔧 Calling onInputChange with:', {
-							field: 'lastName',
-							value: lastName,
-						})
-						onInputChange('lastName', lastName)
-					}
+					onInputChange('lastName', lastName)
 				}
 			}
 
-			// Mark as auto-filled to prevent re-triggering
-			hasAutoFilledNames.current = true
-			console.log('✅ Auto-fill completed, marked as done')
-
-			// Note: Profile photo auto-fill is handled in separate useEffect below
-		}
-	}, [user?.image, user?.name, onInputChange])
-
-	// Auto-fill Google image if available and no profile photo set
-	useEffect(() => {
-		// Auto-fill Google image if available and no profile photo set
-		if (!formData.profilePhoto && user?.image) {
-			// Clean up Google image URL to get a better size
-			let imageUrl = user.image
-			if (imageUrl.includes('=s96-c')) {
-				// Replace s96-c with s400-c for a larger, better quality image
-				imageUrl = imageUrl.replace('=s96-c', '=s400-c')
-			} else if (imageUrl.includes('=s')) {
-				// If it has other size parameters, replace with s400-c
-				imageUrl = imageUrl.replace(/=s\d+-c/, '=s400-c')
+			// Auto-fill profile photo from Google account
+			if (user.image && !formData.profilePhoto) {
+				// Clean up Google image URL to get a better size
+				let imageUrl = user.image
+				if (imageUrl.includes('=s96-c')) {
+					imageUrl = imageUrl.replace('=s96-c', '=s400-c')
+				} else if (imageUrl.includes('=s')) {
+					imageUrl = imageUrl.replace(/=s\d+-c/, '=s400-c')
+				}
+				onInputChange('profilePhoto', imageUrl)
 			}
-			onInputChange('profilePhoto', imageUrl)
 		}
-	}, [formData.profilePhoto, user?.image, onInputChange])
+	}, [user, onInputChange])
 
 	const handleFileSelect = async (
 		event: React.ChangeEvent<HTMLInputElement>
@@ -194,45 +139,48 @@ export function BasicInfoStep({
 	}
 
 	// Function to validate phone number
-	const validatePhoneNumber = async () => {
-		if (!formData.phoneNumber || !formData.countryCode) {
+	const validatePhoneNumber = () => {
+		if (!formData.phoneNumber) {
 			setPhoneValidationError('')
-			return true
+			return true // Phone is optional, so empty is valid
 		}
 
-		try {
-			const { isValidPhoneNumber } = await import('libphonenumber-js')
-			const fullNumber = `${formData.countryCode}${formData.phoneNumber}`
-
-			// Get country code from phone code
-			const { getCountryByPhoneCode } = await import('@/data/countries')
-			const country = getCountryByPhoneCode(formData.countryCode)
-
-			if (!country) {
-				setPhoneValidationError('Invalid country code')
-				return false
-			}
-
-			const isValid = isValidPhoneNumber(fullNumber, country.code as any)
-
-			if (!isValid) {
-				setPhoneValidationError(
-					`Please enter a valid ${country.name} phone number`
-				)
-				return false
-			} else {
-				setPhoneValidationError('')
-				return true
-			}
-		} catch (error) {
-			setPhoneValidationError('Invalid phone number format')
+		// Check if phone number has at least 7 digits (minimum valid phone number)
+		if (formData.phoneNumber.length < 7) {
+			setPhoneValidationError('Phone number must be at least 7 digits')
 			return false
 		}
+
+		// Check if phone number has more than 15 digits (maximum valid phone number)
+		if (formData.phoneNumber.length > 15) {
+			setPhoneValidationError('Phone number cannot exceed 15 digits')
+			return false
+		}
+
+		setPhoneValidationError('')
+		return true
 	}
 
 	// Function to handle form validation and submission
-	const handleNext = async () => {
-		const isPhoneValid = await validatePhoneNumber()
+	const handleNext = () => {
+		// Validate required fields
+		if (!formData.firstName.trim()) {
+			alert('Please enter your first name')
+			return
+		}
+
+		if (!formData.lastName.trim()) {
+			alert('Please enter your last name')
+			return
+		}
+
+		if (!formData.email.trim()) {
+			alert('Please enter your email address')
+			return
+		}
+
+		// Validate phone number
+		const isPhoneValid = validatePhoneNumber()
 
 		if (!isPhoneValid) {
 			return // Don't proceed if phone validation fails
@@ -241,15 +189,24 @@ export function BasicInfoStep({
 		onNext()
 	}
 
-	// Function to validate and format name input (letters and spaces only)
+	// Function to handle name input (only letters and spaces, no numbers)
 	const handleNameInput =
 		(field: 'firstName' | 'lastName') =>
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const value = e.target.value
-			// Remove any non-letter characters except spaces (including numbers, symbols)
+			// Remove any non-letter characters except spaces (no numbers, symbols)
 			const lettersAndSpaces = value.replace(/[^a-zA-Z\s]/g, '')
 			onInputChange(field, lettersAndSpaces)
 		}
+
+	// Function to handle phone number input (only numbers)
+	const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+		// Remove any non-numeric characters
+		const numbersOnly = value.replace(/[^0-9]/g, '')
+		onInputChange('phoneNumber', numbersOnly)
+		setPhoneValidationError('')
+	}
 
 	return (
 		<div className="space-y-6">
@@ -358,23 +315,32 @@ export function BasicInfoStep({
 					/>
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
-						<Input
-							id="email"
-							type="email"
-							placeholder="example123@gmail.com"
-							value={formData.email}
-							onChange={onInputChangeEvent('email')}
-							inputSize="select"
-							disabled={
-								user?.email && user?.image && formData.email === user.email
-							}
-						/>
-						{user?.email && user?.image && formData.email === user.email && (
-							<p className="text-xs text-muted-foreground">
-								Email is pre-filled from your Google account and cannot be
-								changed
-							</p>
-						)}
+						<div className="relative">
+							<Input
+								id="email"
+								type="email"
+								placeholder="example123@gmail.com"
+								value={formData.email}
+								onChange={onInputChangeEvent('email')}
+								inputSize="select"
+								disabled={
+									user?.email && user?.image && formData.email === user.email
+								}
+							/>
+							{user?.email && user?.image && formData.email === user.email && (
+								<div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+									<div className="group relative">
+										<div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center cursor-help">
+											<span className="text-white text-xs font-bold">i</span>
+										</div>
+										<div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+											Email from Google account
+											<div className="absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+										</div>
+									</div>
+								</div>
+							)}
+						</div>
 					</div>
 				</div>
 
@@ -419,7 +385,9 @@ export function BasicInfoStep({
 								value={formData.phoneNumber}
 								countryCode={formData.countryCode}
 								onValueChange={(value) => {
-									onInputChange('phoneNumber', value)
+									// Remove any non-numeric characters
+									const numbersOnly = value.replace(/[^0-9]/g, '')
+									onInputChange('phoneNumber', numbersOnly)
 									// Clear validation error when user starts typing
 									if (phoneValidationError) {
 										setPhoneValidationError('')
@@ -432,7 +400,7 @@ export function BasicInfoStep({
 										setPhoneValidationError('')
 									}
 								}}
-								placeholder="Your phone number"
+								placeholder="Your phone number (numbers only)"
 								className="w-full"
 								hasError={!!phoneValidationError}
 							/>

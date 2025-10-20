@@ -83,6 +83,13 @@ export function AcademicInfoStep({
 			onInputChange('languages', [{ language: '', certificate: '', score: '' }])
 		}
 	}, [formData.hasForeignLanguage])
+
+	// Clear languages when user selects "no"
+	useEffect(() => {
+		if (formData.hasForeignLanguage === 'no' && formData.languages?.length) {
+			onInputChange('languages', [] as any)
+		}
+	}, [formData.hasForeignLanguage])
 	const handleCategoryFilesUploaded = (category: string, files: FileItem[]) => {
 		try {
 			// Get existing files for this category
@@ -929,7 +936,23 @@ export function AcademicInfoStep({
 				>
 					Back
 				</Button>
-				<Button onClick={onNext} size="sm" className="w-full sm:w-auto">
+				<Button
+					onClick={() => {
+						// Filter out empty language entries before proceeding
+						if (formData.hasForeignLanguage === 'yes' && formData.languages) {
+							const cleaned = formData.languages.filter(
+								(l) =>
+									l.language?.trim() || l.certificate?.trim() || l.score?.trim()
+							)
+							if (cleaned.length !== formData.languages.length) {
+								onInputChange('languages', cleaned as any)
+							}
+						}
+						onNext()
+					}}
+					size="sm"
+					className="w-full sm:w-auto"
+				>
 					Next
 				</Button>
 			</div>

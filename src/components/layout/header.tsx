@@ -26,6 +26,7 @@ import { authClient } from '@/app/lib/auth-client'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useUnreadMessageCount } from '@/hooks/useUnreadMessageCount'
+import { useUserProfile } from '@/hooks/useUserProfile'
 
 export function EduMatchHeader() {
 	const router = useRouter()
@@ -34,6 +35,9 @@ export function EduMatchHeader() {
 
 	// Get authentication state
 	const { isAuthenticated, refreshAuth } = useAuthCheck()
+
+	// Get user profile data
+	const { profile: userProfile, isLoading: profileLoading } = useUserProfile()
 
 	// Get notifications
 	const { notifications, unreadCount, markAsRead } = useNotifications()
@@ -170,7 +174,7 @@ export function EduMatchHeader() {
 
 		// Check if date is valid
 		if (isNaN(date.getTime())) {
-			console.warn('Invalid date string:', dateString)
+			// console.warn('Invalid date string:', dateString)
 			return 'Invalid date'
 		}
 
@@ -388,80 +392,164 @@ export function EduMatchHeader() {
 											{/* User Info Header */}
 											<div className="px-4 py-4 border-b border-gray-100">
 												<div className="text-lg font-semibold text-gray-800">
-													Tran Manh Tuan
+													{profileLoading ? (
+														<div className="animate-pulse bg-gray-200 h-5 w-32 rounded"></div>
+													) : (
+														userProfile?.name || 'User'
+													)}
 												</div>
-												<div className="text-sm text-gray-500">Student</div>
+												<div className="text-sm text-gray-500">
+													{profileLoading ? (
+														<div className="animate-pulse bg-gray-200 h-4 w-16 rounded mt-1"></div>
+													) : userProfile?.role === 'institution' ? (
+														'Institution'
+													) : (
+														'Student'
+													)}
+												</div>
 											</div>
 
 											{/* Menu Items */}
 											<div className="py-2">
-												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-													onClick={() => {
-														router.push('/applicant-profile/view?tab=profile')
-														setIsUserMenuOpen(false)
-													}}
-												>
-													<UserCircle className="w-4 h-4" />
-													<span className="text-sm">Profile</span>
-												</div>
+												{userProfile?.role === 'institution' ? (
+													// Institution menu items
+													<>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/institution-profile/view?tab=profile'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<UserCircle className="w-4 h-4" />
+															<span className="text-sm">
+																Institution Profile
+															</span>
+														</div>
 
-												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-													onClick={() => {
-														router.push('/applicant-profile/view?tab=academic')
-														setIsUserMenuOpen(false)
-													}}
-												>
-													<Book className="w-4 h-4" />
-													<span className="text-sm">Academic Information</span>
-												</div>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/institution-profile/view?tab=programs'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<Book className="w-4 h-4" />
+															<span className="text-sm">Programs</span>
+														</div>
 
-												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-													onClick={() => {
-														router.push('/applicant-profile/view?tab=wishlist')
-														setIsUserMenuOpen(false)
-													}}
-												>
-													<Bookmark className="w-4 h-4" />
-													<span className="text-sm">Wishlist</span>
-												</div>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/institution-profile/view?tab=applications'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<FileText className="w-4 h-4" />
+															<span className="text-sm">Applications</span>
+														</div>
 
-												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-													onClick={() => {
-														router.push(
-															'/applicant-profile/view?tab=application'
-														)
-														setIsUserMenuOpen(false)
-													}}
-												>
-													<FileText className="w-4 h-4" />
-													<span className="text-sm">My Applications</span>
-												</div>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/institution-profile/view?tab=settings'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<Settings className="w-4 h-4" />
+															<span className="text-sm">Settings</span>
+														</div>
+													</>
+												) : (
+													// Applicant menu items
+													<>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/applicant-profile/view?tab=profile'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<UserCircle className="w-4 h-4" />
+															<span className="text-sm">Profile</span>
+														</div>
 
-												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-													onClick={() => {
-														router.push('/applicant-profile/payment')
-														setIsUserMenuOpen(false)
-													}}
-												>
-													<CreditCard className="w-4 h-4" />
-													<span className="text-sm">Payment</span>
-												</div>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/applicant-profile/view?tab=academic'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<Book className="w-4 h-4" />
+															<span className="text-sm">
+																Academic Information
+															</span>
+														</div>
 
-												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-													onClick={() => {
-														router.push('/applicant-profile/view?tab=settings')
-														setIsUserMenuOpen(false)
-													}}
-												>
-													<Settings className="w-4 h-4" />
-													<span className="text-sm">Setting</span>
-												</div>
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/applicant-profile/view?tab=wishlist'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<Bookmark className="w-4 h-4" />
+															<span className="text-sm">Wishlist</span>
+														</div>
+
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/applicant-profile/view?tab=application'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<FileText className="w-4 h-4" />
+															<span className="text-sm">My Applications</span>
+														</div>
+
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push('/applicant-profile/payment')
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<CreditCard className="w-4 h-4" />
+															<span className="text-sm">Payment</span>
+														</div>
+
+														<div
+															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+															onClick={() => {
+																router.push(
+																	'/applicant-profile/view?tab=settings'
+																)
+																setIsUserMenuOpen(false)
+															}}
+														>
+															<Settings className="w-4 h-4" />
+															<span className="text-sm">Settings</span>
+														</div>
+													</>
+												)}
 
 												{/* Separator */}
 												<div className="border-t border-gray-100 my-2"></div>

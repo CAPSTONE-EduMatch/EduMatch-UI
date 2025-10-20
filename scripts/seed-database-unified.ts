@@ -359,6 +359,8 @@ async function cleanDatabase() {
 		await prismaClient.notification.deleteMany({});
 		await prismaClient.postCertificate.deleteMany({});
 		await prismaClient.postDocument.deleteMany({});
+		await prismaClient.programScholarship.deleteMany({});
+		await prismaClient.postSubdiscipline.deleteMany({});
 		await prismaClient.jobPost.deleteMany({});
 		await prismaClient.programPost.deleteMany({});
 		await prismaClient.scholarshipPost.deleteMany({});
@@ -372,7 +374,6 @@ async function cleanDatabase() {
 		await prismaClient.applicantSubscription.deleteMany({});
 		await prismaClient.institutionSubdiscipline.deleteMany({});
 		await prismaClient.institutionSubscription.deleteMany({});
-		await prismaClient.postSubdiscipline.deleteMany({});
 		await prismaClient.supportRequirement.deleteMany({});
 
 		// Delete profiles before sub_disciplines (since profiles reference sub_disciplines)
@@ -1131,6 +1132,52 @@ async function seedNotifications() {
 	console.log("✅ 100 Notifications seeded successfully");
 }
 
+async function seedProgramScholarships() {
+	console.log("🔗 Seeding program scholarships...");
+
+	const programScholarships = [];
+	const usedCombinations = new Set();
+
+	// Tạo liên kết giữa program posts (1-100) và scholarship posts (101-150)
+	for (let i = 1; i <= 100; i++) {
+		const programPostId = `post-opportunity-${i.toString().padStart(4, "0")}`;
+
+		// 60% programs sẽ có liên kết với scholarships
+		if (Math.random() < 0.6) {
+			// Mỗi program có thể liên kết với 1-3 scholarships
+			const numScholarships = Math.floor(Math.random() * 3) + 1; // 1-3 scholarships
+
+			for (let j = 0; j < numScholarships; j++) {
+				let scholarshipPostId;
+				let combination;
+
+				do {
+					// Chọn ngẫu nhiên scholarship post từ 101-150
+					const scholarshipIndex =
+						Math.floor(Math.random() * 50) + 101;
+					scholarshipPostId = `post-opportunity-${scholarshipIndex.toString().padStart(4, "0")}`;
+					combination = `${programPostId}-${scholarshipPostId}`;
+				} while (usedCombinations.has(combination));
+
+				usedCombinations.add(combination);
+
+				programScholarships.push({
+					program_post_id: programPostId,
+					scholarship_post_id: scholarshipPostId,
+				});
+			}
+		}
+	}
+
+	await prismaClient.programScholarship.createMany({
+		data: programScholarships,
+	});
+
+	console.log(
+		`✅ ${programScholarships.length} Program scholarships seeded successfully`
+	);
+}
+
 async function main() {
 	console.log("🌱 Starting comprehensive database seeding...");
 
@@ -1154,6 +1201,7 @@ async function main() {
 		await seedWishlists();
 		await seedApplications();
 		await seedNotifications();
+		await seedProgramScholarships();
 
 		console.log("🎉 Database seeding completed successfully!");
 		console.log("📊 Summary:");
@@ -1175,6 +1223,9 @@ async function main() {
 		console.log("   - Post Certificates (language and standardized tests)");
 		console.log(
 			"   - Post Subdisciplines (relationships between posts and fields)"
+		);
+		console.log(
+			"   - Program Scholarships (relationships between programs and scholarships)"
 		);
 		console.log("   - Wishlist items");
 		console.log("   - 50 Applications");

@@ -30,10 +30,10 @@ model User {
   institution      Institution?
   notifications    Notification[]
   notifySetting    NotificationSetting?
+  managedSupports  SupportRequirement[]
   accounts         Account[]
   sessions         Session[]
   userRole         Role?                @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
-  managedSupports  SupportRequirement[]
 
   @@map("user")
 }
@@ -218,19 +218,20 @@ model OpportunityPost {
 }
 
 model ProgramPost {
-  post_id          String            @id
-  duration         String
-  degree_level     String
-  attendance       String
-  course_include   String?
-  gpa              Decimal?          @db.Decimal
-  gre              Int?
-  gmat             Int?
-  tuition_fee      Decimal?          @db.Decimal
-  fee_description  String?
-  scholarship_info String?
-  certificates     PostCertificate[]
-  post             OpportunityPost   @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  post_id            String               @id
+  duration           String
+  degree_level       String
+  attendance         String
+  course_include     String?
+  gpa                Decimal?             @db.Decimal
+  gre                Int?
+  gmat               Int?
+  tuition_fee        Decimal?             @db.Decimal
+  fee_description    String?
+  scholarship_info   String?
+  certificates       PostCertificate[]
+  post               OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  ProgramScholarship ProgramScholarship[]
 
   @@map("ProgramPost")
 }
@@ -255,7 +256,7 @@ model JobPost {
 }
 
 model ScholarshipPost {
-  post_id              String          @id
+  post_id              String               @id
   description          String
   type                 String
   number               Int
@@ -263,7 +264,8 @@ model ScholarshipPost {
   scholarship_coverage String?
   essay_required       Boolean?
   eligibility          String?
-  post                 OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  ProgramScholarship   ProgramScholarship[]
+  post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("ScholarshipPost")
 }
@@ -468,10 +470,10 @@ model ApplicantSubscription {
   plan_id                String
   status                 SubscriptionStatus @default(ACTIVE)
   subscribe_at           DateTime           @default(now()) @db.Timestamptz(6)
-  better_auth_sub_id     String?            @unique // Reference to Better Auth subscription
+  better_auth_sub_id     String?            @unique
   applicant              Applicant          @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  betterAuthSubscription Subscription?      @relation("ApplicantToBetterAuth", fields: [better_auth_sub_id], references: [id])
   plan                   Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
-  betterAuthSubscription Subscription?      @relation("ApplicantToBetterAuth", fields: [better_auth_sub_id], references: [id], onDelete: SetNull)
 
   @@map("ApplicantSubscription")
 }
@@ -482,10 +484,10 @@ model InstitutionSubscription {
   institution_id         String
   status                 SubscriptionStatus @default(ACTIVE)
   subscribe_at           DateTime           @default(now()) @db.Timestamptz(6)
-  better_auth_sub_id     String?            @unique // Reference to Better Auth subscription
+  better_auth_sub_id     String?            @unique
+  betterAuthSubscription Subscription?      @relation("InstitutionToBetterAuth", fields: [better_auth_sub_id], references: [id])
   institution            Institution        @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
   plan                   Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
-  betterAuthSubscription Subscription?      @relation("InstitutionToBetterAuth", fields: [better_auth_sub_id], references: [id], onDelete: SetNull)
 
   @@map("InstitutionSubscription")
 }
@@ -523,19 +525,18 @@ model InstitutionSubdiscipline {
   @@map("InstitutionSubdiscipline")
 }
 
-
 model SupportRequirement {
-  support_id     String        @id @unique
+  support_id     String       @id @unique
   applicant_id   String?
   institution_id String?
   content        String
-  create_at      DateTime      @db.Timestamptz(6)
+  create_at      DateTime     @db.Timestamptz(6)
   status         Boolean
-  update_at      DateTime?     @db.Timestamptz(6)
+  update_at      DateTime?    @db.Timestamptz(6)
   manager_id     String
-  applicant      Applicant?    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  institution    Institution?  @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  manager        User          @relation(fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction) 
+  applicant      Applicant?   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  institution    Institution? @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  manager        User         @relation(fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([applicant_id])
   @@index([institution_id])
@@ -543,6 +544,15 @@ model SupportRequirement {
   @@index([status])
   @@index([create_at])
   @@map("SupportRequirement")
+}
+
+model ProgramScholarship {
+  program_post_id     String
+  scholarship_post_id String
+  ProgramPost         ProgramPost     @relation(fields: [program_post_id], references: [post_id], onDelete: Cascade)
+  ScholarshipPost     ScholarshipPost @relation(fields: [scholarship_post_id], references: [post_id], onDelete: Cascade)
+
+  @@id([program_post_id, scholarship_post_id])
 }
 
 enum PostStatus {

@@ -35,14 +35,42 @@ export async function GET(request: NextRequest) {
 		);
 		const skip = (page - 1) * limit;
 
-		// Build where clause - only published scholarships from this institution
+		// First, get all program posts from this institution
+		const programPosts = await prismaClient.opportunityPost.findMany({
+			where: {
+				status: "PUBLISHED",
+				institution_id: institutionId,
+				post_id: {
+					in: await prismaClient.programPost
+						.findMany({ select: { post_id: true } })
+						.then((programs) => programs.map((p) => p.post_id)),
+				},
+			},
+			select: { post_id: true },
+		});
+
+		const programPostIds = programPosts.map((p) => p.post_id);
+
+		// Get scholarship post IDs that are linked to these programs
+		const scholarshipPostIds =
+			await prismaClient.programScholarship.findMany({
+				where: {
+					program_post_id: {
+						in: programPostIds,
+					},
+				},
+				select: { scholarship_post_id: true },
+			});
+
+		const scholarshipIds = scholarshipPostIds.map(
+			(ps) => ps.scholarship_post_id
+		);
+
+		// Build where clause - only published scholarships linked to programs from this institution
 		const whereClause: any = {
 			status: "PUBLISHED",
-			institution_id: institutionId,
 			post_id: {
-				in: await prismaClient.scholarshipPost
-					.findMany({ select: { post_id: true } })
-					.then((scholarships) => scholarships.map((s) => s.post_id)),
+				in: scholarshipIds,
 			},
 		};
 
@@ -130,6 +158,7 @@ export async function GET(request: NextRequest) {
 			{ status: 200 }
 		);
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("Error fetching scholarships by institution:", error);
 		return NextResponse.json(
 			{ message: "Internal Server Error" },

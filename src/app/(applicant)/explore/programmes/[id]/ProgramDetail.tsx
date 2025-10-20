@@ -8,9 +8,9 @@ import {
 	ScholarshipCard,
 } from '@/components/ui'
 
-import { mockPrograms, mockScholarships } from '@/data/utils'
+import { mockPrograms } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, GraduationCap, Heart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
@@ -32,16 +32,16 @@ const ProgramDetail = () => {
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
 
-	// Document type categories
-	const documentTypes = [
-		{
-			id: 'research-proposal',
-			label: 'Research Proposal',
-			key: 'research-proposal',
-		},
-		{ id: 'cv-resume', label: 'CV/Resume', key: 'cv-resume' },
-		{ id: 'portfolio', label: 'Portfolio', key: 'portfolio' },
-	]
+	// Document type categories - will be loaded from API
+	// const documentTypes = [
+	// 	{
+	// 		id: 'research-proposal',
+	// 		label: 'Research Proposal',
+	// 		key: 'research-proposal',
+	// 	},
+	// 	{ id: 'cv-resume', label: 'CV/Resume', key: 'cv-resume' },
+	// 	{ id: 'portfolio', label: 'Portfolio', key: 'portfolio' },
+	// ]
 
 	// S3 File upload functionality
 	const { uploadFiles, isUploading, uploadProgress } = useFileUpload({
@@ -54,6 +54,10 @@ const ProgramDetail = () => {
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
+	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
+	const [scholarships, setScholarships] = useState<any[]>([])
+	const [isLoadingScholarships, setIsLoadingScholarships] = useState(false)
+	const [scholarshipPagination, setScholarshipPagination] = useState<any>(null)
 
 	// Application state
 	const [hasApplied, setHasApplied] = useState(false)
@@ -71,44 +75,105 @@ const ProgramDetail = () => {
 	const infoItems = [
 		{
 			label: 'Tuition fee',
-			value: currentProgram?.tuitionFee || '100000000$/ year',
+			value:
+				currentProgram?.program?.tuitionFeeFormatted ||
+				currentProgram?.program?.tuitionFee
+					? `$${currentProgram.program.tuitionFee}/year`
+					: 'Contact institution',
 		},
-		{ label: 'Duration', value: currentProgram?.duration || '2 years' },
+		{
+			label: 'Duration',
+			value: currentProgram?.program?.duration || 'N/A',
+		},
 		{
 			label: 'Application deadline',
-			value: currentProgram?.applicationDeadline || '11/12/2024',
+			value: currentProgram?.endDateFormatted || 'N/A',
 		},
-		{ label: 'Start Date', value: currentProgram?.startDate || '11/12/2024' },
+		{
+			label: 'Start Date',
+			value: currentProgram?.startDateFormatted || 'N/A',
+		},
 		{
 			label: 'Location',
-			value: currentProgram?.location || 'Bangkok, Thailand',
+			value: currentProgram?.location || 'N/A',
 		},
 	]
 
-	const itemsPerPage = 3
-	const totalPages = Math.ceil(mockScholarships.length / itemsPerPage)
 	const programsPerPage = 3
 	const totalPrograms = mockPrograms.length
 
+	// Handle scholarship pagination change
+	const handleScholarshipPageChange = (newPage: number) => {
+		setCurrentPage(newPage)
+		if (currentProgram?.institution?.id) {
+			fetchScholarshipsByInstitution(currentProgram.institution.id, newPage)
+		}
+	}
+
+	// Fetch program details from API
+	const fetchProgramDetail = async (programId: string) => {
+		try {
+			setIsLoadingProgram(true)
+			const response = await fetch(
+				`/api/explore/programs/program-detail?id=${programId}`
+			)
+			const data = await response.json()
+
+			if (data.success && data.data) {
+				setCurrentProgram(data.data)
+				return data.data
+			} else {
+				showError('Error', 'Failed to load program details')
+				return null
+			}
+		} catch (error) {
+			showError('Error', 'Failed to load program details')
+			return null
+		} finally {
+			setIsLoadingProgram(false)
+		}
+	}
+
+	// Fetch scholarships by institution
+	const fetchScholarshipsByInstitution = async (
+		institutionId: string,
+		page: number = 1
+	) => {
+		try {
+			setIsLoadingScholarships(true)
+			const response = await fetch(
+				`/api/explore/scholarships/by-institution?institutionId=${institutionId}&page=${page}&limit=3`
+			)
+			const data = await response.json()
+			console.log(
+				'Scholarships by institution dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:',
+				data
+			)
+
+			if (data.success && data.data) {
+				setScholarships(data.data)
+				setScholarshipPagination(data.pagination)
+			}
+		} catch (error) {
+			// Silently fail for scholarships
+		} finally {
+			setIsLoadingScholarships(false)
+		}
+	}
+
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
-		const updateBreadcrumb = () => {
+		const updateBreadcrumb = async () => {
 			// Get program ID from URL params
 			const programId = params.id as string
 
 			// Get the 'from' parameter from search params to know which tab we came from
 			const fromTab = searchParams.get('from') || 'programmes'
 
-			// Find the program data (in real app, this would be an API call)
-			const foundProgram = mockPrograms.find(
-				(program) => program.id.toString() === programId
-			)
+			// Fetch program data from API
+			const programData = await fetchProgramDetail(programId)
 
-			if (foundProgram) {
-				setCurrentProgram(foundProgram)
-			}
-
-			const programName = foundProgram?.title || 'Information Technology'
+			const programName = programData?.title || 'Information Technology'
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
@@ -136,9 +201,15 @@ const ProgramDetail = () => {
 			items.push({ label: programName })
 
 			setBreadcrumbItems(items)
+
+			// Fetch scholarships if program has institution
+			if (programData?.institution?.id) {
+				fetchScholarshipsByInstitution(programData.institution.id)
+			}
 		}
 
 		updateBreadcrumb()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params.id, searchParams])
 
 	// Check for existing application when component loads
@@ -439,37 +510,57 @@ const ProgramDetail = () => {
 						<ol className="space-y-4">
 							<li className="text-base">
 								<span className="font-bold text-gray-900">1. Duration:</span>{' '}
-								<span className="text-gray-700">2 years</span>
+								<span className="text-gray-700">
+									{currentProgram?.program?.duration || 'N/A'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">2. Start dates:</span>{' '}
-								<span className="text-gray-700">October 2025</span>
+								<span className="text-gray-700">
+									{currentProgram?.startDateFormatted || 'N/A'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
 									3. Application deadlines:
 								</span>{' '}
-								<span className="text-gray-700">before Sep 2025</span>
+								<span className="text-gray-700">
+									{currentProgram?.endDateFormatted
+										? `before ${currentProgram.endDateFormatted}`
+										: 'N/A'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
 									4. Subdiscipline:
 								</span>{' '}
-								<span className="text-gray-700">Information system</span>
+								<span className="text-gray-700">
+									{currentProgram?.fields && currentProgram.fields.length > 0
+										? currentProgram.fields
+												.map((f: any) => f.subdisciplineName)
+												.join(', ')
+										: 'N/A'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">5. Attendance:</span>{' '}
-								<span className="text-gray-700">At campus</span>
+								<span className="text-gray-700">
+									{currentProgram?.program?.attendance || 'N/A'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">6. Location:</span>{' '}
-								<span className="text-gray-700">Jerusalem, Israel</span>
+								<span className="text-gray-700">
+									{currentProgram?.location || 'N/A'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
 									7. Degree level:
 								</span>{' '}
-								<span className="text-gray-700">Master</span>
+								<span className="text-gray-700">
+									{currentProgram?.program?.degreeLevel || 'N/A'}
+								</span>
 							</li>
 						</ol>
 					</div>
@@ -481,28 +572,49 @@ const ProgramDetail = () => {
 						<div>
 							<p className="text-base mb-2">
 								<span className="font-bold text-gray-900">Subdiscipline:</span>{' '}
-								<span className="text-gray-700">Information system</span>
+								<span className="text-gray-700">
+									{currentProgram?.fields && currentProgram.fields.length > 0
+										? currentProgram.fields
+												.map((f: any) => f.subdisciplineName)
+												.join(', ')
+										: 'N/A'}
+								</span>
 							</p>
 						</div>
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">Courses include:</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>Strategy and Governance in IT</li>
-								<li>Project Management</li>
-								<li>Information Security</li>
-								<li>Digital Design and Development</li>
-								<li>Group Software Development Project</li>
-								<li>Cloud Computing</li>
-							</ul>
-						</div>
+						{currentProgram?.program?.courseInclude && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">Courses include:</p>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentProgram.program.courseInclude.replace(
+											/\n/g,
+											'<br/>'
+										),
+									}}
+								/>
+							</div>
+						)}
 
-						<div>
-							<p className="text-base">
-								<span className="font-bold text-gray-900">Credits:</span>{' '}
-								<span className="text-gray-700">180 alternative credits</span>
-							</p>
-						</div>
+						{currentProgram?.fields && currentProgram.fields.length > 0 && (
+							<div>
+								<p className="text-base">
+									<span className="font-bold text-gray-900">
+										Discipline area:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentProgram.fields
+											.map((f: any) => f.disciplineName)
+											.filter(
+												(value: string, index: number, self: string[]) =>
+													self.indexOf(value) === index
+											)
+											.join(', ')}
+									</span>
+								</p>
+							</div>
+						)}
 					</div>
 				)
 
@@ -514,51 +626,55 @@ const ProgramDetail = () => {
 								Academic requirements:
 							</p>
 							<ul className="list-disc pl-5 space-y-1 text-gray-700">
-								<li>GPA: 3.0</li>
-								<li>GRE: 170</li>
+								{currentProgram?.program?.gpa && (
+									<li>GPA: {currentProgram.program.gpa}</li>
+								)}
+								{currentProgram?.program?.gre && (
+									<li>GRE: {currentProgram.program.gre}</li>
+								)}
+								{currentProgram?.program?.gmat && (
+									<li>GMAT: {currentProgram.program.gmat}</li>
+								)}
+								{!currentProgram?.program?.gpa &&
+									!currentProgram?.program?.gre &&
+									!currentProgram?.program?.gmat && (
+										<li>Please contact institution for requirements</li>
+									)}
 							</ul>
 						</div>
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								Language requirements:
-							</p>
-							<ul className="list-disc pl-5 space-y-1 text-gray-700">
-								<li>
-									English:
-									<ul className="list-disc pl-5 mt-1">
-										<li>IELTS: 6.0</li>
-										<li>TOEFL: 78</li>
+						{currentProgram?.program?.certificates &&
+							currentProgram.program.certificates.length > 0 && (
+								<div>
+									<p className="font-bold text-gray-900 mb-3">
+										Language requirements:
+									</p>
+									<ul className="list-disc pl-5 space-y-1 text-gray-700">
+										{currentProgram.program.certificates.map((cert: any) => (
+											<li key={cert.id}>
+												{cert.name}: {cert.score}
+											</li>
+										))}
 									</ul>
-								</li>
-								<li>Chinese: HSK 3</li>
-							</ul>
-						</div>
+								</div>
+							)}
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								Other requirements:
-							</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>We normally require an honours degree of 2.2 or above.</li>
-								<li>
-									You need to have some knowledge of computing, either from your
-									first degree or work/voluntary experience, which you should
-									outline in your application.
-								</li>
-								<li>
-									If you do not meet the above grade requirements but have at
-									least 12 months relevant professional experience and/ or
-									equivalent qualifications, we will consider you on an
-									individual basis.
-								</li>
-								<li>
-									International and EU applicants are required to have a minimum
-									overall IELTS (Academic) score of 6.5 with 5.5 in each
-									component (or approved equivalent*).
-								</li>
-							</ul>
-						</div>
+						{currentProgram?.documents &&
+							currentProgram.documents.length > 0 && (
+								<div>
+									<p className="font-bold text-gray-900 mb-3">
+										Required documents:
+									</p>
+									<ul className="list-disc pl-5 space-y-1 text-gray-700">
+										{currentProgram.documents.map((doc: any) => (
+											<li key={doc.id}>
+												{doc.documentType.name}
+												{doc.description && `: ${doc.description}`}
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
 
 						<div>
 							<p className="font-bold text-gray-900 mb-3">Student insurance:</p>
@@ -577,14 +693,6 @@ const ProgramDetail = () => {
 								<li>Accidents</li>
 								<li>Legal aid</li>
 							</ul>
-							<p className="text-gray-700 mt-3">
-								<span className="font-semibold">
-									Remember, countries and universities may have specific
-									insurance requirements.
-								</span>{' '}
-								To learn more about how student insurance work at UWE Bristol
-								(University of the West of England) and/or in United Kingdom
-							</p>
 						</div>
 					</div>
 				)
@@ -595,77 +703,90 @@ const ProgramDetail = () => {
 						<div>
 							<p className="font-bold text-gray-900 mb-2">Tuition Fee:</p>
 							<ul className="list-disc pl-5 text-gray-700">
-								<li>International: 615,708,011 VND/year</li>
+								<li>
+									{currentProgram?.program?.tuitionFeeFormatted ||
+										(currentProgram?.program?.tuitionFee
+											? `$${currentProgram.program.tuitionFee}/year`
+											: 'Contact institution for tuition fee information')}
+								</li>
 							</ul>
 						</div>
 
-						<div>
-							<p className="font-bold text-gray-900 mb-2">
-								Living costs for Bristol:{' '}
-								<span className="font-normal text-gray-700">
-									26,769,914-44,973,455 VND/month
-								</span>
-							</p>
-							<p className="text-gray-700">
-								<span className="font-semibold">Living costs:</span> The living
-								costs include the total expenses per month, covering
-								accommodation, public transportation, utilities (electricity,
-								internet), books and groceries.
-							</p>
-						</div>
+						{currentProgram?.program?.feeDescription && (
+							<div>
+								<p className="font-bold text-gray-900 mb-2">Fee description:</p>
+								<p className="text-gray-700">
+									{currentProgram.program.feeDescription}
+								</p>
+							</div>
+						)}
 					</div>
 				)
 
 			case 'scholarship':
-				const startIndex = (currentPage - 1) * itemsPerPage
-				const endIndex = startIndex + itemsPerPage
-				const currentScholarships = mockScholarships.slice(startIndex, endIndex)
-
 				return (
 					<div className="space-y-6">
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
 								Scholarships Information:
 							</h3>
-							<p className="text-gray-700 mb-6">
-								Lorem Ipsum is simply dummy text of the printing and typesetting
-								industry. Lorem Ipsum has been the industry&apos;s standard
-								dummy text ever since the 1500s Lorem Ipsum is simply dummy text
-								of the printing and typesetting industry. Lorem Ipsum has been
-								the industry&apos;s standard dummy text ever since the 1500s.
-							</p>
+							{currentProgram?.program?.scholarshipInfo ? (
+								<p className="text-gray-700 mb-6">
+									{currentProgram.program.scholarshipInfo}
+								</p>
+							) : (
+								<p className="text-gray-700 mb-6">
+									Explore available scholarships offered by this institution
+									that may help fund your studies.
+								</p>
+							)}
 						</div>
 
 						<div>
 							<h4 className="text-lg font-bold text-gray-900 mb-4">
 								Available Scholarships:
 							</h4>
-							<p className="text-sm text-gray-600 mb-4">
-								You are eligible to apply for these scholarships but a selection
-								process will still be applied by the provider.
-							</p>
+							{scholarships.length > 0 ? (
+								<>
+									<p className="text-sm text-gray-600 mb-4">
+										You are eligible to apply for these scholarships but a
+										selection process will still be applied by the provider.
+									</p>
 
-							<div className="space-y-4">
-								{currentScholarships.map((scholarship, index) => (
-									<ScholarshipCard
-										key={scholarship.id}
-										scholarship={scholarship}
-										index={index}
-										isWishlisted={isInWishlist(scholarship.id)}
-										onWishlistToggle={() => toggleWishlistItem(scholarship.id)}
-										onClick={handleScholarshipClick}
-									/>
-								))}
-							</div>
+									<div className="space-y-4">
+										{scholarships.map((scholarship, index) => (
+											<ScholarshipCard
+												key={scholarship.id}
+												scholarship={scholarship}
+												index={index}
+												isWishlisted={isInWishlist(scholarship.id)}
+												onWishlistToggle={() =>
+													toggleWishlistItem(scholarship.id)
+												}
+												onClick={handleScholarshipClick}
+											/>
+										))}
+									</div>
 
-							{totalPages > 1 && (
-								<div className="mt-6">
-									<Pagination
-										currentPage={currentPage}
-										totalPages={totalPages}
-										onPageChange={setCurrentPage}
-									/>
-								</div>
+									{scholarshipPagination &&
+										scholarshipPagination.totalPages > 1 && (
+											<div className="mt-6">
+												<Pagination
+													currentPage={currentPage}
+													totalPages={scholarshipPagination.totalPages}
+													onPageChange={handleScholarshipPageChange}
+												/>
+											</div>
+										)}
+								</>
+							) : isLoadingScholarships ? (
+								<p className="text-gray-500 text-center py-8">
+									Loading scholarships...
+								</p>
+							) : (
+								<p className="text-gray-500 text-center py-8">
+									No scholarships available from this institution at the moment.
+								</p>
 							)}
 						</div>
 					</div>
@@ -674,17 +795,64 @@ const ProgramDetail = () => {
 			case 'other':
 				return (
 					<div className="space-y-6">
+						{currentProgram?.otherInfo && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Other Information:
+								</h3>
+								<p className="text-gray-700 whitespace-pre-wrap">
+									{currentProgram.otherInfo}
+								</p>
+							</div>
+						)}
+
 						<div>
-							<h3 className="text-xl font-bold text-gray-900 mb-4">
+							{/* <h3 className="text-xl font-bold text-gray-900 mb-4">
 								Contact Information:
-							</h3>
-							<p className="text-gray-700 mb-6">
-								Lorem Ipsum is simply dummy text of the printing and typesetting
-								industry. Lorem Ipsum has been the industry&apos;s standard
-								dummy text ever since the 1500s Lorem Ipsum is simply dummy text
-								of the printing and typesetting industry. Lorem Ipsum has been
-								the industry&apos;s standard dummy text ever since the 1500s.
-							</p>
+							</h3> */}
+							{currentProgram?.institution && (
+								<div className="space-y-3 text-gray-700">
+									{currentProgram.institution.email && (
+										<p>
+											<span className="font-semibold">Email:</span>{' '}
+											<a
+												href={`mailto:${currentProgram.institution.email}`}
+												className="text-[#126E64] hover:underline"
+											>
+												{currentProgram.institution.email}
+											</a>
+										</p>
+									)}
+									{currentProgram.institution.hotline && (
+										<p>
+											<span className="font-semibold">Hotline:</span>{' '}
+											{currentProgram.institution.hotlineCode && (
+												<span>+{currentProgram.institution.hotlineCode} </span>
+											)}
+											{currentProgram.institution.hotline}
+										</p>
+									)}
+									{currentProgram.institution.website && (
+										<p>
+											<span className="font-semibold">Website:</span>{' '}
+											<a
+												href={currentProgram.institution.website}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-[#126E64] hover:underline"
+											>
+												{currentProgram.institution.website}
+											</a>
+										</p>
+									)}
+									{currentProgram.institution.address && (
+										<p>
+											<span className="font-semibold">Address:</span>{' '}
+											{currentProgram.institution.address}
+										</p>
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 				)
@@ -703,8 +871,8 @@ const ProgramDetail = () => {
 				className="relative h-[500px] w-full"
 			>
 				<Image
-					src="https://vcdn1-vnexpress.vnecdn.net/2023/07/28/hoc-vien3-1690476448-4686-1690477817.jpg?w=1200&h=0&q=100&dpr=1&fit=crop&s=T1naMvwNebHJRgrlo54Jbw"
-					alt="Army West University"
+					src={currentProgram?.institution?.coverImage}
+					alt={currentProgram?.institution?.name || 'University'}
 					fill
 					className="object-cover"
 					priority
@@ -718,14 +886,23 @@ const ProgramDetail = () => {
 						className="absolute bottom-0 right-4 translate-y-1/3 bg-white rounded-2xl shadow-xl p-8 max-w-lg flex flex-col justify-center items-center"
 					>
 						<h1 className="text-3xl font-bold mb-2">
-							{currentProgram?.title || 'Information Technology'}
+							{currentProgram?.title || 'Loading...'}
 						</h1>
 						<p className="text-gray-600 mb-6">
-							{currentProgram?.university || 'Army West University (AWU)'}
+							{currentProgram?.institution?.name || 'Loading...'}
 						</p>
 
 						<div className="flex items-center gap-3 mb-4">
-							<Button className="">Visit website</Button>
+							{currentProgram?.institution?.website && (
+								<Button
+									onClick={() =>
+										window.open(currentProgram.institution.website, '_blank')
+									}
+									className=""
+								>
+									Visit website
+								</Button>
+							)}
 							{/* <Button
 								className={
 									hasApplied
@@ -766,7 +943,10 @@ const ProgramDetail = () => {
 							</motion.button>
 						</div>
 
-						<p className="text-sm text-gray-500">Number of applications: 30</p>
+						<p className="text-sm text-gray-500">
+							Number of applications:{' '}
+							{currentProgram?.statistics?.applications?.total || 0}
+						</p>
 					</motion.div>
 				</div>
 			</motion.div>
@@ -808,44 +988,15 @@ const ProgramDetail = () => {
 					<h2 className="text-3xl font-bold mb-6">About</h2>
 
 					<div className="prose max-w-none text-gray-700 space-y-4">
-						<p>
-							Throughout the Information Technology -MSc programme from UWE
-							Bristol (University of the West of England), will develop the
-							knowledge and skills necessary to collate information, define,
-							design and build or select the most appropriate IT solutions and
-							develop a deeper understanding of how those solutions apply to
-							professional contexts.
-						</p>
-
-						<p className="font-semibold">Career opportunities:</p>
-
-						<ul className="list-disc pl-5 space-y-2">
-							<li>
-								UWE Bristol monitors its employment trends closely, and since
-								1986, we have ensured graduates of this course are equipped for
-								the demands of the real world and are highly regarded by
-								potential employers.
-							</li>
-							<li>
-								There is a growing need for creative IT graduates who can work
-								with an ever-widening range of technologies and can meet
-								organisational needs in business, education and health. This
-								newly designed course tackles the challenges of technology in
-								modern business and society, head on.
-							</li>
-							<li>
-								Our award-winning careers service helps you develop your
-								employment potential through career coaching, a vacancy service
-								for internships, placements, jobs, global opportunities,
-								volunteering and community activity plus support for
-								entrepreneurial activity, and access to employer events.
-							</li>
-						</ul>
-
-						<p className="flex items-center gap-2 text-[#126E64] font-medium mt-6">
-							<GraduationCap className="w-5 h-5" />
-							Supervisor: Tran Thanh Nguyen
-						</p>
+						{currentProgram?.description ? (
+							<div
+								dangerouslySetInnerHTML={{
+									__html: currentProgram.description.replace(/\n/g, '<br/>'),
+								}}
+							/>
+						) : (
+							<p>No description available.</p>
+						)}
 					</div>
 				</motion.div>
 				{/* -----------------------------------------------Overview Content---------------------------------------------- */}
@@ -903,69 +1054,95 @@ const ProgramDetail = () => {
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
 					<h2 className="text-3xl font-bold mb-6">Apply here !</h2>
-					<p className="text-gray-600 mb-6">
-						You can upload required documents here. We will send documents and
-						your academic information to university.
-					</p>
+
+					<div className="text-gray-600 mb-6">
+						{currentProgram?.documents &&
+						currentProgram.documents.length > 0 ? (
+							<div className="space-y-3">
+								{currentProgram.documents.map((doc: any, index: number) => (
+									<p key={doc.documentType.id}>
+										{/* <span className="font-medium">
+											{doc.documentType.name}:
+										</span>{' '} */}
+										{doc.description}
+									</p>
+								))}
+							</div>
+						) : (
+							<p>
+								You can upload required documents here. We will send documents
+								and your academic information to university.
+							</p>
+						)}
+					</div>
 
 					{/* File Upload Area */}
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-						{documentTypes.map((docType, index) => {
-							const filesForThisType = uploadedFiles.filter(
-								(file) => file.documentType === docType.id
-							)
-							return (
-								<div key={docType.id} className="space-y-2">
-									<label className="text-sm font-medium text-gray-700">
-										{docType.label}
-										{filesForThisType.length > 0 && (
-											<span className="ml-2 text-xs text-green-600">
-												({filesForThisType.length} file
-												{filesForThisType.length !== 1 ? 's' : ''})
-											</span>
-										)}
-									</label>
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-										<div className="text-4xl mb-4">📁</div>
-										<div className="space-y-2">
-											<input
-												type="file"
-												multiple
-												onChange={(e) => handleFileUpload(e, docType.id)}
-												className="hidden"
-												id={`file-upload-${docType.id}`}
-											/>
-											<label
-												htmlFor={`file-upload-${docType.id}`}
-												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-											>
-												Click here to upload file
-											</label>
-										</div>
-									</div>
-
-									{/* Show uploaded files for this document type */}
-									{filesForThisType.length > 0 && (
-										<div className="space-y-1">
-											{filesForThisType.map((file) => (
-												<div
-													key={file.id}
-													className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
+					<div className="w-full mb-6">
+						{currentProgram?.documents &&
+							currentProgram.documents.length > 0 &&
+							currentProgram.documents.map((doc: any) => {
+								const filesForThisType = uploadedFiles.filter(
+									(file) => file.documentType === doc.documentType.id
+								)
+								return (
+									<div key={doc.documentType.id} className="space-y-2">
+										<label className="text-sm font-medium text-gray-700">
+											{doc.documentType.name}
+											{filesForThisType.length > 0 && (
+												<span className="ml-2 text-xs text-green-600">
+													({filesForThisType.length} file
+													{filesForThisType.length !== 1 ? 's' : ''})
+												</span>
+											)}
+										</label>
+										{/* {doc.description && (
+											<p className="text-xs text-gray-500 mb-2">
+												{doc.description}
+											</p>
+										)} */}
+										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+											<div className="text-4xl mb-4">📁</div>
+											<div className="space-y-2">
+												<input
+													type="file"
+													multiple
+													onChange={(e) =>
+														handleFileUpload(e, doc.documentType.id)
+													}
+													className="hidden"
+													id={`file-upload-${doc.documentType.id}`}
+												/>
+												<label
+													htmlFor={`file-upload-${doc.documentType.id}`}
+													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
 												>
-													<span className="truncate flex-1">{file.name}</span>
-													<button
-														onClick={() => removeFile(file.id)}
-														className="text-red-500 hover:text-red-700 ml-2"
-													>
-														✕
-													</button>
-												</div>
-											))}
+													Click here to upload file
+												</label>
+											</div>
 										</div>
-									)}
-								</div>
-							)
-						})}
+
+										{/* Show uploaded files for this document type */}
+										{/* {filesForThisType.length > 0 && (
+											<div className="space-y-1">
+												{filesForThisType.map((file) => (
+													<div
+														key={file.id}
+														className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
+													>
+														<span className="truncate flex-1">{file.name}</span>
+														<button
+															onClick={() => removeFile(file.id)}
+															className="text-red-500 hover:text-red-700 ml-2"
+														>
+															✕
+														</button>
+													</div>
+												))}
+											</div>
+										)} */}
+									</div>
+								)
+							})}
 					</div>
 
 					{/* File Management */}
@@ -1159,58 +1336,60 @@ const ProgramDetail = () => {
 									<h3 className="text-lg font-medium text-foreground border-b pb-2">
 										Uploaded Files ({uploadedFiles.length})
 									</h3>
-									{documentTypes.map((docType) => {
-										const filesForThisType = uploadedFiles.filter(
-											(file) => file.documentType === docType.id
-										)
-										if (filesForThisType.length === 0) return null
+									{currentProgram?.documents &&
+										currentProgram.documents.length > 0 &&
+										currentProgram.documents.map((doc: any) => {
+											const filesForThisType = uploadedFiles.filter(
+												(file) => file.documentType === doc.documentType.id
+											)
+											if (filesForThisType.length === 0) return null
 
-										return (
-											<div key={docType.id} className="space-y-3">
-												<h4 className="text-md font-medium text-gray-700 border-b border-gray-200 pb-1">
-													{docType.label} ({filesForThisType.length})
-												</h4>
-												<div className="grid grid-cols-1 gap-3">
-													{filesForThisType.map((file) => (
-														<div
-															key={file.id}
-															className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-														>
-															<div className="text-2xl">📄</div>
-															<div className="flex-1 min-w-0">
-																<p className="text-sm font-medium text-foreground truncate">
-																	{file.name}
-																</p>
-																<p className="text-xs text-muted-foreground">
-																	{(file.size / 1024).toFixed(1)} KB
-																</p>
+											return (
+												<div key={doc.documentType.id} className="space-y-3">
+													<h4 className="text-md font-medium text-gray-700 border-b border-gray-200 pb-1">
+														{doc.documentType.name} ({filesForThisType.length})
+													</h4>
+													<div className="grid grid-cols-1 gap-3">
+														{filesForThisType.map((file) => (
+															<div
+																key={file.id}
+																className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+															>
+																<div className="text-2xl">📄</div>
+																<div className="flex-1 min-w-0">
+																	<p className="text-sm font-medium text-foreground truncate">
+																		{file.name}
+																	</p>
+																	<p className="text-xs text-muted-foreground">
+																		{(file.size / 1024).toFixed(1)} KB
+																	</p>
+																</div>
+																<div className="flex gap-2">
+																	<Button
+																		variant="outline"
+																		size="sm"
+																		onClick={() => {
+																			// Open S3 file URL in new tab
+																			window.open(file.url, '_blank')
+																		}}
+																	>
+																		View
+																	</Button>
+																	<Button
+																		variant="outline"
+																		size="sm"
+																		onClick={() => removeFile(file.id)}
+																		className="text-red-500 hover:text-red-700"
+																	>
+																		Delete
+																	</Button>
+																</div>
 															</div>
-															<div className="flex gap-2">
-																<Button
-																	variant="outline"
-																	size="sm"
-																	onClick={() => {
-																		// Open S3 file URL in new tab
-																		window.open(file.url, '_blank')
-																	}}
-																>
-																	View
-																</Button>
-																<Button
-																	variant="outline"
-																	size="sm"
-																	onClick={() => removeFile(file.id)}
-																	className="text-red-500 hover:text-red-700"
-																>
-																	Delete
-																</Button>
-															</div>
-														</div>
-													))}
+														))}
+													</div>
 												</div>
-											</div>
-										)
-									})}
+											)
+										})}
 								</div>
 							)}
 

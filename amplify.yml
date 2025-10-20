@@ -8,7 +8,7 @@ frontend:
         - echo "Node version: $(node --version)"
         - echo "NPM version: $(npm --version)"
         # Use npm install instead of npm ci for better caching
-        - npm install --legacy-peer-deps
+        - npm ci --legacy-peer-deps
         # Create .env file more efficiently with error handling
         - |
           echo "Creating .env file..."

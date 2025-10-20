@@ -4,8 +4,7 @@ frontend:
     preBuild:
       commands:
         # Install pnpm and use it for faster builds
-        - npm install -g pnpm
-        - pnpm install --frozen-lockfile
+        - npm install --legacy-peer-deps
         # Create .env file more efficiently with error handling
         - echo "Creating .env file..."
         - echo "DATABASE_URL=$DATABASE_URL" > .env
@@ -54,7 +53,6 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
-      - prisma/generated/**/*
   runtime:
     name: node
     version: 20

@@ -352,12 +352,15 @@ async function cleanDatabase() {
 	// Delete in order to avoid foreign key constraints
 	try {
 		// Delete dependent records first
-		// Delete dependent records first
 		await prismaClient.applicationDetail.deleteMany({});
 		await prismaClient.application.deleteMany({});
 		await prismaClient.wishlist.deleteMany({});
 		await prismaClient.message.deleteMany({});
 		await prismaClient.notification.deleteMany({});
+		await prismaClient.postCertificate.deleteMany({});
+		await prismaClient.postDocument.deleteMany({});
+		await prismaClient.programScholarship.deleteMany({});
+		await prismaClient.postSubdiscipline.deleteMany({});
 		await prismaClient.jobPost.deleteMany({});
 		await prismaClient.programPost.deleteMany({});
 		await prismaClient.scholarshipPost.deleteMany({});
@@ -366,12 +369,12 @@ async function cleanDatabase() {
 		await prismaClient.applicantDocument.deleteMany({});
 		await prismaClient.institutionDocument.deleteMany({});
 
-		// Delete records that reference applicants before deleting applicants
+		// Delete records that reference applicants and institutions
 		await prismaClient.applicantInterest.deleteMany({});
 		await prismaClient.applicantSubscription.deleteMany({});
-		await prismaClient.supportRequirement.deleteMany({
-			where: { applicant_id: { not: null } },
-		});
+		await prismaClient.institutionSubdiscipline.deleteMany({});
+		await prismaClient.institutionSubscription.deleteMany({});
+		await prismaClient.supportRequirement.deleteMany({});
 
 		// Delete profiles before sub_disciplines (since profiles reference sub_disciplines)
 		await prismaClient.applicant.deleteMany({});
@@ -388,6 +391,7 @@ async function cleanDatabase() {
 		// Delete main entities
 		await prismaClient.subdiscipline.deleteMany({});
 		await prismaClient.discipline.deleteMany({});
+		await prismaClient.documentType.deleteMany({});
 		await prismaClient.plan.deleteMany({});
 		await prismaClient.role.deleteMany({});
 
@@ -510,6 +514,67 @@ async function seedSubdisciplines() {
 	});
 
 	console.log("✅ Subdisciplines seeded successfully");
+}
+
+async function seedDocumentTypes() {
+	console.log("📄 Seeding document types...");
+
+	const documentTypes = [
+		{
+			document_type_id: "1",
+			name: "Research Proposal",
+			description:
+				"Upload your research proposal document here. This should outline your intended research methodology and objectives.",
+		},
+		{
+			document_type_id: "2",
+			name: "CV/Resume",
+			description:
+				"Upload your curriculum vitae or resume. Please ensure it includes your academic and professional experience.",
+		},
+		{
+			document_type_id: "3",
+			name: "Portfolio",
+			description:
+				"Upload your portfolio showcasing your work, projects, and achievements relevant to your field of study.",
+		},
+		{
+			document_type_id: "4",
+			name: "Academic Transcript",
+			description:
+				"Upload your official academic transcripts from previous institutions.",
+		},
+		{
+			document_type_id: "5",
+			name: "Personal Statement",
+			description:
+				"Upload your personal statement or statement of purpose explaining your academic goals and motivations.",
+		},
+		{
+			document_type_id: "6",
+			name: "Recommendation Letter",
+			description:
+				"Upload letters of recommendation from academic or professional references.",
+		},
+		{
+			document_type_id: "7",
+			name: "Language Certificate",
+			description:
+				"Upload language proficiency certificates (TOEFL, IELTS, etc.) if required.",
+		},
+		{
+			document_type_id: "8",
+			name: "Passport Copy",
+			description:
+				"Upload a copy of your passport for international applications.",
+		},
+	];
+
+	await prismaClient.documentType.createMany({
+		data: documentTypes,
+	});
+
+	console.log("✅ 8 Document types seeded successfully");
 }
 
 async function seedUsers() {
@@ -674,6 +739,7 @@ async function seedOpportunityPosts() {
 	for (let i = 1; i <= 200; i++) {
 		const field = getRandomElement(fields);
 		const university = getRandomElement(universities);
+		const country = getRandomElement(countries);
 
 		// 70% PUBLISHED, 30% DRAFT
 		const status: "PUBLISHED" | "DRAFT" =
@@ -696,6 +762,8 @@ async function seedOpportunityPosts() {
 			start_date: startDate,
 			end_date: endDate,
 			create_at: startDate,
+			location: `${university}, ${country}`,
+			other_info: `This is a comprehensive ${field} program at ${university}. The program is designed to provide students with cutting-edge knowledge and practical skills in ${field}. Students will have access to state-of-the-art facilities, world-class faculty, and diverse research opportunities. The program emphasizes both theoretical foundations and practical applications, preparing graduates for successful careers in academia and industry.`,
 			institution_id: `user-${(Math.floor(Math.random() * 10) + 11).toString().padStart(3, "0")}`,
 			status: status,
 		});
@@ -804,6 +872,184 @@ async function seedJobPosts() {
 	console.log("✅ 50 Job posts seeded successfully");
 }
 
+async function seedPostDocuments() {
+	console.log("📎 Seeding post documents...");
+
+	const postDocuments = [];
+
+	// Định nghĩa các loại documents có thể yêu cầu
+	const availableDocs = [
+		{
+			typeId: "1",
+			name: "Research Proposal",
+			description:
+				"Upload a detailed research proposal outlining your research methodology and objectives",
+		},
+		{
+			typeId: "2",
+			name: "CV/Resume",
+			description: "Upload your updated curriculum vitae or resume",
+		},
+		{
+			typeId: "3",
+			name: "Portfolio",
+			description:
+				"Upload your portfolio showcasing relevant work and projects",
+		},
+		{
+			typeId: "4",
+			name: "Academic Transcript",
+			description:
+				"Upload official academic transcripts from your previous institutions",
+		},
+		{
+			typeId: "5",
+			name: "Personal Statement",
+			description:
+				"Upload your personal statement explaining your academic goals and motivations",
+		},
+		{
+			typeId: "6",
+			name: "Recommendation Letter",
+			description:
+				"Upload letters of recommendation from academic or professional references",
+		},
+		{
+			typeId: "7",
+			name: "Language Certificate",
+			description:
+				"Upload language proficiency certificates (TOEFL, IELTS, etc.) if required",
+		},
+		{
+			typeId: "8",
+			name: "Passport Copy",
+			description:
+				"Upload a copy of your passport for international applications",
+		},
+	];
+
+	// Seed PostDocument cho tất cả posts (posts 1-200)
+	for (let i = 1; i <= 200; i++) {
+		const postId = `post-opportunity-${i.toString().padStart(4, "0")}`;
+
+		// Chọn ngẫu nhiên 1 document type cho mỗi post
+		const selectedDoc = getRandomElement(availableDocs);
+
+		postDocuments.push({
+			document_id: `${postId}-doc-1`,
+			post_id: postId,
+			document_type_id: selectedDoc.typeId,
+			name: selectedDoc.name,
+			description: selectedDoc.description,
+		});
+	}
+
+	await prismaClient.postDocument.createMany({
+		data: postDocuments,
+	});
+
+	console.log(
+		`✅ ${postDocuments.length} Post documents seeded successfully`
+	);
+}
+
+async function seedPostCertificates() {
+	console.log("🎖️ Seeding post certificates...");
+
+	const postCertificates = [];
+
+	// Thêm certificates cho program posts (80% trong số chúng)
+	for (let i = 1; i <= 100; i++) {
+		const postId = `post-opportunity-${i.toString().padStart(4, "0")}`;
+
+		if (Math.random() > 0.2) {
+			// 80% programs yêu cầu language cert
+			// Chọn 1-2 language certificates
+			const languageCerts = [
+				{ name: "IELTS", score: "6.5" },
+				{ name: "TOEFL", score: "90" },
+				{ name: "Cambridge English", score: "180" },
+				{ name: "PTE Academic", score: "65" },
+			];
+
+			const numCerts = Math.random() > 0.5 ? 1 : 2;
+			for (let j = 0; j < numCerts; j++) {
+				const cert = languageCerts[j];
+				postCertificates.push({
+					certificate_id: `cert-${postId}-${cert.name.toLowerCase().replace(/\s+/g, "-")}`,
+					post_id: postId,
+					name: cert.name,
+					score: cert.score,
+				});
+			}
+		}
+
+		// Thêm GRE/GMAT cho một số programs (30%)
+		if (Math.random() > 0.7) {
+			const testCerts = [
+				{ name: "GRE", score: "320" },
+				{ name: "GMAT", score: "600" },
+			];
+			const testCert = Math.random() > 0.5 ? testCerts[0] : testCerts[1];
+			postCertificates.push({
+				certificate_id: `cert-${postId}-${testCert.name.toLowerCase()}`,
+				post_id: postId,
+				name: testCert.name,
+				score: testCert.score,
+			});
+		}
+	}
+
+	await prismaClient.postCertificate.createMany({
+		data: postCertificates,
+	});
+
+	console.log(
+		`✅ ${postCertificates.length} Post certificates seeded successfully`
+	);
+}
+
+async function seedPostSubdisciplines() {
+	console.log("🔗 Seeding post subdisciplines...");
+
+	const postSubdisciplines = [];
+
+	// Seed PostSubdiscipline cho tất cả posts (posts 1-200)
+	for (let i = 1; i <= 200; i++) {
+		const postId = `post-opportunity-${i.toString().padStart(4, "0")}`;
+
+		// Mỗi post sẽ có 1-3 subdisciplines
+		const numSubdisciplines = Math.floor(Math.random() * 3) + 1; // 1-3 subdisciplines
+		const usedSubdisciplines = new Set();
+
+		for (let j = 0; j < numSubdisciplines; j++) {
+			let subdisciplineId;
+			do {
+				// Chọn ngẫu nhiên subdiscipline từ 1-150 (tổng số subdisciplines có thể có)
+				subdisciplineId = (
+					Math.floor(Math.random() * 150) + 1
+				).toString();
+			} while (usedSubdisciplines.has(subdisciplineId));
+
+			usedSubdisciplines.add(subdisciplineId);
+
+			postSubdisciplines.push({
+				post_id: postId,
+				subdiscipline_id: subdisciplineId,
+				add_at: new Date(),
+			});
+		}
+	}
+
+	await prismaClient.postSubdiscipline.createMany({
+		data: postSubdisciplines,
+	});
+
+	console.log(
+		`✅ ${postSubdisciplines.length} Post subdisciplines seeded successfully`
+	);
+}
+
 async function seedWishlists() {
 	console.log("❤️ Seeding wishlists...");
 
@@ -886,6 +1132,52 @@ async function seedNotifications() {
 	console.log("✅ 100 Notifications seeded successfully");
 }
 
+async function seedProgramScholarships() {
+	console.log("🔗 Seeding program scholarships...");
+
+	const programScholarships = [];
+	const usedCombinations = new Set();
+
+	// Tạo liên kết giữa program posts (1-100) và scholarship posts (101-150)
+	for (let i = 1; i <= 100; i++) {
+		const programPostId = `post-opportunity-${i.toString().padStart(4, "0")}`;
+
+		// 60% programs sẽ có liên kết với scholarships
+		if (Math.random() < 0.6) {
+			// Mỗi program có thể liên kết với 1-3 scholarships
+			const numScholarships = Math.floor(Math.random() * 3) + 1; // 1-3 scholarships
+
+			for (let j = 0; j < numScholarships; j++) {
+				let scholarshipPostId;
+				let combination;
+
+				do {
+					// Chọn ngẫu nhiên scholarship post từ 101-150
+					const scholarshipIndex =
+						Math.floor(Math.random() * 50) + 101;
+					scholarshipPostId = `post-opportunity-${scholarshipIndex.toString().padStart(4, "0")}`;
+					combination = `${programPostId}-${scholarshipPostId}`;
+				} while (usedCombinations.has(combination));
+
+				usedCombinations.add(combination);
+
+				programScholarships.push({
+					program_post_id: programPostId,
+					scholarship_post_id: scholarshipPostId,
+				});
+			}
+		}
+	}
+
+	await prismaClient.programScholarship.createMany({
+		data: programScholarships,
+	});
+
+	console.log(
+		`✅ ${programScholarships.length} Program scholarships seeded successfully`
+	);
+}
+
 async function main() {
 	console.log("🌱 Starting comprehensive database seeding...");
 
@@ -895,6 +1187,7 @@ async function main() {
 		await seedPlans();
 		await seedDisciplines();
 		await seedSubdisciplines();
+		await seedDocumentTypes();
 		await seedUsers();
 		await seedApplicants();
 		await seedInstitutions();
@@ -902,9 +1195,13 @@ async function main() {
 		await seedProgramPosts();
 		await seedScholarshipPosts();
 		await seedJobPosts();
+		await seedPostDocuments();
+		await seedPostCertificates();
+		await seedPostSubdisciplines();
 		await seedWishlists();
 		await seedApplications();
 		await seedNotifications();
+		await seedProgramScholarships();
 
 		console.log("🎉 Database seeding completed successfully!");
 		console.log("📊 Summary:");
@@ -912,6 +1209,7 @@ async function main() {
 		console.log("   - 3 Plans");
 		console.log("   - 40 Disciplines");
 		console.log("   - 100+ Subdisciplines");
+		console.log("   - 8 Document Types");
 		console.log(
 			"   - 30 Users (10 students + 10 institutions + 10 admins)"
 		);
@@ -921,6 +1219,14 @@ async function main() {
 		console.log("   - 100 Program Posts");
 		console.log("   - 50 Scholarship Posts");
 		console.log("   - 50 Job Posts");
+		console.log("   - Post Documents (with detailed descriptions)");
+		console.log("   - Post Certificates (language and standardized tests)");
+		console.log(
+			"   - Post Subdisciplines (relationships between posts and fields)"
+		);
+		console.log(
+			"   - Program Scholarships (relationships between programs and scholarships)"
+		);
 		console.log("   - Wishlist items");
 		console.log("   - 50 Applications");
 		console.log("   - 100 Notifications");

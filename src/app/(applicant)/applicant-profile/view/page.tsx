@@ -6,7 +6,7 @@ import { ApiService, cacheUtils } from '@/lib/axios-config'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthRequiredModal } from '@/components/auth'
 import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
@@ -127,6 +127,7 @@ interface ProfileData {
 
 export default function ApplicantViewProfile() {
 	const searchParams = useSearchParams()
+	const router = useRouter()
 	const [profile, setProfile] = useState<ProfileData | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -197,14 +198,20 @@ export default function ApplicantViewProfile() {
 				}
 
 				setProfile(data.profile)
-			} catch (error) {
+			} catch (error: any) {
+				// Check if it's a 404 error (no profile found)
+				if (error?.response?.status === 404 || error?.status === 404) {
+					// Redirect to profile creation page
+					router.push('/profile/create')
+					return
+				}
 				setError('Failed to load profile')
 			} finally {
 				setLoading(false)
 			}
 		}
 		getCurrentUserAndProfile()
-	}, [isAuthenticated, authLoading, profile])
+	}, [isAuthenticated, authLoading, profile, router])
 
 	const refreshProfile = async () => {
 		setLoading(true)
@@ -299,7 +306,7 @@ export default function ApplicantViewProfile() {
 
 	// Render section content based on active section
 	const renderSectionContent = () => {
-		const navigationHandler = (_targetSection: string) => {
+		const navigationHandler = () => {
 			// This will be handled by the ProfileLayout
 			return true
 		}

@@ -21,13 +21,11 @@ export default function CreateProfile() {
 	const [isTransitioning, setIsTransitioning] = useState(false)
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
-
 	// Use the authentication check hook
 	const {
 		isAuthenticated,
 		showAuthModal,
 		handleCloseModal: closeAuthModal,
-		isLoading,
 		user,
 	} = useAuthCheck()
 
@@ -303,22 +301,6 @@ export default function CreateProfile() {
 					'Failed to save profile. Please try again.'
 			)
 		}
-	}
-
-	// Show loading state only while checking auth
-	if (isLoading) {
-		return (
-			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
-				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
-					<CardContent className="p-8">
-						<div className="text-center">
-							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-							<p className="text-muted-foreground">Loading...</p>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
-		)
 	}
 
 	// Show authentication modal if user is not authenticated

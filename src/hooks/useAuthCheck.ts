@@ -31,7 +31,20 @@ export function useAuthCheck() {
 			authCheckPromise = (async () => {
 				try {
 					console.log("🔐 useAuthCheck: Checking authentication...");
-					const session = await authClient.getSession();
+
+					// Add timeout to prevent hanging
+					const timeoutPromise = new Promise((_, reject) => {
+						setTimeout(
+							() => reject(new Error("Auth check timeout")),
+							8000
+						);
+					});
+
+					const sessionPromise = authClient.getSession();
+					const session = (await Promise.race([
+						sessionPromise,
+						timeoutPromise,
+					])) as any;
 					const hasUser = session?.data?.user;
 
 					console.log("🔐 useAuthCheck: Session result:", {

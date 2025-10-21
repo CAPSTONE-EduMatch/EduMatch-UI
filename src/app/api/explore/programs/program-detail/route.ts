@@ -15,6 +15,25 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
+// Helper function to format date to readable string
+function formatDate(date: Date): string {
+	return new Date(date).toLocaleDateString("en-US", {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	});
+}
+
+// Helper function to format currency
+function formatCurrency(amount: number): string {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(amount);
+}
+
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
@@ -119,9 +138,14 @@ export async function GET(request: NextRequest) {
 			id: opportunityPost.post_id,
 			title: opportunityPost.title,
 			description: opportunityPost.other_info || "",
+			otherInfo: opportunityPost.other_info || "",
 			location: opportunityPost.location || "",
 			startDate: opportunityPost.start_date,
 			endDate: opportunityPost.end_date,
+			startDateFormatted: formatDate(opportunityPost.start_date),
+			endDateFormatted: opportunityPost.end_date
+				? formatDate(opportunityPost.end_date)
+				: null,
 			status: opportunityPost.status,
 			createdAt: opportunityPost.create_at,
 			updatedAt: opportunityPost.update_at,
@@ -140,8 +164,10 @@ export async function GET(request: NextRequest) {
 						website: opportunityPost.institution.website,
 						email: opportunityPost.institution.email,
 						hotline: opportunityPost.institution.hotline,
+						hotlineCode: opportunityPost.institution.hotline_code,
 						about: opportunityPost.institution.about,
 						coverImage: opportunityPost.institution.cover_image,
+						type: opportunityPost.institution.type,
 					}
 				: null,
 
@@ -165,6 +191,14 @@ export async function GET(request: NextRequest) {
 									opportunityPost.programPost.tuition_fee.toString()
 								)
 							: null,
+						tuitionFeeFormatted: opportunityPost.programPost
+							.tuition_fee
+							? formatCurrency(
+									parseFloat(
+										opportunityPost.programPost.tuition_fee.toString()
+									)
+								)
+							: null,
 						feeDescription:
 							opportunityPost.programPost.fee_description,
 						scholarshipInfo:
@@ -181,7 +215,7 @@ export async function GET(request: NextRequest) {
 				: null,
 
 			// Subdisciplines/Fields
-			fields: opportunityPost.subdisciplines.map((ps) => ({
+			subdiscipline: opportunityPost.subdisciplines.map((ps) => ({
 				subdisciplineId: ps.subdiscipline.subdiscipline_id,
 				subdisciplineName: ps.subdiscipline.name,
 				disciplineId: ps.subdiscipline.discipline.discipline_id,
@@ -194,11 +228,11 @@ export async function GET(request: NextRequest) {
 				id: doc.document_id,
 				name: doc.name,
 				description: doc.description,
-				documentType: {
-					id: doc.documentType.document_type_id,
-					name: doc.documentType.name,
-					description: doc.documentType.description,
-				},
+				// documentType: {
+				// 	id: doc.documentType.document_type_id,
+				// 	name: doc.documentType.name,
+				// 	description: doc.documentType.description,
+				// },
 			})),
 
 			// Statistics

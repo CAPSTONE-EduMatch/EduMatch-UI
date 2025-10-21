@@ -223,15 +223,10 @@ export async function middleware(request: NextRequest) {
 			return NextResponse.next();
 		}
 
-		// Handle auth routes (signin, signup) - redirect authenticated users
+		// Handle auth routes (signin, signup) - let client handle redirects to prevent hydration issues
 		if (isAuthRoute) {
-			if (isAuthenticated) {
-				// Get user role and redirect accordingly
-				const userRole = await getUserRole(request);
-				const redirectUrl = getRoleBasedRedirect(userRole);
-
-				return NextResponse.redirect(new URL(redirectUrl, request.url));
-			}
+			// Don't redirect on server-side to prevent hydration mismatches
+			// Let the client-side components handle the redirect logic
 			return NextResponse.next();
 		}
 

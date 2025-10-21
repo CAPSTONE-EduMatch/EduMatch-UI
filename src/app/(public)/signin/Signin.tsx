@@ -10,7 +10,8 @@ import { Input, Modal } from '@/components/ui'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { authClient } from '@/app/lib/auth-client'
 
 const LEFT_IMAGE =
@@ -49,6 +50,7 @@ const fadeIn = {
 }
 
 const SignIn: React.FC = () => {
+	const router = useRouter()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [showPassword, setShowPassword] = useState(false)
@@ -80,10 +82,72 @@ const SignIn: React.FC = () => {
 	const [canSendForgotPassword, setCanSendForgotPassword] = useState(true)
 	const [lastForgotPasswordEmail, setLastForgotPasswordEmail] = useState('')
 
+	// Check profile and redirect accordingly
+	const checkProfileAndRedirect = useCallback(async () => {
+		try {
+			console.log('🔍 Checking user profile...')
+			const profileResponse = await axios.get('/api/profile')
+			const profile = profileResponse.data?.profile
+
+			if (profile) {
+				console.log('✅ Profile found:', profile.role)
+				// User has a profile, redirect based on role
+				if (profile.role === 'institution') {
+					console.log('🏢 Redirecting to institution profile')
+					router.push('/institution-profile')
+				} else if (profile.role === 'applicant') {
+					console.log('🎓 Redirecting to applicant profile')
+					router.push('/applicant-profile/view')
+				} else {
+					console.log('❓ Unknown role, redirecting to explore')
+					router.push('/explore')
+				}
+			} else {
+				console.log('❌ No profile found, redirecting to create profile')
+				router.push('/profile/create')
+			}
+		} catch (error: any) {
+			console.log('❌ Profile check failed:', error?.response?.status)
+
+			// If profile doesn't exist (404), redirect to profile creation
+			if (error?.response?.status === 404) {
+				console.log('📝 No profile found, redirecting to create profile')
+				router.push('/profile/create')
+			} else {
+				console.log('⚠️ Error occurred, redirecting to explore')
+				router.push('/explore')
+			}
+		}
+	}, [router])
+
 	// Trigger animation after component mounts
 	useEffect(() => {
 		setAnimateForm(true)
 	}, [])
+
+	// Check if user is already authenticated (e.g., from Google OAuth callback)
+	useEffect(() => {
+		const checkExistingAuth = async () => {
+			try {
+				console.log('🔍 Checking existing authentication...')
+				const session = await authClient.getSession()
+				console.log('🔍 Session result:', session)
+
+				if (session?.data?.user) {
+					console.log('✅ User already authenticated, checking profile...')
+					// User is already authenticated, check their profile
+					await checkProfileAndRedirect()
+				} else {
+					console.log('❌ No authenticated user found')
+				}
+			} catch (error) {
+				console.log('❌ Auth check error:', error)
+				// User is not authenticated, continue with signin form
+			}
+		}
+
+		checkExistingAuth()
+	}, [checkProfileAndRedirect])
 
 	// Load forgot password cooldown from localStorage on mount
 	useEffect(() => {
@@ -223,8 +287,17 @@ const SignIn: React.FC = () => {
 			const res = await authClient.signIn.email({
 				email,
 				password,
-				callbackURL: '/',
+				callbackURL: '/', // We'll handle redirect client-side
 			})
+
+			// If successful signin, handle redirect
+			if (res?.data && !res?.error) {
+				console.log('✅ Sign-in successful, checking profile...')
+				// Check if user has a profile and redirect accordingly
+				await checkProfileAndRedirect()
+				return
+			}
+
 			if (res?.error) {
 				// eslint-disable-next-line no-console
 				console.log('Sign-in error:', res.error) // Debug log to see actual error
@@ -547,10 +620,10 @@ const SignIn: React.FC = () => {
 			if (result.error) {
 				setOTPError(result.error.message || 'Invalid verification code')
 			} else {
-				// Success - close modal and attempt signin again
+				// Success - close modal and check profile
 				handleCloseOTPModal()
-				// After successful verification, attempt sign in again
-				handleEmailSignIn({ preventDefault: () => {} } as React.FormEvent)
+				// After successful verification, check profile and redirect
+				await checkProfileAndRedirect()
 			}
 		} catch (err) {
 			setOTPError('Verification failed. Please try again.')
@@ -588,19 +661,25 @@ const SignIn: React.FC = () => {
 	useEffect(() => {
 		// Show Google One Tap prompt when the page loads
 		const cleanup = () => {
-			authClient.oneTap({
-				callbackURL: '/dashboard',
-				fetchOptions: {
-					onSuccess: (response) => {
-						// eslint-disable-next-line no-console
-						console.log('One Tap sign-in successful:', response)
+			try {
+				authClient.oneTap({
+					callbackURL: '/dashboard',
+					fetchOptions: {
+						onSuccess: (response) => {
+							// eslint-disable-next-line no-console
+							console.log('One Tap sign-in successful:', response)
+						},
+						onError: (error) => {
+							// Silently handle Google OAuth errors - they're not critical
+							// eslint-disable-next-line no-console
+							console.warn('One Tap sign-in error (non-critical):', error)
+						},
 					},
-					onError: (error) => {
-						// eslint-disable-next-line no-console
-						console.error('One Tap sign-in error:', error)
-					},
-				},
-			})
+				})
+			} catch (error) {
+				// Silently handle any Google OAuth initialization errors
+				console.warn('Google OAuth initialization error (non-critical):', error)
+			}
 		}
 		cleanup()
 	}, [])
@@ -771,7 +850,7 @@ const SignIn: React.FC = () => {
 							<motion.div className="mt-4" variants={itemVariants}>
 								<GoogleButton
 									action="signin"
-									callbackURL="/"
+									callbackURL="/signin" // Stay on signin page, we'll handle redirect client-side
 									isLoading={isLoading}
 									text="Sign in with Google"
 									loadingText="Signing in..."

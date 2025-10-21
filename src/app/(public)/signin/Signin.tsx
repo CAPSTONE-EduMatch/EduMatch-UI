@@ -666,19 +666,35 @@ const SignIn: React.FC = () => {
 					callbackURL: '/dashboard',
 					fetchOptions: {
 						onSuccess: (response) => {
-							// eslint-disable-next-line no-console
-							console.log('One Tap sign-in successful:', response)
+							// Handle success silently to avoid console spam
 						},
 						onError: (error) => {
 							// Silently handle Google OAuth errors - they're not critical
-							// eslint-disable-next-line no-console
-							console.warn('One Tap sign-in error (non-critical):', error)
+							// Only log critical errors, not FedCM warnings
+							if (
+								error &&
+								typeof error === 'object' &&
+								'message' in error &&
+								!String(error.message).includes('FedCM') &&
+								!String(error.message).includes('message channel')
+							) {
+								console.warn('One Tap sign-in error:', error)
+							}
 						},
 					},
 				})
 			} catch (error) {
 				// Silently handle any Google OAuth initialization errors
-				console.warn('Google OAuth initialization error (non-critical):', error)
+				// Only log critical errors, not FedCM warnings
+				if (
+					error &&
+					typeof error === 'object' &&
+					'message' in error &&
+					!String(error.message).includes('FedCM') &&
+					!String(error.message).includes('message channel')
+				) {
+					console.warn('Google OAuth initialization error:', error)
+				}
 			}
 		}
 		cleanup()

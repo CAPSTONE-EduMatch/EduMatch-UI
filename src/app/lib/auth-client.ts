@@ -15,12 +15,15 @@ export const authClient = createAuthClient({
 			cancelOnTapOutside: true,
 			context: "signin",
 			additionalOptions: {
-				// Any extra options for the Google initialize method
+				// Use newer FedCM API to reduce warnings
+				use_fedcm_for_prompt: true,
+				// Reduce message channel errors
+				ux_mode: "popup",
 			},
 			// Configure prompt behavior and exponential backoff:
 			promptOptions: {
-				baseDelay: 1000, // Base delay in ms (default: 1000)
-				maxAttempts: 5, // Maximum number of attempts before triggering onPromptNotification (default: 5)
+				baseDelay: 2000, // Increased delay to reduce rapid attempts
+				maxAttempts: 3, // Reduced attempts to prevent message channel errors
 			},
 		}),
 		emailOTPClient(),

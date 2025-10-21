@@ -13,7 +13,7 @@ import { CompletionStep } from '@/components/profile/create/steps/CompletionStep
 import { ProfileFormData } from '@/lib/profile-service'
 import { Button } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
-import { AuthRequiredModal } from '@/components/auth'
+import { AuthWrapper } from '@/components/auth/AuthWrapper'
 
 export default function CreateProfile() {
 	const router = useRouter()
@@ -22,12 +22,7 @@ export default function CreateProfile() {
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	// Use the authentication check hook
-	const {
-		isAuthenticated,
-		showAuthModal,
-		handleCloseModal: closeAuthModal,
-		user,
-	} = useAuthCheck()
+	const { isAuthenticated, user } = useAuthCheck()
 
 	// Check if user already has a profile
 	useEffect(() => {
@@ -303,9 +298,13 @@ export default function CreateProfile() {
 		}
 	}
 
-	// Show authentication modal if user is not authenticated
-	if (!isAuthenticated) {
-		return (
+	// Authentication is now handled by AuthWrapper
+
+	return (
+		<AuthWrapper
+			pageTitle="Create Profile"
+			pageDescription="Please sign in to create your profile"
+		>
 			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
 				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
 					<CardContent className="p-8">
@@ -317,229 +316,248 @@ export default function CreateProfile() {
 
 						<ProgressBar
 							currentStep={currentStep}
-							totalSteps={4}
+							totalSteps={formData.role === 'applicant' ? 4 : 4}
 							onStepClick={(step) => {
 								if (step <= currentStep || step === 1) {
+									// Auto-close modal if leaving Academic Info step (step 3)
+									if (currentStep === 3 && showManageModal && step !== 3) {
+										setShowManageModal(false)
+										setIsClosing(false)
+									}
 									setCurrentStep(step)
 								}
 							}}
 						/>
 
-						<div className="min-h-[300px]">
-							<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-								<RoleSelectionStep
-									formData={formData}
-									onRoleSelect={handleRoleSelect}
-									onNext={handleNext}
-								/>
+						<div
+							className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[150px]'}`}
+						>
+							<div
+								className={`transition-all duration-500 ease-in-out ${
+									isTransitioning
+										? 'opacity-0 scale-95'
+										: 'opacity-100 scale-100'
+								}`}
+							>
+								{currentStep === 1 && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<RoleSelectionStep
+											formData={formData}
+											onRoleSelect={handleRoleSelect}
+											onNext={handleNext}
+										/>
+									</div>
+								)}
+								{currentStep === 2 && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										{formData.role === 'applicant' ? (
+											<BasicInfoStep
+												formData={formData}
+												onInputChange={handleInputChange}
+												onInputChangeEvent={handleInputChangeEvent}
+												onSelectChange={handleSelectChange}
+												onMultiSelectChange={handleMultiSelectChange}
+												onBack={handleBack}
+												onNext={handleNext}
+												user={user}
+											/>
+										) : (
+											<InstitutionInfoStep
+												formData={formData}
+												onInputChange={handleInputChange}
+												onInputChangeEvent={handleInputChangeEvent}
+												onSelectChange={handleSelectChange}
+												onBack={handleBack}
+												onNext={handleNext}
+												onShowManageModal={handleOpenModal}
+												user={user}
+											/>
+										)}
+									</div>
+								)}
+								{currentStep === 3 && formData.role === 'applicant' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<AcademicInfoStep
+											formData={formData}
+											onInputChange={handleInputChange}
+											onInputChangeEvent={handleInputChangeEvent}
+											onSelectChange={handleSelectChange}
+											onCheckboxChange={handleCheckboxChange}
+											onFilesUploaded={handleFilesUploaded}
+											onBack={handleBack}
+											onNext={handleNext}
+											onShowManageModal={handleOpenModal}
+										/>
+									</div>
+								)}
+								{currentStep === 3 && formData.role === 'institution' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<InstitutionDetailsStep
+											formData={formData}
+											onInputChange={handleInputChange}
+											onMultiSelectChange={handleMultiSelectChange}
+											onBack={handleBack}
+											onNext={handleNext}
+											onShowManageModal={handleOpenModal}
+										/>
+									</div>
+								)}
+								{currentStep === 4 && formData.role === 'applicant' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<CompletionStep onGetStarted={handleGetStarted} />
+									</div>
+								)}
+								{currentStep === 4 && formData.role === 'institution' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<CompletionStep onGetStarted={handleGetStarted} />
+									</div>
+								)}
 							</div>
 						</div>
 					</CardContent>
 				</Card>
 
-				{/* Authentication Required Modal */}
-				<AuthRequiredModal isOpen={showAuthModal} onClose={closeAuthModal} />
-			</div>
-		)
-	}
-
-	return (
-		<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
-			<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
-				<CardContent className="p-8">
-					<div className="text-center mb-6">
-						<h1 className="text-3xl font-bold text-primary">Create Profile</h1>
-					</div>
-
-					<ProgressBar
-						currentStep={currentStep}
-						totalSteps={formData.role === 'applicant' ? 4 : 4}
-						onStepClick={(step) => {
-							if (step <= currentStep || step === 1) {
-								// Auto-close modal if leaving Academic Info step (step 3)
-								if (currentStep === 3 && showManageModal && step !== 3) {
-									setShowManageModal(false)
-									setIsClosing(false)
-								}
-								setCurrentStep(step)
-							}
-						}}
-					/>
-
+				{/* Manage Files Side Panel */}
+				{showManageModal && (
 					<div
-						className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[150px]'}`}
+						className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
+							isClosing ? 'translate-x-full' : 'translate-x-0'
+						}`}
+						style={{
+							animation:
+								showManageModal && !isClosing
+									? 'slideInFromRight 0.3s ease-out'
+									: 'none',
+						}}
 					>
-						<div
-							className={`transition-all duration-500 ease-in-out ${
-								isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-							}`}
-						>
-							{currentStep === 1 && (
-								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									<RoleSelectionStep
-										formData={formData}
-										onRoleSelect={handleRoleSelect}
-										onNext={handleNext}
-									/>
-								</div>
-							)}
-							{currentStep === 2 && (
-								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									{formData.role === 'applicant' ? (
-										<BasicInfoStep
-											formData={formData}
-											onInputChange={handleInputChange}
-											onInputChangeEvent={handleInputChangeEvent}
-											onSelectChange={handleSelectChange}
-											onMultiSelectChange={handleMultiSelectChange}
-											onBack={handleBack}
-											onNext={handleNext}
-											user={user}
-										/>
-									) : (
-										<InstitutionInfoStep
-											formData={formData}
-											onInputChange={handleInputChange}
-											onInputChangeEvent={handleInputChangeEvent}
-											onSelectChange={handleSelectChange}
-											onBack={handleBack}
-											onNext={handleNext}
-											onShowManageModal={handleOpenModal}
-											user={user}
-										/>
+						<div className="p-6 border-b">
+							<div className="flex items-center justify-between">
+								<h2 className="text-xl font-semibold">Manage Documents</h2>
+								<Button
+									variant="outline"
+									onClick={handleCloseModal}
+									className="rounded-full"
+								>
+									✕
+								</Button>
+							</div>
+						</div>
+
+						<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+							<div className="space-y-8">
+								{/* CV/Resume Section */}
+								{formData.cvFiles && formData.cvFiles.length > 0 && (
+									<div className="space-y-4">
+										<h3 className="text-lg font-medium text-foreground border-b pb-2">
+											CV / Resume ({formData.cvFiles.length})
+										</h3>
+										<div className="grid grid-cols-1 gap-4">
+											{formData.cvFiles.map((file) => (
+												<div
+													key={file.id}
+													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+												>
+													<div className="text-2xl">📄</div>
+													<div className="flex-1 min-w-0">
+														<p className="text-sm font-medium text-foreground truncate">
+															{file.name || file.originalName}
+														</p>
+														<p className="text-xs text-muted-foreground">
+															{(file.size / 1024).toFixed(1)} KB
+														</p>
+													</div>
+													<div className="flex gap-2">
+														<Button
+															variant="outline"
+															onClick={() => window.open(file.url, '_blank')}
+														>
+															View
+														</Button>
+														<Button
+															variant="outline"
+															onClick={() => {
+																const updatedFiles = formData.cvFiles.filter(
+																	(f) => f.id !== file.id
+																)
+																setFormData({
+																	...formData,
+																	cvFiles: updatedFiles,
+																})
+															}}
+															className="text-red-500 hover:text-red-700"
+														>
+															Delete
+														</Button>
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Foreign Language Certificate Section */}
+								{formData.languageCertFiles &&
+									formData.languageCertFiles.length > 0 && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Foreign Language Certificates (
+												{formData.languageCertFiles.length})
+											</h3>
+											<div className="grid grid-cols-1 gap-4">
+												{formData.languageCertFiles.map((file) => (
+													<div
+														key={file.id}
+														className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+													>
+														<div className="text-2xl">
+															{file.category === 'image' ? '🖼️' : '📄'}
+														</div>
+														<div className="flex-1 min-w-0">
+															<p className="text-sm font-medium text-foreground truncate">
+																{file.name || file.originalName}
+															</p>
+															<p className="text-xs text-muted-foreground">
+																{(file.size / 1024).toFixed(1)} KB
+															</p>
+														</div>
+														<div className="flex gap-2">
+															<Button
+																variant="outline"
+																onClick={() => window.open(file.url, '_blank')}
+															>
+																View
+															</Button>
+															<Button
+																variant="outline"
+																onClick={() => {
+																	const updatedFiles =
+																		formData.languageCertFiles.filter(
+																			(f) => f.id !== file.id
+																		)
+																	setFormData({
+																		...formData,
+																		languageCertFiles: updatedFiles,
+																	})
+																}}
+																className="text-red-500 hover:text-red-700"
+															>
+																Delete
+															</Button>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
 									)}
-								</div>
-							)}
-							{currentStep === 3 && formData.role === 'applicant' && (
-								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									<AcademicInfoStep
-										formData={formData}
-										onInputChange={handleInputChange}
-										onInputChangeEvent={handleInputChangeEvent}
-										onSelectChange={handleSelectChange}
-										onCheckboxChange={handleCheckboxChange}
-										onFilesUploaded={handleFilesUploaded}
-										onBack={handleBack}
-										onNext={handleNext}
-										onShowManageModal={handleOpenModal}
-									/>
-								</div>
-							)}
-							{currentStep === 3 && formData.role === 'institution' && (
-								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									<InstitutionDetailsStep
-										formData={formData}
-										onInputChange={handleInputChange}
-										onMultiSelectChange={handleMultiSelectChange}
-										onBack={handleBack}
-										onNext={handleNext}
-										onShowManageModal={handleOpenModal}
-									/>
-								</div>
-							)}
-							{currentStep === 4 && formData.role === 'applicant' && (
-								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									<CompletionStep onGetStarted={handleGetStarted} />
-								</div>
-							)}
-							{currentStep === 4 && formData.role === 'institution' && (
-								<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-									<CompletionStep onGetStarted={handleGetStarted} />
-								</div>
-							)}
-						</div>
-					</div>
-				</CardContent>
-			</Card>
 
-			{/* Manage Files Side Panel */}
-			{showManageModal && (
-				<div
-					className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
-						isClosing ? 'translate-x-full' : 'translate-x-0'
-					}`}
-					style={{
-						animation:
-							showManageModal && !isClosing
-								? 'slideInFromRight 0.3s ease-out'
-								: 'none',
-					}}
-				>
-					<div className="p-6 border-b">
-						<div className="flex items-center justify-between">
-							<h2 className="text-xl font-semibold">Manage Documents</h2>
-							<Button
-								variant="outline"
-								onClick={handleCloseModal}
-								className="rounded-full"
-							>
-								✕
-							</Button>
-						</div>
-					</div>
-
-					<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
-						<div className="space-y-8">
-							{/* CV/Resume Section */}
-							{formData.cvFiles && formData.cvFiles.length > 0 && (
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-foreground border-b pb-2">
-										CV / Resume ({formData.cvFiles.length})
-									</h3>
-									<div className="grid grid-cols-1 gap-4">
-										{formData.cvFiles.map((file) => (
-											<div
-												key={file.id}
-												className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-											>
-												<div className="text-2xl">📄</div>
-												<div className="flex-1 min-w-0">
-													<p className="text-sm font-medium text-foreground truncate">
-														{file.name || file.originalName}
-													</p>
-													<p className="text-xs text-muted-foreground">
-														{(file.size / 1024).toFixed(1)} KB
-													</p>
-												</div>
-												<div className="flex gap-2">
-													<Button
-														variant="outline"
-														onClick={() => window.open(file.url, '_blank')}
-													>
-														View
-													</Button>
-													<Button
-														variant="outline"
-														onClick={() => {
-															const updatedFiles = formData.cvFiles.filter(
-																(f) => f.id !== file.id
-															)
-															setFormData({
-																...formData,
-																cvFiles: updatedFiles,
-															})
-														}}
-														className="text-red-500 hover:text-red-700"
-													>
-														Delete
-													</Button>
-												</div>
-											</div>
-										))}
-									</div>
-								</div>
-							)}
-
-							{/* Foreign Language Certificate Section */}
-							{formData.languageCertFiles &&
-								formData.languageCertFiles.length > 0 && (
+								{/* Degree Certificate Section */}
+								{formData.degreeFiles && formData.degreeFiles.length > 0 && (
 									<div className="space-y-4">
 										<h3 className="text-lg font-medium text-foreground border-b pb-2">
-											Foreign Language Certificates (
-											{formData.languageCertFiles.length})
+											Degree Certificates ({formData.degreeFiles.length})
 										</h3>
 										<div className="grid grid-cols-1 gap-4">
-											{formData.languageCertFiles.map((file) => (
+											{formData.degreeFiles.map((file) => (
 												<div
 													key={file.id}
 													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
@@ -566,12 +584,12 @@ export default function CreateProfile() {
 															variant="outline"
 															onClick={() => {
 																const updatedFiles =
-																	formData.languageCertFiles.filter(
+																	formData.degreeFiles.filter(
 																		(f) => f.id !== file.id
 																	)
 																setFormData({
 																	...formData,
-																	languageCertFiles: updatedFiles,
+																	degreeFiles: updatedFiles,
 																})
 															}}
 															className="text-red-500 hover:text-red-700"
@@ -585,270 +603,223 @@ export default function CreateProfile() {
 									</div>
 								)}
 
-							{/* Degree Certificate Section */}
-							{formData.degreeFiles && formData.degreeFiles.length > 0 && (
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-foreground border-b pb-2">
-										Degree Certificates ({formData.degreeFiles.length})
-									</h3>
-									<div className="grid grid-cols-1 gap-4">
-										{formData.degreeFiles.map((file) => (
-											<div
-												key={file.id}
-												className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-											>
-												<div className="text-2xl">
-													{file.category === 'image' ? '🖼️' : '📄'}
-												</div>
-												<div className="flex-1 min-w-0">
-													<p className="text-sm font-medium text-foreground truncate">
-														{file.name || file.originalName}
-													</p>
-													<p className="text-xs text-muted-foreground">
-														{(file.size / 1024).toFixed(1)} KB
-													</p>
-												</div>
-												<div className="flex gap-2">
-													<Button
-														variant="outline"
-														onClick={() => window.open(file.url, '_blank')}
+								{/* Academic Transcript Section */}
+								{formData.transcriptFiles &&
+									formData.transcriptFiles.length > 0 && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Academic Transcripts ({formData.transcriptFiles.length})
+											</h3>
+											<div className="grid grid-cols-1 gap-4">
+												{formData.transcriptFiles.map((file) => (
+													<div
+														key={file.id}
+														className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
 													>
-														View
-													</Button>
-													<Button
-														variant="outline"
-														onClick={() => {
-															const updatedFiles = formData.degreeFiles.filter(
-																(f) => f.id !== file.id
-															)
-															setFormData({
-																...formData,
-																degreeFiles: updatedFiles,
-															})
-														}}
-														className="text-red-500 hover:text-red-700"
-													>
-														Delete
-													</Button>
-												</div>
+														<div className="text-2xl">
+															{file.category === 'image' ? '🖼️' : '📄'}
+														</div>
+														<div className="flex-1 min-w-0">
+															<p className="text-sm font-medium text-foreground truncate">
+																{file.name || file.originalName}
+															</p>
+															<p className="text-xs text-muted-foreground">
+																{(file.size / 1024).toFixed(1)} KB
+															</p>
+														</div>
+														<div className="flex gap-2">
+															<Button
+																variant="outline"
+																onClick={() => window.open(file.url, '_blank')}
+															>
+																View
+															</Button>
+															<Button
+																variant="outline"
+																onClick={() => {
+																	const updatedFiles =
+																		formData.transcriptFiles.filter(
+																			(f) => f.id !== file.id
+																		)
+																	setFormData({
+																		...formData,
+																		transcriptFiles: updatedFiles,
+																	})
+																}}
+																className="text-red-500 hover:text-red-700"
+															>
+																Delete
+															</Button>
+														</div>
+													</div>
+												))}
 											</div>
-										))}
-									</div>
-								</div>
-							)}
-
-							{/* Academic Transcript Section */}
-							{formData.transcriptFiles &&
-								formData.transcriptFiles.length > 0 && (
-									<div className="space-y-4">
-										<h3 className="text-lg font-medium text-foreground border-b pb-2">
-											Academic Transcripts ({formData.transcriptFiles.length})
-										</h3>
-										<div className="grid grid-cols-1 gap-4">
-											{formData.transcriptFiles.map((file) => (
-												<div
-													key={file.id}
-													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-												>
-													<div className="text-2xl">
-														{file.category === 'image' ? '🖼️' : '📄'}
-													</div>
-													<div className="flex-1 min-w-0">
-														<p className="text-sm font-medium text-foreground truncate">
-															{file.name || file.originalName}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{(file.size / 1024).toFixed(1)} KB
-														</p>
-													</div>
-													<div className="flex gap-2">
-														<Button
-															variant="outline"
-															onClick={() => window.open(file.url, '_blank')}
-														>
-															View
-														</Button>
-														<Button
-															variant="outline"
-															onClick={() => {
-																const updatedFiles =
-																	formData.transcriptFiles.filter(
-																		(f) => f.id !== file.id
-																	)
-																setFormData({
-																	...formData,
-																	transcriptFiles: updatedFiles,
-																})
-															}}
-															className="text-red-500 hover:text-red-700"
-														>
-															Delete
-														</Button>
-													</div>
-												</div>
-											))}
 										</div>
-									</div>
-								)}
+									)}
 
-							{/* Research Papers Section */}
-							{formData.researchPapers &&
-								formData.researchPapers.some(
-									(paper) => paper.files && paper.files.length > 0
-								) && (
-									<div className="space-y-4">
-										<h3 className="text-lg font-medium text-foreground border-b pb-2">
-											Research Papers (
-											{formData.researchPapers.reduce(
-												(total, paper) => total + (paper.files?.length || 0),
-												0
-											)}
-											)
-										</h3>
-										<div className="space-y-6">
-											{formData.researchPapers.map(
-												(paper, paperIndex) =>
-													paper.files &&
-													paper.files.length > 0 && (
-														<div key={paperIndex} className="space-y-3">
-															<div className="bg-blue-50 p-3 rounded-lg">
-																<h4 className="font-medium text-blue-900">
-																	{paper.title ||
-																		`Research Paper ${paperIndex + 1}`}
-																</h4>
-																{paper.discipline && (
-																	<p className="text-sm text-blue-700">
-																		Discipline: {paper.discipline}
-																	</p>
-																)}
-															</div>
-															<div className="grid grid-cols-1 gap-3">
-																{paper.files.map((file) => (
-																	<div
-																		key={file.id}
-																		className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-																	>
-																		<div className="text-2xl">📄</div>
-																		<div className="flex-1 min-w-0">
-																			<p className="text-sm font-medium text-foreground truncate">
-																				{file.name || file.originalName}
-																			</p>
-																			<p className="text-xs text-muted-foreground">
-																				{(file.size / 1024).toFixed(1)} KB
-																			</p>
-																		</div>
-																		<div className="flex gap-2">
-																			<Button
-																				variant="outline"
-																				onClick={() =>
-																					window.open(file.url, '_blank')
-																				}
-																			>
-																				View
-																			</Button>
-																			<Button
-																				variant="outline"
-																				onClick={() => {
-																					const updatedPapers = [
-																						...formData.researchPapers,
-																					]
-																					updatedPapers[paperIndex] = {
-																						...updatedPapers[paperIndex],
-																						files: updatedPapers[
-																							paperIndex
-																						].files.filter(
-																							(f) => f.id !== file.id
-																						),
+								{/* Research Papers Section */}
+								{formData.researchPapers &&
+									formData.researchPapers.some(
+										(paper) => paper.files && paper.files.length > 0
+									) && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Research Papers (
+												{formData.researchPapers.reduce(
+													(total, paper) => total + (paper.files?.length || 0),
+													0
+												)}
+												)
+											</h3>
+											<div className="space-y-6">
+												{formData.researchPapers.map(
+													(paper, paperIndex) =>
+														paper.files &&
+														paper.files.length > 0 && (
+															<div key={paperIndex} className="space-y-3">
+																<div className="bg-blue-50 p-3 rounded-lg">
+																	<h4 className="font-medium text-blue-900">
+																		{paper.title ||
+																			`Research Paper ${paperIndex + 1}`}
+																	</h4>
+																	{paper.discipline && (
+																		<p className="text-sm text-blue-700">
+																			Discipline: {paper.discipline}
+																		</p>
+																	)}
+																</div>
+																<div className="grid grid-cols-1 gap-3">
+																	{paper.files.map((file) => (
+																		<div
+																			key={file.id}
+																			className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+																		>
+																			<div className="text-2xl">📄</div>
+																			<div className="flex-1 min-w-0">
+																				<p className="text-sm font-medium text-foreground truncate">
+																					{file.name || file.originalName}
+																				</p>
+																				<p className="text-xs text-muted-foreground">
+																					{(file.size / 1024).toFixed(1)} KB
+																				</p>
+																			</div>
+																			<div className="flex gap-2">
+																				<Button
+																					variant="outline"
+																					onClick={() =>
+																						window.open(file.url, '_blank')
 																					}
-																					setFormData({
-																						...formData,
-																						researchPapers: updatedPapers,
-																					})
-																				}}
-																				className="text-red-500 hover:text-red-700"
-																			>
-																				Delete
-																			</Button>
+																				>
+																					View
+																				</Button>
+																				<Button
+																					variant="outline"
+																					onClick={() => {
+																						const updatedPapers = [
+																							...formData.researchPapers,
+																						]
+																						updatedPapers[paperIndex] = {
+																							...updatedPapers[paperIndex],
+																							files: updatedPapers[
+																								paperIndex
+																							].files.filter(
+																								(f) => f.id !== file.id
+																							),
+																						}
+																						setFormData({
+																							...formData,
+																							researchPapers: updatedPapers,
+																						})
+																					}}
+																					className="text-red-500 hover:text-red-700"
+																				>
+																					Delete
+																				</Button>
+																			</div>
 																		</div>
-																	</div>
-																))}
+																	))}
+																</div>
+															</div>
+														)
+												)}
+											</div>
+										</div>
+									)}
+
+								{/* Institution Verification Documents Section */}
+								{formData.institutionVerificationDocuments &&
+									formData.institutionVerificationDocuments.length > 0 && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Institution Verification Documents (
+												{formData.institutionVerificationDocuments.length})
+											</h3>
+											<div className="grid grid-cols-1 gap-4">
+												{formData.institutionVerificationDocuments.map(
+													(file) => (
+														<div
+															key={file.id}
+															className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+														>
+															<div className="text-2xl">
+																{file.type?.startsWith('image/') ? '🖼️' : '📄'}
+															</div>
+															<div className="flex-1 min-w-0">
+																<p className="text-sm font-medium text-foreground truncate">
+																	{file.name || file.originalName}
+																</p>
+																<p className="text-xs text-muted-foreground">
+																	{(file.size / 1024).toFixed(1)} KB
+																</p>
+															</div>
+															<div className="flex gap-2">
+																<Button
+																	variant="outline"
+																	onClick={() =>
+																		window.open(file.url, '_blank')
+																	}
+																>
+																	View
+																</Button>
+																<Button
+																	variant="outline"
+																	onClick={() => {
+																		const updatedFiles =
+																			formData.institutionVerificationDocuments.filter(
+																				(f) => f.id !== file.id
+																			)
+																		setFormData({
+																			...formData,
+																			institutionVerificationDocuments:
+																				updatedFiles,
+																		})
+																	}}
+																	className="text-red-500 hover:text-red-700"
+																>
+																	Delete
+																</Button>
 															</div>
 														</div>
 													)
-											)}
+												)}
+											</div>
 										</div>
+									)}
+
+								{/* Empty State */}
+								{getAllFiles().length === 0 && (
+									<div className="text-center py-8">
+										<div className="text-4xl mb-4">📁</div>
+										<p className="text-muted-foreground">
+											No documents uploaded yet
+										</p>
 									</div>
 								)}
-
-							{/* Institution Verification Documents Section */}
-							{formData.institutionVerificationDocuments &&
-								formData.institutionVerificationDocuments.length > 0 && (
-									<div className="space-y-4">
-										<h3 className="text-lg font-medium text-foreground border-b pb-2">
-											Institution Verification Documents (
-											{formData.institutionVerificationDocuments.length})
-										</h3>
-										<div className="grid grid-cols-1 gap-4">
-											{formData.institutionVerificationDocuments.map((file) => (
-												<div
-													key={file.id}
-													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-												>
-													<div className="text-2xl">
-														{file.type?.startsWith('image/') ? '🖼️' : '📄'}
-													</div>
-													<div className="flex-1 min-w-0">
-														<p className="text-sm font-medium text-foreground truncate">
-															{file.name || file.originalName}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{(file.size / 1024).toFixed(1)} KB
-														</p>
-													</div>
-													<div className="flex gap-2">
-														<Button
-															variant="outline"
-															onClick={() => window.open(file.url, '_blank')}
-														>
-															View
-														</Button>
-														<Button
-															variant="outline"
-															onClick={() => {
-																const updatedFiles =
-																	formData.institutionVerificationDocuments.filter(
-																		(f) => f.id !== file.id
-																	)
-																setFormData({
-																	...formData,
-																	institutionVerificationDocuments:
-																		updatedFiles,
-																})
-															}}
-															className="text-red-500 hover:text-red-700"
-														>
-															Delete
-														</Button>
-													</div>
-												</div>
-											))}
-										</div>
-									</div>
-								)}
-
-							{/* Empty State */}
-							{getAllFiles().length === 0 && (
-								<div className="text-center py-8">
-									<div className="text-4xl mb-4">📁</div>
-									<p className="text-muted-foreground">
-										No documents uploaded yet
-									</p>
-								</div>
-							)}
+							</div>
 						</div>
 					</div>
-				</div>
-			)}
-		</div>
+				)}
+			</div>
+		</AuthWrapper>
 	)
 }

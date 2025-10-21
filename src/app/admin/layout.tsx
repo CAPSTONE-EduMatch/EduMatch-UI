@@ -11,7 +11,7 @@ export default function AdminLayout({
 		<>
 			<ConditionalLayout>
 				<EduMatchHeader />
-				{children}
+				<div className="pt-9">{children}</div>
 			</ConditionalLayout>
 		</>
 	)

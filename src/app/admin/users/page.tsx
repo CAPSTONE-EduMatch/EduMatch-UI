@@ -1,10 +1,12 @@
 'use client'
 
 import { UserManagementTable } from '@/components/admin/UserManagementTable'
+import { ProfileSidebar } from '@/components/profile/ProfileSidebar'
 import { Card, CardContent } from '@/components/ui'
-
 import { motion } from 'framer-motion'
 import { Building2, GraduationCap, Users } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const sidebarItems = [
@@ -20,11 +22,27 @@ const sidebarItems = [
 	{ id: 'logout', icon: Building2, label: 'Log out' },
 ]
 
+// Logo section for admin sidebar
+const AdminLogoSection = () => (
+	<div className="flex flex-col items-center justify-center mb-12 pt-8">
+		{/* Use Next.js Image for optimized loading */}
+		<Image
+			src="/edumatch_logo.svg"
+			alt="EduMatch Logo"
+			className="w-12 h-12 mb-2"
+			width={48}
+			height={48}
+		/>
+		<h1 className="text-white text-2xl font-bold text-center">EduMatch</h1>
+	</div>
+)
+
 export default function AdminUserManagement() {
 	const [activeTab, setActiveTab] = useState<'applicants' | 'institutions'>(
 		'applicants'
 	)
 	const [isClient, setIsClient] = useState(false)
+	const router = useRouter()
 
 	useEffect(() => {
 		setIsClient(true)
@@ -36,9 +54,7 @@ export default function AdminUserManagement() {
 	]
 
 	const handleViewDetails = (userId: string) => {
-		// TODO: Implement view details functionality
-		// Navigate to user detail page or open modal
-		alert(`View details for user: ${userId}`)
+		router.push(`/admin/users/${userId}`)
 	}
 
 	if (!isClient) {
@@ -53,40 +69,31 @@ export default function AdminUserManagement() {
 		<div className="min-h-screen bg-[#F5F7FB] flex">
 			{/* Sidebar */}
 			<div className="w-[289px] bg-[#126E64] min-h-screen fixed left-0 top-0 z-10">
-				<div className="p-6">
-					{/* Logo */}
-					<div className="flex items-center gap-3 mb-12">
-						<div className="w-8 h-8 bg-white rounded"></div>
-						<h1 className="text-white text-2xl font-bold">EduMatch</h1>
-					</div>
-
-					{/* Navigation */}
-					<nav className="space-y-2">
-						{sidebarItems.map((item) => {
-							const Icon = item.icon
-							const isActive = item.active || false
-
-							return (
-								<button
-									key={item.id}
-									className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-full transition-all ${
-										isActive
-											? 'bg-white/10 text-white border border-white/20'
-											: 'text-white/80 hover:bg-white/5'
-									}`}
-								>
-									<Icon className="w-5 h-5" />
-									<span className="text-sm">{item.label}</span>
-								</button>
-							)
-						})}
-					</nav>
-				</div>
+				<ProfileSidebar
+					activeSection="user"
+					onSectionChange={() => {
+						// TODO: Implement proper navigation routing
+					}}
+					navItems={sidebarItems}
+					showProfileSection={false}
+					logoSection={<AdminLogoSection />}
+					enableNavigationProtection={false}
+					sidebarStyle={{
+						activeItemBgColor: 'bg-white/10',
+						activeItemTextColor: 'text-white',
+						activeItemBorder: 'border border-white/20',
+						inactiveItemTextColor: 'text-white/80',
+						itemBorderRadius: 'rounded-full',
+						itemPadding: 'px-4 py-3',
+						itemSpacing: 'mb-2',
+					}}
+					containerPaddingTop="pt-0"
+				/>
 			</div>
 
 			{/* Main Content */}
 			<div className="flex-1 ml-[289px]">
-				<div className=" px-8 pt-16 flex justify-between items-center text-2xl font-bold text-[#126E64]">
+				<div className=" px-8 pt-20 flex justify-center items-center text-4xl font-bold text-[#126E64]">
 					User Management
 				</div>
 

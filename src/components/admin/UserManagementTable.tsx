@@ -6,15 +6,7 @@ import {
 	type User,
 } from '@/hooks/useAdminUserManagement'
 import { motion } from 'framer-motion'
-import {
-	Ban,
-	Eye,
-	Filter,
-	RotateCw,
-	Search,
-	Trash2,
-	UserCheck,
-} from 'lucide-react'
+import { Eye, Filter, RotateCw, Search } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 interface UserManagementTableProps {
@@ -217,7 +209,7 @@ const UserManagementTable = memo(function UserManagementTable({
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-64">
-				<div className="text-lg text-gray-600">Loading users...</div>
+				<div className="text-base text-gray-600">Loading users...</div>
 			</div>
 		)
 	}
@@ -225,7 +217,7 @@ const UserManagementTable = memo(function UserManagementTable({
 	if (error) {
 		return (
 			<div className="flex items-center justify-center h-64">
-				<div className="text-lg text-red-600">Error: {error}</div>
+				<div className="text-base text-red-600">Error: {error}</div>
 			</div>
 		)
 	}
@@ -234,7 +226,7 @@ const UserManagementTable = memo(function UserManagementTable({
 		<div className="space-y-8">
 			{/* Header and Search */}
 			<div className="flex justify-between items-center gap-6">
-				<h2 className="text-3xl font-bold text-black capitalize min-w-fit">
+				<h2 className="text-2xl font-bold text-black capitalize min-w-fit">
 					{userType}s ({total} total)
 				</h2>
 
@@ -342,7 +334,7 @@ const UserManagementTable = memo(function UserManagementTable({
 											<div className="text-gray-700 text-sm text-center group relative">
 												<div className="truncate">{user.email}</div>
 												{user.email.length > 25 && (
-													<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
+													<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
 														{user.email}
 													</div>
 												)}
@@ -373,40 +365,10 @@ const UserManagementTable = memo(function UserManagementTable({
 													variant="secondary"
 													size="sm"
 													onClick={() => onViewDetails(user.id)}
-													className="text-[#126E64] hover:bg-[#126E64] hover:text-white text-xs px-2.5 py-1.5 h-auto flex items-center"
+													className="text-[#126E64] hover:bg-[#126E64] hover:text-white text-sm px-2.5 py-1.5 h-auto flex items-center"
 												>
 													<Eye className="w-3.5 h-3.5 mr-1" />
 													<span>Details</span>
-												</Button>
-												{user.banned ? (
-													<Button
-														variant="outline"
-														size="sm"
-														onClick={() => handleUnbanUser(user.id)}
-														className="text-green-600 hover:bg-green-600 hover:text-white text-xs px-2.5 py-1.5 h-auto flex items-center"
-													>
-														<UserCheck className="w-3.5 h-3.5 mr-1" />
-														<span>Unban</span>
-													</Button>
-												) : (
-													<Button
-														variant="outline"
-														size="sm"
-														onClick={() => handleBanUser(user.id)}
-														className="text-orange-600 hover:bg-orange-600 hover:text-white text-xs px-2.5 py-1.5 h-auto flex items-center"
-													>
-														<Ban className="w-3.5 h-3.5 mr-1" />
-														<span>Ban</span>
-													</Button>
-												)}
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => handleRemoveUser(user.id)}
-													className="text-red-600 hover:bg-red-600 hover:text-white text-xs px-2.5 py-1.5 h-auto flex items-center"
-												>
-													<Trash2 className="w-3.5 h-3.5 mr-1" />
-													<span>Remove</span>
 												</Button>
 											</div>
 										</motion.div>
@@ -425,8 +387,8 @@ const UserManagementTable = memo(function UserManagementTable({
 			</Card>
 
 			{/* Pagination */}
-			<div className="flex justify-between items-center mt-8">
-				<div className="text-gray-600 text-sm font-medium">
+			<div className="flex justify-between items-center mt-6">
+				<div className="text-gray-600 text-xs font-medium">
 					Display {Math.min(filters.limit || 10, filteredUsers.length)} results
 					of <span className="font-semibold text-gray-800">{total}</span>
 				</div>
@@ -435,7 +397,7 @@ const UserManagementTable = memo(function UserManagementTable({
 					<button
 						onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
 						disabled={currentPage === 1}
-						className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium"
+						className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
 					>
 						‹
 					</button>
@@ -446,7 +408,7 @@ const UserManagementTable = memo(function UserManagementTable({
 							<button
 								key={pageNum}
 								onClick={() => handlePageChange(pageNum)}
-								className={`w-10 h-10 rounded-full text-sm font-semibold transition-all ${
+								className={`w-8 h-8 rounded-full text-xs font-semibold transition-all ${
 									currentPage === pageNum
 										? 'bg-[#126E64] text-white shadow-md'
 										: 'text-gray-700 hover:bg-gray-100 hover:text-[#126E64]'
@@ -459,10 +421,10 @@ const UserManagementTable = memo(function UserManagementTable({
 
 					{totalPages > 6 && (
 						<>
-							<span className="text-gray-400 mx-1">...</span>
+							<span className="text-gray-400 mx-1 text-xs">...</span>
 							<button
 								onClick={() => handlePageChange(totalPages)}
-								className="w-10 h-10 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
+								className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
 							>
 								{totalPages}
 							</button>
@@ -474,7 +436,7 @@ const UserManagementTable = memo(function UserManagementTable({
 							handlePageChange(Math.min(totalPages, currentPage + 1))
 						}
 						disabled={currentPage === totalPages}
-						className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium"
+						className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
 					>
 						›
 					</button>

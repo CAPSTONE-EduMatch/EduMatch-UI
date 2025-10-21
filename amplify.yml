@@ -4,7 +4,7 @@ frontend:
     preBuild:
       commands:
         # Install pnpm and use it for faster builds
-        - npm install --legacy-peer-deps
+        - npm ci --legacy-peer-deps
         # Create .env file more efficiently with error handling
         - echo "Creating .env file..."
         - echo "DATABASE_URL=$DATABASE_URL" > .env

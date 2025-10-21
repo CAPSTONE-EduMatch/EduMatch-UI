@@ -83,39 +83,33 @@ function getRoleBasedRedirect(role: string | null): string {
 // Edge Runtime compatible auth check function
 async function checkAuthentication(request: NextRequest) {
 	try {
-		// Get all cookies and log them for debugging
-		const allCookies = request.cookies.getAll();
-		// eslint-disable-next-line no-console
-		console.log(
-			`[MIDDLEWARE] Available cookies:`,
-			allCookies.map((c) => c.name)
+		// Use the same authentication method as the profile API
+		const sessionResponse = await fetch(
+			`${request.nextUrl.origin}/api/auth/get-session`,
+			{
+				headers: {
+					Cookie: request.headers.get("cookie") || "",
+				},
+			}
 		);
 
-		// Check for Better Auth session - try common cookie names
-		const sessionCookie = allCookies.find(
-			(cookie) =>
-				cookie.name.includes("session") ||
-				cookie.name.includes("auth") ||
-				cookie.name.includes("better-auth")
-		);
-
-		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] Found session cookie:`, sessionCookie?.name);
-
-		// Better Auth session validation: If session cookies exist, user is authenticated
-		if (sessionCookie && sessionCookie.name.includes("session")) {
-			// eslint-disable-next-line no-console
-			console.log(
-				`[MIDDLEWARE] Valid session cookie - user authenticated`
-			);
-			return {
-				isAuthenticated: true,
-				userId: null,
-			};
+		if (sessionResponse.ok) {
+			const sessionData = await sessionResponse.json();
+			if (sessionData?.user) {
+				// eslint-disable-next-line no-console
+				console.log(
+					`[MIDDLEWARE] Valid session found - user authenticated:`,
+					sessionData.user.id
+				);
+				return {
+					isAuthenticated: true,
+					userId: sessionData.user.id,
+				};
+			}
 		}
 
 		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] No valid session cookie found`);
+		console.log(`[MIDDLEWARE] No valid session found`);
 		return { isAuthenticated: false, userId: null };
 	} catch (error) {
 		// eslint-disable-next-line no-console
@@ -143,13 +137,31 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
+	// Skip middleware for client-side navigation to prevent hydration issues
+	if (request.headers.get("x-middleware-rewrite")) {
+		// eslint-disable-next-line no-console
+		console.log(`[MIDDLEWARE] Skipping rewrite request: ${pathname}`);
+		return NextResponse.next();
+	}
+
 	try {
 		// Use Edge Runtime compatible auth check
 		const { isAuthenticated, userId } = await checkAuthentication(request);
 
 		// Debug logging
 		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] ${pathname} - Auth: ${isAuthenticated}`);
+		console.log(
+			`[MIDDLEWARE] ${pathname} - Auth: ${isAuthenticated}, UserId: ${userId}`
+		);
+
+		// Additional debugging for profile routes
+		if (
+			pathname.startsWith("/applicant-profile") ||
+			pathname.startsWith("/institution-profile")
+		) {
+			// eslint-disable-next-line no-console
+			console.log(`[MIDDLEWARE] Profile route detected: ${pathname}`);
+		}
 
 		// Route flags
 		const isPublicRoute =
@@ -222,7 +234,16 @@ export async function middleware(request: NextRequest) {
 
 		// Handle protected routes
 		if (isProtectedRoute) {
+			// eslint-disable-next-line no-console
+			console.log(
+				`[MIDDLEWARE] Protected route ${pathname} - Auth: ${isAuthenticated}`
+			);
+
 			if (!isAuthenticated) {
+				// eslint-disable-next-line no-console
+				console.log(
+					`[MIDDLEWARE] Redirecting unauthenticated user from ${pathname} to signin`
+				);
 				// Store the attempted URL to redirect after login
 				const response = NextResponse.redirect(
 					new URL(
@@ -234,38 +255,13 @@ export async function middleware(request: NextRequest) {
 				return response;
 			}
 
-			// Check if profile is required for this route
+			// For profile routes, let the client-side handle profile checks to avoid hydration issues
+			// The client-side components will check for profile existence and redirect if needed
 			if (requiresProfile && isAuthenticated) {
-				try {
-					// Check if user has profile by calling the profile API
-					const profileResponse = await fetch(
-						`${request.nextUrl.origin}/api/profile`,
-						{
-							headers: {
-								Cookie: request.headers.get("cookie") || "",
-							},
-						}
-					);
-
-					if (profileResponse.status === 404 || !profileResponse.ok) {
-						// No profile found, redirect to create profile
-						return NextResponse.redirect(
-							new URL(
-								routeConfig.defaultRedirects.createProfile,
-								request.url
-							)
-						);
-					}
-				} catch (error) {
-					// On error checking profile, redirect to profile creation to be safe
-					console.error("[MIDDLEWARE] Profile check error:", error);
-					return NextResponse.redirect(
-						new URL(
-							routeConfig.defaultRedirects.createProfile,
-							request.url
-						)
-					);
-				}
+				// eslint-disable-next-line no-console
+				console.log(
+					`[MIDDLEWARE] Profile route detected, allowing access - client will handle profile check`
+				);
 			}
 			return NextResponse.next();
 		}

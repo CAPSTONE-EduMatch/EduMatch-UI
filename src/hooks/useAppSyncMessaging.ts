@@ -10,7 +10,7 @@ import {
 	subscribeToThreadUpdates,
 	subscribeToAllMessages,
 } from "@/lib/appsync-client";
-import { authClient } from "@/app/lib/auth-client";
+import { useAuthCheck } from "./useAuthCheck";
 
 export interface Message {
 	id: string;
@@ -53,6 +53,13 @@ export const useAppSyncMessaging = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [user, setUser] = useState<any>(null);
+
+	// Use the auth check hook to get authentication state
+	const {
+		isAuthenticated,
+		user: authUser,
+		isLoading: authLoading,
+	} = useAuthCheck();
 
 	// Load all threads
 	const loadThreads = useCallback(async () => {
@@ -248,23 +255,41 @@ export const useAppSyncMessaging = () => {
 		};
 	}, [selectedThreadId, user?.id, loadThreads]);
 
-	// Initialize user and load threads when user is available
+	// Initialize user and load threads when authentication state changes
 	useEffect(() => {
 		const initUserAndLoadThreads = async () => {
+			// Don't proceed if auth is still loading
+			if (authLoading) {
+				console.log(
+					"useAppSyncMessaging - Auth still loading, waiting..."
+				);
+				return;
+			}
+
+			// Don't proceed if not authenticated
+			if (!isAuthenticated || !authUser) {
+				console.log(
+					"useAppSyncMessaging - Not authenticated or no user"
+				);
+				setUser(null);
+				setThreads([]);
+				setMessages([]);
+				return;
+			}
+
 			try {
-				const session = await authClient.getSession();
-				if (session?.data?.user) {
-					setUser(session.data.user);
-					// Load threads after user is available
-					await loadThreads();
-				}
+				console.log(
+					"useAppSyncMessaging - User authenticated, loading threads"
+				);
+				setUser(authUser);
+				await loadThreads();
 			} catch (error) {
-				console.error("Error initializing user:", error);
+				console.error("Error loading threads:", error);
 			}
 		};
 
 		initUserAndLoadThreads();
-	}, [loadThreads]);
+	}, [isAuthenticated, authUser, authLoading, loadThreads]);
 
 	return {
 		messages,

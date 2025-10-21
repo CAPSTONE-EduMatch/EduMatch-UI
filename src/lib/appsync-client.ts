@@ -285,8 +285,8 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 				retryCount
 			);
 
-			// Retry up to 3 times with increasing delay
-			if (retryCount < 3) {
+			// Retry up to 5 times with increasing delay (increased from 3)
+			if (retryCount < 5) {
 				console.log(
 					"AppSync getThreads - Retrying in",
 					(retryCount + 1) * 1000,
@@ -298,7 +298,11 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 				return getThreads(retryCount + 1);
 			}
 
-			throw new Error("User authentication required");
+			// Don't throw error, just return empty array to prevent infinite loops
+			console.warn(
+				"AppSync getThreads - Max retries reached, returning empty array"
+			);
+			return [];
 		}
 
 		console.log(
@@ -419,8 +423,13 @@ export const clearThreadUnreadCount = async (threadId: string) => {
 };
 
 // Helper function to get user context for AppSync requests
-const getUserContext = async () => {
+const getUserContext = async (retryCount = 0): Promise<any> => {
 	try {
+		// Add a small delay to ensure Better Auth is fully initialized
+		if (retryCount === 0) {
+			await new Promise((resolve) => setTimeout(resolve, 500));
+		}
+
 		const session = await authClient.getSession();
 		console.log(
 			"AppSync getUserContext - Full session object:",
@@ -442,6 +451,17 @@ const getUserContext = async () => {
 			};
 			console.log("AppSync getUserContext - User context:", userContext);
 			return userContext;
+		}
+
+		// If no user found but we have a session, retry with delay
+		if (session && retryCount < 5) {
+			console.log(
+				`AppSync getUserContext - No user found, retrying in ${(retryCount + 1) * 1000}ms (attempt ${retryCount + 1}/5)`
+			);
+			await new Promise((resolve) =>
+				setTimeout(resolve, (retryCount + 1) * 1000)
+			);
+			return getUserContext(retryCount + 1);
 		}
 
 		console.log(

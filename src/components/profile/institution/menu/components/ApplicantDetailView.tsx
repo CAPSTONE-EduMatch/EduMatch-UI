@@ -199,14 +199,17 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				<div className="h-full flex flex-col">
 					{/* Documents List - Scrollable */}
 					<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
-						<div className="space-y-6">
+						<div className="pt-4 space-y-6">
 							{['cv', 'certificate', 'degree', 'transcript', 'research'].map(
 								(type) => {
 									const typeDocs = getDocumentsByType(type as Document['type'])
 									if (typeDocs.length === 0) return null
 
 									return (
-										<div key={type}>
+										<div
+											key={type}
+											className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+										>
 											<div className="flex justify-between items-center mb-4">
 												<h3 className="text-lg font-semibold">
 													{getDocumentTypeLabel(type as Document['type'])}

@@ -19,6 +19,7 @@ export {
 	SelectSeparator,
 } from "./inputs/select";
 export { default as CustomSelect } from "./inputs/custom-select";
+export { default as RichTextEditor } from "./inputs/RichTextEditor";
 
 // Cards
 export {

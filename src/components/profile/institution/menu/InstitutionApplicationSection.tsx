@@ -30,6 +30,7 @@ export const InstitutionApplicationSection: React.FC<
 	const applicants: Applicant[] = [
 		{
 			id: '1',
+			postId: 'PROG-001',
 			name: 'Adam Smith',
 			appliedDate: '01/01/2022',
 			degreeLevel: 'Bachelor',
@@ -39,6 +40,7 @@ export const InstitutionApplicationSection: React.FC<
 		},
 		{
 			id: '2',
+			postId: 'SCHOL-002',
 			name: 'John Doe',
 			appliedDate: '02/01/2022',
 			degreeLevel: 'Master',
@@ -48,6 +50,7 @@ export const InstitutionApplicationSection: React.FC<
 		},
 		{
 			id: '3',
+			postId: 'LAB-003',
 			name: 'Jane Wilson',
 			appliedDate: '03/01/2022',
 			degreeLevel: 'PhD',
@@ -57,6 +60,7 @@ export const InstitutionApplicationSection: React.FC<
 		},
 		{
 			id: '4',
+			postId: 'PROG-004',
 			name: 'Mike Johnson',
 			appliedDate: '04/01/2022',
 			degreeLevel: 'Bachelor',
@@ -66,6 +70,7 @@ export const InstitutionApplicationSection: React.FC<
 		},
 		{
 			id: '5',
+			postId: 'SCHOL-005',
 			name: 'Sarah Brown',
 			appliedDate: '05/01/2022',
 			degreeLevel: 'Master',
@@ -146,6 +151,17 @@ export const InstitutionApplicationSection: React.FC<
 		// TODO: Implement require update functionality
 	}
 
+	const handleStatusChange = (applicantId: string, newStatus: string) => {
+		console.log(
+			'Status change for applicant:',
+			applicantId,
+			'to status:',
+			newStatus
+		)
+		// TODO: Implement status update functionality
+		// This would typically update the applicant's status in the database
+	}
+
 	// Show detail view if an applicant is selected
 	if (selectedApplicant) {
 		return (
@@ -163,7 +179,7 @@ export const InstitutionApplicationSection: React.FC<
 	// Show list view by default
 	return (
 		<div className="space-y-6">
-			<div className="bg-white rounded-xl shadow-sm p-6 w-full py-8 border">
+			<div className="rounded-xl p-6 w-full py-8">
 				{/* Page Title */}
 				<h1 className="text-2xl font-bold text-gray-900 mb-4">
 					{profile?.institutionName || 'Institution'}&apos;s name
@@ -177,11 +193,7 @@ export const InstitutionApplicationSection: React.FC<
 				/>
 
 				{/* Applicants Section */}
-				<div>
-					<div className="border-b border-gray-200 pb-4 mb-6">
-						<h2 className="text-xl font-bold text-gray-900">Applicants</h2>
-					</div>
-
+				<div className="border bg-white border-gray-200 rounded-xl p-6">
 					{/* Search and Filter Bar */}
 					<SearchAndFilter
 						searchQuery={searchQuery}
@@ -196,6 +208,7 @@ export const InstitutionApplicationSection: React.FC<
 					<ApplicantsTable
 						applicants={paginatedApplicants}
 						onMoreDetail={handleMoreDetail}
+						onStatusChange={handleStatusChange}
 					/>
 
 					{/* Pagination */}

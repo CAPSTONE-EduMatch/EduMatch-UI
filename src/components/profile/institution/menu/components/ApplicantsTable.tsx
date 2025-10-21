@@ -4,6 +4,7 @@ import React from 'react'
 
 export interface Applicant {
 	id: string
+	postId: string
 	name: string
 	appliedDate: string
 	degreeLevel: string
@@ -15,11 +16,13 @@ export interface Applicant {
 interface ApplicantsTableProps {
 	applicants: Applicant[]
 	onMoreDetail: (applicant: Applicant) => void
+	onStatusChange?: (applicantId: string, newStatus: string) => void
 }
 
 export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 	applicants,
 	onMoreDetail,
+	onStatusChange,
 }) => {
 	const getStatusColor = (status: string) => {
 		switch (status) {
@@ -65,7 +68,8 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 	return (
 		<div className="overflow-x-auto">
 			<div className="w-full min-w-full">
-				<div className="bg-[#126E64] text-white grid grid-cols-7 px-8 py-5 text-center font-bold text-base">
+				<div className="bg-[#126E64] text-white grid grid-cols-8 px-8 py-5 text-center font-bold text-base">
+					<div className="text-left">Post ID</div>
 					<div className="text-left">Name</div>
 					<div>Applied Date</div>
 					<div>Degree Level</div>
@@ -83,8 +87,21 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 						return (
 							<div
 								key={applicant.id}
-								className={`${rowBg} grid grid-cols-7 px-8 py-5 items-center`}
+								className={`${rowBg} grid grid-cols-8 px-8 py-5 items-center`}
 							>
+								{/* Post ID */}
+								<div className="text-left">
+									<button
+										onClick={() => {
+											// TODO: Navigate to post details
+											console.log('Navigate to post:', applicant.postId)
+										}}
+										className="text-[#126E64] hover:text-[#126E64] text-sm underline hover:no-underline transition-all duration-200 font-medium"
+									>
+										{applicant.postId}
+									</button>
+								</div>
+
 								{/* Name */}
 								<div className="font-semibold text-base text-black text-left group relative">
 									<div className="truncate">{applicant.name}</div>
@@ -117,11 +134,19 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 
 								{/* Status */}
 								<div className="text-center">
-									<span
-										className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(applicant.status)}`}
+									<select
+										value={applicant.status}
+										onChange={(e) =>
+											onStatusChange?.(applicant.id, e.target.value)
+										}
+										className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 outline-none cursor-pointer ${getStatusColor(applicant.status)}`}
 									>
-										{getStatusLabel(applicant.status)}
-									</span>
+										<option value="submitted">Submitted</option>
+										<option value="under_review">Under review</option>
+										<option value="accepted">Accepted</option>
+										<option value="rejected">Rejected</option>
+										<option value="new_request">New request</option>
+									</select>
 								</div>
 
 								{/* Matching Score */}

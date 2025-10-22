@@ -54,7 +54,55 @@ export default function AdminUserManagement() {
 	]
 
 	const handleViewDetails = (userId: string) => {
-		router.push(`/admin/users/${userId}`)
+		if (activeTab === 'institutions') {
+			router.push(`/admin/institutions/${userId}`)
+		} else {
+			router.push(`/admin/users/${userId}`)
+		}
+	}
+
+	const handleSectionChange = (section: string) => {
+		switch (section) {
+			case 'user':
+				router.push('/admin/users')
+				break
+			case 'institution':
+				router.push('/admin/institutions')
+				break
+			case 'dashboard':
+				router.push('/admin/dashboard')
+				break
+			case 'certifications':
+				router.push('/admin/certifications')
+				break
+			case 'posts':
+				router.push('/admin/posts')
+				break
+			case 'discipline':
+				router.push('/admin/discipline')
+				break
+			case 'plan':
+				router.push('/admin/plan')
+				break
+			case 'transaction':
+				router.push('/admin/transaction')
+				break
+			case 'supports':
+				router.push('/admin/supports')
+				break
+			case 'track-user-log':
+				router.push('/admin/track-user-log')
+				break
+			case 'logout':
+				// Handle logout logic here
+				if (confirm('Are you sure you want to log out?')) {
+					router.push('/auth/login')
+				}
+				break
+			default:
+				// Stay on current page for unknown sections
+				break
+		}
 	}
 
 	if (!isClient) {
@@ -71,9 +119,7 @@ export default function AdminUserManagement() {
 			<div className="w-[289px] bg-[#126E64] min-h-screen fixed left-0 top-0 z-10">
 				<ProfileSidebar
 					activeSection="user"
-					onSectionChange={() => {
-						// TODO: Implement proper navigation routing
-					}}
+					onSectionChange={handleSectionChange}
 					navItems={sidebarItems}
 					showProfileSection={false}
 					logoSection={<AdminLogoSection />}

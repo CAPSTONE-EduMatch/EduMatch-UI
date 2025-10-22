@@ -3,6 +3,7 @@
 import { UserManagementTable } from '@/components/admin/UserManagementTable'
 import { ProfileSidebar } from '@/components/profile/ProfileSidebar'
 import { Card, CardContent } from '@/components/ui'
+import { useAdminAuth } from '@/hooks/useAdminAuth'
 import { motion } from 'framer-motion'
 import { Building2, GraduationCap, Users } from 'lucide-react'
 import Image from 'next/image'
@@ -43,6 +44,7 @@ export default function AdminUserManagement() {
 	)
 	const [isClient, setIsClient] = useState(false)
 	const router = useRouter()
+	const { isAdmin, isLoading } = useAdminAuth()
 
 	useEffect(() => {
 		setIsClient(true)
@@ -105,13 +107,17 @@ export default function AdminUserManagement() {
 		}
 	}
 
-	if (!isClient) {
+	// Show loading while checking admin auth or client hydration
+	if (!isClient || isLoading) {
 		return (
 			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
 			</div>
 		)
 	}
+
+	// Admin auth hook handles redirect if user is not admin
+	// If we reach this point, user is authorized
 
 	return (
 		<div className="min-h-screen bg-[#F5F7FB] flex">

@@ -3,6 +3,7 @@
 import { BanUnbanModal } from '@/components/admin/BanUnbanModal'
 import { DocumentSection } from '@/components/admin/DocumentComponents'
 import { ProfileSidebar } from '@/components/profile/ProfileSidebar'
+import { useAdminAuth } from '@/hooks/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/user-details'
 import { motion } from 'framer-motion'
 import {
@@ -75,6 +76,7 @@ export default function UserDetailPage() {
 	const [showBanModal, setShowBanModal] = useState(false)
 	const router = useRouter()
 	const params = useParams()
+	const { isAdmin, isLoading: adminLoading } = useAdminAuth()
 
 	useEffect(() => {
 		setIsClient(true)
@@ -245,7 +247,7 @@ export default function UserDetailPage() {
 		}
 	}
 
-	if (!isClient || loading) {
+	if (!isClient || loading || adminLoading) {
 		return (
 			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>

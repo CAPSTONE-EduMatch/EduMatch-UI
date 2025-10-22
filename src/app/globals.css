@@ -1,5 +1,48 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'react-quill/dist/quill.snow.css';
+
+/* Custom Quill Editor Styling */
+.ql-toolbar {
+	background-color: #f8f9fa !important;
+	border-bottom: 1px solid #e9ecef !important;
+	border-top: 1px solid #e9ecef !important;
+	border-left: 1px solid #e9ecef !important;
+	border-right: 1px solid #e9ecef !important;
+	border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.ql-container {
+	border-bottom: 1px solid #e9ecef !important;
+	border-left: 1px solid #e9ecef !important;
+	border-right: 1px solid #e9ecef !important;
+	border-radius: 0 0 0.5rem 0.5rem !important;
+}
+
+.ql-editor {
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.ql-toolbar .ql-formats {
+	margin-right: 15px;
+}
+
+.ql-toolbar button {
+	width: 28px;
+	height: 28px;
+	margin: 1px;
+}
+
+/* Rich Text Editor - Simple Hover Effects */
+.ql-container:hover {
+	border-color: #e5e7eb !important;
+}
+
+.ql-container:focus-within {
+	border-color: transparent !important;
+	box-shadow: 0 0 0 2px #126e64 !important;
+}
 
 @custom-variant dark (&:is(.dark *));
 

@@ -4,7 +4,8 @@ import { Card, CardContent } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { ApiService, cacheUtils } from '@/lib/axios-config'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
-import { AuthRequiredModal } from '@/components/auth'
+// AuthRequiredModal is no longer needed - using AuthWrapper instead
+import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
@@ -129,7 +130,7 @@ export default function ApplicantViewProfile() {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const [profile, setProfile] = useState<ProfileData | null>(null)
-	const [loading, setLoading] = useState(true)
+	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
 	// Initialize active section from URL parameter or default to 'profile'
@@ -166,21 +167,31 @@ export default function ApplicantViewProfile() {
 		user,
 	} = useAuthCheck()
 
-	// Get current user ID and fetch profile
+	// Debug authentication state (only in development)
+	if (process.env.NODE_ENV === 'development') {
+		console.log('🔍 Profile Page Auth State:', {
+			isAuthenticated,
+			authLoading,
+			user: user?.id,
+			showAuthModal,
+		})
+	}
+
+	// Get current user ID and fetch profile - only when authenticated
 	useEffect(() => {
 		const getCurrentUserAndProfile = async () => {
-			// Only proceed if authentication is fully loaded and user is authenticated
-			if (authLoading) {
-				return // Still loading auth, don't proceed
-			}
-
+			// Only proceed if user is authenticated (AuthWrapper handles the auth check)
 			if (!isAuthenticated) {
-				setLoading(false)
 				return
 			}
 
 			// Only fetch profile if we haven't already loaded it
 			if (profile) {
+				return
+			}
+
+			// Prevent multiple simultaneous profile fetches
+			if (loading) {
 				return
 			}
 
@@ -211,7 +222,7 @@ export default function ApplicantViewProfile() {
 			}
 		}
 		getCurrentUserAndProfile()
-	}, [isAuthenticated, authLoading, profile, router])
+	}, [isAuthenticated, profile, router, loading])
 
 	const refreshProfile = async () => {
 		setLoading(true)
@@ -227,31 +238,14 @@ export default function ApplicantViewProfile() {
 		}
 	}
 
-	// Show loading state while checking auth or profile
-	if (authLoading || (isAuthenticated && loading && !profile)) {
+	// Show loading state while fetching profile data - only if authenticated
+	if (isAuthenticated && loading && !profile) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
 					<p className="mt-4 text-muted-foreground">Loading profile...</p>
 				</div>
-			</div>
-		)
-	}
-
-	// Show authentication modal if user is not authenticated
-	if (!isAuthenticated) {
-		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<h1 className="text-3xl font-bold text-primary mb-4">
-						Applicant Profile
-					</h1>
-					<p className="text-muted-foreground">
-						Please sign in to view your profile
-					</p>
-				</div>
-				<AuthRequiredModal isOpen={showAuthModal} onClose={closeAuthModal} />
 			</div>
 		)
 	}
@@ -271,7 +265,8 @@ export default function ApplicantViewProfile() {
 		)
 	}
 
-	if (!profile) {
+	// Only show "No Profile Found" if user is authenticated but no profile exists
+	if (isAuthenticated && !profile) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<Card className="w-full max-w-md">
@@ -350,13 +345,18 @@ export default function ApplicantViewProfile() {
 	}
 
 	return (
-		<ApplicantProfileLayout
-			activeSection={activeSection}
-			onSectionChange={setActiveSection}
-			profile={profile}
-			onEditProfile={handleEditProfile}
+		<AuthWrapper
+			pageTitle="Applicant Profile"
+			pageDescription="Please sign in to view your profile"
 		>
-			{renderSectionContent()}
-		</ApplicantProfileLayout>
+			<ApplicantProfileLayout
+				activeSection={activeSection}
+				onSectionChange={setActiveSection}
+				profile={profile}
+				onEditProfile={handleEditProfile}
+			>
+				{renderSectionContent()}
+			</ApplicantProfileLayout>
+		</AuthWrapper>
 	)
 }

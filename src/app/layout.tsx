@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { NotificationProvider } from '@/contexts/NotificationContext'
+import { AuthProvider } from '@/contexts/AuthContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ export default function RootLayout({
 			<body className={inter.className}>
 				<QueryProvider>
 					<NextIntlClientProvider>
-						<NotificationProvider>{children}</NotificationProvider>
+						<AuthProvider>
+							<NotificationProvider>{children}</NotificationProvider>
+						</AuthProvider>
 					</NextIntlClientProvider>
 				</QueryProvider>
 			</body>

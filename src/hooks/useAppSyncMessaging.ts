@@ -69,7 +69,6 @@ export const useAppSyncMessaging = () => {
 			const threadsData = await getThreads();
 			setThreads(threadsData);
 		} catch (err) {
-			console.error("Error loading threads:", err);
 			setError("Failed to load threads");
 		} finally {
 			setLoading(false);
@@ -84,7 +83,6 @@ export const useAppSyncMessaging = () => {
 			const messagesData = await getMessages(threadId);
 			setMessages(messagesData);
 		} catch (err) {
-			console.error("Error loading messages:", err);
 			setError("Failed to load messages");
 		} finally {
 			setLoading(false);
@@ -118,7 +116,6 @@ export const useAppSyncMessaging = () => {
 
 				return message;
 			} catch (err) {
-				console.error("Error sending message:", err);
 				setError("Failed to send message");
 				throw err;
 			}
@@ -137,7 +134,6 @@ export const useAppSyncMessaging = () => {
 
 			return thread;
 		} catch (err) {
-			console.error("Error creating thread:", err);
 			setError("Failed to create thread");
 			throw err;
 		}
@@ -146,15 +142,8 @@ export const useAppSyncMessaging = () => {
 	// Mark message as read
 	const markAsRead = useCallback(async (messageId: string) => {
 		try {
-			console.log(
-				"useAppSyncMessaging - markAsRead called with messageId:",
-				messageId
-			);
 			setError(null);
 			await markMessageAsRead(messageId);
-			console.log(
-				"useAppSyncMessaging - markMessageAsRead completed successfully"
-			);
 
 			// Update local state
 			setMessages((prev) =>
@@ -169,7 +158,6 @@ export const useAppSyncMessaging = () => {
 				)
 			);
 		} catch (err) {
-			console.error("Error marking message as read:", err);
 			setError("Failed to mark message as read");
 		}
 	}, []);
@@ -178,20 +166,12 @@ export const useAppSyncMessaging = () => {
 	const clearUnreadCount = useCallback(
 		async (threadId: string) => {
 			try {
-				console.log(
-					"useAppSyncMessaging - clearUnreadCount called with threadId:",
-					threadId
-				);
 				setError(null);
 				await clearThreadUnreadCount(threadId);
-				console.log(
-					"useAppSyncMessaging - clearThreadUnreadCount completed successfully"
-				);
 
 				// Refresh threads to get updated unread counts
 				loadThreads();
 			} catch (err) {
-				console.error("Error clearing unread count:", err);
 				setError("Failed to clear unread count");
 			}
 		},
@@ -210,7 +190,6 @@ export const useAppSyncMessaging = () => {
 	// Set up subscriptions
 	useEffect(() => {
 		if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-			console.warn("AppSync not configured, skipping subscriptions");
 			return;
 		}
 
@@ -260,36 +239,32 @@ export const useAppSyncMessaging = () => {
 		const initUserAndLoadThreads = async () => {
 			// Don't proceed if auth is still loading
 			if (authLoading) {
-				console.log(
-					"useAppSyncMessaging - Auth still loading, waiting..."
-				);
 				return;
 			}
 
 			// Don't proceed if not authenticated
 			if (!isAuthenticated || !authUser) {
-				console.log(
-					"useAppSyncMessaging - Not authenticated or no user"
-				);
 				setUser(null);
 				setThreads([]);
 				setMessages([]);
 				return;
 			}
 
+			// Prevent duplicate initialization
+			if (user && user.id === authUser.id) {
+				return;
+			}
+
 			try {
-				console.log(
-					"useAppSyncMessaging - User authenticated, loading threads"
-				);
 				setUser(authUser);
 				await loadThreads();
 			} catch (error) {
-				console.error("Error loading threads:", error);
+				// Error loading threads silently
 			}
 		};
 
 		initUserAndLoadThreads();
-	}, [isAuthenticated, authUser, authLoading, loadThreads]);
+	}, [isAuthenticated, authUser, authLoading, loadThreads, user]);
 
 	return {
 		messages,

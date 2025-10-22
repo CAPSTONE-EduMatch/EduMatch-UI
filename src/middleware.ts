@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Inline route configuration to avoid Edge Runtime issues
 const routeConfig = {
-	publicRoutes: ["/", "/about", "/api/health"],
+	publicRoutes: ["/", "/about", "/api/health", "/explore"],
 	authRoutes: ["/signin", "/signup", "/forgot-password"],
 	// All routes that require authentication
 	protectedRoutes: [
@@ -64,7 +64,7 @@ async function getUserRole(request: NextRequest): Promise<string | null> {
 
 		return null;
 	} catch (error) {
-		console.error("[MIDDLEWARE] Error getting user role:", error);
+		// Silently handle role check errors
 		return null;
 	}
 }
@@ -85,11 +85,7 @@ async function checkAuthentication(request: NextRequest) {
 	try {
 		// Get all cookies and check for Better Auth session cookies
 		const allCookies = request.cookies.getAll();
-		// eslint-disable-next-line no-console
-		console.log(
-			`[MIDDLEWARE] Available cookies:`,
-			allCookies.map((c) => c.name)
-		);
+		// Skip cookie logging to reduce console spam
 
 		// Look for Better Auth session cookies with more comprehensive patterns
 		const sessionCookie = allCookies.find(
@@ -105,11 +101,7 @@ async function checkAuthentication(request: NextRequest) {
 		);
 
 		if (sessionCookie) {
-			// eslint-disable-next-line no-console
-			console.log(
-				`[MIDDLEWARE] Found session cookie - user authenticated:`,
-				sessionCookie.name
-			);
+			// Session cookie found - user is authenticated
 			return {
 				isAuthenticated: true,
 				userId: null, // We don't have user ID from cookie alone
@@ -119,22 +111,17 @@ async function checkAuthentication(request: NextRequest) {
 		// In production, be more lenient - if we can't detect auth, let the client handle it
 		// This prevents hydration mismatches and allows client-side auth checks
 		if (process.env.NODE_ENV === "production") {
-			// eslint-disable-next-line no-console
-			console.log(
-				`[MIDDLEWARE] Production mode - allowing access, client will handle auth`
-			);
+			// Production mode - allowing access, client will handle auth
 			return {
 				isAuthenticated: true, // Assume authenticated in production to avoid redirects
 				userId: null,
 			};
 		}
 
-		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] No valid session found`);
+		// No valid session found
 		return { isAuthenticated: false, userId: null };
 	} catch (error) {
-		// eslint-disable-next-line no-console
-		console.error("[MIDDLEWARE] Auth check error:", error);
+		// Silently handle auth check errors
 		return { isAuthenticated: false, userId: null };
 	}
 }
@@ -142,9 +129,10 @@ async function checkAuthentication(request: NextRequest) {
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
-	// Debug: Log all requests
-	// eslint-disable-next-line no-console
-	console.log(`[MIDDLEWARE] Processing: ${pathname}`);
+	// Debug: Log all requests (only in development)
+	if (process.env.NODE_ENV === "development") {
+		console.log(`[MIDDLEWARE] Processing: ${pathname}`);
+	}
 
 	// Skip middleware for static files and API routes (except auth API)
 	if (
@@ -153,29 +141,25 @@ export async function middleware(request: NextRequest) {
 		pathname.includes(".") ||
 		pathname.startsWith("/favicon")
 	) {
-		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] Skipping: ${pathname}`);
+		// Skip logging for static files to reduce console spam
 		return NextResponse.next();
 	}
 
 	// Skip middleware for client-side navigation to prevent hydration issues
 	if (request.headers.get("x-middleware-rewrite")) {
-		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] Skipping rewrite request: ${pathname}`);
+		// Skip logging for rewrite requests to reduce console spam
 		return NextResponse.next();
 	}
 
 	// Skip middleware for Next.js internal requests
 	if (request.headers.get("x-nextjs-data")) {
-		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] Skipping Next.js data request: ${pathname}`);
+		// Skip logging for Next.js data requests to reduce console spam
 		return NextResponse.next();
 	}
 
 	// Skip middleware for client-side navigation requests
 	if (request.headers.get("x-nextjs-router-state-tree")) {
-		// eslint-disable-next-line no-console
-		console.log(`[MIDDLEWARE] Skipping client navigation: ${pathname}`);
+		// Skip logging for client navigation to reduce console spam
 		return NextResponse.next();
 	}
 
@@ -183,19 +167,14 @@ export async function middleware(request: NextRequest) {
 		// Use Edge Runtime compatible auth check
 		const { isAuthenticated, userId } = await checkAuthentication(request);
 
-		// Debug logging
-		// eslint-disable-next-line no-console
-		console.log(
-			`[MIDDLEWARE] ${pathname} - Auth: ${isAuthenticated}, UserId: ${userId}`
-		);
+		// Skip debug logging to reduce console spam
 
 		// Additional debugging for profile routes
 		if (
 			pathname.startsWith("/applicant-profile") ||
 			pathname.startsWith("/institution-profile")
 		) {
-			// eslint-disable-next-line no-console
-			console.log(`[MIDDLEWARE] Profile route detected: ${pathname}`);
+			// Profile route detected - skip logging to reduce console spam
 		}
 
 		// Route flags
@@ -262,37 +241,13 @@ export async function middleware(request: NextRequest) {
 			}
 		}
 
-		// Handle protected routes
+		// Handle protected routes - let client handle authentication modals
 		if (isProtectedRoute) {
-			// eslint-disable-next-line no-console
-			console.log(
-				`[MIDDLEWARE] Protected route ${pathname} - Auth: ${isAuthenticated}`
-			);
+			// Protected route access - skip logging to reduce console spam
 
-			// Only redirect to signin if we're absolutely sure the user is not authenticated
-			// This prevents hydration mismatches in production
-			if (!isAuthenticated) {
-				// eslint-disable-next-line no-console
-				console.log(
-					`[MIDDLEWARE] Redirecting unauthenticated user from ${pathname} to signin`
-				);
-				// Store the attempted URL to redirect after login
-				const response = NextResponse.redirect(
-					new URL(
-						routeConfig.defaultRedirects.afterLogout,
-						request.url
-					)
-				);
-				response.cookies.set("redirectAfterLogin", pathname);
-				return response;
-			}
-
-			// For all protected routes, let the client-side handle additional checks
-			// This prevents server-side redirects that cause hydration mismatches
-			// eslint-disable-next-line no-console
-			console.log(
-				`[MIDDLEWARE] Protected route access granted - client will handle additional checks`
-			);
+			// For all protected routes, let the client-side handle authentication
+			// This allows the AuthRequiredModal to show consistently across all protected pages
+			// Client will handle auth modal
 			return NextResponse.next();
 		}
 

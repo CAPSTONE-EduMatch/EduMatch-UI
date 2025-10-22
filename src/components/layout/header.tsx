@@ -36,6 +36,38 @@ export function EduMatchHeader() {
 	// Get authentication state
 	const { isAuthenticated, refreshAuth } = useAuthCheck()
 
+	// Fallback: Check session directly if useAuthCheck fails
+	useEffect(() => {
+		const checkSessionDirectly = async () => {
+			try {
+				const session = await authClient.getSession()
+				const hasUser = session?.data?.user
+				const hasSession = session?.data?.session
+				const isActuallyAuth = !!(hasUser && hasSession)
+
+				console.log('🔍 Direct session check:', {
+					hasUser: !!hasUser,
+					hasSession: !!hasSession,
+					isActuallyAuth,
+					useAuthCheckResult: isAuthenticated,
+				})
+
+				// If direct check shows authenticated but useAuthCheck doesn't, refresh
+				if (isActuallyAuth && !isAuthenticated) {
+					console.log('🔄 Session mismatch detected, refreshing auth...')
+					refreshAuth()
+				}
+			} catch (error) {
+				console.log('❌ Direct session check failed:', error)
+			}
+		}
+
+		// Only run this check if useAuthCheck says not authenticated
+		if (!isAuthenticated) {
+			checkSessionDirectly()
+		}
+	}, [isAuthenticated, refreshAuth])
+
 	// Get user profile data
 	const { profile: userProfile, isLoading: profileLoading } = useUserProfile()
 
@@ -701,7 +733,10 @@ export function EduMatchHeader() {
 								// Not logged in - show login
 								<div
 									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-									onClick={() => router.push('/signin')}
+									onClick={() => {
+										console.log('🔍 Header: Redirecting to signin')
+										router.push('/signin')
+									}}
 									title="Sign In"
 								>
 									<User className="w-5 h-5 text-blue-600" />

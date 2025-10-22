@@ -1,241 +1,169 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
 import { prismaClient } from "../../../../../prisma";
-import { ApplicationListResponse } from "@/types/application-api";
+import { auth } from "@/app/lib/auth";
 
-// GET /api/applications/institution - Get applications for institution's posts
 export async function GET(request: NextRequest) {
 	try {
-		console.log("🔵 API: Institution applications request received");
+		const { searchParams } = new URL(request.url);
 
-		// Check if user is authenticated
+		// Get user from session
 		const session = await auth.api.getSession({
 			headers: request.headers,
 		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
+		if (!session?.user?.id) {
 			return NextResponse.json(
-				{ error: "Authentication required" },
+				{ error: "User not authenticated" },
 				{ status: 401 }
 			);
 		}
 
-		console.log("✅ API: User authenticated:", session.user.id);
-
-		// Check if user is an institution
+		// Get institution for the user
 		const institution = await prismaClient.institution.findUnique({
 			where: { user_id: session.user.id },
-			select: { institution_id: true },
 		});
 
 		if (!institution) {
-			console.log("❌ API: User is not an institution");
 			return NextResponse.json(
-				{ error: "Only institutions can access this endpoint" },
-				{ status: 403 }
+				{ error: "Institution not found" },
+				{ status: 404 }
 			);
 		}
 
-		// Get query parameters
-		const { searchParams } = new URL(request.url);
-		const page = parseInt(searchParams.get("page") || "1");
-		const limit = parseInt(searchParams.get("limit") || "10");
-		const status = searchParams.get("status");
-		const postId = searchParams.get("postId");
+		// Parse query parameters
+		const search = searchParams.get("search") || "";
+		const status = searchParams.get("status") || "all";
+		const sortBy = searchParams.get("sortBy") || "newest";
+		const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+		const limit = Math.max(
+			1,
+			Math.min(50, parseInt(searchParams.get("limit") || "10"))
+		);
+		const skip = (page - 1) * limit;
 
-		// Build where clause
+		// Build where clause for filtering
 		const whereClause: any = {
 			post: {
 				institution_id: institution.institution_id,
 			},
 		};
 
-		if (status) {
-			whereClause.status = status;
+		// Add status filter
+		if (status !== "all") {
+			whereClause.status = status.toUpperCase();
 		}
 
-		if (postId) {
-			whereClause.post_id = postId;
-		}
+		// Get total count for pagination
+		const totalCount = await prismaClient.application.count({
+			where: whereClause,
+		});
 
-		// Get applications with pagination
-		const [applications, total] = await Promise.all([
-			prismaClient.application.findMany({
-				where: whereClause,
-				include: {
-					post: {
-						include: {
-							institution: {
-								select: {
-									name: true,
-									logo: true,
-									country: true,
-								},
-							},
-							programPost: true,
-							scholarshipPost: true,
-							jobPost: true,
-						},
-					},
-					applicant: {
-						include: {
-							user: {
-								select: {
-									email: true,
-									name: true,
-									image: true,
-								},
+		// Query applications with related data
+		const applications = await prismaClient.application.findMany({
+			where: whereClause,
+			include: {
+				applicant: {
+					include: {
+						user: {
+							select: {
+								name: true,
+								email: true,
+								image: true,
 							},
 						},
-					},
-					details: {
-						include: {
-							documentType: true,
+						subdiscipline: {
+							select: {
+								name: true,
+							},
 						},
 					},
 				},
-				orderBy: { apply_at: "desc" },
-				skip: (page - 1) * limit,
-				take: limit,
-			}),
-			prismaClient.application.count({ where: whereClause }),
-		]);
+				post: {
+					select: {
+						post_id: true,
+						title: true,
+						start_date: true,
+						end_date: true,
+					},
+				},
+			},
+			orderBy:
+				sortBy === "newest"
+					? { apply_at: "desc" }
+					: sortBy === "oldest"
+						? { apply_at: "asc" }
+						: { apply_at: "desc" },
+			skip,
+			take: limit,
+		});
 
-		// Transform applications
+		// Transform data to match the expected format
 		const transformedApplications = applications.map((app) => ({
-			applicationId: app.application_id,
-			applicantId: app.applicant_id,
-			postId: app.post_id,
-			status: app.status,
-			applyAt: app.apply_at.toISOString(),
-			documents: app.details.map((detail) => ({
-				documentTypeId: detail.document_type_id,
-				name: detail.name,
-				url: detail.url,
-				size: detail.size,
-				documentType: detail.documentType.name,
-			})),
-			post: {
-				id: app.post.post_id,
-				title: app.post.title,
-				startDate: app.post.start_date.toISOString(),
-				endDate: app.post.end_date?.toISOString(),
-				location: app.post.location || undefined,
-				otherInfo: app.post.other_info || undefined,
-				institution: {
-					name: app.post.institution.name,
-					logo: app.post.institution.logo,
-					country: app.post.institution.country || undefined,
-				},
-				program: app.post.programPost
-					? {
-							post_id: app.post.programPost.post_id,
-							duration: app.post.programPost.duration,
-							degree_level: app.post.programPost.degree_level,
-							attendance: app.post.programPost.attendance,
-							course_include:
-								app.post.programPost.course_include ||
-								undefined,
-							gpa: app.post.programPost.gpa
-								? Number(app.post.programPost.gpa)
-								: undefined,
-							gre: app.post.programPost.gre || undefined,
-							gmat: app.post.programPost.gmat || undefined,
-							tuition_fee: app.post.programPost.tuition_fee
-								? Number(app.post.programPost.tuition_fee)
-								: undefined,
-							fee_description:
-								app.post.programPost.fee_description ||
-								undefined,
-							scholarship_info:
-								app.post.programPost.scholarship_info ||
-								undefined,
-						}
-					: undefined,
-				scholarship: app.post.scholarshipPost
-					? {
-							post_id: app.post.scholarshipPost.post_id,
-							description: app.post.scholarshipPost.description,
-							type: app.post.scholarshipPost.type,
-							number: app.post.scholarshipPost.number,
-							grant: app.post.scholarshipPost.grant || undefined,
-							scholarship_coverage:
-								app.post.scholarshipPost.scholarship_coverage ||
-								undefined,
-							essay_required:
-								app.post.scholarshipPost.essay_required ||
-								undefined,
-							eligibility:
-								app.post.scholarshipPost.eligibility ||
-								undefined,
-						}
-					: undefined,
-				job: app.post.jobPost
-					? {
-							post_id: app.post.jobPost.post_id,
-							contract_type: app.post.jobPost.contract_type,
-							attendance: app.post.jobPost.attendance,
-							job_type: app.post.jobPost.job_type,
-							min_salary: app.post.jobPost.min_salary
-								? Number(app.post.jobPost.min_salary)
-								: undefined,
-							max_salary: app.post.jobPost.max_salary
-								? Number(app.post.jobPost.max_salary)
-								: undefined,
-							salary_description:
-								app.post.jobPost.salary_description ||
-								undefined,
-							benefit: app.post.jobPost.benefit || undefined,
-							main_responsibility:
-								app.post.jobPost.main_responsibility ||
-								undefined,
-							qualification_requirement:
-								app.post.jobPost.qualification_requirement ||
-								undefined,
-							experience_requirement:
-								app.post.jobPost.experience_requirement ||
-								undefined,
-							assessment_criteria:
-								app.post.jobPost.assessment_criteria ||
-								undefined,
-							other_requirement:
-								app.post.jobPost.other_requirement || undefined,
-						}
-					: undefined,
-			},
-			applicant: {
-				id: app.applicant.applicant_id,
-				firstName: app.applicant.first_name,
-				lastName: app.applicant.last_name,
-				email: app.applicant.user.email,
-				profilePhoto: app.applicant.user.image,
-				nationality: app.applicant.nationality,
-				university: app.applicant.university,
-				degree: app.applicant.level,
-				gpa: app.applicant.gpa,
-			},
+			id: app.application_id,
+			postId: app.post.post_id,
+			name: app.applicant.user.name || "Unknown",
+			email: app.applicant.user.email,
+			image: app.applicant.user.image,
+			appliedDate: app.apply_at.toLocaleDateString(),
+			degreeLevel: app.applicant.level || "Unknown",
+			subDiscipline: app.applicant.subdiscipline?.name || "Unknown",
+			status: app.status.toLowerCase(),
+			matchingScore: Math.floor(Math.random() * 30) + 70, // Mock matching score
+			postTitle: app.post.title,
+			applicantId: app.applicant.applicant_id,
 		}));
 
-		const response: ApplicationListResponse = {
-			success: true,
-			applications: transformedApplications,
-			total,
-			page,
-			limit,
+		// Apply search filter
+		let filteredApplications = transformedApplications;
+		if (search) {
+			filteredApplications = transformedApplications.filter(
+				(app) =>
+					app.name.toLowerCase().includes(search.toLowerCase()) ||
+					app.subDiscipline
+						.toLowerCase()
+						.includes(search.toLowerCase()) ||
+					app.degreeLevel
+						.toLowerCase()
+						.includes(search.toLowerCase()) ||
+					app.postTitle.toLowerCase().includes(search.toLowerCase())
+			);
+		}
+
+		// Calculate statistics
+		const stats = {
+			total: totalCount,
+			approved: transformedApplications.filter(
+				(app) => app.status === "accepted"
+			).length,
+			rejected: transformedApplications.filter(
+				(app) => app.status === "rejected"
+			).length,
+			pending: transformedApplications.filter(
+				(app) => app.status === "pending"
+			).length,
 		};
 
-		console.log(
-			`✅ API: Found ${applications.length} applications for institution`
-		);
-		return NextResponse.json(response);
+		const totalPages = Math.ceil(filteredApplications.length / limit);
+
+		return NextResponse.json({
+			success: true,
+			data: filteredApplications,
+			meta: {
+				total: totalCount,
+				page,
+				limit,
+				totalPages,
+			},
+			stats,
+		});
 	} catch (error) {
-		console.error(
-			"❌ API: Error fetching institution applications:",
-			error
-		);
+		// eslint-disable-next-line no-console
+		console.error("Error fetching applications:", error);
 		return NextResponse.json(
-			{ error: "Failed to fetch applications" },
+			{
+				error: "Failed to fetch applications",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
 			{ status: 500 }
 		);
 	}

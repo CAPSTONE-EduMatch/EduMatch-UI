@@ -207,18 +207,9 @@ export const createThread = async (participantId: string) => {
 		);
 
 		if (existingThread) {
-			console.log(
-				"AppSync createThread - Found existing thread:",
-				existingThread.id
-			);
 			// Return the existing thread - this will be the thread entry for the current user
 			return existingThread;
 		}
-
-		console.log(
-			"AppSync createThread - Creating new thread with participant:",
-			participantId
-		);
 
 		const result = await client.graphql({
 			query: CREATE_THREAD,
@@ -235,14 +226,8 @@ export const createThread = async (participantId: string) => {
 
 		const thread = (result as any).data.createThread;
 
-		console.log(
-			"AppSync createThread - Created thread for both users:",
-			thread.id
-		);
-
 		return thread;
 	} catch (error) {
-		console.error("AppSync createThread - Error:", error);
 		throw error;
 	}
 };
@@ -277,21 +262,9 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		const client = generateClient();
 		const userContext = await getUserContext();
 
-		console.log("AppSync getThreads - User context:", userContext);
-
 		if (!userContext?.userId) {
-			console.error(
-				"AppSync getThreads - No user ID available, retry count:",
-				retryCount
-			);
-
 			// Retry up to 5 times with increasing delay (increased from 3)
 			if (retryCount < 5) {
-				console.log(
-					"AppSync getThreads - Retrying in",
-					(retryCount + 1) * 1000,
-					"ms"
-				);
 				await new Promise((resolve) =>
 					setTimeout(resolve, (retryCount + 1) * 1000)
 				);
@@ -299,16 +272,8 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 			}
 
 			// Don't throw error, just return empty array to prevent infinite loops
-			console.warn(
-				"AppSync getThreads - Max retries reached, returning empty array"
-			);
 			return [];
 		}
-
-		console.log(
-			"AppSync getThreads - Making request with userId:",
-			userContext.userId
-		);
 
 		const result = await client.graphql({
 			query: GET_THREADS,
@@ -317,24 +282,10 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 			},
 		});
 
-		console.log("AppSync getThreads - Result:", result);
-
 		const threads = (result as any).data.getThreads || [];
 
 		return threads;
 	} catch (error) {
-		console.error(
-			"AppSync getThreads - Full error object:",
-			JSON.stringify(error, null, 2)
-		);
-		console.error(
-			"AppSync getThreads - Error message:",
-			(error as Error).message
-		);
-		console.error(
-			"AppSync getThreads - Error stack:",
-			(error as Error).stack
-		);
 		throw error;
 	}
 };
@@ -345,18 +296,12 @@ export const markMessageAsRead = async (messageId: string) => {
 	}
 
 	try {
-		console.log(
-			"AppSync markMessageAsRead - Starting with messageId:",
-			messageId
-		);
 		const client = generateClient();
 		const userContext = await getUserContext();
 
 		if (!userContext?.userId) {
 			throw new Error("User authentication required");
 		}
-
-		console.log("AppSync markMessageAsRead - User context:", userContext);
 
 		const result = await client.graphql({
 			query: MARK_MESSAGE_READ,
@@ -368,13 +313,10 @@ export const markMessageAsRead = async (messageId: string) => {
 			},
 		});
 
-		console.log("AppSync markMessageAsRead - GraphQL result:", result);
-
 		const messageRead = (result as any).data.markMessageRead;
 
 		return messageRead;
 	} catch (error) {
-		console.error("AppSync markMessageAsRead - Error:", error);
 		throw error;
 	}
 };
@@ -385,21 +327,12 @@ export const clearThreadUnreadCount = async (threadId: string) => {
 	}
 
 	try {
-		console.log(
-			"AppSync clearThreadUnreadCount - Starting with threadId:",
-			threadId
-		);
 		const client = generateClient();
 		const userContext = await getUserContext();
 
 		if (!userContext?.userId) {
 			throw new Error("User authentication required");
 		}
-
-		console.log(
-			"AppSync clearThreadUnreadCount - User context:",
-			userContext
-		);
 
 		const result = await client.graphql({
 			query: CLEAR_THREAD_UNREAD_COUNT,
@@ -411,13 +344,10 @@ export const clearThreadUnreadCount = async (threadId: string) => {
 			},
 		});
 
-		console.log("AppSync clearThreadUnreadCount - GraphQL result:", result);
-
 		const thread = (result as any).data.clearThreadUnreadCount;
 
 		return thread;
 	} catch (error) {
-		console.error("AppSync clearThreadUnreadCount - Error:", error);
 		throw error;
 	}
 };
@@ -431,17 +361,9 @@ const getUserContext = async (retryCount = 0): Promise<any> => {
 		}
 
 		const session = await authClient.getSession();
-		console.log(
-			"AppSync getUserContext - Full session object:",
-			JSON.stringify(session, null, 2)
-		);
 
 		if (session?.data?.user) {
 			const user = session.data.user;
-			console.log(
-				"AppSync getUserContext - User object:",
-				JSON.stringify(user, null, 2)
-			);
 
 			const userContext = {
 				userId: user.id,
@@ -449,33 +371,18 @@ const getUserContext = async (retryCount = 0): Promise<any> => {
 				userEmail: user.email,
 				userImage: user.image,
 			};
-			console.log("AppSync getUserContext - User context:", userContext);
 			return userContext;
 		}
 
 		// If no user found but we have a session, retry with delay
 		if (session && retryCount < 5) {
-			console.log(
-				`AppSync getUserContext - No user found, retrying in ${(retryCount + 1) * 1000}ms (attempt ${retryCount + 1}/5)`
-			);
 			await new Promise((resolve) =>
 				setTimeout(resolve, (retryCount + 1) * 1000)
 			);
 			return getUserContext(retryCount + 1);
 		}
-
-		console.log(
-			"AppSync getUserContext - No user in session, session structure:",
-			{
-				hasSession: !!session,
-				hasData: !!session?.data,
-				hasUser: !!session?.data?.user,
-				sessionKeys: session ? Object.keys(session) : [],
-				dataKeys: session?.data ? Object.keys(session.data) : [],
-			}
-		);
 	} catch (error) {
-		console.error("AppSync getUserContext - Error getting session:", error);
+		// Error getting session
 	}
 	return null;
 };

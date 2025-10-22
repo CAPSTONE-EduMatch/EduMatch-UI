@@ -1,14 +1,14 @@
 'use client'
 
 import React from 'react'
-import { Button } from '@/components/ui'
+import { Button, CheckboxSelect, CustomSelect } from '@/components/ui'
 import { Search, Filter, ArrowUpDown } from 'lucide-react'
 
 interface SearchAndFilterProps {
 	searchQuery: string
 	onSearchChange: (query: string) => void
-	statusFilter: string
-	onStatusFilterChange: (filter: string) => void
+	statusFilter: string[]
+	onStatusFilterChange: (filter: string[]) => void
 	sortBy: string
 	onSortChange: (sort: string) => void
 }
@@ -40,27 +40,47 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 				</div>
 
 				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						onClick={() =>
-							onStatusFilterChange(statusFilter === 'all' ? 'submitted' : 'all')
-						}
-						className="flex items-center gap-2"
-					>
-						<Filter className="w-4 h-4" />
-						Status
-					</Button>
+					{/* Status Filter Checkbox Select */}
+					<div className="w-48">
+						<CheckboxSelect
+							value={statusFilter.map((status) => ({
+								value: status,
+								label: status.charAt(0).toUpperCase() + status.slice(1),
+							}))}
+							onChange={(selected) =>
+								onStatusFilterChange(selected.map((item: any) => item.value))
+							}
+							placeholder="All Status"
+							options={[
+								{ value: 'submitted', label: 'Submitted' },
+								{ value: 'approved', label: 'Approved' },
+								{ value: 'rejected', label: 'Rejected' },
+								{ value: 'pending', label: 'Pending' },
+							]}
+							variant="default"
+							isClearable
+							className="w-full"
+						/>
+					</div>
 
-					<Button
-						variant="outline"
-						onClick={() =>
-							onSortChange(sortBy === 'newest' ? 'oldest' : 'newest')
-						}
-						className="flex items-center gap-2"
-					>
-						<ArrowUpDown className="w-4 h-4" />
-						Sort
-					</Button>
+					{/* Sort Dropdown */}
+					<div className="w-48">
+						<CustomSelect
+							value={{
+								value: sortBy,
+								label: sortBy === 'newest' ? 'Newest First' : 'Oldest First',
+							}}
+							onChange={(selected) => onSortChange(selected?.value || 'newest')}
+							placeholder="Sort by"
+							options={[
+								{ value: 'newest', label: 'Newest First' },
+								{ value: 'oldest', label: 'Oldest First' },
+							]}
+							variant="default"
+							isClearable={false}
+							className="w-full"
+						/>
+					</div>
 				</div>
 			</div>
 		</div>

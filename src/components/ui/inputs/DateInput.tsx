@@ -13,6 +13,8 @@ interface DateInputProps {
 	className?: string
 	error?: string
 	label?: string
+	minDate?: string
+	maxDate?: string
 }
 
 export const DateInput: React.FC<DateInputProps> = ({
@@ -24,6 +26,8 @@ export const DateInput: React.FC<DateInputProps> = ({
 	className = '',
 	error,
 	label,
+	minDate,
+	maxDate,
 }) => {
 	const [isOpen, setIsOpen] = useState(false)
 	const [birthdayError, setBirthdayError] = useState<string>('')
@@ -73,7 +77,7 @@ export const DateInput: React.FC<DateInputProps> = ({
 		return format(date, 'dd/MM/yyyy')
 	}
 
-	const validateBirthday = (dateString: string) => {
+	const validateDate = (dateString: string) => {
 		if (!dateString) {
 			setBirthdayError('')
 			return true
@@ -100,8 +104,6 @@ export const DateInput: React.FC<DateInputProps> = ({
 
 		// Create date object (month is 0-indexed in JavaScript Date)
 		const selectedDate = new Date(year, month - 1, day)
-		const today = new Date()
-		today.setHours(0, 0, 0, 0)
 
 		// Check if the date is valid (handles invalid dates like 31/02/2023)
 		if (
@@ -113,9 +115,26 @@ export const DateInput: React.FC<DateInputProps> = ({
 			return false
 		}
 
-		if (selectedDate > today) {
-			setBirthdayError('Birthday cannot be in the future')
-			return false
+		// Check min date constraint
+		if (minDate) {
+			const minDateObj = new Date(minDate)
+			if (selectedDate < minDateObj) {
+				setBirthdayError(
+					`Date must be ${minDateObj.toLocaleDateString()} or later`
+				)
+				return false
+			}
+		}
+
+		// Check max date constraint
+		if (maxDate) {
+			const maxDateObj = new Date(maxDate)
+			if (selectedDate > maxDateObj) {
+				setBirthdayError(
+					`Date must be ${maxDateObj.toLocaleDateString()} or earlier`
+				)
+				return false
+			}
 		}
 
 		setBirthdayError('')
@@ -124,7 +143,7 @@ export const DateInput: React.FC<DateInputProps> = ({
 
 	const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value
-		validateBirthday(value)
+		validateDate(value)
 		onChange(value)
 	}
 
@@ -138,7 +157,7 @@ export const DateInput: React.FC<DateInputProps> = ({
 		if (date) {
 			const formattedDate = formatDateToDDMMYYYY(date)
 			onChange(formattedDate)
-			validateBirthday(formattedDate)
+			validateDate(formattedDate)
 		}
 		setIsOpen(false)
 	}
@@ -156,12 +175,24 @@ export const DateInput: React.FC<DateInputProps> = ({
 		setCurrentMonth(newDate)
 	}
 
-	// Generate year options (from 1900 to current year) - show older years first for birthdays
-	const currentYear = new Date().getFullYear()
-	const yearOptions = Array.from(
-		{ length: currentYear - 1900 + 1 },
-		(_, i) => 1900 + i
-	)
+	// Generate year options based on min/max dates
+	const getYearOptions = () => {
+		if (minDate && maxDate) {
+			const minYear = new Date(minDate).getFullYear()
+			const maxYear = new Date(maxDate).getFullYear()
+			return Array.from(
+				{ length: maxYear - minYear + 1 },
+				(_, i) => minYear + i
+			)
+		}
+		// Default: current year to 2030 for future dates
+		const currentYear = new Date().getFullYear()
+		return Array.from(
+			{ length: 2030 - currentYear + 1 },
+			(_, i) => currentYear + i
+		)
+	}
+	const yearOptions = getYearOptions()
 
 	const handleClearDate = (e: React.MouseEvent) => {
 		e.stopPropagation()
@@ -268,7 +299,11 @@ export const DateInput: React.FC<DateInputProps> = ({
 									onSelect={handleDateSelect}
 									month={currentMonth}
 									onMonthChange={setCurrentMonth}
-									disabled={(date) => date > new Date()}
+									disabled={(date) => {
+										if (minDate && date < new Date(minDate)) return true
+										if (maxDate && date > new Date(maxDate)) return true
+										return false
+									}}
 									classNames={{
 										day: 'hover:bg-primary/10 rounded text-sm h-6 w-6',
 										day_selected: 'bg-primary text-white hover:bg-primary',

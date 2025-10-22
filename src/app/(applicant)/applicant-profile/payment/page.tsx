@@ -1,6 +1,6 @@
 'use client'
 
-import { AuthRequiredModal } from '@/components/auth'
+import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { BillingPortalCard } from '@/components/payment/BillingPortalCard'
 import { SubscriptionFeaturesCard } from '@/components/payment/SubscriptionFeaturesCard'
 import { SubscriptionInfoCard } from '@/components/payment/SubscriptionInfoCard'
@@ -31,12 +31,7 @@ export default function ApplicantPaymentPage() {
 	const [error, setError] = useState<string | null>(null)
 
 	// Use the authentication check hook
-	const {
-		isAuthenticated,
-		showAuthModal,
-		handleCloseModal: closeAuthModal,
-		isLoading: authLoading,
-	} = useAuthCheck()
+	const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
 
 	// Fetch profile data
 	useEffect(() => {
@@ -73,10 +68,7 @@ export default function ApplicantPaymentPage() {
 		fetchProfile()
 	}, [isAuthenticated, authLoading])
 
-	// Show auth modal if not authenticated
-	if (!authLoading && !isAuthenticated) {
-		return <AuthRequiredModal isOpen={showAuthModal} onClose={closeAuthModal} />
-	}
+	// Authentication is now handled by AuthWrapper
 
 	// Show loading state
 	if (loading || authLoading) {
@@ -104,32 +96,37 @@ export default function ApplicantPaymentPage() {
 	}
 
 	return (
-		<ApplicantProfileLayout
-			activeSection="payment"
-			onSectionChange={() => {}}
-			profile={profile}
-			onEditProfile={() => {}}
+		<AuthWrapper
+			pageTitle="Payment & Subscription"
+			pageDescription="Please sign in to manage your subscription"
 		>
-			<div className="space-y-8">
-				{/* Page Header */}
-				<div>
-					<h1 className="text-3xl font-bold text-gray-900 mb-2">
-						My Subscription
-					</h1>
-					<p className="text-gray-600">
-						Manage your subscription plan and billing through Stripe
-					</p>
+			<ApplicantProfileLayout
+				activeSection="payment"
+				onSectionChange={() => {}}
+				profile={profile}
+				onEditProfile={() => {}}
+			>
+				<div className="space-y-8">
+					{/* Page Header */}
+					<div>
+						<h1 className="text-3xl font-bold text-gray-900 mb-2">
+							My Subscription
+						</h1>
+						<p className="text-gray-600">
+							Manage your subscription plan and billing through Stripe
+						</p>
+					</div>
+
+					{/* Subscription Info Card */}
+					<SubscriptionInfoCard />
+
+					{/* Subscription Features */}
+					<SubscriptionFeaturesCard />
+
+					{/* Billing Portal */}
+					<BillingPortalCard />
 				</div>
-
-				{/* Subscription Info Card */}
-				<SubscriptionInfoCard />
-
-				{/* Subscription Features */}
-				<SubscriptionFeaturesCard />
-
-				{/* Billing Portal */}
-				<BillingPortalCard />
-			</div>
-		</ApplicantProfileLayout>
+			</ApplicantProfileLayout>
+		</AuthWrapper>
 	)
 }

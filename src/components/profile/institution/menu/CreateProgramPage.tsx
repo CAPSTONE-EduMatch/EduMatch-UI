@@ -19,8 +19,8 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	const [formData, setFormData] = useState({
 		// Overview Section
 		programTitle: 'International Business and Intercultural Management',
-		startDate: '01/01/2001',
-		applicationDeadline: '01/01/2001',
+		startDate: '',
+		applicationDeadline: '',
 		subdiscipline: 'Information system',
 		duration: 'More than 2 years',
 		degreeLevel: 'Master',
@@ -140,8 +140,50 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}))
 	}
 
-	const handleSubmit = () => {
-		onSubmit?.(formData)
+	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
+		try {
+			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
+			const convertDateFormat = (dateString: string) => {
+				if (!dateString) return ''
+				const [day, month, year] = dateString.split('/')
+				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+			}
+
+			const response = await fetch('/api/posts/programs', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					...formData,
+					startDate: convertDateFormat(formData.startDate),
+					applicationDeadline: convertDateFormat(formData.applicationDeadline),
+					status: status,
+				}),
+			})
+
+			if (!response.ok) {
+				const errorData = await response.json()
+				throw new Error(errorData.error || 'Failed to create program post')
+			}
+
+			const result = await response.json()
+			console.log('Program post created:', result)
+
+			// Call the onSubmit callback with the result
+			onSubmit?.(result)
+
+			// Show success message
+			alert('Program post created successfully!')
+		} catch (error) {
+			console.error('Error creating program post:', error)
+			// Show specific error message to user
+			alert(
+				error instanceof Error
+					? error.message
+					: 'Failed to create program post. Please try again.'
+			)
+		}
 	}
 
 	return (
@@ -195,6 +237,8 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 								onChange={(value) => handleInputChange('startDate', value)}
 								label="Start date"
 								placeholder="dd/mm/yyyy"
+								minDate={new Date().toISOString().split('T')[0]}
+								maxDate="2030-12-31"
 							/>
 						</div>
 
@@ -207,6 +251,8 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 								}
 								label="Application deadline"
 								placeholder="dd/mm/yyyy"
+								minDate={new Date().toISOString().split('T')[0]}
+								maxDate="2030-12-31"
 							/>
 						</div>
 					</div>
@@ -803,10 +849,10 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 			{/* Action Buttons */}
 			<div className="flex justify-center gap-4">
-				<Button onClick={onBack} variant="outline">
-					Save to draft
+				<Button onClick={() => handleSubmit('DRAFT')} variant="outline">
+					Save as Draft
 				</Button>
-				<Button onClick={handleSubmit} variant="primary">
+				<Button onClick={() => handleSubmit('SUBMITTED')} variant="primary">
 					Submit
 				</Button>
 			</div>

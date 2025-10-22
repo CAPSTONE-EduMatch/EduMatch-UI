@@ -218,20 +218,22 @@ model OpportunityPost {
 }
 
 model ProgramPost {
-  post_id            String               @id
-  duration           String
-  degree_level       String
-  attendance         String
-  course_include     String?
-  gpa                Decimal?             @db.Decimal
-  gre                Int?
-  gmat               Int?
-  tuition_fee        Decimal?             @db.Decimal
-  fee_description    String?
-  scholarship_info   String?
-  certificates       PostCertificate[]
-  post               OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-  ProgramScholarship ProgramScholarship[]
+  post_id              String               @id
+  duration             String
+  degree_level         String
+  attendance           String
+  course_include       String?
+  gpa                  Decimal?             @db.Decimal
+  gre                  Int?
+  gmat                 Int?
+  tuition_fee          Decimal?             @db.Decimal
+  fee_description      String?
+  scholarship_info     String?
+  language_requirement String?
+  professor_name       String?
+  certificates         PostCertificate[]
+  post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  ProgramScholarship   ProgramScholarship[]
 
   @@map("ProgramPost")
 }
@@ -250,6 +252,20 @@ model JobPost {
   experience_requirement    String?
   assessment_criteria       String?
   other_requirement         String?
+  academic_background       String?
+  application_documents     String?
+  lab_capacity              Int?
+  lab_contact_email         String?
+  lab_director              String?
+  lab_facilities            String?
+  lab_type                  String?
+  lab_website               String?
+  recommendations           String?
+  research_areas            String?
+  research_experience       String?
+  research_focus            String?
+  research_proposal         String?
+  technical_skills          String?
   post                      OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("JobPost")
@@ -264,6 +280,9 @@ model ScholarshipPost {
   scholarship_coverage String?
   essay_required       Boolean?
   eligibility          String?
+  award_amount         Decimal?             @db.Decimal
+  award_duration       String?
+  renewable            Boolean?
   ProgramScholarship   ProgramScholarship[]
   post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -557,6 +576,7 @@ model ProgramScholarship {
 
 enum PostStatus {
   DRAFT
+  SUBMITTED
   PUBLISHED
   CLOSED
   ARCHIVED

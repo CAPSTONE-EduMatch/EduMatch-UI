@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
 	PostsStatisticsCards,
 	PostsSearchAndFilter,
@@ -22,95 +22,74 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	profile,
 }) => {
 	const [searchQuery, setSearchQuery] = useState('')
-	const [typeFilter, setTypeFilter] = useState<string>('all')
-	const [statusFilter, setStatusFilter] = useState<string>('all')
+	const [typeFilter, setTypeFilter] = useState<string[]>([])
+	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<string>('newest')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [showCreateForm, setShowCreateForm] = useState(false)
 	const [createFormType, setCreateFormType] = useState<
 		'Program' | 'Scholarship' | 'Research Lab' | null
 	>(null)
+	const [posts, setPosts] = useState<Post[]>([])
+	const [stats, setStats] = useState({
+		total: 0,
+		published: 0,
+		closed: 0,
+		draft: 0,
+		submitted: 0,
+	})
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 	const itemsPerPage = 10
 
-	// Mock data - replace with actual API calls
-	const posts: Post[] = useMemo(
-		() => [
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Program',
-				postedDate: '01/01/2022',
-				applications: 120,
-				status: 'Published',
-				endDate: '01/01/2025',
-			},
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Scholarship',
-				postedDate: '01/01/2022',
-				applications: 0,
-				status: 'Draft',
-				endDate: '01/01/2025',
-			},
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Program',
-				postedDate: '01/01/2022',
-				applications: 120,
-				status: 'Closed',
-				endDate: '01/01/2025',
-			},
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Scholarship',
-				postedDate: '01/01/2022',
-				applications: 120,
-				status: 'Submitted',
-				endDate: '01/01/2025',
-			},
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Program',
-				postedDate: '01/01/2022',
-				applications: 120,
-				status: 'New request',
-				endDate: '01/01/2025',
-			},
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Program',
-				postedDate: '01/01/2022',
-				applications: 120,
-				status: 'Published',
-				endDate: '01/01/2025',
-			},
-			{
-				id: 'SC001',
-				title: "Lorem Ipsum is simply dummy text of the industry's....",
-				type: 'Program',
-				postedDate: '01/01/2022',
-				applications: 120,
-				status: 'Published',
-				endDate: '01/01/2025',
-			},
-		],
-		[]
-	)
+	// Fetch posts from API
+	const fetchPosts = async () => {
+		setLoading(true)
+		setError(null)
 
-	// Calculate statistics
-	const stats = useMemo(() => {
-		const total = posts.length
-		const published = posts.filter((post) => post.status === 'Published').length
-		const closed = posts.filter((post) => post.status === 'Closed').length
-		return { total, published, closed }
-	}, [posts])
+		try {
+			const params = new URLSearchParams({
+				search: searchQuery,
+				status: statusFilter.join(','),
+				type: typeFilter.join(','),
+				sortBy: sortBy,
+				page: currentPage.toString(),
+				limit: itemsPerPage.toString(),
+			})
 
-	// Filter and search posts
+			const response = await fetch(`/api/posts/institution?${params}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch posts')
+			}
+
+			const result = await response.json()
+
+			if (result.success) {
+				setPosts(result.data)
+				setStats(result.stats)
+			} else {
+				throw new Error(result.error || 'Failed to fetch posts')
+			}
+		} catch (err) {
+			console.error('Error fetching posts:', err)
+			setError(err instanceof Error ? err.message : 'Failed to fetch posts')
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	// Fetch posts only when component mounts
+	useEffect(() => {
+		fetchPosts()
+	}, [])
+
+	// Filter and search posts (client-side for immediate feedback)
 	const filteredPosts = useMemo(() => {
 		let filtered = posts
 
@@ -125,17 +104,30 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		}
 
 		// Type filter
-		if (typeFilter !== 'all') {
-			filtered = filtered.filter((post) => post.type === typeFilter)
+		if (typeFilter.length > 0) {
+			filtered = filtered.filter((post) => typeFilter.includes(post.type))
 		}
 
 		// Status filter
-		if (statusFilter !== 'all') {
-			filtered = filtered.filter((post) => post.status === statusFilter)
+		if (statusFilter.length > 0) {
+			filtered = filtered.filter((post) => statusFilter.includes(post.status))
 		}
 
+		// Sort posts
+		filtered.sort((a, b) => {
+			if (sortBy === 'newest') {
+				return (
+					new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime()
+				)
+			} else {
+				return (
+					new Date(a.postedDate).getTime() - new Date(b.postedDate).getTime()
+				)
+			}
+		})
+
 		return filtered
-	}, [posts, searchQuery, typeFilter, statusFilter])
+	}, [posts, searchQuery, typeFilter, statusFilter, sortBy])
 
 	// Pagination
 	const totalPages = Math.ceil(filteredPosts.length / itemsPerPage)
@@ -146,6 +138,16 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	)
 
 	// Event handlers
+	const handleTypeFilterChange = (filter: string[]) => {
+		setTypeFilter(filter)
+		setCurrentPage(1)
+	}
+
+	const handleStatusFilterChange = (filter: string[]) => {
+		setStatusFilter(filter)
+		setCurrentPage(1)
+	}
+
 	const handleMoreDetail = (post: Post) => {
 		// TODO: Implement post detail view
 		// eslint-disable-next-line no-console
@@ -165,11 +167,12 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	}
 
 	const handleCreateSubmit = (data: any) => {
-		// TODO: Implement create post functionality
 		// eslint-disable-next-line no-console
 		console.log('Create post:', createFormType, data)
 		setShowCreateForm(false)
 		setCreateFormType(null)
+		// Refresh the posts list after successful creation
+		fetchPosts()
 	}
 
 	// Show create form if active
@@ -198,12 +201,51 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		)
 	}
 
+	// Show loading state
+	if (loading) {
+		return (
+			<div className="space-y-6">
+				<div className="rounded-xl p-6 w-full py-8">
+					<div className="flex items-center justify-center h-64">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+							<p className="mt-4 text-muted-foreground">Loading posts...</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="space-y-6">
+				<div className="rounded-xl p-6 w-full py-8">
+					<div className="flex items-center justify-center h-64">
+						<div className="text-center">
+							<div className="text-red-500 text-6xl mb-4">⚠️</div>
+							<h2 className="text-xl font-semibold mb-2">Error</h2>
+							<p className="text-muted-foreground mb-4">{error}</p>
+							<button
+								onClick={fetchPosts}
+								className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md"
+							>
+								Try Again
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="space-y-6">
 			<div className="rounded-xl p-6 w-full py-8">
 				{/* Page Title */}
 				<h1 className="text-2xl font-bold text-gray-900 mb-4">
-					{profile?.institutionName || 'Institution'}&apos;s name
+					{profile?.institutionName || 'Institution'}&apos;s Posts
 				</h1>
 
 				{/* Statistics Cards */}
@@ -220,9 +262,9 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 						searchQuery={searchQuery}
 						onSearchChange={setSearchQuery}
 						typeFilter={typeFilter}
-						onTypeFilterChange={setTypeFilter}
+						onTypeFilterChange={handleTypeFilterChange}
 						statusFilter={statusFilter}
-						onStatusFilterChange={setStatusFilter}
+						onStatusFilterChange={handleStatusFilterChange}
 						sortBy={sortBy}
 						onSortChange={setSortBy}
 						onAddNew={handleAddNew}

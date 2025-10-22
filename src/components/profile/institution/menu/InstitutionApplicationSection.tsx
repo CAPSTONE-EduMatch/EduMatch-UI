@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
 	StatisticsCards,
 	SearchAndFilter,
@@ -18,81 +18,72 @@ export const InstitutionApplicationSection: React.FC<
 	InstitutionApplicationSectionProps
 > = ({ profile }) => {
 	const [searchQuery, setSearchQuery] = useState('')
-	const [statusFilter, setStatusFilter] = useState<string>('all')
+	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<string>('newest')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(
 		null
 	)
+	const [applicants, setApplicants] = useState<Applicant[]>([])
+	const [stats, setStats] = useState({
+		total: 0,
+		approved: 0,
+		rejected: 0,
+		pending: 0,
+	})
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 	const itemsPerPage = 10
 
-	// Mock data - replace with actual API calls
-	const applicants: Applicant[] = [
-		{
-			id: '1',
-			postId: 'PROG-001',
-			name: 'Adam Smith',
-			appliedDate: '01/01/2022',
-			degreeLevel: 'Bachelor',
-			subDiscipline: 'Information System',
-			status: 'submitted',
-			matchingScore: 70,
-		},
-		{
-			id: '2',
-			postId: 'SCHOL-002',
-			name: 'John Doe',
-			appliedDate: '02/01/2022',
-			degreeLevel: 'Master',
-			subDiscipline: 'Computer Science',
-			status: 'accepted',
-			matchingScore: 85,
-		},
-		{
-			id: '3',
-			postId: 'LAB-003',
-			name: 'Jane Wilson',
-			appliedDate: '03/01/2022',
-			degreeLevel: 'PhD',
-			subDiscipline: 'Data Science',
-			status: 'under_review',
-			matchingScore: 92,
-		},
-		{
-			id: '4',
-			postId: 'PROG-004',
-			name: 'Mike Johnson',
-			appliedDate: '04/01/2022',
-			degreeLevel: 'Bachelor',
-			subDiscipline: 'Software Engineering',
-			status: 'rejected',
-			matchingScore: 45,
-		},
-		{
-			id: '5',
-			postId: 'SCHOL-005',
-			name: 'Sarah Brown',
-			appliedDate: '05/01/2022',
-			degreeLevel: 'Master',
-			subDiscipline: 'Artificial Intelligence',
-			status: 'new_request',
-			matchingScore: 78,
-		},
-	]
+	// Fetch applications from API
+	const fetchApplications = async () => {
+		setLoading(true)
+		setError(null)
 
-	// Calculate statistics
-	const stats = useMemo(() => {
-		const total = applicants.length
-		const approved = applicants.filter(
-			(app) => app.status === 'accepted'
-		).length
-		const rejected = applicants.filter(
-			(app) => app.status === 'rejected'
-		).length
-		return { total, approved, rejected }
-	}, [applicants])
+		try {
+			const params = new URLSearchParams({
+				search: searchQuery,
+				status: statusFilter.join(','),
+				sortBy: sortBy,
+				page: currentPage.toString(),
+				limit: itemsPerPage.toString(),
+			})
 
-	// Filter and search applicants
+			const response = await fetch(`/api/applications/institution?${params}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch applications')
+			}
+
+			const result = await response.json()
+
+			if (result.success) {
+				setApplicants(result.data)
+				setStats(result.stats)
+			} else {
+				throw new Error(result.error || 'Failed to fetch applications')
+			}
+		} catch (err) {
+			console.error('Error fetching applications:', err)
+			setError(
+				err instanceof Error ? err.message : 'Failed to fetch applications'
+			)
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	// Fetch applications when component mounts or filters change
+	useEffect(() => {
+		fetchApplications()
+	}, [searchQuery, statusFilter, sortBy, currentPage])
+
+	// Filter and search applicants (client-side for immediate feedback)
 	const filteredApplicants = useMemo(() => {
 		let filtered = applicants
 
@@ -107,8 +98,8 @@ export const InstitutionApplicationSection: React.FC<
 		}
 
 		// Status filter
-		if (statusFilter !== 'all') {
-			filtered = filtered.filter((app) => app.status === statusFilter)
+		if (statusFilter.length > 0) {
+			filtered = filtered.filter((app) => statusFilter.includes(app.status))
 		}
 
 		return filtered
@@ -123,6 +114,11 @@ export const InstitutionApplicationSection: React.FC<
 	)
 
 	// Event handlers
+	const handleStatusFilterChange = (filter: string[]) => {
+		setStatusFilter(filter)
+		setCurrentPage(1)
+	}
+
 	const handleMoreDetail = (applicant: Applicant) => {
 		setSelectedApplicant(applicant)
 	}
@@ -176,13 +172,54 @@ export const InstitutionApplicationSection: React.FC<
 		)
 	}
 
+	// Show loading state
+	if (loading) {
+		return (
+			<div className="space-y-6">
+				<div className="rounded-xl p-6 w-full py-8">
+					<div className="flex items-center justify-center h-64">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+							<p className="mt-4 text-muted-foreground">
+								Loading applications...
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="space-y-6">
+				<div className="rounded-xl p-6 w-full py-8">
+					<div className="flex items-center justify-center h-64">
+						<div className="text-center">
+							<div className="text-red-500 text-6xl mb-4">⚠️</div>
+							<h2 className="text-xl font-semibold mb-2">Error</h2>
+							<p className="text-muted-foreground mb-4">{error}</p>
+							<button
+								onClick={fetchApplications}
+								className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md"
+							>
+								Try Again
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
 	// Show list view by default
 	return (
 		<div className="space-y-6">
 			<div className="rounded-xl p-6 w-full py-8">
 				{/* Page Title */}
 				<h1 className="text-2xl font-bold text-gray-900 mb-4">
-					{profile?.institutionName || 'Institution'}&apos;s name
+					{profile?.institutionName || 'Institution'}&apos;s Applications
 				</h1>
 
 				{/* Statistics Cards */}
@@ -199,7 +236,7 @@ export const InstitutionApplicationSection: React.FC<
 						searchQuery={searchQuery}
 						onSearchChange={setSearchQuery}
 						statusFilter={statusFilter}
-						onStatusFilterChange={setStatusFilter}
+						onStatusFilterChange={handleStatusFilterChange}
 						sortBy={sortBy}
 						onSortChange={setSortBy}
 					/>

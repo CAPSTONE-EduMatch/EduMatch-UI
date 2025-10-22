@@ -7,9 +7,10 @@ import { Plus, Bell } from 'lucide-react'
 export interface Post {
 	id: string
 	title: string
-	type: 'Program' | 'Scholarship'
+	type: 'Program' | 'Scholarship' | 'Research Lab'
 	postedDate: string
 	applications: number
+	applicationCount?: number
 	status: 'Published' | 'Draft' | 'Closed' | 'Submitted' | 'New request'
 	endDate: string
 }
@@ -24,16 +25,16 @@ export const PostsTable: React.FC<PostsTableProps> = ({
 	onMoreDetail,
 }) => {
 	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'Published':
+		switch (status.toLowerCase()) {
+			case 'published':
 				return 'bg-green-100 text-green-800'
-			case 'Draft':
+			case 'draft':
 				return 'bg-gray-100 text-gray-800'
-			case 'Closed':
+			case 'closed':
 				return 'bg-blue-100 text-blue-800'
-			case 'Submitted':
+			case 'submitted':
 				return 'bg-orange-100 text-orange-800'
-			case 'New request':
+			case 'new request':
 				return 'bg-red-100 text-red-800'
 			default:
 				return 'bg-gray-100 text-gray-800'
@@ -72,13 +73,10 @@ export const PostsTable: React.FC<PostsTableProps> = ({
 									</div>
 
 									{/* Title */}
-									<div className="text-gray-700 text-sm text-left group relative">
-										<div className="truncate">{post.title}</div>
-										{post.title.length > 30 && (
-											<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
-												{post.title}
-											</div>
-										)}
+									<div className="text-gray-700 text-sm text-left">
+										<div className="line-clamp-2 leading-tight">
+											{post.title}
+										</div>
 									</div>
 
 									{/* Type */}
@@ -93,12 +91,12 @@ export const PostsTable: React.FC<PostsTableProps> = ({
 
 									{/* Applications */}
 									<div className="text-gray-700 text-sm text-center">
-										{post.applications > 0 ? (
+										{(post.applicationCount || post.applications) > 0 ? (
 											<button className="text-[#126E64] hover:text-[#126E64] underline">
-												{post.applications}
+												{post.applicationCount || post.applications}
 											</button>
 										) : (
-											post.applications
+											post.applicationCount || post.applications
 										)}
 									</div>
 
@@ -107,7 +105,8 @@ export const PostsTable: React.FC<PostsTableProps> = ({
 										<span
 											className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(post.status)}`}
 										>
-											{post.status}
+											{post.status.charAt(0).toUpperCase() +
+												post.status.slice(1).toLowerCase()}
 										</span>
 									</div>
 

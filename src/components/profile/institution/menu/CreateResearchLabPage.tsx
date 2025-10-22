@@ -19,8 +19,8 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	const [formData, setFormData] = useState({
 		// Overview Section
 		jobName: 'International Business and Intercultural Management',
-		startDate: '01/01/2001',
-		applicationDeadline: '01/01/2001',
+		startDate: '',
+		applicationDeadline: '',
 		country: 'Vietnam',
 		researchFields: ['data science', 'information system'],
 		typeOfContract: 'Full-time',
@@ -211,8 +211,41 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		}))
 	}
 
-	const handleSubmit = () => {
-		onSubmit?.(formData)
+	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
+		try {
+			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
+			const convertDateFormat = (dateString: string) => {
+				if (!dateString) return ''
+				const [day, month, year] = dateString.split('/')
+				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+			}
+
+			const response = await fetch('/api/posts/research', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					...formData,
+					startDate: convertDateFormat(formData.startDate),
+					applicationDeadline: convertDateFormat(formData.applicationDeadline),
+					status: status,
+				}),
+			})
+
+			if (!response.ok) {
+				throw new Error('Failed to create research lab post')
+			}
+
+			const result = await response.json()
+			console.log('Research lab post created:', result)
+
+			// Call the onSubmit callback with the result
+			onSubmit?.(result)
+		} catch (error) {
+			console.error('Error creating research lab post:', error)
+			// You might want to show an error message to the user here
+		}
 	}
 
 	return (
@@ -334,6 +367,8 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 								onChange={(value) => handleInputChange('startDate', value)}
 								label="Start date*"
 								placeholder="dd/mm/yyyy"
+								minDate={new Date().toISOString().split('T')[0]}
+								maxDate="2030-12-31"
 							/>
 						</div>
 
@@ -673,10 +708,10 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 
 			{/* Action Buttons */}
 			<div className="flex justify-center gap-4">
-				<Button onClick={onBack} variant="outline">
-					Save to draft
+				<Button onClick={() => handleSubmit('DRAFT')} variant="outline">
+					Save as Draft
 				</Button>
-				<Button onClick={handleSubmit} variant="primary">
+				<Button onClick={() => handleSubmit('SUBMITTED')} variant="primary">
 					Submit
 				</Button>
 			</div>

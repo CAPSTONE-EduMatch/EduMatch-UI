@@ -1,5 +1,6 @@
 import React from 'react'
 import Select from 'react-select'
+import { Check } from 'lucide-react'
 
 interface CustomSelectProps {
 	value?: any
@@ -17,6 +18,7 @@ interface CustomSelectProps {
 	styles?: any
 	variant?: 'default' | 'green' | 'outline'
 	maxSelectedHeight?: string
+	showCheckboxes?: boolean
 }
 
 const getVariantStyles = (
@@ -256,7 +258,46 @@ export function CustomSelect({
 	styles,
 	variant = 'default',
 	maxSelectedHeight,
+	showCheckboxes = false,
 }: CustomSelectProps) {
+	// Custom format option label with checkboxes
+	const defaultFormatOptionLabel = (
+		option: any,
+		{ context, selectOption }: any
+	) => {
+		if (showCheckboxes && context === 'menu') {
+			const isSelected = isMulti
+				? Array.isArray(value) &&
+					value.some((v: any) => v.value === option.value)
+				: value?.value === option.value
+
+			return (
+				<div
+					className="flex items-center space-x-3 cursor-pointer"
+					onClick={(e) => {
+						e.preventDefault()
+						e.stopPropagation()
+						selectOption(option)
+					}}
+				>
+					<div className="relative">
+						<div
+							className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${
+								isSelected
+									? 'bg-teal-600 border-teal-600'
+									: 'border-gray-300 hover:border-teal-400'
+							}`}
+						>
+							{isSelected && <Check className="w-3 h-3 text-white" />}
+						</div>
+					</div>
+					<span className="text-sm text-gray-700">{option.label}</span>
+				</div>
+			)
+		}
+		return option.label
+	}
+
 	return (
 		<Select
 			value={value}
@@ -267,7 +308,7 @@ export function CustomSelect({
 			isMulti={isMulti}
 			isClearable={isClearable}
 			isSearchable={isSearchable}
-			formatOptionLabel={formatOptionLabel}
+			formatOptionLabel={formatOptionLabel || defaultFormatOptionLabel}
 			getOptionValue={getOptionValue}
 			filterOption={filterOption}
 			menuPortalTarget={menuPortalTarget}

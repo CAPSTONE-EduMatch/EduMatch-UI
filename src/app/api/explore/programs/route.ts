@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
 						? { create_at: "asc" }
 						: { create_at: "desc" }, // default to newest
 		});
+		console.log(`Fetched ${allPosts.length} posts from DB`);
 
 		// Debug: Check how many posts were found
 		if (process.env.NODE_ENV === "development") {

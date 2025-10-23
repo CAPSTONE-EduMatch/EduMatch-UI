@@ -9,7 +9,7 @@ import {
 	ScholarshipCard,
 } from '@/components/ui'
 
-import { mockPrograms, mockScholarships } from '@/data/utils'
+import { mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
@@ -24,11 +24,24 @@ const ScholarshipDetail = () => {
 	const [scholarshipWishlist, setScholarshipWishlist] = useState<string[]>([])
 	const [programWishlist, setProgramWishlist] = useState<string[]>([])
 	const [eligibilityProgramsPage, setEligibilityProgramsPage] = useState(1)
+	const [eligibilityPrograms, setEligibilityPrograms] = useState<any[]>([])
+	const [eligibilityProgramsLoading, setEligibilityProgramsLoading] =
+		useState(false)
+	const [eligibilityProgramsTotalPages, setEligibilityProgramsTotalPages] =
+		useState(1)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
 	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+	const [isUploading, setIsUploading] = useState(false)
+	const [hasApplied, setHasApplied] = useState(false)
+	const [isApplying, setIsApplying] = useState(false)
+	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+	const [uploadProgress, setUploadProgress] = useState<any[]>([])
+
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
@@ -37,48 +50,55 @@ const ScholarshipDetail = () => {
 	const infoItems = [
 		{
 			label: 'Tuition fee',
-			value: currentScholarship?.tuitionFee || '100000000$/ year',
+			value: currentScholarship?.tuitionFee || 'N/A',
 		},
-		{ label: 'Duration', value: currentScholarship?.duration || '2 years' },
+		{ label: 'Duration', value: currentScholarship?.duration || 'N/A' },
 		{
 			label: 'Application deadline',
-			value: currentScholarship?.applicationDeadline || '11/12/2024',
+			value: currentScholarship?.applicationDeadline || 'N/A',
 		},
 		{
 			label: 'Start Date',
-			value: currentScholarship?.startDate || '11/12/2024',
+			value: currentScholarship?.startDate || 'N/A',
 		},
 		{
 			label: 'Location',
-			value: currentScholarship?.location || 'Bangkok, Thailand',
+			value: currentScholarship?.location || 'N/A',
 		},
 	]
 
 	const eligibilityProgramsPerPage = 6
-	const totalEligibilityPages = Math.ceil(
-		mockPrograms.length / eligibilityProgramsPerPage
-	)
 
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
-		const updateBreadcrumb = () => {
-			// Get scholarship ID from URL params
-			const scholarshipId = params.id as string
+		const fetchScholarshipDetail = async () => {
+			setLoading(true)
+			setError(null)
+			try {
+				const scholarshipId = params.id as string
+				const response = await fetch(
+					`/api/explore/scholarships/scholarship-detail?id=${scholarshipId}`
+				)
+				if (!response.ok) {
+					throw new Error('Failed to fetch scholarship details')
+				}
+				const data = await response.json()
+				if (data.success) {
+					setCurrentScholarship(data.data)
+				} else {
+					throw new Error(data.message || 'Failed to fetch data')
+				}
+			} catch (err) {
+				setError(err instanceof Error ? err.message : 'An error occurred')
+			} finally {
+				setLoading(false)
+			}
+		}
 
-			// Get the 'from' parameter from search params to know which tab we came from
+		const updateBreadcrumb = () => {
 			const fromTab = searchParams.get('from') || 'scholarships'
 
-			// Find the scholarship data (in real app, this would be an API call)
-			const foundScholarship = mockScholarships.find(
-				(scholarship) => scholarship.id.toString() === scholarshipId
-			)
-
-			if (foundScholarship) {
-				setCurrentScholarship(foundScholarship)
-			}
-
-			const scholarshipName =
-				foundScholarship?.title || 'Information Technology'
+			const scholarshipName = currentScholarship?.title || 'Scholarship Detail'
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
@@ -108,8 +128,73 @@ const ScholarshipDetail = () => {
 			setBreadcrumbItems(items)
 		}
 
+		fetchScholarshipDetail()
 		updateBreadcrumb()
-	}, [params.id, searchParams])
+	}, [params.id, searchParams, currentScholarship?.title])
+
+	// Fetch eligibility programs when scholarship data is available
+	useEffect(() => {
+		const fetchEligibilityPrograms = async () => {
+			if (!currentScholarship) return
+
+			setEligibilityProgramsLoading(true)
+			try {
+				const params = new URLSearchParams()
+				// Map scholarship subdisciplines to discipline param
+				// if (
+				// 	currentScholarship.subdisciplines &&
+				// 	currentScholarship.subdisciplines.length > 0
+				// ) {
+				// 	const disciplines = currentScholarship.subdisciplines
+				// 		.map((sd: any) => sd.name)
+				// 		.join(',')
+				// 	params.append('discipline', disciplines)
+				// }
+				// Map scholarship country to country param
+				// if (currentScholarship.country) {
+				// 	params.append('country', currentScholarship.country)
+				// }
+				// Map scholarship type to degreeLevel param
+				// if (currentScholarship.type) {
+				// 	params.append('degreeLevel', currentScholarship.type)
+				// }
+				// Add pagination with 6 items per page
+				params.append('page', eligibilityProgramsPage.toString())
+				params.append('limit', eligibilityProgramsPerPage.toString())
+
+				const response = await fetch(
+					`/api/explore/programs?${params.toString()}`
+				)
+				if (!response.ok) {
+					throw new Error('Failed to fetch eligibility programs')
+				}
+				const data = await response.json()
+				if (data.data && data.data.length >= 0) {
+					setEligibilityPrograms(data.data)
+					setEligibilityProgramsTotalPages(data.meta?.totalPages || 1)
+				} else {
+					setEligibilityPrograms([])
+					setEligibilityProgramsTotalPages(1)
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('Error fetching eligibility programs:', err)
+				setEligibilityPrograms([])
+				setEligibilityProgramsTotalPages(1)
+			} finally {
+				setEligibilityProgramsLoading(false)
+			}
+		}
+
+		fetchEligibilityPrograms()
+	}, [currentScholarship, eligibilityProgramsPage, eligibilityProgramsPerPage])
+
+	// Reset pagination when scholarship changes
+	useEffect(() => {
+		if (currentScholarship?.id) {
+			setEligibilityProgramsPage(1)
+		}
+	}, [currentScholarship?.id])
 
 	const handleProgramWishlistToggle = (id: string) => {
 		setProgramWishlist((prev) =>
@@ -123,7 +208,10 @@ const ScholarshipDetail = () => {
 		)
 	}
 
-	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileUpload = (
+		event: React.ChangeEvent<HTMLInputElement>,
+		documentType?: string
+	) => {
 		const files = event.target.files
 		if (files) {
 			const fileArray = Array.from(files).map((file, index) => ({
@@ -132,6 +220,7 @@ const ScholarshipDetail = () => {
 				size: file.size,
 				type: file.type,
 				file: file,
+				documentType: documentType,
 			}))
 			setUploadedFiles((prev) => [...prev, ...fileArray])
 		}
@@ -173,6 +262,21 @@ const ScholarshipDetail = () => {
 		router.push(`/explore/scholarships/${scholarshipId}`)
 	}
 
+	const handleApply = async () => {
+		// Add application logic here
+		setIsApplying(true)
+		try {
+			// Simulate API call
+			await new Promise((resolve) => setTimeout(resolve, 2000))
+			setHasApplied(true)
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error submitting application:', error)
+		} finally {
+			setIsApplying(false)
+		}
+	}
+
 	const menuItems = [
 		{ id: 'detail', label: 'Detail' },
 		{ id: 'eligibility', label: 'Eligibility' },
@@ -184,89 +288,224 @@ const ScholarshipDetail = () => {
 			case 'detail':
 				return (
 					<div className="space-y-4">
-						<ol className="space-y-4">
-							<li className="text-base">
-								<span className="font-bold text-gray-900">1. Duration:</span>{' '}
-								<span className="text-gray-700">2 years</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">2. Start dates:</span>{' '}
-								<span className="text-gray-700">October 2025</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">
-									3. Application deadlines:
-								</span>{' '}
-								<span className="text-gray-700">before Sep 2025</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">
-									4. Subdiscipline:
-								</span>{' '}
-								<span className="text-gray-700">Information system</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">5. Attendance:</span>{' '}
-								<span className="text-gray-700">At campus</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">6. Location:</span>{' '}
-								<span className="text-gray-700">Jerusalem, Israel</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">
-									7. Degree level:
-								</span>{' '}
-								<span className="text-gray-700">Master</span>
-							</li>
-						</ol>
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Description
+							</h3>
+							<p className="text-gray-700 mb-6">
+								{currentScholarship?.description ||
+									'No description available for this scholarship.'}
+							</p>
+						</div>
+
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Scholarship Details
+							</h3>
+							<ol className="space-y-4">
+								<li className="text-base">
+									<span className="font-bold text-gray-900">1. Amount:</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.amount || 'N/A'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">2. Type:</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.type || 'N/A'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">3. Coverage:</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.scholarshipCoverage || 'N/A'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										4. Essay Required:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.essayRequired || 'N/A'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										5. Number Available:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.number || 'N/A'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">6. Days Left:</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.daysLeft || 0} days
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										7. Match Percentage:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.match || 'N/A'}
+									</span>
+								</li>
+							</ol>
+						</div>
 					</div>
 				)
 
-			case 'eligibilty':
+			case 'eligibility':
 				return (
 					<div className="space-y-6">
 						<div>
-							<p className="text-base mb-2">
-								<span className="font-bold text-gray-900">Subdiscipline:</span>{' '}
-								<span className="text-gray-700">Information system</span>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Eligibility Requirements
+							</h3>
+							<p className="text-gray-700 mb-6">
+								{currentScholarship?.eligibility ||
+									'No specific eligibility requirements listed.'}
 							</p>
 						</div>
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">Courses include:</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>Strategy and Governance in IT</li>
-								<li>Project Management</li>
-								<li>Information Security</li>
-								<li>Digital Design and Development</li>
-								<li>Group Software Development Project</li>
-								<li>Cloud Computing</li>
-							</ul>
-						</div>
+						{currentScholarship?.subdisciplines &&
+							currentScholarship.subdisciplines.length > 0 && (
+								<div>
+									<p className="font-bold text-gray-900 mb-3">
+										Related Subdisciplines:
+									</p>
+									<ul className="list-disc pl-5 space-y-2 text-gray-700">
+										{currentScholarship.subdisciplines.map(
+											(subdiscipline: any) => (
+												<li key={subdiscipline.id}>{subdiscipline.name}</li>
+											)
+										)}
+									</ul>
+								</div>
+							)}
 
-						<div>
-							<p className="text-base">
-								<span className="font-bold text-gray-900">Credits:</span>{' '}
-								<span className="text-gray-700">180 alternative credits</span>
+						{currentScholarship?.requiredDocuments &&
+							currentScholarship.requiredDocuments.length > 0 && (
+								<div>
+									<p className="font-bold text-gray-900 mb-3">
+										Required Documents:
+									</p>
+									<ul className="list-disc pl-5 space-y-2 text-gray-700">
+										{currentScholarship.requiredDocuments.map((doc: any) => (
+											<li key={doc.id}>
+												<strong>{doc.name}</strong>
+												{doc.description && ` - ${doc.description}`}
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+
+						{/* Eligibility Programs Section */}
+						{/* <div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Eligibility Programmes
+							</h3>
+							<p className="text-gray-700 mb-6">
+								Programmes you may be eligible for based on this
+								scholarship&apos;s requirements.
 							</p>
-						</div>
+
+							{eligibilityProgramsLoading ? (
+								<div className="flex justify-center py-8">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+								</div>
+							) : eligibilityPrograms.length > 0 ? (
+								<>
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+										{eligibilityPrograms.map((program, index) => (
+											<ProgramCard
+												key={program.id}
+												program={program}
+												index={index}
+												onWishlistToggle={() =>
+													handleProgramWishlistToggle(program.id)
+												}
+												isWishlisted={programWishlist.includes(program.id)}
+												onClick={() => handleProgramClick(program.id)}
+											/>
+										))}
+									</div>
+
+									{eligibilityProgramsTotalPages > 1 && (
+										<div className="flex justify-center">
+											<Pagination
+												currentPage={eligibilityProgramsPage}
+												totalPages={eligibilityProgramsTotalPages}
+												onPageChange={setEligibilityProgramsPage}
+											/>
+										</div>
+									)}
+								</>
+							) : (
+								<div className="text-center py-8 text-gray-500">
+									No eligible programmes found for this scholarship.
+								</div>
+							)}
+						</div> */}
 					</div>
 				)
 
 			case 'other':
 				return (
 					<div className="space-y-6">
+						{currentScholarship?.institution && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Institution Information
+								</h3>
+								<div className="space-y-2">
+									<p className="text-gray-700">
+										<strong>Name:</strong> {currentScholarship.institution.name}
+									</p>
+									{currentScholarship.institution.abbreviation && (
+										<p className="text-gray-700">
+											<strong>Abbreviation:</strong>{' '}
+											{currentScholarship.institution.abbreviation}
+										</p>
+									)}
+									<p className="text-gray-700">
+										<strong>Country:</strong>{' '}
+										{currentScholarship.institution.country}
+									</p>
+									{currentScholarship.institution.website && (
+										<p className="text-gray-700">
+											<strong>Website:</strong>{' '}
+											<a
+												href={currentScholarship.institution.website}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-blue-600 hover:underline"
+											>
+												{currentScholarship.institution.website}
+											</a>
+										</p>
+									)}
+									{currentScholarship.institution.about && (
+										<div className="mt-4">
+											<strong>About:</strong>
+											<p className="text-gray-700 mt-2">
+												{currentScholarship.institution.about}
+											</p>
+										</div>
+									)}
+								</div>
+							</div>
+						)}
+
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Contact Information:
+								Application Statistics
 							</h3>
-							<p className="text-gray-700 mb-6">
-								Lorem Ipsum is simply dummy text of the printing and typesetting
-								industry. Lorem Ipsum has been the industry&apos;s standard
-								dummy text ever since the 1500s Lorem Ipsum is simply dummy text
-								of the printing and typesetting industry. Lorem Ipsum has been
-								the industry&apos;s standard dummy text ever since the 1500s.
+							<p className="text-gray-700">
+								<strong>Current Applications:</strong>{' '}
+								{currentScholarship?.applicationCount || 0}
 							</p>
 						</div>
 					</div>
@@ -275,6 +514,33 @@ const ScholarshipDetail = () => {
 			default:
 				return null
 		}
+	}
+
+	if (loading) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+					<p className="mt-4 text-gray-600">Loading scholarship details...</p>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-red-600 text-lg">Error: {error}</p>
+					<button
+						onClick={() => window.location.reload()}
+						className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+					>
+						Retry
+					</button>
+				</div>
+			</div>
+		)
 	}
 
 	return (
@@ -313,7 +579,19 @@ const ScholarshipDetail = () => {
 							</p>
 
 							<div className="flex items-center gap-3 mb-4">
-								<Button className="">Visit website</Button>
+								{currentScholarship?.institution?.website && (
+									<Button
+										className=""
+										onClick={() =>
+											window.open(
+												currentScholarship.institution.website,
+												'_blank'
+											)
+										}
+									>
+										Visit website
+									</Button>
+								)}
 								<Button className="">Apply</Button>
 								<motion.button
 									onClick={(e) => {
@@ -336,26 +614,27 @@ const ScholarshipDetail = () => {
 							</div>
 
 							<p className="text-sm text-gray-500">
-								Number of applications: 30
+								Number of applications:{' '}
+								{currentScholarship?.applicationCount || 0}
 							</p>
 						</div>
 						<div className="  w-1/2 grid grid-cols-2 gap-4">
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
 								<span className="text-md text-gray-500">Grant</span>
 								<span className="text-xl text-black font-bold">
-									Various benefit
+									{currentScholarship?.amount || 'N/A'}
 								</span>
 							</div>
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
 								<span className="text-md text-gray-500">Country</span>
 								<span className="text-xl text-black font-bold">
-									Various benefit
+									{currentScholarship?.country || 'N/A'}
 								</span>
 							</div>
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Discipline</span>
+								<span className="text-md text-gray-500">Type</span>
 								<span className="text-xl text-black font-bold">
-									Various benefit
+									{currentScholarship?.type || 'N/A'}
 								</span>
 							</div>
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
@@ -363,7 +642,7 @@ const ScholarshipDetail = () => {
 									Application deadline
 								</span>
 								<span className="text-xl text-black font-bold">
-									Various benefit
+									{currentScholarship?.applicationDeadline || 'N/A'}
 								</span>
 							</div>
 						</div>
@@ -410,38 +689,30 @@ const ScholarshipDetail = () => {
 
 					<div className="prose max-w-none text-gray-700 space-y-4">
 						<p>
-							Throughout the Information Technology -MSc programme from UWE
-							Bristol (University of the West of England), will develop the
-							knowledge and skills necessary to collate information, define,
-							design and build or select the most appropriate IT solutions and
-							develop a deeper understanding of how those solutions apply to
-							professional contexts.
+							{currentScholarship?.description ||
+								'No description available for this scholarship.'}
 						</p>
 
-						<p className="font-semibold">Career opportunities:</p>
+						{currentScholarship?.institution?.about && (
+							<>
+								<h3 className="text-xl font-semibold">About the Institution</h3>
+								<p>{currentScholarship.institution.about}</p>
+							</>
+						)}
 
-						<ul className="list-disc pl-5 space-y-2">
-							<li>
-								UWE Bristol monitors its employment trends closely, and since
-								1986, we have ensured graduates of this course are equipped for
-								the demands of the real world and are highly regarded by
-								potential employers.
-							</li>
-							<li>
-								There is a growing need for creative IT graduates who can work
-								with an ever-widening range of technologies and can meet
-								organisational needs in business, education and health. This
-								newly designed course tackles the challenges of technology in
-								modern business and society, head on.
-							</li>
-							<li>
-								Our award-winning careers service helps you develop your
-								employment potential through career coaching, a vacancy service
-								for internships, placements, jobs, global opportunities,
-								volunteering and community activity plus support for
-								entrepreneurial activity, and access to employer events.
-							</li>
-						</ul>
+						{currentScholarship?.eligibility && (
+							<>
+								<h3 className="text-xl font-semibold">Eligibility</h3>
+								<p>{currentScholarship.eligibility}</p>
+							</>
+						)}
+
+						{currentScholarship?.scholarshipCoverage && (
+							<>
+								<h3 className="text-xl font-semibold">Coverage</h3>
+								<p>{currentScholarship.scholarshipCoverage}</p>
+							</>
+						)}
 					</div>
 				</motion.div>
 				{/* -----------------------------------------------Overview Content---------------------------------------------- */}
@@ -510,48 +781,58 @@ const ScholarshipDetail = () => {
 							{/* Results Count */}
 							<div className="mb-4">
 								<p className="text-gray-600">
-									Showing {mockPrograms.length} programmes
+									Showing {eligibilityPrograms.length} programmes
+									{eligibilityProgramsTotalPages > 1 && (
+										<span>
+											{' '}
+											(Page {eligibilityProgramsPage} of{' '}
+											{eligibilityProgramsTotalPages})
+										</span>
+									)}
 								</p>
 							</div>
 
-							{/* Programs Grid */}
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-								{mockPrograms
-									.slice(
-										(eligibilityProgramsPage - 1) * eligibilityProgramsPerPage,
-										eligibilityProgramsPage * eligibilityProgramsPerPage
-									)
-									.map((program, index) => (
-										<ProgramCard
-											key={program.id}
-											program={program}
-											index={index}
-											isWishlisted={programWishlist.includes(program.id)}
-											onWishlistToggle={handleProgramWishlistToggle}
-											onClick={handleProgramClick}
-										/>
-									))}
-							</div>
-
-							{/* No Results */}
-							{mockPrograms.length === 0 && (
-								<div className="text-center py-12">
-									<p className="text-gray-500 text-lg mb-2">
-										No programmes found
-									</p>
-									<p className="text-gray-400 text-sm">
-										Try adjusting your filters
-									</p>
+							{eligibilityProgramsLoading ? (
+								<div className="flex justify-center py-8">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
 								</div>
-							)}
+							) : (
+								<>
+									{/* Programs Grid */}
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+										{eligibilityPrograms.map((program, index) => (
+											<ProgramCard
+												key={program.id}
+												program={program}
+												index={index}
+												isWishlisted={programWishlist.includes(program.id)}
+												onWishlistToggle={handleProgramWishlistToggle}
+												onClick={handleProgramClick}
+											/>
+										))}
+									</div>
 
-							{/* Pagination */}
-							{mockPrograms.length > 0 && (
-								<Pagination
-									currentPage={eligibilityProgramsPage}
-									totalPages={totalEligibilityPages}
-									onPageChange={setEligibilityProgramsPage}
-								/>
+									{/* No Results */}
+									{eligibilityPrograms.length === 0 && (
+										<div className="text-center py-12">
+											<p className="text-gray-500 text-lg mb-2">
+												No programmes found
+											</p>
+											<p className="text-gray-400 text-sm">
+												Try adjusting your filters
+											</p>
+										</div>
+									)}
+
+									{/* Pagination */}
+									{eligibilityProgramsTotalPages > 1 && (
+										<Pagination
+											currentPage={eligibilityProgramsPage}
+											totalPages={eligibilityProgramsTotalPages}
+											onPageChange={setEligibilityProgramsPage}
+										/>
+									)}
+								</>
 							)}
 						</div>
 					</div>
@@ -564,58 +845,132 @@ const ScholarshipDetail = () => {
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
 					<h2 className="text-3xl font-bold mb-6">Apply here !</h2>
-					<p className="text-gray-600 mb-6">
-						You can upload required documents here. We will send documents and
-						your academic information to university.
-					</p>
 
-					{/* File Upload Area */}
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-						{['Research Proposal', 'CV/Resume', 'Portfolio'].map(
-							(label, index) => (
-								<div key={index} className="space-y-2">
-									<label className="text-sm font-medium text-gray-700">
-										{label}
-									</label>
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-										<div className="text-4xl mb-4">📁</div>
-										<div className="space-y-2">
-											<input
-												type="file"
-												multiple
-												onChange={handleFileUpload}
-												className="hidden"
-												id={`file-upload-${index}`}
-											/>
-											<label
-												htmlFor={`file-upload-${index}`}
-												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-											>
-												Click here to upload file
-											</label>
-										</div>
-									</div>
-								</div>
-							)
+					<div className="text-gray-600 mb-6">
+						{currentScholarship?.requiredDocuments &&
+						currentScholarship.requiredDocuments.length > 0 ? (
+							<div className="space-y-3">
+								{currentScholarship.requiredDocuments.map((doc: any) => (
+									<p key={doc.id}>
+										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
+										{doc.description}
+									</p>
+								))}
+							</div>
+						) : (
+							<p>
+								You can upload required documents here. We will send documents
+								and your academic information to university.
+							</p>
 						)}
 					</div>
 
+					{/* File Upload Area */}
+					<div className="w-full mb-6">
+						{currentScholarship?.requiredDocuments &&
+							currentScholarship.requiredDocuments.length > 0 &&
+							currentScholarship.requiredDocuments.map((doc: any) => {
+								const filesForThisType = uploadedFiles.filter(
+									(file) => file.documentType === doc.id
+								)
+								return (
+									<div key={doc.id} className="space-y-2">
+										<label className="text-sm font-medium text-gray-700">
+											{doc.name}
+											{filesForThisType.length > 0 && (
+												<span className="ml-2 text-xs text-green-600">
+													({filesForThisType.length} file
+													{filesForThisType.length !== 1 ? 's' : ''})
+												</span>
+											)}
+										</label>
+										{/* {doc.description && (
+															<p className="text-xs text-gray-500 mb-2">
+																{doc.description}
+															</p>
+														)} */}
+										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+											<div className="text-4xl mb-4">📁</div>
+											<div className="space-y-2">
+												<input
+													type="file"
+													multiple
+													onChange={(e) => handleFileUpload(e, doc.id)}
+													className="hidden"
+													id={`file-upload-${doc.id}`}
+												/>
+												<label
+													htmlFor={`file-upload-${doc.id}`}
+													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+												>
+													Click here to upload file
+												</label>
+											</div>
+										</div>
+
+										{/* Show uploaded files for this document type */}
+										{/* {filesForThisType.length > 0 && (
+															<div className="space-y-1">
+																{filesForThisType.map((file) => (
+																	<div
+																		key={file.id}
+																		className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
+																	>
+																		<span className="truncate flex-1">{file.name}</span>
+																		<button
+																			onClick={() => removeFile(file.id)}
+																			className="text-red-500 hover:text-red-700 ml-2"
+																		>
+																			✕
+																		</button>
+																	</div>
+																))}
+															</div>
+														)} */}
+									</div>
+								)
+							})}
+					</div>
+
 					{/* File Management */}
-					{uploadedFiles.length > 0 && (
+					{(uploadedFiles.length > 0 || isUploading) && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium">
-									Manage files: {uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''}
+									{isUploading
+										? 'Uploading files...'
+										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
 								</span>
-								<Button
-									variant="outline"
-									onClick={handleOpenModal}
-									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-								>
-									Manage Files
-								</Button>
+								{uploadedFiles.length > 0 && (
+									<Button
+										variant="outline"
+										onClick={handleOpenModal}
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+									>
+										Manage Files
+									</Button>
+								)}
 							</div>
+
+							{/* Upload Progress */}
+							{isUploading && uploadProgress.length > 0 && (
+								<div className="space-y-2 mb-4">
+									{uploadProgress.map((progress) => (
+										<div key={progress.fileIndex} className="space-y-1">
+											<div className="flex justify-between text-sm">
+												<span>File {progress.fileIndex + 1}</span>
+												<span>{progress.progress}%</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+													style={{ width: `${progress.progress}%` }}
+												></div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
 						</div>
 					)}
 
@@ -629,8 +984,37 @@ const ScholarshipDetail = () => {
 								Remove all
 							</Button>
 						)}
-						<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-							Submit Application
+						<Button
+							className={
+								hasApplied
+									? 'bg-green-600 hover:bg-green-700 text-white'
+									: 'bg-[#126E64] hover:bg-teal-700 text-white'
+							}
+							onClick={handleApply}
+							disabled={
+								hasApplied || isApplying || isUploading || isCheckingApplication
+							}
+						>
+							{hasApplied ? (
+								'✓ Application Submitted'
+							) : isApplying ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Submitting...
+								</div>
+							) : isUploading ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Uploading Files...
+								</div>
+							) : isCheckingApplication ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Checking...
+								</div>
+							) : (
+								'Submit Application'
+							)}
 						</Button>
 					</div>
 				</motion.div>

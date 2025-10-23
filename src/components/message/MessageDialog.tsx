@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
 	Search,
 	Paperclip,
@@ -8,6 +9,10 @@ import {
 	Check,
 	CheckCheck,
 	RefreshCw,
+	User,
+	Mail,
+	GraduationCap,
+	FileText,
 } from 'lucide-react'
 import { useAppSyncMessaging } from '@/hooks/useAppSyncMessaging'
 import { FileUpload } from './FileUpload'
@@ -40,6 +45,7 @@ interface Thread {
 		id: string
 		name: string
 		image?: string
+		status?: string
 	}>
 	unreadCount: number
 	updatedAt: Date
@@ -53,16 +59,34 @@ interface User {
 	status?: 'online' | 'offline'
 }
 
-export function MessageDialog() {
+interface ContactApplicant {
+	id: string
+	name: string
+	email: string
+	image?: string
+	degreeLevel: string
+	subDiscipline: string
+	status: string
+	postTitle: string
+}
+
+interface MessageDialogProps {
+	threadId?: string
+}
+
+export function MessageDialog({ threadId }: MessageDialogProps = {}) {
+	const searchParams = useSearchParams()
+	const router = useRouter()
 	const [user, setUser] = useState<any>(null)
 	const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
 	const [selectedUser, setSelectedUser] = useState<User | null>(null)
 	const [users, setUsers] = useState<User[]>([])
-	// Threads are now managed by AppSync hook
+	const [contactApplicant, setContactApplicant] =
+		useState<ContactApplicant | null>(null)
+	const [showContactPreview, setShowContactPreview] = useState(false)
+	// State for loading thread detection
+	const [isCheckingThread, setIsCheckingThread] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
-	const [activeTab, setActiveTab] = useState<'conversations' | 'new-chat'>(
-		'conversations'
-	)
 	const [showFileUpload, setShowFileUpload] = useState(false)
 	const [newMessage, setNewMessage] = useState('')
 	const [isTyping, setIsTyping] = useState(false)
@@ -78,7 +102,6 @@ export function MessageDialog() {
 		startNewThread,
 		selectThread,
 		loadMessages,
-		loadThreads,
 		clearUnreadCount,
 		user: appSyncUser,
 	} = useAppSyncMessaging()
@@ -90,11 +113,395 @@ export function MessageDialog() {
 		}
 	}, [appSyncUser])
 
+	// Handle threadId prop - navigate to specific thread
+	useEffect(() => {
+		if (threadId && appSyncThreads.length > 0) {
+			const thread = appSyncThreads.find((t: any) => t.id === threadId)
+			if (thread) {
+				// Find the other participant
+				const otherParticipantId =
+					thread.user1Id === user?.id ? thread.user2Id : thread.user1Id
+				const otherUser = users.find((u) => u.id === otherParticipantId)
+
+				if (otherUser) {
+					const threadObject: Thread = {
+						id: thread.id,
+						title: otherUser.name,
+						participants: [
+							{
+								id: user?.id || '',
+								name: user?.name || '',
+								image: user?.image,
+							},
+							{
+								id: otherUser.id,
+								name: otherUser.name,
+								image: otherUser.image,
+								status: otherUser.status,
+							},
+						],
+						unreadCount: thread.unreadCount || 0,
+						updatedAt: new Date(thread.updatedAt),
+					}
+
+					setSelectedThread(threadObject)
+					setSelectedUser({
+						id: otherUser.id,
+						name: otherUser.name,
+						email: otherUser.email,
+						image: otherUser.image,
+						status: otherUser.status,
+					})
+
+					selectThread(thread.id)
+					loadMessages(thread.id)
+				}
+			}
+		}
+	}, [threadId, appSyncThreads, user, users, selectThread, loadMessages])
+
+	// Handle contact parameter from URL with loading states
+	useEffect(() => {
+		const handleContactParam = async () => {
+			const contactParam = searchParams.get('contact')
+			// Don't handle contact parameter if we're already in a specific thread
+			if (contactParam && !threadId) {
+				setIsCheckingThread(true)
+
+				if (appSyncThreads.length > 0) {
+					// Check if contactParam is JSON (old format) or just userId (new format)
+					let userId: string
+					let applicantData: any = null
+
+					try {
+						// Try to parse as JSON first (old format)
+						applicantData = JSON.parse(decodeURIComponent(contactParam))
+						userId = applicantData.id
+					} catch (error) {
+						// If parsing fails, treat as direct userId (new format)
+						userId = contactParam
+					}
+
+					// Check if thread already exists using user ID
+					const existingThread = appSyncThreads.find(
+						(thread: any) =>
+							thread.user1Id === userId || thread.user2Id === userId
+					)
+
+					if (existingThread) {
+						// Navigate directly to existing thread
+						const threadObject: Thread = {
+							id: existingThread.id,
+							title: applicantData?.name || 'User',
+							participants: [
+								{
+									id: user?.id || '',
+									name: user?.name || '',
+									image: user?.image,
+								},
+								{
+									id: userId,
+									name: applicantData?.name || 'User',
+									image: applicantData?.image,
+								},
+							],
+							unreadCount: existingThread.unreadCount || 0,
+							updatedAt: new Date(existingThread.updatedAt),
+						}
+						setSelectedThread(threadObject)
+
+						// Fetch actual user data to get correct image and status
+						try {
+							const userResponse = await fetch(`/api/users/${userId}`)
+							if (userResponse.ok) {
+								const userData = await userResponse.json()
+								setSelectedUser({
+									id: userId,
+									name: userData.user.name || applicantData?.name || 'User',
+									email: userData.user.email || applicantData?.email || '',
+									image: userData.user.image || applicantData?.image,
+									status: userData.user.status || 'offline',
+								})
+							} else {
+								// Fallback to applicant data if user fetch fails
+								setSelectedUser({
+									id: userId,
+									name: applicantData?.name || 'User',
+									email: applicantData?.email || '',
+									image: applicantData?.image,
+									status: 'offline',
+								})
+							}
+						} catch (error) {
+							// Fallback to applicant data if user fetch fails
+							setSelectedUser({
+								id: userId,
+								name: applicantData?.name || 'User',
+								email: applicantData?.email || '',
+								image: applicantData?.image,
+								status: 'offline',
+							})
+						}
+
+						selectThread(existingThread.id)
+						loadMessages(existingThread.id)
+
+						// Clear unread count for this thread when selected
+						try {
+							await clearUnreadCount(existingThread.id)
+						} catch (error) {
+							// Handle error silently
+						}
+
+						// Update URL without causing a full page reload or adding history entry
+						window.history.replaceState(
+							{},
+							'',
+							`/messages/${existingThread.id}`
+						)
+					} else {
+						// No existing thread - show preview for new contact
+						if (applicantData) {
+							// Old format with full applicant data - show preview
+							setContactApplicant(applicantData)
+							setShowContactPreview(true)
+						} else {
+							// New format with just userId - fetch user data and show preview
+							try {
+								const userResponse = await fetch(`/api/users/${userId}`)
+								if (userResponse.ok) {
+									const userData = await userResponse.json()
+									const contactData = {
+										id: userId,
+										name: userData.user.name || 'User',
+										email: userData.user.email || '',
+										image: userData.user.image,
+										degreeLevel: 'Unknown',
+										subDiscipline: 'Unknown',
+										status: userData.user.status || 'offline',
+										postTitle: 'Application',
+									}
+									setContactApplicant(contactData)
+									setShowContactPreview(true)
+								} else {
+									// Fallback - start thread directly and update URL
+									const newThread = await startNewThread(userId)
+									if (newThread?.id) {
+										// Update URL without causing a full page reload or adding history entry
+										window.history.replaceState(
+											{},
+											'',
+											`/messages/${newThread.id}`
+										)
+									}
+								}
+							} catch (error) {
+								// Fallback - start thread directly and update URL
+								const newThread = await startNewThread(userId)
+								if (newThread?.id) {
+									// Update URL without causing a full page reload or adding history entry
+									window.history.replaceState(
+										{},
+										'',
+										`/messages/${newThread.id}`
+									)
+								}
+							}
+						}
+					}
+					setIsCheckingThread(false)
+				} else {
+					// Threads not loaded yet, wait for them
+					const timeout = setTimeout(async () => {
+						if (searchParams.get('contact') && appSyncThreads.length === 0) {
+							const contactParam = searchParams.get('contact')
+							if (contactParam) {
+								try {
+									// Try to parse as JSON first (old format)
+									const applicantData = JSON.parse(
+										decodeURIComponent(contactParam)
+									)
+									// If parsing succeeds, it's old format - show preview
+									setContactApplicant(applicantData)
+									setShowContactPreview(true)
+								} catch (error) {
+									// If parsing fails, it's new format - fetch user data and show preview
+									try {
+										const userResponse = await fetch(
+											`/api/users/${contactParam}`
+										)
+										if (userResponse.ok) {
+											const userData = await userResponse.json()
+											const contactData = {
+												id: contactParam,
+												name: userData.user.name || 'User',
+												email: userData.user.email || '',
+												image: userData.user.image,
+												degreeLevel: 'Unknown',
+												subDiscipline: 'Unknown',
+												status: userData.user.status || 'offline',
+												postTitle: 'Application',
+											}
+											setContactApplicant(contactData)
+											setShowContactPreview(true)
+										} else {
+											// Fallback - start thread directly
+											await startNewThread(contactParam)
+
+											// Clear the contact parameter from URL
+											const url = new URL(window.location.href)
+											url.searchParams.delete('contact')
+											window.history.replaceState({}, '', url.toString())
+										}
+									} catch (fetchError) {
+										// Fallback - start thread directly
+										await startNewThread(contactParam)
+
+										// Clear the contact parameter from URL
+										const url = new URL(window.location.href)
+										url.searchParams.delete('contact')
+										window.history.replaceState({}, '', url.toString())
+									}
+								}
+							}
+						}
+						setIsCheckingThread(false)
+					}, 3000)
+
+					return () => clearTimeout(timeout)
+				}
+			}
+		}
+
+		handleContactParam()
+	}, [
+		searchParams,
+		appSyncThreads,
+		user,
+		loadMessages,
+		selectThread,
+		startNewThread,
+		threadId,
+	])
+
 	// Auto-scroll to bottom
 	const scrollToBottom = (smooth: boolean = true) => {
 		messagesEndRef.current?.scrollIntoView({
 			behavior: smooth ? 'smooth' : 'auto',
 		})
+	}
+
+	// Handle starting chat with applicant
+	const handleStartChat = async () => {
+		if (!contactApplicant) return
+
+		try {
+			// Check if thread already exists
+			const existingThread = appSyncThreads.find(
+				(thread: any) =>
+					thread.user1Id === contactApplicant.id ||
+					thread.user2Id === contactApplicant.id
+			)
+
+			if (existingThread) {
+				// Navigate to existing thread
+				const threadObject: Thread = {
+					id: existingThread.id,
+					title: contactApplicant.name,
+					participants: [
+						{
+							id: user?.id || '',
+							name: user?.name || '',
+							image: user?.image,
+						},
+						{
+							id: contactApplicant.id,
+							name: contactApplicant.name,
+							image: contactApplicant.image,
+						},
+					],
+					unreadCount: existingThread.unreadCount || 0,
+					updatedAt: new Date(existingThread.updatedAt),
+				}
+				setSelectedThread(threadObject)
+
+				// Fetch actual user data to get correct image and status
+				try {
+					const userResponse = await fetch(`/api/users/${contactApplicant.id}`)
+					if (userResponse.ok) {
+						const userData = await userResponse.json()
+						setSelectedUser({
+							id: contactApplicant.id,
+							name: contactApplicant.name,
+							email: userData.user.email || contactApplicant.email,
+							image: userData.user.image || contactApplicant.image,
+							status: userData.user.status || 'offline',
+						})
+					} else {
+						// Fallback to applicant data if user fetch fails
+						setSelectedUser({
+							id: contactApplicant.id,
+							name: contactApplicant.name,
+							email: contactApplicant.email,
+							image: contactApplicant.image,
+							status: 'offline',
+						})
+					}
+				} catch (error) {
+					// Fallback to applicant data if user fetch fails
+					setSelectedUser({
+						id: contactApplicant.id,
+						name: contactApplicant.name,
+						email: contactApplicant.email,
+						image: contactApplicant.image,
+						status: 'offline',
+					})
+				}
+
+				selectThread(existingThread.id)
+				await loadMessages(existingThread.id)
+
+				// Clear unread count for this thread when selected
+				try {
+					await clearUnreadCount(existingThread.id)
+				} catch (error) {
+					// Handle error silently
+				}
+			} else {
+				// Create a new thread with the applicant
+				const newThread = await startNewThread(contactApplicant.id)
+				if (newThread?.id) {
+					// Update URL without causing a full page reload or adding history entry
+					window.history.replaceState({}, '', `/messages/${newThread.id}`)
+					return
+				}
+			}
+
+			setShowContactPreview(false)
+			setContactApplicant(null)
+		} catch (error) {
+			// Handle error silently
+		}
+	}
+
+	// Handle closing contact preview
+	const handleCloseContactPreview = () => {
+		setShowContactPreview(false)
+		setContactApplicant(null)
+		// Remove contact parameter from URL
+		const url = new URL(window.location.href)
+		url.searchParams.delete('contact')
+		window.history.replaceState({}, '', url.toString())
+	}
+
+	// Check if thread already exists with contact applicant
+	const checkExistingThread = (applicantId: string) => {
+		const hasThread = appSyncThreads.some((thread: any) => {
+			const isMatch =
+				thread.user1Id === applicantId || thread.user2Id === applicantId
+			return isMatch
+		})
+		return hasThread
 	}
 
 	// Handle message input changes
@@ -221,6 +628,7 @@ export function MessageDialog() {
 						name:
 							otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
 						image: otherUser?.image,
+						status: otherUser?.status || 'offline',
 					}
 
 					// Create a mock lastMessage object from the string
@@ -286,6 +694,7 @@ export function MessageDialog() {
 
 	// Handle selecting an existing thread
 	const selectExistingThread = async (thread: Thread) => {
+		// Set the thread locally first
 		setSelectedThread(thread)
 		setIsInitialLoad(true) // Mark as initial load for this thread
 
@@ -306,63 +715,18 @@ export function MessageDialog() {
 			})
 		}
 
+		// Load messages for this thread
+		await loadMessages(thread.id)
+
 		// Clear unread count for this thread when selected
-		// This provides immediate UI feedback
 		try {
-			console.log(
-				'Thread selected - clearing unread count for thread:',
-				thread.id
-			)
-
-			// Clear the unread count for this thread
 			await clearUnreadCount(thread.id)
-
-			console.log('Successfully cleared unread count for thread:', thread.id)
-		} catch (error) {
-			console.error('Error clearing unread count:', error)
-		}
-	}
-
-	// Handle starting a new thread with a user
-	const startThreadWithUser = async (targetUser: User) => {
-		try {
-			// Use AppSync to create thread
-			const newThread = await startNewThread(targetUser.id)
-
-			// Create a proper thread object that matches the Thread interface
-			const threadObject: Thread = {
-				id: newThread.id,
-				title: targetUser.name,
-				participants: [
-					{
-						id: user?.id || '',
-						name: user?.name || '',
-						image: user?.image,
-					},
-					{
-						id: targetUser.id,
-						name: targetUser.name,
-						image: targetUser.image,
-					},
-				],
-				unreadCount: 0,
-				updatedAt: new Date(newThread.updatedAt),
-			}
-
-			setSelectedThread(threadObject)
-			setSelectedUser(targetUser)
-			setIsInitialLoad(true) // Mark as initial load for new thread
-
-			// Select the thread in AppSync
-			selectThread(newThread.id)
-
-			// Refresh threads to update the list
-			setTimeout(() => {
-				loadThreads()
-			}, 300)
 		} catch (error) {
 			// Handle error silently
 		}
+
+		// Update URL without causing a full page reload or adding history entry
+		window.history.replaceState({}, '', `/messages/${thread.id}`)
 	}
 
 	// Fetch real users with status from database
@@ -417,15 +781,49 @@ export function MessageDialog() {
 		}
 	}, [user])
 
-	// Threads are now fetched by AppSync hook
+	// Refresh selected user data when users list updates (for image changes)
+	useEffect(() => {
+		if (selectedUser && users.length > 0) {
+			const updatedUser = users.find((u) => u.id === selectedUser.id)
+			if (updatedUser && updatedUser.image !== selectedUser.image) {
+				setSelectedUser({
+					...selectedUser,
+					image: updatedUser.image,
+					status: updatedUser.status,
+				})
+			}
+		}
+	}, [users, selectedUser])
 
-	const filteredUsers = Array.isArray(users)
-		? users.filter(
-				(user) =>
-					user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					user.email.toLowerCase().includes(searchQuery.toLowerCase())
-			)
-		: []
+	// Refresh users when page becomes visible (in case user updated image in another tab)
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			if (!document.hidden && user) {
+				// Refresh users when page becomes visible
+				fetch('/api/users/status', {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						if (data.success && data.users) {
+							setUsers(data.users)
+						}
+					})
+					.catch(() => {
+						// Handle error silently
+					})
+			}
+		}
+
+		document.addEventListener('visibilitychange', handleVisibilityChange)
+		return () =>
+			document.removeEventListener('visibilitychange', handleVisibilityChange)
+	}, [user])
+
+	// Threads are now fetched by AppSync hook
 
 	const formatTime = (date: Date | string) => {
 		try {
@@ -483,163 +881,106 @@ export function MessageDialog() {
 					</div>
 				</div>
 
-				{/* Tabs for Users and Threads */}
-				<div className="flex border-b border-gray-200">
-					<button
-						className={`flex-1 px-4 py-2 text-sm font-medium ${
-							activeTab === 'conversations'
-								? 'text-blue-600 border-b-2 border-blue-600'
-								: 'text-gray-500'
-						}`}
-						onClick={() => setActiveTab('conversations')}
-					>
-						Conversations
-					</button>
-					<button
-						className={`flex-1 px-4 py-2 text-sm font-medium ${
-							activeTab === 'new-chat'
-								? 'text-blue-600 border-b-2 border-blue-600'
-								: 'text-gray-500'
-						}`}
-						onClick={() => setActiveTab('new-chat')}
-					>
-						New Chat
-					</button>
-				</div>
-
 				{/* Content */}
 				<div className="flex-1 overflow-y-auto">
-					{activeTab === 'conversations' ? (
-						/* Existing Threads */
-						<div>
-							{formattedThreads.length === 0 ? (
-								<div className="p-4 text-center text-gray-500">
-									No conversations yet
-								</div>
-							) : (
-								formattedThreads.map((thread) => (
-									<div
-										key={thread.id}
-										onClick={() => selectExistingThread(thread)}
-										className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-											selectedThread?.id === thread.id
-												? 'bg-blue-50 border-blue-200'
-												: thread.unreadCount > 0
-													? 'bg-yellow-50 border-yellow-200'
-													: ''
-										}`}
-									>
-										<div className="flex items-center space-x-3">
-											<div className="relative">
-												<img
-													src={
-														thread.participants.find((p) => p.id !== user?.id)
-															?.image ||
-														'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
-													}
-													alt={thread.title}
-													className="w-12 h-12 rounded-full object-cover"
-												/>
-											</div>
-											<div className="flex-1 min-w-0">
-												<div className="flex items-center justify-between">
-													<h3 className="text-sm font-medium text-gray-900 truncate">
-														{thread.title}
-													</h3>
-													{thread.unreadCount > 0 && (
-														<span
-															className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-															title={`${thread.unreadCount} unread message${thread.unreadCount > 1 ? 's' : ''} from ${thread.title}`}
-														>
-															{thread.unreadCount}
-														</span>
-													)}
-												</div>
-												<div className="flex items-center justify-between">
-													<p className="text-sm text-gray-500 truncate flex-1">
-														{thread.lastMessage
-															? thread.lastMessage.content ||
-																(thread.lastMessage.fileUrl
-																	? thread.lastMessage.fileName ||
-																		(thread.lastMessage.mimeType?.startsWith(
-																			'image/'
-																		)
-																			? '📷 Image'
-																			: '📎 File')
-																	: '')
-															: 'No messages yet'}
-													</p>
-													{thread.lastMessage && (
-														<p className="text-xs text-gray-400 ml-2 flex-shrink-0">
-															{formatTime(
-																new Date(thread.lastMessage.createdAt)
-															)}
-														</p>
-													)}
-												</div>
-											</div>
-										</div>
-									</div>
-								))
-							)}
-						</div>
-					) : (
-						/* Users List for New Chat */
-						<div>
-							{filteredUsers.map((userItem) => (
+					{/* Existing Threads */}
+					<div>
+						{formattedThreads.length === 0 ? (
+							<div className="p-4 text-center text-gray-500">
+								No conversations yet
+							</div>
+						) : (
+							formattedThreads.map((thread) => (
 								<div
-									key={userItem.id}
-									onClick={() => startThreadWithUser(userItem)}
-									className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-										selectedUser?.id === userItem.id
+									key={thread.id}
+									onClick={() => selectExistingThread(thread)}
+									className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+										selectedThread?.id === thread.id
 											? 'bg-blue-50 border-blue-200'
-											: ''
+											: thread.unreadCount > 0
+												? 'bg-yellow-50 border-yellow-200'
+												: ''
 									}`}
 								>
 									<div className="flex items-center space-x-3">
 										<div className="relative">
 											<img
 												src={
-													userItem.image ||
+													thread.participants.find((p) => p.id !== user?.id)
+														?.image ||
 													'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
 												}
-												alt={userItem.name}
+												alt={thread.title}
 												className="w-12 h-12 rounded-full object-cover"
 											/>
-											{userItem.status === 'online' && (
+											{(() => {
+												const otherParticipant = thread.participants.find(
+													(p) => p.id !== user?.id
+												)
+												const userWithStatus = users.find(
+													(u) => u.id === otherParticipant?.id
+												)
+												return userWithStatus?.status === 'online'
+											})() && (
 												<span className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white rounded-full w-4 h-4"></span>
 											)}
 										</div>
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center justify-between">
 												<h3 className="text-sm font-medium text-gray-900 truncate">
-													{userItem.name}
+													{thread.title}
 												</h3>
-												<span
-													className={`text-xs px-2 py-1 rounded-full ${
-														userItem.status === 'online'
-															? 'bg-green-100 text-green-800'
-															: 'bg-gray-100 text-gray-600'
-													}`}
-												>
-													{userItem.status}
-												</span>
+												{thread.unreadCount > 0 && (
+													<span
+														className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+														title={`${thread.unreadCount} unread message${thread.unreadCount > 1 ? 's' : ''} from ${thread.title}`}
+													>
+														{thread.unreadCount}
+													</span>
+												)}
 											</div>
-											<p className="text-sm text-gray-500 truncate">
-												{userItem.email}
-											</p>
+											<div className="flex items-center justify-between">
+												<p className="text-sm text-gray-500 truncate flex-1">
+													{thread.lastMessage
+														? thread.lastMessage.content ||
+															(thread.lastMessage.fileUrl
+																? thread.lastMessage.fileName ||
+																	(thread.lastMessage.mimeType?.startsWith(
+																		'image/'
+																	)
+																		? '📷 Image'
+																		: '📎 File')
+																: '')
+														: 'No messages yet'}
+												</p>
+												{thread.lastMessage && (
+													<p className="text-xs text-gray-400 ml-2 flex-shrink-0">
+														{formatTime(new Date(thread.lastMessage.createdAt))}
+													</p>
+												)}
+											</div>
 										</div>
 									</div>
 								</div>
-							))}
-						</div>
-					)}
+							))
+						)}
+					</div>
 				</div>
 			</div>
 
 			{/* Main Chat Area */}
 			<div className="flex-1 flex flex-col">
-				{selectedUser ? (
+				{isCheckingThread && !selectedUser ? (
+					/* Loading State - only show when not already in a thread */
+					<div className="flex-1 flex items-center justify-center">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+							<p className="text-gray-600">
+								Checking for existing conversation...
+							</p>
+						</div>
+					</div>
+				) : selectedUser ? (
 					<>
 						{/* Chat Header */}
 						<div className="p-4 border-b border-gray-200 bg-white">
@@ -708,17 +1049,29 @@ export function MessageDialog() {
 										>
 											<img
 												src={
-													(message as any).sender?.image ||
-													(message as any).senderImage ||
-													'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
+													// Use current user data instead of cached message data
+													(() => {
+														const currentImage =
+															message.senderId === user?.id
+																? user?.image
+																: selectedUser?.image
+
+														// Return image if available, otherwise use fallback
+														return (
+															currentImage ||
+															'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
+														)
+													})()
 												}
 												alt={
-													(message as any).sender?.name ||
-													(message as any).senderName ||
-													'User'
+													// Use current user data instead of cached message data
+													message.senderId === user?.id
+														? user?.name
+														: selectedUser?.name || 'User'
 												}
 												className="w-8 h-8 rounded-full object-cover flex-shrink-0"
 												onError={(e) => {
+													// Set fallback avatar when image fails to load
 													e.currentTarget.src =
 														'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
 												}}
@@ -1027,6 +1380,91 @@ export function MessageDialog() {
 							</form>
 						</div>
 					</>
+				) : showContactPreview && contactApplicant ? (
+					/* Contact Applicant Preview Section */
+					<div className="flex-1 flex items-center justify-center p-8">
+						<div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+							{/* Header */}
+							<div className="flex items-center justify-between mb-6">
+								<h2 className="text-xl font-semibold text-gray-900">
+									Contact Applicant
+								</h2>
+								<button
+									onClick={handleCloseContactPreview}
+									className="text-gray-400 hover:text-gray-600"
+								>
+									×
+								</button>
+							</div>
+
+							{/* Applicant Details */}
+							<div className="space-y-4 mb-6">
+								{/* Profile Section */}
+								<div className="flex items-center space-x-4">
+									<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+										{contactApplicant.image ? (
+											<img
+												src={contactApplicant.image}
+												alt={contactApplicant.name}
+												className="w-16 h-16 rounded-full object-cover"
+											/>
+										) : (
+											<User className="w-8 h-8 text-gray-400" />
+										)}
+									</div>
+									<div>
+										<h3 className="text-lg font-medium text-gray-900">
+											{contactApplicant.name}
+										</h3>
+										<p className="text-sm text-gray-500">
+											{contactApplicant.email}
+										</p>
+									</div>
+								</div>
+
+								{/* Applicant Details */}
+								<div className="space-y-3">
+									<div className="flex items-center space-x-3">
+										<GraduationCap className="w-5 h-5 text-gray-400" />
+										<span className="text-sm text-gray-600">
+											{contactApplicant.degreeLevel} in{' '}
+											{contactApplicant.subDiscipline}
+										</span>
+									</div>
+									<div className="flex items-center space-x-3">
+										<FileText className="w-5 h-5 text-gray-400" />
+										<span className="text-sm text-gray-600">
+											{contactApplicant.postTitle}
+										</span>
+									</div>
+									<div className="flex items-center space-x-3">
+										<Mail className="w-5 h-5 text-gray-400" />
+										<span className="text-sm text-gray-600">
+											Status: {contactApplicant.status}
+										</span>
+									</div>
+								</div>
+							</div>
+
+							{/* Action Buttons */}
+							<div className="space-y-3">
+								<button
+									onClick={handleStartChat}
+									className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+								>
+									{checkExistingThread(contactApplicant.id)
+										? 'Open Chat'
+										: 'Start Chat'}
+								</button>
+								<button
+									onClick={handleCloseContactPreview}
+									className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+					</div>
 				) : (
 					<div className="flex-1 flex items-center justify-center">
 						<div className="text-center text-gray-500">

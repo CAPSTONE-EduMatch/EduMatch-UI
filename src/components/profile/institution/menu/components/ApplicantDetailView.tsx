@@ -1,17 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
-import {
-	Download,
-	User,
-	FileText,
-	ArrowLeft,
-	Check,
-	X,
-	Edit,
-	Send,
-} from 'lucide-react'
+import { Download, User, FileText, ArrowLeft, Loader2 } from 'lucide-react'
 import {
 	InfoSection,
 	ProfileCard,
@@ -23,133 +15,207 @@ import type { Applicant } from './ApplicantsTable'
 interface ApplicantDetailViewProps {
 	applicant: Applicant
 	onBack: () => void
-	onContact: (applicant: Applicant) => void
 	onApprove: (applicant: Applicant) => void
 	onReject: (applicant: Applicant) => void
 	onRequireUpdate: (applicant: Applicant) => void
 }
 
 interface Document {
-	id: string
+	documentId: string
 	name: string
-	size: string
+	size: number
 	uploadDate: string
-	type: 'cv' | 'certificate' | 'degree' | 'transcript' | 'research'
+	documentType: string
+	documentTypeDescription?: string
+	url: string
+}
+
+interface ApplicationDetails {
+	application: {
+		applicationId: string
+		applicantId: string
+		postId: string
+		status: string
+		applyAt: string
+		documents: Document[]
+		post: {
+			id: string
+			title: string
+			startDate: string
+			endDate?: string
+			location?: string
+			otherInfo?: string
+			institution: {
+				name: string
+				logo?: string
+				country?: string
+			}
+			program?: any
+			scholarship?: any
+			job?: any
+		}
+	}
+	applicant: {
+		applicantId: string
+		firstName?: string
+		lastName?: string
+		name: string
+		email: string
+		image?: string
+		birthday?: string
+		gender?: string
+		nationality?: string
+		phoneNumber?: string
+		countryCode?: string
+		graduated?: boolean
+		level?: string
+		subdiscipline?: string
+		discipline?: string
+		gpa?: any
+		university?: string
+		countryOfStudy?: string
+		hasForeignLanguage?: boolean
+		languages?: any
+		documents: Document[]
+	}
 }
 
 export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	applicant,
 	onBack,
-	onContact,
 	onApprove,
 	onReject,
 	onRequireUpdate,
 }) => {
+	const router = useRouter()
 	const [activeTab, setActiveTab] = useState<'academic' | 'requirements'>(
 		'academic'
 	)
 	const [showUpdateBox, setShowUpdateBox] = useState(false)
 	const [updateDescription, setUpdateDescription] = useState('')
+	const [applicationDetails, setApplicationDetails] =
+		useState<ApplicationDetails | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 
-	// Mock document data - replace with actual API calls
-	const documents: Document[] = [
-		{
-			id: '1',
-			name: 'CV_John_Doe.pdf',
-			size: '200 KB',
-			uploadDate: '01/01/2025 17:00:00',
-			type: 'cv',
-		},
-		{
-			id: '2',
-			name: 'Resume_John_Doe.docx',
-			size: '150 KB',
-			uploadDate: '01/01/2025 16:30:00',
-			type: 'cv',
-		},
-		{
-			id: '3',
-			name: 'IELTS_Certificate.pdf',
-			size: '300 KB',
-			uploadDate: '02/01/2025 10:15:00',
-			type: 'certificate',
-		},
-		{
-			id: '4',
-			name: 'TOEFL_Score.pdf',
-			size: '250 KB',
-			uploadDate: '02/01/2025 10:20:00',
-			type: 'certificate',
-		},
-		{
-			id: '5',
-			name: 'Bachelor_Degree.pdf',
-			size: '400 KB',
-			uploadDate: '03/01/2025 14:00:00',
-			type: 'degree',
-		},
-		{
-			id: '6',
-			name: 'Master_Degree.pdf',
-			size: '450 KB',
-			uploadDate: '03/01/2025 14:05:00',
-			type: 'degree',
-		},
-		{
-			id: '7',
-			name: 'Transcript_2023.pdf',
-			size: '180 KB',
-			uploadDate: '04/01/2025 09:30:00',
-			type: 'transcript',
-		},
-		{
-			id: '8',
-			name: 'Research_Paper_AI.pdf',
-			size: '2.1 MB',
-			uploadDate: '05/01/2025 11:45:00',
-			type: 'research',
-		},
-	]
+	// Fetch application details from API
+	useEffect(() => {
+		const fetchApplicationDetails = async () => {
+			try {
+				setLoading(true)
+				setError(null)
 
-	const getDocumentsByType = (type: Document['type']) => {
-		return documents.filter((doc) => doc.type === type)
+				// Assuming the applicant object has an applicationId or we can derive it
+				// You might need to pass the applicationId as a prop or get it from the applicant object
+				const applicationId = applicant.id // or however you get the application ID
+
+				const response = await fetch(
+					`/api/applications/institution/${applicationId}`,
+					{
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						credentials: 'include',
+					}
+				)
+
+				if (!response.ok) {
+					throw new Error('Failed to fetch application details')
+				}
+
+				const result = await response.json()
+
+				if (result.success) {
+					setApplicationDetails(result.data)
+				} else {
+					throw new Error(result.error || 'Failed to fetch application details')
+				}
+			} catch (err) {
+				console.error('Error fetching application details:', err)
+				setError(
+					err instanceof Error
+						? err.message
+						: 'Failed to fetch application details'
+				)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		fetchApplicationDetails()
+	}, [applicant.id])
+
+	// Get documents from API data or fallback to empty array
+	const documents: Document[] = applicationDetails?.applicant?.documents || []
+
+	const getDocumentsByType = (documentType: string) => {
+		return documents.filter((doc) =>
+			doc.documentType.toLowerCase().includes(documentType.toLowerCase())
+		)
 	}
 
-	const getDocumentTypeLabel = (type: Document['type']) => {
-		switch (type) {
-			case 'cv':
-				return 'CV / Resume'
-			case 'certificate':
-				return 'Foreign Language Certificate'
-			case 'degree':
-				return 'Degrees'
-			case 'transcript':
-				return 'Transcript'
-			case 'research':
-				return 'Research paper'
-			default:
-				return type
-		}
+	const getDocumentTypeLabel = (documentType: string) => {
+		const type = documentType.toLowerCase()
+		if (type.includes('cv') || type.includes('resume')) return 'CV / Resume'
+		if (type.includes('certificate') || type.includes('language'))
+			return 'Foreign Language Certificate'
+		if (type.includes('degree') || type.includes('diploma')) return 'Degrees'
+		if (type.includes('transcript')) return 'Transcript'
+		if (type.includes('research') || type.includes('paper'))
+			return 'Research paper'
+		return documentType
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+	}
+
+	const formatDate = (dateString: string) => {
+		return new Date(dateString).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+		})
 	}
 
 	const handleDownloadAll = () => {
 		console.log('Downloading all documents for:', applicant.name)
 		// TODO: Implement download all functionality
+		// This could create a zip file with all documents
 	}
 
-	const handleDownloadFolder = (type: Document['type']) => {
-		console.log('Downloading folder for type:', type)
+	const handleDownloadFolder = (documentType: string) => {
+		console.log('Downloading folder for type:', documentType)
 		// TODO: Implement download folder functionality
+		// This could create a zip file with documents of a specific type
 	}
 
 	const handlePreviewFile = (document: Document) => {
 		console.log('Previewing file:', document.name)
-		// TODO: Implement file preview functionality
+		// Open file in new tab for preview
+		if (document.url) {
+			window.open(document.url, '_blank')
+		}
 	}
 
-	const handleDownloadFile = (document: Document) => {
-		console.log('Downloading file:', document.name)
-		// TODO: Implement file download functionality
+	const handleDownloadFile = (doc: Document) => {
+		console.log('Downloading file:', doc.name)
+		// Download file directly
+		if (doc.url) {
+			const link = document.createElement('a')
+			link.href = doc.url
+			link.download = doc.name
+			document.body.appendChild(link)
+			link.click()
+			document.body.removeChild(link)
+		}
 	}
 
 	const handleUpdateToggle = () => {
@@ -174,21 +240,66 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		}
 	}
 
-	// Prepare data for shared components
+	// Prepare data for shared components using real API data
 	const academicDetails = [
 		{
 			label: 'Program',
-			value: `${applicant.degreeLevel} of ${applicant.subDiscipline}`,
+			value: applicationDetails?.applicant?.level
+				? `${applicationDetails.applicant.level} of ${applicationDetails.applicant.subdiscipline || 'Unknown'}`
+				: `${applicant.degreeLevel} of ${applicant.subDiscipline}`,
 		},
-		{ label: 'GPA', value: '3.7' },
-		{ label: 'Status', value: 'Graduated', className: 'text-green-600' },
-		{ label: 'University', value: 'Bach Khoa University' },
+		{
+			label: 'GPA',
+			value: applicationDetails?.applicant?.gpa?.toString() || 'Not provided',
+		},
+		{
+			label: 'Status',
+			value: applicationDetails?.applicant?.graduated
+				? 'Graduated'
+				: 'Not graduated',
+			className: applicationDetails?.applicant?.graduated
+				? 'text-green-600'
+				: 'text-yellow-600',
+		},
+		{
+			label: 'University',
+			value: applicationDetails?.applicant?.university || 'Not provided',
+		},
+		{
+			label: 'Country of Study',
+			value: applicationDetails?.applicant?.countryOfStudy || 'Not provided',
+		},
+		{
+			label: 'Foreign Language',
+			value: applicationDetails?.applicant?.hasForeignLanguage ? 'Yes' : 'No',
+		},
 	]
 
 	const contactInfo = [
-		{ label: 'Email', value: 'example123@gmail.com' },
-		{ label: 'Phone', value: '(+84) 09090909090' },
-		{ label: 'Nationality', value: 'Vietnam' },
+		{
+			label: 'Email',
+			value: applicationDetails?.applicant?.email || 'Not provided',
+		},
+		{
+			label: 'Phone',
+			value: applicationDetails?.applicant?.phoneNumber
+				? `${applicationDetails.applicant.countryCode || ''} ${applicationDetails.applicant.phoneNumber}`
+				: 'Not provided',
+		},
+		{
+			label: 'Nationality',
+			value: applicationDetails?.applicant?.nationality || 'Not provided',
+		},
+		{
+			label: 'Gender',
+			value: applicationDetails?.applicant?.gender || 'Not specified',
+		},
+		{
+			label: 'Birthday',
+			value: applicationDetails?.applicant?.birthday
+				? new Date(applicationDetails.applicant.birthday).toLocaleDateString()
+				: 'Not provided',
+		},
 	]
 
 	const tabs = [
@@ -199,71 +310,124 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				<div className="h-full flex flex-col">
 					{/* Documents List - Scrollable */}
 					<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
-						<div className="pt-4 space-y-6">
-							{['cv', 'certificate', 'degree', 'transcript', 'research'].map(
-								(type) => {
-									const typeDocs = getDocumentsByType(type as Document['type'])
-									if (typeDocs.length === 0) return null
+						{loading ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="flex flex-col items-center gap-3">
+									<Loader2 className="h-8 w-8 animate-spin text-primary" />
+									<p className="text-gray-600 text-sm">Loading documents...</p>
+								</div>
+							</div>
+						) : error ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="text-center">
+									<p className="text-red-600 text-sm mb-2">
+										Error loading documents
+									</p>
+									<p className="text-gray-500 text-xs">{error}</p>
+								</div>
+							</div>
+						) : (
+							<div className="pt-4 space-y-6">
+								{/* Group documents by type */}
+								{Object.entries(
+									documents.reduce(
+										(acc, doc) => {
+											const type = doc.documentType.toLowerCase()
+											let category = 'other'
 
-									return (
-										<div
-											key={type}
-											className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
-										>
-											<div className="flex justify-between items-center mb-4">
-												<h3 className="text-lg font-semibold">
-													{getDocumentTypeLabel(type as Document['type'])}
-												</h3>
-												<button
-													onClick={() =>
-														handleDownloadFolder(type as Document['type'])
-													}
-													className="text-primary hover:text-primary/80 text-sm font-medium underline"
+											if (type.includes('cv') || type.includes('resume'))
+												category = 'cv'
+											else if (
+												type.includes('certificate') ||
+												type.includes('language')
+											)
+												category = 'certificate'
+											else if (
+												type.includes('degree') ||
+												type.includes('diploma')
+											)
+												category = 'degree'
+											else if (type.includes('transcript'))
+												category = 'transcript'
+											else if (
+												type.includes('research') ||
+												type.includes('paper')
+											)
+												category = 'research'
+
+											if (!acc[category]) acc[category] = []
+											acc[category].push(doc)
+											return acc
+										},
+										{} as Record<string, Document[]>
+									)
+								).map(([category, typeDocs]) => (
+									<div
+										key={category}
+										className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+									>
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="text-lg font-semibold">
+												{getDocumentTypeLabel(category)}
+											</h3>
+											<button
+												onClick={() => handleDownloadFolder(category)}
+												className="text-primary hover:text-primary/80 text-sm font-medium underline"
+											>
+												Download folder
+											</button>
+										</div>
+
+										{/* Files List */}
+										<div className="space-y-3 max-h-64 overflow-y-auto">
+											{typeDocs.map((doc) => (
+												<div
+													key={doc.documentId}
+													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 												>
-													Download folder
-												</button>
-											</div>
-
-											{/* Files List */}
-											<div className="space-y-3 max-h-64 overflow-y-auto">
-												{typeDocs.map((doc) => (
-													<div
-														key={doc.id}
-														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
-													>
-														<div className="flex items-center gap-3">
-															<span className="text-2xl">📄</span>
-															<div>
-																<p className="font-medium text-sm">
-																	{doc.name}
+													<div className="flex items-center gap-3">
+														<span className="text-2xl">📄</span>
+														<div>
+															<p className="font-medium text-sm">{doc.name}</p>
+															<p className="text-xs text-muted-foreground">
+																{formatFileSize(doc.size)} •{' '}
+																{formatDate(doc.uploadDate)}
+															</p>
+															{doc.documentTypeDescription && (
+																<p className="text-xs text-gray-500 mt-1">
+																	{doc.documentTypeDescription}
 																</p>
-																<p className="text-xs text-muted-foreground">
-																	{doc.size} • {doc.uploadDate}
-																</p>
-															</div>
-														</div>
-														<div className="flex items-center gap-2">
-															<button
-																onClick={() => handlePreviewFile(doc)}
-																className="text-primary hover:text-primary/80 text-sm font-medium"
-															>
-																View
-															</button>
-															<button
-																onClick={() => handleDownloadFile(doc)}
-																className="text-gray-400 hover:text-gray-600 p-1"
-															>
-																<Download className="h-4 w-4" />
-															</button>
+															)}
 														</div>
 													</div>
-												))}
-											</div>
+													<div className="flex items-center gap-2">
+														<button
+															onClick={() => handlePreviewFile(doc)}
+															className="text-primary hover:text-primary/80 text-sm font-medium"
+														>
+															View
+														</button>
+														<button
+															onClick={() => handleDownloadFile(doc)}
+															className="text-gray-400 hover:text-gray-600 p-1"
+														>
+															<Download className="h-4 w-4" />
+														</button>
+													</div>
+												</div>
+											))}
 										</div>
-									)
-								}
-							)}
-						</div>
+									</div>
+								))}
+
+								{documents.length === 0 && (
+									<div className="text-center py-8">
+										<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+										<p className="text-gray-500">No documents uploaded</p>
+									</div>
+								)}
+							</div>
+						)}
 
 						{/* Download All Button */}
 						<div className="mt-6 pt-6 border-t border-gray-200">
@@ -294,6 +458,60 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		},
 	]
 
+	// Show loading state for the entire component
+	if (loading) {
+		return (
+			<div className="space-y-6">
+				<div className="flex items-center">
+					<Button
+						variant="outline"
+						onClick={onBack}
+						className="flex items-center gap-2"
+						size="sm"
+					>
+						<ArrowLeft className="w-4 h-4" />
+						Back to Applications
+					</Button>
+				</div>
+				<div className="flex items-center justify-center py-20">
+					<div className="flex flex-col items-center gap-3">
+						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<p className="text-gray-600 text-sm">
+							Loading applicant details...
+						</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="space-y-6">
+				<div className="flex items-center">
+					<Button
+						variant="outline"
+						onClick={onBack}
+						className="flex items-center gap-2"
+						size="sm"
+					>
+						<ArrowLeft className="w-4 h-4" />
+						Back to Applications
+					</Button>
+				</div>
+				<div className="flex items-center justify-center py-20">
+					<div className="text-center">
+						<p className="text-red-600 text-sm mb-2">
+							Error loading applicant details
+						</p>
+						<p className="text-gray-500 text-xs">{error}</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="space-y-6">
 			{/* Back Button */}
@@ -313,13 +531,23 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				leftPanel={
 					<ProfileCard
 						header={{
-							avatar: (
+							avatar: applicationDetails?.applicant?.image ? (
+								<img
+									src={applicationDetails.applicant.image}
+									alt={applicationDetails.applicant.name}
+									className="w-16 h-16 rounded-full object-cover"
+								/>
+							) : (
 								<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
 									<User className="w-8 h-8 text-gray-400" />
 								</div>
 							),
-							title: applicant.name,
-							subtitle: '01/01/2000 - Male',
+							title: applicationDetails?.applicant?.name || applicant.name,
+							subtitle:
+								applicationDetails?.applicant?.birthday &&
+								applicationDetails?.applicant?.gender
+									? `${new Date(applicationDetails.applicant.birthday).toLocaleDateString()} - ${applicationDetails.applicant.gender}`
+									: 'Details not available',
 						}}
 						sections={[
 							<InfoSection
@@ -336,7 +564,10 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 						actions={
 							<div className="space-y-3 w-full">
 								<Button
-									onClick={() => onContact(applicant)}
+									onClick={() => {
+										// Navigate to messages with contact parameter
+										router.push(`/messages?contact=${applicant.userId}`)
+									}}
 									className="w-full bg-orange-500 hover:bg-orange-600 text-white"
 									size="md"
 								>

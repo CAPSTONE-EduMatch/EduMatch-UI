@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { authClient } from "@/app/lib/auth-client";
 import { useEffect, useState } from "react";
 
@@ -54,29 +55,34 @@ export function useSubscription(): SubscriptionHook {
 	const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [isAuthenticated, setIsAuthenticated] = useState(false);
+	const { isAuthenticated, user } = useAuth();
 
 	// Get current active subscription plan
 	const currentPlan =
 		subscriptions.find((sub) => sub.status === "active")?.plan || "free";
+
+	// Only fetch subscriptions if authenticated
+	useEffect(() => {
+		if (isAuthenticated && user) {
+			fetchSubscriptions();
+		} else {
+			setSubscriptions([]);
+			setLoading(false);
+		}
+	}, [isAuthenticated, user]);
 
 	const fetchSubscriptions = async () => {
 		try {
 			setLoading(true);
 			setError(null);
 
-			// Ensure we have an authenticated session before calling protected endpoints
-			const { data: session } = await authClient.getSession();
-			if (!session || !session.user) {
+			// Use AuthContext instead of direct API call
+			if (!isAuthenticated || !user) {
 				// Not signed in; do not attempt to call protected subscription endpoints
 				setSubscriptions([]);
-				setIsAuthenticated(false);
 				setError(null);
 				return;
 			}
-
-			// User is authenticated
-			setIsAuthenticated(true);
 
 			// Use the authClient to fetch subscriptions
 			const { data } = await authClient.subscription.list();
@@ -109,14 +115,12 @@ export function useSubscription(): SubscriptionHook {
 			// If the auth client returns an unauthorized error, normalize the message
 			if (err && err.status === 401) {
 				setError("Unauthorized: please sign in to view subscriptions");
-				setIsAuthenticated(false);
 			} else {
 				setError(
 					err instanceof Error
 						? err.message
 						: "Failed to fetch subscriptions"
 				);
-				setIsAuthenticated(false);
 			}
 		} finally {
 			setLoading(false);
@@ -127,9 +131,8 @@ export function useSubscription(): SubscriptionHook {
 		try {
 			setError(null);
 
-			// Ensure user is authenticated before attempting an upgrade
-			const { data: session } = await authClient.getSession();
-			if (!session || !session.user) {
+			// Use AuthContext instead of direct API call
+			if (!isAuthenticated || !user) {
 				const message = "Unauthorized: please sign in to upgrade";
 				setError(message);
 				throw new Error(message);
@@ -289,11 +292,6 @@ export function useSubscription(): SubscriptionHook {
 
 		return targetLevel !== undefined && targetLevel > currentLevel;
 	};
-
-	// Fetch subscriptions on component mount
-	useEffect(() => {
-		fetchSubscriptions();
-	}, []);
 
 	return {
 		subscriptions,

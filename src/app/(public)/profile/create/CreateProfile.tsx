@@ -24,42 +24,6 @@ export default function CreateProfile() {
 	// Use the authentication check hook
 	const { isAuthenticated, user } = useAuthCheck()
 
-	// Check if user already has a profile
-	useEffect(() => {
-		const checkExistingProfile = async () => {
-			if (isAuthenticated && user?.id) {
-				try {
-					const response = await fetch('/api/profile', {
-						method: 'GET',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						credentials: 'include',
-					})
-
-					if (response.ok) {
-						// User already has a profile, redirect to appropriate dashboard based on role
-						const profileData = await response.json()
-						console.log(
-							'✅ User already has a profile, redirecting to dashboard'
-						)
-
-						if (profileData.role === 'institution') {
-							router.push('/institution-profile')
-						} else {
-							router.push('/explore')
-						}
-					}
-				} catch (error) {
-					console.error('Error checking existing profile:', error)
-					// Continue with profile creation if there's an error
-				}
-			}
-		}
-
-		checkExistingProfile()
-	}, [isAuthenticated, user?.id, router])
-
 	const [formData, setFormData] = useState<ProfileFormData>({
 		role: '',
 		// Student fields
@@ -116,22 +80,12 @@ export default function CreateProfile() {
 	})
 
 	// Debug: Log user object in CreateProfile
-	useEffect(() => {
-		console.log('🏠 CreateProfile - User object:', {
-			user,
-			hasUser: !!user,
-			hasImage: !!user?.image,
-			hasName: !!user?.name,
-			userName: user?.name,
-			userEmail: user?.email,
-			isAuthenticated,
-		})
-	}, [user, isAuthenticated])
+	useEffect(() => {}, [user, isAuthenticated])
 
 	// Pre-fill email if user is authenticated (only for Google OAuth users)
 	useEffect(() => {
+		// Only auto-fill for Google OAuth users (indicated by user.image)
 		if (isAuthenticated && user?.email && user?.image && !formData.email) {
-			// Only pre-fill email for Google OAuth users (indicated by user.image)
 			setFormData((prev) => ({
 				...prev,
 				email: user.email,
@@ -285,7 +239,7 @@ export default function CreateProfile() {
 			if (formData.role === 'applicant') {
 				router.push('/explore')
 			} else if (formData.role === 'institution') {
-				router.push('/institution-profile/view')
+				router.push('/profile/view')
 			} else {
 				router.push('/')
 			}

@@ -94,10 +94,10 @@ const SignIn: React.FC = () => {
 				// User has a profile, redirect based on role
 				if (profile.role === 'institution') {
 					console.log('🏢 Redirecting to institution profile')
-					router.push('/institution-profile')
+					router.push('/profile/view')
 				} else if (profile.role === 'applicant') {
 					console.log('🎓 Redirecting to applicant profile')
-					router.push('/applicant-profile/view')
+					router.push('/profile/view')
 				} else {
 					console.log('❓ Unknown role, redirecting to explore')
 					router.push('/explore')

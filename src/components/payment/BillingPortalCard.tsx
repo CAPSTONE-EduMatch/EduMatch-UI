@@ -29,7 +29,7 @@ export function BillingPortalCard() {
 			const { data, error: billingError } =
 				await authClient.subscription.billingPortal({
 					locale: 'en',
-					returnUrl: `${window.location.origin}/profile/payment`,
+					returnUrl: `${window.location.origin}/profile/view?tab=payment`,
 				})
 
 			if (billingError) {

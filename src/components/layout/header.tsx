@@ -36,38 +36,6 @@ export function EduMatchHeader() {
 	// Get authentication state
 	const { isAuthenticated, refreshAuth } = useAuthCheck()
 
-	// Fallback: Check session directly if useAuthCheck fails
-	useEffect(() => {
-		const checkSessionDirectly = async () => {
-			try {
-				const session = await authClient.getSession()
-				const hasUser = session?.data?.user
-				const hasSession = session?.data?.session
-				const isActuallyAuth = !!(hasUser && hasSession)
-
-				console.log('🔍 Direct session check:', {
-					hasUser: !!hasUser,
-					hasSession: !!hasSession,
-					isActuallyAuth,
-					useAuthCheckResult: isAuthenticated,
-				})
-
-				// If direct check shows authenticated but useAuthCheck doesn't, refresh
-				if (isActuallyAuth && !isAuthenticated) {
-					console.log('🔄 Session mismatch detected, refreshing auth...')
-					refreshAuth()
-				}
-			} catch (error) {
-				console.log('❌ Direct session check failed:', error)
-			}
-		}
-
-		// Only run this check if useAuthCheck says not authenticated
-		if (!isAuthenticated) {
-			checkSessionDirectly()
-		}
-	}, [isAuthenticated, refreshAuth])
-
 	// Get user profile data
 	const { profile: userProfile, isLoading: profileLoading } = useUserProfile()
 
@@ -449,9 +417,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/institution-profile/view?tab=profile'
-																)
+																router.push('/profile/view?tab=profile')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -464,9 +430,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/institution-profile/view?tab=programs'
-																)
+																router.push('/profile/view?tab=programs')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -477,9 +441,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/institution-profile/view?tab=applications'
-																)
+																router.push('/profile/view?tab=application')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -490,9 +452,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/institution-profile/view?tab=settings'
-																)
+																router.push('/profile/view?tab=settings')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -506,9 +466,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/applicant-profile/view?tab=profile'
-																)
+																router.push('/profile/view?tab=profile')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -519,9 +477,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/applicant-profile/view?tab=academic'
-																)
+																router.push('/profile/view?tab=academic')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -534,9 +490,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/applicant-profile/view?tab=wishlist'
-																)
+																router.push('/profile/view?tab=wishlist')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -547,9 +501,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/applicant-profile/view?tab=application'
-																)
+																router.push('/profile/view?tab=application')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -560,7 +512,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push('/applicant-profile/payment')
+																router.push('/profile/view?tab=payment')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -571,9 +523,7 @@ export function EduMatchHeader() {
 														<div
 															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
 															onClick={() => {
-																router.push(
-																	'/applicant-profile/view?tab=settings'
-																)
+																router.push('/profile/view?tab=settings')
 																setIsUserMenuOpen(false)
 															}}
 														>
@@ -734,7 +684,6 @@ export function EduMatchHeader() {
 								<div
 									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
 									onClick={() => {
-										console.log('🔍 Header: Redirecting to signin')
 										router.push('/signin')
 									}}
 									title="Sign In"

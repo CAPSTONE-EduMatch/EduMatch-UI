@@ -11,6 +11,7 @@ import {
 	recordOTPAttemptByType,
 	type OTPType,
 } from "./otp-rate-limit";
+import { redisClient } from "../lib/redis";
 dotenv.config();
 
 // Validate required environment variables
@@ -384,8 +385,41 @@ export const auth = betterAuth({
 		},
 		expiresIn: 60 * 60 * 24 * 7, // 7 days
 		updateAge: 60 * 15, // 15 minutes
+		// Use Redis for session storage to prevent database hits
+		...(redisClient && {
+			store: {
+				async get(sessionId: string) {
+					try {
+						const cached = await redisClient.get(
+							`session:${sessionId}`
+						);
+						return cached ? JSON.parse(cached) : null;
+					} catch (error) {
+						console.error("Redis session get error:", error);
+						return null;
+					}
+				},
+				async set(sessionId: string, sessionData: any, maxAge: number) {
+					try {
+						await redisClient.setEx(
+							`session:${sessionId}`,
+							maxAge,
+							JSON.stringify(sessionData)
+						);
+					} catch (error) {
+						console.error("Redis session set error:", error);
+					}
+				},
+				async delete(sessionId: string) {
+					try {
+						await redisClient.del(`session:${sessionId}`);
+					} catch (error) {
+						console.error("Redis session delete error:", error);
+					}
+				},
+			},
+		}),
 	},
-	// Redis disabled for now - using memory-only session storage
 	secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development",
 	baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 	emailAndPassword: {

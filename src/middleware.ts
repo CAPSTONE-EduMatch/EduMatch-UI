@@ -6,35 +6,10 @@ const routeConfig = {
 	publicRoutes: ["/", "/about", "/api/health", "/explore"],
 	authRoutes: ["/signin", "/signup", "/forgot-password"],
 	// All routes that require authentication
-	protectedRoutes: [
-		"/files",
-		"/admin",
-		"/applicant-profile",
-		"/institution-profile",
-		"/messages",
-		"/profile",
-	],
+	protectedRoutes: ["/files", "/admin", "/profile", "/messages", "/profile"],
 	adminRoutes: ["/admin"],
-	// Routes that require profile creation
-	profileRequiredRoutes: [
-		"/files",
-		"/applicant-profile",
-		"/institution-profile",
-		"/messages",
-	],
 	// Routes that should show auth modal instead of redirecting
-	authModalRoutes: [
-		"/applicant-profile/create",
-		"/institution-profile/create",
-	],
-	// Routes that are exempt from profile check
-	profileExemptRoutes: [
-		"/profile/create",
-		"/signin",
-		"/signup",
-		"/forgot-password",
-		"/",
-	],
+	authModalRoutes: ["/profile/create"],
 	defaultRedirects: {
 		afterLogin: "/explore", // Will be overridden by role-based logic
 		afterLogout: "/signin",
@@ -42,43 +17,6 @@ const routeConfig = {
 		accessDenied: "/", // Redirect non-admin users here
 	},
 };
-
-// Get user role for redirect logic - simplified for Edge Runtime
-async function getUserRole(request: NextRequest): Promise<string | null> {
-	try {
-		// For Edge Runtime, we'll use a simpler approach
-		// Check if user has profile by calling the profile API
-		const profileResponse = await fetch(
-			`${request.nextUrl.origin}/api/profile`,
-			{
-				headers: {
-					Cookie: request.headers.get("cookie") || "",
-				},
-			}
-		);
-
-		if (profileResponse.ok) {
-			const profileData = await profileResponse.json();
-			return profileData.role || null;
-		}
-
-		return null;
-	} catch (error) {
-		// Silently handle role check errors
-		return null;
-	}
-}
-
-// Get role-based redirect URL
-function getRoleBasedRedirect(role: string | null): string {
-	if (role === "institution") {
-		return "/institution-profile";
-	} else if (role === "applicant") {
-		return "/explore";
-	}
-	// Default fallback
-	return "/explore";
-}
 
 // Edge Runtime compatible auth check function
 async function checkAuthentication(request: NextRequest) {
@@ -170,10 +108,7 @@ export async function middleware(request: NextRequest) {
 		// Skip debug logging to reduce console spam
 
 		// Additional debugging for profile routes
-		if (
-			pathname.startsWith("/applicant-profile") ||
-			pathname.startsWith("/institution-profile")
-		) {
+		if (pathname.startsWith("/profile")) {
 			// Profile route detected - skip logging to reduce console spam
 		}
 
@@ -192,10 +127,6 @@ export async function middleware(request: NextRequest) {
 		const isAdminRoute = routeConfig.adminRoutes.some((route: string) =>
 			pathname.startsWith(route)
 		);
-
-		// const requiresProfile = routeConfig.profileRequiredRoutes.some(
-		// 	(route: string) => pathname.startsWith(route)
-		// );
 
 		// Handle public routes
 		if (isPublicRoute) {

@@ -64,9 +64,10 @@ export function BasicInfoStep({
 	const hasAutoFilledNames = useRef(false)
 	const { uploadFile, isUploading } = usePresignedUpload()
 
-	// Auto-fill Google login data when component mounts
+	// Auto-fill Google login data when component mounts (only for Google OAuth users)
 	useEffect(() => {
-		if (user) {
+		if (user && user.image) {
+			// Only auto-fill for Google OAuth users (indicated by user.image)
 			// Auto-fill email from Google account
 			if (user.email && !formData.email) {
 				onInputChange('email', user.email)
@@ -87,7 +88,7 @@ export function BasicInfoStep({
 			}
 
 			// Auto-fill profile photo from Google account
-			if (user.image && !formData.profilePhoto) {
+			if (!formData.profilePhoto) {
 				// Clean up Google image URL to get a better size
 				let imageUrl = user.image
 				if (imageUrl.includes('=s96-c')) {

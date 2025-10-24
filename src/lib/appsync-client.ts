@@ -234,7 +234,8 @@ export const createThread = async (participantId: string) => {
 
 export const getMessages = async (threadId: string) => {
 	if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-		throw new Error("AppSync not configured");
+		console.warn("AppSync not configured");
+		return [];
 	}
 
 	try {
@@ -246,16 +247,24 @@ export const getMessages = async (threadId: string) => {
 		});
 
 		const messages = (result as any).data.getMessages || [];
+		console.log(
+			"getMessages - loaded",
+			messages.length,
+			"messages for thread",
+			threadId
+		);
 
 		return messages;
 	} catch (error) {
+		console.error("getMessages - error:", error);
 		throw error;
 	}
 };
 
 export const getThreads = async (retryCount = 0): Promise<any[]> => {
 	if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-		throw new Error("AppSync not configured");
+		console.warn("AppSync not configured");
+		return [];
 	}
 
 	try {
@@ -263,15 +272,16 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		const userContext = await getUserContext();
 
 		if (!userContext?.userId) {
-			// Retry up to 5 times with increasing delay (increased from 3)
-			if (retryCount < 5) {
+			// Retry up to 2 times with increasing delay
+			if (retryCount < 2) {
+				console.log(`getThreads - retrying ${retryCount + 1}/2`);
 				await new Promise((resolve) =>
 					setTimeout(resolve, (retryCount + 1) * 1000)
 				);
 				return getThreads(retryCount + 1);
 			}
 
-			// Don't throw error, just return empty array to prevent infinite loops
+			console.warn("getThreads - no user context after retries");
 			return [];
 		}
 
@@ -283,9 +293,11 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		});
 
 		const threads = (result as any).data.getThreads || [];
+		console.log("getThreads - loaded", threads.length, "threads");
 
 		return threads;
 	} catch (error) {
+		console.error("getThreads - error:", error);
 		throw error;
 	}
 };
@@ -352,39 +364,71 @@ export const clearThreadUnreadCount = async (threadId: string) => {
 	}
 };
 
+// Session cache to prevent excessive API calls
+let sessionCache: { user: any; timestamp: number } | null = null;
+const SESSION_CACHE_DURATION = 30000; // 30 seconds
+
 // Helper function to get user context for AppSync requests
 const getUserContext = async (retryCount = 0): Promise<any> => {
 	try {
+		// Check cache first
+		if (
+			sessionCache &&
+			Date.now() - sessionCache.timestamp < SESSION_CACHE_DURATION
+		) {
+			const user = sessionCache.user;
+			if (user) {
+				return {
+					userId: user.id,
+					userName: user.name,
+					userImage: user.image,
+				};
+			}
+		}
+
 		// Add a small delay to ensure Better Auth is fully initialized
 		if (retryCount === 0) {
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 200));
 		}
 
+		// Get user session for AppSync operations
 		const session = await authClient.getSession();
+		const user = session?.data?.user;
 
-		if (session?.data?.user) {
-			const user = session.data.user;
+		// Update cache
+		sessionCache = {
+			user: user,
+			timestamp: Date.now(),
+		};
 
-			const userContext = {
-				userId: user.id,
-				userName: user.name,
-				userEmail: user.email,
-				userImage: user.image,
-			};
-			return userContext;
+		if (!user) {
+			// Retry up to 2 times with increasing delay
+			if (retryCount < 2) {
+				console.log(`getUserContext - retrying ${retryCount + 1}/2`);
+				await new Promise((resolve) =>
+					setTimeout(resolve, (retryCount + 1) * 1000)
+				);
+				return getUserContext(retryCount + 1);
+			}
+			console.warn("getUserContext - no user after retries");
+			return null;
 		}
 
-		// If no user found but we have a session, retry with delay
-		if (session && retryCount < 5) {
-			await new Promise((resolve) =>
-				setTimeout(resolve, (retryCount + 1) * 1000)
-			);
-			return getUserContext(retryCount + 1);
-		}
+		return {
+			userId: user.id,
+			userName: user.name,
+			userImage: user.image,
+		};
 	} catch (error) {
 		// Error getting session
+		console.warn("getUserContext error:", error);
 	}
 	return null;
+};
+
+// Function to clear session cache (useful for logout)
+export const clearSessionCache = () => {
+	sessionCache = null;
 };
 
 // Subscription helpers

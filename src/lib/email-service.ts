@@ -195,7 +195,7 @@ export class EmailTemplates {
           <p>To avoid any interruption to your EduMatch services, please complete your payment before the deadline.</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/payment" class="button">Pay Now</a>
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/view?tab=payment" class="button">Pay Now</a>
           </div>
           
           <p>If you have already made this payment, please ignore this email.</p>
@@ -388,7 +388,7 @@ export class EmailTemplates {
           <p>Please try updating your payment method or contact your bank if the issue persists.</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/payment" class="button">Update Payment Method</a>
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/view?tab=payment" class="button">Update Payment Method</a>
           </div>
           
           <p>If you continue to experience issues, please contact our support team at <a href="mailto:support@edumatch.com">support@edumatch.com</a></p>
@@ -450,7 +450,7 @@ export class EmailTemplates {
           <p>To continue enjoying all EduMatch premium features, please renew your subscription before it expires.</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/payment" class="button">Renew Subscription</a>
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/view?tab=payment" class="button">Renew Subscription</a>
           </div>
           
           <p>If you have any questions about your subscription, please contact our support team.</p>

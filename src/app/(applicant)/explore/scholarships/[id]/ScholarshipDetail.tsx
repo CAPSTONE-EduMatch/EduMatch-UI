@@ -592,7 +592,7 @@ const ScholarshipDetail = () => {
 										Visit website
 									</Button>
 								)}
-								<Button className="">Apply</Button>
+								{/* <Button className="">Apply</Button> */}
 								<motion.button
 									onClick={(e) => {
 										e.preventDefault()

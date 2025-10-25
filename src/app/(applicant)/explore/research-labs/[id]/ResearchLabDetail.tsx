@@ -2,6 +2,7 @@
 import { Breadcrumb, Button, Modal, ResearchLabCard } from '@/components/ui'
 
 import { mockResearchLabs } from '@/data/utils'
+import { useResearchLabDetail } from '@/hooks/useResearchLabDetail'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
@@ -14,16 +15,24 @@ const ResearchLabDetail = () => {
 	const [isWishlisted, setIsWishlisted] = useState(false)
 	const [activeTab, setActiveTab] = useState('job-description')
 	const [researchLabWishlist, setResearchLabWishlist] = useState<string[]>([])
-	const [currentLab, setCurrentLab] = useState<any>(null)
+
+	// Fetch research lab detail from API
+	const labId = params.id as string
+	const { researchLab, loading, error } = useResearchLabDetail(labId)
+	const [isUploading, setIsUploading] = useState(false)
+	const [hasApplied, setHasApplied] = useState(false)
+	const [isApplying, setIsApplying] = useState(false)
+	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+	const [uploadProgress, setUploadProgress] = useState<any[]>([])
 
 	// Dynamic info items based on current lab data
 	const infoItems = [
-		{ label: 'Salary', value: currentLab?.salary || 'Up to $2000' },
-		{ label: 'Country', value: currentLab?.country || 'Italy' },
-		{ label: 'Job type', value: currentLab?.jobType || 'Researcher' },
+		{ label: 'Salary', value: researchLab?.salary || 'Up to $2000' },
+		{ label: 'Country', value: researchLab?.country || 'Italy' },
+		{ label: 'Job type', value: researchLab?.jobType || 'Researcher' },
 		{
 			label: 'Application deadline',
-			value: currentLab?.applicationDeadline || '07/07/2026',
+			value: researchLab?.applicationDeadline || '07/07/2026',
 		},
 	]
 
@@ -35,25 +44,28 @@ const ResearchLabDetail = () => {
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Research Lab Detail' }])
 
+	const handleApply = async () => {
+		// Add application logic here
+		setIsApplying(true)
+		try {
+			// Simulate API call
+			await new Promise((resolve) => setTimeout(resolve, 2000))
+			setHasApplied(true)
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error submitting application:', error)
+		} finally {
+			setIsApplying(false)
+		}
+	}
+
 	// Dynamic breadcrumb based on referrer and context
 	useEffect(() => {
 		const updateBreadcrumb = () => {
-			// Get research lab ID from URL params
-			const labId = params.id as string
-
 			// Get the 'from' parameter from search params to know which tab we came from
 			const fromTab = searchParams.get('from') || 'research'
 
-			// Find the research lab data (in real app, this would be an API call)
-			const foundLab = mockResearchLabs.find(
-				(lab) => lab.id.toString() === labId
-			)
-
-			if (foundLab) {
-				setCurrentLab(foundLab)
-			}
-
-			const labName = foundLab?.title || 'AI Research Lab'
+			const labName = researchLab?.title || 'AI Research Lab'
 
 			let items: Array<{ label: string; href?: string }> = [
 				{ label: 'Explore', href: '/explore' },
@@ -84,7 +96,7 @@ const ResearchLabDetail = () => {
 		}
 
 		updateBreadcrumb()
-	}, [params.id, searchParams])
+	}, [searchParams, researchLab?.title])
 
 	const handleRResearchLabWishlistToggle = (id: string) => {
 		setResearchLabWishlist((prev) =>
@@ -92,7 +104,10 @@ const ResearchLabDetail = () => {
 		)
 	}
 
-	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileUpload = (
+		event: React.ChangeEvent<HTMLInputElement>,
+		documentType?: string
+	) => {
 		const files = event.target.files
 		if (files) {
 			const fileArray = Array.from(files).map((file, index) => ({
@@ -101,6 +116,7 @@ const ResearchLabDetail = () => {
 				size: file.size,
 				type: file.type,
 				file: file,
+				documentType: documentType,
 			}))
 			setUploadedFiles((prev) => [...prev, ...fileArray])
 		}
@@ -145,6 +161,30 @@ const ResearchLabDetail = () => {
 	]
 
 	const renderTabContent = () => {
+		if (loading) {
+			return (
+				<div className="flex justify-center items-center py-8">
+					<div className="text-gray-500">Loading...</div>
+				</div>
+			)
+		}
+
+		if (error) {
+			return (
+				<div className="flex justify-center items-center py-8">
+					<div className="text-red-500">Error: {error}</div>
+				</div>
+			)
+		}
+
+		if (!researchLab) {
+			return (
+				<div className="flex justify-center items-center py-8">
+					<div className="text-gray-500">Research lab not found</div>
+				</div>
+			)
+		}
+
 		switch (activeTab) {
 			case 'job-description':
 				return (
@@ -155,67 +195,64 @@ const ResearchLabDetail = () => {
 									1. Research Field:
 								</span>
 								<ul className="list-disc pl-5 mt-2 space-y-1 text-gray-700">
-									<li>Nutrition researcher</li>
-									<li>Healthcare researcher</li>
+									{researchLab.researchFields.length > 0 ? (
+										researchLab.researchFields.map((field, index) => (
+											<li key={index}>{field}</li>
+										))
+									) : (
+										<li>Not specified</li>
+									)}
 								</ul>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">2. Start date:</span>{' '}
-								<span className="text-gray-700">01/01/2026</span>
+								<span className="text-gray-700">
+									{researchLab.startDate || 'Not specified'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
 									3. Application deadline:
 								</span>{' '}
-								<span className="text-gray-700">01/02/2026</span>
+								<span className="text-gray-700">
+									{researchLab.applicationDeadline || 'Not specified'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">4. Country:</span>{' '}
-								<span className="text-gray-700">Italy</span>
+								<span className="text-gray-700">
+									{researchLab.country || 'Not specified'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
 									5. Type of Contract:
 								</span>{' '}
-								<span className="text-gray-700">Temporary</span>
+								<span className="text-gray-700">
+									{researchLab.contractType || 'Not specified'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">6. Attendance:</span>{' '}
-								<span className="text-gray-700">Full-time</span>
+								<span className="text-gray-700">
+									{researchLab.attendance || 'Not specified'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">7. Job type:</span>{' '}
-								<span className="text-gray-700">Researcher</span>
+								<span className="text-gray-700">
+									{researchLab.jobType || 'Researcher'}
+								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
 									8. Detail description:
 								</span>
-								<ul className="list-disc pl-5 mt-2 space-y-1 text-gray-700">
-									<li>
-										Hỗ trợ Viện trưởng trong công tác quản lý, điều hành hoạt
-										động chung của Viện;
-									</li>
-									<li>
-										Phụ trách, chỉ đạo các mảng công tác được Viện trưởng phân
-										công, bao gồm nghiên cứu khoa học, đào tạo sau đại học, hợp
-										tác quốc tế:
-									</li>
-									<ul className="list-disc pl-5 mt-1 space-y-1">
-										<li>
-											Xây dựng và triển khai các chiến lược phát triển chuyên
-											môn của Viện;
-										</li>
-										<li>
-											Đại diện Viện trong các hoạt động hợp tác học thuật trong
-											và ngoài nước;
-										</li>
-										<li>
-											Thực hiện các nhiệm vụ khác theo phân công của Viện trưởng
-											và quy định của Đại học.
-										</li>
-									</ul>
-								</ul>
+								<div className="mt-2 text-gray-700">
+									{researchLab.description ||
+										researchLab.mainResponsibility ||
+										'No description available'}
+								</div>
 							</li>
 						</ol>
 					</div>
@@ -227,132 +264,245 @@ const ResearchLabDetail = () => {
 						<div>
 							<p className="text-base mb-2">
 								<span className="font-bold text-gray-900">Salary:</span>{' '}
-								<span className="text-gray-700">Up to $2000</span>
+								<span className="text-gray-700">{researchLab.salary}</span>
 							</p>
+							{researchLab.salaryDescription && (
+								<p className="text-sm text-gray-600">
+									{researchLab.salaryDescription}
+								</p>
+							)}
 						</div>
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">Benefit:</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>
-									With us, you will experience the dynamic interaction between
-									higher education and research that makes Stockholm University
-									an exciting and creative environment. You will work in an
-									international environment and get favourable conditions. The
-									university is located in the National City Park with good
-									transport links to the city.
-								</li>
-								<li>
-									Stockholm University strives to be a workplace free from
-									discrimination and with equal opportunities for all.
-								</li>
-							</ul>
-						</div>
+						{researchLab.benefit && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">Benefit:</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.benefit}
+								</div>
+							</div>
+						)}
+
+						{researchLab.labFacilities && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">Lab Facilities:</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.labFacilities}
+								</div>
+							</div>
+						)}
 					</div>
 				)
 
 			case 'job-requirements':
 				return (
 					<div className="space-y-6">
-						<div>
-							<p className="text-base mb-4">
-								<span className="font-bold text-gray-900">
-									1. Main responsibilities:
-								</span>{' '}
-								<span className="text-gray-700">
-									The observational projects will involve analysis of both
-									imaging and spectroscopic data obtained from JWST, HST, and
-									other observatories. The theoretical projects will involve
-									hydrodynamical studies of galaxies or modelling of the
-									intergalactic medium.
-								</span>
-							</p>
-						</div>
+						{researchLab.mainResponsibility && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										1. Main responsibilities:
+									</span>{' '}
+									<span className="text-gray-700">
+										{researchLab.mainResponsibility}
+									</span>
+								</p>
+							</div>
+						)}
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								2. Qualification requirements:
-							</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>
-									For employment as a postdoctoral researcher, applicants are
-									required to hold a Swedish doctoral degree or an equivalent
-									relevant degree from another country. The degree must have
-									been completed within the employment decision is made.
-								</li>
-								<li>Required Level: Recognised Researcher (R2)</li>
-							</ul>
-						</div>
+						{researchLab.qualificationRequirement && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									2. Qualification requirements:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.qualificationRequirement}
+								</div>
+							</div>
+						)}
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								3. Experience requirements:
-							</p>
-							<p className="text-gray-700">
-								Have more than 2 years experience in research field.
-							</p>
-						</div>
+						{researchLab.experienceRequirement && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									3. Experience requirements:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.experienceRequirement}
+								</div>
+							</div>
+						)}
 
-						<div>
-							<p className="font-bold text-gray-900 mb-3">
-								4. Assessment criteria:
-							</p>
-							<ul className="list-disc pl-5 space-y-2 text-gray-700">
-								<li>
-									It is considered an advantage to have demonstrated research
-									independence for no more than three years prior to the
-									application deadline. Under special circumstances, older
-									degree may also be an advantage. Special circumstances refer
-									to sick leave, parental leave, military service, clinical
-									attachment or service assignments relevant to the subject
-									area.
-								</li>
-								<li>
-									In the appointment process, special attention will be given to
-									research skills. Expertise concerning galaxies in the early
-									universe or numerical simulations would be an advantage.
-								</li>
-							</ul>
-						</div>
+						{researchLab.assessmentCriteria && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									4. Assessment criteria:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.assessmentCriteria}
+								</div>
+							</div>
+						)}
 
-						<div>
-							<p className="text-base">
-								<span className="font-bold text-gray-900">
-									5. Other requirements:
-								</span>
-							</p>
-							<ul className="list-disc pl-5 mt-2 space-y-1 text-gray-700">
-								<li>Have a good health</li>
-								<li>Can receive stress</li>
-							</ul>
-						</div>
+						{researchLab.otherRequirement && (
+							<div>
+								<p className="text-base">
+									<span className="font-bold text-gray-900">
+										5. Other requirements:
+									</span>
+								</p>
+								<div className="mt-2 text-gray-700 whitespace-pre-line">
+									{researchLab.otherRequirement}
+								</div>
+							</div>
+						)}
+
+						{researchLab.technicalSkills && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									Technical Skills:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.technicalSkills}
+								</div>
+							</div>
+						)}
+
+						{researchLab.academicBackground && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									Academic Background:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.academicBackground}
+								</div>
+							</div>
+						)}
 					</div>
 				)
 
 			case 'other-information':
 				return (
 					<div className="space-y-6">
-						<div>
-							<p className="text-base mb-4">
-								<span className="font-bold text-gray-900">1. Contact:</span>{' '}
-								<span className="text-gray-700">
-									Further information about the position can be obtained from
-									Professor Garrelt Mellema, garrelt.mellema@astro.su.se and Dr.
-									Angela Adamo, angela.adamo@astro.su.se
-								</span>
-							</p>
-						</div>
+						{(researchLab.labContactEmail || researchLab.labWebsite) && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">1. Contact:</span>{' '}
+									<span className="text-gray-700">
+										For inquiries or collaboration opportunities, please reach
+										out via{' '}
+										{researchLab.labContactEmail && (
+											<span className="text-gray-700">
+												{researchLab.labContactEmail}
+											</span>
+										)}
+										{researchLab.labWebsite && (
+											<>
+												{' '}
+												or visit our website at{' '}
+												<a
+													href={researchLab.labWebsite}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-blue-600 hover:underline"
+												>
+													{researchLab.labWebsite}
+												</a>
+												.
+											</>
+										)}
+									</span>
+								</p>
+							</div>
+						)}
 
-						<div>
-							<p className="text-base">
-								<span className="font-bold text-gray-900">
-									2. Work location:
-								</span>{' '}
-								<span className="text-gray-700">
-									111 Street D1, District 3, Ho Chi Minh City, Viet Nam
-								</span>
-							</p>
-						</div>
+						{researchLab.location && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										2. Work location:
+									</span>{' '}
+									<span className="text-gray-700">{researchLab.location}</span>
+								</p>
+							</div>
+						)}
+
+						{researchLab.labDirector && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										3. Lab Director:
+									</span>{' '}
+									<span className="text-gray-700">
+										{researchLab.labDirector}
+									</span>
+								</p>
+							</div>
+						)}
+
+						{/* {researchLab.labWebsite && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										4. Lab Website:
+									</span>{' '}
+									<a
+										href={researchLab.labWebsite}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-blue-600 hover:text-blue-800 underline"
+									>
+										{researchLab.labWebsite}
+									</a>
+								</p>
+							</div>
+						)} */}
+
+						{researchLab.labCapacity > 0 && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										4. Lab Capacity:
+									</span>{' '}
+									<span className="text-gray-700">
+										{researchLab.labCapacity} researchers
+									</span>
+								</p>
+							</div>
+						)}
+
+						{researchLab.labFacilities && (
+							<div>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										5. Lab Facilities:
+									</span>{' '}
+									<span className="text-gray-700">
+										{researchLab.labFacilities}
+									</span>
+								</p>
+							</div>
+						)}
+
+						{researchLab.recommendations && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									6. Recommendations:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.recommendations}
+								</div>
+							</div>
+						)}
+
+						{/* {researchLab.applicationDocuments && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									7. Application Documents:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{researchLab.applicationDocuments}
+								</div>
+							</div>
+						)} */}
 					</div>
 				)
 
@@ -381,15 +531,15 @@ const ResearchLabDetail = () => {
 					<div className="w-[1500px] flex justify-center items-center gap-10 mx-auto px-4 sm:px-6 lg:px-8 py-8">
 						<div className="flex flex-col justify-center items-center w-1/2">
 							<h1 className="text-3xl font-bold mb-2">
-								{currentLab?.title || "Job's name"}
+								{researchLab?.title || "Job's name"}
 							</h1>
 							<p className="text-gray-600 mb-6">
-								Provided by: {currentLab?.organization || "Lab's name"}
+								Provided by: {researchLab?.organization || "Lab's name"}
 							</p>
 
 							<div className="flex items-center gap-3 mb-4">
 								<Button className="">Visit website</Button>
-								<Button className="">Apply</Button>
+								{/* <Button className="">Apply</Button> */}
 								<motion.button
 									onClick={(e) => {
 										e.preventDefault()
@@ -410,7 +560,9 @@ const ResearchLabDetail = () => {
 								</motion.button>
 							</div>
 
-							<p className="text-sm text-gray-500">Number of applications: 0</p>
+							<p className="text-sm text-gray-500">
+								Number of applications: {researchLab?.applicationCount || 0}
+							</p>
 						</div>
 						<div className="w-1/2 grid grid-cols-2 gap-4">
 							{infoItems.map((item, index) => (
@@ -442,9 +594,9 @@ const ResearchLabDetail = () => {
 					className="bg-white py-6 shadow-xl border"
 				>
 					<div className="container mx-auto px-4">
-						<div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+						<div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 lg:gap-40 text-center lg:text-left">
 							{infoItems.map((item, index) => (
-								<div key={index} className="text-center md:text-left">
+								<div key={index}>
 									<p className="text-sm text-gray-500 mb-1">{item.label}</p>
 									<p className="font-semibold text-gray-900">{item.value}</p>
 								</div>
@@ -462,36 +614,61 @@ const ResearchLabDetail = () => {
 				>
 					<h2 className="text-3xl font-bold mb-6">About</h2>
 
-					<div className="prose max-w-none text-gray-700 space-y-4">
-						<p>
-							The AI Research Lab at Cambridge University is a leading center
-							for artificial intelligence research, focusing on cutting-edge
-							developments in machine learning, computer vision, and natural
-							language processing. Our lab brings together world-class
-							researchers, graduate students, and industry partners to tackle
-							some of the most challenging problems in AI.
-						</p>
+					{loading ? (
+						<div className="flex justify-center items-center py-8">
+							<div className="text-gray-500">Loading...</div>
+						</div>
+					) : error ? (
+						<div className="flex justify-center items-center py-8">
+							<div className="text-red-500">Error: {error}</div>
+						</div>
+					) : researchLab ? (
+						<div className="prose max-w-none text-gray-700 space-y-4">
+							<p>
+								{researchLab.description ||
+									researchLab.institution.about ||
+									'The research lab focuses on cutting-edge developments and brings together world-class researchers, graduate students, and industry partners to tackle challenging problems.'}
+							</p>
 
-						<p className="font-semibold">Research Opportunities:</p>
+							{researchLab.researchFocus && (
+								<div>
+									<p className="font-semibold">Research Focus:</p>
+									<p>{researchLab.researchFocus}</p>
+								</div>
+							)}
 
-						<ul className="list-disc pl-5 space-y-2">
-							<li>
-								Work with state-of-the-art equipment including NVIDIA DGX
-								systems and high-performance computing clusters to develop
-								next-generation AI algorithms.
-							</li>
-							<li>
-								Collaborate with industry partners including Google, Microsoft,
-								and IBM on real-world AI applications that have immediate impact
-								on society.
-							</li>
-							<li>
-								Our researchers publish regularly in top-tier venues such as
-								NeurIPS, ICML, ICLR, and Nature journals, ensuring your work
-								reaches the global AI community.
-							</li>
-						</ul>
-					</div>
+							{researchLab.researchFields.length > 0 && (
+								<div>
+									<p className="font-semibold">Research Areas:</p>
+									<ul className="list-disc pl-5 space-y-2">
+										{researchLab.researchFields.map((field, index) => (
+											<li key={index}>{field}</li>
+										))}
+									</ul>
+								</div>
+							)}
+
+							{researchLab.institution.website && (
+								<div>
+									<p className="font-semibold">Institution:</p>
+									<p>
+										{researchLab.institution.name} -{' '}
+										{researchLab.institution.country}
+									</p>
+									<a
+										href={researchLab.institution.website}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-blue-600 hover:text-blue-800 underline"
+									>
+										Visit Institution Website
+									</a>
+								</div>
+							)}
+						</div>
+					) : (
+						<div className="text-gray-500">Research lab not found</div>
+					)}
 				</motion.div>
 
 				{/* Overview Content */}
@@ -542,66 +719,141 @@ const ResearchLabDetail = () => {
 					</motion.div>
 				</div>
 
-				{/* Apply Content */}
+				{/* Apply Content - Always show */}
+				{/* -----------------------------------------------Apply Content---------------------------------------------- */}
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="p-8 bg-white py-6 shadow-xl border"
+					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">Join our Research!</h2>
-					<p className="text-gray-600 mb-6">
-						Submit your research proposal and CV. We will review your
-						application and contact you for potential research opportunities.
-					</p>
+					<h2 className="text-3xl font-bold mb-6">Apply here !</h2>
 
-					{/* File Upload Area */}
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-						{['Research Proposal', 'CV/Resume', 'Portfolio'].map(
-							(label, index) => (
-								<div key={index} className="space-y-2">
-									<label className="text-sm font-medium text-gray-700">
-										{label}
-									</label>
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-										<div className="text-4xl mb-4">📁</div>
-										<div className="space-y-2">
-											<input
-												type="file"
-												multiple
-												onChange={handleFileUpload}
-												className="hidden"
-												id={`file-upload-${index}`}
-											/>
-											<label
-												htmlFor={`file-upload-${index}`}
-												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-											>
-												Click here to upload file
-											</label>
-										</div>
-									</div>
-								</div>
-							)
+					<div className="text-gray-600 mb-6">
+						{researchLab?.requiredDocuments &&
+						researchLab.requiredDocuments.length > 0 ? (
+							<div className="space-y-3">
+								{researchLab.requiredDocuments.map((doc: any) => (
+									<p key={doc.id}>
+										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
+										{doc.description}
+									</p>
+								))}
+							</div>
+						) : (
+							<p>
+								You can upload required documents here. We will send documents
+								and your academic information to university.
+							</p>
 						)}
 					</div>
 
+					{/* File Upload Area */}
+					<div className="w-full mb-6">
+						{researchLab?.requiredDocuments &&
+							researchLab.requiredDocuments.length > 0 &&
+							researchLab.requiredDocuments.map((doc: any) => {
+								const filesForThisType = uploadedFiles.filter(
+									(file) => file.documentType === doc.id
+								)
+								return (
+									<div key={doc.id} className="space-y-2">
+										<label className="text-sm font-medium text-gray-700">
+											{doc.name}
+											{filesForThisType.length > 0 && (
+												<span className="ml-2 text-xs text-green-600">
+													({filesForThisType.length} file
+													{filesForThisType.length !== 1 ? 's' : ''})
+												</span>
+											)}
+										</label>
+										{/* {doc.description && (
+																			<p className="text-xs text-gray-500 mb-2">
+																				{doc.description}
+																			</p>
+																		)} */}
+										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+											<div className="text-4xl mb-4">📁</div>
+											<div className="space-y-2">
+												<input
+													type="file"
+													multiple
+													onChange={(e) => handleFileUpload(e, doc.id)}
+													className="hidden"
+													id={`file-upload-${doc.id}`}
+												/>
+												<label
+													htmlFor={`file-upload-${doc.id}`}
+													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+												>
+													Click here to upload file
+												</label>
+											</div>
+										</div>
+
+										{/* Show uploaded files for this document type */}
+										{/* {filesForThisType.length > 0 && (
+																			<div className="space-y-1">
+																				{filesForThisType.map((file) => (
+																					<div
+																						key={file.id}
+																						className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
+																					>
+																						<span className="truncate flex-1">{file.name}</span>
+																						<button
+																							onClick={() => removeFile(file.id)}
+																							className="text-red-500 hover:text-red-700 ml-2"
+																						>
+																							✕
+																						</button>
+																					</div>
+																				))}
+																			</div>
+																		)} */}
+									</div>
+								)
+							})}
+					</div>
+
 					{/* File Management */}
-					{uploadedFiles.length > 0 && (
+					{(uploadedFiles.length > 0 || isUploading) && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium">
-									Manage files: {uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''}
+									{isUploading
+										? 'Uploading files...'
+										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
 								</span>
-								<Button
-									variant="outline"
-									onClick={handleOpenModal}
-									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-								>
-									Manage Files
-								</Button>
+								{uploadedFiles.length > 0 && (
+									<Button
+										variant="outline"
+										onClick={handleOpenModal}
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+									>
+										Manage Files
+									</Button>
+								)}
 							</div>
+
+							{/* Upload Progress */}
+							{isUploading && uploadProgress.length > 0 && (
+								<div className="space-y-2 mb-4">
+									{uploadProgress.map((progress) => (
+										<div key={progress.fileIndex} className="space-y-1">
+											<div className="flex justify-between text-sm">
+												<span>File {progress.fileIndex + 1}</span>
+												<span>{progress.progress}%</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+													style={{ width: `${progress.progress}%` }}
+												></div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
 						</div>
 					)}
 
@@ -615,45 +867,76 @@ const ResearchLabDetail = () => {
 								Remove all
 							</Button>
 						)}
-						<Button className="bg-[#126E64] hover:bg-teal-700 text-white">
-							Submit Application
+						<Button
+							className={
+								hasApplied
+									? 'bg-green-600 hover:bg-green-700 text-white'
+									: 'bg-[#126E64] hover:bg-teal-700 text-white'
+							}
+							onClick={handleApply}
+							disabled={
+								hasApplied || isApplying || isUploading || isCheckingApplication
+							}
+						>
+							{hasApplied ? (
+								'✓ Application Submitted'
+							) : isApplying ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Submitting...
+								</div>
+							) : isUploading ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Uploading Files...
+								</div>
+							) : isCheckingApplication ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Checking...
+								</div>
+							) : (
+								'Submit Application'
+							)}
 						</Button>
 					</div>
 				</motion.div>
 
-				{/* Recommended Scholarships */}
-				<motion.div
-					initial={{ y: 20, opacity: 0 }}
-					animate={{ y: 0, opacity: 1 }}
-					transition={{ delay: 0.3 }}
-					className="p-8 bg-white py-6 shadow-xl border"
-				>
-					<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
+				{/* Recommended Scholarships - Only show when data is loaded */}
+				{!loading && !error && researchLab && (
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.3 }}
+						className="p-8 bg-white py-6 shadow-xl border"
+					>
+						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
 
-					{mockResearchLabs.length > 0 ? (
-						<div className="relative h-[900px] overflow-y-auto overflow-x-hidden">
-							{mockResearchLabs.slice(0, 9).map((researchLab, index) => (
-								<div key={researchLab.id} className="">
-									<div className="mb-7">
-										<ResearchLabCard
-											lab={researchLab}
-											index={index}
-											isWishlisted={researchLabWishlist.includes(
-												researchLab.id
-											)}
-											onWishlistToggle={handleRResearchLabWishlistToggle}
-											onClick={handleResearchLabClick}
-										/>
+						{mockResearchLabs.length > 0 ? (
+							<div className="relative h-[900px] overflow-y-auto overflow-x-hidden">
+								{mockResearchLabs.slice(0, 9).map((researchLab, index) => (
+									<div key={researchLab.id} className="">
+										<div className="mb-7">
+											<ResearchLabCard
+												lab={researchLab}
+												index={index}
+												isWishlisted={researchLabWishlist.includes(
+													researchLab.id
+												)}
+												onWishlistToggle={handleRResearchLabWishlistToggle}
+												onClick={handleResearchLabClick}
+											/>
+										</div>
 									</div>
-								</div>
-							))}
-						</div>
-					) : (
-						<div className="text-center py-8">
-							<p className="text-gray-600">No research labs available</p>
-						</div>
-					)}
-				</motion.div>
+								))}
+							</div>
+						) : (
+							<div className="text-center py-8">
+								<p className="text-gray-600">No research labs available</p>
+							</div>
+						)}
+					</motion.div>
+				)}
 			</motion.div>
 
 			{/* Manage Files Side Panel */}

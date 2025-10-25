@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
 					include: {
 						user: {
 							select: {
+								id: true, // Include user ID for thread matching
 								name: true,
 								email: true,
 								image: true,
@@ -97,20 +98,24 @@ export async function GET(request: NextRequest) {
 		});
 
 		// Transform data to match the expected format
-		const transformedApplications = applications.map((app) => ({
-			id: app.application_id,
-			postId: app.post.post_id,
-			name: app.applicant.user.name || "Unknown",
-			email: app.applicant.user.email,
-			image: app.applicant.user.image,
-			appliedDate: app.apply_at.toLocaleDateString(),
-			degreeLevel: app.applicant.level || "Unknown",
-			subDiscipline: app.applicant.subdiscipline?.name || "Unknown",
-			status: app.status.toLowerCase(),
-			matchingScore: Math.floor(Math.random() * 30) + 70, // Mock matching score
-			postTitle: app.post.title,
-			applicantId: app.applicant.applicant_id,
-		}));
+		const transformedApplications = applications.map((app) => {
+			const transformed = {
+				id: app.application_id,
+				postId: app.post.post_id,
+				name: app.applicant.user.name || "Unknown",
+				email: app.applicant.user.email,
+				image: app.applicant.user.image,
+				appliedDate: app.apply_at.toLocaleDateString(),
+				degreeLevel: app.applicant.level || "Unknown",
+				subDiscipline: app.applicant.subdiscipline?.name || "Unknown",
+				status: app.status.toLowerCase(),
+				matchingScore: Math.floor(Math.random() * 30) + 70, // Mock matching score
+				postTitle: app.post.title,
+				applicantId: app.applicant.applicant_id,
+				userId: app.applicant.user.id, // Include user ID for thread matching
+			};
+			return transformed;
+		});
 
 		// Apply search filter
 		let filteredApplications = transformedApplications;

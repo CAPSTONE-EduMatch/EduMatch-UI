@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { authClient } from '@/app/lib/auth-client'
+import { clearSessionCache } from '@/lib/appsync-client'
 
 interface AuthState {
 	isAuthenticated: boolean
@@ -21,6 +22,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Cache key for localStorage
 const AUTH_CACHE_KEY = 'edumatch_auth_state'
 
+// Global flag to prevent multiple simultaneous auth checks
+let isCheckingAuth = false
+
 // Load auth state from localStorage
 const loadAuthState = (): Partial<AuthState> => {
 	try {
@@ -28,8 +32,10 @@ const loadAuthState = (): Partial<AuthState> => {
 			const cached = localStorage.getItem(AUTH_CACHE_KEY)
 			if (cached) {
 				const parsed = JSON.parse(cached)
-				// Check if cache is still valid (less than 5 minutes old)
-				if (Date.now() - parsed.lastCheck < 300000) {
+				// For unauthenticated users, use cache for longer (15 minutes)
+				// For authenticated users, use shorter cache (5 minutes)
+				const cacheTime = parsed.isAuthenticated ? 300000 : 900000
+				if (Date.now() - parsed.lastCheck < cacheTime) {
 					return {
 						isAuthenticated: parsed.isAuthenticated,
 						user: parsed.user,
@@ -65,40 +71,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [isLoading, setIsLoading] = useState(true)
 	const [showAuthModal, setShowAuthModal] = useState(false)
 
-	// Initialize from cache on mount
-	useEffect(() => {
-		const cachedState = loadAuthState()
-		setIsAuthenticated(cachedState.isAuthenticated || false)
-		setUser(cachedState.user || null)
-		setIsLoading(cachedState.isLoading !== false)
-
-		// Set modal visibility based on cached authentication status
-		if (cachedState.isAuthenticated && cachedState.user) {
-			setShowAuthModal(false)
-		} else {
-			setShowAuthModal(true)
-		}
-	}, [])
-
-	// Check authentication on mount
+	// Single authentication check on mount
 	useEffect(() => {
 		const checkAuth = async () => {
+			// Prevent multiple simultaneous calls
+			if (isCheckingAuth) {
+				return
+			}
+
+			// Check cache first
+			const cachedState = loadAuthState()
+			if (
+				cachedState.isAuthenticated &&
+				cachedState.user &&
+				!cachedState.isLoading
+			) {
+				// Use cached state
+				setIsAuthenticated(true)
+				setUser(cachedState.user)
+				setIsLoading(false)
+				setShowAuthModal(false)
+				return
+			}
+
+			// Make API call if cache is invalid
+			isCheckingAuth = true
 			try {
 				const session = await authClient.getSession()
 				const hasUser = session?.data?.user
 				const isAuth = !!(session?.data?.user && session?.data?.session)
 
-				// Update state
 				setIsAuthenticated(isAuth)
 				setUser(hasUser)
 				setIsLoading(false)
-
-				// Set modal visibility
-				if (hasUser) {
-					setShowAuthModal(false)
-				} else {
-					setShowAuthModal(true)
-				}
+				setShowAuthModal(!hasUser)
 
 				// Save to cache
 				saveAuthState({
@@ -112,22 +118,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				setIsLoading(false)
 				setShowAuthModal(true)
 
-				// Save to cache
+				// Save error state to cache
 				saveAuthState({
 					isAuthenticated: false,
 					user: null,
 					lastCheck: Date.now(),
 				})
+			} finally {
+				isCheckingAuth = false
 			}
 		}
 
 		checkAuth()
 	}, [])
 
+	// Only refresh auth state when explicitly needed (not on tab focus)
+	// Removed aggressive auto-refresh to prevent page reloads on tab switch
+
 	const refreshAuth = async () => {
-		if (isLoading) return
+		if (isCheckingAuth) return
 
 		setIsLoading(true)
+		isCheckingAuth = true
 		try {
 			const session = await authClient.getSession()
 			const hasUser = session?.data?.user
@@ -135,12 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			setIsAuthenticated(isAuth)
 			setUser(hasUser)
-
-			if (hasUser) {
-				setShowAuthModal(false)
-			} else {
-				setShowAuthModal(true)
-			}
+			setShowAuthModal(!hasUser)
 
 			// Save to cache
 			saveAuthState({
@@ -153,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setUser(null)
 			setShowAuthModal(true)
 
-			// Save to cache
+			// Save error state to cache
 			saveAuthState({
 				isAuthenticated: false,
 				user: null,
@@ -161,11 +168,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			})
 		} finally {
 			setIsLoading(false)
+			isCheckingAuth = false
 		}
 	}
 
 	const clearAuthCache = async () => {
 		try {
+			// Clear AppSync session cache
+			clearSessionCache()
+
 			// Clear browser storage
 			localStorage.clear()
 			sessionStorage.clear()

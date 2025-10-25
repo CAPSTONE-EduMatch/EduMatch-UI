@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
 	StatisticsCards,
 	SearchAndFilter,
@@ -17,6 +18,7 @@ interface InstitutionApplicationSectionProps {
 export const InstitutionApplicationSection: React.FC<
 	InstitutionApplicationSectionProps
 > = ({ profile }) => {
+	const router = useRouter()
 	const [searchQuery, setSearchQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<string>('newest')
@@ -36,7 +38,7 @@ export const InstitutionApplicationSection: React.FC<
 	const itemsPerPage = 10
 
 	// Fetch applications from API
-	const fetchApplications = async () => {
+	const fetchApplications = useCallback(async () => {
 		setLoading(true)
 		setError(null)
 
@@ -69,19 +71,18 @@ export const InstitutionApplicationSection: React.FC<
 				throw new Error(result.error || 'Failed to fetch applications')
 			}
 		} catch (err) {
-			console.error('Error fetching applications:', err)
 			setError(
 				err instanceof Error ? err.message : 'Failed to fetch applications'
 			)
 		} finally {
 			setLoading(false)
 		}
-	}
+	}, [searchQuery, statusFilter, sortBy, currentPage, itemsPerPage])
 
 	// Fetch applications when component mounts or filters change
 	useEffect(() => {
 		fetchApplications()
-	}, [searchQuery, statusFilter, sortBy, currentPage])
+	}, [fetchApplications])
 
 	// Filter and search applicants (client-side for immediate feedback)
 	const filteredApplicants = useMemo(() => {
@@ -128,32 +129,23 @@ export const InstitutionApplicationSection: React.FC<
 	}
 
 	const handleContact = (applicant: Applicant) => {
-		console.log('Contact applicant:', applicant.name)
-		// TODO: Implement contact functionality
+		// Navigate to messages with contact parameter
+		router.push(`/messages?contact=${applicant.userId}`)
 	}
 
 	const handleApprove = (applicant: Applicant) => {
-		console.log('Approve applicant:', applicant.name)
 		// TODO: Implement approval functionality
 	}
 
 	const handleReject = (applicant: Applicant) => {
-		console.log('Reject applicant:', applicant.name)
 		// TODO: Implement rejection functionality
 	}
 
 	const handleRequireUpdate = (applicant: Applicant) => {
-		console.log('Require update for applicant:', applicant.name)
 		// TODO: Implement require update functionality
 	}
 
 	const handleStatusChange = (applicantId: string, newStatus: string) => {
-		console.log(
-			'Status change for applicant:',
-			applicantId,
-			'to status:',
-			newStatus
-		)
 		// TODO: Implement status update functionality
 		// This would typically update the applicant's status in the database
 	}
@@ -164,7 +156,6 @@ export const InstitutionApplicationSection: React.FC<
 			<ApplicantDetailView
 				applicant={selectedApplicant}
 				onBack={handleBackToList}
-				onContact={handleContact}
 				onApprove={handleApprove}
 				onReject={handleReject}
 				onRequireUpdate={handleRequireUpdate}

@@ -8,12 +8,7 @@ interface ConditionalLayoutProps {
 	children: React.ReactNode
 }
 
-const hideFooterPaths = [
-	'/applicant-profile/',
-	'/admin/',
-	'/messages',
-	'institution-profile',
-]
+const hideFooterPaths = ['/profile/', '/admin/', '/messages']
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 	const pathname = usePathname()
 

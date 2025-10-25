@@ -11,6 +11,7 @@ export interface Applicant {
 	subDiscipline: string
 	status: 'submitted' | 'under_review' | 'accepted' | 'rejected' | 'new_request'
 	matchingScore: number
+	userId?: string // User ID for thread matching
 }
 
 interface ApplicantsTableProps {

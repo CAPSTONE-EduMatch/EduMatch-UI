@@ -14,6 +14,7 @@ interface CreateResearchLabRequest {
 	typeOfContract: string;
 	attendance: string;
 	jobType: string;
+	degree_level: string;
 
 	// Offer Information Section
 	salary: {
@@ -154,6 +155,7 @@ export async function POST(request: NextRequest) {
 				status: body.status || "DRAFT", // Use provided status or default to DRAFT
 				create_at: new Date(),
 				institution_id: institution.institution_id,
+				degree_level: body.degree_level || "RESEARCH", // Add required degree_level field
 			},
 		});
 

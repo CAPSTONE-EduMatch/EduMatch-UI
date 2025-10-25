@@ -36,40 +36,65 @@ const fields = [
 	"Machine Learning",
 	"Software Engineering",
 	"Cybersecurity",
+	"Information Systems",
 	"Business Administration",
 	"Economics",
 	"Finance",
 	"Marketing",
 	"International Business",
+	"Management",
+	"Accounting",
 	"Biology",
 	"Chemistry",
 	"Physics",
 	"Mathematics",
 	"Statistics",
+	"Environmental Science",
+	"Biotechnology",
+	"Genetics",
+	"Biochemistry",
+	"Molecular Biology",
 	"Psychology",
 	"Sociology",
 	"Political Science",
 	"International Relations",
-	"Environmental Science",
+	"Public Policy",
+	"Anthropology",
 	"Engineering",
+	"Mechanical Engineering",
+	"Electrical Engineering",
+	"Civil Engineering",
+	"Chemical Engineering",
+	"Biomedical Engineering",
+	"Materials Science",
 	"Medicine",
+	"Public Health",
+	"Nursing",
+	"Pharmacy",
+	"Dentistry",
 	"Law",
 	"Education",
+	"Educational Psychology",
 	"Architecture",
+	"Urban Planning",
 	"Design",
 	"Arts",
+	"Fine Arts",
+	"Performing Arts",
 	"Literature",
 	"History",
 	"Philosophy",
 	"Linguistics",
-	"Anthropology",
 	"Geography",
 	"Geology",
 	"Astronomy",
 	"Neuroscience",
-	"Biotechnology",
 	"Robotics",
 	"Quantum Computing",
+	"Agricultural Science",
+	"Communications",
+	"Journalism",
+	"Media Studies",
 ];
 
 const countries = [
@@ -276,6 +301,81 @@ const degreeLevels = [
 	"Doctorate",
 ];
 
+const attendanceTypes = [
+	"Full-time",
+	"Part-time",
+	"Online",
+	"Hybrid",
+	"On-campus",
+	"Distance Learning",
+	"Evening",
+	"Weekend",
+];
+
+const programDurations = [
+	"Less than 1 year",
+	"1 year",
+	"1.5 years",
+	"2 years",
+	"2.5 years",
+	"3 years",
+	"4 years",
+	"More than 4 years",
+];
+
+const researchAreas = [
+	"Artificial Intelligence",
+	"Machine Learning",
+	"Deep Learning",
+	"Natural Language Processing",
+	"Computer Vision",
+	"Data Science",
+	"Big Data Analytics",
+	"Cybersecurity",
+	"Blockchain Technology",
+	"Quantum Computing",
+	"Internet of Things",
+	"Cloud Computing",
+	"Biotechnology",
+	"Nanotechnology",
+	"Materials Science",
+	"Environmental Science",
+	"Climate Change Research",
+	"Renewable Energy",
+	"Sustainable Development",
+	"Biomedical Engineering",
+	"Robotics",
+	"Autonomous Systems",
+	"Virtual Reality",
+	"Augmented Reality",
+	"Computational Biology",
+	"Bioinformatics",
+	"Genetics and Genomics",
+	"Neuroscience",
+	"Cognitive Science",
+	"Space Technology",
+	"Aerospace Engineering",
+	"Energy Storage",
+	"Smart Cities",
+	"Digital Health",
+	"Precision Medicine",
+];
+
+const labTypes = [
+	"Computer Science Lab",
+	"AI Research Lab",
+	"Data Science Lab",
+	"Robotics Lab",
+	"Biomedical Research Lab",
+	"Materials Science Lab",
+	"Environmental Research Lab",
+	"Neuroscience Lab",
+	"Physics Lab",
+	"Chemistry Lab",
+	"Engineering Lab",
+	"Biotechnology Lab",
+];
+
 const jobTypes = [
 	"Full-time",
 	"Part-time",
@@ -334,16 +434,6 @@ function getRandomDate(start: Date, end: Date): Date {
 	return new Date(
 		start.getTime() + Math.random() * (end.getTime() - start.getTime())
 	);
-}
-
-function generateProgramDescription(field: string, university: string): string {
-	const descriptions = [
-		`Join our world-renowned ${field} program at ${university}. This comprehensive curriculum combines theoretical knowledge with practical applications.`,
-		`Advance your career with our cutting-edge ${field} program. ${university} offers state-of-the-art facilities and expert faculty guidance.`,
-		`Transform your future through our innovative ${field} program. Experience hands-on learning and research opportunities at ${university}.`,
-		`Excel in ${field} with our internationally recognized program. ${university} provides extensive industry connections and career support.`,
-	];
-	return getRandomElement(descriptions);
 }
 
 async function cleanDatabase() {
@@ -766,6 +856,7 @@ async function seedOpportunityPosts() {
 			other_info: `This is a comprehensive ${field} program at ${university}. The program is designed to provide students with cutting-edge knowledge and practical skills in ${field}. Students will have access to state-of-the-art facilities, world-class faculty, and diverse research opportunities. The program emphasizes both theoretical foundations and practical applications, preparing graduates for successful careers in academia and industry.`,
 			institution_id: `user-${(Math.floor(Math.random() * 10) + 11).toString().padStart(3, "0")}`,
 			status: status,
+			degree_level: getRandomElement(degreeLevels),
 		});
 	}
 
@@ -788,8 +879,8 @@ async function seedProgramPosts() {
 	for (let i = 1; i <= 100; i++) {
 		programPosts.push({
 			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
-			duration: `${Math.floor(Math.random() * 4) + 1} years`,
-			degree_level: getRandomElement(["Bachelor", "Master", "PhD"]),
+			duration: getRandomElement(programDurations),
+			attendance: getRandomElement(attendanceTypes),
 			course_include: `Core courses in ${getRandomElement(fields)}, electives, research project, thesis`,
 			gpa: Math.random() * 2 + 2.5, // 2.5-4.5 GPA
 			gre: Math.floor(Math.random() * 200) + 300, // 300-500 GRE
@@ -799,7 +890,14 @@ async function seedProgramPosts() {
 				"Tuition fees include all academic costs, library access, and student services",
 			scholarship_info:
 				"Various scholarship opportunities available for qualified students",
-			attendance: getRandomElement(["Full-time", "Part-time"]),
+			language_requirement: getRandomElement([
+				"IELTS 6.5 or TOEFL 90",
+				"IELTS 7.0 or TOEFL 100",
+				"IELTS 6.0 or TOEFL 80",
+				"No language requirement",
+				"Native English speaker or equivalent",
+			]),
+			professor_name: `Dr. ${getRandomElement(["John", "Jane", "Michael", "Sarah", "David", "Lisa"])} ${getRandomElement(["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia"])}`,
 		});
 	}
 
@@ -815,21 +913,35 @@ async function seedScholarshipPosts() {
 
 	const scholarshipPosts = [];
 	for (let i = 101; i <= 150; i++) {
+		const field = getRandomElement(fields);
+		const scholarshipType = getRandomElement(scholarshipTypes);
+		const grantAmount = Math.floor(Math.random() * 50000) + 5000;
+		const coverage = getRandomElement([
+			"Full",
+			"Partial",
+			"Tuition Only",
+			"Living Expenses",
+			"Research Costs",
+		]);
+
 		scholarshipPosts.push({
 			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
-			description: `Scholarship for ${getRandomElement(fields)} students`,
-			type: getRandomElement(scholarshipTypes),
-			number: Math.floor(Math.random() * 50) + 1,
-			grant: `$${Math.floor(Math.random() * 50000) + 5000}`,
-			scholarship_coverage: getRandomElement([
-				"Full",
-				"Partial",
-				"Tuition Only",
-				"Living Expenses",
+			description: `${scholarshipType} scholarship for outstanding ${field} students. This scholarship supports students who demonstrate academic excellence and research potential in ${field}. Recipients will have access to mentorship opportunities and research resources.`,
+			type: scholarshipType,
+			number: Math.floor(Math.random() * 20) + 1, // 1-20 scholarships available
+			grant: `$${grantAmount.toLocaleString()}`,
+			scholarship_coverage: coverage,
+			essay_required: Math.random() > 0.4, // 60% require essays
+			eligibility: `Open to ${getRandomElement(degreeLevels)} students with strong academic record in ${field} or related fields. Minimum GPA requirement applies.`,
+			award_amount: grantAmount,
+			award_duration: getRandomElement([
+				"1 year",
+				"2 years",
+				"3 years",
+				"4 years",
+				"Duration of study",
 			]),
-			essay_required: Math.random() > 0.5,
-			eligibility:
-				"Open to all qualified students with strong academic record",
+			renewable: Math.random() > 0.3, // 70% are renewable
 		});
 	}
 
@@ -841,35 +953,101 @@ async function seedScholarshipPosts() {
 }
 
 async function seedJobPosts() {
-	console.log("💼 Seeding job posts...");
+	console.log("💼 Seeding job posts (research labs)...");
 
 	const jobPosts = [];
 	for (let i = 151; i <= 200; i++) {
-		jobPosts.push({
-			post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
-			contract_type: getRandomElement(contractTypes),
-			job_type: getRandomElement(jobTypes),
-			min_salary: Math.floor(Math.random() * 50000) + 30000, // $30k-$80k
-			max_salary: Math.floor(Math.random() * 100000) + 80000, // $80k-$180k
-			salary_description: "Competitive salary with benefits package",
-			benefit:
-				"Health insurance, retirement plan, professional development",
-			main_responsibility: `Research and development in ${getRandomElement(fields)}`,
-			qualification_requirement:
-				"PhD or Master's degree in relevant field",
-			experience_requirement: `${Math.floor(Math.random() * 5) + 1} years of experience`,
-			assessment_criteria:
-				"Academic excellence, research potential, communication skills",
-			other_requirement: "Strong analytical and problem-solving skills",
-			attendance: getRandomElement(["Full-time", "Part-time"]),
-		});
+		const researchArea = getRandomElement(researchAreas);
+		const labType = getRandomElement(labTypes);
+		const university = getRandomElement(universities);
+		const field = getRandomElement(fields);
+		const isResearchLab = Math.random() > 0.3; // 70% are research labs, 30% are regular jobs
+
+		const minSalary = Math.floor(Math.random() * 30000) + 30000; // $30k-$60k
+		const maxSalary = minSalary + Math.floor(Math.random() * 50000) + 20000; // +$20k-$70k
+
+		if (isResearchLab) {
+			jobPosts.push({
+				post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
+				contract_type: getRandomElement([
+					"Fixed-term",
+					"Permanent",
+					"Project-based",
+					"Postdoc",
+				]),
+				job_type: getRandomElement([
+					"Research Assistant",
+					"Teaching Assistant",
+					"Graduate Assistant",
+					"Postdoc",
+					"Research Scientist",
+					"Lab Technician",
+				]),
+				min_salary: minSalary,
+				max_salary: maxSalary,
+				salary_description:
+					"Competitive salary with comprehensive benefits package including health insurance and research funds",
+				benefit:
+					"Health insurance, research funding, conference travel support, professional development opportunities, laboratory access",
+				main_responsibility: `Conduct cutting-edge research in ${researchArea}. Collaborate with interdisciplinary teams, publish research findings, and contribute to grant applications.`,
+				qualification_requirement: `${getRandomElement(["PhD", "Master", "Bachelor"])} degree in ${field} or related field. Strong analytical and research skills required.`,
+				experience_requirement: `${Math.floor(Math.random() * 3) + 1}-${Math.floor(Math.random() * 3) + 3} years of research experience`,
+				assessment_criteria:
+					"Research experience, publication record, technical skills, and potential for independent research",
+				other_requirement:
+					"Strong communication skills, ability to work independently and in teams, proficiency in relevant software/tools",
+				attendance: getRandomElement(["Full-time", "Part-time"]),
+				// Research lab specific fields
+				lab_type: labType,
+				lab_director: `Dr. ${getRandomElement(["John", "Jane", "Michael", "Sarah", "David", "Lisa", "Robert", "Emily"])} ${getRandomElement(["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis"])}`,
+				lab_facilities: `State-of-the-art ${labType.toLowerCase()} with advanced equipment for ${researchArea.toLowerCase()} research. Clean rooms, high-performance computing cluster, and specialized instrumentation.`,
+				lab_capacity: Math.floor(Math.random() * 20) + 5, // 5-25 people
+				lab_website: `https://${researchArea.toLowerCase().replace(/\s+/g, "")}-lab.${university.toLowerCase().replace(/\s+/g, "")}.edu`,
+				lab_contact_email: `lab-contact@${university.toLowerCase().replace(/\s+/g, "")}.edu`,
+				research_areas: researchArea,
+				research_focus: `Primary focus on ${researchArea} with applications in ${getRandomElement(["healthcare", "technology", "environment", "industry", "education"])}. We investigate novel approaches and develop innovative solutions.`,
+				research_experience: `Minimum ${Math.floor(Math.random() * 3) + 1} years of experience in ${researchArea} or related fields`,
+				research_proposal:
+					Math.random() > 0.5
+						? "Research proposal required as part of application"
+						: null,
+				academic_background: `Strong background in ${field}, ${getRandomElement(fields)}, or related discipline`,
+				technical_skills: `Proficiency in ${getRandomElement(["Python", "R", "MATLAB", "C++", "Java"])}, ${getRandomElement(["machine learning", "data analysis", "statistical modeling", "experimental design"])}, and relevant research methodologies`,
+				recommendations:
+					Math.random() > 0.3
+						? "3 letters of recommendation required"
+						: "2 letters of recommendation required",
+				application_documents:
+					"CV, cover letter, research statement, transcripts, and letters of recommendation",
+			});
+		} else {
+			// Regular job positions
+			jobPosts.push({
+				post_id: `post-opportunity-${i.toString().padStart(4, "0")}`,
+				contract_type: getRandomElement(contractTypes),
+				job_type: getRandomElement(jobTypes),
+				min_salary: minSalary,
+				max_salary: maxSalary,
+				salary_description: "Competitive salary with benefits package",
+				benefit:
+					"Health insurance, retirement plan, professional development opportunities",
+				main_responsibility: `Lead ${field} initiatives and contribute to innovative projects. Collaborate with cross-functional teams and drive strategic outcomes.`,
+				qualification_requirement: `${getRandomElement(["PhD", "Master", "Bachelor"])} degree in ${field} or relevant field`,
+				experience_requirement: `${Math.floor(Math.random() * 5) + 1} years of relevant experience`,
+				assessment_criteria:
+					"Academic excellence, relevant experience, technical skills, and communication abilities",
+				other_requirement:
+					"Strong analytical and problem-solving skills, ability to work in fast-paced environment",
+				attendance: getRandomElement(["Full-time", "Part-time"]),
+			});
+		}
 	}
 
 	await prismaClient.jobPost.createMany({
 		data: jobPosts,
 	});
 
-	console.log("✅ 50 Job posts seeded successfully");
+	console.log("✅ 50 Job posts (research labs) seeded successfully");
 }
 
 async function seedPostDocuments() {

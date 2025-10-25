@@ -153,8 +153,7 @@ export async function GET(
 						? {
 								post_id: application.post.programPost.post_id,
 								duration: application.post.programPost.duration,
-								degree_level:
-									application.post.programPost.degree_level,
+								degree_level: application.post.degree_level,
 								attendance:
 									application.post.programPost.attendance,
 								course_include:

@@ -110,9 +110,9 @@ export async function GET(request: NextRequest) {
 
 			// Count by discipline
 			const program = postProgramMap.get(item.post_id);
-			if (program?.degree_level) {
-				byDiscipline[program.degree_level] =
-					(byDiscipline[program.degree_level] || 0) + 1;
+			if (program?.duration) {
+				byDiscipline[program.duration] =
+					(byDiscipline[program.duration] || 0) + 1;
 			}
 		});
 

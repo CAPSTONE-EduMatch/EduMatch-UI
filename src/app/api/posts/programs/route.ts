@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
 				status: body.status || "DRAFT", // Use provided status or default to DRAFT
 				create_at: new Date(),
 				institution_id: institution.institution_id,
+				degree_level: body.degreeLevel,
 			},
 		});
 
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
 			data: {
 				post_id: opportunityPost.post_id,
 				duration: body.duration,
-				degree_level: body.degreeLevel,
+				// degree_level: body.degreeLevel,
 				attendance: body.attendance,
 				course_include: body.courseInclude,
 				gpa: body.academicRequirements.gpa

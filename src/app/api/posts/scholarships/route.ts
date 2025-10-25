@@ -3,6 +3,7 @@ import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
 import { auth } from "@/app/lib/auth";
 import { v4 as uuidv4 } from "uuid";
+import { de } from "date-fns/locale";
 
 interface CreateScholarshipRequest {
 	// Overview Section
@@ -11,6 +12,7 @@ interface CreateScholarshipRequest {
 	applicationDeadline: string;
 	subdisciplines: string[];
 	country: string;
+	degree_level: string;
 
 	// Detail Section
 	scholarshipDescription: string;
@@ -124,6 +126,7 @@ export async function POST(request: NextRequest) {
 				status: body.status || "DRAFT", // Use provided status or default to DRAFT
 				create_at: new Date(),
 				institution_id: institution.institution_id,
+				degree_level: body.degree_level || "SCHOLARSHIP",
 			},
 		});
 

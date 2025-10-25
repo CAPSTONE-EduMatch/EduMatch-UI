@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
 					? {
 							post_id: app.post.programPost.post_id,
 							duration: app.post.programPost.duration,
-							degree_level: app.post.programPost.degree_level,
+							degree_level: app.post.degree_level,
 							attendance: app.post.programPost.attendance,
 							course_include:
 								app.post.programPost.course_include ||

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 				programPost: {
 					select: {
 						duration: true,
-						degree_level: true,
+						// degree_level: true,
 						attendance: true,
 						tuition_fee: true,
 					},

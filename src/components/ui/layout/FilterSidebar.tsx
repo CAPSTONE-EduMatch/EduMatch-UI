@@ -17,14 +17,34 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { TabType } from '@/types/explore'
-import { AIAssistantCard } from '@/components/ui'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 
 interface FilterSidebarProps {
 	activeTab: TabType
+	onFiltersChange?: (filters: Record<string, string[]>) => void
 }
 
-export function FilterSidebar({ activeTab }: FilterSidebarProps) {
+interface DisciplineData {
+	disciplines: Array<{
+		id: string
+		name: string
+		subdisciplines: Array<{
+			id: string
+			name: string
+		}>
+	}>
+	subdisciplines: Array<{
+		id: string
+		name: string
+		disciplineName: string
+	}>
+	subdisciplinesByDiscipline: Record<string, string[]>
+}
+
+export function FilterSidebar({
+	activeTab,
+	onFiltersChange,
+}: FilterSidebarProps) {
 	const [selectedFilters, setSelectedFilters] = useState<
 		Record<string, string[]>
 	>({
@@ -39,6 +59,7 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	const [showSubdisciplines, setShowSubdisciplines] = useState(false)
 
 	const [feeRange, setFeeRange] = useState({ min: 0, max: 1000000 })
+	const [salaryRange, setSalaryRange] = useState({ min: 0, max: 200000 })
 	const [searchTerms, setSearchTerms] = useState({
 		discipline: '',
 		subdiscipline: '',
@@ -70,6 +91,41 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	})
 
 	const [isLoadingFilters, setIsLoadingFilters] = useState(false)
+
+	// Store all disciplines data
+	const [allDisciplinesData, setAllDisciplinesData] =
+		useState<DisciplineData | null>(null)
+
+	// Fetch all disciplines data once on mount
+	useEffect(() => {
+		const fetchAllDisciplines = async () => {
+			try {
+				const response = await fetch('/api/disciplines')
+				const data = await response.json()
+				setAllDisciplinesData(data)
+			} catch (error) {
+				if (process.env.NODE_ENV === 'development') {
+					// eslint-disable-next-line no-console
+					console.error('Error fetching all disciplines:', error)
+				}
+			}
+		}
+
+		fetchAllDisciplines()
+	}, [])
+
+	// Call onFiltersChange when selectedFilters or feeRange changes
+	useEffect(() => {
+		if (onFiltersChange) {
+			// Include fee range and salary range in the filters
+			const filtersWithRanges = {
+				...selectedFilters,
+				feeRange: [`${feeRange.min}-${feeRange.max}`],
+				salaryRange: [`${salaryRange.min}-${salaryRange.max}`],
+			}
+			onFiltersChange(filtersWithRanges)
+		}
+	}, [selectedFilters, feeRange, salaryRange, onFiltersChange])
 
 	// Fetch filter data when tab changes
 	useEffect(() => {
@@ -116,7 +172,10 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 					})
 				}
 			} catch (error) {
-				console.error('Error fetching filter data:', error)
+				if (process.env.NODE_ENV === 'development') {
+					// eslint-disable-next-line no-console
+					console.error('Error fetching filter data:', error)
+				}
 			} finally {
 				setIsLoadingFilters(false)
 			}
@@ -331,8 +390,19 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 	}
 
 	const handleRefresh = () => {
-		setSelectedFilters({})
-		setFeeRange({ min: 234567, max: 1234567 })
+		setSelectedFilters({
+			discipline: [],
+			country: [],
+			duration: [],
+			degreeLevel: [],
+			attendance: [],
+			essayRequired: [],
+			researchField: [],
+			contractType: [],
+			jobType: [],
+		})
+		setFeeRange({ min: 0, max: 1000000 })
+		setSalaryRange({ min: 0, max: 200000 })
 		setSearchTerms({
 			discipline: '',
 			subdiscipline: '',
@@ -367,8 +437,9 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 		switch (activeTab) {
 			case 'programmes':
 				return {
-					disciplines: dynamicFilters.disciplines,
-					subdisciplines: dynamicFilters.subdisciplines,
+					// Use ALL disciplines from database instead of just from current programs
+					disciplines: allDisciplinesData?.disciplines.map((d) => d.name) || [],
+					subdisciplines: allDisciplinesData?.subdisciplinesByDiscipline || {},
 					countries: dynamicFilters.countries,
 					durations: [
 						'Less than 1 year',
@@ -391,8 +462,9 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 
 			case 'scholarships':
 				return {
-					disciplines: dynamicFilters.disciplines,
-					subdisciplines: dynamicFilters.subdisciplines,
+					// Use ALL disciplines from database
+					disciplines: allDisciplinesData?.disciplines.map((d) => d.name) || [],
+					subdisciplines: allDisciplinesData?.subdisciplinesByDiscipline || {},
 					countries: dynamicFilters.countries,
 					degreeLevels: dynamicFilters.degreeLevels,
 					essayRequired: dynamicFilters.essayRequired,
@@ -529,11 +601,11 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 												Select a discipline
 											</p>
 											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-												{isLoadingFilters ? (
+												{!allDisciplinesData ? (
 													<div className="flex items-center justify-center py-4">
 														<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
 														<span className="ml-2 text-sm text-gray-600">
-															Loading...
+															Loading disciplines...
 														</span>
 													</div>
 												) : filterConfig.disciplines &&
@@ -556,6 +628,11 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 															>
 																<span className="font-medium text-gray-700">
 																	{discipline}
+																</span>
+																<span className="text-xs text-gray-500 block">
+																	{filterConfig.subdisciplines?.[discipline]
+																		?.length || 0}{' '}
+																	subdisciplines
 																</span>
 															</motion.button>
 														))
@@ -1030,24 +1107,110 @@ export function FilterSidebar({ activeTab }: FilterSidebarProps) {
 									exit={{ opacity: 0, height: 0 }}
 									transition={{ duration: 0.3 }}
 								>
-									<div className="space-y-2">
-										{filterConfig.salaryRanges?.map((range) => (
-											<motion.label
-												key={range}
-												className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
-												whileHover={{ x: 2 }}
-											>
+									<div className="space-y-4">
+										{/* Dual Range Slider */}
+										<div className="space-y-2">
+											<label className="text-sm font-medium text-gray-700">
+												Salary Range
+											</label>
+											<div className="relative">
+												{/* Min slider */}
 												<input
-													type="checkbox"
-													checked={
-														selectedFilters.salary?.includes(range) || false
-													}
-													onChange={() => handleFilterChange('salary', range)}
-													className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
+													type="range"
+													min="0"
+													max="300000"
+													step="5000"
+													value={salaryRange.min}
+													onChange={(e) => {
+														const newMin = Number.parseInt(e.target.value)
+														setSalaryRange((prev) => ({
+															...prev,
+															min: Math.min(newMin, prev.max - 5000),
+														}))
+													}}
+													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-10"
+													style={{
+														background: 'transparent',
+														WebkitAppearance: 'none',
+													}}
 												/>
-												<span className="text-sm text-gray-700">{range}</span>
-											</motion.label>
-										))}
+												{/* Max slider */}
+												<input
+													type="range"
+													min="0"
+													max="300000"
+													step="5000"
+													value={salaryRange.max}
+													onChange={(e) => {
+														const newMax = Number.parseInt(e.target.value)
+														setSalaryRange((prev) => ({
+															...prev,
+															max: Math.max(newMax, prev.min + 5000),
+														}))
+													}}
+													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20"
+													style={{
+														background: 'transparent',
+														WebkitAppearance: 'none',
+													}}
+												/>
+												{/* Track background */}
+												<div className="relative h-2 bg-gray-200 rounded-lg">
+													{/* Active range */}
+													<div
+														className="absolute h-2 bg-[#116E63] rounded-lg"
+														style={{
+															left: `${(salaryRange.min / 300000) * 100}%`,
+															right: `${100 - (salaryRange.max / 300000) * 100}%`,
+														}}
+													/>
+												</div>
+											</div>
+										</div>
+
+										{/* Manual Input Fields */}
+										<div className="grid grid-cols-2 gap-3">
+											<div className="space-y-1">
+												<label className="text-xs text-gray-500">Min ($)</label>
+												<input
+													type="number"
+													value={salaryRange.min}
+													onChange={(e) => {
+														const newMin = Number.parseInt(e.target.value) || 0
+														setSalaryRange((prev) => ({
+															...prev,
+															min: Math.min(
+																Math.max(newMin, 0),
+																prev.max - 5000
+															),
+														}))
+													}}
+													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
+													min="0"
+													max="300000"
+												/>
+											</div>
+											<div className="space-y-1">
+												<label className="text-xs text-gray-500">Max ($)</label>
+												<input
+													type="number"
+													value={salaryRange.max}
+													onChange={(e) => {
+														const newMax = Number.parseInt(e.target.value) || 0
+														setSalaryRange((prev) => ({
+															...prev,
+															max: Math.max(
+																Math.min(newMax, 300000),
+																prev.min + 5000
+															),
+														}))
+													}}
+													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
+													min="0"
+													max="300000"
+												/>
+											</div>
+										</div>
 									</div>
 								</motion.div>
 							)}

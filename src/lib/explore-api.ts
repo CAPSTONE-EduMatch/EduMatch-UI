@@ -26,6 +26,12 @@ export class ExploreApiService {
 			searchParams.set("attendance", filters.attendance.join(","));
 		if (filters.degreeLevel?.length)
 			searchParams.set("degreeLevel", filters.degreeLevel.join(","));
+		if (filters.duration?.length)
+			searchParams.set("duration", filters.duration.join(","));
+		if (filters.minFee !== undefined)
+			searchParams.set("minFee", filters.minFee.toString());
+		if (filters.maxFee !== undefined)
+			searchParams.set("maxFee", filters.maxFee.toString());
 		if (filters.sortBy) searchParams.set("sortBy", filters.sortBy);
 		if (filters.page) searchParams.set("page", filters.page.toString());
 		if (filters.limit) searchParams.set("limit", filters.limit.toString());
@@ -85,6 +91,10 @@ export class ExploreApiService {
 			searchParams.set("researchField", filters.researchField.join(","));
 		if (filters.country?.length)
 			searchParams.set("country", filters.country.join(","));
+		if (filters.minSalary !== undefined)
+			searchParams.set("minSalary", filters.minSalary.toString());
+		if (filters.maxSalary !== undefined)
+			searchParams.set("maxSalary", filters.maxSalary.toString());
 		if (filters.contractType?.length)
 			searchParams.set("contractType", filters.contractType.join(","));
 		if (filters.jobType?.length)

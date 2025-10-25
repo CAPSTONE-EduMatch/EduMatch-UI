@@ -34,10 +34,19 @@ const ITEMS_PER_PAGE_SCHOLARSHIPS = 5
 const ITEMS_PER_PAGE_RESEARCH = 5
 
 const Explore = () => {
+	const t = useTranslations('')
+	const breadcrumbItems = [
+		{ label: 'Home', href: '/' },
+		{ label: 'Explore', href: '/explore' },
+	]
+
 	const contentRef = useRef<HTMLDivElement>(null)
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortBy, setSortBy] = useState<SortOption>('most-popular')
+	const [selectedFilters, setSelectedFilters] = useState<
+		Record<string, string[]>
+	>({})
 
 	// Wishlist functionality
 	const { isInWishlist, toggleWishlistItem } = useWishlist()
@@ -51,6 +60,7 @@ const Explore = () => {
 		try {
 			await toggleWishlistItem(postId)
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Failed to toggle wishlist item:', error)
 			// You could add a toast notification here
 		}
@@ -65,13 +75,14 @@ const Explore = () => {
 				postId,
 				documents: [], // Can be enhanced later to include document upload
 			})
-
 			if (response.success) {
 				setAppliedPosts((prev) => new Set(prev).add(postId))
 				// You could add a success toast notification here
+				// eslint-disable-next-line no-console
 				console.log('Application submitted successfully')
 			}
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Failed to submit application:', error)
 			// You could add an error toast notification here
 		} finally {
@@ -119,7 +130,7 @@ const Explore = () => {
 	const [researchLabsTotalPages, setResearchLabsTotalPages] = useState(0)
 	const [researchLabsTotalItems, setResearchLabsTotalItems] = useState(0)
 
-	// Load data when tab, page, or sort changes
+	// Load data when tab, page, sort, or filters change
 	useEffect(() => {
 		const loadData = async () => {
 			try {
@@ -141,10 +152,28 @@ const Explore = () => {
 
 				if (activeTab === 'programmes') {
 					setProgramsLoading(true)
+
+					// Parse fee range if available
+					let minFee: number | undefined
+					let maxFee: number | undefined
+					if (selectedFilters.feeRange && selectedFilters.feeRange.length > 0) {
+						const feeRangeStr = selectedFilters.feeRange[0]
+						const [min, max] = feeRangeStr.split('-').map(Number)
+						minFee = min
+						maxFee = max
+					}
+
 					const response = await ExploreApiService.getPrograms({
 						page: currentPage,
 						limit: ITEMS_PER_PAGE_PROGRAMS,
 						sortBy: apiSortBy,
+						discipline: selectedFilters.discipline,
+						country: selectedFilters.country,
+						attendance: selectedFilters.attendance,
+						degreeLevel: selectedFilters.degreeLevel,
+						duration: selectedFilters.duration,
+						minFee,
+						maxFee,
 					})
 					setPrograms(response.data)
 					setProgramsTotalItems(response.meta.total)
@@ -156,6 +185,14 @@ const Explore = () => {
 						page: currentPage,
 						limit: ITEMS_PER_PAGE_SCHOLARSHIPS,
 						sortBy: apiSortBy,
+						discipline: selectedFilters.discipline,
+						country: selectedFilters.country,
+						degreeLevel: selectedFilters.degreeLevel,
+						essayRequired: selectedFilters.essayRequired?.includes('Yes')
+							? true
+							: selectedFilters.essayRequired?.includes('No')
+								? false
+								: undefined,
 					})
 					setScholarships(response.data)
 					setScholarshipsTotalItems(response.meta.total)
@@ -163,10 +200,32 @@ const Explore = () => {
 					setScholarshipsLoading(false)
 				} else if (activeTab === 'research') {
 					setResearchLabsLoading(true)
+
+					// Parse salary range if available
+					let minSalary: number | undefined
+					let maxSalary: number | undefined
+					if (
+						selectedFilters.salaryRange &&
+						selectedFilters.salaryRange.length > 0
+					) {
+						const salaryRangeStr = selectedFilters.salaryRange[0]
+						const [min, max] = salaryRangeStr.split('-').map(Number)
+						minSalary = min
+						maxSalary = max
+					}
+
 					const response = await ExploreApiService.getResearchLabs({
 						page: currentPage,
 						limit: ITEMS_PER_PAGE_RESEARCH,
 						sortBy: apiSortBy,
+						researchField: selectedFilters.researchField,
+						country: selectedFilters.country,
+						degreeLevel: selectedFilters.degreeLevel,
+						attendance: selectedFilters.attendance,
+						contractType: selectedFilters.contractType,
+						jobType: selectedFilters.jobType,
+						minSalary,
+						maxSalary,
 					})
 					setResearchLabs(response.data)
 					setResearchLabsTotalItems(response.meta.total)
@@ -197,12 +256,14 @@ const Explore = () => {
 		}
 
 		loadData()
-	}, [activeTab, currentPage, sortBy])
-	const t = useTranslations()
+	}, [activeTab, currentPage, sortBy, selectedFilters])
 
-	const breadcrumbItems = [{ label: 'Explore' }]
+	// Reset page to 1 when filters change
+	useEffect(() => {
+		setCurrentPage(1)
+	}, [selectedFilters, activeTab])
 
-	// Reset to page 1 when switching tabs
+	// Tab change handler
 	const handleTabChange = (tabId: string) => {
 		setActiveTab(tabId as TabType)
 		setCurrentPage(1)
@@ -388,8 +449,11 @@ const Explore = () => {
 							<SortDropdown value={sortBy} onChange={setSortBy} />
 						</motion.div>
 						<div className="flex gap-6 h-full">
-							<div className="sticky top-4 self-start  flex flex-col gap-6">
-								<FilterSidebar activeTab={activeTab} />
+							<div className=" top-4 self-start  flex flex-col gap-6">
+								<FilterSidebar
+									activeTab={activeTab}
+									onFiltersChange={setSelectedFilters}
+								/>
 								<AIAssistantCard />
 							</div>
 							<div className="w-full">

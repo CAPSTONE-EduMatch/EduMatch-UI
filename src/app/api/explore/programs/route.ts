@@ -44,6 +44,13 @@ export async function GET(request: NextRequest) {
 		const country = searchParams.get("country")?.split(",") || [];
 		const attendance = searchParams.get("attendance")?.split(",") || [];
 		const degreeLevel = searchParams.get("degreeLevel")?.split(",") || [];
+		const duration = searchParams.get("duration")?.split(",") || [];
+		const minFee = searchParams.get("minFee")
+			? parseInt(searchParams.get("minFee")!)
+			: undefined;
+		const maxFee = searchParams.get("maxFee")
+			? parseInt(searchParams.get("maxFee")!)
+			: undefined;
 		const sortBy = searchParams.get("sortBy") || "most-popular";
 
 		// Parse pagination parameters
@@ -83,8 +90,6 @@ export async function GET(request: NextRequest) {
 						? { create_at: "asc" }
 						: { create_at: "desc" }, // default to newest
 		});
-		console.log(`Fetched ${allPosts.length} posts from DB`);
-
 		// Debug: Check how many posts were found
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console
@@ -107,6 +112,33 @@ export async function GET(request: NextRequest) {
 			_count: {
 				application_id: true,
 			},
+		});
+
+		// Get subdisciplines for all posts
+		const allPostSubdisciplines =
+			await prismaClient.postSubdiscipline.findMany({
+				where: {
+					post_id: { in: allPostIds },
+				},
+				include: {
+					subdiscipline: {
+						include: {
+							discipline: true,
+						},
+					},
+				},
+			});
+
+		// Create a map of post_id to subdisciplines
+		const postSubdisciplineMap = new Map();
+		allPostSubdisciplines.forEach((ps) => {
+			if (!postSubdisciplineMap.has(ps.post_id)) {
+				postSubdisciplineMap.set(ps.post_id, []);
+			}
+			postSubdisciplineMap.get(ps.post_id).push({
+				name: ps.subdiscipline.name,
+				disciplineName: ps.subdiscipline.discipline.name,
+			});
 		});
 
 		// Get disciplines and subdisciplines from database
@@ -154,36 +186,19 @@ export async function GET(request: NextRequest) {
 				const applicationCount =
 					applicationCountMap.get(post.post_id) || 0;
 
-				// Map degree level to proper discipline name
-				let fieldName = postProgram.degree_level || "General Studies";
+				// Get field name from post subdisciplines or fallback to degree level
+				let fieldName = "General Studies";
 
-				// Try to find a matching discipline/subdiscipline
-				for (const [, subInfo] of Array.from(subdisciplineMap)) {
-					if (
-						fieldName
-							.toLowerCase()
-							.includes(subInfo.name.toLowerCase())
-					) {
-						fieldName = `${subInfo.disciplineName} - ${subInfo.name}`;
-						break;
-					}
-				}
+				// Try to get field name from post subdisciplines first
+				const postSubdisciplines =
+					postSubdisciplineMap.get(post.post_id) || [];
 
-				// If no subdiscipline match, try main disciplines
-				if (
-					fieldName === postProgram.degree_level ||
-					fieldName === "General Studies"
-				) {
-					for (const [, discName] of Array.from(disciplineMap)) {
-						if (
-							fieldName
-								.toLowerCase()
-								.includes(discName.toLowerCase())
-						) {
-							fieldName = discName;
-							break;
-						}
-					}
+				if (postSubdisciplines.length > 0) {
+					const firstSub = postSubdisciplines[0];
+					fieldName = `${firstSub.disciplineName} - ${firstSub.name}`;
+				} else {
+					// Fallback to using degree level as field name
+					fieldName = post.degree_level || "General Studies";
 				}
 
 				// Use end_date as deadline, fallback to start_date + 90 days if not available
@@ -210,7 +225,7 @@ export async function GET(request: NextRequest) {
 					funding:
 						postProgram.scholarship_info || "Contact for details",
 					attendance: postProgram.attendance || "On-campus",
-					applicationCount, // Add application count for popularity sorting
+					applicationCount: applicationCount, // Add application count for popularity sorting
 				};
 
 				return program;
@@ -239,11 +254,49 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (degreeLevel.length > 0) {
-			allPrograms = allPrograms.filter((program) =>
-				degreeLevel.some((level) =>
-					program.field.toLowerCase().includes(level.toLowerCase())
-				)
-			);
+			allPrograms = allPrograms.filter((program) => {
+				// Find the original post to get the degree_level
+				const originalPost = allPosts.find(
+					(p) => p.post_id === program.id
+				);
+				const postDegreeLevel = originalPost?.degree_level || "";
+
+				return degreeLevel.some((level) =>
+					postDegreeLevel.toLowerCase().includes(level.toLowerCase())
+				);
+			});
+		}
+
+		// Apply duration filtering
+		if (duration.length > 0) {
+			allPrograms = allPrograms.filter((program) => {
+				// Find the original post to get the duration from programPost
+				const originalPost = allPosts.find(
+					(p) => p.post_id === program.id
+				);
+				const programDuration =
+					originalPost?.programPost?.duration || "";
+
+				return duration.some((dur) =>
+					programDuration.toLowerCase().includes(dur.toLowerCase())
+				);
+			});
+		}
+
+		// Apply fee range filtering
+		if (minFee !== undefined || maxFee !== undefined) {
+			allPrograms = allPrograms.filter((program) => {
+				const priceStr = program.price.replace(/[^0-9.]/g, "");
+				const price = parseFloat(priceStr) || 0;
+
+				if (minFee !== undefined && price < minFee) {
+					return false;
+				}
+				if (maxFee !== undefined && price > maxFee) {
+					return false;
+				}
+				return true;
+			});
 		}
 
 		// Sort programs
@@ -307,36 +360,12 @@ export async function GET(request: NextRequest) {
 			)
 		).sort();
 
-		const availableDisciplines = Array.from(
-			new Set(allPrograms.map((program) => program.field).filter(Boolean))
-		).sort();
+		// Use ALL disciplines from database, not just from current programs
+		const availableDisciplines = disciplines.map((d) => d.name).sort();
 
+		// Get available degree levels from OpportunityPost.degree_level field
 		const availableDegreeLevels = Array.from(
-			new Set(
-				allPrograms
-					.map((program) => {
-						const field = program.field.toLowerCase();
-						if (
-							field.includes("master") ||
-							field.includes("msc") ||
-							field.includes("ma")
-						)
-							return "Master";
-						if (
-							field.includes("phd") ||
-							field.includes("doctorate")
-						)
-							return "PhD";
-						if (
-							field.includes("bachelor") ||
-							field.includes("bsc") ||
-							field.includes("ba")
-						)
-							return "Bachelor";
-						return "Other";
-					})
-					.filter(Boolean)
-			)
+			new Set(allPosts.map((post) => post.degree_level).filter(Boolean))
 		).sort();
 
 		const availableAttendanceTypes = Array.from(

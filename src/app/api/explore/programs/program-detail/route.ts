@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
 			program: opportunityPost.programPost
 				? {
 						duration: opportunityPost.programPost.duration,
-						degreeLevel: opportunityPost.programPost.degree_level,
+						degreeLevel: opportunityPost.degree_level,
 						attendance: opportunityPost.programPost.attendance,
 						courseInclude:
 							opportunityPost.programPost.course_include,

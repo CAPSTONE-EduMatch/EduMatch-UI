@@ -70,37 +70,26 @@ export async function GET(request: NextRequest) {
 			];
 		}
 
-		// Get total count for pagination
-		const totalCount = await prismaClient.opportunityPost.count({
+		// First, get ALL posts and their related data to apply filters properly
+		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
 		});
 
-		// Query posts with ScholarshipPost data
-		const posts = await prismaClient.opportunityPost.findMany({
-			where: whereClause,
-			orderBy:
-				sortBy === "newest"
-					? { create_at: "desc" }
-					: sortBy === "oldest"
-						? { create_at: "asc" }
-						: { create_at: "desc" }, // default to newest
-			skip,
-			take: limit,
-		});
+		// Get ScholarshipPost data for all posts
+		const allPostIds = allPosts.map((post) => post.post_id);
+		const allPostScholarships = await prismaClient.scholarshipPost.findMany(
+			{
+				where: {
+					post_id: { in: allPostIds },
+				},
+			}
+		);
 
-		// Get ScholarshipPost data for each post
-		const postIds = posts.map((post) => post.post_id);
-		const postScholarships = await prismaClient.scholarshipPost.findMany({
-			where: {
-				post_id: { in: postIds },
-			},
-		});
-
-		// Get application counts for each post (for popularity sorting)
-		const applicationCounts = await prismaClient.application.groupBy({
+		// Get application counts for all posts (for popularity sorting)
+		const allApplicationCounts = await prismaClient.application.groupBy({
 			by: ["post_id"],
 			where: {
-				post_id: { in: postIds },
+				post_id: { in: allPostIds },
 			},
 			_count: {
 				application_id: true,
@@ -120,23 +109,22 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
-		// Create a map for quick lookups
-		const postScholarshipMap = new Map(
-			postScholarships.map((ps) => [ps.post_id, ps])
+		// Create maps for quick lookups
+		const allPostScholarshipMap = new Map(
+			allPostScholarships.map((ps) => [ps.post_id, ps])
 		);
 
-		// Create application count map
-		const applicationCountMap = new Map(
-			applicationCounts.map((ac) => [
+		const allApplicationCountMap = new Map(
+			allApplicationCounts.map((ac) => [
 				ac.post_id,
 				ac._count.application_id,
 			])
 		);
 
-		// Transform data to Scholarship format
-		let scholarships: Scholarship[] = posts
+		// Transform ALL data to Scholarship format first
+		let allScholarships: Scholarship[] = allPosts
 			.map((post) => {
-				const postScholarship = postScholarshipMap.get(post.post_id);
+				const postScholarship = allPostScholarshipMap.get(post.post_id);
 				if (!postScholarship) return null;
 
 				// Find a matching institution (simplified logic)
@@ -146,7 +134,7 @@ export async function GET(request: NextRequest) {
 				};
 
 				const applicationCount =
-					applicationCountMap.get(post.post_id) || 0;
+					allApplicationCountMap.get(post.post_id) || 0;
 
 				// Use end_date as deadline, fallback to start_date + 90 days if not available
 				const deadlineDate = post.end_date
@@ -179,9 +167,11 @@ export async function GET(request: NextRequest) {
 					scholarship !== null
 			);
 
-		// Apply client-side filters
+		// Apply filters BEFORE pagination
+		let filteredScholarships = allScholarships;
+
 		if (discipline.length > 0) {
-			scholarships = scholarships.filter((scholarship) =>
+			filteredScholarships = filteredScholarships.filter((scholarship) =>
 				discipline.some((d) => {
 					// Check against discipline names from database
 					const matchesDiscipline = disciplines.some(
@@ -192,56 +182,79 @@ export async function GET(request: NextRequest) {
 							d.toLowerCase().includes(dbDisc.name.toLowerCase())
 					);
 
+					// Check against subdiscipline names from database
+					const matchesSubdiscipline = disciplines.some((dbDisc) =>
+						dbDisc.subdisciplines.some(
+							(sub) =>
+								sub.name
+									.toLowerCase()
+									.includes(d.toLowerCase()) ||
+								d.toLowerCase().includes(sub.name.toLowerCase())
+						)
+					);
+
 					// Also check description for backward compatibility
 					const matchesDescription = scholarship.description
 						.toLowerCase()
 						.includes(d.toLowerCase());
 
-					return matchesDiscipline || matchesDescription;
+					return (
+						matchesDiscipline ||
+						matchesSubdiscipline ||
+						matchesDescription
+					);
 				})
 			);
 		}
 
 		if (country.length > 0) {
-			scholarships = scholarships.filter((scholarship) =>
+			filteredScholarships = filteredScholarships.filter((scholarship) =>
 				country.includes(scholarship.country)
 			);
 		}
 
 		if (degreeLevel.length > 0) {
-			scholarships = scholarships.filter((scholarship) =>
-				degreeLevel.some((level) =>
-					scholarship.description
-						.toLowerCase()
-						.includes(level.toLowerCase())
-				)
+			filteredScholarships = filteredScholarships.filter(
+				(scholarship) => {
+					// Find the original post to get the degree_level
+					const originalPost = allPosts.find(
+						(p) => p.post_id === scholarship.id
+					);
+					const postDegreeLevel = originalPost?.degree_level || "";
+
+					return degreeLevel.some((level) =>
+						postDegreeLevel
+							.toLowerCase()
+							.includes(level.toLowerCase())
+					);
+				}
 			);
 		}
 
 		if (essayRequired) {
-			scholarships = scholarships.filter(
+			filteredScholarships = filteredScholarships.filter(
 				(scholarship) => scholarship.essayRequired === essayRequired
 			);
 		}
 
-		// Sort scholarships
+		// Sort scholarships AFTER filtering
 		switch (sortBy) {
 			case "most-popular":
-				scholarships.sort(
+				filteredScholarships.sort(
 					(a, b) =>
 						(b.applicationCount || 0) - (a.applicationCount || 0)
 				);
 				break;
 			case "match-score":
-				scholarships.sort(
+				filteredScholarships.sort(
 					(a, b) => parseFloat(b.match) - parseFloat(a.match)
 				);
 				break;
 			case "deadline":
-				scholarships.sort((a, b) => a.daysLeft - b.daysLeft);
+				filteredScholarships.sort((a, b) => a.daysLeft - b.daysLeft);
 				break;
 			case "amount-high":
-				scholarships.sort((a, b) => {
+				filteredScholarships.sort((a, b) => {
 					const amountA =
 						parseFloat(a.amount.replace(/[^0-9.]/g, "")) || 0;
 					const amountB =
@@ -250,7 +263,7 @@ export async function GET(request: NextRequest) {
 				});
 				break;
 			case "amount-low":
-				scholarships.sort((a, b) => {
+				filteredScholarships.sort((a, b) => {
 					const amountA =
 						parseFloat(a.amount.replace(/[^0-9.]/g, "")) || 0;
 					const amountB =
@@ -261,17 +274,28 @@ export async function GET(request: NextRequest) {
 			// newest and oldest are handled by DB orderBy above
 		}
 
+		// Calculate total count AFTER filtering
+		const totalFilteredCount = filteredScholarships.length;
+
+		// Apply pagination AFTER filtering and sorting
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		const paginatedScholarships = filteredScholarships.slice(
+			startIndex,
+			endIndex
+		);
+
 		const meta: PaginationMeta = {
-			total: totalCount,
+			total: totalFilteredCount,
 			page,
 			limit,
-			totalPages: Math.ceil(totalCount / limit),
+			totalPages: Math.ceil(totalFilteredCount / limit),
 		};
 
 		// Extract available filter options from all scholarships (before pagination)
 		const availableCountries = Array.from(
 			new Set(
-				scholarships
+				allScholarships
 					.map((scholarship) => scholarship.country)
 					.filter(Boolean)
 			)
@@ -279,41 +303,21 @@ export async function GET(request: NextRequest) {
 
 		const availableDisciplines = disciplines.map((d) => d.name).sort();
 
+		// Get available degree levels from OpportunityPost.degree_level field
 		const availableDegreeLevels = Array.from(
-			new Set(
-				scholarships
-					.map((scholarship) => {
-						const desc = scholarship.description.toLowerCase();
-						if (
-							desc.includes("master") ||
-							desc.includes("msc") ||
-							desc.includes("ma")
-						)
-							return "Master";
-						if (desc.includes("phd") || desc.includes("doctorate"))
-							return "PhD";
-						if (
-							desc.includes("bachelor") ||
-							desc.includes("bsc") ||
-							desc.includes("ba")
-						)
-							return "Bachelor";
-						return "Other";
-					})
-					.filter(Boolean)
-			)
+			new Set(allPosts.map((post) => post.degree_level).filter(Boolean))
 		).sort();
 
 		const availableEssayRequired = Array.from(
 			new Set(
-				scholarships
+				allScholarships
 					.map((scholarship) => scholarship.essayRequired)
 					.filter(Boolean)
 			)
 		).sort();
 
 		const response: ExploreApiResponse<Scholarship> = {
-			data: scholarships,
+			data: paginatedScholarships,
 			meta,
 			availableFilters: {
 				countries: availableCountries,

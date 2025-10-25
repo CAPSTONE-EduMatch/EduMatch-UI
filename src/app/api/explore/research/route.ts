@@ -42,6 +42,12 @@ export async function GET(request: NextRequest) {
 		const country = searchParams.get("country")?.split(",") || [];
 		const jobType = searchParams.get("jobType")?.split(",") || [];
 		const contractType = searchParams.get("contractType")?.split(",") || [];
+		const minSalary = searchParams.get("minSalary")
+			? parseInt(searchParams.get("minSalary")!)
+			: undefined;
+		const maxSalary = searchParams.get("maxSalary")
+			? parseInt(searchParams.get("maxSalary")!)
+			: undefined;
 		const sortBy = searchParams.get("sortBy") || "most-popular";
 
 		// Parse pagination parameters
@@ -180,6 +186,23 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
+		// Apply degree level filtering based on OpportunityPost.degree_level
+		const degreeLevel = searchParams.get("degreeLevel")?.split(",") || [];
+
+		if (degreeLevel.length > 0) {
+			labs = labs.filter((lab) => {
+				// Find the original post to get the degree_level
+				const originalPost = posts.find(
+					(p: any) => p.post_id === lab.id
+				);
+				const postDegreeLevel = originalPost?.degree_level || "";
+
+				return degreeLevel.some((level) =>
+					postDegreeLevel.toLowerCase().includes(level.toLowerCase())
+				);
+			});
+		}
+
 		if (country.length > 0) {
 			labs = labs.filter((lab) => country.includes(lab.country));
 		}
@@ -236,18 +259,9 @@ export async function GET(request: NextRequest) {
 			new Set(labs.map((lab) => lab.position).filter(Boolean))
 		).sort();
 
+		// Get available degree levels from OpportunityPost.degree_level field
 		const availableDegreeLevels = Array.from(
-			new Set(
-				labs
-					.map((lab) => {
-						const pos = lab.position.toLowerCase();
-						if (pos.includes("phd")) return "PhD";
-						if (pos.includes("postdoc")) return "Postdoc";
-						if (pos.includes("master")) return "Master";
-						return "Other";
-					})
-					.filter(Boolean)
-			)
+			new Set(posts.map((post: any) => post.degree_level).filter(Boolean))
 		).sort();
 
 		const availableContractTypes = Array.from(

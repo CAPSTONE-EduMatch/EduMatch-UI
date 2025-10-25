@@ -119,7 +119,8 @@ export function PaymentHistoryTable() {
 										{/* Amount */}
 										<div className="text-sm font-medium text-gray-900">
 											{invoice.currency.toUpperCase()}{' '}
-											{(invoice.amount / 100).toFixed(2)}
+											{/* {(invoice.amount / 100).toFixed(2)} */}
+											{invoice.amount}
 										</div>
 
 										{/* Status */}

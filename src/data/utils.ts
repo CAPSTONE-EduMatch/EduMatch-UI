@@ -1002,3 +1002,93 @@ export const mockDashboardData: Record<string, DashboardData> = {
 		],
 	},
 };
+
+// FAQ Data Interface
+export interface FaqItem {
+	question: string;
+	answer: string;
+}
+
+export interface FaqData {
+	account: FaqItem[];
+	application: FaqItem[];
+	subscription: FaqItem[];
+	other: FaqItem[];
+}
+
+// FAQ mock data
+export const mockFaqData: FaqData = {
+	account: [
+		{
+			question: "How do I create an EduMatch account?",
+			answer: 'Click the "Sign Up" button on the homepage, fill in your details including email, password, and basic profile information. You will receive a verification email to activate your account.',
+		},
+		{
+			question: "I forgot my password. How can I reset it?",
+			answer: 'Click "Forgot Password" on the login page, enter your email address, and we will send you a password reset link. Follow the instructions in the email to create a new password.',
+		},
+		{
+			question: "How do I update my profile information?",
+			answer: "Go to your Profile section after logging in. You can edit your personal information, academic background, research interests, and upload documents.",
+		},
+		{
+			question: "Can I delete my account?",
+			answer: 'Yes, you can delete your account by going to Account Settings and clicking "Delete Account". Please note that this action is irreversible and all your data will be permanently removed.',
+		},
+	],
+	application: [
+		{
+			question:
+				"How do I apply for scholarships and research opportunities?",
+			answer: "Navigate to the Explore section, filter by your preferences, and click on any opportunity that interests you. Each listing has detailed application instructions and required documents.",
+		},
+		{
+			question: "Can I apply to multiple opportunities simultaneously?",
+			answer: "Yes, you can apply to as many opportunities as you qualify for. We recommend tailoring each application to the specific requirements.",
+		},
+		{
+			question: "How can I track my application status?",
+			answer: "Visit your profile dashboard where you can view all submitted applications, their current status, and any updates from institutions.",
+		},
+		{
+			question: "What documents do I need for applications?",
+			answer: "Common documents include CV/Resume, transcripts, letters of recommendation, personal statements, and research proposals. Each opportunity specifies its exact requirements.",
+		},
+	],
+	subscription: [
+		{
+			question: "What subscription plans are available?",
+			answer: "We offer Basic (free), Premium, and Pro subscription plans. Each plan provides different levels of access to opportunities, application tracking, and premium features.",
+		},
+		{
+			question: "How do I upgrade my subscription?",
+			answer: 'Go to Account Settings and click on "Subscription". Choose your desired plan and complete the payment process. Your upgrade will be activated immediately.',
+		},
+		{
+			question: "Can I cancel my subscription anytime?",
+			answer: "Yes, you can cancel your subscription at any time from your Account Settings. Your premium features will remain active until the end of your current billing period.",
+		},
+		{
+			question: "Do you offer refunds?",
+			answer: "We offer a 30-day money-back guarantee for new subscriptions. Contact our support team within 30 days of purchase for a full refund.",
+		},
+	],
+	other: [
+		{
+			question: "How does the matching algorithm work?",
+			answer: "Our algorithm analyzes your academic background, research interests, location preferences, and career goals to match you with the most relevant opportunities.",
+		},
+		{
+			question: "Is my personal information secure?",
+			answer: "Yes, we use industry-standard encryption and security measures to protect your data. We never share your personal information with third parties without your consent.",
+		},
+		{
+			question: "How can I contact support?",
+			answer: "You can reach our support team through email, phone, or live chat. We also have an extensive help center with articles and tutorials.",
+		},
+		{
+			question: "Do you have a mobile app?",
+			answer: "Currently, EduMatch is available as a web application optimized for mobile devices. We are working on native mobile apps that will be available soon.",
+		},
+	],
+};

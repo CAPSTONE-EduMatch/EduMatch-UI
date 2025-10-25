@@ -1,0 +1,389 @@
+'use client'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/inputs/select'
+import { mockFaqData } from '@/data/utils'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+	ChevronDown,
+	ChevronUp,
+	User,
+	BookOpen,
+	CreditCard,
+	Info,
+	Paperclip,
+	Send,
+	X,
+} from 'lucide-react'
+import React, { useState } from 'react'
+
+const Support = () => {
+	const [activeTab, setActiveTab] = useState('account')
+	const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+	const [problemType, setProblemType] = useState('application')
+	const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+	const [question, setQuestion] = useState('')
+
+	const menuItems = [
+		{
+			id: 'account',
+			label: 'Account',
+			icon: User,
+		},
+		{
+			id: 'application',
+			label: 'Application',
+			icon: BookOpen,
+		},
+		{
+			id: 'subscription',
+			label: 'Subscription',
+			icon: CreditCard,
+		},
+		{
+			id: 'other',
+			label: 'Other information',
+			icon: Info,
+		},
+	]
+
+	const toggleFaq = (index: number) => {
+		setExpandedFaq(expandedFaq === index ? null : index)
+	}
+
+	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = event.target.files
+		if (files) {
+			const newFiles = Array.from(files).filter((file) => {
+				// Check file type and size restrictions
+				const fileType = file.type.toLowerCase()
+				const fileSize = file.size / 1024 / 1024 // Convert to MB
+
+				// Image files (PNG, JPEG) - max 5MB
+				if (
+					fileType.includes('png') ||
+					fileType.includes('jpeg') ||
+					fileType.includes('jpg')
+				) {
+					if (fileSize > 5) {
+						alert(`${file.name} is too large. Image files must be under 5MB.`)
+						return false
+					}
+					return true
+				}
+
+				// Document files (PDF, DOC, DOCX) - max 10MB
+				if (
+					fileType.includes('pdf') ||
+					fileType.includes('doc') ||
+					fileType.includes('msword') ||
+					fileType.includes('document')
+				) {
+					if (fileSize > 10) {
+						alert(
+							`${file.name} is too large. Document files must be under 10MB.`
+						)
+						return false
+					}
+					return true
+				}
+
+				// Unsupported file type
+				alert(
+					`${file.name} is not supported. Only PNG, JPEG, PDF, and DOC files are allowed.`
+				)
+				return false
+			})
+
+			setUploadedFiles((prev) => [...prev, ...newFiles])
+		}
+	}
+
+	const removeFile = (index: number) => {
+		setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
+	}
+
+	const handleSubmit = (event: React.FormEvent) => {
+		event.preventDefault()
+		// Handle form submission here
+		// Form data: { problemType, question, uploadedFiles }
+	}
+
+	const renderTabContent = () => {
+		const currentFaqs = mockFaqData[activeTab as keyof typeof mockFaqData] || []
+
+		return (
+			<div className="space-y-4">
+				{currentFaqs.map((faq, index) => (
+					<div
+						key={index}
+						className="border border-gray-200 rounded-lg overflow-hidden"
+					>
+						<button
+							onClick={() => toggleFaq(index)}
+							className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+						>
+							<span className="text-gray-900 font-medium">{faq.question}</span>
+							{expandedFaq === index ? (
+								<ChevronUp className="w-5 h-5 text-gray-500" />
+							) : (
+								<ChevronDown className="w-5 h-5 text-gray-500" />
+							)}
+						</button>
+						<AnimatePresence>
+							{expandedFaq === index && (
+								<motion.div
+									initial={{ height: 0, opacity: 0 }}
+									animate={{ height: 'auto', opacity: 1 }}
+									exit={{ height: 0, opacity: 0 }}
+									transition={{ duration: 0.2 }}
+									className="overflow-hidden"
+								>
+									<div className="px-6 pb-4 text-gray-700 leading-relaxed bg-gray-50">
+										{faq.answer}
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+					</div>
+				))}
+			</div>
+		)
+	}
+
+	return (
+		<div className="min-h-screen bg-background">
+			{/* Header Section */}
+			<motion.div
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				className="relative w-full"
+			>
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.2 }}
+					className="w-full bg-[#F5F7FB] mt-28 px-10 py-12 flex justify-center"
+				>
+					<div className="w-[1500px] text-center mx-auto px-4 sm:px-6 lg:px-8">
+						<h1 className="text-4xl font-bold mb-4 text-gray-900">
+							Support Center
+						</h1>
+						<p className="text-xl text-gray-600 max-w-3xl mx-auto">
+							Get help with using EduMatch platform, find answers to common
+							questions, and contact our support team for personalized
+							assistance.
+						</p>
+					</div>
+				</motion.div>
+			</motion.div>
+
+			{/* Main Content */}
+			<motion.div
+				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8"
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+			>
+				{/* Quick Stats */}
+				{/* <motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.3 }}
+					className="bg-white py-6 shadow-xl border mb-10"
+				>
+					<div className="container mx-auto px-4">
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+							<div>
+								<p className="text-3xl font-bold text-[#126E64]">24/7</p>
+								<p className="text-sm text-gray-600">Support Available</p>
+							</div>
+							<div>
+								<p className="text-3xl font-bold text-[#126E64]">&lt; 2h</p>
+								<p className="text-sm text-gray-600">Average Response</p>
+							</div>
+							<div>
+								<p className="text-3xl font-bold text-[#126E64]">50+</p>
+								<p className="text-sm text-gray-600">Help Articles</p>
+							</div>
+							<div>
+								<p className="text-3xl font-bold text-[#126E64]">98%</p>
+								<p className="text-sm text-gray-600">Satisfaction Rate</p>
+							</div>
+						</div>
+					</div>
+				</motion.div> */}
+
+				{/* Main Support Content - FAQ Section */}
+				<div className="bg-white shadow-xl border rounded-lg overflow-hidden">
+					<div className="p-8">
+						<h2 className="text-2xl font-bold text-gray-900 mb-6">
+							Frequently asked questions
+						</h2>
+
+						<div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+							{/* Left Sidebar Menu */}
+							<div className="lg:col-span-1">
+								<div className="space-y-2">
+									{menuItems.map((item) => (
+										<button
+											key={item.id}
+											onClick={() => setActiveTab(item.id)}
+											className={`w-full text-left px-4 py-3 rounded-lg transition-all text-sm font-medium ${
+												activeTab === item.id
+													? 'bg-teal-100 text-teal-700'
+													: 'text-gray-700 hover:bg-gray-100'
+											}`}
+										>
+											{item.label}
+										</button>
+									))}
+								</div>
+							</div>
+
+							{/* Right Content - Dynamic Tab Content */}
+							<div className="lg:col-span-3">
+								<AnimatePresence mode="wait">
+									<motion.div
+										key={activeTab}
+										initial={{ opacity: 0, y: 10 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -10 }}
+										transition={{ duration: 0.2 }}
+									>
+										{renderTabContent()}
+									</motion.div>
+								</AnimatePresence>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{/* Divider */}
+				<div className="flex items-center justify-center py-8">
+					<div className="flex-grow border-t border-gray-300"></div>
+					<div className="flex-shrink-0 px-4">
+						<div className="w-8 h-8 bg-[#126E64] rounded-full flex items-center justify-center">
+							<span className="text-white text-sm font-bold">?</span>
+						</div>
+					</div>
+					<div className="flex-grow border-t border-gray-300"></div>
+				</div>
+
+				{/* Contact Us Section */}
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.6 }}
+					className="bg-white shadow-xl border rounded-lg overflow-hidden"
+				>
+					<div className="p-8">
+						<h2 className="text-2xl font-bold text-gray-900 mb-4">
+							Contact us
+						</h2>
+						<p className="text-gray-600 mb-6">
+							You have problem that do not mention at frequently asked question?
+							You can give question for us here, we will contact you to support.
+						</p>
+
+						<form onSubmit={handleSubmit} className="space-y-6">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">
+									Type of problem
+								</label>
+								<Select value={problemType} onValueChange={setProblemType}>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Select problem type" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="application">Application</SelectItem>
+										<SelectItem value="account">Account</SelectItem>
+										<SelectItem value="subscription">Subscription</SelectItem>
+										<SelectItem value="technical">Technical</SelectItem>
+										<SelectItem value="other">Other</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div>
+								<div className="relative">
+									<textarea
+										rows={6}
+										value={question}
+										onChange={(e) => setQuestion(e.target.value)}
+										className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent resize-none"
+										placeholder="Type your question here"
+									/>
+									<div className="absolute bottom-3 right-3 flex gap-2">
+										<label htmlFor="file-upload" className="cursor-pointer">
+											<Paperclip className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+											<input
+												id="file-upload"
+												type="file"
+												multiple
+												className="hidden"
+												onChange={handleFileUpload}
+												accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+											/>
+										</label>
+										<button
+											type="submit"
+											className="text-[#126E64] hover:text-teal-700"
+										>
+											<Send className="w-5 h-5" />
+										</button>
+									</div>
+								</div>
+
+								{/* File Upload Note */}
+								<p className="text-xs text-gray-500 mt-2">
+									<strong>Note:</strong> You can attach files to help us better
+									understand your issue. Supported formats: PNG, JPEG (max 5MB),
+									PDF, DOC, DOCX (max 10MB).
+								</p>
+
+								{/* Uploaded Files Display */}
+								{uploadedFiles.length > 0 && (
+									<div className="mt-4 space-y-2">
+										<p className="text-sm font-medium text-gray-700">
+											Uploaded files:
+										</p>
+										{uploadedFiles.map((file, index) => (
+											<div
+												key={index}
+												className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
+											>
+												<div className="flex items-center gap-2">
+													<Paperclip className="w-4 h-4 text-gray-500" />
+													<span className="text-sm text-gray-700">
+														{file.name}
+													</span>
+													<span className="text-xs text-gray-500">
+														({(file.size / 1024 / 1024).toFixed(2)} MB)
+													</span>
+												</div>
+												<button
+													type="button"
+													onClick={() => removeFile(index)}
+													className="text-red-500 hover:text-red-700"
+												>
+													<X className="w-4 h-4" />
+												</button>
+											</div>
+										))}
+									</div>
+								)}
+							</div>
+						</form>
+					</div>
+				</motion.div>
+			</motion.div>
+		</div>
+	)
+}
+
+export default Support

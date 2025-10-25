@@ -220,6 +220,7 @@ export function EduMatchHeader() {
 								{ label: t('about-us'), href: '#' },
 								{ label: t('explore'), href: '/explore' },
 								{ label: 'Pricing', href: '/pricing' },
+								{ label: 'Support', href: '/support' },
 								// Uncomment if needed: { label: t('program'), href: '#' },
 							].map((nav, idx) => (
 								<Link

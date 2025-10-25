@@ -15,6 +15,7 @@ const routeConfig = {
 		"/profile",
 	],
 	adminRoutes: ["/admin"],
+	adminApiRoutes: ["/api/admin"],
 	// Routes that require profile creation
 	profileRequiredRoutes: [
 		"/files",
@@ -134,12 +135,12 @@ export async function middleware(request: NextRequest) {
 		console.log(`[MIDDLEWARE] Processing: ${pathname}`);
 	}
 
-	// Skip middleware for static files and API routes (except auth API)
+	// Skip middleware for static files and non-admin API routes
 	if (
 		pathname.startsWith("/_next/") ||
-		pathname.startsWith("/api/") ||
 		pathname.includes(".") ||
-		pathname.startsWith("/favicon")
+		pathname.startsWith("/favicon") ||
+		(pathname.startsWith("/api/") && !pathname.startsWith("/api/admin/"))
 	) {
 		// Skip logging for static files to reduce console spam
 		return NextResponse.next();
@@ -193,6 +194,10 @@ export async function middleware(request: NextRequest) {
 			pathname.startsWith(route)
 		);
 
+		const isAdminApiRoute = routeConfig.adminApiRoutes.some(
+			(route: string) => pathname.startsWith(route)
+		);
+
 		// const requiresProfile = routeConfig.profileRequiredRoutes.some(
 		// 	(route: string) => pathname.startsWith(route)
 		// );
@@ -241,6 +246,28 @@ export async function middleware(request: NextRequest) {
 			}
 		}
 
+		// Handle admin API routes - require authentication and admin role
+		// Return JSON 401/403 instead of redirects so API clients receive proper status
+		if (isAdminApiRoute) {
+			if (!isAuthenticated) {
+				return NextResponse.json(
+					{ success: false, message: "Unauthorized" },
+					{ status: 401 }
+				);
+			}
+
+			const isAdminApi = await checkAdminRole(request);
+			if (!isAdminApi) {
+				return NextResponse.json(
+					{
+						success: false,
+						message: "Forbidden - Admin access required",
+					},
+					{ status: 403 }
+				);
+			}
+		}
+
 		// Handle protected routes - let client handle authentication modals
 		if (isProtectedRoute) {
 			// Protected route access - skip logging to reduce console spam
@@ -283,6 +310,9 @@ export const config = {
 		 * - _next/image (image optimization files)
 		 * - favicon.ico (favicon file)
 		 */
+		// All non-API client pages
 		"/((?!api|_next/static|_next/image|favicon.ico).*)",
+		// Also run middleware for admin API routes so we can protect them
+		"/api/admin/:path*",
 	],
 };

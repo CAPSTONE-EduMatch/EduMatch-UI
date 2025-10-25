@@ -1,86 +1,44 @@
 'use client'
 
-import { Card, CardContent } from '@/components/ui'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button, Card, CardContent } from '@/components/ui'
+import { Badge } from '@/components/ui/cards/badge'
+import { useInvoices } from '@/hooks/useInvoices'
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 
-interface PaymentRecord {
-	id: string
-	date: string
-	description: string
-	paymentMethod: 'visa' | 'mastercard' | 'paypal' | 'stripe'
-	amount: number
-	currency: string
-	status: 'completed' | 'pending' | 'failed'
-}
-
 export function PaymentHistoryTable() {
-	// Mock payment data - replace with real data from API
-	const payments: PaymentRecord[] = [
-		{
-			id: '1',
-			date: '22/01/2025',
-			description: 'Premium membership for 22/01/2025 from 22/02/2025',
-			paymentMethod: 'visa',
-			amount: 100,
-			currency: 'USD',
-			status: 'completed',
-		},
-		{
-			id: '2',
-			date: '22/01/2025',
-			description: 'Premium membership for 22/01/2025 from 22/02/2025',
-			paymentMethod: 'visa',
-			amount: 100,
-			currency: 'USD',
-			status: 'completed',
-		},
-		{
-			id: '3',
-			date: '22/01/2025',
-			description: 'Premium membership for 22/01/2025 from 22/02/2025',
-			paymentMethod: 'visa',
-			amount: 100,
-			currency: 'USD',
-			status: 'completed',
-		},
-		{
-			id: '4',
-			date: '22/01/2025',
-			description: 'Premium membership for 22/01/2025 from 22/02/2025',
-			paymentMethod: 'visa',
-			amount: 100,
-			currency: 'USD',
-			status: 'completed',
-		},
-		{
-			id: '5',
-			date: '22/01/2025',
-			description: 'Premium membership for 22/01/2025 from 22/02/2025',
-			paymentMethod: 'visa',
-			amount: 100,
-			currency: 'USD',
-			status: 'completed',
-		},
-		{
-			id: '6',
-			date: '22/01/2025',
-			description: 'Premium membership for 22/01/2025 from 22/02/2025',
-			paymentMethod: 'visa',
-			amount: 100,
-			currency: 'USD',
-			status: 'completed',
-		},
-	]
-
 	const [currentPage, setCurrentPage] = useState(1)
-	const itemsPerPage = 10
-	const totalPages = Math.ceil(payments.length / itemsPerPage)
-	const totalRecords = 1000 // Mock total - replace with real total
+	const { invoices, loading, error, pagination, refetch } = useInvoices(
+		currentPage,
+		10
+	)
 
-	// Get current page items
-	const startIndex = (currentPage - 1) * itemsPerPage
-	const currentItems = payments.slice(startIndex, startIndex + itemsPerPage)
+	// Show loading state
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center p-8">
+				<Loader2 className="h-6 w-6 animate-spin" />
+				<span className="ml-2">Loading payment history...</span>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="flex items-center justify-center p-8">
+				<p className="text-red-600">Error: {error}</p>
+				<Button
+					onClick={() => refetch()}
+					className="ml-4"
+					variant="outline"
+					size="sm"
+				>
+					Retry
+				</Button>
+			</div>
+		)
+	}
 
 	// Get payment method logo
 	const getPaymentMethodLogo = (method: string) => {
@@ -94,12 +52,6 @@ export function PaymentHistoryTable() {
 		)
 	}
 
-	const handleMoreDetail = (paymentId: string) => {
-		// Handle view more detail action
-		// TODO: Implement payment detail modal or navigation
-		void paymentId // Avoid unused variable warning
-	}
-
 	return (
 		<Card className="bg-white rounded-[40px] shadow-sm border-gray-200">
 			<CardContent className="p-8">
@@ -109,112 +61,171 @@ export function PaymentHistoryTable() {
 						Payment History
 					</h2>
 					<p className="text-gray-600 mb-4">View your past invoices</p>
-					<p className="text-sm text-gray-500">
-						Display {itemsPerPage} results of {totalRecords}
-					</p>
+					<div className="flex justify-between items-center mb-4">
+						<p className="text-sm text-gray-500">
+							Display {pagination.limit} results of {pagination.total}
+						</p>
+					</div>
 				</div>
 
 				{/* Table Container */}
 				<div className="bg-gray-50 rounded-[20px] p-6">
 					{/* Table Header */}
 					<div className="bg-[#126E64] rounded-t-[20px] px-6 py-4">
-						<div className="grid grid-cols-5 gap-4 text-white font-semibold">
+						<div className="grid grid-cols-6 gap-4 text-white font-semibold">
 							<div>Date</div>
-							<div>Description</div>
+							<div>Period</div>
 							<div>Payment Method</div>
-							<div>Total</div>
-							<div>Receipt</div>
+							<div>Amount</div>
+							<div>Status</div>
+							<div>Actions</div>
 						</div>
 					</div>
 
 					{/* Table Body */}
 					<div className="space-y-0">
-						{currentItems.map((payment, index) => (
-							<div
-								key={payment.id}
-								className={`px-6 py-4 border-b border-gray-200 last:border-b-0 ${
-									index % 2 === 0 ? 'bg-gray-100' : 'bg-white'
-								}`}
-							>
-								<div className="grid grid-cols-5 gap-4 items-center">
-									{/* Date */}
-									<div className="text-sm font-medium text-gray-900">
-										{payment.date}
-									</div>
+						{invoices.length === 0 ? (
+							<div className="px-6 py-12 text-center">
+								<p className="text-gray-500">No payment history found</p>
+							</div>
+						) : (
+							invoices.map((invoice, index) => (
+								<div
+									key={invoice.id}
+									className={`px-6 py-4 border-b border-gray-200 last:border-b-0 ${
+										index % 2 === 0 ? 'bg-gray-100' : 'bg-white'
+									}`}
+								>
+									<div className="grid grid-cols-6 gap-4 items-center">
+										{/* Date */}
+										<div className="text-sm font-medium text-gray-900">
+											{invoice.paidAt
+												? new Date(invoice.paidAt).toLocaleDateString()
+												: 'N/A'}
+										</div>
 
-									{/* Description */}
-									<div className="text-sm text-gray-900">
-										{payment.description}
-									</div>
+										{/* Description/Period */}
+										<div className="text-sm text-gray-900">
+											{invoice.periodStart && invoice.periodEnd
+												? `${new Date(invoice.periodStart).toLocaleDateString()} - ${new Date(invoice.periodEnd).toLocaleDateString()}`
+												: `Invoice ${invoice.stripeInvoiceId}`}
+										</div>
 
-									{/* Payment Method */}
-									<div className="flex items-center">
-										{getPaymentMethodLogo(payment.paymentMethod)}
-									</div>
+										{/* Payment Method */}
+										<div className="flex items-center">
+											{getPaymentMethodLogo(invoice.paymentMethod || 'card')}
+										</div>
 
-									{/* Total */}
-									<div className="text-sm font-medium text-gray-900">
-										$ {payment.amount}
-									</div>
+										{/* Amount */}
+										<div className="text-sm font-medium text-gray-900">
+											{invoice.currency.toUpperCase()}{' '}
+											{(invoice.amount / 100).toFixed(2)}
+										</div>
 
-									{/* Receipt/More Detail */}
-									<div>
-										<button
-											onClick={() => handleMoreDetail(payment.id)}
+										{/* Status */}
+										<div>
+											<Badge
+												variant={
+													invoice.status === 'paid'
+														? 'default'
+														: invoice.status === 'open'
+															? 'secondary'
+															: 'destructive'
+												}
+											>
+												{invoice.status}
+											</Badge>
+										</div>
+
+										{/* Actions */}
+										<div className="flex items-center gap-2">
+											{invoice.hostedInvoiceUrl && (
+												<a
+													href={invoice.hostedInvoiceUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+												>
+													<ExternalLink className="w-4 h-4" />
+													View Details
+												</a>
+											)}
+											{/* <button
+											onClick={() => handleMoreDetail(invoice.id)}
 											className="flex items-center gap-2 text-sm text-gray-900 hover:text-[#126E64] transition-colors"
 										>
-											More detail
+											Details
 											<ChevronRight className="w-4 h-4" />
-										</button>
+										</button> */}
+										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							))
+						)}
 					</div>
 				</div>
 
 				{/* Pagination */}
-				<div className="flex items-center justify-center mt-8">
-					<div className="flex items-center gap-2">
-						{/* Previous Button */}
-						<button
-							onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-							disabled={currentPage === 1}
-							className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<ChevronLeft className="w-5 h-5" />
-						</button>
-
-						{/* Page Numbers */}
-						{[1, 2, 3, 4, 5, 6].map((pageNum) => (
+				{pagination.totalPages > 1 && (
+					<div className="flex items-center justify-center mt-8">
+						<div className="flex items-center gap-2">
+							{/* Previous Button */}
 							<button
-								key={pageNum}
-								onClick={() => setCurrentPage(pageNum)}
-								className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
-									currentPage === pageNum
-										? 'bg-[#126E64] text-white'
-										: 'text-gray-700 hover:bg-gray-100'
-								}`}
+								onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+								disabled={currentPage === 1}
+								className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								{pageNum}
+								<ChevronLeft className="w-5 h-5" />
 							</button>
-						))}
 
-						{/* Ellipsis */}
-						<span className="text-gray-400 px-2">....20</span>
+							{/* Page Numbers - Show actual pages based on totalPages */}
+							{Array.from(
+								{ length: Math.min(pagination.totalPages, 10) },
+								(_, i) => i + 1
+							).map((pageNum) => (
+								<button
+									key={pageNum}
+									onClick={() => setCurrentPage(pageNum)}
+									className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
+										currentPage === pageNum
+											? 'bg-[#126E64] text-white'
+											: 'text-gray-700 hover:bg-gray-100'
+									}`}
+								>
+									{pageNum}
+								</button>
+							))}
 
-						{/* Next Button */}
-						<button
-							onClick={() =>
-								setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-							}
-							disabled={currentPage === totalPages}
-							className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<ChevronRight className="w-5 h-5" />
-						</button>
+							{/* Show ellipsis only if there are more than 10 pages */}
+							{pagination.totalPages > 10 && (
+								<>
+									<span className="text-gray-400 px-2">...</span>
+									<span className="text-gray-400 px-2">
+										{pagination.totalPages}
+									</span>
+								</>
+							)}
+
+							{/* Next Button */}
+							<button
+								onClick={() =>
+									setCurrentPage((prev) =>
+										Math.min(prev + 1, pagination.totalPages)
+									)
+								}
+								disabled={currentPage === pagination.totalPages}
+								className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<ChevronRight className="w-5 h-5" />
+							</button>
+						</div>
+
+						{/* Page info */}
+						<div className="ml-4 text-sm text-gray-500">
+							Page {pagination.page} of {pagination.totalPages}
+						</div>
 					</div>
-				</div>
+				)}
 			</CardContent>
 		</Card>
 	)

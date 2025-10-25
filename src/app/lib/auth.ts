@@ -143,6 +143,64 @@ export const auth = betterAuth({
 						},
 					},
 				],
+				// Authorization callback for billing portal and subscription management
+				authorizeReference: async ({
+					user,
+					session,
+					referenceId,
+					action,
+				}) => {
+					console.log(
+						"Authorizing action:",
+						action,
+						"for user:",
+						user.id
+					);
+					// For billing portal access, ensure user owns the subscription
+					if (action === "billing-portal") {
+						// The referenceId should be the user's ID for individual subscriptions
+						// In your case, since subscriptions are per-user, check if referenceId matches user.id
+						return referenceId === user.id;
+					}
+
+					// For subscription management actions
+					if (
+						action === "upgrade-subscription" ||
+						action === "cancel-subscription" ||
+						action === "restore-subscription"
+					) {
+						// Check if user owns this subscription
+						try {
+							const subscription =
+								await prismaClient.subscription.findFirst({
+									where: {
+										referenceId: referenceId,
+										// Ensure it's the current user's subscription
+										OR: [
+											{ referenceId: user.id },
+											// If you store user email in subscription, you could also check:
+											// { stripeCustomerId: user.stripeCustomerId }
+										],
+									},
+								});
+							console.log(
+								"Subscription found for authorization:",
+								subscription
+							);
+
+							return subscription !== null;
+						} catch (error) {
+							console.error(
+								"Error checking subscription authorization:",
+								error
+							);
+							return false;
+						}
+					}
+
+					// Default: allow other actions
+					return true;
+				},
 				onSubscriptionComplete: async ({ subscription, plan }) => {
 					// Log detailed info for testing
 					// eslint-disable-next-line no-console

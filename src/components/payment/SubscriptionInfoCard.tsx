@@ -3,10 +3,12 @@
 import { Button, Card, CardContent } from '@/components/ui'
 import { useSubscription } from '@/hooks/useSubscription'
 import { Calendar, Star, User, Wallet } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 
 export function SubscriptionInfoCard() {
 	const { subscriptions, currentPlan, isAuthenticated } = useSubscription()
+	const { user } = useAuth()
 	const router = useRouter()
 
 	// Get active subscription details
@@ -55,6 +57,20 @@ export function SubscriptionInfoCard() {
 		router.push('/pricing')
 	}
 
+	// Compute display strings to keep JSX simple and avoid nested ternaries
+	const nextBillingText =
+		planDetails.price === 0
+			? 'N/A'
+			: activeSubscription
+				? formatDate(activeSubscription.periodEnd)
+				: 'January 15, 2025'
+
+	const memberSinceText = user?.createdAt
+		? formatDate(user.createdAt)
+		: activeSubscription
+			? formatDate(activeSubscription.periodStart)
+			: 'September 2025'
+
 	return (
 		<Card className="bg-white rounded-[40px] shadow-sm border-gray-200">
 			<CardContent className="p-8">
@@ -92,9 +108,7 @@ export function SubscriptionInfoCard() {
 							</span>
 						</div>
 						<p className="text-lg font-semibold text-gray-900">
-							{activeSubscription
-								? formatDate(activeSubscription.periodEnd)
-								: 'January 15, 2025'}
+							{nextBillingText}
 						</p>
 					</div>
 
@@ -116,9 +130,7 @@ export function SubscriptionInfoCard() {
 							<span className="text-gray-600 font-medium">Member since</span>
 						</div>
 						<p className="text-lg font-semibold text-gray-900">
-							{activeSubscription
-								? formatDate(activeSubscription.periodStart)
-								: 'September 2025'}
+							{memberSinceText}
 						</p>
 					</div>
 				</div>

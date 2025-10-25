@@ -32,8 +32,8 @@ model User {
   notifySetting    NotificationSetting?
   managedSupports  SupportRequirement[]
   accounts         Account[]
-  sessions         Session[]
   invoices         Invoice[]
+  sessions         Session[]
   userRole         Role?                @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("user")
@@ -201,6 +201,7 @@ model OpportunityPost {
   status          PostStatus          @default(DRAFT)
   update_at       DateTime?           @db.Timestamptz(6)
   create_at       DateTime            @db.Timestamptz(6)
+  degree_level    String
   institution_id  String
   applications    Application[]
   jobPost         JobPost?
@@ -221,7 +222,6 @@ model OpportunityPost {
 model ProgramPost {
   post_id              String               @id
   duration             String
-  degree_level         String
   attendance           String
   course_include       String?
   gpa                  Decimal?             @db.Decimal
@@ -577,27 +577,27 @@ model ProgramScholarship {
 }
 
 model Invoice {
-  id                      String    @id @default(uuid())
-  stripeInvoiceId         String    @unique
-  stripeCustomerId        String
-  stripeSubscriptionId    String?
-  userId                  String
-  userType                String?   // "applicant" or "institution"
-  amount                  Int       // Amount in cents
-  currency                String
-  status                  String    // "paid", "open", "void", "uncollectible", etc.
-  paymentMethod           String?   // "card", "us_bank_account", etc.
-  paymentMethodDetails    Json?     // Store card brand, last4, etc.
-  hostedInvoiceUrl        String?   // Stripe hosted invoice URL
-  invoicePdf              String?   // PDF download URL
-  receiptNumber           String?   // Receipt number for records
-  periodStart             DateTime? @db.Timestamptz(6)
-  periodEnd               DateTime? @db.Timestamptz(6)
-  paidAt                  DateTime? @db.Timestamptz(6)
-  createdAt               DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt               DateTime  @updatedAt @db.Timestamptz(6)
-  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription            Subscription? @relation(fields: [stripeSubscriptionId], references: [stripeSubscriptionId])
+  id                   String        @id @default(uuid())
+  stripeInvoiceId      String        @unique
+  stripeCustomerId     String
+  stripeSubscriptionId String?
+  userId               String
+  userType             String?
+  amount               Int
+  currency             String
+  status               String
+  paymentMethod        String?
+  paymentMethodDetails Json?
+  hostedInvoiceUrl     String?
+  invoicePdf           String?
+  receiptNumber        String?
+  periodStart          DateTime?     @db.Timestamptz(6)
+  periodEnd            DateTime?     @db.Timestamptz(6)
+  paidAt               DateTime?     @db.Timestamptz(6)
+  createdAt            DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(6)
+  subscription         Subscription? @relation(fields: [stripeSubscriptionId], references: [stripeSubscriptionId])
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui'
 import { Download, User, FileText, ArrowLeft, Loader2 } from 'lucide-react'
 import {
@@ -11,6 +12,7 @@ import {
 	TwoPanelLayout,
 } from '@/components/shared'
 import type { Applicant } from './ApplicantsTable'
+import JSZip from 'jszip'
 
 interface ApplicantDetailViewProps {
 	applicant: Applicant
@@ -95,6 +97,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		useState<ApplicationDetails | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
+	const [downloadingZip, setDownloadingZip] = useState<string | null>(null)
 
 	// Fetch application details from API
 	useEffect(() => {
@@ -130,6 +133,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					throw new Error(result.error || 'Failed to fetch application details')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('Error fetching application details:', err)
 				setError(
 					err instanceof Error
@@ -148,34 +152,13 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	const documents: Document[] = applicationDetails?.applicant?.documents || []
 
 	// Debug: Log documents to see what we're getting
+	// eslint-disable-next-line no-console
 	console.log('📄 Academic Profile Documents:', documents)
+	// eslint-disable-next-line no-console
 	console.log(
 		'📄 Document names:',
 		documents.map((doc) => doc.name)
 	)
-
-	// Document type enumeration based on the new enum
-	const DOCUMENT_TYPE_LABELS = {
-		RESEARCH_PROPOSAL: 'Research Proposal',
-		CV_RESUME: 'CV/Resume',
-		PORTFOLIO: 'Portfolio',
-		ACADEMIC_TRANSCRIPT: 'Academic Transcript',
-		PERSONAL_STATEMENT: 'Personal Statement',
-		RECOMMENDATION_LETTER: 'Recommendation Letter',
-		LANGUAGE_CERTIFICATE: 'Language Certificate',
-		PASSPORT_COPY: 'Passport Copy',
-		DEGREE_CERTIFICATE: 'Degree Certificate',
-		RESEARCH_PAPER: 'Research Paper',
-		INSTITUTION_VERIFICATION: 'Institution Verification',
-		REQUIRED_DOCUMENTS: 'Required Documents',
-		OTHER: 'Other Documents',
-	} as const
-
-	const getDocumentsByType = (documentType: string) => {
-		return documents.filter((doc) =>
-			doc.name.toLowerCase().includes(documentType.toLowerCase())
-		)
-	}
 
 	const getDocumentTypeLabel = (documentType: string) => {
 		// Map category keys to display labels
@@ -218,19 +201,165 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		})
 	}
 
-	const handleDownloadAll = () => {
-		console.log('Downloading all documents for:', applicant.name)
-		// TODO: Implement download all functionality
-		// This could create a zip file with all documents
+	const createZipFromDocuments = async (docs: Document[], zipName: string) => {
+		const zip = new JSZip()
+
+		// Create a folder for the documents
+		const folder = zip.folder(zipName) || zip
+
+		// Add each document to the zip
+		for (const doc of docs) {
+			try {
+				// Fetch the document content
+				const response = await fetch(doc.url)
+				if (!response.ok) {
+					// eslint-disable-next-line no-console
+					console.warn(`Failed to fetch document: ${doc.name}`)
+					continue
+				}
+
+				const blob = await response.blob()
+				const arrayBuffer = await blob.arrayBuffer()
+
+				// Add to zip with the document name
+				folder.file(doc.name, arrayBuffer)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.warn(`Error adding document ${doc.name} to zip:`, error)
+			}
+		}
+
+		// Generate the zip file
+		const zipBlob = await zip.generateAsync({ type: 'blob' })
+
+		// Create download link
+		const url = window.URL.createObjectURL(zipBlob)
+		const link = document.createElement('a')
+		link.href = url
+		link.download = `${zipName}.zip`
+		document.body.appendChild(link)
+		link.click()
+		document.body.removeChild(link)
+		window.URL.revokeObjectURL(url)
 	}
 
-	const handleDownloadFolder = (documentType: string) => {
-		console.log('Downloading folder for type:', documentType)
-		// TODO: Implement download folder functionality
-		// This could create a zip file with documents of a specific type
+	const handleDownloadAll = async () => {
+		if (
+			!applicationDetails?.applicant?.documents ||
+			applicationDetails.applicant.documents.length === 0
+		) {
+			// eslint-disable-next-line no-console
+			console.log('No documents to download')
+			return
+		}
+
+		setDownloadingZip('all')
+		try {
+			const zipName = `${applicant.name.replace(/\s+/g, '_')}_All_Documents`
+			await createZipFromDocuments(
+				applicationDetails.applicant.documents,
+				zipName
+			)
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error creating zip file:', error)
+		} finally {
+			setDownloadingZip(null)
+		}
+	}
+
+	const handleDownloadFolder = async (documentType: string) => {
+		if (!documents || documents.length === 0) {
+			// eslint-disable-next-line no-console
+			console.log('No documents to download')
+			return
+		}
+
+		// Filter documents by type
+		const typeDocs = documents.filter((doc) => {
+			const docType = (doc as any).documentType || 'OTHER'
+			const upperType = docType.toUpperCase()
+
+			// Map category to document type matching
+			if (
+				documentType === 'cv' &&
+				(upperType.includes('CV') || upperType.includes('RESUME'))
+			) {
+				return true
+			} else if (
+				documentType === 'certificate' &&
+				(upperType.includes('LANGUAGE') || upperType.includes('CERTIFICATE'))
+			) {
+				return true
+			} else if (documentType === 'degree' && upperType.includes('DEGREE')) {
+				return true
+			} else if (
+				documentType === 'transcript' &&
+				upperType.includes('TRANSCRIPT')
+			) {
+				return true
+			} else if (
+				documentType === 'research' &&
+				upperType.includes('RESEARCH')
+			) {
+				return true
+			} else if (
+				documentType === 'portfolio' &&
+				upperType.includes('PORTFOLIO')
+			) {
+				return true
+			} else if (
+				documentType === 'personal' &&
+				upperType.includes('PERSONAL')
+			) {
+				return true
+			} else if (
+				documentType === 'recommendation' &&
+				upperType.includes('RECOMMENDATION')
+			) {
+				return true
+			} else if (
+				documentType === 'passport' &&
+				upperType.includes('PASSPORT')
+			) {
+				return true
+			} else if (
+				documentType === 'institution' &&
+				upperType.includes('INSTITUTION')
+			) {
+				return true
+			} else if (
+				documentType === 'required' &&
+				upperType.includes('REQUIRED')
+			) {
+				return true
+			} else if (documentType === 'other') {
+				return true
+			}
+			return false
+		})
+
+		if (typeDocs.length === 0) {
+			// eslint-disable-next-line no-console
+			console.log(`No documents found for type: ${documentType}`)
+			return
+		}
+
+		setDownloadingZip(documentType)
+		try {
+			const folderName = getDocumentTypeLabel(documentType).replace(/\s+/g, '_')
+			const zipName = `${applicant.name.replace(/\s+/g, '_')}_${folderName}`
+			await createZipFromDocuments(typeDocs, zipName)
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error creating zip file:', error)
+		} finally {
+			setDownloadingZip(null)
+		}
 	}
 
 	const handlePreviewFile = (document: Document) => {
+		// eslint-disable-next-line no-console
 		console.log('Previewing file:', document.name)
 		// Open file in new tab for preview
 		if (document.url) {
@@ -239,6 +368,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	}
 
 	const handleDownloadFile = (doc: Document) => {
+		// eslint-disable-next-line no-console
 		console.log('Downloading file:', doc.name)
 		// Download file directly
 		if (doc.url) {
@@ -260,6 +390,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	const handleSendUpdate = () => {
 		if (updateDescription.trim()) {
+			// eslint-disable-next-line no-console
 			console.log(
 				'Sending update to applicant:',
 				applicant.name,
@@ -369,6 +500,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											const docType = (doc as any).documentType || 'OTHER'
 											let category = 'other'
 
+											// eslint-disable-next-line no-console
 											console.log(
 												`📄 Categorizing: "${doc.name}" -> docType: "${docType}"`
 											)
@@ -407,6 +539,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 												category = 'other'
 											}
 
+											// eslint-disable-next-line no-console
 											console.log(`📄 Final category: "${category}"`)
 
 											if (!acc[category]) acc[category] = []
@@ -426,8 +559,12 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											</h3>
 											<button
 												onClick={() => handleDownloadFolder(category)}
-												className="text-primary hover:text-primary/80 text-sm font-medium underline"
+												disabled={downloadingZip === category}
+												className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 											>
+												{downloadingZip === category && (
+													<Loader2 className="h-3 w-3 animate-spin" />
+												)}
 												Download folder
 											</button>
 										</div>
@@ -482,8 +619,12 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 						<div className="mt-6 pt-6 border-t border-gray-200">
 							<button
 								onClick={handleDownloadAll}
-								className="w-full text-primary hover:text-primary/80 text-sm font-medium underline text-center py-2"
+								disabled={downloadingZip === 'all'}
+								className="w-full text-primary hover:text-primary/80 text-sm font-medium underline text-center py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 							>
+								{downloadingZip === 'all' && (
+									<Loader2 className="h-3 w-3 animate-spin" />
+								)}
 								Download all documents
 							</button>
 						</div>
@@ -527,21 +668,37 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 												Application Documents
 											</h3>
 											<button
-												onClick={() => {
-													// Download all application documents
-													applicationDetails.application.documents.forEach(
-														(doc: Document) => {
-															const link = document.createElement('a')
-															link.href = doc.url
-															link.download = doc.name
-															document.body.appendChild(link)
-															link.click()
-															document.body.removeChild(link)
-														}
-													)
+												onClick={async () => {
+													// Download all application documents as zip
+													if (
+														applicationDetails.application.documents.length ===
+														0
+													) {
+														// eslint-disable-next-line no-console
+														console.log('No application documents to download')
+														return
+													}
+
+													setDownloadingZip('application')
+													try {
+														const zipName = `${applicant.name.replace(/\s+/g, '_')}_Application_Documents`
+														await createZipFromDocuments(
+															applicationDetails.application.documents,
+															zipName
+														)
+													} catch (error) {
+														// eslint-disable-next-line no-console
+														console.error('Error creating zip file:', error)
+													} finally {
+														setDownloadingZip(null)
+													}
 												}}
-												className="text-primary hover:text-primary/80 text-sm font-medium underline"
+												disabled={downloadingZip === 'application'}
+												className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 											>
+												{downloadingZip === 'application' && (
+													<Loader2 className="h-3 w-3 animate-spin" />
+												)}
 												Download all
 											</button>
 										</div>
@@ -675,9 +832,11 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					<ProfileCard
 						header={{
 							avatar: applicationDetails?.applicant?.image ? (
-								<img
+								<Image
 									src={applicationDetails.applicant.image}
 									alt={applicationDetails.applicant.name}
+									width={64}
+									height={64}
 									className="w-16 h-16 rounded-full object-cover"
 								/>
 							) : (

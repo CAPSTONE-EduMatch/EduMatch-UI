@@ -7,22 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum DocumentTypeEnum {
-  RESEARCH_PROPOSAL
-  CV_RESUME
-  PORTFOLIO
-  ACADEMIC_TRANSCRIPT
-  PERSONAL_STATEMENT
-  RECOMMENDATION_LETTER
-  LANGUAGE_CERTIFICATE
-  PASSPORT_COPY
-  DEGREE_CERTIFICATE
-  RESEARCH_PAPER
-  INSTITUTION_VERIFICATION
-  REQUIRED_DOCUMENTS
-  OTHER
-}
-
 model User {
   /// PK - Better Auth required fields
   id               String               @id @default(uuid())
@@ -196,12 +180,12 @@ model Subdiscipline {
 }
 
 model DocumentType {
-  document_type_id   String                @id
-  name               String
-  description        String?
-  applicantDocs      ApplicantDocument[]
-  institutionDocs    InstitutionDocument[]
-  postDocs           PostDocument[]
+  document_type_id String                @id
+  name             String
+  description      String?
+  applicantDocs    ApplicantDocument[]
+  institutionDocs  InstitutionDocument[]
+  postDocs         PostDocument[]
 
   @@map("DocumentType")
 }
@@ -394,14 +378,14 @@ model Wishlist {
 }
 
 model Application {
-  application_id String              @id
-  applicant_id   String
-  apply_at       DateTime            @db.Timestamptz(6)
-  post_id        String
-  status         ApplicationStatus   @default(PENDING)
-  applicant      Applicant           @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  post           OpportunityPost     @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-  details        ApplicationDetail[]
+  application_id  String                      @id
+  applicant_id    String
+  apply_at        DateTime                    @db.Timestamptz(6)
+  post_id         String
+  status          ApplicationStatus           @default(PENDING)
+  applicant       Applicant                   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  post            OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  details         ApplicationDetail[]
   profileSnapshot ApplicationProfileSnapshot?
 
   @@index([applicant_id])
@@ -412,52 +396,45 @@ model Application {
 }
 
 model ApplicationDetail {
-  document_id      String       @id
-  application_id   String
-  update_at        DateTime?    @db.Timestamptz(6)
-  url              String
-  name             String
-  size             Int
-  document_type    DocumentTypeEnum  @default(OTHER)
-  application      Application  @relation(fields: [application_id], references: [application_id], onDelete: NoAction, onUpdate: NoAction)
+  document_id    String           @id
+  application_id String
+  update_at      DateTime?        @db.Timestamptz(6)
+  url            String
+  name           String
+  size           Int
+  document_type  DocumentTypeEnum @default(OTHER)
+  application    Application      @relation(fields: [application_id], references: [application_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("ApplicationDetail")
 }
 
 model ApplicationProfileSnapshot {
-  snapshot_id     String      @id
-  application_id  String      @unique
-  // Basic profile information
-  first_name      String?
-  last_name       String?
-  birthday        DateTime?   @db.Date
-  gender          Boolean?
-  nationality     String?
-  phone_number    String?
-  country_code    String?
-  profile_photo   String?
-  // Academic information
-  graduated       Boolean?
-  level           String?
-  subdiscipline_id String?
-  gpa             Decimal?    @db.Decimal
-  university      String?
-  country_of_study String?
+  snapshot_id          String      @id
+  application_id       String      @unique
+  first_name           String?
+  last_name            String?
+  birthday             DateTime?   @db.Date
+  gender               Boolean?
+  nationality          String?
+  phone_number         String?
+  country_code         String?
+  profile_photo        String?
+  graduated            Boolean?
+  level                String?
+  subdiscipline_id     String?
+  gpa                  Decimal?    @db.Decimal
+  university           String?
+  country_of_study     String?
   has_foreign_language Boolean?
-  languages       Json?
-  // Preferences
-  favorite_countries String[] @default([])
-  // User information
-  user_name       String?
-  user_email      String?
-  user_image      String?
-  // Subdiscipline details - array of subdiscipline IDs
-  subdiscipline_ids String[]   @default([])
-  // Document IDs at time of snapshot
-  document_ids     String[]    @default([])
-  // Snapshot metadata
-  created_at      DateTime    @default(now()) @db.Timestamptz(6)
-  application     Application @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
+  languages            Json?
+  favorite_countries   String[]    @default([])
+  user_name            String?
+  user_email           String?
+  user_image           String?
+  created_at           DateTime    @default(now()) @db.Timestamptz(6)
+  subdiscipline_ids    String[]    @default([])
+  document_ids         String[]    @default([])
+  application          Application @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
 
   @@map("ApplicationProfileSnapshot")
 }
@@ -524,8 +501,10 @@ model Message {
 
 model Plan {
   plan_id         String                    @id
+  priceId         String                    @unique
   name            String
   description     String?
+  features        String[]
   month_price     Int?
   year_price      Int?
   status          Boolean
@@ -658,6 +637,22 @@ model Invoice {
   @@index([status])
   @@index([paidAt])
   @@map("invoice")
+}
+
+enum DocumentTypeEnum {
+  RESEARCH_PROPOSAL
+  CV_RESUME
+  PORTFOLIO
+  ACADEMIC_TRANSCRIPT
+  PERSONAL_STATEMENT
+  RECOMMENDATION_LETTER
+  LANGUAGE_CERTIFICATE
+  PASSPORT_COPY
+  DEGREE_CERTIFICATE
+  RESEARCH_PAPER
+  INSTITUTION_VERIFICATION
+  REQUIRED_DOCUMENTS
+  OTHER
 }
 
 enum PostStatus {

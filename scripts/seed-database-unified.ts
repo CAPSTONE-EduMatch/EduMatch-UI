@@ -526,6 +526,7 @@ async function seedPlans() {
 	const plans = [
 		{
 			plan_id: "550e8400-e29b-41d4-a716-446655440101",
+			priceId: "price_basic_monthly",
 			name: "Basic Plan",
 			description: "Basic plan for students",
 			month_price: 0,
@@ -536,6 +537,7 @@ async function seedPlans() {
 		},
 		{
 			plan_id: "550e8400-e29b-41d4-a716-446655440102",
+			priceId: "price_premium_monthly",
 			name: "Premium Plan",
 			description: "Premium plan for students",
 			month_price: 10,
@@ -546,6 +548,7 @@ async function seedPlans() {
 		},
 		{
 			plan_id: "550e8400-e29b-41d4-a716-446655440103",
+			priceId: "price_enterprise_monthly",
 			name: "Enterprise Plan",
 			description: "Enterprise plan for institutions",
 			month_price: 50,

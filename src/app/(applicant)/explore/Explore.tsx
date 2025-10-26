@@ -20,6 +20,7 @@ import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useWishlist } from '@/hooks/useWishlist'
 import { applicationService } from '@/lib/application-service'
 import student from '../../../../public/student.png'
@@ -35,6 +36,7 @@ const ITEMS_PER_PAGE_RESEARCH = 5
 
 const Explore = () => {
 	const t = useTranslations('')
+	const searchParams = useSearchParams()
 	const breadcrumbItems = [
 		{ label: 'Home', href: '/' },
 		{ label: 'Explore', href: '/explore' },
@@ -47,6 +49,64 @@ const Explore = () => {
 	const [selectedFilters, setSelectedFilters] = useState<
 		Record<string, string[]>
 	>({})
+
+	// Initialize state from URL parameters on component mount
+	useEffect(() => {
+		// Get tab from URL
+		const tabFromUrl = searchParams.get('tab')
+		if (
+			tabFromUrl &&
+			['programmes', 'scholarships', 'research'].includes(tabFromUrl)
+		) {
+			setActiveTab(tabFromUrl as TabType)
+		}
+
+		// Get sort from URL
+		const sortFromUrl = searchParams.get('sort') as SortOption
+		if (
+			sortFromUrl &&
+			['most-popular', 'newest', 'match-score', 'deadline'].includes(
+				sortFromUrl
+			)
+		) {
+			setSortBy(sortFromUrl)
+		}
+
+		// Get page from URL
+		const pageFromUrl = searchParams.get('page')
+		if (pageFromUrl) {
+			const pageNumber = parseInt(pageFromUrl)
+			if (!isNaN(pageNumber) && pageNumber > 0) {
+				setCurrentPage(pageNumber)
+			}
+		}
+	}, [searchParams])
+
+	// Update URL when tab, sort, or page changes
+	useEffect(() => {
+		const params = new URLSearchParams(searchParams.toString())
+
+		params.set('tab', activeTab)
+
+		if (sortBy !== 'most-popular') {
+			params.set('sort', sortBy)
+		} else {
+			params.delete('sort')
+		}
+
+		if (currentPage !== 1) {
+			params.set('page', currentPage.toString())
+		} else {
+			params.delete('page')
+		}
+
+		const newURL = `${window.location.pathname}?${params.toString()}`
+
+		// Only update URL if it's different to avoid infinite loops
+		if (window.location.search !== `?${params.toString()}`) {
+			window.history.replaceState({}, '', newURL)
+		}
+	}, [activeTab, sortBy, currentPage, searchParams])
 
 	// Wishlist functionality
 	const { isInWishlist, toggleWishlistItem } = useWishlist()
@@ -93,18 +153,6 @@ const Explore = () => {
 
 	// Check if application is in progress
 	const isApplying = (postId: string) => applyingPosts.has(postId)
-
-	// Initialize tab from URL parameter
-	useEffect(() => {
-		const urlParams = new URLSearchParams(window.location.search)
-		const tabFromUrl = urlParams.get('tab')
-		if (
-			tabFromUrl &&
-			['programmes', 'scholarships', 'research'].includes(tabFromUrl)
-		) {
-			setActiveTab(tabFromUrl as TabType)
-		}
-	}, [])
 
 	// Programs state
 	const [programs, setPrograms] = useState<Program[]>([])
@@ -261,10 +309,7 @@ const Explore = () => {
 	const handleTabChange = (tabId: string) => {
 		setActiveTab(tabId as TabType)
 		setCurrentPage(1)
-		// Update URL to include tab parameter
-		const url = new URL(window.location.href)
-		url.searchParams.set('tab', tabId)
-		window.history.pushState({}, '', url.toString())
+		// URL will be updated automatically via useEffect
 		// Scroll to top when switching tabs with delay
 		setTimeout(() => {
 			// Try scrolling to content area first, fallback to window scroll
@@ -282,6 +327,7 @@ const Explore = () => {
 	// Handle page change with scroll to top
 	const handlePageChange = (page: number) => {
 		setCurrentPage(page)
+		// URL will be updated automatically via useEffect
 		// Use setTimeout to ensure DOM is updated before scrolling
 		setTimeout(() => {
 			// Try scrolling to content area first, fallback to window scroll
@@ -294,6 +340,13 @@ const Explore = () => {
 				window.scrollTo({ top: 0, behavior: 'smooth' })
 			}
 		}, 100)
+	}
+
+	// Handle sort change
+	const handleSortChange = (newSort: SortOption) => {
+		setSortBy(newSort)
+		setCurrentPage(1) // Reset to first page when sorting changes
+		// URL will be updated automatically via useEffect
 	}
 
 	const renderTabContent = () => {
@@ -440,7 +493,7 @@ const Explore = () => {
 							<div className="text-sm text-gray-600">
 								{currentTabData.totalItems} results
 							</div>
-							<SortDropdown value={sortBy} onChange={setSortBy} />
+							<SortDropdown value={sortBy} onChange={handleSortChange} />
 						</motion.div>
 						<div className="flex gap-6 h-full">
 							<div className=" top-4 self-start  flex flex-col gap-6">

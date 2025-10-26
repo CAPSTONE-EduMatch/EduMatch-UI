@@ -409,3 +409,12 @@ input[type='range']::-moz-range-track {
 .hover\\:scale-102:hover {
 	transform: scale(1.02);
 }
+
+ul {
+	list-style-type: disc;
+	padding-left: 1.5rem; /* thêm khoảng cách để bullet lộ ra */
+}
+
+ol {
+	list-style-type: decimal;
+}

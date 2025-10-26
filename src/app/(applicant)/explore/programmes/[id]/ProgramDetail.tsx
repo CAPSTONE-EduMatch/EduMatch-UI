@@ -19,7 +19,7 @@ import { useWishlist } from '@/hooks/useWishlist'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useApiWrapper } from '@/lib/api-wrapper'
-
+import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -544,9 +544,10 @@ const ProgramDetail = () => {
 									4. Subdiscipline:
 								</span>{' '}
 								<span className="text-gray-700">
-									{currentProgram?.fields && currentProgram.fields.length > 0
-										? currentProgram.fields
-												.map((f: any) => f.subdisciplineName)
+									{currentProgram?.subdiscipline &&
+									currentProgram.subdiscipline.length > 0
+										? currentProgram.subdiscipline
+												.map((s: any) => s.name || s.subdisciplineName)
 												.join(', ')
 										: 'N/A'}
 								</span>
@@ -571,6 +572,20 @@ const ProgramDetail = () => {
 									{currentProgram?.program?.degreeLevel || 'N/A'}
 								</span>
 							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">8. Match:</span>{' '}
+								<span className="text-gray-700">
+									{currentProgram?.match || 'N/A'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">9. Days left:</span>{' '}
+								<span className="text-gray-700">
+									{currentProgram?.daysLeft !== undefined
+										? `${currentProgram.daysLeft} days`
+										: 'N/A'}
+								</span>
+							</li>
 						</ol>
 					</div>
 				)
@@ -582,9 +597,10 @@ const ProgramDetail = () => {
 							<p className="text-base mb-2">
 								<span className="font-bold text-gray-900">Subdiscipline:</span>{' '}
 								<span className="text-gray-700">
-									{currentProgram?.fields && currentProgram.fields.length > 0
-										? currentProgram.fields
-												.map((f: any) => f.subdisciplineName)
+									{currentProgram?.subdiscipline &&
+									currentProgram.subdiscipline.length > 0
+										? currentProgram.subdiscipline
+												.map((s: any) => s.name || s.subdisciplineName)
 												.join(', ')
 										: 'N/A'}
 								</span>
@@ -597,33 +613,34 @@ const ProgramDetail = () => {
 								<div
 									className="text-gray-700 prose max-w-none"
 									dangerouslySetInnerHTML={{
-										__html: currentProgram.program.courseInclude.replace(
-											/\n/g,
-											'<br/>'
-										),
+										__html: currentProgram.program.courseInclude,
 									}}
 								/>
 							</div>
 						)}
 
-						{currentProgram?.fields && currentProgram.fields.length > 0 && (
-							<div>
-								<p className="text-base">
-									<span className="font-bold text-gray-900">
-										Discipline area:
-									</span>{' '}
-									<span className="text-gray-700">
-										{currentProgram.fields
-											.map((f: any) => f.disciplineName)
-											.filter(
-												(value: string, index: number, self: string[]) =>
-													self.indexOf(value) === index
-											)
-											.join(', ')}
-									</span>
-								</p>
-							</div>
-						)}
+						{currentProgram?.subdiscipline &&
+							currentProgram.subdiscipline.length > 0 && (
+								<div>
+									<p className="text-base">
+										<span className="font-bold text-gray-900">
+											Discipline area:
+										</span>{' '}
+										<span className="text-gray-700">
+											{currentProgram.subdiscipline
+												.map(
+													(s: any) =>
+														s.disciplineName || s.discipline?.name || 'N/A'
+												)
+												.filter(
+													(value: string, index: number, self: string[]) =>
+														self.indexOf(value) === index
+												)
+												.join(', ')}
+										</span>
+									</p>
+								</div>
+							)}
 					</div>
 				)
 
@@ -724,9 +741,12 @@ const ProgramDetail = () => {
 						{currentProgram?.program?.feeDescription && (
 							<div>
 								<p className="font-bold text-gray-900 mb-2">Fee description:</p>
-								<p className="text-gray-700">
-									{currentProgram.program.feeDescription}
-								</p>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentProgram.program.feeDescription,
+									}}
+								/>
 							</div>
 						)}
 					</div>
@@ -740,9 +760,12 @@ const ProgramDetail = () => {
 								Scholarships Information:
 							</h3>
 							{currentProgram?.program?.scholarshipInfo ? (
-								<p className="text-gray-700 mb-6">
-									{currentProgram.program.scholarshipInfo}
-								</p>
+								<div
+									className="text-gray-700 mb-6 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentProgram.program.scholarshipInfo,
+									}}
+								/>
 							) : (
 								<p className="text-gray-700 mb-6">
 									Explore available scholarships offered by this institution
@@ -809,16 +832,19 @@ const ProgramDetail = () => {
 								<h3 className="text-xl font-bold text-gray-900 mb-4">
 									Other Information:
 								</h3>
-								<p className="text-gray-700 whitespace-pre-wrap">
-									{currentProgram.otherInfo}
-								</p>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentProgram.otherInfo,
+									}}
+								/>
 							</div>
 						)}
 
 						<div>
-							{/* <h3 className="text-xl font-bold text-gray-900 mb-4">
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
 								Contact Information:
-							</h3> */}
+							</h3>
 							{currentProgram?.institution && (
 								<div className="space-y-3 text-gray-700">
 									{currentProgram.institution.email && (
@@ -836,7 +862,7 @@ const ProgramDetail = () => {
 										<p>
 											<span className="font-semibold">Hotline:</span>{' '}
 											{currentProgram.institution.hotlineCode && (
-												<span>+{currentProgram.institution.hotlineCode} </span>
+												<span>{currentProgram.institution.hotlineCode} </span>
 											)}
 											{currentProgram.institution.hotline}
 										</p>
@@ -880,7 +906,7 @@ const ProgramDetail = () => {
 				className="relative h-[500px] w-full"
 			>
 				<Image
-					src={currentProgram?.institution?.coverImage}
+					src={currentProgram?.institution?.coverImage || CoverImage}
 					alt={currentProgram?.institution?.name || 'University'}
 					fill
 					className="object-cover"
@@ -1000,7 +1026,7 @@ const ProgramDetail = () => {
 						{currentProgram?.description ? (
 							<div
 								dangerouslySetInnerHTML={{
-									__html: currentProgram.description.replace(/\n/g, '<br/>'),
+									__html: currentProgram.description,
 								}}
 							/>
 						) : (
@@ -1070,7 +1096,7 @@ const ProgramDetail = () => {
 							<div className="space-y-3">
 								{currentProgram.documents.map((doc: any, index: number) => (
 									<p key={doc.document_id || doc.document_type_id || index}>
-										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
+										<span className="font-medium">{doc.name}:</span>{' '}
 										{doc.description}
 									</p>
 								))}
@@ -1078,7 +1104,9 @@ const ProgramDetail = () => {
 						) : (
 							<p>
 								You can upload required documents here. We will send documents
-								and your academic information to university.
+								and your academic information to university. Common documents
+								include: CV/Resume, Academic Transcripts, Personal Statement,
+								Language Certificates (IELTS, TOEFL), etc.
 							</p>
 						)}
 					</div>

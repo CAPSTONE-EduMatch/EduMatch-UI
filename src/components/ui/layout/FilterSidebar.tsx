@@ -15,7 +15,8 @@ import {
 	ChevronDown,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { TabType } from '@/types/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 
@@ -45,27 +46,92 @@ export function FilterSidebar({
 	activeTab,
 	onFiltersChange,
 }: FilterSidebarProps) {
-	const [selectedFilters, setSelectedFilters] = useState<
-		Record<string, string[]>
+	const searchParams = useSearchParams()
+
+	// Separate filter states for each tab
+	const [tabFilters, setTabFilters] = useState<
+		Record<string, Record<string, string[]>>
 	>({
-		discipline: [],
-		country: [],
-		duration: [],
-		degreeLevel: [],
-		attendance: [],
+		programmes: {
+			discipline: [],
+			country: [],
+			duration: [],
+			degreeLevel: [],
+			attendance: [],
+		},
+		scholarships: {
+			discipline: [],
+			country: [],
+			degreeLevel: [],
+			essayRequired: [],
+		},
+		research: {
+			researchField: [],
+			country: [],
+			degreeLevel: [],
+			attendance: [],
+			contractType: [],
+			jobType: [],
+		},
 	})
 
-	const [selectedDiscipline, setSelectedDiscipline] = useState<string>('')
-	const [showSubdisciplines, setShowSubdisciplines] = useState(false)
-
-	const [feeRange, setFeeRange] = useState({ min: 0, max: 1000000 })
-	const [salaryRange, setSalaryRange] = useState({ min: 0, max: 200000 })
-	const [searchTerms, setSearchTerms] = useState({
-		discipline: '',
-		subdiscipline: '',
-		country: '',
-		researchField: '',
+	// Separate ranges for each tab
+	const [tabRanges, setTabRanges] = useState<
+		Record<
+			string,
+			{
+				fee?: { min: number; max: number }
+				salary?: { min: number; max: number }
+			}
+		>
+	>({
+		programmes: {
+			fee: { min: 0, max: 1000000 },
+		},
+		scholarships: {},
+		research: {
+			salary: { min: 0, max: 200000 },
+		},
 	})
+
+	// Separate discipline navigation for each tab
+	const [tabDisciplineState, setTabDisciplineState] = useState<
+		Record<string, { selectedDiscipline: string; showSubdisciplines: boolean }>
+	>({
+		programmes: { selectedDiscipline: '', showSubdisciplines: false },
+		scholarships: { selectedDiscipline: '', showSubdisciplines: false },
+		research: { selectedDiscipline: '', showSubdisciplines: false },
+	})
+
+	// Separate search terms for each tab
+	const [tabSearchTerms, setTabSearchTerms] = useState<
+		Record<string, Record<string, string>>
+	>({
+		programmes: {
+			discipline: '',
+			subdiscipline: '',
+			country: '',
+		},
+		scholarships: {
+			discipline: '',
+			subdiscipline: '',
+			country: '',
+		},
+		research: {
+			researchField: '',
+			country: '',
+		},
+	})
+
+	// Get current tab's data
+	const selectedFilters = tabFilters[activeTab] || {}
+	const selectedDiscipline =
+		tabDisciplineState[activeTab]?.selectedDiscipline || ''
+	const showSubdisciplines =
+		tabDisciplineState[activeTab]?.showSubdisciplines || false
+	const searchTerms = tabSearchTerms[activeTab] || {}
+	const feeRange = tabRanges[activeTab]?.fee || { min: 0, max: 1000000 }
+	const salaryRange = tabRanges[activeTab]?.salary || { min: 0, max: 200000 }
 
 	// Dynamic filter data
 	const [dynamicFilters, setDynamicFilters] = useState<{
@@ -96,6 +162,248 @@ export function FilterSidebar({
 	const [allDisciplinesData, setAllDisciplinesData] =
 		useState<DisciplineData | null>(null)
 
+	// Helper function to serialize filters to URL with tab prefix
+	const serializeFiltersToURL = useCallback(
+		(filters: Record<string, string[]>, ranges: any) => {
+			const params = new URLSearchParams(searchParams.toString())
+
+			// Add tab to URL
+			params.set('tab', activeTab)
+
+			// Clear previous filters for current tab
+			const filterKeys = [
+				'discipline',
+				'country',
+				'duration',
+				'degreeLevel',
+				'attendance',
+				'researchField',
+				'essayRequired',
+				'contractType',
+				'jobType',
+			]
+			filterKeys.forEach((key) => {
+				params.delete(`${activeTab}_${key}`)
+			})
+			params.delete(`${activeTab}_feeMin`)
+			params.delete(`${activeTab}_feeMax`)
+			params.delete(`${activeTab}_salaryMin`)
+			params.delete(`${activeTab}_salaryMax`)
+
+			// Add filters to URL with tab prefix
+			Object.entries(filters).forEach(([key, values]) => {
+				if (values && values.length > 0) {
+					params.set(`${activeTab}_${key}`, values.join(','))
+				}
+			})
+
+			// Add ranges to URL with tab prefix
+			if (ranges.fee) {
+				if (ranges.fee.min !== 0 || ranges.fee.max !== 1000000) {
+					params.set(`${activeTab}_feeMin`, ranges.fee.min.toString())
+					params.set(`${activeTab}_feeMax`, ranges.fee.max.toString())
+				}
+			}
+			if (ranges.salary) {
+				if (ranges.salary.min !== 0 || ranges.salary.max !== 200000) {
+					params.set(`${activeTab}_salaryMin`, ranges.salary.min.toString())
+					params.set(`${activeTab}_salaryMax`, ranges.salary.max.toString())
+				}
+			}
+
+			return params.toString()
+		},
+		[activeTab, searchParams]
+	)
+
+	// Helper function to parse filters from URL with tab prefix
+	const parseFiltersFromURL = useCallback(() => {
+		const filters: Record<string, string[]> = {}
+		const ranges: any = {}
+
+		// Parse regular filters with tab prefix
+		const filterKeys = [
+			'discipline',
+			'country',
+			'duration',
+			'degreeLevel',
+			'attendance',
+			'researchField',
+			'essayRequired',
+			'contractType',
+			'jobType',
+		]
+		filterKeys.forEach((key) => {
+			const value = searchParams.get(`${activeTab}_${key}`)
+			if (value) {
+				filters[key] = value.split(',')
+			}
+		})
+
+		// Parse ranges with tab prefix
+		const feeMin = searchParams.get(`${activeTab}_feeMin`)
+		const feeMax = searchParams.get(`${activeTab}_feeMax`)
+		if (feeMin || feeMax) {
+			ranges.fee = {
+				min: feeMin ? parseInt(feeMin) : 0,
+				max: feeMax ? parseInt(feeMax) : 1000000,
+			}
+		}
+
+		const salaryMin = searchParams.get(`${activeTab}_salaryMin`)
+		const salaryMax = searchParams.get(`${activeTab}_salaryMax`)
+		if (salaryMin || salaryMax) {
+			ranges.salary = {
+				min: salaryMin ? parseInt(salaryMin) : 0,
+				max: salaryMax ? parseInt(salaryMax) : 200000,
+			}
+		}
+
+		return { filters, ranges }
+	}, [searchParams, activeTab])
+
+	// Parse all tabs' filters from URL on component mount
+	useEffect(() => {
+		const parseAllTabFiltersFromURL = () => {
+			const newTabFilters = {
+				programmes: {
+					discipline: [],
+					country: [],
+					duration: [],
+					degreeLevel: [],
+					attendance: [],
+				},
+				scholarships: {
+					discipline: [],
+					country: [],
+					degreeLevel: [],
+					essayRequired: [],
+				},
+				research: {
+					researchField: [],
+					country: [],
+					degreeLevel: [],
+					attendance: [],
+					contractType: [],
+					jobType: [],
+				},
+			}
+			const newTabRanges = {
+				programmes: {
+					fee: { min: 0, max: 1000000 },
+				},
+				scholarships: {},
+				research: {
+					salary: { min: 0, max: 200000 },
+				},
+			}
+
+			const tabs = ['programmes', 'scholarships', 'research']
+
+			tabs.forEach((tab) => {
+				const filters: Record<string, string[]> = {}
+				const ranges: any = {}
+
+				// Parse filters for this tab
+				const filterKeys = [
+					'discipline',
+					'country',
+					'duration',
+					'degreeLevel',
+					'attendance',
+					'researchField',
+					'essayRequired',
+					'contractType',
+					'jobType',
+				]
+				filterKeys.forEach((key) => {
+					const value = searchParams.get(`${tab}_${key}`)
+					if (value) {
+						filters[key] = value.split(',')
+					}
+				})
+
+				// Parse ranges for this tab
+				const feeMin = searchParams.get(`${tab}_feeMin`)
+				const feeMax = searchParams.get(`${tab}_feeMax`)
+				if (feeMin || feeMax) {
+					ranges.fee = {
+						min: feeMin ? parseInt(feeMin) : 0,
+						max: feeMax ? parseInt(feeMax) : 1000000,
+					}
+				}
+
+				const salaryMin = searchParams.get(`${tab}_salaryMin`)
+				const salaryMax = searchParams.get(`${tab}_salaryMax`)
+				if (salaryMin || salaryMax) {
+					ranges.salary = {
+						min: salaryMin ? parseInt(salaryMin) : 0,
+						max: salaryMax ? parseInt(salaryMax) : 200000,
+					}
+				}
+
+				// Update state if there are filters for this tab
+				if (Object.keys(filters).length > 0) {
+					;(newTabFilters as any)[tab] = {
+						...(newTabFilters as any)[tab],
+						...filters,
+					}
+				}
+
+				if (Object.keys(ranges).length > 0) {
+					;(newTabRanges as any)[tab] = {
+						...(newTabRanges as any)[tab],
+						...ranges,
+					}
+				}
+			})
+
+			setTabFilters(newTabFilters)
+			setTabRanges(newTabRanges)
+		}
+
+		// Only parse on initial mount (when searchParams is first available)
+		if (searchParams && searchParams.toString()) {
+			parseAllTabFiltersFromURL()
+		}
+	}, [searchParams]) // Only depend on searchParams
+
+	// Initialize filters from URL when tab changes
+	useEffect(() => {
+		const urlData = parseFiltersFromURL()
+
+		// Always update the current tab's filters from URL (even if empty to reset)
+		setTabFilters((prev) => ({
+			...prev,
+			[activeTab]: {
+				...prev[activeTab],
+				...urlData.filters,
+			},
+		}))
+
+		setTabRanges((prev) => ({
+			...prev,
+			[activeTab]: {
+				...prev[activeTab],
+				...urlData.ranges,
+			},
+		}))
+	}, [activeTab, parseFiltersFromURL])
+
+	// Update URL when filters change
+	useEffect(() => {
+		const currentFilters = tabFilters[activeTab] || {}
+		const currentRanges = tabRanges[activeTab] || {}
+
+		const urlString = serializeFiltersToURL(currentFilters, currentRanges)
+		const newURL = `${window.location.pathname}${urlString ? `?${urlString}` : ''}`
+
+		// Only update URL if it's different to avoid infinite loops
+		if (window.location.search !== `?${urlString}`) {
+			window.history.replaceState({}, '', newURL)
+		}
+	}, [tabFilters, tabRanges, activeTab, serializeFiltersToURL])
+
 	// Fetch all disciplines data once on mount
 	useEffect(() => {
 		const fetchAllDisciplines = async () => {
@@ -114,18 +422,27 @@ export function FilterSidebar({
 		fetchAllDisciplines()
 	}, [])
 
-	// Call onFiltersChange when selectedFilters or feeRange changes
+	// Call onFiltersChange when selectedFilters or ranges change
 	useEffect(() => {
 		if (onFiltersChange) {
+			const currentFilters = tabFilters[activeTab] || {}
+			const currentRanges = tabRanges[activeTab] || {}
+
 			// Include fee range and salary range in the filters
 			const filtersWithRanges = {
-				...selectedFilters,
-				feeRange: [`${feeRange.min}-${feeRange.max}`],
-				salaryRange: [`${salaryRange.min}-${salaryRange.max}`],
+				...currentFilters,
+				...(currentRanges.fee && {
+					feeRange: [`${currentRanges.fee.min}-${currentRanges.fee.max}`],
+				}),
+				...(currentRanges.salary && {
+					salaryRange: [
+						`${currentRanges.salary.min}-${currentRanges.salary.max}`,
+					],
+				}),
 			}
 			onFiltersChange(filtersWithRanges)
 		}
-	}, [selectedFilters, feeRange, salaryRange, onFiltersChange])
+	}, [tabFilters, tabRanges, activeTab, onFiltersChange])
 
 	// Fetch filter data when tab changes
 	useEffect(() => {
@@ -352,65 +669,209 @@ export function FilterSidebar({
 	})
 
 	const handleFilterChange = (category: string, value: string) => {
-		setSelectedFilters((prev) => ({
+		setTabFilters((prev) => ({
 			...prev,
-			[category]: prev[category]?.includes(value)
-				? prev[category].filter((item) => item !== value)
-				: [...(prev[category] || []), value],
+			[activeTab]: {
+				...prev[activeTab],
+				[category]: prev[activeTab]?.[category]?.includes(value)
+					? prev[activeTab][category].filter((item) => item !== value)
+					: [...(prev[activeTab]?.[category] || []), value],
+			},
 		}))
 	}
 
 	const handleDisciplineSelect = (discipline: string) => {
-		setSelectedDiscipline(discipline)
-		setShowSubdisciplines(true)
-		// Reset discipline search when selecting a discipline
-		setSearchTerms((prev) => ({
+		setTabDisciplineState((prev) => ({
 			...prev,
-			discipline: '',
+			[activeTab]: {
+				...prev[activeTab],
+				selectedDiscipline: discipline,
+				showSubdisciplines: true,
+			},
+		}))
+		// Reset discipline search when selecting a discipline
+		setTabSearchTerms((prev) => ({
+			...prev,
+			[activeTab]: {
+				...prev[activeTab],
+				discipline: '',
+			},
 		}))
 	}
 
 	const handleSubdisciplineSelect = (subdiscipline: string) => {
-		setSelectedFilters((prev) => ({
+		setTabFilters((prev) => ({
 			...prev,
-			discipline: prev.discipline?.includes(subdiscipline)
-				? prev.discipline.filter((item) => item !== subdiscipline)
-				: [...(prev.discipline || []), subdiscipline],
+			[activeTab]: {
+				...prev[activeTab],
+				discipline: prev[activeTab]?.discipline?.includes(subdiscipline)
+					? prev[activeTab].discipline.filter((item) => item !== subdiscipline)
+					: [...(prev[activeTab]?.discipline || []), subdiscipline],
+			},
 		}))
 	}
 
 	const handleBackToDisciplines = () => {
-		setShowSubdisciplines(false)
-		setSelectedDiscipline('')
-		// Reset subdiscipline search when going back
-		setSearchTerms((prev) => ({
+		setTabDisciplineState((prev) => ({
 			...prev,
-			subdiscipline: '',
+			[activeTab]: {
+				...prev[activeTab],
+				showSubdisciplines: false,
+				selectedDiscipline: '',
+			},
+		}))
+		// Reset subdiscipline search when going back
+		setTabSearchTerms((prev) => ({
+			...prev,
+			[activeTab]: {
+				...prev[activeTab],
+				subdiscipline: '',
+			},
 		}))
 	}
 
 	const handleRefresh = () => {
-		setSelectedFilters({
-			discipline: [],
-			country: [],
-			duration: [],
-			degreeLevel: [],
-			attendance: [],
-			essayRequired: [],
-			researchField: [],
-			contractType: [],
-			jobType: [],
-		})
-		setFeeRange({ min: 0, max: 1000000 })
-		setSalaryRange({ min: 0, max: 200000 })
-		setSearchTerms({
-			discipline: '',
-			subdiscipline: '',
-			country: '',
-			researchField: '',
-		})
-		setSelectedDiscipline('')
-		setShowSubdisciplines(false)
+		// Check if there are any active filters before refreshing
+		const currentFilters = tabFilters[activeTab] || {}
+		const currentRanges = tabRanges[activeTab] || {}
+		const currentSearchTerms = tabSearchTerms[activeTab] || {}
+		const currentDisciplineState = tabDisciplineState[activeTab] || {}
+
+		// Check if any filters are active
+		const hasActiveFilters =
+			Object.values(currentFilters).some((arr) => arr.length > 0) ||
+			Object.values(currentSearchTerms).some((term) => term !== '') ||
+			currentDisciplineState.selectedDiscipline !== '' ||
+			currentDisciplineState.showSubdisciplines ||
+			(currentRanges.fee &&
+				(currentRanges.fee.min !== 0 || currentRanges.fee.max !== 1000000)) ||
+			(currentRanges.salary &&
+				(currentRanges.salary.min !== 0 || currentRanges.salary.max !== 200000))
+
+		// Only refresh if there are active filters
+		if (!hasActiveFilters) return
+
+		// Reset filters for current tab only
+		switch (activeTab) {
+			case 'programmes':
+				setTabFilters((prev) => ({
+					...prev,
+					[activeTab]: {
+						discipline: [],
+						country: [],
+						duration: [],
+						degreeLevel: [],
+						attendance: [],
+					},
+				}))
+				setTabRanges((prev) => ({
+					...prev,
+					[activeTab]: {
+						...prev[activeTab],
+						fee: { min: 0, max: 1000000 },
+					},
+				}))
+				setTabSearchTerms((prev) => ({
+					...prev,
+					[activeTab]: {
+						discipline: '',
+						subdiscipline: '',
+						country: '',
+					},
+				}))
+				break
+
+			case 'scholarships':
+				setTabFilters((prev) => ({
+					...prev,
+					[activeTab]: {
+						discipline: [],
+						country: [],
+						degreeLevel: [],
+						essayRequired: [],
+					},
+				}))
+				setTabSearchTerms((prev) => ({
+					...prev,
+					[activeTab]: {
+						discipline: '',
+						subdiscipline: '',
+						country: '',
+					},
+				}))
+				break
+
+			case 'research':
+				setTabFilters((prev) => ({
+					...prev,
+					[activeTab]: {
+						researchField: [],
+						country: [],
+						degreeLevel: [],
+						attendance: [],
+						contractType: [],
+						jobType: [],
+					},
+				}))
+				setTabRanges((prev) => ({
+					...prev,
+					[activeTab]: {
+						...prev[activeTab],
+						salary: { min: 0, max: 200000 },
+					},
+				}))
+				setTabSearchTerms((prev) => ({
+					...prev,
+					[activeTab]: {
+						researchField: '',
+						country: '',
+					},
+				}))
+				break
+		}
+
+		// Always reset discipline/subdiscipline navigation for current tab
+		setTabDisciplineState((prev) => ({
+			...prev,
+			[activeTab]: {
+				selectedDiscipline: '',
+				showSubdisciplines: false,
+			},
+		}))
+	}
+
+	// Helper functions for range updates
+	const updateFeeRange = (newMin?: number, newMax?: number) => {
+		setTabRanges((prev) => ({
+			...prev,
+			[activeTab]: {
+				...prev[activeTab],
+				fee: {
+					min: newMin !== undefined ? newMin : prev[activeTab]?.fee?.min || 0,
+					max:
+						newMax !== undefined
+							? newMax
+							: prev[activeTab]?.fee?.max || 1000000,
+				},
+			},
+		}))
+	}
+
+	const updateSalaryRange = (newMin?: number, newMax?: number) => {
+		setTabRanges((prev) => ({
+			...prev,
+			[activeTab]: {
+				...prev[activeTab],
+				salary: {
+					min:
+						newMin !== undefined ? newMin : prev[activeTab]?.salary?.min || 0,
+					max:
+						newMax !== undefined
+							? newMax
+							: prev[activeTab]?.salary?.max || 200000,
+				},
+			},
+		}))
 	}
 
 	const toggleSection = (sectionKey: string) => {
@@ -586,9 +1047,12 @@ export function FilterSidebar({
 													placeholder="Search discipline..."
 													value={searchTerms.discipline}
 													onChange={(e) =>
-														setSearchTerms((prev) => ({
+														setTabSearchTerms((prev) => ({
 															...prev,
-															discipline: e.target.value,
+															[activeTab]: {
+																...prev[activeTab],
+																discipline: e.target.value,
+															},
 														}))
 													}
 													className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -679,9 +1143,12 @@ export function FilterSidebar({
 													placeholder="Search subdiscipline..."
 													value={searchTerms.subdiscipline}
 													onChange={(e) =>
-														setSearchTerms((prev) => ({
+														setTabSearchTerms((prev) => ({
 															...prev,
-															subdiscipline: e.target.value,
+															[activeTab]: {
+																...prev[activeTab],
+																subdiscipline: e.target.value,
+															},
 														}))
 													}
 													className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -783,9 +1250,12 @@ export function FilterSidebar({
 											placeholder="Search research field..."
 											value={searchTerms.researchField}
 											onChange={(e) =>
-												setSearchTerms((prev) => ({
+												setTabSearchTerms((prev) => ({
 													...prev,
-													researchField: e.target.value,
+													[activeTab]: {
+														...prev[activeTab],
+														researchField: e.target.value,
+													},
 												}))
 											}
 											className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -870,9 +1340,12 @@ export function FilterSidebar({
 											placeholder="Search country..."
 											value={searchTerms.country}
 											onChange={(e) =>
-												setSearchTerms((prev) => ({
+												setTabSearchTerms((prev) => ({
 													...prev,
-													country: e.target.value,
+													[activeTab]: {
+														...prev[activeTab],
+														country: e.target.value,
+													},
 												}))
 											}
 											className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -984,10 +1457,9 @@ export function FilterSidebar({
 													value={feeRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value)
-														setFeeRange((prev) => ({
-															...prev,
-															min: Math.min(newMin, prev.max - 1000),
-														}))
+														updateFeeRange(
+															Math.min(newMin, feeRange.max - 1000)
+														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-10"
 													style={{
@@ -1004,10 +1476,10 @@ export function FilterSidebar({
 													value={feeRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value)
-														setFeeRange((prev) => ({
-															...prev,
-															max: Math.max(newMax, prev.min + 1000),
-														}))
+														updateFeeRange(
+															undefined,
+															Math.max(newMax, feeRange.min + 1000)
+														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20"
 													style={{
@@ -1038,13 +1510,9 @@ export function FilterSidebar({
 													value={feeRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value) || 0
-														setFeeRange((prev) => ({
-															...prev,
-															min: Math.min(
-																Math.max(newMin, 0),
-																prev.max - 1000
-															),
-														}))
+														updateFeeRange(
+															Math.min(Math.max(newMin, 0), feeRange.max - 1000)
+														)
 													}}
 													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
 													min="0"
@@ -1058,13 +1526,13 @@ export function FilterSidebar({
 													value={feeRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value) || 0
-														setFeeRange((prev) => ({
-															...prev,
-															max: Math.max(
+														updateFeeRange(
+															undefined,
+															Math.max(
 																Math.min(newMax, 2000000),
-																prev.min + 1000
-															),
-														}))
+																feeRange.min + 1000
+															)
+														)
 													}}
 													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
 													min="0"
@@ -1123,10 +1591,9 @@ export function FilterSidebar({
 													value={salaryRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value)
-														setSalaryRange((prev) => ({
-															...prev,
-															min: Math.min(newMin, prev.max - 5000),
-														}))
+														updateSalaryRange(
+															Math.min(newMin, salaryRange.max - 5000)
+														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-10"
 													style={{
@@ -1143,10 +1610,10 @@ export function FilterSidebar({
 													value={salaryRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value)
-														setSalaryRange((prev) => ({
-															...prev,
-															max: Math.max(newMax, prev.min + 5000),
-														}))
+														updateSalaryRange(
+															undefined,
+															Math.max(newMax, salaryRange.min + 5000)
+														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20"
 													style={{
@@ -1177,13 +1644,12 @@ export function FilterSidebar({
 													value={salaryRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value) || 0
-														setSalaryRange((prev) => ({
-															...prev,
-															min: Math.min(
+														updateSalaryRange(
+															Math.min(
 																Math.max(newMin, 0),
-																prev.max - 5000
-															),
-														}))
+																salaryRange.max - 5000
+															)
+														)
 													}}
 													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
 													min="0"
@@ -1197,13 +1663,13 @@ export function FilterSidebar({
 													value={salaryRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value) || 0
-														setSalaryRange((prev) => ({
-															...prev,
-															max: Math.max(
+														updateSalaryRange(
+															undefined,
+															Math.max(
 																Math.min(newMax, 300000),
-																prev.min + 5000
-															),
-														}))
+																salaryRange.min + 5000
+															)
+														)
 													}}
 													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
 													min="0"

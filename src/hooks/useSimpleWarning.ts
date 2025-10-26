@@ -19,21 +19,11 @@ export const useSimpleWarning = ({
 
 	const handleNavigationAttempt = useCallback(
 		(targetSection: string) => {
-			console.log(
-				"useSimpleWarning - Navigation attempt to:",
-				targetSection
-			);
-			console.log(
-				"useSimpleWarning - Has unsaved changes:",
-				hasUnsavedChanges
-			);
 			if (hasUnsavedChanges) {
-				console.log("useSimpleWarning - Showing warning modal");
 				setPendingNavigation(targetSection);
 				setShowWarningModal(true);
 				return false; // Prevent navigation
 			}
-			console.log("useSimpleWarning - Allowing navigation");
 			return true; // Allow navigation
 		},
 		[hasUnsavedChanges]
@@ -88,12 +78,6 @@ export const useSimpleWarning = ({
 	};
 
 	// Debug modal state
-	console.log("useSimpleWarning - Modal state:", {
-		showWarningModal,
-		hasUnsavedChanges,
-		isSaving,
-	});
-
 	return {
 		showWarningModal,
 		handleNavigationAttempt,

@@ -234,7 +234,6 @@ export const createThread = async (participantId: string) => {
 
 export const getMessages = async (threadId: string) => {
 	if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-		console.warn("AppSync not configured");
 		return [];
 	}
 
@@ -247,23 +246,15 @@ export const getMessages = async (threadId: string) => {
 		});
 
 		const messages = (result as any).data.getMessages || [];
-		console.log(
-			"getMessages - loaded",
-			messages.length,
-			"messages for thread",
-			threadId
-		);
 
 		return messages;
 	} catch (error) {
-		console.error("getMessages - error:", error);
 		throw error;
 	}
 };
 
 export const getThreads = async (retryCount = 0): Promise<any[]> => {
 	if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
-		console.warn("AppSync not configured");
 		return [];
 	}
 
@@ -274,14 +265,12 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		if (!userContext?.userId) {
 			// Retry up to 2 times with increasing delay
 			if (retryCount < 2) {
-				console.log(`getThreads - retrying ${retryCount + 1}/2`);
 				await new Promise((resolve) =>
 					setTimeout(resolve, (retryCount + 1) * 1000)
 				);
 				return getThreads(retryCount + 1);
 			}
 
-			console.warn("getThreads - no user context after retries");
 			return [];
 		}
 
@@ -293,11 +282,9 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		});
 
 		const threads = (result as any).data.getThreads || [];
-		console.log("getThreads - loaded", threads.length, "threads");
 
 		return threads;
 	} catch (error) {
-		console.error("getThreads - error:", error);
 		throw error;
 	}
 };
@@ -404,13 +391,11 @@ const getUserContext = async (retryCount = 0): Promise<any> => {
 		if (!user) {
 			// Retry up to 2 times with increasing delay
 			if (retryCount < 2) {
-				console.log(`getUserContext - retrying ${retryCount + 1}/2`);
 				await new Promise((resolve) =>
 					setTimeout(resolve, (retryCount + 1) * 1000)
 				);
 				return getUserContext(retryCount + 1);
 			}
-			console.warn("getUserContext - no user after retries");
 			return null;
 		}
 
@@ -421,7 +406,6 @@ const getUserContext = async (retryCount = 0): Promise<any> => {
 		};
 	} catch (error) {
 		// Error getting session
-		console.warn("getUserContext error:", error);
 	}
 	return null;
 };

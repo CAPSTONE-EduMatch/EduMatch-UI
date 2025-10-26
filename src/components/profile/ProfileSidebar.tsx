@@ -3,6 +3,7 @@
 import { LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import React, { useEffect } from 'react'
+import { useSubscription } from '@/hooks/useSubscription'
 
 export type ProfileSection = string
 
@@ -52,6 +53,23 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 	logoSection,
 	enableNavigationProtection = true,
 }) => {
+	// Get subscription information
+	const { currentPlan } = useSubscription()
+
+	// Get plan display information
+	const getPlanInfo = (plan: string) => {
+		switch (plan) {
+			case 'standard':
+				return { label: 'Standard', color: 'bg-blue-500' }
+			case 'premium':
+				return { label: 'Premium', color: 'bg-purple-500' }
+			default:
+				return { label: 'Free', color: 'bg-gray-500' }
+		}
+	}
+
+	const planInfo = getPlanInfo(currentPlan || 'free')
+
 	// Default sidebar styles
 	const {
 		bgColor = '#126E64',
@@ -141,6 +159,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 							<span className="inline-block bg-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
 								{roleLabel}
 							</span>
+							{/* Subscription Plan Tag */}
+							<div className="mt-1">
+								<span
+									className={`inline-block ${planInfo.color} text-white px-2 py-1 rounded-full text-xs font-medium`}
+								>
+									{planInfo.label} Plan
+								</span>
+							</div>
 							{profile?.role === 'institution' && profile?.institutionType && (
 								<div className="mt-1">
 									<span className="inline-block bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">

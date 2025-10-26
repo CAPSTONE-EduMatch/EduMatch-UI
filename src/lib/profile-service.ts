@@ -192,8 +192,11 @@ export class ProfileService {
 		userId: string
 	): Promise<ApplicantProfile | InstitutionProfile | null> {
 		try {
-			const applicant = await prismaClient.applicant.findUnique({
-				where: { user_id: userId },
+			const applicant = await prismaClient.applicant.findFirst({
+				where: {
+					user_id: userId,
+					status: true, // Only get active profiles
+				},
 				include: {
 					user: true,
 					subdiscipline: {
@@ -202,6 +205,9 @@ export class ProfileService {
 						},
 					},
 					documents: {
+						where: {
+							status: true, // Only get active documents
+						},
 						include: {
 							documentType: true,
 						},
@@ -222,11 +228,17 @@ export class ProfileService {
 				return applicant;
 			}
 
-			const institution = await prismaClient.institution.findUnique({
-				where: { user_id: userId },
+			const institution = await prismaClient.institution.findFirst({
+				where: {
+					user_id: userId,
+					status: true, // Only get active profiles
+				},
 				include: {
 					user: true,
 					documents: {
+						where: {
+							status: true, // Only get active documents
+						},
 						include: {
 							documentType: true,
 						},
@@ -661,9 +673,16 @@ export class ProfileService {
 		formData: ProfileFormData
 	): Promise<void> {
 		try {
-			// Clear existing documents first to avoid duplicates
-			await prismaClient.applicantDocument.deleteMany({
-				where: { applicant_id: applicantId },
+			// Soft delete existing documents first to avoid duplicates
+			await prismaClient.applicantDocument.updateMany({
+				where: {
+					applicant_id: applicantId,
+					status: true, // Only soft delete active documents
+				},
+				data: {
+					status: false,
+					deleted_at: new Date(),
+				},
 			});
 
 			// Get or create document types
@@ -690,6 +709,7 @@ export class ProfileService {
 							url: file.url || "",
 							size: file.size || 0,
 							upload_at: new Date(),
+							status: true,
 						},
 					});
 				}
@@ -714,6 +734,7 @@ export class ProfileService {
 							url: file.url || "",
 							size: file.size || 0,
 							upload_at: new Date(),
+							status: true,
 						},
 					});
 				}
@@ -734,6 +755,7 @@ export class ProfileService {
 							url: file.url || "",
 							size: file.size || 0,
 							upload_at: new Date(),
+							status: true,
 						},
 					});
 				}
@@ -758,6 +780,7 @@ export class ProfileService {
 							url: file.url || "",
 							size: file.size || 0,
 							upload_at: new Date(),
+							status: true,
 						},
 					});
 				}
@@ -789,6 +812,7 @@ export class ProfileService {
 									subdiscipline: researchPaper.discipline
 										? [researchPaper.discipline]
 										: [],
+									status: true,
 								},
 							});
 						}
@@ -808,6 +832,18 @@ export class ProfileService {
 		formData: ProfileFormData
 	): Promise<void> {
 		try {
+			// Soft delete existing documents first to avoid duplicates
+			await prismaClient.institutionDocument.updateMany({
+				where: {
+					institution_id: institutionId,
+					status: true, // Only soft delete active documents
+				},
+				data: {
+					status: false,
+					deleted_at: new Date(),
+				},
+			});
+
 			// Get or create document type for verification documents
 			const verificationDocType = await this.getOrCreateDocumentType(
 				"Institution Verification"
@@ -832,6 +868,7 @@ export class ProfileService {
 							url: file.url || "",
 							size: file.size || 0,
 							upload_at: new Date(),
+							status: true,
 						},
 					});
 				}
@@ -863,28 +900,97 @@ export class ProfileService {
 	}
 
 	/**
-	 * Delete user profile
+	 * Delete user profile (soft delete)
 	 */
 	static async deleteProfile(userId: string): Promise<boolean> {
 		try {
-			// Try to delete applicant profile first
+			// Try to soft delete applicant profile first
 			try {
-				await prismaClient.applicant.delete({
+				// Get applicant profile to check for documents referenced in snapshots
+				const applicant = await prismaClient.applicant.findUnique({
 					where: { user_id: userId },
+					include: {
+						documents: true,
+						applications: {
+							include: {
+								profileSnapshot: true,
+							},
+						},
+					},
 				});
+
+				if (applicant) {
+					// Find all document IDs that are referenced in profile snapshots
+					const snapshotDocumentIds = new Set<string>();
+					applicant.applications.forEach((application) => {
+						if (application.profileSnapshot?.document_ids) {
+							application.profileSnapshot.document_ids.forEach(
+								(docId) => {
+									snapshotDocumentIds.add(docId);
+								}
+							);
+						}
+					});
+
+					// Soft delete only documents that are NOT referenced in any profile snapshots
+					const documentsToSoftDelete = applicant.documents.filter(
+						(doc) => !snapshotDocumentIds.has(doc.document_id)
+					);
+
+					// Soft delete non-snapshot documents
+					if (documentsToSoftDelete.length > 0) {
+						await prismaClient.applicantDocument.updateMany({
+							where: {
+								document_id: {
+									in: documentsToSoftDelete.map(
+										(doc) => doc.document_id
+									),
+								},
+							},
+							data: {
+								status: false,
+								deleted_at: new Date(),
+							},
+						});
+					}
+
+					// Soft delete the applicant profile by setting status to false
+					await prismaClient.applicant.update({
+						where: { user_id: userId },
+						data: {
+							status: false,
+							deleted_at: new Date(),
+						},
+					});
+
+					console.log(
+						`✅ Soft deleted applicant profile for user ${userId}. Preserved ${snapshotDocumentIds.size} documents referenced in profile snapshots.`
+					);
+				}
+
 				return true;
-			} catch {
+			} catch (error) {
+				console.error("Error soft deleting applicant profile:", error);
 				// If applicant doesn't exist, try institution
 				try {
-					await prismaClient.institution.delete({
+					await prismaClient.institution.update({
 						where: { user_id: userId },
+						data: {
+							status: false,
+							deleted_at: new Date(),
+						},
 					});
 					return true;
-				} catch {
+				} catch (institutionError) {
+					console.error(
+						"Error soft deleting institution profile:",
+						institutionError
+					);
 					return false;
 				}
 			}
-		} catch {
+		} catch (error) {
+			console.error("Error in deleteProfile:", error);
 			return false;
 		}
 	}

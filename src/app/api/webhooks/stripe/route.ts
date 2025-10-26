@@ -118,7 +118,7 @@ async function getPlanId(
 		const plan = await prismaClient.plan.findFirst({
 			where: {
 				name: planName,
-				type: userType === "institution", // true for institution, false for applicant
+				type: userType === "institution" ? 1 : 0, // 1 for institution, 0 for applicant
 				status: true,
 			},
 		});

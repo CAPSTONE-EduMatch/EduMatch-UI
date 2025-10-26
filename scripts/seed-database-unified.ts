@@ -533,7 +533,7 @@ async function seedPlans() {
 			year_price: 0,
 			status: true,
 			create_at: new Date(),
-			type: false,
+			type: 0,
 		},
 		{
 			plan_id: "550e8400-e29b-41d4-a716-446655440102",
@@ -544,7 +544,7 @@ async function seedPlans() {
 			year_price: 100,
 			status: true,
 			create_at: new Date(),
-			type: false,
+			type: 0,
 		},
 		{
 			plan_id: "550e8400-e29b-41d4-a716-446655440103",
@@ -555,7 +555,7 @@ async function seedPlans() {
 			year_price: 500,
 			status: true,
 			create_at: new Date(),
-			type: true,
+			type: 1,
 		},
 	];
 

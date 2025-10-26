@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
@@ -12,18 +12,17 @@ import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/useSimpleWarning'
-import { ApiService } from '@/lib/axios-config'
 
 interface AcademicSectionProps {
 	profile: any
+	subdisciplines: Array<{ value: string; label: string; discipline: string }>
 	onProfileUpdate?: () => void
-	onNavigationAttempt?: (targetSection: string) => boolean
 }
 
 export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	profile,
+	subdisciplines,
 	onProfileUpdate,
-	onNavigationAttempt,
 }) => {
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
@@ -36,30 +35,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	// Track if there are unsaved changes
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-	// State for subdisciplines loaded from database
-	const [subdisciplines, setSubdisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
-
-	// Load subdisciplines from database
-	useEffect(() => {
-		const loadSubdisciplines = async () => {
-			try {
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setSubdisciplines(response.subdisciplines)
-				}
-			} catch (error) {
-				console.error('Failed to load subdisciplines:', error)
-			}
-		}
-		loadSubdisciplines()
-	}, [])
+	// Subdisciplines are passed as props from parent component
 
 	// Initialize edited profile when profile changes
 	useEffect(() => {
-		console.log('AcademicSection - Profile received:', profile)
-		console.log('AcademicSection - GPA:', profile?.gpa)
 		setEditedProfile(profile)
 		setHasUnsavedChanges(false)
 	}, [profile])
@@ -98,23 +77,8 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 
 		setIsSaving(true)
 		try {
-			const { ApiService } = await import('@/lib/axios-config')
-
-			const profileData = {
-				role: profile.role, // Include the role field
-				// Preserve existing profile fields
-				firstName: profile?.firstName || '',
-				lastName: profile?.lastName || '',
-				gender: profile?.gender || '',
-				birthday: profile?.birthday || '',
-				email: profile?.user?.email || '',
-				nationality: profile?.nationality || '',
-				phoneNumber: profile?.phoneNumber || '',
-				countryCode: profile?.countryCode || '',
-				profilePhoto: profile?.profilePhoto || '',
-				interests: profile?.interests || [],
-				favoriteCountries: profile?.favoriteCountries || [],
-				// Academic fields
+			// Only send academic-specific data
+			const academicData = {
 				graduationStatus: editedProfile?.graduationStatus || '',
 				degree: editedProfile?.degree || '',
 				fieldOfStudy: editedProfile?.fieldOfStudy || '',
@@ -133,29 +97,44 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 				transcriptFiles: editedProfile?.transcriptFiles || [],
 			}
 
-			console.log('AcademicSection - Sending profile data:', profileData)
-			console.log('AcademicSection - GPA being sent:', profileData.gpa)
-			console.log(
-				'AcademicSection - Preserving interests:',
-				profileData.interests
-			)
-			console.log(
-				'AcademicSection - Preserving favorite countries:',
-				profileData.favoriteCountries
-			)
+			// Call the main profile update API
+			const response = await fetch('/api/profile', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					...profile, // Include all existing profile data
+					...academicData, // Override with academic changes
+				}),
+			})
 
-			await ApiService.updateProfile(profileData)
+			const result = await response.json()
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to update academic profile')
+			}
 
-			// Refresh profile data if callback is provided
+			// Update local state with the saved data
+			const updatedProfile = {
+				...profile,
+				...academicData,
+			}
+			setEditedProfile(updatedProfile)
+
+			// Call the parent's profile update callback to refresh parent state
 			if (onProfileUpdate) {
-				onProfileUpdate()
+				await onProfileUpdate()
 			}
 
 			setShowSuccessModal(true)
+
+			// Dispatch event to update header
+			console.log('Dispatching profileUpdated event from AcademicSection...')
+			window.dispatchEvent(new CustomEvent('profileUpdated'))
+
 			setIsEditing(false)
 			setHasUnsavedChanges(false)
 		} catch (error: any) {
-			console.error('Error saving academic information:', error)
 			setErrorMessage(
 				error.response?.data?.error ||
 					'Failed to save academic information. Please try again.'
@@ -209,11 +188,6 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	useEffect(() => {
 		// Always expose the handler regardless of onNavigationAttempt prop
 		;(window as any).academicNavigationHandler = handleNavigationAttempt
-		console.log(
-			'AcademicSection - Navigation handler exposed:',
-			handleNavigationAttempt
-		)
-		console.log('AcademicSection - Has unsaved changes:', hasUnsavedChanges)
 		return () => {
 			delete (window as any).academicNavigationHandler
 		}
@@ -425,10 +399,11 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 		handleFieldChange('researchPapers', newPapers)
 	}
 
+	// Only handle applicant profiles
 	if (profile?.role !== 'applicant') {
 		return (
 			<div className="text-center py-12">
-				<div className="text-6xl mb-4">🏫</div>
+				<div className="text-6xl mb-4">🎓</div>
 				<h2 className="text-2xl font-bold mb-2">Academic Information</h2>
 				<p className="text-muted-foreground">
 					This section is only available for student accounts.
@@ -634,12 +609,6 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										) : (
 											<p className="text-sm font-medium">
 												{(() => {
-													console.log(
-														'Displaying GPA:',
-														profile?.gpa,
-														'Type:',
-														typeof profile?.gpa
-													)
 													return profile?.gpa || 'Not provided'
 												})()}
 											</p>
@@ -720,6 +689,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											)
 											return (
 												<>
+													{countryData && (
+														<span className="text-lg">{countryData.flag}</span>
+													)}
 													<span className="text-sm font-medium">
 														{profile?.countryOfStudy || 'Not provided'}
 													</span>

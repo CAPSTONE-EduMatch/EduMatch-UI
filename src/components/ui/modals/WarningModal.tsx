@@ -19,7 +19,6 @@ export const SimpleWarningModal: React.FC<SimpleWarningModalProps> = ({
 	onCancel,
 	isSaving = false,
 }) => {
-	console.log('SimpleWarningModal - isOpen:', isOpen)
 	if (!isOpen) return null
 
 	return (

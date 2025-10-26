@@ -113,6 +113,8 @@ model Applicant {
   has_foreign_language Boolean?
   languages            Json?
   university           String?
+  status               Boolean                 @default(true)
+  deleted_at           DateTime?               @db.Timestamptz(6)
   subdiscipline        Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
   user                 User                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents            ApplicantDocument[]
@@ -146,6 +148,8 @@ model Institution {
   hotline_code        String?
   rep_phone_code      String?
   cover_image         String?
+  status              Boolean                    @default(true)
+  deleted_at          DateTime?                  @db.Timestamptz(6)
   user                User                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents           InstitutionDocument[]
   subdisciplines      InstitutionSubdiscipline[]
@@ -333,6 +337,8 @@ model ApplicantDocument {
   upload_at        DateTime     @db.Timestamptz(6)
   subdiscipline    String[]     @default([])
   title            String?
+  status           Boolean      @default(true)
+  deleted_at       DateTime?    @db.Timestamptz(6)
   applicant        Applicant    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
   documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -347,6 +353,8 @@ model InstitutionDocument {
   url              String
   size             Int
   upload_at        DateTime     @db.Timestamptz(6)
+  status           Boolean      @default(true)
+  deleted_at       DateTime?    @db.Timestamptz(6)
   documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
   institution      Institution  @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -509,7 +517,8 @@ model Plan {
   year_price      Int?
   status          Boolean
   create_at       DateTime                  @db.Timestamptz(6)
-  type            Boolean
+  type            Int
+  hierarchy       Int                       @default(0)
   applicantSubs   ApplicantSubscription[]
   institutionSubs InstitutionSubscription[]
 

@@ -9,24 +9,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { PhoneInput } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { DateInput } from '@/components/ui'
-import { Upload, User, Building2, Edit3, Save, X } from 'lucide-react'
+import { Upload, User, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/lib/date-utils'
-import { ApiService } from '@/lib/axios-config'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/useSimpleWarning'
-import { InstitutionProfileSection } from '../institution/menu/InstitutionProfileSection'
 
 interface ProfileInfoSectionProps {
 	profile: any
-	onNavigationAttempt?: (targetSection: string) => boolean
+	subdisciplines: Array<{ value: string; label: string; discipline: string }>
 }
 
 export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	profile,
-	onNavigationAttempt,
+	subdisciplines,
 }) => {
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
@@ -40,34 +38,10 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	// Track if there are unsaved changes
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-	// State for subdisciplines loaded from database
-	const [subdisciplines, setSubdisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
-
-	// Load subdisciplines from database
-	useEffect(() => {
-		const loadSubdisciplines = async () => {
-			try {
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setSubdisciplines(response.subdisciplines)
-				}
-			} catch (error) {
-				console.error('Failed to load subdisciplines:', error)
-			}
-		}
-		loadSubdisciplines()
-	}, [])
+	// Subdisciplines will be loaded by parent component and passed down
 
 	// Initialize edited profile when profile changes
 	useEffect(() => {
-		console.log('ProfileInfoSection - Profile received:', profile)
-		console.log('ProfileInfoSection - Interests:', profile?.interests)
-		console.log(
-			'ProfileInfoSection - Favorite countries:',
-			profile?.favoriteCountries
-		)
 		setEditedProfile(profile)
 		setHasUnsavedChanges(false)
 	}, [profile])
@@ -86,12 +60,9 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	const handleSave = async () => {
 		setIsSaving(true)
 		try {
-			// Import ApiService dynamically
-			const { ApiService } = await import('@/lib/axios-config')
-
-			// Prepare the profile data for saving
-			const profileData = {
-				role: profile.role, // Include the role field
+			// Only send basic profile data
+			const basicData = {
+				role: profile.role,
 				firstName: editedProfile?.firstName || '',
 				lastName: editedProfile?.lastName || '',
 				gender: editedProfile?.gender || '',
@@ -103,48 +74,39 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				interests: editedProfile?.interests || [],
 				favoriteCountries: editedProfile?.favoriteCountries || [],
 				profilePhoto: editedProfile?.profilePhoto || '',
-				// Institution fields
-				institutionName: editedProfile?.institutionName || '',
-				institutionAbbreviation: editedProfile?.institutionAbbreviation || '',
-				institutionHotline: editedProfile?.institutionHotline || '',
-				institutionHotlineCode: editedProfile?.institutionHotlineCode || '',
-				institutionType: editedProfile?.institutionType || '',
-				institutionWebsite: editedProfile?.institutionWebsite || '',
-				institutionEmail: editedProfile?.institutionEmail || '',
-				institutionCountry: editedProfile?.institutionCountry || '',
-				institutionAddress: editedProfile?.institutionAddress || '',
-				representativeName: editedProfile?.representativeName || '',
-				representativeAppellation:
-					editedProfile?.representativeAppellation || '',
-				representativePosition: editedProfile?.representativePosition || '',
-				representativeEmail: editedProfile?.representativeEmail || '',
-				representativePhone: editedProfile?.representativePhone || '',
-				representativePhoneCode: editedProfile?.representativePhoneCode || '',
-				aboutInstitution: editedProfile?.aboutInstitution || '',
-				institutionDisciplines: editedProfile?.institutionDisciplines || [],
-				institutionCoverImage: editedProfile?.institutionCoverImage || '',
-				institutionVerificationDocuments:
-					editedProfile?.institutionVerificationDocuments || [],
 			}
 
-			console.log('ProfileInfoSection - Sending profile data:', profileData)
-			console.log(
-				'ProfileInfoSection - Interests being sent:',
-				profileData.interests
-			)
-			console.log(
-				'ProfileInfoSection - Favorite countries being sent:',
-				profileData.favoriteCountries
-			)
+			// Call the main profile update API
+			const response = await fetch('/api/profile', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					...profile, // Include all existing profile data
+					...basicData, // Override with basic changes
+				}),
+			})
 
-			// Call the update profile API
-			await ApiService.updateProfile(profileData)
+			const result = await response.json()
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to update basic profile')
+			}
 
-			// Update the original profile with the edited data
-			Object.assign(profile, editedProfile)
+			// Update local state with the saved data
+			const updatedProfile = {
+				...profile,
+				...basicData,
+			}
+			setEditedProfile(updatedProfile)
+			Object.assign(profile, updatedProfile)
 
 			// Show success message
 			setShowSuccessModal(true)
+
+			// Dispatch event to update header
+			console.log('Dispatching profileUpdated event...')
+			window.dispatchEvent(new CustomEvent('profileUpdated'))
 
 			// Exit editing mode
 			setIsEditing(false)
@@ -204,11 +166,6 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		// Always expose the handler regardless of onNavigationAttempt prop
 		// Use 'profile' as the key to match the section ID
 		;(window as any).profileNavigationHandler = handleNavigationAttempt
-		console.log(
-			'ProfileInfoSection - Navigation handler exposed:',
-			handleNavigationAttempt
-		)
-		console.log('ProfileInfoSection - Has unsaved changes:', hasUnsavedChanges)
 		return () => {
 			delete (window as any).profileNavigationHandler
 		}
@@ -228,64 +185,6 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 				...prev,
 				[field]: value,
 			}))
-		}
-	}
-
-	// Function to get certificate options based on selected language
-	const getCertificateOptions = (language: string) => {
-		switch (language) {
-			case 'English':
-				return [
-					{ value: 'IELTS', label: 'IELTS' },
-					{ value: 'TOEFL', label: 'TOEFL' },
-					{ value: 'TOEIC', label: 'TOEIC' },
-					{ value: 'Cambridge', label: 'Cambridge' },
-					{ value: 'PTE', label: 'PTE Academic' },
-					{ value: 'Duolingo', label: 'Duolingo English Test' },
-				]
-			case 'Spanish':
-				return [
-					{ value: 'DELE', label: 'DELE' },
-					{ value: 'SIELE', label: 'SIELE' },
-					{ value: 'CELU', label: 'CELU' },
-				]
-			case 'French':
-				return [
-					{ value: 'DELF', label: 'DELF' },
-					{ value: 'DALF', label: 'DALF' },
-					{ value: 'TCF', label: 'TCF' },
-					{ value: 'TEF', label: 'TEF' },
-				]
-			case 'German':
-				return [
-					{ value: 'Goethe', label: 'Goethe-Zertifikat' },
-					{ value: 'TestDaF', label: 'TestDaF' },
-					{ value: 'DSH', label: 'DSH' },
-				]
-			case 'Chinese':
-				return [
-					{ value: 'HSK', label: 'HSK' },
-					{ value: 'TOCFL', label: 'TOCFL' },
-					{ value: 'BCT', label: 'BCT' },
-				]
-			case 'Japanese':
-				return [
-					{ value: 'JLPT', label: 'JLPT' },
-					{ value: 'J-Test', label: 'J-Test' },
-					{ value: 'NAT-TEST', label: 'NAT-TEST' },
-				]
-			case 'Korean':
-				return [
-					{ value: 'TOPIK', label: 'TOPIK' },
-					{ value: 'KLAT', label: 'KLAT' },
-				]
-			case 'Vietnamese':
-				return [
-					{ value: 'VSTEP', label: 'VSTEP' },
-					{ value: 'Other', label: 'Other Vietnamese Certificate' },
-				]
-			default:
-				return [{ value: 'Other', label: 'Other Certificate' }]
 		}
 	}
 
@@ -339,12 +238,17 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		fileInputRef.current?.click()
 	}
 
-	// Check if this is an institution profile
-	const isInstitution = profile?.role === 'institution'
-
-	// If it's an institution, use the specialized component
-	if (isInstitution) {
-		return <InstitutionProfileSection profile={profile} />
+	// Only handle applicant profiles
+	if (profile?.role !== 'applicant') {
+		return (
+			<div className="text-center py-12">
+				<div className="text-6xl mb-4">👤</div>
+				<h2 className="text-2xl font-bold mb-2">Basic Information</h2>
+				<p className="text-muted-foreground">
+					This section is only available for student accounts.
+				</p>
+			</div>
+		)
 	}
 
 	return (
@@ -399,18 +303,8 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 							<div className="relative">
 								<Avatar className="w-20 h-20">
 									<AvatarImage src={editedProfile?.profilePhoto} />
-									<AvatarFallback
-										className={
-											isInstitution
-												? 'bg-blue-500 text-white'
-												: 'bg-orange-500 text-white'
-										}
-									>
-										{isInstitution ? (
-											<Building2 className="w-8 h-8" />
-										) : (
-											<User className="w-8 h-8" />
-										)}
+									<AvatarFallback className="bg-orange-500 text-white">
+										<User className="w-8 h-8" />
 									</AvatarFallback>
 								</Avatar>
 								{isEditing && (
@@ -527,24 +421,25 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						</div>
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							{isEditing ? (
-								<DateInput
-									id="birthday"
-									value={editedProfile?.birthday || ''}
-									onChange={(value) => handleFieldChange('birthday', value)}
-									label="Birthday"
-									placeholder="dd/mm/yyyy"
-								/>
-							) : (
-								<div className="space-y-2">
-									<Label htmlFor="birthday">Birthday</Label>
+							<div className="space-y-2">
+								<Label htmlFor="birthday">Birthday</Label>
+								{isEditing ? (
+									<DateInput
+										id="birthday"
+										value={editedProfile?.birthday || ''}
+										onChange={(value) => handleFieldChange('birthday', value)}
+										placeholder="dd/mm/yyyy"
+										minDate="1900-01-01"
+										maxDate={new Date().toISOString().split('T')[0]}
+									/>
+								) : (
 									<div className="px-3 py-2 bg-gray-50 rounded-md">
 										<p className="text-sm font-medium text-gray-900">
 											{formatDateForDisplay(profile?.birthday)}
 										</p>
 									</div>
-								</div>
-							)}
+								)}
+							</div>
 							<div className="space-y-2">
 								<Label htmlFor="email">Email</Label>
 								<div className="px-3 py-2 bg-gray-50 rounded-md">
@@ -688,14 +583,6 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 									) : (
 										<div className="px-3 py-2 bg-gray-50 rounded-md">
 											{(() => {
-												console.log(
-													'Displaying interests:',
-													profile?.interests,
-													'Type:',
-													typeof profile?.interests,
-													'Length:',
-													profile?.interests?.length
-												)
 												return profile?.interests &&
 													profile.interests.length > 0 ? (
 													<div className="flex flex-wrap gap-2">
@@ -770,14 +657,6 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 									) : (
 										<div className="px-3 py-2 bg-gray-50 rounded-md">
 											{(() => {
-												console.log(
-													'Displaying favorite countries:',
-													profile?.favoriteCountries,
-													'Type:',
-													typeof profile?.favoriteCountries,
-													'Length:',
-													profile?.favoriteCountries?.length
-												)
 												return profile?.favoriteCountries &&
 													profile.favoriteCountries.length > 0 ? (
 													<div className="flex flex-wrap gap-2">

@@ -180,12 +180,15 @@ export default function ProfileView() {
 	const [profile, setProfile] = useState<ProfileData | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
 	const hasAttemptedLoad = useRef(false)
 
 	// Use the authentication check hook
 	const { isAuthenticated, user } = useAuthCheck()
 
-	// Get current user ID and fetch profile - only when authenticated
+	// Get current user ID and fetch basic profile - only when authenticated
 	useEffect(() => {
 		const getCurrentUserAndProfile = async () => {
 			if (!isAuthenticated || hasAttemptedLoad.current) {
@@ -197,8 +200,27 @@ export default function ProfileView() {
 			setError(null)
 
 			try {
+				// Only load basic profile info, not full profile with all sections
 				const data = await ApiService.getProfile()
-				setProfile(data.profile)
+				// Extract only basic info needed for navigation
+				const basicProfile = {
+					id: data.profile.id,
+					role: data.profile.role,
+					firstName: data.profile.firstName,
+					lastName: data.profile.lastName,
+					user: data.profile.user,
+					// Add empty arrays for sections that will be loaded separately
+					cvFiles: [],
+					languageCertFiles: [],
+					degreeFiles: [],
+					transcriptFiles: [],
+					researchPapers: [],
+					interests: [],
+					favoriteCountries: [],
+					// Add other basic fields as needed
+					...data.profile,
+				}
+				setProfile(basicProfile)
 			} catch (error: any) {
 				if (error?.response?.status === 404 || error?.status === 404) {
 					// Don't redirect - let ProfileWrapper handle this with a modal
@@ -212,6 +234,21 @@ export default function ProfileView() {
 		}
 		getCurrentUserAndProfile()
 	}, [isAuthenticated])
+
+	// Load subdisciplines once
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				// Failed to load subdisciplines - will use empty array
+			}
+		}
+		loadSubdisciplines()
+	}, [])
 
 	const refreshProfile = async () => {
 		setLoading(true)
@@ -264,6 +301,8 @@ export default function ProfileView() {
 				<ApplicantProfileView
 					profile={profile}
 					searchParams={searchParams as unknown as URLSearchParams}
+					refreshProfile={refreshProfile}
+					subdisciplines={subdisciplines}
 				/>
 			</ProfileWrapper>
 		)
@@ -277,6 +316,7 @@ export default function ProfileView() {
 				<InstitutionProfileView
 					profile={profile}
 					searchParams={searchParams as unknown as URLSearchParams}
+					refreshProfile={refreshProfile}
 				/>
 			</ProfileWrapper>
 		)
@@ -302,9 +342,13 @@ export default function ProfileView() {
 function ApplicantProfileView({
 	profile,
 	searchParams,
+	refreshProfile,
+	subdisciplines,
 }: {
 	profile: ProfileData
 	searchParams: URLSearchParams
+	refreshProfile: () => Promise<void>
+	subdisciplines: Array<{ value: string; label: string; discipline: string }>
 }) {
 	const [activeSection, setActiveSection] =
 		useState<ApplicantProfileSection>('profile')
@@ -340,15 +384,15 @@ function ApplicantProfileView({
 				return (
 					<ProfileInfoSection
 						profile={profile}
-						onNavigationAttempt={() => true}
+						subdisciplines={subdisciplines}
 					/>
 				)
 			case 'academic':
 				return (
 					<AcademicSection
 						profile={profile}
-						onProfileUpdate={async () => {}}
-						onNavigationAttempt={() => true}
+						subdisciplines={subdisciplines}
+						onProfileUpdate={refreshProfile}
 					/>
 				)
 			case 'wishlist':
@@ -377,7 +421,7 @@ function ApplicantProfileView({
 				return (
 					<ProfileInfoSection
 						profile={profile}
-						onNavigationAttempt={() => true}
+						subdisciplines={subdisciplines}
 					/>
 				)
 		}
@@ -404,9 +448,11 @@ function ApplicantProfileView({
 function InstitutionProfileView({
 	profile,
 	searchParams,
+	refreshProfile,
 }: {
 	profile: ProfileData
 	searchParams: URLSearchParams
+	refreshProfile: () => Promise<void>
 }) {
 	const [activeSection, setActiveSection] =
 		useState<InstitutionProfileSection>('overview')
@@ -450,7 +496,7 @@ function InstitutionProfileView({
 				return (
 					<ProgramsSection
 						profile={profile}
-						onProfileUpdate={async () => {}}
+						onProfileUpdate={refreshProfile}
 						onNavigationAttempt={() => true}
 					/>
 				)

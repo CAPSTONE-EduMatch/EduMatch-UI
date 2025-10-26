@@ -27,6 +27,7 @@ import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useUnreadMessageCount } from '@/hooks/useUnreadMessageCount'
 import { useUserProfile } from '@/hooks/useUserProfile'
+import { useSubscription } from '@/hooks/useSubscription'
 
 export function EduMatchHeader() {
 	const router = useRouter()
@@ -37,7 +38,28 @@ export function EduMatchHeader() {
 	const { isAuthenticated, refreshAuth } = useAuthCheck()
 
 	// Get user profile data
-	const { profile: userProfile, isLoading: profileLoading } = useUserProfile()
+	const {
+		profile: userProfile,
+		isLoading: profileLoading,
+		refreshProfile,
+	} = useUserProfile()
+
+	// Get subscription information
+	const { currentPlan } = useSubscription()
+
+	// Get plan display information
+	const getPlanInfo = (plan: string) => {
+		switch (plan) {
+			case 'standard':
+				return { label: 'Standard', color: 'bg-blue-500' }
+			case 'premium':
+				return { label: 'Premium', color: 'bg-purple-500' }
+			default:
+				return { label: 'Free', color: 'bg-gray-500' }
+		}
+	}
+
+	const planInfo = getPlanInfo(currentPlan || 'free')
 
 	// Get notifications
 	const { notifications, unreadCount, markAsRead } = useNotifications()
@@ -64,6 +86,18 @@ export function EduMatchHeader() {
 			setCurrentLanguage(languageDisplay)
 		}
 	}, [currentLocale])
+
+	// Listen for profile updates
+	useEffect(() => {
+		const handleProfileUpdate = () => {
+			refreshProfile()
+		}
+
+		window.addEventListener('profileUpdated', handleProfileUpdate)
+		return () => {
+			window.removeEventListener('profileUpdated', handleProfileUpdate)
+		}
+	}, [refreshProfile])
 
 	useEffect(() => {
 		const controlNavbar = () => {
@@ -396,10 +430,12 @@ export function EduMatchHeader() {
 													{profileLoading ? (
 														<div className="animate-pulse bg-gray-200 h-5 w-32 rounded"></div>
 													) : (
-														userProfile?.name || 'User'
+														(() => {
+															return userProfile?.name
+														})()
 													)}
 												</div>
-												<div className="text-sm text-gray-500">
+												<div className="text-sm text-gray-500 mb-2">
 													{profileLoading ? (
 														<div className="animate-pulse bg-gray-200 h-4 w-16 rounded mt-1"></div>
 													) : userProfile?.role === 'institution' ? (
@@ -407,6 +443,14 @@ export function EduMatchHeader() {
 													) : (
 														'Student'
 													)}
+												</div>
+												{/* Subscription Plan Tag */}
+												<div className="flex items-center gap-2">
+													<span
+														className={`inline-block ${planInfo.color} text-white px-2 py-1 rounded-full text-xs font-medium`}
+													>
+														{planInfo.label} Plan
+													</span>
 												</div>
 											</div>
 

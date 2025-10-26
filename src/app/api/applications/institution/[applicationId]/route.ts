@@ -318,6 +318,7 @@ export async function GET(
 				subdisciplineIds:
 					application.profileSnapshot?.subdiscipline_ids || [],
 				// Documents from profile snapshot - use snapshot document IDs
+				// Include soft-deleted documents for profile snapshots to preserve historical data
 				documents:
 					application.profileSnapshot?.document_ids &&
 					application.profileSnapshot.document_ids.length > 0
@@ -346,6 +347,10 @@ export async function GET(
 															?.name || "OTHER",
 													uploadDate:
 														doc.upload_at.toISOString(),
+													// Include status info for debugging
+													isActive: doc.status,
+													deletedAt:
+														doc.deleted_at?.toISOString(),
 												}
 											: null;
 									}

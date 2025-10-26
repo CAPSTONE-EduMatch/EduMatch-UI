@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/lib/auth";
-import { ProfileService, ProfileFormData } from "@/lib/profile-service";
+import { ApplicantProfileService } from "@/lib/applicant-profile-service";
+import { InstitutionProfileService } from "@/lib/institution-profile-service";
 
 export async function GET(request: NextRequest) {
-	console.log("🚨 API ROUTE HIT: GET /api/profile");
 	try {
-		console.log("🔵 API: GET profile request received");
-
 		// Check if user is authenticated
 		const session = await auth.api.getSession({
 			headers: request.headers,
 		});
 
 		if (!session) {
-			console.log("❌ API: No session found for GET");
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -21,22 +18,26 @@ export async function GET(request: NextRequest) {
 		}
 
 		const userId = session.user.id;
-		console.log("✅ API: User authenticated for GET:", userId);
+		const applicantProfile =
+			await ApplicantProfileService.getProfile(userId);
+		const institutionProfile =
+			await InstitutionProfileService.getProfile(userId);
 
-		// Use the profile service to get the profile
-		console.log("🔍 API: Fetching profile from ProfileService...");
-		const profile = await ProfileService.getProfile(userId);
-		console.log(
-			"🔍 API: ProfileService returned:",
-			profile ? "Found profile" : "No profile found"
-		);
+		let profile: any = null;
+		let profileType = "";
+
+		if (applicantProfile) {
+			profile = applicantProfile;
+			profileType = "applicant";
+		} else if (institutionProfile) {
+			profile = institutionProfile;
+			profileType = "institution";
+		}
 
 		if (profile) {
-			console.log("✅ API: Returning profile to client");
-
 			// Transform profile data to include role field for frontend
 			let transformedProfile;
-			if ("applicant_id" in profile) {
+			if (profileType === "applicant") {
 				// This is an applicant profile
 				transformedProfile = {
 					...profile,
@@ -206,7 +207,7 @@ export async function GET(request: NextRequest) {
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
 				};
-			} else if ("institution_id" in profile) {
+			} else if (profileType === "institution") {
 				// This is an institution profile
 				transformedProfile = {
 					...profile,
@@ -242,14 +243,12 @@ export async function GET(request: NextRequest) {
 				profile: transformedProfile,
 			});
 		} else {
-			console.log("❌ API: Profile not found, returning 404");
 			return NextResponse.json(
 				{ error: "Profile not found" },
 				{ status: 404 }
 			);
 		}
 	} catch (error) {
-		console.error("❌ API: Error fetching profile:", error);
 		return NextResponse.json(
 			{ error: "Failed to fetch profile" },
 			{ status: 500 }
@@ -259,51 +258,50 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
 	try {
-		console.log("🔵 API: Profile creation request received");
-
 		// Check if user is authenticated
 		const session = await auth.api.getSession({
 			headers: request.headers,
 		});
 
 		if (!session) {
-			console.log("❌ API: No session found");
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
 			);
 		}
 
-		console.log("✅ API: User authenticated:", session.user.id);
-
-		const formData: ProfileFormData = await request.json();
-		console.log("📋 API: Form data received:", {
-			role: formData.role,
-			firstName: formData.firstName,
-			lastName: formData.lastName,
-			email: formData.email,
-			// Don't log sensitive data
-		});
+		const formData = await request.json();
 
 		const userId = session.user.id;
 
 		// Check if profile already exists
-		const hasExistingProfile = await ProfileService.hasProfile(userId);
+		const hasApplicantProfile =
+			await ApplicantProfileService.hasProfile(userId);
+		const hasInstitutionProfile =
+			await InstitutionProfileService.hasProfile(userId);
+		const hasExistingProfile = hasApplicantProfile || hasInstitutionProfile;
 		if (hasExistingProfile) {
-			console.log("⚠️ API: Profile already exists");
 			return NextResponse.json(
 				{ error: "Profile already exists" },
 				{ status: 409 }
 			);
 		}
 
-		console.log("💾 API: Creating new profile...");
-		// Use the profile service to create the profile
-		const newProfile = await ProfileService.upsertProfile(userId, formData);
-		console.log(
-			"✅ API: Profile created successfully:",
-			newProfile ? "Success" : "Failed"
-		);
+		// Use the appropriate profile service based on role
+		let newProfile;
+		if (formData.role === "applicant") {
+			newProfile = await ApplicantProfileService.upsertProfile(
+				userId,
+				formData
+			);
+		} else if (formData.role === "institution") {
+			newProfile = await InstitutionProfileService.upsertProfile(
+				userId,
+				formData
+			);
+		} else {
+			throw new Error("Invalid role specified");
+		}
 
 		// Send notifications
 		if (newProfile) {
@@ -319,7 +317,6 @@ export async function POST(request: NextRequest) {
 					formData.firstName || "",
 					formData.lastName || ""
 				);
-				console.log("✅ API: Welcome notification sent");
 
 				// Send profile created notification
 				await NotificationUtils.sendProfileCreatedNotification(
@@ -332,12 +329,7 @@ export async function POST(request: NextRequest) {
 					formData.lastName || "",
 					formData.role || "applicant"
 				);
-				console.log("✅ API: Profile created notification sent");
 			} catch (notificationError) {
-				console.error(
-					"❌ API: Failed to send notifications:",
-					notificationError
-				);
 				// Don't fail the profile creation if notification fails
 			}
 		}
@@ -348,7 +340,6 @@ export async function POST(request: NextRequest) {
 			profile: newProfile,
 		});
 	} catch (error) {
-		console.error("❌ API: Error saving profile:", error);
 		return NextResponse.json(
 			{ error: "Failed to save profile" },
 			{ status: 500 }
@@ -371,24 +362,13 @@ export async function PUT(request: NextRequest) {
 		}
 
 		const userId = session.user.id;
-		const formData: ProfileFormData = await request.json();
-
-		console.log("🔍 API: PUT request formData:", {
-			role: formData.role,
-			firstName: formData.firstName,
-			lastName: formData.lastName,
-			// Don't log sensitive data
-		});
+		const formData = await request.json();
 
 		// Validate role before proceeding
 		if (
 			!formData.role ||
 			(formData.role !== "applicant" && formData.role !== "institution")
 		) {
-			console.error(
-				"❌ API: Invalid role in PUT request:",
-				formData.role
-			);
 			return NextResponse.json(
 				{
 					error: "Invalid role specified. Must be 'applicant' or 'institution'",
@@ -397,11 +377,21 @@ export async function PUT(request: NextRequest) {
 			);
 		}
 
-		// Use the profile service to update the profile
-		const updatedProfile = await ProfileService.upsertProfile(
-			userId,
-			formData
-		);
+		// Use the appropriate profile service based on role
+		let updatedProfile;
+		if (formData.role === "applicant") {
+			updatedProfile = await ApplicantProfileService.upsertProfile(
+				userId,
+				formData
+			);
+		} else if (formData.role === "institution") {
+			updatedProfile = await InstitutionProfileService.upsertProfile(
+				userId,
+				formData
+			);
+		} else {
+			throw new Error("Invalid role specified");
+		}
 
 		return NextResponse.json({
 			success: true,
@@ -409,7 +399,6 @@ export async function PUT(request: NextRequest) {
 			profile: updatedProfile,
 		});
 	} catch (error) {
-		console.error("Error updating profile:", error);
 		return NextResponse.json(
 			{ error: "Failed to update profile" },
 			{ status: 500 }

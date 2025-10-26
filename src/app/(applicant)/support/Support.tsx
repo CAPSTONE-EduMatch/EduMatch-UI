@@ -6,6 +6,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/inputs/select'
+import Button from '@/components/ui/forms/Button'
 import { mockFaqData } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -18,15 +19,25 @@ import {
 	Paperclip,
 	Send,
 	X,
+	FolderOpen,
 } from 'lucide-react'
 import React, { useState } from 'react'
 
 const Support = () => {
 	const [activeTab, setActiveTab] = useState('account')
-	const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+	const [expandedFaqs, setExpandedFaqs] = useState<
+		Record<string, number | null>
+	>({
+		account: null,
+		application: null,
+		subscription: null,
+		other: null,
+	})
 	const [problemType, setProblemType] = useState('application')
 	const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
 	const [question, setQuestion] = useState('')
+	const [showManageModal, setShowManageModal] = useState(false)
+	const [isClosing, setIsClosing] = useState(false)
 
 	const menuItems = [
 		{
@@ -52,7 +63,10 @@ const Support = () => {
 	]
 
 	const toggleFaq = (index: number) => {
-		setExpandedFaq(expandedFaq === index ? null : index)
+		setExpandedFaqs((prev) => ({
+			...prev,
+			[activeTab]: prev[activeTab] === index ? null : index,
+		}))
 	}
 
 	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,11 +114,29 @@ const Support = () => {
 			})
 
 			setUploadedFiles((prev) => [...prev, ...newFiles])
+
+			// Open manage modal when files are uploaded
+			if (newFiles.length > 0) {
+				handleOpenModal()
+			}
 		}
 	}
 
 	const removeFile = (index: number) => {
 		setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
+	}
+
+	const handleCloseModal = () => {
+		setIsClosing(true)
+		setTimeout(() => {
+			setShowManageModal(false)
+			setIsClosing(false)
+		}, 300)
+	}
+
+	const handleOpenModal = () => {
+		setShowManageModal(true)
+		setIsClosing(false)
 	}
 
 	const handleSubmit = (event: React.FormEvent) => {
@@ -128,14 +160,14 @@ const Support = () => {
 							className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
 						>
 							<span className="text-gray-900 font-medium">{faq.question}</span>
-							{expandedFaq === index ? (
+							{expandedFaqs[activeTab] === index ? (
 								<ChevronUp className="w-5 h-5 text-gray-500" />
 							) : (
 								<ChevronDown className="w-5 h-5 text-gray-500" />
 							)}
 						</button>
 						<AnimatePresence>
-							{expandedFaq === index && (
+							{expandedFaqs[activeTab] === index && (
 								<motion.div
 									initial={{ height: 0, opacity: 0 }}
 									animate={{ height: 'auto', opacity: 1 }}
@@ -349,10 +381,20 @@ const Support = () => {
 								{/* Uploaded Files Display */}
 								{uploadedFiles.length > 0 && (
 									<div className="mt-4 space-y-2">
-										<p className="text-sm font-medium text-gray-700">
-											Uploaded files:
-										</p>
-										{uploadedFiles.map((file, index) => (
+										<div className="flex items-center justify-between bg-gray-200 py-3 px-4 rounded-md">
+											<p className="text-sm font-medium text-gray-700">
+												Uploaded files ({uploadedFiles.length}):
+											</p>
+											<Button
+												variant="outline"
+												onClick={handleOpenModal}
+												className="text-xs px-5 flex items-center gap-3 py-1 h-auto bg-white"
+											>
+												<FolderOpen className="w-3 h-3 mr-1" />
+												<span>Manage Files</span>
+											</Button>
+										</div>
+										{/* {uploadedFiles.slice(0, 3).map((file, index) => (
 											<div
 												key={index}
 												className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
@@ -374,7 +416,13 @@ const Support = () => {
 													<X className="w-4 h-4" />
 												</button>
 											</div>
-										))}
+										))} */}
+										{uploadedFiles.length > 3 && (
+											<p className="text-xs text-gray-500 text-center">
+												... and {uploadedFiles.length - 3} more files. Click
+												&ldquo;Manage Files&rdquo; to view all.
+											</p>
+										)}
 									</div>
 								)}
 							</div>
@@ -382,6 +430,84 @@ const Support = () => {
 					</div>
 				</motion.div>
 			</motion.div>
+
+			{/* Manage Files Side Panel */}
+			{showManageModal && (
+				<div
+					className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
+						isClosing ? 'translate-x-full' : 'translate-x-0'
+					}`}
+				>
+					<div className="p-6 border-b">
+						<div className="flex items-center justify-between">
+							<h2 className="text-xl font-semibold">Manage Files</h2>
+							<Button
+								variant="outline"
+								onClick={handleCloseModal}
+								className="rounded-full text-gray-500 hover:text-gray-700"
+							>
+								✕
+							</Button>
+						</div>
+					</div>
+
+					<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+						<div className="space-y-8">
+							{/* Uploaded Files Section */}
+							{uploadedFiles.length > 0 && (
+								<div className="space-y-6">
+									<h3 className="text-lg font-medium text-foreground border-b pb-2">
+										Uploaded Files ({uploadedFiles.length})
+									</h3>
+									<div className="space-y-3">
+										<div className="grid grid-cols-1 gap-3">
+											{uploadedFiles.map((file, index) => (
+												<div
+													key={index}
+													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+												>
+													<div className="text-2xl">
+														{file.type.includes('pdf')
+															? '📄'
+															: file.type.includes('image')
+																? '🖼️'
+																: '📎'}
+													</div>
+													<div className="flex-1 min-w-0">
+														<p className="text-sm font-medium text-foreground truncate">
+															{file.name}
+														</p>
+														<p className="text-xs text-muted-foreground">
+															{(file.size / 1024 / 1024).toFixed(2)} MB
+														</p>
+													</div>
+													<div className="flex gap-2">
+														<Button
+															variant="outline"
+															onClick={() => removeFile(index)}
+															className="text-red-500 hover:text-red-700 text-xs px-2 py-1 h-auto"
+														>
+															Delete
+														</Button>
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								</div>
+							)}
+
+							{/* Empty State */}
+							{uploadedFiles.length === 0 && (
+								<div className="text-center py-8">
+									<div className="text-4xl mb-4">📁</div>
+									<p className="text-muted-foreground">No files uploaded yet</p>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

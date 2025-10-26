@@ -110,11 +110,7 @@ export async function GET(request: NextRequest) {
 							jobPost: true,
 						},
 					},
-					details: {
-						include: {
-							documentType: true,
-						},
-					},
+					details: true,
 				},
 				orderBy: { apply_at: "desc" },
 				skip: (page - 1) * limit,
@@ -124,18 +120,18 @@ export async function GET(request: NextRequest) {
 		]);
 
 		// Transform applications
-		const transformedApplications = applications.map((app) => ({
+		const transformedApplications = applications.map((app: any) => ({
 			applicationId: app.application_id,
 			applicantId: app.applicant_id,
 			postId: app.post_id,
 			status: app.status,
 			applyAt: app.apply_at.toISOString(),
-			documents: app.details.map((detail) => ({
-				documentTypeId: detail.document_type_id,
+			documents: app.details.map((detail: any) => ({
+				documentTypeId: detail.document_type,
 				name: detail.name,
 				url: detail.url,
 				size: detail.size,
-				documentType: detail.documentType.name,
+				documentType: detail.documentType?.name || detail.document_type,
 			})),
 			post: {
 				id: app.post.post_id,
@@ -270,6 +266,7 @@ export async function POST(request: NextRequest) {
 		console.log("📋 API: Application data:", {
 			postId: body.postId,
 			hasDocuments: body.documents?.length || 0,
+			documents: body.documents,
 		});
 
 		// Validate required fields
@@ -324,10 +321,63 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Get applicant profile data for snapshot
+		const applicantProfile = await prismaClient.applicant.findUnique({
+			where: { applicant_id: applicant.applicant_id },
+			include: {
+				user: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+						image: true,
+					},
+				},
+				subdiscipline: {
+					select: {
+						name: true,
+						discipline: {
+							select: {
+								name: true,
+							},
+						},
+					},
+				},
+				interests: {
+					include: {
+						subdiscipline: {
+							select: {
+								subdiscipline_id: true,
+								name: true,
+								discipline: {
+									select: {
+										name: true,
+									},
+								},
+							},
+						},
+					},
+				},
+				documents: {
+					select: {
+						document_id: true,
+					},
+				},
+			},
+		});
+
+		if (!applicantProfile) {
+			console.log("❌ API: Applicant profile not found");
+			return NextResponse.json(
+				{ error: "Applicant profile not found" },
+				{ status: 404 }
+			);
+		}
+
 		// Create application
 		const application = await prismaClient.application.create({
 			data: {
-				application_id: `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+				application_id: crypto.randomUUID(),
 				applicant_id: applicant.applicant_id,
 				post_id: body.postId,
 				apply_at: new Date(),
@@ -337,17 +387,94 @@ export async function POST(request: NextRequest) {
 
 		console.log("✅ API: Application created:", application.application_id);
 
+		// Create profile snapshot
+		const profileSnapshot =
+			await prismaClient.applicationProfileSnapshot.create({
+				data: {
+					snapshot_id: crypto.randomUUID(),
+					application_id: application.application_id,
+					// Basic profile information
+					first_name: applicantProfile.first_name,
+					last_name: applicantProfile.last_name,
+					birthday: applicantProfile.birthday,
+					gender: applicantProfile.gender,
+					nationality: applicantProfile.nationality,
+					phone_number: applicantProfile.phone_number,
+					country_code: applicantProfile.country_code,
+					profile_photo: applicantProfile.user?.image,
+					// Academic information
+					graduated: applicantProfile.graduated,
+					level: applicantProfile.level,
+					subdiscipline_id: applicantProfile.subdiscipline_id,
+					gpa: applicantProfile.gpa,
+					university: applicantProfile.university,
+					country_of_study: applicantProfile.country_of_study,
+					has_foreign_language: applicantProfile.has_foreign_language,
+					languages: applicantProfile.languages as any,
+					// Preferences
+					favorite_countries: applicantProfile.favorite_countries,
+					// User information
+					user_name: applicantProfile.user?.name,
+					user_email: applicantProfile.user?.email,
+					user_image: applicantProfile.user?.image,
+					// Subdiscipline details - capture all interest subdiscipline IDs
+					subdiscipline_ids:
+						applicantProfile.interests?.map(
+							(interest) =>
+								interest.subdiscipline.subdiscipline_id
+						) || [],
+					// Document IDs - capture all profile document IDs at time of snapshot
+					document_ids:
+						applicantProfile.documents?.map(
+							(doc) => doc.document_id
+						) || [],
+				},
+			});
+
+		console.log(
+			"✅ API: Profile snapshot created:",
+			profileSnapshot.snapshot_id
+		);
+
 		// Create application details (documents) if provided
 		if (body.documents && body.documents.length > 0) {
+			console.log("📄 API: Processing documents:", body.documents);
+
+			// Map document type IDs to new enum values
+			const mapDocumentType = (docTypeId: string): string => {
+				const typeMapping: Record<string, string> = {
+					"1": "RESEARCH_PROPOSAL",
+					"2": "CV_RESUME",
+					"3": "PORTFOLIO",
+					"4": "ACADEMIC_TRANSCRIPT",
+					"5": "PERSONAL_STATEMENT",
+					"6": "RECOMMENDATION_LETTER",
+					"7": "LANGUAGE_CERTIFICATE",
+					"8": "PASSPORT_COPY",
+					"9": "DEGREE_CERTIFICATE",
+					"10": "RESEARCH_PAPER",
+					"11": "INSTITUTION_VERIFICATION",
+					"12": "REQUIRED_DOCUMENTS",
+				};
+				return typeMapping[docTypeId] || "OTHER";
+			};
+
 			const applicationDetails = body.documents.map((doc) => ({
-				document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-				document_type_id: doc.documentTypeId,
+				document_id: crypto.randomUUID(),
 				application_id: application.application_id,
 				url: doc.url,
 				name: doc.name,
 				size: doc.size,
+				document_type: mapDocumentType(
+					doc.documentTypeId || "OTHER"
+				) as any,
 				update_at: new Date(),
 			}));
+
+			console.log(
+				"📄 API: Application details to create:",
+				applicationDetails
+			);
 
 			await prismaClient.applicationDetail.createMany({
 				data: applicationDetails,
@@ -356,6 +483,8 @@ export async function POST(request: NextRequest) {
 			console.log(
 				`✅ API: Created ${applicationDetails.length} application documents`
 			);
+		} else {
+			console.log("📄 API: No documents provided for application");
 		}
 
 		// Send notification to institution

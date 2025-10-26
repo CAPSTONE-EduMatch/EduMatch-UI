@@ -25,8 +25,6 @@ interface Document {
 	name: string
 	size: number
 	uploadDate: string
-	documentType: string
-	documentTypeDescription?: string
 	url: string
 }
 
@@ -146,25 +144,60 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		fetchApplicationDetails()
 	}, [applicant.id])
 
-	// Get documents from API data or fallback to empty array
+	// Get documents from API data - use profile snapshot documents for Academic Profile tab
 	const documents: Document[] = applicationDetails?.applicant?.documents || []
+
+	// Debug: Log documents to see what we're getting
+	console.log('📄 Academic Profile Documents:', documents)
+	console.log(
+		'📄 Document names:',
+		documents.map((doc) => doc.name)
+	)
+
+	// Document type enumeration based on the new enum
+	const DOCUMENT_TYPE_LABELS = {
+		RESEARCH_PROPOSAL: 'Research Proposal',
+		CV_RESUME: 'CV/Resume',
+		PORTFOLIO: 'Portfolio',
+		ACADEMIC_TRANSCRIPT: 'Academic Transcript',
+		PERSONAL_STATEMENT: 'Personal Statement',
+		RECOMMENDATION_LETTER: 'Recommendation Letter',
+		LANGUAGE_CERTIFICATE: 'Language Certificate',
+		PASSPORT_COPY: 'Passport Copy',
+		DEGREE_CERTIFICATE: 'Degree Certificate',
+		RESEARCH_PAPER: 'Research Paper',
+		INSTITUTION_VERIFICATION: 'Institution Verification',
+		REQUIRED_DOCUMENTS: 'Required Documents',
+		OTHER: 'Other Documents',
+	} as const
 
 	const getDocumentsByType = (documentType: string) => {
 		return documents.filter((doc) =>
-			doc.documentType.toLowerCase().includes(documentType.toLowerCase())
+			doc.name.toLowerCase().includes(documentType.toLowerCase())
 		)
 	}
 
 	const getDocumentTypeLabel = (documentType: string) => {
-		const type = documentType.toLowerCase()
-		if (type.includes('cv') || type.includes('resume')) return 'CV / Resume'
-		if (type.includes('certificate') || type.includes('language'))
-			return 'Foreign Language Certificate'
-		if (type.includes('degree') || type.includes('diploma')) return 'Degrees'
-		if (type.includes('transcript')) return 'Transcript'
-		if (type.includes('research') || type.includes('paper'))
-			return 'Research paper'
-		return documentType
+		// Map category keys to display labels
+		const categoryLabels = {
+			cv: 'CV / Resume',
+			certificate: 'Language Certificates',
+			degree: 'Degree Certificates',
+			transcript: 'Academic Transcripts',
+			research: 'Research Papers',
+			portfolio: 'Portfolio',
+			personal: 'Personal Statements',
+			recommendation: 'Recommendation Letters',
+			passport: 'Passport Copies',
+			institution: 'Institution Verification',
+			required: 'Required Documents',
+			other: 'Other Documents',
+		}
+
+		return (
+			categoryLabels[documentType as keyof typeof categoryLabels] ||
+			documentType
+		)
 	}
 
 	const formatFileSize = (bytes: number) => {
@@ -332,28 +365,49 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 								{Object.entries(
 									documents.reduce(
 										(acc, doc) => {
-											const type = doc.documentType.toLowerCase()
+											// Use document_type from API
+											const docType = (doc as any).documentType || 'OTHER'
 											let category = 'other'
 
-											if (type.includes('cv') || type.includes('resume'))
+											console.log(
+												`📄 Categorizing: "${doc.name}" -> docType: "${docType}"`
+											)
+
+											// Map document type names to category
+											const upperType = docType.toUpperCase()
+											if (
+												upperType.includes('CV') ||
+												upperType.includes('RESUME')
+											) {
 												category = 'cv'
-											else if (
-												type.includes('certificate') ||
-												type.includes('language')
-											)
+											} else if (
+												upperType.includes('LANGUAGE') ||
+												upperType.includes('CERTIFICATE')
+											) {
 												category = 'certificate'
-											else if (
-												type.includes('degree') ||
-												type.includes('diploma')
-											)
+											} else if (upperType.includes('DEGREE')) {
 												category = 'degree'
-											else if (type.includes('transcript'))
+											} else if (upperType.includes('TRANSCRIPT')) {
 												category = 'transcript'
-											else if (
-												type.includes('research') ||
-												type.includes('paper')
-											)
+											} else if (upperType.includes('RESEARCH')) {
 												category = 'research'
+											} else if (upperType.includes('PORTFOLIO')) {
+												category = 'portfolio'
+											} else if (upperType.includes('PERSONAL')) {
+												category = 'personal'
+											} else if (upperType.includes('RECOMMENDATION')) {
+												category = 'recommendation'
+											} else if (upperType.includes('PASSPORT')) {
+												category = 'passport'
+											} else if (upperType.includes('INSTITUTION')) {
+												category = 'institution'
+											} else if (upperType.includes('REQUIRED')) {
+												category = 'required'
+											} else {
+												category = 'other'
+											}
+
+											console.log(`📄 Final category: "${category}"`)
 
 											if (!acc[category]) acc[category] = []
 											acc[category].push(doc)
@@ -389,15 +443,10 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 														<span className="text-2xl">📄</span>
 														<div>
 															<p className="font-medium text-sm">{doc.name}</p>
-															<p className="text-xs text-muted-foreground">
+															<p className="text-sm text-muted-foreground">
 																{formatFileSize(doc.size)} •{' '}
 																{formatDate(doc.uploadDate)}
 															</p>
-															{doc.documentTypeDescription && (
-																<p className="text-xs text-gray-500 mt-1">
-																	{doc.documentTypeDescription}
-																</p>
-															)}
 														</div>
 													</div>
 													<div className="flex items-center gap-2">
@@ -446,12 +495,106 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			id: 'requirements',
 			label: 'Program requirements',
 			content: (
-				<div className="p-4">
-					<div className="text-center py-8">
-						<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-						<p className="text-gray-500 mb-4">
-							Program requirements will be displayed here
-						</p>
+				<div className="h-full flex flex-col">
+					{/* Application Documents - Scrollable */}
+					<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
+						{loading ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="flex flex-col items-center gap-3">
+									<Loader2 className="h-8 w-8 animate-spin text-primary" />
+									<p className="text-gray-600 text-sm">
+										Loading application documents...
+									</p>
+								</div>
+							</div>
+						) : error ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="text-center">
+									<p className="text-red-600 text-sm mb-2">
+										Error loading application documents
+									</p>
+									<p className="text-gray-500 text-xs">{error}</p>
+								</div>
+							</div>
+						) : (
+							<div className="pt-4 space-y-6">
+								{/* Application Documents - Flat List (No Grouping) */}
+								{applicationDetails?.application?.documents &&
+								applicationDetails.application.documents.length > 0 ? (
+									<div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="text-lg font-semibold">
+												Application Documents
+											</h3>
+											<button
+												onClick={() => {
+													// Download all application documents
+													applicationDetails.application.documents.forEach(
+														(doc: Document) => {
+															const link = document.createElement('a')
+															link.href = doc.url
+															link.download = doc.name
+															document.body.appendChild(link)
+															link.click()
+															document.body.removeChild(link)
+														}
+													)
+												}}
+												className="text-primary hover:text-primary/80 text-sm font-medium underline"
+											>
+												Download all
+											</button>
+										</div>
+
+										{/* Application Files List - Flat List */}
+										<div className="space-y-3 max-h-64 overflow-y-auto">
+											{applicationDetails.application.documents.map(
+												(doc: Document) => (
+													<div
+														key={doc.documentId}
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+													>
+														<div className="flex items-center gap-3">
+															<span className="text-2xl">📄</span>
+															<div>
+																<p className="font-medium text-sm">
+																	{doc.name}
+																</p>
+																<p className="text-xs text-muted-foreground">
+																	{formatFileSize(doc.size)} •{' '}
+																	{formatDate(doc.uploadDate)}
+																</p>
+															</div>
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => handlePreviewFile(doc)}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
+															>
+																View
+															</button>
+															<button
+																onClick={() => handleDownloadFile(doc)}
+																className="text-gray-400 hover:text-gray-600 p-1"
+															>
+																<Download className="h-4 w-4" />
+															</button>
+														</div>
+													</div>
+												)
+											)}
+										</div>
+									</div>
+								) : (
+									<div className="text-center py-8">
+										<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+										<p className="text-gray-500">
+											No application documents uploaded
+										</p>
+									</div>
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			),

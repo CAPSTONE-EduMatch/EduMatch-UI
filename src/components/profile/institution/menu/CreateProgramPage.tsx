@@ -709,20 +709,6 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 				</div>
 
 				<div className="space-y-6">
-					{/* File Name */}
-					<div className="space-y-2">
-						<Label htmlFor="fileName">File name</Label>
-						<Input
-							id="fileName"
-							placeholder="Enter file name"
-							value={formData.fileRequirements?.fileName || ''}
-							onChange={(e) =>
-								handleFileRequirementChange('fileName', e.target.value)
-							}
-							inputSize="select"
-						/>
-					</div>
-
 					{/* File Description */}
 					<div className="space-y-2">
 						<Label htmlFor="fileDescription">File description</Label>
@@ -735,19 +721,6 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 							}
 							inputSize="select"
 						/>
-					</div>
-
-					{/* Add File Button */}
-					<div className="flex justify-end">
-						<Button
-							onClick={() => {
-								// TODO: Implement add file functionality
-								console.log('Add new required file')
-							}}
-							className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
-						>
-							Add new required file
-						</Button>
 					</div>
 				</div>
 			</div>

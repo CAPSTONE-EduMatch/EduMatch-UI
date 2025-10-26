@@ -89,40 +89,6 @@ export function ScholarshipCard({
 				{scholarship.description}
 			</p>
 
-			{/* Apply Button */}
-			{/* {onApply && (
-				<div className="mb-4">
-					<motion.button
-						onClick={(e) => {
-							e.preventDefault()
-							e.stopPropagation()
-							onApply(scholarship.id)
-						}}
-						disabled={hasApplied || isApplying}
-						className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-							hasApplied
-								? 'bg-green-600 text-white cursor-not-allowed'
-								: isApplying
-									? 'bg-gray-400 text-white cursor-not-allowed'
-									: 'bg-[#116E63] text-white hover:bg-teal-700'
-						}`}
-						whileHover={!hasApplied && !isApplying ? { scale: 1.02 } : {}}
-						whileTap={!hasApplied && !isApplying ? { scale: 0.98 } : {}}
-					>
-						{hasApplied ? (
-							'✓ Applied'
-						) : isApplying ? (
-							<div className="flex items-center justify-center gap-2">
-								<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-								Applying...
-							</div>
-						) : (
-							'Apply Now'
-						)}
-					</motion.button>
-				</div>
-			)} */}
-
 			{/* Bottom section */}
 			<div className="flex justify-between gap-3 items-center">
 				<div className="w-2/3 flex items-center gap-3 text-sm text-gray-600 overflow-x-auto scrollbar-hide">

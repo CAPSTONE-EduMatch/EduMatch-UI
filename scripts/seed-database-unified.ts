@@ -658,13 +658,37 @@ async function seedDocumentTypes() {
 			description:
 				"Upload a copy of your passport for international applications.",
 		},
+		{
+			document_type_id: "9",
+			name: "Degree Certificate",
+			description:
+				"Upload your degree certificates or diplomas from completed academic programs.",
+		},
+		{
+			document_type_id: "10",
+			name: "Research Paper",
+			description:
+				"Upload your research papers, publications, or academic writing samples.",
+		},
+		{
+			document_type_id: "11",
+			name: "Institution Verification",
+			description:
+				"Upload documents verifying your institutional affiliation or enrollment status.",
+		},
+		{
+			document_type_id: "12",
+			name: "Required Documents",
+			description:
+				"Upload any other required documents as specified in the application requirements.",
+		},
 	];
 
 	await prismaClient.documentType.createMany({
 		data: documentTypes,
 	});
 
-	console.log("✅ 8 Document types seeded successfully");
+	console.log("✅ 12 Document types seeded successfully");
 }
 
 async function seedUsers() {
@@ -1103,6 +1127,30 @@ async function seedPostDocuments() {
 			name: "Passport Copy",
 			description:
 				"Upload a copy of your passport for international applications",
+		},
+		{
+			typeId: "9",
+			name: "Degree Certificate",
+			description:
+				"Upload your degree certificates or diplomas from completed academic programs",
+		},
+		{
+			typeId: "10",
+			name: "Research Paper",
+			description:
+				"Upload your research papers, publications, or academic writing samples",
+		},
+		{
+			typeId: "11",
+			name: "Institution Verification",
+			description:
+				"Upload documents verifying your institutional affiliation or enrollment status",
+		},
+		{
+			typeId: "12",
+			name: "Required Documents",
+			description:
+				"Upload any other required documents as specified in the application requirements",
 		},
 	];
 

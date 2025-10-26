@@ -40,7 +40,7 @@ export async function GET(
 			);
 		}
 
-		// Get application with detailed applicant information
+		// Get application with detailed applicant information including profile snapshot
 		const application = await prismaClient.application.findFirst({
 			where: {
 				application_id: params.applicationId,
@@ -49,6 +49,7 @@ export async function GET(
 				},
 			},
 			include: {
+				profileSnapshot: true, // Include the profile snapshot
 				applicant: {
 					include: {
 						user: {
@@ -95,16 +96,7 @@ export async function GET(
 						jobPost: true,
 					},
 				},
-				details: {
-					include: {
-						documentType: {
-							select: {
-								name: true,
-								description: true,
-							},
-						},
-					},
-				},
+				details: true,
 			},
 		});
 
@@ -127,11 +119,11 @@ export async function GET(
 				status: application.status,
 				applyAt: application.apply_at.toISOString(),
 				documents: application.details.map((detail) => ({
-					documentTypeId: detail.document_type_id,
+					documentId: detail.document_id,
 					name: detail.name,
 					url: detail.url,
 					size: detail.size,
-					documentType: detail.documentType.name,
+					documentType: detail.document_type,
 					uploadDate:
 						detail.update_at?.toISOString() ||
 						new Date().toISOString(),
@@ -250,44 +242,116 @@ export async function GET(
 			},
 			applicant: {
 				applicantId: application.applicant.applicant_id,
-				firstName: application.applicant.first_name,
-				lastName: application.applicant.last_name,
+				// Use snapshot data if available, otherwise fallback to live data
+				firstName:
+					application.profileSnapshot?.first_name ||
+					application.applicant.first_name,
+				lastName:
+					application.profileSnapshot?.last_name ||
+					application.applicant.last_name,
 				name:
+					application.profileSnapshot?.user_name ||
 					application.applicant.user.name ||
 					`${application.applicant.first_name || ""} ${application.applicant.last_name || ""}`.trim(),
-				email: application.applicant.user.email,
-				image: application.applicant.user.image,
-				birthday: application.applicant.birthday
-					?.toISOString()
-					.split("T")[0],
+				email:
+					application.profileSnapshot?.user_email ||
+					application.applicant.user.email,
+				image:
+					application.profileSnapshot?.user_image ||
+					application.applicant.user.image,
+				birthday:
+					application.profileSnapshot?.birthday
+						?.toISOString()
+						.split("T")[0] ||
+					application.applicant.birthday?.toISOString().split("T")[0],
 				gender:
-					application.applicant.gender === true
+					application.profileSnapshot?.gender === true
 						? "Male"
-						: application.applicant.gender === false
+						: application.profileSnapshot?.gender === false
 							? "Female"
-							: "Not specified",
-				nationality: application.applicant.nationality,
-				phoneNumber: application.applicant.phone_number,
-				countryCode: application.applicant.country_code,
-				graduated: application.applicant.graduated,
-				level: application.applicant.level,
-				subdiscipline: application.applicant.subdiscipline?.name,
-				discipline:
-					application.applicant.subdiscipline?.discipline.name,
-				gpa: application.applicant.gpa,
-				university: application.applicant.university,
-				countryOfStudy: application.applicant.country_of_study,
-				hasForeignLanguage: application.applicant.has_foreign_language,
-				languages: application.applicant.languages,
-				documents: application.applicant.documents.map((doc) => ({
-					documentId: doc.document_id,
-					name: doc.name,
-					url: doc.url,
-					size: doc.size,
-					uploadDate: doc.upload_at.toISOString(),
-					documentType: doc.documentType.name,
-					documentTypeDescription: doc.documentType.description,
-				})),
+							: application.applicant.gender === true
+								? "Male"
+								: application.applicant.gender === false
+									? "Female"
+									: "Not specified",
+				nationality:
+					application.profileSnapshot?.nationality ||
+					application.applicant.nationality,
+				phoneNumber:
+					application.profileSnapshot?.phone_number ||
+					application.applicant.phone_number,
+				countryCode:
+					application.profileSnapshot?.country_code ||
+					application.applicant.country_code,
+				graduated:
+					application.profileSnapshot?.graduated ??
+					application.applicant.graduated,
+				level:
+					application.profileSnapshot?.level ||
+					application.applicant.level,
+				// For subdisciplines, we need to fetch the names from the IDs
+				subdiscipline:
+					(application.profileSnapshot?.subdiscipline_ids?.length ??
+						0) > 0
+						? `${application.profileSnapshot?.subdiscipline_ids?.length ?? 0} interests`
+						: application.applicant.subdiscipline?.name ||
+							"Unknown",
+				discipline: "Multiple disciplines", // We'll need to fetch this from the subdiscipline IDs
+				gpa:
+					application.profileSnapshot?.gpa ||
+					application.applicant.gpa,
+				university:
+					application.profileSnapshot?.university ||
+					application.applicant.university,
+				countryOfStudy:
+					application.profileSnapshot?.country_of_study ||
+					application.applicant.country_of_study,
+				hasForeignLanguage:
+					application.profileSnapshot?.has_foreign_language ??
+					application.applicant.has_foreign_language,
+				languages:
+					application.profileSnapshot?.languages ||
+					application.applicant.languages,
+				// Additional snapshot data
+				favoriteCountries:
+					application.profileSnapshot?.favorite_countries || [],
+				subdisciplineIds:
+					application.profileSnapshot?.subdiscipline_ids || [],
+				// Documents from profile snapshot - use snapshot document IDs
+				documents:
+					application.profileSnapshot?.document_ids &&
+					application.profileSnapshot.document_ids.length > 0
+						? await Promise.all(
+								application.profileSnapshot.document_ids.map(
+									async (docId) => {
+										const doc =
+											await prismaClient.applicantDocument.findUnique(
+												{
+													where: {
+														document_id: docId,
+													},
+													include: {
+														documentType: true,
+													},
+												}
+											);
+										return doc
+											? {
+													documentId: doc.document_id,
+													name: doc.name,
+													url: doc.url,
+													size: doc.size,
+													documentType:
+														doc.documentType
+															?.name || "OTHER",
+													uploadDate:
+														doc.upload_at.toISOString(),
+												}
+											: null;
+									}
+								)
+							).then((docs) => docs.filter((doc) => doc !== null))
+						: [],
 			},
 		};
 

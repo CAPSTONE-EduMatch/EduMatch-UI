@@ -66,32 +66,26 @@ const Explore = () => {
 		}
 	}
 
-	// Handle application submission
+	// Handle application - redirect to detail page for document upload
 	const handleApply = async (postId: string) => {
-		try {
-			setApplyingPosts((prev) => new Set(prev).add(postId))
-
-			const response = await applicationService.submitApplication({
-				postId,
-				documents: [], // Can be enhanced later to include document upload
-			})
-			if (response.success) {
-				setAppliedPosts((prev) => new Set(prev).add(postId))
-				// You could add a success toast notification here
-				// eslint-disable-next-line no-console
-				console.log('Application submitted successfully')
-			}
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to submit application:', error)
-			// You could add an error toast notification here
-		} finally {
-			setApplyingPosts((prev) => {
-				const newSet = new Set(prev)
-				newSet.delete(postId)
-				return newSet
-			})
+		// Redirect to the appropriate detail page based on the current tab
+		let detailPath = ''
+		switch (activeTab) {
+			case 'programmes':
+				detailPath = `/explore/programmes/${postId}?from=programmes`
+				break
+			case 'scholarships':
+				detailPath = `/explore/scholarships/${postId}?from=scholarships`
+				break
+			case 'research':
+				detailPath = `/explore/research-labs/${postId}?from=research`
+				break
+			default:
+				detailPath = `/explore/programmes/${postId}?from=programmes`
 		}
+
+		// Navigate to the detail page where users can upload documents and apply
+		window.location.href = detailPath
 	}
 
 	// Check if user has applied to a post

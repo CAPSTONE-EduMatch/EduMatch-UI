@@ -46,7 +46,7 @@ export async function GET(
 		}
 
 		// Get application
-		const application = await prismaClient.application.findFirst({
+		const application = (await prismaClient.application.findFirst({
 			where: {
 				application_id: params.applicationId,
 				applicant_id: applicant.applicant_id,
@@ -66,13 +66,9 @@ export async function GET(
 						jobPost: true,
 					},
 				},
-				details: {
-					include: {
-						documentType: true,
-					},
-				},
+				details: true,
 			},
-		});
+		})) as any;
 
 		if (!application) {
 			console.log("❌ API: Application not found");
@@ -89,12 +85,12 @@ export async function GET(
 			postId: application.post_id,
 			status: application.status,
 			applyAt: application.apply_at.toISOString(),
-			documents: application.details.map((detail) => ({
-				documentTypeId: detail.document_type_id,
+			documents: application.details.map((detail: any) => ({
+				documentTypeId: detail.document_type,
 				name: detail.name,
 				url: detail.url,
 				size: detail.size,
-				documentType: detail.documentType.name,
+				documentType: detail.document_type,
 			})),
 			post: {
 				id: application.post.post_id,
@@ -286,7 +282,7 @@ export async function PUT(
 		}
 
 		// Update application
-		const updatedApplication = await prismaClient.application.update({
+		const updatedApplication = (await prismaClient.application.update({
 			where: { application_id: params.applicationId },
 			data: {
 				...(body.status && { status: body.status }),
@@ -303,13 +299,9 @@ export async function PUT(
 						},
 					},
 				},
-				details: {
-					include: {
-						documentType: true,
-					},
-				},
+				details: true,
 			},
-		});
+		})) as any;
 
 		// Send notification to applicant about status change
 		try {
@@ -350,12 +342,12 @@ export async function PUT(
 			postId: updatedApplication.post_id,
 			status: updatedApplication.status,
 			applyAt: updatedApplication.apply_at.toISOString(),
-			documents: updatedApplication.details.map((detail) => ({
-				documentTypeId: detail.document_type_id,
+			documents: updatedApplication.details.map((detail: any) => ({
+				documentTypeId: detail.document_type,
 				name: detail.name,
 				url: detail.url,
 				size: detail.size,
-				documentType: detail.documentType.name,
+				documentType: detail.document_type,
 			})),
 			post: {
 				id: updatedApplication.post.post_id,

@@ -676,7 +676,7 @@ const ProgramDetail = () => {
 									</p>
 									<ul className="list-disc pl-5 space-y-1 text-gray-700">
 										{currentProgram.documents.map((doc: any) => (
-											<li key={doc.id}>
+											<li key={doc.document_type_id}>
 												{doc.name}
 												{doc.description && `: ${doc.description}`}
 											</li>
@@ -1068,8 +1068,8 @@ const ProgramDetail = () => {
 						{currentProgram?.documents &&
 						currentProgram.documents.length > 0 ? (
 							<div className="space-y-3">
-								{currentProgram.documents.map((doc: any) => (
-									<p key={doc.id}>
+								{currentProgram.documents.map((doc: any, index: number) => (
+									<p key={doc.document_id || doc.document_type_id || index}>
 										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
 										{doc.description}
 									</p>
@@ -1085,69 +1085,26 @@ const ProgramDetail = () => {
 
 					{/* File Upload Area */}
 					<div className="w-full mb-6">
-						{currentProgram?.documents &&
-							currentProgram.documents.length > 0 &&
-							currentProgram.documents.map((doc: any) => {
-								const filesForThisType = uploadedFiles.filter(
-									(file) => file.documentType === doc.id
-								)
-								return (
-									<div key={doc.id} className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">
-											{doc.name}
-											{filesForThisType.length > 0 && (
-												<span className="ml-2 text-xs text-green-600">
-													({filesForThisType.length} file
-													{filesForThisType.length !== 1 ? 's' : ''})
-												</span>
-											)}
-										</label>
-										{/* {doc.description && (
-											<p className="text-xs text-gray-500 mb-2">
-												{doc.description}
-											</p>
-										)} */}
-										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-											<div className="text-4xl mb-4">📁</div>
-											<div className="space-y-2">
-												<input
-													type="file"
-													multiple
-													onChange={(e) => handleFileUpload(e, doc.id)}
-													className="hidden"
-													id={`file-upload-${doc.id}`}
-												/>
-												<label
-													htmlFor={`file-upload-${doc.id}`}
-													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-												>
-													Click here to upload file
-												</label>
-											</div>
-										</div>
-
-										{/* Show uploaded files for this document type */}
-										{/* {filesForThisType.length > 0 && (
-											<div className="space-y-1">
-												{filesForThisType.map((file) => (
-													<div
-														key={file.id}
-														className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
-													>
-														<span className="truncate flex-1">{file.name}</span>
-														<button
-															onClick={() => removeFile(file.id)}
-															className="text-red-500 hover:text-red-700 ml-2"
-														>
-															✕
-														</button>
-													</div>
-												))}
-											</div>
-										)} */}
-									</div>
-								)
-							})}
+						<div className="space-y-2">
+							<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+								<div className="text-4xl mb-4">📁</div>
+								<div className="space-y-2">
+									<input
+										type="file"
+										multiple
+										onChange={(e) => handleFileUpload(e, 'other')}
+										className="hidden"
+										id="file-upload-other"
+									/>
+									<label
+										htmlFor="file-upload-other"
+										className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+									>
+										Click here to upload files
+									</label>
+								</div>
+							</div>
+						</div>
 					</div>
 
 					{/* File Management */}
@@ -1341,60 +1298,49 @@ const ProgramDetail = () => {
 									<h3 className="text-lg font-medium text-foreground border-b pb-2">
 										Uploaded Files ({uploadedFiles.length})
 									</h3>
-									{currentProgram?.documents &&
-										currentProgram.documents.length > 0 &&
-										currentProgram.documents.map((doc: any) => {
-											const filesForThisType = uploadedFiles.filter(
-												(file) => file.documentType === doc.documentType.id
-											)
-											if (filesForThisType.length === 0) return null
-
-											return (
-												<div key={doc.documentType.id} className="space-y-3">
-													<h4 className="text-md font-medium text-gray-700 border-b border-gray-200 pb-1">
-														{doc.documentType.name} ({filesForThisType.length})
-													</h4>
-													<div className="grid grid-cols-1 gap-3">
-														{filesForThisType.map((file) => (
-															<div
-																key={file.id}
-																className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-															>
-																<div className="text-2xl">📄</div>
-																<div className="flex-1 min-w-0">
-																	<p className="text-sm font-medium text-foreground truncate">
-																		{file.name}
-																	</p>
-																	<p className="text-xs text-muted-foreground">
-																		{(file.size / 1024).toFixed(1)} KB
-																	</p>
-																</div>
-																<div className="flex gap-2">
-																	<Button
-																		variant="outline"
-																		size="sm"
-																		onClick={() => {
-																			// Open S3 file URL in new tab
-																			window.open(file.url, '_blank')
-																		}}
-																	>
-																		View
-																	</Button>
-																	<Button
-																		variant="outline"
-																		size="sm"
-																		onClick={() => removeFile(file.id)}
-																		className="text-red-500 hover:text-red-700"
-																	>
-																		Delete
-																	</Button>
-																</div>
-															</div>
-														))}
+									<div className="space-y-3">
+										<h4 className="text-md font-medium text-gray-700 border-b border-gray-200 pb-1">
+											Other Documents ({uploadedFiles.length})
+										</h4>
+										<div className="grid grid-cols-1 gap-3">
+											{uploadedFiles.map((file) => (
+												<div
+													key={file.id}
+													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+												>
+													<div className="text-2xl">📄</div>
+													<div className="flex-1 min-w-0">
+														<p className="text-sm font-medium text-foreground truncate">
+															{file.name}
+														</p>
+														<p className="text-xs text-muted-foreground">
+															{(file.size / 1024).toFixed(1)} KB
+														</p>
+													</div>
+													<div className="flex gap-2">
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => {
+																// Open S3 file URL in new tab
+																window.open(file.url, '_blank')
+															}}
+														>
+															View
+														</Button>
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => removeFile(file.id)}
+															className="text-red-500 hover:text-red-700"
+														>
+															Delete
+														</Button>
 													</div>
 												</div>
-											)
-										})}
+											))}
+										</div>
+									</div>
 								</div>
 							)}
 

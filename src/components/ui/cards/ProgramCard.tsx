@@ -143,7 +143,6 @@ export function ProgramCard({
 			<div className="text-center mb-6 flex-grow flex items-end justify-center min-h-[60px]">
 				<div className="text-2xl font-bold text-gray-900">{program.price}</div>
 			</div>
-
 			{/* Match */}
 			<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
 				{/* Animated progress */}

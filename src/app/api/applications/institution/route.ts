@@ -57,10 +57,11 @@ export async function GET(request: NextRequest) {
 			where: whereClause,
 		});
 
-		// Query applications with related data
+		// Query applications with related data including profile snapshot
 		const applications = await prismaClient.application.findMany({
 			where: whereClause,
 			include: {
+				profileSnapshot: true, // Include the profile snapshot
 				applicant: {
 					include: {
 						user: {
@@ -97,22 +98,49 @@ export async function GET(request: NextRequest) {
 			take: limit,
 		});
 
-		// Transform data to match the expected format
+		// Transform data to match the expected format using snapshot data
 		const transformedApplications = applications.map((app) => {
+			// Use snapshot data if available, otherwise fallback to live data
+			const snapshot = app.profileSnapshot;
 			const transformed = {
 				id: app.application_id,
 				postId: app.post.post_id,
-				name: app.applicant.user.name || "Unknown",
-				email: app.applicant.user.email,
-				image: app.applicant.user.image,
+				// Use snapshot data for consistent profile information
+				name:
+					snapshot?.user_name || app.applicant.user.name || "Unknown",
+				email: snapshot?.user_email || app.applicant.user.email,
+				image: snapshot?.user_image || app.applicant.user.image,
 				appliedDate: app.apply_at.toLocaleDateString(),
-				degreeLevel: app.applicant.level || "Unknown",
-				subDiscipline: app.applicant.subdiscipline?.name || "Unknown",
+				degreeLevel:
+					snapshot?.level || app.applicant.level || "Unknown",
+				// For subdisciplines, we'll show a count or "Multiple interests"
+				subDiscipline:
+					(snapshot?.subdiscipline_ids?.length ?? 0) > 0
+						? `${snapshot?.subdiscipline_ids?.length ?? 0} interests`
+						: app.applicant.subdiscipline?.name || "Unknown",
 				status: app.status.toLowerCase(),
 				matchingScore: Math.floor(Math.random() * 30) + 70, // Mock matching score
 				postTitle: app.post.title,
 				applicantId: app.applicant.applicant_id,
 				userId: app.applicant.user.id, // Include user ID for thread matching
+				// Additional snapshot data for detailed view
+				snapshotData: snapshot
+					? {
+							firstName: snapshot.first_name,
+							lastName: snapshot.last_name,
+							nationality: snapshot.nationality,
+							phoneNumber: snapshot.phone_number,
+							countryCode: snapshot.country_code,
+							graduated: snapshot.graduated,
+							gpa: snapshot.gpa,
+							university: snapshot.university,
+							countryOfStudy: snapshot.country_of_study,
+							hasForeignLanguage: snapshot.has_foreign_language,
+							languages: snapshot.languages,
+							favoriteCountries: snapshot.favorite_countries,
+							subdisciplineIds: snapshot.subdiscipline_ids,
+						}
+					: null,
 			};
 			return transformed;
 		});

@@ -140,14 +140,23 @@ export async function GET(request: NextRequest) {
 				postData = post.jobPost;
 			}
 
+			// Format dates to dd/mm/yyyy
+			const formatDate = (date: Date | null) => {
+				if (!date) return "";
+				const day = date.getDate().toString().padStart(2, "0");
+				const month = (date.getMonth() + 1).toString().padStart(2, "0");
+				const year = date.getFullYear();
+				return `${day}/${month}/${year}`;
+			};
+
 			return {
 				id: post.post_id,
 				title: post.title,
 				status: post.status.toLowerCase(),
-				postedDate: post.create_at.toLocaleDateString(),
+				postedDate: formatDate(post.create_at),
 				applicationCount: applicationCountMap.get(post.post_id) || 0,
-				startDate: post.start_date?.toLocaleDateString(),
-				endDate: post.end_date?.toLocaleDateString(),
+				startDate: formatDate(post.start_date),
+				endDate: formatDate(post.end_date),
 				location: post.location,
 				type: postType,
 				data: postData,

@@ -9,10 +9,11 @@ import { CTASection } from '@/components/homepage/cta-section'
 import { motion } from 'framer-motion'
 import { EduMatchHeader } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
+import { InstitutionRedirect } from '@/components/auth/InstitutionRedirect'
 
 export default function HomePage() {
 	return (
-		<>
+		<InstitutionRedirect>
 			<EduMatchHeader />
 			<main className="min-h-screen">
 				<motion.div
@@ -29,6 +30,6 @@ export default function HomePage() {
 				</motion.div>
 			</main>
 			<Footer />
-		</>
+		</InstitutionRedirect>
 	)
 }

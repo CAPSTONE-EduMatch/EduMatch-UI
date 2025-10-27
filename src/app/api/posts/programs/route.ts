@@ -17,7 +17,7 @@ interface CreateProgramRequest {
 
 	// Programme Structure
 	courseInclude: string;
-	professorName: string;
+	description: string;
 
 	// Admission Requirements
 	academicRequirements: {
@@ -25,11 +25,11 @@ interface CreateProgramRequest {
 		gre: string;
 		gmat: string;
 	};
-	languageRequirements: {
+	languageRequirements: Array<{
 		language: string;
 		certificate: string;
 		score: string;
-	};
+	}>;
 
 	// File Requirements
 	fileRequirements: {
@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
 				create_at: new Date(),
 				institution_id: institution.institution_id,
 				degree_level: body.degreeLevel,
+				description: body.description,
 			},
 		});
 
@@ -159,25 +160,27 @@ export async function POST(request: NextRequest) {
 					: null,
 				fee_description: body.tuitionFee.description,
 				scholarship_info: body.scholarship.information,
-				professor_name: body.professorName,
-				language_requirement: body.languageRequirements.language,
+				language_requirement:
+					body.languageRequirements.length > 0
+						? body.languageRequirements[0].language
+						: null,
 			},
 		});
 
 		// Create post certificates for language requirements
-		if (
-			body.languageRequirements.language &&
-			body.languageRequirements.certificate &&
-			body.languageRequirements.score
-		) {
-			await prismaClient.postCertificate.create({
-				data: {
-					certificate_id: `cert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-					post_id: opportunityPost.post_id,
-					name: body.languageRequirements.certificate,
-					score: body.languageRequirements.score,
-				},
-			});
+		if (body.languageRequirements && body.languageRequirements.length > 0) {
+			for (const langReq of body.languageRequirements) {
+				if (langReq.language && langReq.certificate && langReq.score) {
+					await prismaClient.postCertificate.create({
+						data: {
+							certificate_id: `cert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							post_id: opportunityPost.post_id,
+							name: langReq.certificate,
+							score: langReq.score,
+						},
+					});
+				}
+			}
 		}
 
 		// Create post documents for file requirements

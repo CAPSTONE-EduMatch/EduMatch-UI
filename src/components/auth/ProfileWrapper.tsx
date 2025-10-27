@@ -61,18 +61,6 @@ export function ProfileWrapper({
 		checkProfile()
 	}, [isAuthenticated, user?.id, authLoading])
 
-	// Only show loading spinner on initial load, not for subsequent auth checks
-	if (authLoading && hasProfile === null) {
-		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">Loading...</p>
-				</div>
-			</div>
-		)
-	}
-
 	// Show profile creation modal if user doesn't have a profile
 	if (isAuthenticated && hasProfile === false) {
 		const handleCreateProfile = () => {

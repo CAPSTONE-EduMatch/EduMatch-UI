@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
 	PostsStatisticsCards,
 	PostsSearchAndFilter,
@@ -21,6 +22,8 @@ interface ProgramsSectionProps {
 export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	profile,
 }) => {
+	const router = useRouter()
+	const searchParams = useSearchParams()
 	const [searchQuery, setSearchQuery] = useState('')
 	const [typeFilter, setTypeFilter] = useState<string[]>([])
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -30,6 +33,18 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	const [createFormType, setCreateFormType] = useState<
 		'Program' | 'Scholarship' | 'Research Lab' | null
 	>(null)
+
+	// Check if we're in create mode via URL parameter (only for programs tab)
+	const currentTab = searchParams.get('tab')
+	const isCreateMode =
+		currentTab === 'programs' && searchParams.get('action') === 'create'
+	const createType = isCreateMode
+		? (searchParams.get('type') as
+				| 'Program'
+				| 'Scholarship'
+				| 'Research Lab'
+				| null)
+		: null
 	const [posts, setPosts] = useState<Post[]>([])
 	const [stats, setStats] = useState({
 		total: 0,
@@ -77,7 +92,6 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 				throw new Error(result.error || 'Failed to fetch posts')
 			}
 		} catch (err) {
-			console.error('Error fetching posts:', err)
 			setError(err instanceof Error ? err.message : 'Failed to fetch posts')
 		} finally {
 			setLoading(false)
@@ -87,7 +101,45 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	// Fetch posts only when component mounts
 	useEffect(() => {
 		fetchPosts()
-	}, [])
+	}, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+	// Sync URL parameters with component state
+	useEffect(() => {
+		if (isCreateMode && createType) {
+			setCreateFormType(createType)
+			setShowCreateForm(true)
+		} else {
+			setShowCreateForm(false)
+			setCreateFormType(null)
+		}
+	}, [isCreateMode, createType])
+
+	// Listen for browser back/forward navigation
+	useEffect(() => {
+		const handlePopState = () => {
+			// Force re-evaluation of URL parameters when browser navigation occurs
+			const currentTab = searchParams.get('tab')
+			const currentAction = searchParams.get('action')
+			const currentType = searchParams.get('type')
+
+			if (
+				currentTab === 'programs' &&
+				currentAction === 'create' &&
+				currentType
+			) {
+				setCreateFormType(
+					currentType as 'Program' | 'Scholarship' | 'Research Lab'
+				)
+				setShowCreateForm(true)
+			} else {
+				setShowCreateForm(false)
+				setCreateFormType(null)
+			}
+		}
+
+		window.addEventListener('popstate', handlePopState)
+		return () => window.removeEventListener('popstate', handlePopState)
+	}, [searchParams])
 
 	// Filter and search posts (client-side for immediate feedback)
 	const filteredPosts = useMemo(() => {
@@ -157,26 +209,51 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	const handleAddNew = (
 		postType: 'Program' | 'Scholarship' | 'Research Lab'
 	) => {
+		// Update URL to show create form using Next.js router
+		const url = new URL(window.location.href)
+		url.searchParams.set('tab', 'programs')
+		url.searchParams.set('action', 'create')
+		url.searchParams.set('type', postType)
+
+		// Use router.push to update URL without full page reload
+		router.push(url.pathname + url.search)
+
+		// Update local state for immediate UI update
 		setCreateFormType(postType)
 		setShowCreateForm(true)
 	}
 
 	const handleBackToList = () => {
+		// Remove create parameters from URL using Next.js router
+		const url = new URL(window.location.href)
+		url.searchParams.delete('action')
+		url.searchParams.delete('type')
+		// Ensure we stay on the programs tab
+		url.searchParams.set('tab', 'programs')
+		// Use router.push to update URL without full page reload
+		router.push(url.pathname + url.search)
+		// Update local state
 		setShowCreateForm(false)
 		setCreateFormType(null)
 	}
 
-	const handleCreateSubmit = (data: any) => {
-		// eslint-disable-next-line no-console
-		console.log('Create post:', createFormType, data)
+	const handleCreateSubmit = () => {
 		setShowCreateForm(false)
 		setCreateFormType(null)
 		// Refresh the posts list after successful creation
 		fetchPosts()
 	}
 
-	// Show create form if active
+	// Show create form if active (for all types including Program)
 	if (showCreateForm && createFormType) {
+		if (createFormType === 'Program') {
+			return (
+				<CreateProgramPage
+					onBack={handleBackToList}
+					onSubmit={handleCreateSubmit}
+				/>
+			)
+		}
 		if (createFormType === 'Scholarship') {
 			return (
 				<CreateScholarshipPage
@@ -193,12 +270,6 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 				/>
 			)
 		}
-		return (
-			<CreateProgramPage
-				onBack={handleBackToList}
-				onSubmit={handleCreateSubmit}
-			/>
-		)
 	}
 
 	// Show loading state

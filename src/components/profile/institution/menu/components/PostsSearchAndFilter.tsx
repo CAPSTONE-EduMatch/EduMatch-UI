@@ -148,9 +148,6 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 								<Plus className="w-4 h-4" />
 								Add new post
 								<ChevronDown className="w-4 h-4" />
-								<div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full flex items-center justify-center">
-									<Bell className="w-2 h-2 text-white" />
-								</div>
 							</Button>
 
 							{showDropdown && (

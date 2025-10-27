@@ -20,9 +20,6 @@ export {
 	type ApplicantProfileSection,
 } from "./menu/ApplicantProfileLayout";
 
-// Legacy Layout (for backward compatibility)
-export { ProfileLayout } from "./ProfileLayout";
-
 // Profile View Section Components
 export { ProfileInfoSection } from "./menu/ProfileInfoSection";
 export { AcademicSection } from "./menu/AcademicSection";

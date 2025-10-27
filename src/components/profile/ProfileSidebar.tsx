@@ -150,7 +150,10 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 							</div>
 						)}
 						<h3 className="font-bold text-lg text-white mb-1">
-							{profile?.firstName} {profile?.lastName}
+							{profile?.role === 'institution'
+								? profile?.institutionName || 'Institution'
+								: `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() ||
+									'User'}
 						</h3>
 						<p className="text-white/80 text-xs mb-2 truncate">
 							{profile?.user?.email}

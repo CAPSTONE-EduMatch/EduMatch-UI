@@ -280,35 +280,56 @@ export class InstitutionProfileService {
 				});
 			}
 
-			// Handle institution disciplines
-			if (
-				formData.institutionDisciplines &&
-				formData.institutionDisciplines.length > 0
-			) {
-				// Clear existing disciplines
-				await prismaClient.institutionSubdiscipline.deleteMany({
-					where: { institution_id: institution.institution_id },
-				});
+			// Handle institution disciplines - only update if provided
+			if (formData.institutionDisciplines !== undefined) {
+				if (formData.institutionDisciplines.length > 0) {
+					// Clear existing disciplines
+					await prismaClient.institutionSubdiscipline.deleteMany({
+						where: { institution_id: institution.institution_id },
+					});
 
-				// Add new disciplines
-				for (const disciplineName of formData.institutionDisciplines) {
-					const subdiscipline =
-						await prismaClient.subdiscipline.findFirst({
-							where: { name: disciplineName },
-						});
+					// Add new disciplines
+					for (const disciplineName of formData.institutionDisciplines) {
+						const subdiscipline =
+							await prismaClient.subdiscipline.findFirst({
+								where: { name: disciplineName },
+							});
 
-					if (subdiscipline) {
-						await prismaClient.institutionSubdiscipline.create({
-							data: {
-								institution_id: institution.institution_id,
-								subdiscipline_id:
-									subdiscipline.subdiscipline_id,
-								add_at: new Date(),
-								status: true,
-							},
-						});
+						if (subdiscipline) {
+							await prismaClient.institutionSubdiscipline.create({
+								data: {
+									institution_id: institution.institution_id,
+									subdiscipline_id:
+										subdiscipline.subdiscipline_id,
+									add_at: new Date(),
+									status: true,
+								},
+							});
+							console.log(
+								"✅ InstitutionProfileService: Added discipline:",
+								disciplineName
+							);
+						} else {
+							console.warn(
+								"⚠️ InstitutionProfileService: Subdiscipline not found:",
+								disciplineName
+							);
+						}
 					}
+				} else {
+					// Empty array means remove all disciplines
+					await prismaClient.institutionSubdiscipline.deleteMany({
+						where: { institution_id: institution.institution_id },
+					});
+					console.log(
+						"🗑️ InstitutionProfileService: Cleared all disciplines"
+					);
 				}
+			} else {
+				// undefined means don't change disciplines
+				console.log(
+					"📄 InstitutionProfileService: Preserving existing disciplines"
+				);
 			}
 
 			// Handle documents
@@ -333,46 +354,48 @@ export class InstitutionProfileService {
 		formData: InstitutionProfileFormData
 	): Promise<void> {
 		try {
-			// Soft delete existing documents first to avoid duplicates
-			await prismaClient.institutionDocument.updateMany({
-				where: {
-					institution_id: institutionId,
-					status: true, // Only soft delete active documents
-				},
-				data: {
-					status: false,
-					deleted_at: new Date(),
-				},
-			});
+			// Only handle new documents if explicitly provided
+			// Don't delete existing documents unless specifically requested
+			if (
+				!formData.institutionVerificationDocuments ||
+				formData.institutionVerificationDocuments.length === 0
+			) {
+				// No documents to add, keep existing ones
+				console.log(
+					"📄 InstitutionProfileService: No new documents to add, preserving existing"
+				);
+				return;
+			}
 
 			// Get or create document type for verification documents
 			const verificationDocType = await this.getOrCreateDocumentType(
 				"Institution Verification"
 			);
 
-			// Handle verification documents
-			if (
-				formData.institutionVerificationDocuments &&
-				formData.institutionVerificationDocuments.length > 0
-			) {
-				for (const file of formData.institutionVerificationDocuments) {
-					await prismaClient.institutionDocument.create({
-						data: {
-							document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-							institution_id: institutionId,
-							document_type_id:
-								verificationDocType.document_type_id,
-							name:
-								file.name ||
-								file.originalName ||
-								"Verification Document",
-							url: file.url || "",
-							size: file.size || 0,
-							upload_at: new Date(),
-							status: true,
-						},
-					});
-				}
+			// Save all documents directly to database without checking duplicates
+			for (const file of formData.institutionVerificationDocuments) {
+				// Create document entry
+				await prismaClient.institutionDocument.create({
+					data: {
+						document_id:
+							file.id ||
+							`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						institution_id: institutionId,
+						document_type_id: verificationDocType.document_type_id,
+						name:
+							file.name ||
+							file.originalName ||
+							"Verification Document",
+						url: file.url || "",
+						size: file.size || file.fileSize || 0,
+						upload_at: new Date(),
+						status: true,
+					},
+				});
+				console.log(
+					"✅ InstitutionProfileService: Saved document to database:",
+					file.name
+				);
 			}
 		} catch (error) {
 			console.error("Error handling institution documents:", error);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/lib/auth";
 import { ApplicantProfileService } from "@/lib/applicant-profile-service";
 import { InstitutionProfileService } from "@/lib/institution-profile-service";
+import { prismaClient } from "../../../../prisma";
 
 export async function GET(request: NextRequest) {
 	try {
@@ -18,20 +19,45 @@ export async function GET(request: NextRequest) {
 		}
 
 		const userId = session.user.id;
-		const applicantProfile =
-			await ApplicantProfileService.getProfile(userId);
-		const institutionProfile =
-			await InstitutionProfileService.getProfile(userId);
+		// Get user with role information to determine profile type
+		const user = await prismaClient.user.findUnique({
+			where: { id: userId },
+			include: { userRole: true },
+		});
+
+		if (!user) {
+			return NextResponse.json(
+				{ error: "User not found" },
+				{ status: 404 }
+			);
+		}
 
 		let profile: any = null;
 		let profileType = "";
 
-		if (applicantProfile) {
-			profile = applicantProfile;
+		// Fetch profile based on user role - only one query needed
+		if (user.role_id === "1") {
+			// Student/Applicant role
+			profile = await ApplicantProfileService.getProfile(userId);
 			profileType = "applicant";
-		} else if (institutionProfile) {
-			profile = institutionProfile;
+		} else if (user.role_id === "2") {
+			// Institution role
+			profile = await InstitutionProfileService.getProfile(userId);
 			profileType = "institution";
+		} else {
+			// No role set or invalid role - check if profile exists (fallback)
+			const hasApplicantProfile =
+				await ApplicantProfileService.hasProfile(userId);
+			const hasInstitutionProfile =
+				await InstitutionProfileService.hasProfile(userId);
+
+			if (hasApplicantProfile) {
+				profile = await ApplicantProfileService.getProfile(userId);
+				profileType = "applicant";
+			} else if (hasInstitutionProfile) {
+				profile = await InstitutionProfileService.getProfile(userId);
+				profileType = "institution";
+			}
 		}
 
 		if (profile) {
@@ -219,13 +245,44 @@ export async function GET(request: NextRequest) {
 					birthday: "",
 					nationality: profile.country || "",
 					phoneNumber: profile.rep_phone || "",
-					countryCode: "+1", // Default
+					countryCode: profile.rep_phone_code || "+1",
 					interests:
 						profile.subdisciplines?.map(
 							(s: any) => s.subdiscipline?.name || ""
 						) || [],
 					favoriteCountries: [],
-					profilePhoto: profile.user?.image || "",
+					profilePhoto: profile.user?.image || profile.logo || "",
+					// Institution-specific fields mapped correctly
+					institutionName: profile.name || "",
+					institutionAbbreviation: profile.abbreviation || "",
+					institutionType: profile.type || "",
+					institutionWebsite: profile.website || "",
+					institutionHotline: profile.hotline || "",
+					institutionHotlineCode: profile.hotline_code || "+84",
+					institutionAddress: profile.address || "",
+					institutionCountry: profile.country || "",
+					representativeName: profile.rep_name || "",
+					representativePosition: profile.rep_position || "",
+					representativeEmail: profile.rep_email || "",
+					representativePhone: profile.rep_phone || "",
+					representativePhoneCode: profile.rep_phone_code || "+84",
+					aboutInstitution: profile.about || "",
+					institutionDisciplines:
+						profile.subdisciplines?.map(
+							(s: any) => s.subdiscipline?.name || ""
+						) || [],
+					institutionCoverImage: profile.cover_image || "",
+					verificationDocuments:
+						profile.documents?.map((doc: any) => ({
+							id: doc.document_id,
+							name: doc.name,
+							originalName: doc.name,
+							url: doc.url,
+							size: doc.size,
+							fileSize: doc.size,
+							fileType: doc.documentType?.name || "Unknown",
+							category: "verification",
+						})) || [],
 					user: {
 						id: profile.user.id,
 						name: profile.user.name || "",
@@ -274,12 +331,16 @@ export async function POST(request: NextRequest) {
 
 		const userId = session.user.id;
 
-		// Check if profile already exists
-		const hasApplicantProfile =
-			await ApplicantProfileService.hasProfile(userId);
-		const hasInstitutionProfile =
-			await InstitutionProfileService.hasProfile(userId);
-		const hasExistingProfile = hasApplicantProfile || hasInstitutionProfile;
+		// Check if profile already exists based on role
+		let hasExistingProfile = false;
+		if (formData.role === "applicant") {
+			hasExistingProfile =
+				await ApplicantProfileService.hasProfile(userId);
+		} else if (formData.role === "institution") {
+			hasExistingProfile =
+				await InstitutionProfileService.hasProfile(userId);
+		}
+
 		if (hasExistingProfile) {
 			return NextResponse.json(
 				{ error: "Profile already exists" },
@@ -375,6 +436,12 @@ export async function PUT(request: NextRequest) {
 				},
 				{ status: 400 }
 			);
+		}
+
+		// Map verificationDocuments to institutionVerificationDocuments for institution profiles
+		if (formData.role === "institution" && formData.verificationDocuments) {
+			formData.institutionVerificationDocuments =
+				formData.verificationDocuments;
 		}
 
 		// Use the appropriate profile service based on role

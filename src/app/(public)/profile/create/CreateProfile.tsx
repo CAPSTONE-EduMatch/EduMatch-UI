@@ -202,9 +202,6 @@ export default function CreateProfile() {
 	const handleCheckboxChange =
 		(field: keyof ProfileFormData) => (checked: boolean) => {
 			if (field === 'graduationStatus') {
-				// This will be handled by the AcademicInfoStep component directly
-				// We just need to provide the function signature
-				console.log('Checkbox changed:', field, checked)
 			}
 		}
 
@@ -234,6 +231,8 @@ export default function CreateProfile() {
 			await ApiService.createProfile(formData)
 
 			// Profile created successfully
+			// Dispatch custom event to notify components that profile has been updated
+			window.dispatchEvent(new CustomEvent('profileUpdated'))
 
 			// Redirect based on role
 			if (formData.role === 'applicant') {

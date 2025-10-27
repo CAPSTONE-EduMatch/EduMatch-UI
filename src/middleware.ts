@@ -146,6 +146,12 @@ export async function middleware(request: NextRequest) {
 
 		// Handle public routes
 		if (isPublicRoute) {
+			// For authenticated users, check if they should be redirected based on role
+			if (isAuthenticated) {
+				// We need to check user role, but we can't do that in middleware easily
+				// So we'll let the client handle this redirect
+				return NextResponse.next();
+			}
 			return NextResponse.next();
 		}
 

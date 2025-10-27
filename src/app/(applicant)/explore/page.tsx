@@ -1,11 +1,16 @@
+'use client'
+
 import React from 'react'
 import Explore from './Explore'
+import { InstitutionRedirect } from '@/components/auth/InstitutionRedirect'
 
 const page = () => {
 	return (
-		<div>
-			<Explore />
-		</div>
+		<InstitutionRedirect>
+			<div>
+				<Explore />
+			</div>
+		</InstitutionRedirect>
 	)
 }
 

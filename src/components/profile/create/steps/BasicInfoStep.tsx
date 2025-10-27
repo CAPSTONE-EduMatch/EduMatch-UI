@@ -67,8 +67,6 @@ export function BasicInfoStep({
 	// Auto-fill Google login data when component mounts (only for Google OAuth users)
 	useEffect(() => {
 		if (user && user.image) {
-			// Only auto-fill for Google OAuth users (indicated by user.image)
-			// Auto-fill email from Google account
 			if (user.email && !formData.email) {
 				onInputChange('email', user.email)
 			}

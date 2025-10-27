@@ -7,7 +7,7 @@ import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 // Import both layout components
 import {
@@ -263,13 +263,16 @@ export default function ProfileView() {
 		}
 	}
 
-	// Show loading state
-	if (isAuthenticated && loading && !profile) {
+	// Show loading state - covers both auth check and profile loading
+	if (
+		(!isAuthenticated && loading) ||
+		(isAuthenticated && loading && !profile)
+	) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">Loading profile...</p>
+					<p className="mt-4 text-muted-foreground">Loading...</p>
 				</div>
 			</div>
 		)
@@ -350,6 +353,7 @@ function ApplicantProfileView({
 	refreshProfile: () => Promise<void>
 	subdisciplines: Array<{ value: string; label: string; discipline: string }>
 }) {
+	const router = useRouter()
 	const [activeSection, setActiveSection] =
 		useState<ApplicantProfileSection>('profile')
 
@@ -372,10 +376,13 @@ function ApplicantProfileView({
 	// Handle section change and update URL
 	const handleSectionChange = (section: ApplicantProfileSection) => {
 		setActiveSection(section)
-		// Update URL without page reload
+		// Update URL using Next.js router for better browser navigation support
 		const url = new URL(window.location.href)
 		url.searchParams.set('tab', section)
-		window.history.pushState({}, '', url.toString())
+		// Clear create form parameters when switching tabs
+		url.searchParams.delete('action')
+		url.searchParams.delete('type')
+		router.push(url.pathname + url.search)
 	}
 
 	const renderSectionContent = () => {
@@ -454,6 +461,7 @@ function InstitutionProfileView({
 	searchParams: URLSearchParams
 	refreshProfile: () => Promise<void>
 }) {
+	const router = useRouter()
 	const [activeSection, setActiveSection] =
 		useState<InstitutionProfileSection>('overview')
 
@@ -477,10 +485,13 @@ function InstitutionProfileView({
 	// Handle section change and update URL
 	const handleSectionChange = (section: InstitutionProfileSection) => {
 		setActiveSection(section)
-		// Update URL without page reload
+		// Update URL using Next.js router for better browser navigation support
 		const url = new URL(window.location.href)
 		url.searchParams.set('tab', section)
-		window.history.pushState({}, '', url.toString())
+		// Clear create form parameters when switching tabs
+		url.searchParams.delete('action')
+		url.searchParams.delete('type')
+		router.push(url.pathname + url.search)
 	}
 
 	const renderSectionContent = () => {
@@ -501,7 +512,12 @@ function InstitutionProfileView({
 					/>
 				)
 			case 'profile':
-				return <InstitutionProfileComponent profile={profile} />
+				return (
+					<InstitutionProfileComponent
+						profile={profile}
+						onProfileUpdate={refreshProfile}
+					/>
+				)
 			case 'application':
 				return <InstitutionApplicationSection profile={profile} />
 			case 'analytics':

@@ -1,21 +1,43 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
 import { DateInput, CustomSelect, RichTextEditor } from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
+import { ApiService } from '@/lib/axios-config'
 
 interface CreateProgramPageProps {
 	onBack?: () => void
-	onSubmit?: (data: unknown) => void
+	onSubmit?: () => void
 }
 
 export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	onBack,
 	onSubmit,
 }) => {
+	// State for subdisciplines loaded from database
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
+
 	const [formData, setFormData] = useState({
 		// Overview Section
 		programTitle: 'International Business and Intercultural Management',
@@ -36,7 +58,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 <li>Group Software Development Project</li>
 <li>Cloud Computing</li>
 </ul>`,
-		professorName: '',
+		description: '',
 
 		// Admission Requirements
 		academicRequirements: {
@@ -44,11 +66,13 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 			gre: '',
 			gmat: '',
 		},
-		languageRequirements: {
-			language: 'English',
-			certificate: 'IELTS',
-			score: '7.0',
-		},
+		languageRequirements: [
+			{
+				language: 'English',
+				certificate: 'IELTS',
+				score: '7.0',
+			},
+		],
 
 		// File Requirements
 		fileRequirements: {
@@ -90,14 +114,94 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}))
 	}
 
-	const handleLanguageRequirementChange = (field: string, value: string) => {
+	const handleLanguageRequirementChange = (
+		index: number,
+		field: string,
+		value: string
+	) => {
 		setFormData((prev) => ({
 			...prev,
-			languageRequirements: {
-				...prev.languageRequirements,
-				[field]: value,
-			},
+			languageRequirements: prev.languageRequirements.map((req, i) =>
+				i === index ? { ...req, [field]: value } : req
+			),
 		}))
+	}
+
+	const addLanguageRequirement = () => {
+		setFormData((prev) => ({
+			...prev,
+			languageRequirements: [
+				...prev.languageRequirements,
+				{ language: '', certificate: '', score: '' },
+			],
+		}))
+	}
+
+	const removeLanguageRequirement = (index: number) => {
+		setFormData((prev) => ({
+			...prev,
+			languageRequirements: prev.languageRequirements.filter(
+				(_, i) => i !== index
+			),
+		}))
+	}
+
+	// Function to get certificate options based on selected language
+	const getCertificateOptions = (language: string) => {
+		switch (language) {
+			case 'English':
+				return [
+					{ value: 'IELTS', label: 'IELTS' },
+					{ value: 'TOEFL', label: 'TOEFL' },
+					{ value: 'TOEIC', label: 'TOEIC' },
+					{ value: 'Cambridge', label: 'Cambridge' },
+					{ value: 'PTE', label: 'PTE Academic' },
+					{ value: 'Duolingo', label: 'Duolingo English Test' },
+				]
+			case 'Spanish':
+				return [
+					{ value: 'DELE', label: 'DELE' },
+					{ value: 'SIELE', label: 'SIELE' },
+					{ value: 'CELU', label: 'CELU' },
+				]
+			case 'French':
+				return [
+					{ value: 'DELF', label: 'DELF' },
+					{ value: 'DALF', label: 'DALF' },
+					{ value: 'TCF', label: 'TCF' },
+					{ value: 'TEF', label: 'TEF' },
+				]
+			case 'German':
+				return [
+					{ value: 'Goethe', label: 'Goethe-Zertifikat' },
+					{ value: 'TestDaF', label: 'TestDaF' },
+					{ value: 'DSH', label: 'DSH' },
+				]
+			case 'Chinese':
+				return [
+					{ value: 'HSK', label: 'HSK' },
+					{ value: 'TOCFL', label: 'TOCFL' },
+					{ value: 'BCT', label: 'BCT' },
+				]
+			case 'Japanese':
+				return [
+					{ value: 'JLPT', label: 'JLPT' },
+					{ value: 'J-Test', label: 'J-Test' },
+					{ value: 'NAT-TEST', label: 'NAT-TEST' },
+				]
+			case 'Korean':
+				return [
+					{ value: 'TOPIK', label: 'TOPIK' },
+					{ value: 'KLAT', label: 'KLAT' },
+				]
+			case 'Vietnamese':
+				return [
+					{ value: 'VSTEP', label: 'VSTEP' },
+					{ value: 'Other', label: 'Other Vietnamese Certificate' },
+				]
+			default:
+				return [{ value: 'Other', label: 'Other Certificate' }]
+		}
 	}
 
 	const handleFileRequirementChange = (field: string, value: string) => {
@@ -140,6 +244,98 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}))
 	}
 
+	// Function to validate and format GPA score (0.0-4.0 scale)
+	const handleGpaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+
+		// Allow empty string
+		if (value === '') {
+			handleAcademicRequirementChange('gpa', '')
+			return
+		}
+
+		// Allow typing decimal separators and numbers
+		let cleanValue = value.replace(/[^0-9.,]/g, '')
+
+		// Allow partial input like "3." or "3," while typing
+		if (cleanValue.endsWith('.') || cleanValue.endsWith(',')) {
+			handleAcademicRequirementChange('gpa', cleanValue)
+			return
+		}
+
+		// Replace comma with period for consistent decimal separator
+		cleanValue = cleanValue.replace(',', '.')
+
+		// Ensure only one decimal point
+		const decimalParts = cleanValue.split('.')
+		if (decimalParts.length > 2) {
+			cleanValue = decimalParts[0] + '.' + decimalParts.slice(1).join('')
+		}
+
+		// Convert to number and validate range (0.0 to 4.0)
+		const numValue = parseFloat(cleanValue)
+		if (!isNaN(numValue) && numValue >= 0 && numValue <= 4.0) {
+			// Format to max 2 decimal places
+			cleanValue = numValue.toFixed(2).replace(/\.?0+$/, '')
+			handleAcademicRequirementChange('gpa', cleanValue)
+		} else if (
+			cleanValue === '0' ||
+			cleanValue === '1' ||
+			cleanValue === '2' ||
+			cleanValue === '3' ||
+			cleanValue === '4'
+		) {
+			// Allow single digits 0-4
+			handleAcademicRequirementChange('gpa', cleanValue)
+		}
+	}
+
+	// Function to validate and format GRE score (130-170 range)
+	const handleGreInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+
+		// Allow empty string
+		if (value === '') {
+			handleAcademicRequirementChange('gre', '')
+			return
+		}
+
+		// Allow only numbers
+		let cleanValue = value.replace(/[^0-9]/g, '')
+
+		// Convert to number and validate range (130-170)
+		const numValue = parseInt(cleanValue)
+		if (!isNaN(numValue) && numValue >= 130 && numValue <= 170) {
+			handleAcademicRequirementChange('gre', cleanValue)
+		} else if (cleanValue.length <= 3) {
+			// Allow partial input while typing (e.g., "1", "13", "130")
+			handleAcademicRequirementChange('gre', cleanValue)
+		}
+	}
+
+	// Function to validate and format GMAT score (200-800 range)
+	const handleGmatInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value
+
+		// Allow empty string
+		if (value === '') {
+			handleAcademicRequirementChange('gmat', '')
+			return
+		}
+
+		// Allow only numbers
+		let cleanValue = value.replace(/[^0-9]/g, '')
+
+		// Convert to number and validate range (200-800)
+		const numValue = parseInt(cleanValue)
+		if (!isNaN(numValue) && numValue >= 200 && numValue <= 800) {
+			handleAcademicRequirementChange('gmat', cleanValue)
+		} else if (cleanValue.length <= 3) {
+			// Allow partial input while typing (e.g., "2", "20", "200")
+			handleAcademicRequirementChange('gmat', cleanValue)
+		}
+	}
+
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
 		try {
 			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
@@ -168,14 +364,16 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 			}
 
 			const result = await response.json()
+			// eslint-disable-next-line no-console
 			console.log('Program post created:', result)
 
-			// Call the onSubmit callback with the result
-			onSubmit?.(result)
+			// Call the onSubmit callback
+			onSubmit?.()
 
 			// Show success message
 			alert('Program post created successfully!')
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Error creating program post:', error)
 			// Show specific error message to user
 			alert(
@@ -240,6 +438,25 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 								minDate={new Date().toISOString().split('T')[0]}
 								maxDate="2030-12-31"
 							/>
+							{formData.startDate &&
+								formData.applicationDeadline &&
+								(() => {
+									const [startDay, startMonth, startYear] =
+										formData.startDate.split('/')
+									const [deadlineDay, deadlineMonth, deadlineYear] =
+										formData.applicationDeadline.split('/')
+									const startDate = new Date(
+										`${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`
+									)
+									const deadlineDate = new Date(
+										`${deadlineYear}-${deadlineMonth.padStart(2, '0')}-${deadlineDay.padStart(2, '0')}`
+									)
+									return startDate >= deadlineDate ? (
+										<p className="text-xs text-red-500 mt-1">
+											Start date must be before application deadline
+										</p>
+									) : null
+								})()}
 						</div>
 
 						<div className="relative">
@@ -254,6 +471,25 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 								minDate={new Date().toISOString().split('T')[0]}
 								maxDate="2030-12-31"
 							/>
+							{formData.startDate &&
+								formData.applicationDeadline &&
+								(() => {
+									const [startDay, startMonth, startYear] =
+										formData.startDate.split('/')
+									const [deadlineDay, deadlineMonth, deadlineYear] =
+										formData.applicationDeadline.split('/')
+									const startDate = new Date(
+										`${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`
+									)
+									const deadlineDate = new Date(
+										`${deadlineYear}-${deadlineMonth.padStart(2, '0')}-${deadlineDay.padStart(2, '0')}`
+									)
+									return startDate >= deadlineDate ? (
+										<p className="text-xs text-red-500 mt-1">
+											Application deadline must be after start date
+										</p>
+									) : null
+								})()}
 						</div>
 					</div>
 
@@ -274,15 +510,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 									handleInputChange('subdiscipline', option?.value || '')
 								}
 								placeholder="Choose subdiscipline"
-								options={[
-									{ value: 'Information system', label: 'Information system' },
-									{ value: 'Computer Science', label: 'Computer Science' },
-									{ value: 'Data Science', label: 'Data Science' },
-									{
-										value: 'Software Engineering',
-										label: 'Software Engineering',
-									},
-								]}
+								options={subdisciplines}
 								variant="default"
 								isClearable={false}
 								className="w-full"
@@ -424,20 +652,6 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 						label="Course include"
 						placeholder="Enter course details..."
 					/>
-
-					{/* Professor's Name */}
-					<div className="relative space-y-2">
-						<Label htmlFor="professorName">Professor&apos;s name</Label>
-						<Input
-							id="professorName"
-							placeholder="Enter name of professor that in charge for this program"
-							value={formData.professorName}
-							onChange={(e) =>
-								handleInputChange('professorName', e.target.value)
-							}
-							inputSize="select"
-						/>
-					</div>
 				</div>
 			</div>
 
@@ -470,9 +684,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 									<Input
 										placeholder="0.0-4.0"
 										value={formData.academicRequirements.gpa}
-										onChange={(e) =>
-											handleAcademicRequirementChange('gpa', e.target.value)
-										}
+										onChange={handleGpaInput}
 										inputSize="select"
 										fullWidth={false}
 										width="w-24"
@@ -488,11 +700,9 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 										|
 									</span>
 									<Input
-										placeholder="Score"
+										placeholder="130-170"
 										value={formData.academicRequirements.gre}
-										onChange={(e) =>
-											handleAcademicRequirementChange('gre', e.target.value)
-										}
+										onChange={handleGreInput}
 										inputSize="select"
 										fullWidth={false}
 										width="w-24"
@@ -508,11 +718,9 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 										|
 									</span>
 									<Input
-										placeholder="Score"
+										placeholder="200-800"
 										value={formData.academicRequirements.gmat}
-										onChange={(e) =>
-											handleAcademicRequirementChange('gmat', e.target.value)
-										}
+										onChange={handleGmatInput}
 										inputSize="select"
 										fullWidth={false}
 										width="w-24"
@@ -528,161 +736,188 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 							Language requirement
 						</h3>
 						<div className="space-y-4">
-							<div className="flex flex-col lg:flex-row gap-2">
-								<div className="space-y-1 flex-1">
-									<Label className="text-sm font-medium text-foreground">
-										Language
-									</Label>
-									<CustomSelect
-										value={
-											formData.languageRequirements.language
-												? {
-														value: formData.languageRequirements.language,
-														label: formData.languageRequirements.language,
-														flag:
-															[
-																{ value: 'Vietnamese', flag: '🇻🇳' },
-																{ value: 'English', flag: '🇺🇸' },
-																{ value: 'Spanish', flag: '🇪🇸' },
-																{ value: 'French', flag: '🇫🇷' },
-																{ value: 'German', flag: '🇩🇪' },
-																{ value: 'Chinese', flag: '🇨🇳' },
-																{ value: 'Japanese', flag: '🇯🇵' },
-																{ value: 'Korean', flag: '🇰🇷' },
-															].find(
-																(langOption) =>
-																	langOption.value ===
-																	formData.languageRequirements.language
-															)?.flag || '🌐',
-													}
-												: null
-										}
-										onChange={(option) =>
-											handleLanguageRequirementChange(
-												'language',
-												option?.value || ''
-											)
-										}
-										placeholder="Language"
-										options={[
-											{
-												value: 'Vietnamese',
-												label: 'Vietnamese',
-												flag: '🇻🇳',
-											},
-											{
-												value: 'English',
-												label: 'English',
-												flag: '🇺🇸',
-											},
-											{
-												value: 'Spanish',
-												label: 'Spanish',
-												flag: '🇪🇸',
-											},
-											{
-												value: 'French',
-												label: 'French',
-												flag: '🇫🇷',
-											},
-											{
-												value: 'German',
-												label: 'German',
-												flag: '🇩🇪',
-											},
-											{
-												value: 'Chinese',
-												label: 'Chinese',
-												flag: '🇨🇳',
-											},
-											{
-												value: 'Japanese',
-												label: 'Japanese',
-												flag: '🇯🇵',
-											},
-											{
-												value: 'Korean',
-												label: 'Korean',
-												flag: '🇰🇷',
-											},
-										]}
-										formatOptionLabel={(option: any) => (
-											<div className="flex items-center space-x-2">
-												<span className="text-lg">{option.flag}</span>
-												<span>{option.label}</span>
-											</div>
-										)}
-										menuPortalTarget={document.body}
-										className="w-full"
-										isSearchable
-										filterOption={(option, inputValue) => {
-											const language = option.data
-											return language.label
-												.toLowerCase()
-												.includes(inputValue.toLowerCase())
-										}}
-									/>
+							{formData.languageRequirements.map((req, index) => (
+								<div
+									key={index}
+									className="grid grid-cols-1 md:grid-cols-6 gap-4"
+								>
+									<div className="space-y-2 md:col-span-2">
+										<Label className="text-sm font-medium text-foreground">
+											Language
+										</Label>
+										<CustomSelect
+											value={
+												req.language
+													? {
+															value: req.language,
+															label: req.language,
+															flag:
+																[
+																	{ value: 'Vietnamese', flag: '🇻🇳' },
+																	{ value: 'English', flag: '🇺🇸' },
+																	{ value: 'Spanish', flag: '🇪🇸' },
+																	{ value: 'French', flag: '🇫🇷' },
+																	{ value: 'German', flag: '🇩🇪' },
+																	{ value: 'Chinese', flag: '🇨🇳' },
+																	{ value: 'Japanese', flag: '🇯🇵' },
+																	{ value: 'Korean', flag: '🇰🇷' },
+																].find(
+																	(langOption) =>
+																		langOption.value === req.language
+																)?.flag || '🌐',
+														}
+													: null
+											}
+											onChange={(option) =>
+												handleLanguageRequirementChange(
+													index,
+													'language',
+													option?.value || ''
+												)
+											}
+											placeholder="Language"
+											options={[
+												{
+													value: 'Vietnamese',
+													label: 'Vietnamese',
+													flag: '🇻🇳',
+												},
+												{
+													value: 'English',
+													label: 'English',
+													flag: '🇺🇸',
+												},
+												{
+													value: 'Spanish',
+													label: 'Spanish',
+													flag: '🇪🇸',
+												},
+												{
+													value: 'French',
+													label: 'French',
+													flag: '🇫🇷',
+												},
+												{
+													value: 'German',
+													label: 'German',
+													flag: '🇩🇪',
+												},
+												{
+													value: 'Chinese',
+													label: 'Chinese',
+													flag: '🇨🇳',
+												},
+												{
+													value: 'Japanese',
+													label: 'Japanese',
+													flag: '🇯🇵',
+												},
+												{
+													value: 'Korean',
+													label: 'Korean',
+													flag: '🇰🇷',
+												},
+											]}
+											formatOptionLabel={(option: any) => (
+												<div className="flex items-center space-x-2">
+													<span className="text-lg">{option.flag}</span>
+													<span>{option.label}</span>
+												</div>
+											)}
+											menuPortalTarget={document.body}
+											className="w-full"
+											isSearchable
+											filterOption={(option, inputValue) => {
+												const language = option.data
+												return language.label
+													.toLowerCase()
+													.includes(inputValue.toLowerCase())
+											}}
+										/>
+									</div>
+									<div className="space-y-2 md:col-span-2">
+										<Label className="text-sm font-medium text-foreground">
+											Certificate
+										</Label>
+										<CustomSelect
+											value={
+												req.certificate
+													? {
+															value: req.certificate,
+															label: req.certificate,
+														}
+													: null
+											}
+											onChange={(option) =>
+												handleLanguageRequirementChange(
+													index,
+													'certificate',
+													option?.value || ''
+												)
+											}
+											placeholder="Select certificate"
+											variant="green"
+											className="w-full"
+											options={getCertificateOptions(req.language)}
+											menuPortalTarget={document.body}
+											isSearchable
+											filterOption={(option, inputValue) => {
+												const certificate = option.data
+												return certificate.label
+													.toLowerCase()
+													.includes(inputValue.toLowerCase())
+											}}
+										/>
+									</div>
+									<div className="space-y-2 md:col-span-1">
+										<Label className="text-sm font-medium text-foreground">
+											Score
+										</Label>
+										<Input
+											placeholder="Score"
+											value={req.score}
+											onChange={(e) =>
+												handleLanguageRequirementChange(
+													index,
+													'score',
+													e.target.value
+												)
+											}
+											inputSize="select"
+											fullWidth={false}
+											width="w-full"
+										/>
+									</div>
+									{/* Delete Button */}
+									<div className="space-y-2 md:col-span-1 flex items-end">
+										<button
+											type="button"
+											onClick={() => removeLanguageRequirement(index)}
+											className="text-red-500 hover:text-red-700 transition-colors p-1"
+											title="Delete language requirement"
+										>
+											<svg
+												className="h-5 w-5"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M6 18L18 6M6 6l12 12"
+												/>
+											</svg>
+										</button>
+									</div>
 								</div>
-								<div className="space-y-1 flex-1">
-									<Label className="text-sm font-medium text-foreground">
-										Certificate
-									</Label>
-									<CustomSelect
-										value={
-											formData.languageRequirements.certificate
-												? {
-														value: formData.languageRequirements.certificate,
-														label: formData.languageRequirements.certificate,
-													}
-												: null
-										}
-										onChange={(option) =>
-											handleLanguageRequirementChange(
-												'certificate',
-												option?.value || ''
-											)
-										}
-										placeholder="Select certificate"
-										variant="green"
-										className="w-full"
-										options={[
-											{ value: 'IELTS', label: 'IELTS' },
-											{ value: 'TOEFL', label: 'TOEFL' },
-											{ value: 'TOEIC', label: 'TOEIC' },
-											{ value: 'Cambridge', label: 'Cambridge' },
-											{ value: 'PTE', label: 'PTE Academic' },
-											{ value: 'Duolingo', label: 'Duolingo English Test' },
-										]}
-										menuPortalTarget={document.body}
-										isSearchable
-										filterOption={(option, inputValue) => {
-											const certificate = option.data
-											return certificate.label
-												.toLowerCase()
-												.includes(inputValue.toLowerCase())
-										}}
-									/>
-								</div>
-								<div className="space-y-1 flex-1">
-									<Label className="text-sm font-medium text-foreground">
-										Score
-									</Label>
-									<Input
-										placeholder="Score"
-										value={formData.languageRequirements.score}
-										onChange={(e) =>
-											handleLanguageRequirementChange('score', e.target.value)
-										}
-										inputSize="select"
-										fullWidth={false}
-										width="w-full"
-									/>
-								</div>
-							</div>
+							))}
 						</div>
 						<div className="flex justify-end">
 							<button
 								type="button"
+								onClick={addLanguageRequirement}
 								className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
 							>
 								<span className="underline">Add certificate</span>
@@ -758,10 +993,10 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 					{/* Description */}
 					<RichTextEditor
-						value={formData.tuitionFee?.description || ''}
-						onChange={(value) => handleTuitionFeeChange('description', value)}
+						value={formData.description}
+						onChange={(value) => handleInputChange('description', value)}
 						label="Description"
-						placeholder="Enter body of content (example: 180 alternative credits)"
+						placeholder="Enter program description..."
 					/>
 				</div>
 			</div>

@@ -77,7 +77,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 	return (
 		<div className={`space-y-2 ${className}`}>
 			{label && <Label htmlFor="rich-text-editor">{label}</Label>}
-			<div className="border border-gray-200 rounded-lg overflow-hidden">
+			<div className="border border-gray-200 rounded-lg overflow-visible relative rich-text-editor-container">
 				<ReactQuill
 					theme="snow"
 					value={value}
@@ -86,10 +86,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					formats={formats}
 					placeholder={placeholder}
 					style={{
-						height: '200px',
+						height: 'auto',
+						minHeight: '200px',
 					}}
 				/>
 			</div>
+			<style jsx global>{`
+				.rich-text-editor-container .ql-toolbar {
+					position: relative !important;
+					background: white !important;
+					border-bottom: 1px solid #e5e7eb !important;
+					border-radius: 0.5rem 0.5rem 0 0 !important;
+				}
+				.rich-text-editor-container .ql-container {
+					height: auto !important;
+					min-height: 150px !important;
+					border-radius: 0 0 0.5rem 0.5rem !important;
+				}
+				.rich-text-editor-container .ql-editor {
+					min-height: 150px !important;
+				}
+			`}</style>
 		</div>
 	)
 }

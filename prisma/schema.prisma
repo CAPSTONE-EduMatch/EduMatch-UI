@@ -197,6 +197,7 @@ model DocumentType {
 model OpportunityPost {
   post_id         String              @id
   title           String
+  description     String?
   start_date      DateTime            @db.Timestamptz(6)
   end_date        DateTime?           @db.Timestamptz(6)
   location        String?
@@ -234,7 +235,6 @@ model ProgramPost {
   fee_description      String?
   scholarship_info     String?
   language_requirement String?
-  professor_name       String?
   certificates         PostCertificate[]
   post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
   ProgramScholarship   ProgramScholarship[]

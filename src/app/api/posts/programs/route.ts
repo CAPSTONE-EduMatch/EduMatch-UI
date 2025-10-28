@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { v4 as uuidv4 } from "uuid";
 
 interface CreateProgramRequest {
@@ -61,20 +61,12 @@ export async function POST(request: NextRequest) {
 	try {
 		const body: CreateProgramRequest = await request.json();
 
-		// Get user from session
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-		if (!session?.user?.id) {
-			return NextResponse.json(
-				{ error: "User not authenticated" },
-				{ status: 401 }
-			);
-		}
+		// Get user from session using optimized auth utilities
+		const { user } = await requireAuth();
 
 		// Get institution for the user
 		const institution = await prismaClient.institution.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 		});
 
 		if (!institution) {

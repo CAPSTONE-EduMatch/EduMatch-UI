@@ -24,8 +24,8 @@ export const InstitutionRedirect: React.FC<InstitutionRedirectProps> = ({
 				const profile = response.data?.profile
 
 				if (profile?.role === 'institution') {
-					// Institution user trying to access public pages - redirect to profile
-					router.push('/profile/view')
+					// Institution user trying to access public pages - redirect to institution dashboard
+					router.push('/institution/dashboard')
 				}
 			} catch (error) {
 				// If profile doesn't exist or error, let them stay on public pages

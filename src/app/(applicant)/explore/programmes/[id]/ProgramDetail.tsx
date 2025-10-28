@@ -46,9 +46,7 @@ const ProgramDetail = () => {
 	// S3 File upload functionality
 	const { uploadFiles, isUploading, uploadProgress } = useFileUpload({
 		category: 'application-documents',
-		onProgress: (progress) => {
-			console.log('Upload progress:', progress)
-		},
+		onProgress: () => {},
 	})
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
@@ -65,7 +63,19 @@ const ProgramDetail = () => {
 	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
 
 	// Wishlist functionality
-	const { isInWishlist, toggleWishlistItem } = useWishlist()
+	const {
+		isInWishlist,
+		toggleWishlistItem,
+		loading: wishlistLoading,
+		items: wishlistItems,
+	} = useWishlist({
+		autoFetch: true,
+		initialParams: {
+			page: 1,
+			limit: 100, // Fetch more items to ensure we get all wishlisted items
+			status: 1, // Only active wishlist items
+		},
+	})
 
 	// Notification system
 	const { showSuccess, showError } = useNotification()
@@ -224,10 +234,15 @@ const ProgramDetail = () => {
 	// Check for existing application when component loads
 	useEffect(() => {
 		const programId = currentProgram?.id || params.id
-		if (programId) {
-			checkExistingApplication(programId as string)
+		if (programId && !isCheckingApplication) {
+			// Add a small delay to prevent rapid successive calls
+			const timeoutId = setTimeout(() => {
+				checkExistingApplication(programId as string)
+			}, 200) // 200ms delay
+
+			return () => clearTimeout(timeoutId)
 		}
-	}, [currentProgram, params.id])
+	}, [currentProgram?.id, params.id]) // Removed isCheckingApplication from deps to prevent loops
 
 	const handleFileUpload = async (
 		event: React.ChangeEvent<HTMLInputElement>,
@@ -332,6 +347,8 @@ const ProgramDetail = () => {
 				limit: 100, // Get more applications to search through
 			})
 
+			console.log('🔍 Application check response:', response)
+
 			if (
 				response.success &&
 				response.applications &&
@@ -344,6 +361,37 @@ const ProgramDetail = () => {
 
 				if (existingApplication) {
 					setHasApplied(true)
+
+					// Load submitted documents from the application
+					console.log(
+						'🔍 Found existing application with documents:',
+						existingApplication.documents
+					)
+					if (
+						existingApplication.documents &&
+						existingApplication.documents.length > 0
+					) {
+						const submittedFiles = existingApplication.documents.map(
+							(doc: any) => ({
+								id: doc.documentId || doc.documentTypeId || Math.random(), // Generate ID if not available
+								name: doc.name,
+								url: doc.url,
+								size: doc.size || 0,
+								documentType:
+									doc.documentType ||
+									doc.documentTypeId ||
+									'application-document',
+								uploadDate:
+									doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
+							})
+						)
+						console.log(
+							'🔍 Setting uploaded files from database:',
+							submittedFiles
+						)
+						setUploadedFiles(submittedFiles)
+					}
+
 					return true
 				}
 			}
@@ -442,13 +490,18 @@ const ProgramDetail = () => {
 		if (!programId) return
 
 		try {
+			// Get current state before toggle
+			const wasWishlisted = isInWishlist(programId)
+
+			// Toggle the wishlist item
 			await toggleWishlistItem(programId)
-			const isWishlisted = isInWishlist(programId)
+
+			// Show success message based on the previous state (opposite of what it was)
 			showSuccess(
-				isWishlisted ? 'Added to Wishlist' : 'Removed from Wishlist',
-				isWishlisted
-					? 'This program has been added to your wishlist.'
-					: 'This program has been removed from your wishlist.'
+				wasWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
+				wasWishlisted
+					? 'This program has been removed from your wishlist.'
+					: 'This program has been added to your wishlist.'
 			)
 		} catch (error) {
 			console.error('Failed to toggle wishlist item:', error)
@@ -938,6 +991,19 @@ const ProgramDetail = () => {
 									Visit website
 								</Button>
 							)}
+							{currentProgram?.institution?.userId && (
+								<Button
+									onClick={() =>
+										router.push(
+											`/messages?contact=${currentProgram.institution.userId}`
+										)
+									}
+									variant="outline"
+									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+								>
+									Contact Institution
+								</Button>
+							)}
 							{/* <Button
 								className={
 									hasApplied
@@ -1088,97 +1154,207 @@ const ProgramDetail = () => {
 					transition={{ delay: 0.3 }}
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">Apply here !</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{hasApplied ? 'Application Status' : 'Apply here !'}
+					</h2>
 
-					<div className="text-gray-600 mb-6">
-						{currentProgram?.documents &&
-						currentProgram.documents.length > 0 ? (
-							<div className="space-y-3">
-								{currentProgram.documents.map((doc: any, index: number) => (
-									<p key={doc.document_id || doc.document_type_id || index}>
-										<span className="font-medium">{doc.name}:</span>{' '}
-										{doc.description}
+					{!hasApplied && (
+						<>
+							<div className="text-gray-600 mb-6">
+								{currentProgram?.documents &&
+								currentProgram.documents.length > 0 ? (
+									<div className="space-y-3">
+										{currentProgram.documents.map((doc: any, index: number) => (
+											<p key={doc.document_id || doc.document_type_id || index}>
+												<span className="font-medium">{doc.name}:</span>{' '}
+												{doc.description}
+											</p>
+										))}
+									</div>
+								) : (
+									<p>
+										You can upload required documents here. We will send
+										documents and your academic information to university.
+										Common documents include: CV/Resume, Academic Transcripts,
+										Personal Statement, Language Certificates (IELTS, TOEFL),
+										etc.
 									</p>
-								))}
-							</div>
-						) : (
-							<p>
-								You can upload required documents here. We will send documents
-								and your academic information to university. Common documents
-								include: CV/Resume, Academic Transcripts, Personal Statement,
-								Language Certificates (IELTS, TOEFL), etc.
-							</p>
-						)}
-					</div>
-
-					{/* File Upload Area */}
-					<div className="w-full mb-6">
-						<div className="space-y-2">
-							<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-								<div className="text-4xl mb-4">📁</div>
-								<div className="space-y-2">
-									<input
-										type="file"
-										multiple
-										onChange={(e) => handleFileUpload(e, 'other')}
-										className="hidden"
-										id="file-upload-other"
-									/>
-									<label
-										htmlFor="file-upload-other"
-										className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-									>
-										Click here to upload files
-									</label>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					{/* File Management */}
-					{(uploadedFiles.length > 0 || isUploading) && (
-						<div className="bg-gray-50 rounded-lg p-4 mb-6">
-							<div className="flex items-center justify-between mb-4">
-								<span className="font-medium">
-									{isUploading
-										? 'Uploading files...'
-										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
-								</span>
-								{uploadedFiles.length > 0 && (
-									<Button
-										variant="outline"
-										onClick={handleOpenModal}
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										Manage Files
-									</Button>
 								)}
 							</div>
 
-							{/* Upload Progress */}
-							{isUploading && uploadProgress.length > 0 && (
-								<div className="space-y-2 mb-4">
-									{uploadProgress.map((progress) => (
-										<div key={progress.fileIndex} className="space-y-1">
-											<div className="flex justify-between text-sm">
-												<span>File {progress.fileIndex + 1}</span>
-												<span>{progress.progress}%</span>
-											</div>
-											<div className="w-full bg-gray-200 rounded-full h-2">
-												<div
-													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
-													style={{ width: `${progress.progress}%` }}
-												></div>
-											</div>
+							{/* File Upload Area */}
+							<div className="w-full mb-6">
+								<div className="space-y-2">
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+										<div className="text-4xl mb-4">📁</div>
+										<div className="space-y-2">
+											<input
+												type="file"
+												multiple
+												onChange={(e) => handleFileUpload(e, 'other')}
+												className="hidden"
+												id="file-upload-other"
+											/>
+											<label
+												htmlFor="file-upload-other"
+												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+											>
+												Click here to upload files
+											</label>
 										</div>
-									))}
+									</div>
+								</div>
+							</div>
+
+							{/* File Management */}
+							{(uploadedFiles.length > 0 || isUploading) && (
+								<div className="bg-gray-50 rounded-lg p-4 mb-6">
+									<div className="flex items-center justify-between mb-4">
+										<span className="font-medium">
+											{isUploading
+												? 'Uploading files...'
+												: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
+										</span>
+										{uploadedFiles.length > 0 && (
+											<Button
+												variant="outline"
+												onClick={handleOpenModal}
+												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+											>
+												Manage Files
+											</Button>
+										)}
+									</div>
+
+									{/* Upload Progress */}
+									{isUploading && uploadProgress.length > 0 && (
+										<div className="space-y-2 mb-4">
+											{uploadProgress.map((progress) => (
+												<div key={progress.fileIndex} className="space-y-1">
+													<div className="flex justify-between text-sm">
+														<span>File {progress.fileIndex + 1}</span>
+														<span>{progress.progress}%</span>
+													</div>
+													<div className="w-full bg-gray-200 rounded-full h-2">
+														<div
+															className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+															style={{ width: `${progress.progress}%` }}
+														></div>
+													</div>
+												</div>
+											))}
+										</div>
+									)}
 								</div>
 							)}
+						</>
+					)}
+
+					{hasApplied && (
+						<div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+							<div className="flex items-center gap-3">
+								<div className="text-green-600 text-2xl">✓</div>
+								<div>
+									<h3 className="text-lg font-semibold text-green-800">
+										Application Submitted Successfully!
+									</h3>
+									<p className="text-green-700 mt-1">
+										Your application has been submitted. You will receive
+										updates via email.
+									</p>
+								</div>
+							</div>
+						</div>
+					)}
+
+					{/* Show uploaded files in read-only mode when applied */}
+					{hasApplied && uploadedFiles.length > 0 && (
+						<div className="bg-gray-50 rounded-lg p-4 mb-6">
+							<div className="flex items-center justify-between mb-4">
+								<span className="font-medium text-gray-700">
+									Submitted Documents ({uploadedFiles.length} file
+									{uploadedFiles.length !== 1 ? 's' : ''})
+								</span>
+							</div>
+							<div className="text-gray-600 mb-6">
+								{currentProgram?.documents &&
+								currentProgram.documents.length > 0 ? (
+									<div className="space-y-3">
+										{currentProgram.documents.map((doc: any, index: number) => (
+											<p key={doc.document_id || doc.document_type_id || index}>
+												<span className="font-medium">{doc.name}:</span>{' '}
+												{doc.description}
+											</p>
+										))}
+									</div>
+								) : (
+									<p>
+										These are the documents you submitted with your application.
+										They cannot be modified or deleted.
+									</p>
+								)}
+							</div>
+							<div className="space-y-3">
+								{uploadedFiles.map((file) => (
+									<div
+										key={file.id}
+										className="flex items-center gap-3 p-3 bg-white rounded-lg border"
+									>
+										<div className="text-2xl">📄</div>
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium text-gray-900 truncate">
+												{file.name}
+											</p>
+											<div className="flex items-center gap-2 text-xs text-gray-500">
+												<span>{(file.size / 1024).toFixed(1)} KB</span>
+												{file.uploadDate && (
+													<>
+														<span>•</span>
+														<span>
+															Uploaded:{' '}
+															{new Date(file.uploadDate).toLocaleDateString()}
+														</span>
+													</>
+												)}
+											</div>
+										</div>
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => {
+													// Open S3 file URL in new tab
+													window.open(file.url, '_blank')
+												}}
+												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+											>
+												View
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => {
+													// Download the file
+													const link = document.createElement('a')
+													link.href = file.url
+													link.download = file.name
+													document.body.appendChild(link)
+													link.click()
+													document.body.removeChild(link)
+												}}
+												className="text-blue-600 border-blue-600 hover:bg-blue-50"
+											>
+												Download
+											</Button>
+										</div>
+									</div>
+								))}
+							</div>
 						</div>
 					)}
 
 					<div className="flex gap-3 justify-center">
-						{uploadedFiles.length > 0 && (
+						{!hasApplied && uploadedFiles.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}

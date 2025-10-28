@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
 
 		// Get user from session
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-		if (!session?.user?.id) {
+		const { user } = await requireAuth();
+		if (!user?.id) {
 			return NextResponse.json(
 				{ error: "User not authenticated" },
 				{ status: 401 }
@@ -19,7 +17,7 @@ export async function GET(request: NextRequest) {
 
 		// Get institution for the user
 		const institution = await prismaClient.institution.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 		});
 
 		if (!institution) {

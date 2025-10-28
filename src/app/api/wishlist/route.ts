@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../prisma";
 import {
 	WishlistResponse,
@@ -15,21 +15,10 @@ export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
 
-		// Check if user is authenticated using the same method as profile API
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		// Check if user is authenticated using optimized auth utilities
+		const { user } = await requireAuth();
 
-		if (!session) {
-			const errorResponse: WishlistErrorResponse = {
-				success: false,
-				error: "Authentication required",
-				code: "AUTHENTICATION_REQUIRED",
-			};
-			return NextResponse.json(errorResponse, { status: 401 });
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Check if user has an applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
@@ -265,21 +254,10 @@ export async function GET(request: NextRequest) {
 // POST /api/wishlist - Add item to wishlist
 export async function POST(request: NextRequest) {
 	try {
-		// Check if user is authenticated using the same method as profile API
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		// Check if user is authenticated using optimized auth utilities
+		const { user } = await requireAuth();
 
-		if (!session) {
-			const errorResponse: WishlistErrorResponse = {
-				success: false,
-				error: "Authentication required",
-				code: "AUTHENTICATION_REQUIRED",
-			};
-			return NextResponse.json(errorResponse, { status: 401 });
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Check if user has an applicant profile
 		const applicant = await prismaClient.applicant.findUnique({

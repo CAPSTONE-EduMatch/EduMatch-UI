@@ -2,9 +2,11 @@ import {
 	emailOTPClient,
 	oneTapClient,
 	adminClient,
+	customSessionClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { stripeClient } from "@better-auth/stripe/client";
+import type { auth } from "./auth";
 
 export const authClient = createAuthClient({
 	plugins: [
@@ -31,6 +33,8 @@ export const authClient = createAuthClient({
 			subscription: true,
 		}),
 		adminClient(),
+		// Custom session client for optimized responses
+		customSessionClient<typeof auth>(),
 	],
 
 	/** The base URL of the server (optional if you're using the same domain) */

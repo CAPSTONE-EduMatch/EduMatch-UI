@@ -133,8 +133,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					throw new Error(result.error || 'Failed to fetch application details')
 				}
 			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error('Error fetching application details:', err)
 				setError(
 					err instanceof Error
 						? err.message
@@ -150,16 +148,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	// Get documents from API data - use profile snapshot documents for Academic Profile tab
 	const documents: Document[] = applicationDetails?.applicant?.documents || []
-
-	// Debug: Log documents to see what we're getting
-	// eslint-disable-next-line no-console
-	console.log('📄 Academic Profile Documents:', documents)
-	// eslint-disable-next-line no-console
-	console.log(
-		'📄 Document names:',
-		documents.map((doc) => doc.name)
-	)
-
 	const getDocumentTypeLabel = (documentType: string) => {
 		// Map category keys to display labels
 		const categoryLabels = {
@@ -270,8 +258,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	const handleDownloadFolder = async (documentType: string) => {
 		if (!documents || documents.length === 0) {
-			// eslint-disable-next-line no-console
-			console.log('No documents to download')
 			return
 		}
 
@@ -340,8 +326,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		})
 
 		if (typeDocs.length === 0) {
-			// eslint-disable-next-line no-console
-			console.log(`No documents found for type: ${documentType}`)
 			return
 		}
 
@@ -359,17 +343,12 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	}
 
 	const handlePreviewFile = (document: Document) => {
-		// eslint-disable-next-line no-console
-		console.log('Previewing file:', document.name)
-		// Open file in new tab for preview
 		if (document.url) {
 			window.open(document.url, '_blank')
 		}
 	}
 
 	const handleDownloadFile = (doc: Document) => {
-		// eslint-disable-next-line no-console
-		console.log('Downloading file:', doc.name)
 		// Download file directly
 		if (doc.url) {
 			const link = document.createElement('a')
@@ -390,13 +369,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	const handleSendUpdate = () => {
 		if (updateDescription.trim()) {
-			// eslint-disable-next-line no-console
-			console.log(
-				'Sending update to applicant:',
-				applicant.name,
-				'Message:',
-				updateDescription
-			)
 			// TODO: Implement sending update to applicant
 			onRequireUpdate(applicant)
 			setUpdateDescription('')
@@ -500,11 +472,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											const docType = (doc as any).documentType || 'OTHER'
 											let category = 'other'
 
-											// eslint-disable-next-line no-console
-											console.log(
-												`📄 Categorizing: "${doc.name}" -> docType: "${docType}"`
-											)
-
 											// Map document type names to category
 											const upperType = docType.toUpperCase()
 											if (
@@ -538,10 +505,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											} else {
 												category = 'other'
 											}
-
-											// eslint-disable-next-line no-console
-											console.log(`📄 Final category: "${category}"`)
-
 											if (!acc[category]) acc[category] = []
 											acc[category].push(doc)
 											return acc
@@ -674,8 +637,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 														applicationDetails.application.documents.length ===
 														0
 													) {
-														// eslint-disable-next-line no-console
-														console.log('No application documents to download')
 														return
 													}
 

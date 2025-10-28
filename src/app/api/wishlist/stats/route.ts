@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma";
 import {
 	WishlistStatsResponse,
@@ -8,23 +8,12 @@ import {
 } from "@/types/wishlist-api";
 
 // GET /api/wishlist/stats - Get wishlist statistics
-export async function GET(request: NextRequest) {
+export async function GET() {
 	try {
 		// Check if user is authenticated using the same method as profile API
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
-			const errorResponse: WishlistErrorResponse = {
-				success: false,
-				error: "Authentication required",
-				code: "AUTHENTICATION_REQUIRED",
-			};
-			return NextResponse.json(errorResponse, { status: 401 });
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Get all wishlist items for the user
 		const wishlistItems = await prismaClient.wishlist.findMany({

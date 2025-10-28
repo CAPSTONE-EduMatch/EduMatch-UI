@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
 export async function POST(request: NextRequest) {
 	try {
 		// Check authentication
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const session = await requireAuth();
+		const user = session.user;
 
-		if (!session || !session.user) {
+		if (!user.id) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -19,15 +18,6 @@ export async function POST(request: NextRequest) {
 		const body = await request.json();
 		const { threadId, content, fileUrl, fileName, fileSize, mimeType } =
 			body;
-
-		console.log("Message send request:", {
-			threadId,
-			content,
-			fileUrl,
-			fileName,
-			user: session.user.id,
-		});
-
 		if (!threadId || (!content && !fileUrl)) {
 			return NextResponse.json(
 				{
@@ -38,19 +28,11 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Verify user has access to this thread (now called Box)
-		console.log(
-			"Checking box access for user:",
-			session.user.id,
-			"box:",
-			threadId
-		);
+		console.log("Checking box access for user:", user.id, "box:", threadId);
 		const box = await prismaClient.box.findFirst({
 			where: {
 				box_id: threadId,
-				OR: [
-					{ user_one_id: session.user.id },
-					{ user_two_id: session.user.id },
-				],
+				OR: [{ user_one_id: user.id }, { user_two_id: user.id }],
 			},
 		});
 
@@ -85,7 +67,7 @@ export async function POST(request: NextRequest) {
 			data: {
 				message_id: crypto.randomUUID(),
 				box_id: threadId,
-				sender_id: session.user.id,
+				sender_id: user.id,
 				body: content || "",
 				send_at: new Date(),
 			},
@@ -101,8 +83,8 @@ export async function POST(request: NextRequest) {
 		});
 
 		// Get sender information
-		const user = await prismaClient.user.findUnique({
-			where: { id: session.user.id },
+		const senderUser = await prismaClient.user.findUnique({
+			where: { id: user.id },
 			select: {
 				id: true,
 				name: true,
@@ -122,21 +104,21 @@ export async function POST(request: NextRequest) {
 		});
 
 		let sender = null;
-		if (user) {
-			let name = user.name || "Unknown User";
+		if (senderUser) {
+			let name = senderUser.name || "Unknown User";
 			if (!name || name === "Unknown User") {
-				if (user.applicant) {
+				if (senderUser.applicant) {
 					name =
-						`${user.applicant.first_name || ""} ${user.applicant.last_name || ""}`.trim() ||
+						`${senderUser.applicant.first_name || ""} ${senderUser.applicant.last_name || ""}`.trim() ||
 						"Applicant";
-				} else if (user.institution) {
-					name = user.institution.name;
+				} else if (senderUser.institution) {
+					name = senderUser.institution.name;
 				}
 			}
 			sender = {
-				id: user.id,
+				id: senderUser.id,
 				name,
-				image: user.image,
+				image: senderUser.image,
 			};
 		}
 
@@ -154,7 +136,7 @@ export async function POST(request: NextRequest) {
 							image: sender.image,
 						}
 					: {
-							id: session.user.id,
+							id: user.id,
 							name: "Unknown User",
 							image: null,
 						},

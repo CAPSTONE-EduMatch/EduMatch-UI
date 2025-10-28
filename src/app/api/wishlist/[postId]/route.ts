@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma";
 import {
 	WishlistItemResponse,
@@ -14,20 +14,15 @@ export async function GET(
 ) {
 	try {
 		// Check if user is authenticated using the same method as profile API
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			const errorResponse: WishlistErrorResponse = {
-				success: false,
-				error: "Authentication required",
-				code: "AUTHENTICATION_REQUIRED",
-			};
-			return NextResponse.json(errorResponse, { status: 401 });
+		const { user } = await requireAuth();
+		if (!user?.id) {
+			return Response.json(
+				{ error: "User not authenticated" },
+				{ status: 401 }
+			);
 		}
 
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Check if user has an applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
@@ -135,20 +130,9 @@ export async function PUT(
 ) {
 	try {
 		// Check if user is authenticated using the same method as profile API
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
-			const errorResponse: WishlistErrorResponse = {
-				success: false,
-				error: "Authentication required",
-				code: "AUTHENTICATION_REQUIRED",
-			};
-			return NextResponse.json(errorResponse, { status: 401 });
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Check if user has an applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
@@ -273,20 +257,9 @@ export async function DELETE(
 ) {
 	try {
 		// Check if user is authenticated using the same method as profile API
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
-			const errorResponse: WishlistErrorResponse = {
-				success: false,
-				error: "Authentication required",
-				code: "AUTHENTICATION_REQUIRED",
-			};
-			return NextResponse.json(errorResponse, { status: 401 });
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Check if user has an applicant profile
 		const applicant = await prismaClient.applicant.findUnique({

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
 interface UserFilters {
@@ -17,13 +17,7 @@ interface UserFilters {
 export async function GET(request: NextRequest) {
 	try {
 		// Authenticate user and check admin permissions
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		const { user: currentUser } = await requireAuth();
 
 		const { searchParams } = new URL(request.url);
 
@@ -191,13 +185,7 @@ export async function GET(request: NextRequest) {
 // User management actions (ban, unban, delete)
 export async function POST(request: NextRequest) {
 	try {
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		const { user: currentUser } = await requireAuth();
 
 		const body = await request.json();
 		const { userId, action, reason, expiresIn } = body;

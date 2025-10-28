@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -15,17 +15,8 @@ const BUCKET_NAME = process.env.S3_BUCKET_NAME || "edumatch-file-12";
 
 export async function POST(request: NextRequest) {
 	try {
-		// Check authentication
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return NextResponse.json(
-				{ error: "Unauthorized" },
-				{ status: 401 }
-			);
-		}
+		// Check authentication using optimized auth utilities
+		const { user } = await requireAuth();
 
 		const { fileName, fileType, fileSize } = await request.json();
 
@@ -49,7 +40,7 @@ export async function POST(request: NextRequest) {
 		const timestamp = Date.now();
 		const randomString = Math.random().toString(36).substring(2, 15);
 		const fileExtension = fileName.split(".").pop();
-		const uniqueFileName = `uploads/${session.user.id}/${timestamp}-${randomString}.${fileExtension}`;
+		const uniqueFileName = `uploads/${user.id}/${timestamp}-${randomString}.${fileExtension}`;
 
 		// Create the S3 command
 		const command = new PutObjectCommand({
@@ -57,7 +48,7 @@ export async function POST(request: NextRequest) {
 			Key: uniqueFileName,
 			ContentType: fileType,
 			Metadata: {
-				userId: session.user.id,
+				userId: user.id,
 				originalName: fileName,
 				uploadedAt: new Date().toISOString(),
 			},
@@ -74,7 +65,7 @@ export async function POST(request: NextRequest) {
 			originalFileName: fileName,
 		});
 	} catch (error) {
-		console.error("Error generating pre-signed URL:", error);
+		// eslint-disable-next-line no-console
 		return NextResponse.json(
 			{ error: "Failed to generate upload URL" },
 			{ status: 500 }

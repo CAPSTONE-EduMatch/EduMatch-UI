@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../../prisma";
 
 // GET /api/applications/institution/[applicationId] - Get detailed applicant information for institutions
@@ -8,32 +8,16 @@ export async function GET(
 	{ params }: { params: { applicationId: string } }
 ) {
 	try {
-		console.log(
-			"🔵 API: Get institution application details request received:",
-			params.applicationId
-		);
-
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		// Get institution for the user
 		const institution = await prismaClient.institution.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { institution_id: true, name: true },
 		});
 
 		if (!institution) {
-			console.log("❌ API: User is not an institution");
 			return NextResponse.json(
 				{ error: "Only institutions can access this endpoint" },
 				{ status: 403 }
@@ -101,9 +85,6 @@ export async function GET(
 		});
 
 		if (!application) {
-			console.log(
-				"❌ API: Application not found or not owned by institution"
-			);
 			return NextResponse.json(
 				{ error: "Application not found" },
 				{ status: 404 }
@@ -360,7 +341,6 @@ export async function GET(
 			},
 		};
 
-		console.log("✅ API: Application details retrieved successfully");
 		return NextResponse.json({
 			success: true,
 			data: transformedData,
@@ -380,32 +360,16 @@ export async function PUT(
 	{ params }: { params: { applicationId: string } }
 ) {
 	try {
-		console.log(
-			"🔵 API: Update application status request received:",
-			params.applicationId
-		);
-
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		// Get institution for the user
 		const institution = await prismaClient.institution.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { institution_id: true },
 		});
 
 		if (!institution) {
-			console.log("❌ API: User is not an institution");
 			return NextResponse.json(
 				{ error: "Only institutions can update applications" },
 				{ status: 403 }
@@ -426,9 +390,6 @@ export async function PUT(
 		});
 
 		if (!application) {
-			console.log(
-				"❌ API: Application not found or not owned by institution"
-			);
 			return NextResponse.json(
 				{ error: "Application not found" },
 				{ status: 404 }
@@ -443,7 +404,6 @@ export async function PUT(
 			},
 		});
 
-		console.log("✅ API: Application status updated successfully");
 		return NextResponse.json({
 			success: true,
 			message: "Application status updated successfully",

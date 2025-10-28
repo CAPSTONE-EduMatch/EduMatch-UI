@@ -288,8 +288,13 @@ export const useWishlist = (
 	// Auto-fetch on mount and when params change
 	useEffect(() => {
 		if (autoFetch) {
-			fetchWishlist();
-			fetchStats();
+			// Add a small delay to prevent rapid successive calls
+			const timeoutId = setTimeout(() => {
+				fetchWishlist();
+				fetchStats();
+			}, 100); // 100ms delay
+
+			return () => clearTimeout(timeoutId);
 		}
 	}, [autoFetch, fetchWishlist, fetchStats]);
 

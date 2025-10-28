@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../prisma";
 
 /**
@@ -8,11 +8,9 @@ import { prismaClient } from "../../../../prisma";
 export async function GET(request: NextRequest) {
 	try {
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
+		if (!user) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -26,7 +24,7 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause
 		const whereClause: any = {
-			user_id: session.user.id,
+			user_id: user.id,
 		};
 
 		if (unreadOnly) {
@@ -51,7 +49,7 @@ export async function GET(request: NextRequest) {
 		// Get unread count
 		const unreadCount = await prismaClient.notification.count({
 			where: {
-				user_id: session.user.id,
+				user_id: user.id,
 				read_at: null,
 			},
 		});
@@ -105,11 +103,9 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
 	try {
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
+		if (!user) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -122,7 +118,7 @@ export async function PUT(request: NextRequest) {
 			// Mark all notifications as read for the user
 			await prismaClient.notification.updateMany({
 				where: {
-					user_id: session.user.id,
+					user_id: user.id,
 					read_at: null,
 				},
 				data: {
@@ -136,7 +132,7 @@ export async function PUT(request: NextRequest) {
 					notification_id: {
 						in: notificationIds,
 					},
-					user_id: session.user.id,
+					user_id: user.id,
 				},
 				data: {
 					read_at: new Date(),

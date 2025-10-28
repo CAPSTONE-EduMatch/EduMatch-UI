@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma";
 import {
 	ApplicationResponse,
@@ -13,32 +13,16 @@ export async function GET(
 	{ params }: { params: { applicationId: string } }
 ) {
 	try {
-		console.log(
-			"🔵 API: Get application request received:",
-			params.applicationId
-		);
-
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		// Get user's applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { applicant_id: true },
 		});
 
 		if (!applicant) {
-			console.log("❌ API: No applicant profile found");
 			return NextResponse.json(
 				{ error: "Applicant profile not found" },
 				{ status: 404 }
@@ -71,7 +55,6 @@ export async function GET(
 		})) as any;
 
 		if (!application) {
-			console.log("❌ API: Application not found");
 			return NextResponse.json(
 				{ error: "Application not found" },
 				{ status: 404 }
@@ -197,7 +180,6 @@ export async function GET(
 			application: transformedApplication,
 		};
 
-		console.log("✅ API: Application retrieved successfully");
 		return NextResponse.json(response);
 	} catch (error) {
 		console.error("❌ API: Error fetching application:", error);
@@ -214,32 +196,16 @@ export async function PUT(
 	{ params }: { params: { applicationId: string } }
 ) {
 	try {
-		console.log(
-			"🔵 API: Update application request received:",
-			params.applicationId
-		);
-
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		// Check if user is an institution
 		const institution = await prismaClient.institution.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { institution_id: true },
 		});
 
 		if (!institution) {
-			console.log("❌ API: User is not an institution");
 			return NextResponse.json(
 				{ error: "Only institutions can update applications" },
 				{ status: 403 }
@@ -247,7 +213,6 @@ export async function PUT(
 		}
 
 		const body: ApplicationUpdateRequest = await request.json();
-		console.log("📋 API: Update data:", body);
 
 		// Get application and verify it belongs to this institution
 		const application = await prismaClient.application.findFirst({
@@ -272,9 +237,6 @@ export async function PUT(
 		});
 
 		if (!application || !application.post) {
-			console.log(
-				"❌ API: Application not found or not owned by institution"
-			);
 			return NextResponse.json(
 				{ error: "Application not found" },
 				{ status: 404 }
@@ -325,7 +287,6 @@ export async function PUT(
 					"",
 					""
 				);
-				console.log("✅ API: Status change notification sent");
 			}
 		} catch (notificationError) {
 			console.error(
@@ -371,7 +332,6 @@ export async function PUT(
 			application: transformedApplication,
 		};
 
-		console.log("✅ API: Application updated successfully");
 		return NextResponse.json(response);
 	} catch (error) {
 		console.error("❌ API: Error updating application:", error);
@@ -388,32 +348,16 @@ export async function DELETE(
 	{ params }: { params: { applicationId: string } }
 ) {
 	try {
-		console.log(
-			"🔵 API: Delete application request received:",
-			params.applicationId
-		);
-
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		// Get user's applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { applicant_id: true },
 		});
 
 		if (!applicant) {
-			console.log("❌ API: No applicant profile found");
 			return NextResponse.json(
 				{ error: "Applicant profile not found" },
 				{ status: 404 }
@@ -429,7 +373,6 @@ export async function DELETE(
 		});
 
 		if (!application) {
-			console.log("❌ API: Application not found");
 			return NextResponse.json(
 				{ error: "Application not found" },
 				{ status: 404 }
@@ -438,7 +381,6 @@ export async function DELETE(
 
 		// Check if application can be cancelled (only PENDING applications)
 		if (application.status !== "PENDING") {
-			console.log("❌ API: Application cannot be cancelled");
 			return NextResponse.json(
 				{ error: "Only pending applications can be cancelled" },
 				{ status: 400 }
@@ -454,8 +396,6 @@ export async function DELETE(
 		await prismaClient.application.delete({
 			where: { application_id: params.applicationId },
 		});
-
-		console.log("✅ API: Application deleted successfully");
 
 		return NextResponse.json({
 			success: true,

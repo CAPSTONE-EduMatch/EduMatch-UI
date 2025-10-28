@@ -1,4 +1,4 @@
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { NextRequest } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 
@@ -17,17 +17,13 @@ interface InstitutionFilters {
 export async function GET(request: NextRequest) {
 	try {
 		// Authenticate user and check admin permissions
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
+		const { user } = await requireAuth();
+		if (!user?.id) {
+			return Response.json(
+				{ error: "User not authenticated" },
+				{ status: 401 }
+			);
 		}
-
-		// TODO: Add proper admin role check
-		// For now, allowing all authenticated users to access this endpoint
-		// In production, add role-based authorization
 
 		const { searchParams } = new URL(request.url);
 

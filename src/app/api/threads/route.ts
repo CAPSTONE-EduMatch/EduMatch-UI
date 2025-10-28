@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../prisma/index";
 
 export async function GET(request: NextRequest) {
 	try {
 		// Check authentication
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session || !session.user) {
+		if (!user.id) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -19,10 +17,7 @@ export async function GET(request: NextRequest) {
 		// Get user's threads (boxes)
 		const boxes = await prismaClient.box.findMany({
 			where: {
-				OR: [
-					{ user_one_id: session.user.id },
-					{ user_two_id: session.user.id },
-				],
+				OR: [{ user_one_id: user.id }, { user_two_id: user.id }],
 			},
 			orderBy: { last_message_at: "desc" },
 		});
@@ -32,7 +27,7 @@ export async function GET(request: NextRequest) {
 			boxes.map(async (box) => {
 				// Determine the other participant
 				const otherUserId =
-					box.user_one_id === session.user.id
+					box.user_one_id === user.id
 						? box.user_two_id
 						: box.user_one_id;
 
@@ -173,11 +168,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
 	try {
 		// Check authentication
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session || !session.user) {
+		if (!user.id) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -190,7 +183,7 @@ export async function POST(request: NextRequest) {
 		console.log("Create thread request:", {
 			participantId,
 			threadId,
-			userId: session.user.id,
+			userId: user.id,
 		});
 
 		if (!participantId) {
@@ -201,7 +194,7 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		if (participantId === session.user.id) {
+		if (participantId === user.id) {
 			console.log("Cannot create thread with yourself");
 			return NextResponse.json(
 				{ error: "Cannot create thread with yourself" },
@@ -214,12 +207,12 @@ export async function POST(request: NextRequest) {
 			where: {
 				OR: [
 					{
-						user_one_id: session.user.id,
+						user_one_id: user.id,
 						user_two_id: participantId,
 					},
 					{
 						user_one_id: participantId,
-						user_two_id: session.user.id,
+						user_two_id: user.id,
 					},
 				],
 			},
@@ -292,7 +285,7 @@ export async function POST(request: NextRequest) {
 		const box = await prismaClient.box.create({
 			data: {
 				box_id: threadId || crypto.randomUUID(), // Use provided threadId or generate new one
-				user_one_id: session.user.id,
+				user_one_id: user.id,
 				user_two_id: participantId,
 				created_at: new Date(),
 				updated_at: new Date(),

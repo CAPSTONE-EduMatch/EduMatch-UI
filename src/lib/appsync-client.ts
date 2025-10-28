@@ -196,21 +196,38 @@ export const createThread = async (participantId: string) => {
 			throw new Error("User authentication required");
 		}
 
-		// First, check if a thread already exists between these users
-		const existingThreads = await getThreads();
-		const existingThread = existingThreads.find(
-			(thread) =>
-				(thread.user1Id === userContext.userId &&
-					thread.user2Id === participantId) ||
-				(thread.user1Id === participantId &&
-					thread.user2Id === userContext.userId)
-		);
+		// Check if a thread already exists between these users (with timeout)
+		try {
+			const existingThreads = (await Promise.race([
+				getThreads(),
+				new Promise((_, reject) =>
+					setTimeout(
+						() => reject(new Error("getThreads timeout")),
+						5000
+					)
+				),
+			])) as any[];
 
-		if (existingThread) {
-			// Return the existing thread - this will be the thread entry for the current user
-			return existingThread;
+			const existingThread = existingThreads.find(
+				(thread) =>
+					(thread.user1Id === userContext.userId &&
+						thread.user2Id === participantId) ||
+					(thread.user1Id === participantId &&
+						thread.user2Id === userContext.userId)
+			);
+
+			if (existingThread) {
+				return existingThread;
+			}
+		} catch (error) {
+			// If getThreads fails or times out, continue with creating new thread
+			console.warn(
+				"Failed to check existing threads, creating new thread:",
+				error
+			);
 		}
 
+		// Create a new thread
 		const result = await client.graphql({
 			query: CREATE_THREAD,
 			variables: {
@@ -225,7 +242,6 @@ export const createThread = async (participantId: string) => {
 		});
 
 		const thread = (result as any).data.createThread;
-
 		return thread;
 	} catch (error) {
 		throw error;
@@ -282,7 +298,6 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		});
 
 		const threads = (result as any).data.getThreads || [];
-
 		return threads;
 	} catch (error) {
 		throw error;
@@ -381,7 +396,6 @@ const getUserContext = async (retryCount = 0): Promise<any> => {
 		// Get user session for AppSync operations
 		const session = await authClient.getSession();
 		const user = session?.data?.user;
-
 		// Update cache
 		sessionCache = {
 			user: user,

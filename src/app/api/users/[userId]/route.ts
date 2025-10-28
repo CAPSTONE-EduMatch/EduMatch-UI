@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
 // Get specific user by ID
@@ -9,13 +9,7 @@ export async function GET(
 ) {
 	try {
 		// Authenticate user
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		const { user: currentUser } = await requireAuth();
 
 		const { userId } = params;
 

@@ -1,23 +1,17 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../prisma/index";
 
 // Get list of users
 export async function GET(request: NextRequest) {
 	try {
-		// Authenticate user
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		// Authenticate user using optimized auth utilities
+		const { user } = await requireAuth();
 
 		// Get all users except the current user
 		const users = await prismaClient.user.findMany({
 			where: {
-				id: { not: session.user.id }, // Exclude current user
+				id: { not: user.id }, // Exclude current user
 			},
 			select: {
 				id: true,

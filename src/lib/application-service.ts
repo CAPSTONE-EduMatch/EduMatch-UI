@@ -22,6 +22,7 @@ class ApplicationService {
 
 		const config: RequestInit = {
 			...options,
+			credentials: "include", // Include cookies for authentication
 			headers: {
 				...defaultHeaders,
 				...options.headers,

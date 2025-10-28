@@ -1,31 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { ApplicantProfileService } from "@/lib/applicant-profile-service";
 import { InstitutionProfileService } from "@/lib/institution-profile-service";
 import { prismaClient } from "../../../../prisma";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
 	try {
-		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		// Check if user is authenticated using optimized auth utilities
+		const { user } = await requireAuth();
 
-		if (!session) {
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 		// Get user with role information to determine profile type
-		const user = await prismaClient.user.findUnique({
+		const userRecord = await prismaClient.user.findUnique({
 			where: { id: userId },
 			include: { userRole: true },
 		});
 
-		if (!user) {
+		if (!userRecord) {
 			return NextResponse.json(
 				{ error: "User not found" },
 				{ status: 404 }
@@ -36,11 +27,11 @@ export async function GET(request: NextRequest) {
 		let profileType = "";
 
 		// Fetch profile based on user role - only one query needed
-		if (user.role_id === "1") {
+		if (userRecord.role_id === "1") {
 			// Student/Applicant role
 			profile = await ApplicantProfileService.getProfile(userId);
 			profileType = "applicant";
-		} else if (user.role_id === "2") {
+		} else if (userRecord.role_id === "2") {
 			// Institution role
 			profile = await InstitutionProfileService.getProfile(userId);
 			profileType = "institution";
@@ -316,20 +307,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
 	try {
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		const formData = await request.json();
 
-		const userId = session.user.id;
+		const userId = user.id;
 
 		// Check if profile already exists based on role
 		let hasExistingProfile = false;
@@ -374,7 +356,7 @@ export async function POST(request: NextRequest) {
 				// Send welcome notification (for new users)
 				await NotificationUtils.sendWelcomeNotification(
 					userId,
-					session.user.email || "",
+					user.email || "",
 					formData.firstName || "",
 					formData.lastName || ""
 				);
@@ -382,7 +364,7 @@ export async function POST(request: NextRequest) {
 				// Send profile created notification
 				await NotificationUtils.sendProfileCreatedNotification(
 					userId,
-					session.user.email || "",
+					user.email || "",
 					("applicant_id" in newProfile
 						? newProfile.applicant_id
 						: newProfile.institution_id) || userId,
@@ -410,19 +392,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
 	try {
-		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		// Check if user is authenticated using optimized auth utilities
+		const { user } = await requireAuth();
 
-		if (!session) {
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
-
-		const userId = session.user.id;
+		const userId = user.id;
 		const formData = await request.json();
 
 		// Validate role before proceeding

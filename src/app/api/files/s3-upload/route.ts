@@ -6,7 +6,7 @@ import {
 	UploadPartCommand,
 	CompleteMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -81,11 +81,9 @@ async function uploadLargeFile(
 export async function POST(request: NextRequest) {
 	try {
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
+		if (!user) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -140,7 +138,7 @@ export async function POST(request: NextRequest) {
 		const timestamp = Date.now();
 		const randomString = Math.random().toString(36).substring(2, 15);
 		const fileExtension = file.name.split(".").pop();
-		const fileName = `users/${session.user.id}/uploads/${timestamp}_${randomString}.${fileExtension}`;
+		const fileName = `users/${user.id}/uploads/${timestamp}_${randomString}.${fileExtension}`;
 
 		// Convert file to buffer
 		const buffer = Buffer.from(await file.arrayBuffer());

@@ -1,7 +1,7 @@
 import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, emailOTP, oneTap } from "better-auth/plugins";
+import { admin, emailOTP, oneTap, customSession } from "better-auth/plugins";
 import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";
@@ -58,6 +58,33 @@ export const auth = betterAuth({
 			defaultRole: "user",
 		}),
 		oneTap(),
+		// Custom session plugin for optimized responses
+		customSession(async ({ user, session }) => {
+			// Only include essential user data to reduce payload size
+			const optimizedUser = {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				image: user.image,
+				emailVerified: user.emailVerified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
+			};
+
+			// Optimized session data
+			const optimizedSession = {
+				id: session.id,
+				userId: session.userId,
+				expiresAt: session.expiresAt,
+				createdAt: session.createdAt,
+				updatedAt: session.updatedAt,
+			};
+
+			return {
+				user: optimizedUser,
+				session: optimizedSession,
+			};
+		}),
 		emailOTP({
 			async sendVerificationOTP({
 				email,
@@ -437,12 +464,18 @@ export const auth = betterAuth({
 		provider: "postgresql",
 	}),
 	session: {
+		// Optimized cookie caching with shorter maxAge for better security
 		cookieCache: {
 			enabled: true,
-			maxAge: 60 * 60 * 24 * 7, // 7 days
+			maxAge: 5 * 60, // 5 minutes - shorter for better security
 		},
+		// Extended session lifetime with proper refresh strategy
 		expiresIn: 60 * 60 * 24 * 7, // 7 days
-		updateAge: 60 * 15, // 15 minutes
+		updateAge: 60 * 30, // 30 minutes - less frequent updates
+		// Disable session refresh for better performance
+		disableSessionRefresh: false,
+		// Fresh session age for sensitive operations
+		freshAge: 60 * 5, // 5 minutes
 		// Use Redis for session storage to prevent database hits
 		...(redisClient && {
 			store: {
@@ -480,6 +513,43 @@ export const auth = betterAuth({
 	},
 	secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development",
 	baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+	// Advanced cookie configuration for better security and performance
+	advanced: {
+		cookiePrefix: "edumatch",
+		useSecureCookies: process.env.NODE_ENV === "production",
+		crossSubDomainCookies: {
+			enabled: process.env.NODE_ENV === "production",
+			domain: process.env.COOKIE_DOMAIN || undefined, // Set in production
+		},
+		cookies: {
+			session_token: {
+				name: "edumatch.session_token",
+				attributes: {
+					httpOnly: true,
+					secure: process.env.NODE_ENV === "production",
+					sameSite: "lax" as const,
+					path: "/",
+				},
+			},
+			session_data: {
+				name: "edumatch.session_data",
+				attributes: {
+					httpOnly: true,
+					secure: process.env.NODE_ENV === "production",
+					sameSite: "lax" as const,
+					path: "/",
+				},
+			},
+		},
+		trustedOrigins:
+			process.env.NODE_ENV === "production"
+				? [
+						process.env.BETTER_AUTH_URL || "https://yourdomain.com",
+						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+							"https://yourdomain.com",
+					]
+				: ["http://localhost:3000"],
+	},
 	emailAndPassword: {
 		enabled: true,
 		requireEmailVerification: true, // Require email verification for sign-up

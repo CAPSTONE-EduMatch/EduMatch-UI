@@ -6,31 +6,19 @@ import { ApiService, cacheUtils } from '@/lib/axios-config'
 import { useAuthCheck } from '@/hooks/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-// Import both layout components
+// Import applicant layout and section components
 import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
 } from '@/components/profile/menu/ApplicantProfileLayout'
-import {
-	InstitutionProfileLayout,
-	InstitutionProfileSection,
-} from '@/components/profile/InstitutionProfileLayout'
-
-// Import all section components
 import { ProfileInfoSection } from '@/components/profile/menu/ProfileInfoSection'
 import { AcademicSection } from '@/components/profile/menu/AcademicSection'
 import { WishlistSection } from '@/components/profile/menu/WishlistSection'
 import { ApplicationSection } from '@/components/profile/menu/ApplicationSection'
 import { SettingsSection } from '@/components/profile/menu/SettingsSection'
-import { InstitutionOverviewSection } from '@/components/profile/institution/menu/InstitutionOverviewSection'
-import { ProgramsSection } from '@/components/profile/institution/menu/ProgramsSection'
-import { InstitutionApplicationSection } from '@/components/profile/institution/menu/InstitutionApplicationSection'
-import { AnalyticsReportsSection } from '@/components/profile/institution/menu/AnalyticsReportsSection'
-import { InstitutionSettingsSection } from '@/components/profile/institution/menu/InstitutionSettingsSection'
-import { InstitutionProfileSection as InstitutionProfileComponent } from '@/components/profile/institution/menu/InstitutionProfileSection'
 
 // Payment components
 import { BillingPortalCard } from '@/components/payment/BillingPortalCard'
@@ -90,25 +78,6 @@ interface ProfileData {
 		}
 		category: string
 	}>
-	// Institution fields
-	institutionName?: string
-	institutionAbbreviation?: string
-	institutionHotline?: string
-	institutionHotlineCode?: string
-	institutionType?: string
-	institutionWebsite?: string
-	institutionEmail?: string
-	institutionCountry?: string
-	institutionAddress?: string
-	representativeName?: string
-	representativeAppellation?: string
-	representativePosition?: string
-	representativeEmail?: string
-	representativePhone?: string
-	representativePhoneCode?: string
-	aboutInstitution?: string
-	institutionDisciplines?: string[]
-	institutionCoverImage?: string
 	// File categories
 	cvFiles?: Array<{
 		id: string
@@ -177,62 +146,46 @@ interface ProfileData {
 
 export default function ProfileView() {
 	const searchParams = useSearchParams()
+	const router = useRouter()
 	const [profile, setProfile] = useState<ProfileData | null>(null)
-	const [loading, setLoading] = useState(false)
+	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [subdisciplines, setSubdisciplines] = useState<
 		Array<{ value: string; label: string; discipline: string }>
 	>([])
-	const hasAttemptedLoad = useRef(false)
 
 	// Use the authentication check hook
 	const { isAuthenticated, user } = useAuthCheck()
 
-	// Get current user ID and fetch basic profile - only when authenticated
+	// Load full profile data when authenticated
 	useEffect(() => {
-		const getCurrentUserAndProfile = async () => {
-			if (!isAuthenticated || hasAttemptedLoad.current) {
+		const loadFullProfile = async () => {
+			if (!isAuthenticated) {
 				return
 			}
 
-			hasAttemptedLoad.current = true
 			setLoading(true)
 			setError(null)
 
 			try {
-				// Only load basic profile info, not full profile with all sections
+				console.log('🔍 Loading full profile data for applicant profile...')
 				const data = await ApiService.getProfile()
-				// Extract only basic info needed for navigation
-				const basicProfile = {
-					id: data.profile.id,
-					role: data.profile.role,
-					firstName: data.profile.firstName,
-					lastName: data.profile.lastName,
-					user: data.profile.user,
-					// Add empty arrays for sections that will be loaded separately
-					cvFiles: [],
-					languageCertFiles: [],
-					degreeFiles: [],
-					transcriptFiles: [],
-					researchPapers: [],
-					interests: [],
-					favoriteCountries: [],
-					// Add other basic fields as needed
-					...data.profile,
-				}
-				setProfile(basicProfile)
+				console.log('✅ Full profile data loaded:', data.profile)
+				setProfile(data.profile)
 			} catch (error: any) {
+				console.error('❌ Failed to load full profile:', error)
 				if (error?.response?.status === 404 || error?.status === 404) {
-					// Don't redirect - let ProfileWrapper handle this with a modal
+					// Profile doesn't exist - ProfileWrapper will handle redirect
 					setProfile(null)
 					return
 				}
-				setError('Failed to load profile')
+				setError('Failed to load profile data')
 			} finally {
 				setLoading(false)
 			}
 		}
-		getCurrentUserAndProfile()
+
+		loadFullProfile()
 	}, [isAuthenticated])
 
 	// Load subdisciplines once
@@ -251,28 +204,36 @@ export default function ProfileView() {
 	}, [])
 
 	const refreshProfile = async () => {
+		if (!isAuthenticated) return
+
 		setLoading(true)
+		setError(null)
+
 		try {
 			await cacheUtils.clearProfileCache(user?.id || '')
 			const data = await ApiService.getProfile()
 			setProfile(data.profile)
-		} catch (error) {
-			setError('Failed to refresh profile')
+		} catch (error: any) {
+			setError('Failed to refresh profile data')
 		} finally {
 			setLoading(false)
 		}
 	}
 
-	// Show loading state - covers both auth check and profile loading
-	if (
-		(!isAuthenticated && loading) ||
-		(isAuthenticated && loading && !profile)
-	) {
+	// Redirect institutions to their dashboard
+	useEffect(() => {
+		if (profile && profile.role !== 'applicant') {
+			router.push('/institution/dashboard')
+		}
+	}, [profile, router])
+
+	// Show loading state
+	if (loading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">Loading...</p>
+					<p className="mt-4 text-muted-foreground">Loading profile...</p>
 				</div>
 			</div>
 		)
@@ -293,7 +254,23 @@ export default function ProfileView() {
 		)
 	}
 
-	// Render based on user role
+	// Check if user is an applicant - redirect institutions to their dashboard
+	if (profile && profile.role !== 'applicant') {
+		return (
+			<div className="min-h-screen flex items-center justify-center">
+				<div className="text-center">
+					<div className="text-blue-500 text-6xl mb-4">🔄</div>
+					<h2 className="text-xl font-semibold mb-2">Redirecting...</h2>
+					<p className="text-muted-foreground mb-4">
+						This page is for applicants only. Redirecting you to your dashboard.
+					</p>
+					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+				</div>
+			</div>
+		)
+	}
+
+	// Only render for applicants (institutions are redirected to /institution)
 	if (profile?.role === 'applicant') {
 		return (
 			<ProfileWrapper
@@ -309,22 +286,9 @@ export default function ProfileView() {
 				/>
 			</ProfileWrapper>
 		)
-	} else if (profile?.role === 'institution') {
-		return (
-			<ProfileWrapper
-				pageTitle="Profile Required"
-				pageDescription="Please create your profile to view your profile page"
-				redirectTo="/profile/create"
-			>
-				<InstitutionProfileView
-					profile={profile}
-					searchParams={searchParams as unknown as URLSearchParams}
-					refreshProfile={refreshProfile}
-				/>
-			</ProfileWrapper>
-		)
 	}
 
+	// If not applicant, redirect to appropriate dashboard
 	return (
 		<AuthWrapper
 			pageTitle="Profile"
@@ -447,121 +411,6 @@ function ApplicantProfileView({
 			>
 				{renderSectionContent()}
 			</ApplicantProfileLayout>
-		</AuthWrapper>
-	)
-}
-
-// Institution Profile Component
-function InstitutionProfileView({
-	profile,
-	searchParams,
-	refreshProfile,
-}: {
-	profile: ProfileData
-	searchParams: URLSearchParams
-	refreshProfile: () => Promise<void>
-}) {
-	const router = useRouter()
-	const [activeSection, setActiveSection] =
-		useState<InstitutionProfileSection>('overview')
-
-	// Initialize active section from URL parameter
-	useEffect(() => {
-		const tab = searchParams.get('tab')
-		const validSections: InstitutionProfileSection[] = [
-			'overview',
-			'profile',
-			'programs',
-			'application',
-			'analytics',
-			'payment',
-			'settings',
-		]
-		if (validSections.includes(tab as InstitutionProfileSection)) {
-			setActiveSection(tab as InstitutionProfileSection)
-		}
-	}, [searchParams])
-
-	// Handle section change and update URL
-	const handleSectionChange = (section: InstitutionProfileSection) => {
-		setActiveSection(section)
-		// Update URL using Next.js router for better browser navigation support
-		const url = new URL(window.location.href)
-		url.searchParams.set('tab', section)
-		// Clear create form parameters when switching tabs
-		url.searchParams.delete('action')
-		url.searchParams.delete('type')
-		router.push(url.pathname + url.search)
-	}
-
-	const renderSectionContent = () => {
-		switch (activeSection) {
-			case 'overview':
-				return (
-					<InstitutionOverviewSection
-						profile={profile}
-						onNavigationAttempt={() => true}
-					/>
-				)
-			case 'programs':
-				return (
-					<ProgramsSection
-						profile={profile}
-						onProfileUpdate={refreshProfile}
-						onNavigationAttempt={() => true}
-					/>
-				)
-			case 'profile':
-				return (
-					<InstitutionProfileComponent
-						profile={profile}
-						onProfileUpdate={refreshProfile}
-					/>
-				)
-			case 'application':
-				return <InstitutionApplicationSection profile={profile} />
-			case 'analytics':
-				return <AnalyticsReportsSection profile={profile} />
-			case 'payment':
-				return (
-					<div className="space-y-8">
-						<div>
-							<h1 className="text-3xl font-bold text-gray-900 mb-2">
-								My Subscription
-							</h1>
-							<p className="text-gray-600">
-								Manage your subscription plan and billing through Stripe
-							</p>
-						</div>
-						<SubscriptionInfoCard />
-						<SubscriptionFeaturesCard />
-						<BillingPortalCard />
-					</div>
-				)
-			case 'settings':
-				return <InstitutionSettingsSection profile={profile} />
-			default:
-				return (
-					<InstitutionOverviewSection
-						profile={profile}
-						onNavigationAttempt={() => true}
-					/>
-				)
-		}
-	}
-
-	return (
-		<AuthWrapper
-			pageTitle="Institution Profile"
-			pageDescription="Please sign in to view your profile"
-		>
-			<InstitutionProfileLayout
-				activeSection={activeSection}
-				onSectionChange={handleSectionChange}
-				profile={profile}
-			>
-				{renderSectionContent()}
-			</InstitutionProfileLayout>
 		</AuthWrapper>
 	)
 }

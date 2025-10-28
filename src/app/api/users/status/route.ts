@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
 // Update user online status
@@ -9,17 +9,11 @@ export async function POST(request: NextRequest) {
 		const { isOnline } = body;
 
 		// Authenticate user
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		const { user: currentUser } = await requireAuth();
 
 		// Update user's last seen timestamp
 		await prismaClient.user.update({
-			where: { id: session.user.id },
+			where: { id: currentUser.id },
 			data: {
 				updatedAt: new Date(),
 			},
@@ -45,18 +39,12 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
 	try {
 		// Authenticate user
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		const { user: currentUser } = await requireAuth();
 
 		// Get all users with their last seen status
 		const users = await prismaClient.user.findMany({
 			where: {
-				id: { not: session.user.id }, // Exclude current user
+				id: { not: currentUser.id }, // Exclude current user
 			},
 			select: {
 				id: true,

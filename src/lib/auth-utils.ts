@@ -1,72 +1,121 @@
-export async function checkEmailExists(email: string): Promise<boolean> {
-	try {
-		const response = await fetch(
-			`/api/user?email=${encodeURIComponent(email)}`,
-			{
-				method: "GET",
-				headers: {
-					"Content-Type": "application/json",
-				},
-			}
-		);
+/**
+ * Optimized authentication utilities leveraging Better Auth's built-in caching
+ * This replaces the custom auth-cache.ts with Better Auth's native caching
+ */
 
-		if (!response.ok) {
-			// If API fails, assume email exists to be safe
-			return true;
+import { auth } from "@/app/lib/auth";
+import { headers } from "next/headers";
+
+/**
+ * Get session with Better Auth's built-in caching
+ * This leverages Better Auth's cookie cache and Redis store
+ */
+export async function getSessionWithCache(): Promise<{
+	session: any;
+	user: any;
+} | null> {
+	try {
+		const headersList = await headers();
+
+		// Use Better Auth's built-in session management with caching
+		const session = await auth.api.getSession({
+			headers: headersList,
+			// Let Better Auth handle caching automatically
+		});
+
+		if (!session?.user) {
+			return null;
 		}
 
-		const data = await response.json();
-		return data.exists;
+		return {
+			session: session,
+			user: session.user,
+		};
 	} catch (error) {
-		// On error, assume email exists to prevent duplicate attempts
-		return true;
+		// Silently handle auth errors
+		return null;
 	}
 }
 
-export async function checkUserHasProfile(userId: string): Promise<boolean> {
+/**
+ * Get session with forced refresh (bypasses cookie cache)
+ * Use this when you need fresh data
+ */
+export async function getSessionWithRefresh(): Promise<{
+	session: any;
+	user: any;
+} | null> {
 	try {
-		// For server-side usage (middleware), use direct service call
-		if (typeof window === "undefined") {
-			const { ProfileService } = await import("@/lib/profile-service");
-			return await ProfileService.hasProfile(userId);
+		const headersList = await headers();
+
+		// Force fresh data by disabling cookie cache
+		const session = await auth.api.getSession({
+			headers: headersList,
+			query: {
+				disableCookieCache: true,
+			},
+		});
+
+		if (!session?.user) {
+			return null;
 		}
 
-		// For client-side usage, use API call
-		const { ApiService } = await import("@/lib/axios-config");
-		const profileData = await ApiService.checkProfile(userId);
-
-		// Check if profile has minimum required fields
-		return !!(
-			profileData.profile &&
-			profileData.profile.role &&
-			profileData.profile.firstName &&
-			profileData.profile.lastName
-		);
-
-		// If profile not found (404) or other error, assume no profile
-		return false;
+		return {
+			session: session,
+			user: session.user,
+		};
 	} catch (error) {
-		// Removed console.error for production
-		return false;
+		// Silently handle auth errors
+		return null;
 	}
 }
 
-export async function getUserProfile(userId: string): Promise<any> {
-	try {
-		// For server-side usage, use direct service call
-		if (typeof window === "undefined") {
-			const { ProfileService } = await import("@/lib/profile-service");
-			return await ProfileService.getProfile(userId);
-		}
+/**
+ * Check if user is authenticated (cached)
+ */
+export async function isAuthenticated(): Promise<boolean> {
+	const sessionData = await getSessionWithCache();
+	return !!sessionData?.user;
+}
 
-		// For client-side usage, use API call
-		const { ApiService } = await import("@/lib/axios-config");
-		const data = await ApiService.checkProfile(userId);
-		return data.profile;
+/**
+ * Get current user (cached)
+ */
+export async function getCurrentUser(): Promise<any | null> {
+	const sessionData = await getSessionWithCache();
+	return sessionData?.user || null;
+}
 
-		return null;
-	} catch (error) {
-		// Removed console.error for production
-		return null;
+/**
+ * Get current session (cached)
+ */
+export async function getCurrentSession(): Promise<any | null> {
+	const sessionData = await getSessionWithCache();
+	return sessionData?.session || null;
+}
+
+/**
+ * Middleware helper for authentication checks
+ */
+export async function requireAuth(): Promise<{ session: any; user: any }> {
+	const sessionData = await getSessionWithCache();
+
+	if (!sessionData?.user) {
+		throw new Error("Authentication required");
 	}
+
+	return sessionData;
+}
+
+/**
+ * Middleware helper for fresh authentication checks
+ */
+export async function requireFreshAuth(): Promise<{ session: any; user: any }> {
+	const sessionData = await getSessionWithRefresh();
+
+	if (!sessionData?.user) {
+		throw new Error("Authentication required");
+	}
+
+	return sessionData;
 }

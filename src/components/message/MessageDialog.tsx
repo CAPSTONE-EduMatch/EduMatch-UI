@@ -81,6 +81,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 	const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
 	const [selectedUser, setSelectedUser] = useState<User | null>(null)
 	const [users, setUsers] = useState<User[]>([])
+	const [usersLoaded, setUsersLoaded] = useState(false)
+	const [refreshingUsers, setRefreshingUsers] = useState(false)
 	const [contactApplicant, setContactApplicant] =
 		useState<ContactApplicant | null>(null)
 	const [showContactPreview, setShowContactPreview] = useState(false)
@@ -115,50 +117,56 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 
 	// Handle threadId prop - navigate to specific thread
 	useEffect(() => {
-		if (threadId && appSyncThreads.length > 0) {
-			const thread = appSyncThreads.find((t: any) => t.id === threadId)
-			if (thread) {
-				// Find the other participant
-				const otherParticipantId =
-					thread.user1Id === user?.id ? thread.user2Id : thread.user1Id
-				const otherUser = users.find((u) => u.id === otherParticipantId)
+		const handleThreadSelection = async () => {
+			if (threadId && appSyncThreads.length > 0) {
+				const thread = appSyncThreads.find((t: any) => t.id === threadId)
+				if (thread) {
+					// Find the other participant
+					const otherParticipantId =
+						thread.user1Id === user?.id ? thread.user2Id : thread.user1Id
 
-				if (otherUser) {
-					const threadObject: Thread = {
-						id: thread.id,
-						title: otherUser.name,
-						participants: [
-							{
-								id: user?.id || '',
-								name: user?.name || '',
-								image: user?.image,
-							},
-							{
-								id: otherUser.id,
-								name: otherUser.name,
-								image: otherUser.image,
-								status: otherUser.status,
-							},
-						],
-						unreadCount: thread.unreadCount || 0,
-						updatedAt: new Date(thread.updatedAt),
+					// Fetch user data individually
+					const otherUser = await fetchUserData(otherParticipantId)
+
+					if (otherUser) {
+						const threadObject: Thread = {
+							id: thread.id,
+							title: otherUser.name,
+							participants: [
+								{
+									id: user?.id || '',
+									name: user?.name || '',
+									image: user?.image,
+								},
+								{
+									id: otherUser.id,
+									name: otherUser.name,
+									image: otherUser.image,
+									status: otherUser.status,
+								},
+							],
+							unreadCount: thread.unreadCount || 0,
+							updatedAt: new Date(thread.updatedAt),
+						}
+
+						setSelectedThread(threadObject)
+						setSelectedUser({
+							id: otherUser.id,
+							name: otherUser.name,
+							email: otherUser.email,
+							image: otherUser.image,
+							status: otherUser.status,
+						})
+
+						selectThread(thread.id)
+						loadMessages(thread.id)
 					}
-
-					setSelectedThread(threadObject)
-					setSelectedUser({
-						id: otherUser.id,
-						name: otherUser.name,
-						email: otherUser.email,
-						image: otherUser.image,
-						status: otherUser.status,
-					})
-
-					selectThread(thread.id)
-					loadMessages(thread.id)
 				}
 			}
 		}
-	}, [threadId, appSyncThreads, user, users, selectThread, loadMessages])
+
+		handleThreadSelection()
+	}, [threadId, appSyncThreads, user?.id, selectThread, loadMessages])
 
 	// Handle contact parameter from URL with loading states
 	useEffect(() => {
@@ -253,12 +261,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 							// Handle error silently
 						}
 
-						// Update URL without causing a full page reload or adding history entry
-						window.history.replaceState(
-							{},
-							'',
-							`/messages/${existingThread.id}`
-						)
+						// Update URL and add to history for proper back navigation
+						window.history.pushState({}, '', `/messages/${existingThread.id}`)
 					} else {
 						// No existing thread - show preview for new contact
 						if (applicantData) {
@@ -299,12 +303,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 								// Fallback - start thread directly and update URL
 								const newThread = await startNewThread(userId)
 								if (newThread?.id) {
-									// Update URL without causing a full page reload or adding history entry
-									window.history.replaceState(
-										{},
-										'',
-										`/messages/${newThread.id}`
-									)
+									// Update URL and add to history for proper back navigation
+									window.history.pushState({}, '', `/messages/${newThread.id}`)
 								}
 							}
 						}
@@ -376,12 +376,10 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 		handleContactParam()
 	}, [
 		searchParams,
-		appSyncThreads,
-		user,
-		loadMessages,
-		selectThread,
-		startNewThread,
+		appSyncThreads.length, // Only depend on length, not the full array
+		user?.id, // Only depend on user ID, not full user object
 		threadId,
+		isCheckingThread,
 	])
 
 	// Auto-scroll to bottom
@@ -390,6 +388,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 			behavior: smooth ? 'smooth' : 'auto',
 		})
 	}
+
+	// Manual refresh function removed - using individual user fetching instead
 
 	// Handle starting chat with applicant
 	const handleStartChat = async () => {
@@ -471,8 +471,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 				// Create a new thread with the applicant
 				const newThread = await startNewThread(contactApplicant.id)
 				if (newThread?.id) {
-					// Update URL without causing a full page reload or adding history entry
-					window.history.replaceState({}, '', `/messages/${newThread.id}`)
+					// Update URL and add to history for proper back navigation
+					window.history.pushState({}, '', `/messages/${newThread.id}`)
 					return
 				}
 			}
@@ -488,10 +488,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 	const handleCloseContactPreview = () => {
 		setShowContactPreview(false)
 		setContactApplicant(null)
-		// Remove contact parameter from URL
-		const url = new URL(window.location.href)
-		url.searchParams.delete('contact')
-		window.history.replaceState({}, '', url.toString())
+		// Navigate back to messages list
+		window.history.back()
 	}
 
 	// Check if thread already exists with contact applicant
@@ -725,103 +723,96 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 			// Handle error silently
 		}
 
-		// Update URL without causing a full page reload or adding history entry
-		window.history.replaceState({}, '', `/messages/${thread.id}`)
+		// Update URL and add to history for proper back navigation
+		window.history.pushState({}, '', `/messages/${thread.id}`)
 	}
 
-	// Fetch real users with status from database
+	// Fetch users once when component mounts and user is available - optimized
 	useEffect(() => {
 		const fetchUsers = async () => {
-			try {
-				const response = await fetch('/api/users/status', {
-					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-				})
+			if (user?.id && !usersLoaded) {
+				try {
+					const response = await fetch('/api/users/status', {
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+					})
 
-				if (response.ok) {
-					const data = await response.json()
-					if (data.success && data.users) {
-						setUsers(data.users)
+					if (response.ok) {
+						const data = await response.json()
+						if (data.success && data.users) {
+							setUsers(data.users)
+							setUsersLoaded(true)
+							// Store timestamp for cache management
+							localStorage.setItem('usersLastLoad', Date.now().toString())
+						}
 					}
-				} else {
-					setUsers([])
+				} catch (error) {
+					console.error('Failed to fetch users:', error)
 				}
-			} catch (error) {
-				setUsers([])
 			}
 		}
 
-		if (user) {
-			fetchUsers()
+		fetchUsers()
+	}, [user?.id, usersLoaded]) // Only depend on user ID and usersLoaded state
 
-			// Update user status as online
+	// Update user status as online (only once when user changes) - optimized
+	useEffect(() => {
+		if (user?.id) {
+			// Set user as online
 			fetch('/api/users/status', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({ isOnline: true }),
+			}).catch(() => {
+				// Handle error silently
 			})
 
-			// Refresh user status every 2 minutes (less frequent)
+			// Refresh user status every 5 minutes (much less frequent)
 			const statusInterval = setInterval(() => {
-				fetchUsers()
 				fetch('/api/users/status', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify({ isOnline: true }),
+				}).catch(() => {
+					// Handle error silently
 				})
-			}, 120000) // 2 minutes instead of 30 seconds
+			}, 300000) // 5 minutes
 
 			return () => clearInterval(statusInterval)
 		}
-	}, [user])
+	}, [user?.id]) // Only depend on user ID
 
-	// Refresh selected user data when users list updates (for image changes)
-	useEffect(() => {
-		if (selectedUser && users.length > 0) {
-			const updatedUser = users.find((u) => u.id === selectedUser.id)
-			if (updatedUser && updatedUser.image !== selectedUser.image) {
-				setSelectedUser({
-					...selectedUser,
-					image: updatedUser.image,
-					status: updatedUser.status,
-				})
+	// User data refresh removed - will fetch individual users as needed
+
+	// Visibility change handler removed - will fetch individual users as needed
+
+	// Fetch individual user data only when needed
+	const fetchUserData = async (userId: string) => {
+		try {
+			const response = await fetch(`/api/users/${userId}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+
+			if (response.ok) {
+				const data = await response.json()
+				if (data.success && data.user) {
+					return data.user
+				}
 			}
+		} catch (error) {
+			console.error('Failed to fetch user data:', error)
 		}
-	}, [users, selectedUser])
-
-	// Refresh users when page becomes visible (in case user updated image in another tab)
-	useEffect(() => {
-		const handleVisibilityChange = () => {
-			if (!document.hidden && user) {
-				// Refresh users when page becomes visible
-				fetch('/api/users/status', {
-					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-				})
-					.then((response) => response.json())
-					.then((data) => {
-						if (data.success && data.users) {
-							setUsers(data.users)
-						}
-					})
-					.catch(() => {
-						// Handle error silently
-					})
-			}
-		}
-
-		document.addEventListener('visibilitychange', handleVisibilityChange)
-		return () =>
-			document.removeEventListener('visibilitychange', handleVisibilityChange)
-	}, [user])
+		return null
+	}
 
 	// Threads are now fetched by AppSync hook
 

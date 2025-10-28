@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -10,11 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
 	try {
 		// Get session from request
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
+		if (!user) {
 			return NextResponse.json(
 				{ isAdmin: false, message: "No session found" },
 				{ status: 401 }
@@ -22,15 +20,14 @@ export async function GET(request: NextRequest) {
 		}
 
 		// Check if user has admin role
-		// Better Auth admin plugin adds role information to session.user
+		// Better Auth admin plugin adds role information to user
 		const isAdmin =
-			session.user.email === process.env.ADMIN_EMAIL ||
-			session.user.role === "admin";
+			user.email === process.env.ADMIN_EMAIL || user.role === "admin";
 
 		return NextResponse.json({
 			isAdmin,
-			userId: session.user.id,
-			role: session.user.role,
+			userId: user.id,
+			role: user.role,
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console

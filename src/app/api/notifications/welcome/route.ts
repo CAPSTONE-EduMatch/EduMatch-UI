@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { NotificationUtils } from "@/lib/sqs-handlers";
 
 /**
@@ -8,11 +8,9 @@ import { NotificationUtils } from "@/lib/sqs-handlers";
 export async function POST(request: NextRequest) {
 	try {
 		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session) {
+		if (!user) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
 				{ status: 401 }
@@ -23,10 +21,10 @@ export async function POST(request: NextRequest) {
 
 		// Send welcome notification
 		await NotificationUtils.sendWelcomeNotification(
-			session.user.id,
-			session.user.email || "",
-			firstName || session.user.name?.split(" ")[0] || "User",
-			lastName || session.user.name?.split(" ").slice(1).join(" ") || ""
+			user.id,
+			user.email || "",
+			firstName || user.name?.split(" ")[0] || "User",
+			lastName || user.name?.split(" ").slice(1).join(" ") || ""
 		);
 
 		return NextResponse.json({

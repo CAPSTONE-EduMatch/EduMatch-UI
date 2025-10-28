@@ -11,7 +11,8 @@ export default function InstitutionLayout({
 			pageDescription="Please create your profile to access institution features"
 			redirectTo="/profile/create"
 		>
-			{children}
+			{/* Clean layout without header/footer for institution users */}
+			<div className="min-h-screen bg-gray-50">{children}</div>
 		</ProfileWrapper>
 	)
 }

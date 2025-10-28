@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { prismaClient } from "../../../../prisma";
 import {
 	ApplicationRequest,
@@ -11,22 +11,8 @@ import {
 // GET /api/applications - Get user's applications
 export async function GET(request: NextRequest) {
 	try {
-		console.log("🔵 API: Applications list request received");
-
-		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
-
-		console.log("✅ API: User authenticated:", session.user.id);
+		// Check if user is authenticated using optimized auth utilities
+		const { user } = await requireAuth();
 
 		// Get query parameters
 		const { searchParams } = new URL(request.url);
@@ -37,12 +23,11 @@ export async function GET(request: NextRequest) {
 
 		// Get user's applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { applicant_id: true },
 		});
 
 		if (!applicant) {
-			console.log("❌ API: No applicant profile found");
 			return NextResponse.json(
 				{ error: "Applicant profile not found" },
 				{ status: 404 }
@@ -231,10 +216,8 @@ export async function GET(request: NextRequest) {
 			limit,
 		};
 
-		console.log(`✅ API: Found ${applications.length} applications`);
 		return NextResponse.json(response);
 	} catch (error) {
-		console.error("❌ API: Error fetching applications:", error);
 		return NextResponse.json(
 			{ error: "Failed to fetch applications" },
 			{ status: 500 }
@@ -245,29 +228,10 @@ export async function GET(request: NextRequest) {
 // POST /api/applications - Submit new application
 export async function POST(request: NextRequest) {
 	try {
-		console.log("🔵 API: Application submission request received");
-
-		// Check if user is authenticated
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session) {
-			console.log("❌ API: No session found");
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
-
-		console.log("✅ API: User authenticated:", session.user.id);
+		// Check if user is authenticated using optimized auth utilities
+		const { user } = await requireAuth();
 
 		const body: ApplicationRequest = await request.json();
-		console.log("📋 API: Application data:", {
-			postId: body.postId,
-			hasDocuments: body.documents?.length || 0,
-			documents: body.documents,
-		});
 
 		// Validate required fields
 		if (!body.postId) {
@@ -279,12 +243,11 @@ export async function POST(request: NextRequest) {
 
 		// Get user's applicant profile
 		const applicant = await prismaClient.applicant.findUnique({
-			where: { user_id: session.user.id },
+			where: { user_id: user.id },
 			select: { applicant_id: true },
 		});
 
 		if (!applicant) {
-			console.log("❌ API: No applicant profile found");
 			return NextResponse.json(
 				{ error: "Applicant profile not found" },
 				{ status: 404 }
@@ -298,7 +261,6 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (!post) {
-			console.log("❌ API: Post not found:", body.postId);
 			return NextResponse.json(
 				{ error: "Post not found" },
 				{ status: 404 }
@@ -314,7 +276,6 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (existingApplication) {
-			console.log("❌ API: Application already exists");
 			return NextResponse.json(
 				{ error: "You have already applied to this post" },
 				{ status: 409 }
@@ -367,7 +328,6 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (!applicantProfile) {
-			console.log("❌ API: Applicant profile not found");
 			return NextResponse.json(
 				{ error: "Applicant profile not found" },
 				{ status: 404 }
@@ -384,8 +344,6 @@ export async function POST(request: NextRequest) {
 				status: "PENDING",
 			},
 		});
-
-		console.log("✅ API: Application created:", application.application_id);
 
 		// Create profile snapshot
 		const profileSnapshot =
@@ -431,15 +389,8 @@ export async function POST(request: NextRequest) {
 				},
 			});
 
-		console.log(
-			"✅ API: Profile snapshot created:",
-			profileSnapshot.snapshot_id
-		);
-
 		// Create application details (documents) if provided
 		if (body.documents && body.documents.length > 0) {
-			console.log("📄 API: Processing documents:", body.documents);
-
 			// Map document type IDs to new enum values
 			const mapDocumentType = (docTypeId: string): string => {
 				const typeMapping: Record<string, string> = {
@@ -471,20 +422,9 @@ export async function POST(request: NextRequest) {
 				update_at: new Date(),
 			}));
 
-			console.log(
-				"📄 API: Application details to create:",
-				applicationDetails
-			);
-
 			await prismaClient.applicationDetail.createMany({
 				data: applicationDetails,
 			});
-
-			console.log(
-				`✅ API: Created ${applicationDetails.length} application documents`
-			);
-		} else {
-			console.log("📄 API: No documents provided for application");
 		}
 
 		// Send notification to institution
@@ -513,13 +453,8 @@ export async function POST(request: NextRequest) {
 					"PENDING",
 					institution.institution.name
 				);
-				console.log("✅ API: Application notification sent");
 			}
 		} catch (notificationError) {
-			console.error(
-				"❌ API: Failed to send notification:",
-				notificationError
-			);
 			// Don't fail the application if notification fails
 		}
 
@@ -544,10 +479,8 @@ export async function POST(request: NextRequest) {
 			},
 		};
 
-		console.log("✅ API: Application submitted successfully");
 		return NextResponse.json(response, { status: 201 });
 	} catch (error) {
-		console.error("❌ API: Error submitting application:", error);
 		return NextResponse.json(
 			{ error: "Failed to submit application" },
 			{ status: 500 }

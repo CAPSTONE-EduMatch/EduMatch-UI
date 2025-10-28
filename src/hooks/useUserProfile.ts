@@ -22,10 +22,17 @@ export function useUserProfile() {
 	const [profile, setProfile] = useState<UserProfile | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
 	const fetchProfile = async () => {
 		if (!isAuthenticated || authLoading) {
 			setProfile(null);
+			return;
+		}
+
+		// Prevent excessive API calls - only fetch if it's been more than 30 seconds since last fetch
+		const now = Date.now();
+		if (now - lastFetchTime < 30000 && profile) {
 			return;
 		}
 
@@ -43,7 +50,6 @@ export function useUserProfile() {
 
 			if (response.ok) {
 				const data = await response.json();
-				console.log("Profile API response:", data);
 				if (data.profile) {
 					// Extract user info from profile
 					const constructedName =
@@ -51,15 +57,6 @@ export function useUserProfile() {
 						data.profile.user?.name ||
 						authUser?.name ||
 						"User";
-					console.log(
-						"Constructed name:",
-						constructedName,
-						"from firstName:",
-						data.profile.firstName,
-						"lastName:",
-						data.profile.lastName
-					);
-
 					const userProfile: UserProfile = {
 						id: data.profile.user_id || authUser?.id || "",
 						name: constructedName,
@@ -70,11 +67,8 @@ export function useUserProfile() {
 						lastName: data.profile.lastName,
 						image: data.profile.user?.image || authUser?.image,
 					};
-					console.log(
-						"Initial profile set with name:",
-						userProfile.name
-					);
 					setProfile(userProfile);
+					setLastFetchTime(now);
 				} else {
 					// Fallback to auth user data if no profile
 					const fallbackProfile: UserProfile = {
@@ -85,6 +79,7 @@ export function useUserProfile() {
 						image: authUser?.image,
 					};
 					setProfile(fallbackProfile);
+					setLastFetchTime(now);
 				}
 			} else {
 				// Fallback to auth user data if profile fetch fails
@@ -96,6 +91,7 @@ export function useUserProfile() {
 					image: authUser?.image,
 				};
 				setProfile(fallbackProfile);
+				setLastFetchTime(now);
 			}
 		} catch (err) {
 			// console.error("Error fetching user profile:", err);
@@ -110,6 +106,7 @@ export function useUserProfile() {
 				image: authUser?.image,
 			};
 			setProfile(fallbackProfile);
+			setLastFetchTime(now);
 		} finally {
 			setIsLoading(false);
 		}
@@ -117,13 +114,14 @@ export function useUserProfile() {
 
 	useEffect(() => {
 		fetchProfile();
-	}, [isAuthenticated, authLoading, authUser]);
+	}, [isAuthenticated, authLoading, authUser?.id]); // Only depend on user ID, not the entire user object
 
 	const refreshProfile = async () => {
 		if (isAuthenticated) {
 			setProfile(null);
 			setIsLoading(true);
 			setError(null);
+			setLastFetchTime(0); // Reset cache to force refresh
 
 			try {
 				const response = await fetch("/api/profile", {
@@ -136,7 +134,6 @@ export function useUserProfile() {
 
 				if (response.ok) {
 					const data = await response.json();
-					console.log("Refresh Profile API response:", data);
 					if (data.profile) {
 						// Extract user info from profile
 						const constructedName =
@@ -144,14 +141,6 @@ export function useUserProfile() {
 							data.profile.user?.name ||
 							authUser?.name ||
 							"User";
-						console.log(
-							"Refresh - Constructed name:",
-							constructedName,
-							"from firstName:",
-							data.profile.firstName,
-							"lastName:",
-							data.profile.lastName
-						);
 
 						const userProfile: UserProfile = {
 							id: data.profile.user_id || authUser?.id || "",
@@ -165,11 +154,8 @@ export function useUserProfile() {
 							lastName: data.profile.lastName,
 							image: data.profile.user?.image || authUser?.image,
 						};
-						console.log(
-							"Setting profile with name:",
-							userProfile.name
-						);
 						setProfile(userProfile);
+						setLastFetchTime(Date.now());
 					} else {
 						// Fallback to auth user data if no profile
 						const fallbackProfile: UserProfile = {
@@ -180,6 +166,7 @@ export function useUserProfile() {
 							image: authUser?.image,
 						};
 						setProfile(fallbackProfile);
+						setLastFetchTime(Date.now());
 					}
 				} else {
 					// Fallback to auth user data if profile fetch fails
@@ -191,6 +178,7 @@ export function useUserProfile() {
 						image: authUser?.image,
 					};
 					setProfile(fallbackProfile);
+					setLastFetchTime(Date.now());
 				}
 			} catch (err) {
 				console.error("Error refreshing user profile:", err);
@@ -205,6 +193,7 @@ export function useUserProfile() {
 					image: authUser?.image,
 				};
 				setProfile(fallbackProfile);
+				setLastFetchTime(Date.now());
 			} finally {
 				setIsLoading(false);
 			}

@@ -1,15 +1,13 @@
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 
 export async function GET(request: NextRequest) {
 	try {
 		// Authenticate user and check admin permissions
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+		const { user } = await requireAuth();
 
-		if (!session?.user) {
+		if (!user.id) {
 			return NextResponse.json(
 				{ success: false, message: "Unauthorized" },
 				{ status: 401 }
@@ -18,8 +16,7 @@ export async function GET(request: NextRequest) {
 
 		// Check if user has admin role
 		const isAdmin =
-			session.user.email === process.env.ADMIN_EMAIL ||
-			session.user.role === "admin";
+			user.email === process.env.ADMIN_EMAIL || user.role === "admin";
 
 		if (!isAdmin) {
 			return NextResponse.json(

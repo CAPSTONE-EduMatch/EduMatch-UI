@@ -1,4 +1,4 @@
-import { auth } from "@/app/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { NextRequest } from "next/server";
 import { prismaClient } from "../../../../../../prisma/index";
 
@@ -9,13 +9,7 @@ export async function GET(
 ) {
 	try {
 		// Authenticate user and check admin permissions
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
-
-		if (!session?.user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+		const { user: currentUser } = await requireAuth();
 
 		const institutionId = params.id;
 

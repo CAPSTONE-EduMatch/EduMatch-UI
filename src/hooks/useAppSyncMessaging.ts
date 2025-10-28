@@ -53,6 +53,7 @@ export const useAppSyncMessaging = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [user, setUser] = useState<any>(null);
+	const [lastThreadsLoad, setLastThreadsLoad] = useState<number>(0);
 
 	// Use the auth check hook to get authentication state
 	const {
@@ -61,19 +62,29 @@ export const useAppSyncMessaging = () => {
 		isLoading: authLoading,
 	} = useAuthCheck();
 
-	// Load all threads
-	const loadThreads = useCallback(async () => {
-		try {
-			setLoading(true);
-			setError(null);
-			const threadsData = await getThreads();
-			setThreads(threadsData);
-		} catch (err) {
-			setError("Failed to load threads");
-		} finally {
-			setLoading(false);
-		}
-	}, []);
+	// Load all threads with caching
+	const loadThreads = useCallback(
+		async (force = false) => {
+			// Prevent excessive calls - only load if it's been more than 30 seconds since last load
+			const now = Date.now();
+			if (!force && now - lastThreadsLoad < 30000 && threads.length > 0) {
+				return;
+			}
+
+			try {
+				setLoading(true);
+				setError(null);
+				const threadsData = await getThreads();
+				setThreads(threadsData);
+				setLastThreadsLoad(now);
+			} catch (err) {
+				setError("Failed to load threads");
+			} finally {
+				setLoading(false);
+			}
+		},
+		[lastThreadsLoad, threads.length]
+	);
 
 	// Load messages for a specific thread
 	const loadMessages = useCallback(async (threadId: string) => {
@@ -111,8 +122,24 @@ export const useAppSyncMessaging = () => {
 				// Add message to local state immediately for better UX
 				setMessages((prev) => [...prev, message]);
 
-				// Refresh threads to update lastMessage and timestamp
-				loadThreads();
+				// Update threads locally instead of refetching
+				setThreads((prev) =>
+					prev.map((thread) =>
+						thread.id === threadId
+							? {
+									...thread,
+									lastMessage: content,
+									lastMessageAt: message.createdAt,
+									lastMessageSenderId: message.senderId,
+									lastMessageSenderName: message.senderName,
+									lastMessageSenderImage: message.senderImage,
+									lastMessageFileUrl: fileUrl,
+									lastMessageFileName: fileName,
+									lastMessageMimeType: mimeType,
+								}
+							: thread
+					)
+				);
 
 				return message;
 			} catch (err) {
@@ -120,7 +147,7 @@ export const useAppSyncMessaging = () => {
 				throw err;
 			}
 		},
-		[loadThreads]
+		[]
 	);
 
 	// Create a new thread
@@ -205,7 +232,7 @@ export const useAppSyncMessaging = () => {
 		// Subscribe to ALL message updates to refresh thread list when messages are sent to other threads
 		// This ensures that when user is on a different thread, they still see updates to other threads
 		const unsubscribeAllMessages = subscribeToAllMessages(() => {
-			// Refresh threads whenever any message is sent to any thread
+			// Just refresh threads when any message is sent - simpler approach
 			loadThreads();
 		});
 
@@ -232,7 +259,7 @@ export const useAppSyncMessaging = () => {
 			unsubscribeAllMessages();
 			unsubscribeMessages();
 		};
-	}, [selectedThreadId, user?.id, loadThreads]);
+	}, [selectedThreadId, user?.id]); // Removed loadThreads from dependencies
 
 	// Initialize user and load threads when authentication state changes
 	useEffect(() => {
@@ -250,21 +277,21 @@ export const useAppSyncMessaging = () => {
 				return;
 			}
 
-			// Prevent duplicate initialization
+			// Prevent duplicate initialization - only check user ID, not full user object
 			if (user && user.id === authUser.id) {
 				return;
 			}
 
 			try {
 				setUser(authUser);
-				await loadThreads();
+				await loadThreads(true); // Force load on initialization
 			} catch (error) {
 				// Error loading threads silently
 			}
 		};
 
 		initUserAndLoadThreads();
-	}, [isAuthenticated, authUser, authLoading, loadThreads, user]);
+	}, [isAuthenticated, authUser?.id, authLoading, user?.id]); // Only depend on user ID, not full objects
 
 	return {
 		messages,

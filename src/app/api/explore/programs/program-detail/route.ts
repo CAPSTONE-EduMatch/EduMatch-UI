@@ -156,6 +156,7 @@ export async function GET(request: NextRequest) {
 			institution: opportunityPost.institution
 				? {
 						id: opportunityPost.institution.institution_id,
+						userId: opportunityPost.institution.user_id,
 						name: opportunityPost.institution.name,
 						abbreviation: opportunityPost.institution.abbreviation,
 						logo: opportunityPost.institution.logo,

@@ -4,7 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
-import { DateInput, CustomSelect, RichTextEditor } from '@/components/ui'
+import {
+	DateInput,
+	CustomSelect,
+	RichTextEditor,
+	SuccessModal,
+	ErrorModal,
+} from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
 import { ApiService } from '@/lib/axios-config'
 
@@ -21,6 +27,11 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	const [subdisciplines, setSubdisciplines] = useState<
 		Array<{ value: string; label: string; discipline: string }>
 	>([])
+
+	// Modal states
+	const [showSuccessModal, setShowSuccessModal] = useState(false)
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
 
 	// Load subdisciplines from database
 	useEffect(() => {
@@ -76,7 +87,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 		// File Requirements
 		fileRequirements: {
-			fileName: '',
+			fileName: 'Required Documents',
 			fileDescription: '',
 		},
 
@@ -347,6 +358,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 			const response = await fetch('/api/posts/programs', {
 				method: 'POST',
+				credentials: 'include', // Include cookies for authentication
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -370,17 +382,18 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 			// Call the onSubmit callback
 			onSubmit?.()
 
-			// Show success message
-			alert('Program post created successfully!')
+			// Show success modal
+			setShowSuccessModal(true)
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Error creating program post:', error)
 			// Show specific error message to user
-			alert(
+			const errorMsg =
 				error instanceof Error
 					? error.message
 					: 'Failed to create program post. Please try again.'
-			)
+			setErrorMessage(errorMsg)
+			setShowErrorModal(true)
 		}
 	}
 
@@ -1064,6 +1077,24 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 					Submit
 				</Button>
 			</div>
+
+			{/* Success Modal */}
+			<SuccessModal
+				isOpen={showSuccessModal}
+				onClose={() => setShowSuccessModal(false)}
+				title="Success!"
+				message="Your program post has been created successfully."
+				buttonText="Continue"
+			/>
+
+			{/* Error Modal */}
+			<ErrorModal
+				isOpen={showErrorModal}
+				onClose={() => setShowErrorModal(false)}
+				title="Error"
+				message={errorMessage}
+				buttonText="Try Again"
+			/>
 		</div>
 	)
 }

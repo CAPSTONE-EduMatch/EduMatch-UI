@@ -1,9 +1,12 @@
 'use client'
 
-import { LucideIcon } from 'lucide-react'
+import { LucideIcon, LogOut } from 'lucide-react'
 import Image from 'next/image'
 import React, { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { authClient } from '@/app/lib/auth-client'
 
 export type ProfileSection = string
 
@@ -55,6 +58,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 }) => {
 	// Get subscription information
 	const { currentPlan } = useSubscription()
+	const router = useRouter()
+	const { refreshAuth } = useAuthCheck()
 
 	// Get plan display information
 	const getPlanInfo = (plan: string) => {
@@ -69,6 +74,26 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 	}
 
 	const planInfo = getPlanInfo(currentPlan || 'free')
+
+	// Handle logout
+	const handleLogout = async () => {
+		try {
+			await authClient.signOut()
+
+			// Clear any cached data
+			localStorage.clear()
+			sessionStorage.clear()
+
+			// Refresh auth state to update header
+			await refreshAuth()
+
+			// Redirect to home page
+			router.push('/')
+		} catch (error) {
+			// Handle logout error silently or show user-friendly message
+			// Logout error handled silently
+		}
+	}
 
 	// Default sidebar styles
 	const {
@@ -159,9 +184,9 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 							{profile?.user?.email}
 						</p>
 						<div className="space-y-1">
-							<span className="inline-block bg-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
+							{/* <span className="inline-block bg-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
 								{roleLabel}
-							</span>
+							</span> */}
 							{/* Subscription Plan Tag */}
 							<div className="mt-1">
 								<span
@@ -209,6 +234,19 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 						</button>
 					)
 				})}
+
+				{/* Logout Button - Only show for institutions */}
+				{profile?.role === 'institution' && (
+					<div className="mt-auto pt-4 border-t border-white/20">
+						<button
+							onClick={handleLogout}
+							className={`w-full flex items-center gap-3 text-left transition-all duration-200 ${itemPadding} ${itemBorderRadius} ${inactiveItemTextColor}`}
+						>
+							<LogOut className="w-4 h-4" />
+							<span className="font-medium text-sm">Log Out</span>
+						</button>
+					</div>
+				)}
 			</nav>
 		</div>
 	)

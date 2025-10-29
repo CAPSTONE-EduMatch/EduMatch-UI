@@ -113,8 +113,8 @@ model Applicant {
   has_foreign_language Boolean?
   languages            Json?
   university           String?
-  status               Boolean                 @default(true)
   deleted_at           DateTime?               @db.Timestamptz(6)
+  status               Boolean                 @default(true)
   subdiscipline        Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
   user                 User                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents            ApplicantDocument[]
@@ -148,8 +148,8 @@ model Institution {
   hotline_code        String?
   rep_phone_code      String?
   cover_image         String?
-  status              Boolean                    @default(true)
   deleted_at          DateTime?                  @db.Timestamptz(6)
+  status              Boolean                    @default(true)
   user                User                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents           InstitutionDocument[]
   subdisciplines      InstitutionSubdiscipline[]
@@ -197,7 +197,6 @@ model DocumentType {
 model OpportunityPost {
   post_id         String              @id
   title           String
-  description     String?
   start_date      DateTime            @db.Timestamptz(6)
   end_date        DateTime?           @db.Timestamptz(6)
   location        String?
@@ -207,6 +206,7 @@ model OpportunityPost {
   create_at       DateTime            @db.Timestamptz(6)
   degree_level    String
   institution_id  String
+  description     String?
   applications    Application[]
   jobPost         JobPost?
   institution     Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
@@ -337,8 +337,8 @@ model ApplicantDocument {
   upload_at        DateTime     @db.Timestamptz(6)
   subdiscipline    String[]     @default([])
   title            String?
-  status           Boolean      @default(true)
   deleted_at       DateTime?    @db.Timestamptz(6)
+  status           Boolean      @default(true)
   applicant        Applicant    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
   documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -353,8 +353,8 @@ model InstitutionDocument {
   url              String
   size             Int
   upload_at        DateTime     @db.Timestamptz(6)
-  status           Boolean      @default(true)
   deleted_at       DateTime?    @db.Timestamptz(6)
+  status           Boolean      @default(true)
   documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
   institution      Institution  @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -386,15 +386,15 @@ model Wishlist {
 }
 
 model Application {
-  application_id  String                      @id
-  applicant_id    String
-  apply_at        DateTime                    @db.Timestamptz(6)
-  post_id         String
-  status          ApplicationStatus           @default(PENDING)
-  applicant       Applicant                   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  post            OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-  details         ApplicationDetail[]
-  profileSnapshot ApplicationProfileSnapshot?
+  application_id             String                      @id
+  applicant_id               String
+  apply_at                   DateTime                    @db.Timestamptz(6)
+  post_id                    String
+  status                     ApplicationStatus           @default(PENDING)
+  applicant                  Applicant                   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  post                       OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  details                    ApplicationDetail[]
+  ApplicationProfileSnapshot ApplicationProfileSnapshot?
 
   @@index([applicant_id])
   @@index([post_id])
@@ -648,22 +648,6 @@ model Invoice {
   @@map("invoice")
 }
 
-enum DocumentTypeEnum {
-  RESEARCH_PROPOSAL
-  CV_RESUME
-  PORTFOLIO
-  ACADEMIC_TRANSCRIPT
-  PERSONAL_STATEMENT
-  RECOMMENDATION_LETTER
-  LANGUAGE_CERTIFICATE
-  PASSPORT_COPY
-  DEGREE_CERTIFICATE
-  RESEARCH_PAPER
-  INSTITUTION_VERIFICATION
-  REQUIRED_DOCUMENTS
-  OTHER
-}
-
 enum PostStatus {
   DRAFT
   PUBLISHED
@@ -684,4 +668,20 @@ enum SubscriptionStatus {
   INACTIVE
   CANCELLED
   EXPIRED
+}
+
+enum DocumentTypeEnum {
+  RESEARCH_PROPOSAL
+  CV_RESUME
+  PORTFOLIO
+  ACADEMIC_TRANSCRIPT
+  PERSONAL_STATEMENT
+  RECOMMENDATION_LETTER
+  LANGUAGE_CERTIFICATE
+  PASSPORT_COPY
+  DEGREE_CERTIFICATE
+  RESEARCH_PAPER
+  INSTITUTION_VERIFICATION
+  REQUIRED_DOCUMENTS
+  OTHER
 }

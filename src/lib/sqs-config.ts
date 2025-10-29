@@ -1,8 +1,8 @@
 import {
+	DeleteMessageCommand,
+	ReceiveMessageCommand,
 	SQSClient,
 	SendMessageCommand,
-	ReceiveMessageCommand,
-	DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 
 // SQS Configuration
@@ -49,6 +49,8 @@ export enum NotificationType {
 	PAYMENT_FAILED = "PAYMENT_FAILED",
 	SUBSCRIPTION_EXPIRING = "SUBSCRIPTION_EXPIRING",
 	WELCOME = "WELCOME",
+	USER_BANNED = "USER_BANNED",
+	SESSION_REVOKED = "SESSION_REVOKED",
 }
 
 // Base notification message structure
@@ -134,6 +136,28 @@ export interface WelcomeMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface UserBannedMessage extends BaseNotificationMessage {
+	type: NotificationType.USER_BANNED;
+	metadata: {
+		firstName: string;
+		lastName: string;
+		reason: string;
+		bannedBy: string;
+		bannedUntil?: string; // Optional - permanent ban if not provided
+	};
+}
+
+export interface SessionRevokedMessage extends BaseNotificationMessage {
+	type: NotificationType.SESSION_REVOKED;
+	metadata: {
+		firstName: string;
+		lastName: string;
+		reason: string;
+		revokedBy: string;
+		deviceInfo?: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
@@ -142,7 +166,9 @@ export type NotificationMessage =
 	| PaymentSuccessMessage
 	| PaymentFailedMessage
 	| SubscriptionExpiringMessage
-	| WelcomeMessage;
+	| WelcomeMessage
+	| UserBannedMessage
+	| SessionRevokedMessage;
 
 // SQS Service class
 export class SQSService {

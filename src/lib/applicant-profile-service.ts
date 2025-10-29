@@ -504,7 +504,7 @@ export class ApplicantProfileService {
 					documents: true,
 					applications: {
 						include: {
-							profileSnapshot: true,
+							ApplicationProfileSnapshot: true,
 						},
 					},
 				},
@@ -514,8 +514,8 @@ export class ApplicantProfileService {
 				// Find all document IDs that are referenced in profile snapshots
 				const snapshotDocumentIds = new Set<string>();
 				applicant.applications.forEach((application) => {
-					if (application.profileSnapshot?.document_ids) {
-						application.profileSnapshot.document_ids.forEach(
+					if (application.ApplicationProfileSnapshot?.document_ids) {
+						application.ApplicationProfileSnapshot.document_ids.forEach(
 							(docId) => {
 								snapshotDocumentIds.add(docId);
 							}

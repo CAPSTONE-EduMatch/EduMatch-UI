@@ -55,6 +55,9 @@ export function AdminSidebar({
 			case 'payment':
 				router.push('/admin/payments')
 				break
+			case 'plan':
+				router.push('/admin/payments/plans')
+				break
 			case 'institution':
 				router.push('/admin/institutions')
 				break

@@ -23,7 +23,7 @@ export interface UserFilters {
 	search?: string
 	status?: 'all' | 'active' | 'banned'
 	role?: string
-	userType?: 'applicant' | 'institution'
+	userType?: 'applicant' | 'institution' | 'admin'
 	sortBy?: 'name' | 'email' | 'createdAt'
 	sortDirection?: 'asc' | 'desc'
 	page?: number

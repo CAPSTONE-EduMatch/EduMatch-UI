@@ -9,6 +9,8 @@ import {
 	PaymentFailedMessage,
 	SubscriptionExpiringMessage,
 	WelcomeMessage,
+	UserBannedMessage,
+	SessionRevokedMessage,
 } from "./sqs-config";
 
 // Email service configuration
@@ -468,6 +470,166 @@ export class EmailTemplates {
 	}
 
 	/**
+	 * Generate user banned email template
+	 */
+	static generateBanEmail(message: UserBannedMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		const subject = `Account Suspended - EduMatch`;
+		const bannedUntilText = metadata.bannedUntil
+			? `until ${new Date(metadata.bannedUntil).toLocaleDateString()}`
+			: "permanently";
+
+		const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Account Suspended</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .warning-icon { font-size: 48px; color: #f44336; text-align: center; margin: 20px 0; }
+          .button { display: inline-block; background: #2196F3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .alert-box { background: #ffebee; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f44336; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Account Suspended</h1>
+        </div>
+        <div class="content">
+          <div class="warning-icon">🚫</div>
+          <h2>Dear ${metadata.firstName} ${metadata.lastName},</h2>
+          <p>We regret to inform you that your EduMatch account has been suspended <strong>${bannedUntilText}</strong>.</p>
+          
+          <div class="alert-box">
+            <p><strong>Suspension Details:</strong></p>
+            <p><strong>Reason:</strong> ${metadata.reason}</p>
+            <p><strong>Action taken by:</strong> ${metadata.bannedBy}</p>
+            ${metadata.bannedUntil ? `<p><strong>Suspension period:</strong> Until ${new Date(metadata.bannedUntil).toLocaleDateString()}</p>` : `<p><strong>Suspension type:</strong> Permanent</p>`}
+          </div>
+          
+          <h3>What this means:</h3>
+          <ul>
+            <li>You will not be able to access your EduMatch account</li>
+            <li>Your profile will be hidden from search results</li>
+            <li>You cannot submit new applications or messages</li>
+            <li>Existing applications may be affected</li>
+          </ul>
+          
+          ${metadata.bannedUntil ? `<p>Your account will be automatically restored on <strong>${new Date(metadata.bannedUntil).toLocaleDateString()}</strong>.</p>` : ""}
+          
+          <h3>Need to appeal?</h3>
+          <p>If you believe this suspension was made in error or would like to appeal this decision, please contact our support team with your case details.</p>
+          
+          <div style="text-align: center;">
+            <a href="mailto:support@edumatch.com?subject=Account Suspension Appeal - ${message.userId}" class="button">Contact Support</a>
+          </div>
+          
+          <p>We take violations of our community guidelines seriously to maintain a safe and trusted environment for all users.</p>
+          
+          <p>Regards,<br>The EduMatch Team</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 EduMatch. All rights reserved.</p>
+          <p>This is an automated notification regarding your account status.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+		return { subject, html };
+	}
+
+	/**
+	 * Generate session revoked email template
+	 */
+	static generateRevokeSessionEmail(message: SessionRevokedMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		const subject = `Security Alert - Session Revoked`;
+
+		const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Session Revoked</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .warning-icon { font-size: 48px; color: #ff9800; text-align: center; margin: 20px 0; }
+          .button { display: inline-block; background: #2196F3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .security-box { background: #fff3e0; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ff9800; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Security Alert</h1>
+        </div>
+        <div class="content">
+          <div class="warning-icon">🔐</div>
+          <h2>Dear ${metadata.firstName} ${metadata.lastName},</h2>
+          <p>This is a security notification to inform you that one or more of your active sessions has been revoked by an administrator.</p>
+          
+          <div class="security-box">
+            <p><strong>Session Revocation Details:</strong></p>
+            <p><strong>Reason:</strong> ${metadata.reason}</p>
+            <p><strong>Action taken by:</strong> ${metadata.revokedBy}</p>
+            ${metadata.deviceInfo ? `<p><strong>Device/Location:</strong> ${metadata.deviceInfo}</p>` : ""}
+            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <h3>What happened?</h3>
+          <p>An administrator has manually terminated your active session(s). This action was taken for security or administrative purposes.</p>
+          
+          <h3>What you need to do:</h3>
+          <ul>
+            <li>You will be logged out from all devices</li>
+            <li>You can log back in immediately with your credentials</li>
+            <li>Please review your recent account activity</li>
+            <li>If you didn't expect this, contact support immediately</li>
+          </ul>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/signin" class="button">Sign In Again</a>
+          </div>
+          
+          <h3>Security Tips:</h3>
+          <ul>
+            <li>Ensure your password is strong and unique</li>
+            <li>Enable two-factor authentication if available</li>
+            <li>Don't share your login credentials</li>
+            <li>Always log out from shared or public devices</li>
+          </ul>
+          
+          <p><strong>Didn't recognize this activity?</strong> Contact our support team immediately at <a href="mailto:support@edumatch.com">support@edumatch.com</a></p>
+          
+          <p>Best regards,<br>The EduMatch Security Team</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 EduMatch. All rights reserved.</p>
+          <p>This is an automated security notification. Please do not reply to this email.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+		return { subject, html };
+	}
+
+	/**
 	 * Get status-specific content for application status emails
 	 */
 	private static getStatusSpecificContent(status: string): string {
@@ -554,13 +716,21 @@ export class EmailService {
 							message as SubscriptionExpiringMessage
 						);
 					break;
+				case NotificationType.USER_BANNED:
+					emailContent = EmailTemplates.generateBanEmail(
+						message as UserBannedMessage
+					);
+					break;
+				case NotificationType.SESSION_REVOKED:
+					emailContent = EmailTemplates.generateRevokeSessionEmail(
+						message as SessionRevokedMessage
+					);
+					break;
 				default:
 					throw new Error(
 						`Unsupported notification type: ${(message as any).type}`
 					);
-			}
-
-			// Send email
+			} // Send email
 			await transporter.sendMail({
 				from: process.env.SMTP_FROM || "noreply@edumatch.com",
 				to: message.userEmail,

@@ -1,6 +1,6 @@
+import { requireAuth } from "@/lib/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
-import { requireAuth } from "@/lib/auth-utils";
 
 export async function GET(request: NextRequest) {
 	try {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 		const applications = await prismaClient.application.findMany({
 			where: whereClause,
 			include: {
-				profileSnapshot: true, // Include the profile snapshot
+				ApplicationProfileSnapshot: true, // Include the profile snapshot
 				applicant: {
 					include: {
 						user: {
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 		// Transform data to match the expected format using snapshot data
 		const transformedApplications = applications.map((app) => {
 			// Use snapshot data if available, otherwise fallback to live data
-			const snapshot = app.profileSnapshot;
+			const snapshot = app.ApplicationProfileSnapshot;
 			const transformed = {
 				id: app.application_id,
 				postId: app.post.post_id,

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../prisma";
 
 // GET /api/applications/institution/[applicationId] - Get detailed applicant information for institutions
@@ -33,7 +33,7 @@ export async function GET(
 				},
 			},
 			include: {
-				profileSnapshot: true, // Include the profile snapshot
+				ApplicationProfileSnapshot: true, // Include the profile snapshot
 				applicant: {
 					include: {
 						user: {
@@ -225,30 +225,31 @@ export async function GET(
 				applicantId: application.applicant.applicant_id,
 				// Use snapshot data if available, otherwise fallback to live data
 				firstName:
-					application.profileSnapshot?.first_name ||
+					application.ApplicationProfileSnapshot?.first_name ||
 					application.applicant.first_name,
 				lastName:
-					application.profileSnapshot?.last_name ||
+					application.ApplicationProfileSnapshot?.last_name ||
 					application.applicant.last_name,
 				name:
-					application.profileSnapshot?.user_name ||
+					application.ApplicationProfileSnapshot?.user_name ||
 					application.applicant.user.name ||
 					`${application.applicant.first_name || ""} ${application.applicant.last_name || ""}`.trim(),
 				email:
-					application.profileSnapshot?.user_email ||
+					application.ApplicationProfileSnapshot?.user_email ||
 					application.applicant.user.email,
 				image:
-					application.profileSnapshot?.user_image ||
+					application.ApplicationProfileSnapshot?.user_image ||
 					application.applicant.user.image,
 				birthday:
-					application.profileSnapshot?.birthday
+					application.ApplicationProfileSnapshot?.birthday
 						?.toISOString()
 						.split("T")[0] ||
 					application.applicant.birthday?.toISOString().split("T")[0],
 				gender:
-					application.profileSnapshot?.gender === true
+					application.ApplicationProfileSnapshot?.gender === true
 						? "Male"
-						: application.profileSnapshot?.gender === false
+						: application.ApplicationProfileSnapshot?.gender ===
+							  false
 							? "Female"
 							: application.applicant.gender === true
 								? "Male"
@@ -256,55 +257,59 @@ export async function GET(
 									? "Female"
 									: "Not specified",
 				nationality:
-					application.profileSnapshot?.nationality ||
+					application.ApplicationProfileSnapshot?.nationality ||
 					application.applicant.nationality,
 				phoneNumber:
-					application.profileSnapshot?.phone_number ||
+					application.ApplicationProfileSnapshot?.phone_number ||
 					application.applicant.phone_number,
 				countryCode:
-					application.profileSnapshot?.country_code ||
+					application.ApplicationProfileSnapshot?.country_code ||
 					application.applicant.country_code,
 				graduated:
-					application.profileSnapshot?.graduated ??
+					application.ApplicationProfileSnapshot?.graduated ??
 					application.applicant.graduated,
 				level:
-					application.profileSnapshot?.level ||
+					application.ApplicationProfileSnapshot?.level ||
 					application.applicant.level,
 				// For subdisciplines, we need to fetch the names from the IDs
 				subdiscipline:
-					(application.profileSnapshot?.subdiscipline_ids?.length ??
-						0) > 0
-						? `${application.profileSnapshot?.subdiscipline_ids?.length ?? 0} interests`
+					(application.ApplicationProfileSnapshot?.subdiscipline_ids
+						?.length ?? 0) > 0
+						? `${application.ApplicationProfileSnapshot?.subdiscipline_ids?.length ?? 0} interests`
 						: application.applicant.subdiscipline?.name ||
 							"Unknown",
 				discipline: "Multiple disciplines", // We'll need to fetch this from the subdiscipline IDs
 				gpa:
-					application.profileSnapshot?.gpa ||
+					application.ApplicationProfileSnapshot?.gpa ||
 					application.applicant.gpa,
 				university:
-					application.profileSnapshot?.university ||
+					application.ApplicationProfileSnapshot?.university ||
 					application.applicant.university,
 				countryOfStudy:
-					application.profileSnapshot?.country_of_study ||
+					application.ApplicationProfileSnapshot?.country_of_study ||
 					application.applicant.country_of_study,
 				hasForeignLanguage:
-					application.profileSnapshot?.has_foreign_language ??
+					application.ApplicationProfileSnapshot
+						?.has_foreign_language ??
 					application.applicant.has_foreign_language,
 				languages:
-					application.profileSnapshot?.languages ||
+					application.ApplicationProfileSnapshot?.languages ||
 					application.applicant.languages,
 				// Additional snapshot data
 				favoriteCountries:
-					application.profileSnapshot?.favorite_countries || [],
+					application.ApplicationProfileSnapshot
+						?.favorite_countries || [],
 				subdisciplineIds:
-					application.profileSnapshot?.subdiscipline_ids || [],
+					application.ApplicationProfileSnapshot?.subdiscipline_ids ||
+					[],
 				// Documents from profile snapshot - use snapshot document IDs
 				// Include soft-deleted documents for profile snapshots to preserve historical data
 				documents:
-					application.profileSnapshot?.document_ids &&
-					application.profileSnapshot.document_ids.length > 0
+					application.ApplicationProfileSnapshot?.document_ids &&
+					application.ApplicationProfileSnapshot.document_ids.length >
+						0
 						? await Promise.all(
-								application.profileSnapshot.document_ids.map(
+								application.ApplicationProfileSnapshot.document_ids.map(
 									async (docId) => {
 										const doc =
 											await prismaClient.applicantDocument.findUnique(
@@ -346,7 +351,10 @@ export async function GET(
 			data: transformedData,
 		});
 	} catch (error) {
-		console.error("❌ API: Error fetching application details:", error);
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("❌ API: Error fetching application details:", error);
+		}
 		return NextResponse.json(
 			{ error: "Failed to fetch application details" },
 			{ status: 500 }
@@ -377,7 +385,7 @@ export async function PUT(
 		}
 
 		const body = await request.json();
-		const { status, notes } = body;
+		const { status } = body;
 
 		// Get application and verify it belongs to this institution
 		const application = await prismaClient.application.findFirst({
@@ -413,7 +421,10 @@ export async function PUT(
 			},
 		});
 	} catch (error) {
-		console.error("❌ API: Error updating application:", error);
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("❌ API: Error updating application:", error);
+		}
 		return NextResponse.json(
 			{ error: "Failed to update application" },
 			{ status: 500 }

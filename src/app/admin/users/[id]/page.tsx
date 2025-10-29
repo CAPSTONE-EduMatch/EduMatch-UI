@@ -2,12 +2,12 @@
 
 import { BanUnbanModal } from '@/components/admin/BanUnbanModal'
 import { DocumentSection } from '@/components/admin/DocumentComponents'
+import { RevokeSessionsModal } from '@/components/admin/RevokeSessionsModal'
 import { ProfileSidebar } from '@/components/profile/ProfileSidebar'
 import { useAdminAuth } from '@/hooks/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/user-details'
 import { motion } from 'framer-motion'
 import {
-	ArrowLeft,
 	Building2,
 	Download,
 	GraduationCap,
@@ -74,9 +74,10 @@ export default function UserDetailPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [actionLoading, setActionLoading] = useState(false)
 	const [showBanModal, setShowBanModal] = useState(false)
+	const [showRevokeModal, setShowRevokeModal] = useState(false)
 	const router = useRouter()
 	const params = useParams()
-	const { isAdmin, isLoading: adminLoading } = useAdminAuth()
+	const { isLoading: adminLoading } = useAdminAuth()
 
 	useEffect(() => {
 		setIsClient(true)
@@ -130,13 +131,11 @@ export default function UserDetailPage() {
 	}
 
 	const handleRevokeSessions = async () => {
+		setShowRevokeModal(true)
+	}
+
+	const confirmRevokeSessions = async () => {
 		if (!params?.id) return
-
-		const confirmed = confirm(
-			'Are you sure you want to revoke all sessions for this user? This will immediately log them out from all devices and browsers.'
-		)
-
-		if (!confirmed) return
 
 		setActionLoading(true)
 		try {
@@ -148,6 +147,7 @@ export default function UserDetailPage() {
 
 			if (response.ok) {
 				alert('All user sessions revoked successfully!')
+				setShowRevokeModal(false)
 			} else {
 				const errorData = await response.json()
 				alert(
@@ -297,9 +297,9 @@ export default function UserDetailPage() {
 			</div>
 
 			{/* Main Content */}
-			<div className="flex-1 ml-[289px]">
+			<div className="flex-1">
 				{/* Header */}
-				<div className="bg-white shadow-sm p-4 flex items-center justify-between">
+				{/* <div className="bg-white shadow-sm p-4 flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<button
 							onClick={handleBack}
@@ -315,7 +315,7 @@ export default function UserDetailPage() {
 						<span className="text-lg font-bold text-[#126E64]">EduMatch</span>
 						<span className="text-sm text-[#126E64]">Administrator</span>
 					</div>
-				</div>
+				</div> */}
 
 				<div className="flex gap-12 p-6 max-w-7xl mx-auto">
 					{/* Left Column - User Profile */}
@@ -557,6 +557,16 @@ export default function UserDetailPage() {
 				currentBanExpires={
 					userData?.banExpires ? new Date(userData.banExpires) : null
 				}
+				isLoading={actionLoading}
+			/>
+
+			{/* Revoke Sessions Modal */}
+			<RevokeSessionsModal
+				isOpen={showRevokeModal}
+				onClose={() => setShowRevokeModal(false)}
+				onConfirm={confirmRevokeSessions}
+				userName={userData?.name || 'Unknown User'}
+				userEmail={userData?.email || 'Unknown Email'}
 				isLoading={actionLoading}
 			/>
 		</div>

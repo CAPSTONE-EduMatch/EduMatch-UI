@@ -7,9 +7,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function AdminUserManagement() {
-	const [activeTab, setActiveTab] = useState<'applicants' | 'institutions'>(
-		'applicants'
-	)
+	const [activeTab, setActiveTab] = useState<
+		'applicants' | 'institutions' | 'admins'
+	>('applicants')
 	const [isClient, setIsClient] = useState(false)
 	const router = useRouter()
 
@@ -20,11 +20,14 @@ export default function AdminUserManagement() {
 	const tabs = [
 		{ id: 'applicants', label: 'Applicants' },
 		{ id: 'institutions', label: 'Institutions' },
+		{ id: 'admins', label: 'Admins' },
 	]
 
 	const handleViewDetails = (userId: string) => {
 		if (activeTab === 'institutions') {
 			router.push(`/admin/institutions/${userId}`)
+		} else if (activeTab === 'admins') {
+			router.push(`/admin/users/${userId}`)
 		} else {
 			router.push(`/admin/users/${userId}`)
 		}
@@ -62,7 +65,9 @@ export default function AdminUserManagement() {
 									<button
 										key={tab.id}
 										onClick={() =>
-											setActiveTab(tab.id as 'applicants' | 'institutions')
+											setActiveTab(
+												tab.id as 'applicants' | 'institutions' | 'admins'
+											)
 										}
 										className={`px-8 py-3 rounded-full text-lg font-semibold transition-all ${
 											activeTab === tab.id
@@ -84,9 +89,14 @@ export default function AdminUserManagement() {
 										userType="applicant"
 										onViewDetails={handleViewDetails}
 									/>
-								) : (
+								) : activeTab === 'institutions' ? (
 									<UserManagementTable
 										userType="institution"
+										onViewDetails={handleViewDetails}
+									/>
+								) : (
+									<UserManagementTable
+										userType="admin"
 										onViewDetails={handleViewDetails}
 									/>
 								)}

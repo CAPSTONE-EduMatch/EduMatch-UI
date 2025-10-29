@@ -86,6 +86,20 @@ const SignIn: React.FC = () => {
 	const checkProfileAndRedirect = useCallback(async () => {
 		try {
 			console.log('🔍 Checking user profile...')
+
+			// First check if user is admin
+			try {
+				const adminResponse = await axios.get('/api/auth/admin-check')
+				if (adminResponse.data?.isAdmin) {
+					console.log('👑 Admin user detected, redirecting to admin dashboard')
+					router.push('/admin')
+					return
+				}
+			} catch (adminError) {
+				console.log('ℹ️ Not an admin user, checking regular profile...')
+				// Not an admin, continue with profile check
+			}
+
 			const profileResponse = await axios.get('/api/profile')
 			const profile = profileResponse.data?.profile
 

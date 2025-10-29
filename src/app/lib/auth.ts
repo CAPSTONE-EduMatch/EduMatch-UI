@@ -6,12 +6,12 @@ import dotenv from "dotenv";
 import nodeMailer from "nodemailer";
 import Stripe from "stripe";
 import { prismaClient } from "../../../prisma/index";
+import { redisClient } from "../lib/redis";
 import {
 	checkOTPRateLimitByType,
 	recordOTPAttemptByType,
 	type OTPType,
 } from "./otp-rate-limit";
-import { redisClient } from "../lib/redis";
 dotenv.config();
 
 // Validate required environment variables

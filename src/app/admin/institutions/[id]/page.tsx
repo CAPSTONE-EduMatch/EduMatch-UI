@@ -313,9 +313,9 @@ export default function InstitutionDetailPage() {
 			</div>
 
 			{/* Main Content */}
-			<div className="flex-1 ml-[289px]">
+			<div className="flex-1">
 				{/* Header */}
-				<div className="bg-white shadow-sm p-4 flex items-center justify-between">
+				{/* <div className="bg-white shadow-sm p-4 flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<button
 							onClick={handleBack}
@@ -331,7 +331,7 @@ export default function InstitutionDetailPage() {
 						<span className="text-lg font-bold text-[#126E64]">EduMatch</span>
 						<span className="text-sm text-[#126E64]">Administrator</span>
 					</div>
-				</div>
+				</div> */}
 
 				<div className="flex gap-12 p-6 max-w-7xl mx-auto">
 					{/* Left Column - Institution Profile */}

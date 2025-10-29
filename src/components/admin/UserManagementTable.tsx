@@ -1,17 +1,14 @@
 'use client'
 
 import { Button, Card, CardContent } from '@/components/ui'
-import {
-	useAdminUserManagement,
-	type User,
-} from '@/hooks/useAdminUserManagement'
+import { useAdminUserManagement } from '@/hooks/useAdminUserManagement'
 import { motion } from 'framer-motion'
 import { Eye, Filter, RotateCw, Search } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 interface UserManagementTableProps {
-	userType: 'applicant' | 'institution'
-	onViewDetails: (_userId: string) => void
+	userType: 'applicant' | 'institution' | 'admin'
+	onViewDetails: (userId: string) => void
 }
 
 const UserManagementTable = memo(function UserManagementTable({
@@ -27,9 +24,7 @@ const UserManagementTable = memo(function UserManagementTable({
 		filters,
 		updateFilters,
 		setPage,
-		banUser,
-		unbanUser,
-		removeUser,
+		pagination,
 	} = useAdminUserManagement()
 
 	// Local state for UI - independent of query filters to prevent focus loss
@@ -47,6 +42,11 @@ const UserManagementTable = memo(function UserManagementTable({
 	const isSearchingRef = useRef(false)
 	const searchInputRef = useRef<HTMLInputElement>(null)
 	const wasFocusedRef = useRef(false)
+
+	// Set userType filter when component mounts or userType changes
+	useEffect(() => {
+		updateFilters({ userType })
+	}, [userType, updateFilters])
 
 	// Track when search input is focused
 	const handleSearchFocus = useCallback(() => {
@@ -152,59 +152,35 @@ const UserManagementTable = memo(function UserManagementTable({
 		[setPage]
 	)
 
-	// Handle user actions
-	const handleBanUser = useCallback(
-		async (userId: string, reason?: string) => {
-			try {
-				await banUser(userId, reason || 'Banned by admin')
-			} catch (error) {
-				// Handle ban error - could show toast notification
-				alert('Failed to ban user')
-			}
-		},
-		[banUser]
-	)
+	// Natural sort function for alphanumeric strings
+	// const naturalSort = useCallback(
+	// 	(a: string, b: string, direction: 'asc' | 'desc') => {
+	// 		const collator = new Intl.Collator(undefined, {
+	// 			numeric: true,
+	// 			sensitivity: 'base',
+	// 		})
+	// 		const result = collator.compare(a, b)
+	// 		return direction === 'asc' ? result : -result
+	// 	},
+	// 	[]
+	// )
 
-	const handleUnbanUser = useCallback(
-		async (userId: string) => {
-			try {
-				await unbanUser(userId)
-			} catch (error) {
-				// Handle unban error - could show toast notification
-				alert('Failed to unban user')
-			}
-		},
-		[unbanUser]
-	)
+	// // Apply client-side natural sorting to the users from API
+	// const displayUsers = [...users].sort((a, b) => {
+	// 	if (sortBy === 'name') {
+	// 		return naturalSort(a.name || '', b.name || '', sortDirection)
+	// 	} else if (sortBy === 'email') {
+	// 		return naturalSort(a.email || '', b.email || '', sortDirection)
+	// 	} else {
+	// 		// For createdAt, use standard comparison
+	// 		const dateA = new Date(a.createdAt).getTime()
+	// 		const dateB = new Date(b.createdAt).getTime()
+	// 		return sortDirection === 'asc' ? dateA - dateB : dateB - dateA
+	// 	}
+	// })
 
-	const handleRemoveUser = useCallback(
-		async (userId: string) => {
-			if (
-				window.confirm(
-					'Are you sure you want to permanently remove this user? This action cannot be undone.'
-				)
-			) {
-				try {
-					await removeUser(userId)
-				} catch (error) {
-					// Handle remove error - could show toast notification
-					alert('Failed to remove user')
-				}
-			}
-		},
-		[removeUser]
-	)
-
-	// Filter users based on type (client-side filtering for user type)
-	const filteredUsers = users.filter((user: User) => {
-		if (userType === 'institution') {
-			return user.type === 'University' || user.role === 'institution'
-		} else {
-			return !user.type && user.role !== 'institution'
-		}
-	})
-
-	const totalPages = Math.ceil(total / (filters.limit || 10))
+	const totalPages = pagination?.totalPages || 1
+	const itemsPerPage = filters.limit || 10
 
 	if (loading) {
 		return (
@@ -308,7 +284,7 @@ const UserManagementTable = memo(function UserManagementTable({
 							</div>
 
 							<div className="divide-y divide-gray-100">
-								{filteredUsers.map((user, index) => {
+								{users.map((user, index) => {
 									const isEven = index % 2 === 0
 									const rowBg = isEven ? 'bg-[#EAEDF3]' : 'bg-white'
 
@@ -376,7 +352,7 @@ const UserManagementTable = memo(function UserManagementTable({
 								})}
 							</div>
 
-							{filteredUsers.length === 0 && (
+							{users.length === 0 && (
 								<div className="text-center py-12 text-gray-500">
 									No users found matching your criteria.
 								</div>
@@ -389,8 +365,8 @@ const UserManagementTable = memo(function UserManagementTable({
 			{/* Pagination */}
 			<div className="flex justify-between items-center mt-6">
 				<div className="text-gray-600 text-xs font-medium">
-					Display {Math.min(filters.limit || 10, filteredUsers.length)} results
-					of <span className="font-semibold text-gray-800">{total}</span>
+					Display {Math.min(itemsPerPage, users.length)} results of{' '}
+					<span className="font-semibold text-gray-800">{total}</span>
 				</div>
 
 				<div className="flex items-center gap-1">

@@ -1,12 +1,12 @@
-import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
+import { NextRequest } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 
 interface UserFilters {
 	search?: string;
 	status?: "all" | "active" | "banned";
 	role?: string;
-	userType?: "applicant" | "institution";
+	userType?: "applicant" | "institution" | "admin";
 	sortBy?: "name" | "email" | "createdAt";
 	sortDirection?: "asc" | "desc";
 	page?: number;
@@ -17,7 +17,7 @@ interface UserFilters {
 export async function GET(request: NextRequest) {
 	try {
 		// Authenticate user and check admin permissions
-		const { user: currentUser } = await requireAuth();
+		await requireAuth();
 
 		const { searchParams } = new URL(request.url);
 
@@ -29,8 +29,10 @@ export async function GET(request: NextRequest) {
 				"all",
 			role: searchParams.get("role") || undefined,
 			userType:
-				(searchParams.get("userType") as "applicant" | "institution") ||
-				undefined,
+				(searchParams.get("userType") as
+					| "applicant"
+					| "institution"
+					| "admin") || undefined,
 			sortBy:
 				(searchParams.get("sortBy") as
 					| "name"
@@ -81,8 +83,12 @@ export async function GET(request: NextRequest) {
 		if (filters.userType) {
 			if (filters.userType === "institution") {
 				whereClause.role = "institution";
-			} else {
-				whereClause.role = { not: "institution" };
+			} else if (filters.userType === "admin") {
+				whereClause.role = { in: ["admin", "super_admin"] };
+			} else if (filters.userType === "applicant") {
+				whereClause.role = {
+					notIn: ["institution", "admin", "super_admin"],
+				};
 			}
 		}
 
@@ -164,7 +170,10 @@ export async function GET(request: NextRequest) {
 			}
 		);
 	} catch (error) {
-		console.error("Error fetching users:", error);
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("Error fetching users:", error);
+		}
 		return new Response(
 			JSON.stringify({
 				success: false,
@@ -185,7 +194,7 @@ export async function GET(request: NextRequest) {
 // User management actions (ban, unban, delete)
 export async function POST(request: NextRequest) {
 	try {
-		const { user: currentUser } = await requireAuth();
+		await requireAuth();
 
 		const body = await request.json();
 		const { userId, action, reason, expiresIn } = body;
@@ -246,7 +255,10 @@ export async function POST(request: NextRequest) {
 			}
 		);
 	} catch (error) {
-		console.error("Error performing user action:", error);
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("Error performing user action:", error);
+		}
 		return new Response(
 			JSON.stringify({
 				success: false,

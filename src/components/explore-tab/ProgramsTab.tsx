@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { ProgramCard } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { Program } from '@/types/explore-api'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ProgramsTabProps {
 	sortBy?: SortOption
@@ -27,9 +27,14 @@ export function ProgramsTab({
 	onApply = () => {},
 }: ProgramsTabProps) {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 
 	const handleProgramClick = (programId: string) => {
-		router.push(`/explore/programmes/${programId}?from=programmes`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		router.push(
+			`/explore/programmes/${programId}?from=programmes&${currentParams.toString()}`
+		)
 	}
 
 	const paginatedPrograms = useMemo(() => {

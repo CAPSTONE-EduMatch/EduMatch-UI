@@ -71,10 +71,13 @@ export function ProgramCard({
 
 				<div className="">
 					<Image
-						src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png"
+						src={
+							program.logo ||
+							'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png'
+						}
 						alt={program.university}
-						width={340}
-						height={340}
+						width={140}
+						height={140}
 						className="rounded-lg"
 					/>
 				</div>
@@ -105,9 +108,10 @@ export function ProgramCard({
 			</h3>
 
 			{/* Description */}
-			<p className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0">
-				{program.description}
-			</p>
+			<div
+				className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0"
+				dangerouslySetInnerHTML={{ __html: program.description }}
+			/>
 
 			{/* Tags */}
 			<div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">

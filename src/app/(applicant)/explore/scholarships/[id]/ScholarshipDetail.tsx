@@ -98,27 +98,33 @@ const ScholarshipDetail = () => {
 		const updateBreadcrumb = () => {
 			const fromTab = searchParams.get('from') || 'scholarships'
 
+			// Preserve all original URL parameters except 'from'
+			const currentParams = new URLSearchParams(searchParams.toString())
+			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
+			const paramsString = currentParams.toString()
+			const queryString = paramsString ? `?${paramsString}` : ''
+
 			const scholarshipName = currentScholarship?.title || 'Scholarship Detail'
 
 			let items: Array<{ label: string; href?: string }> = [
-				{ label: 'Explore', href: '/explore' },
+				{ label: 'Explore', href: `/explore${queryString}` },
 			]
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'programmes') {
 				items.push({
 					label: 'Programmes',
-					href: '/explore?tab=programmes',
+					href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else if (fromTab === 'research') {
 				items.push({
 					label: 'Research Labs',
-					href: '/explore?tab=research',
+					href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else {
 				items.push({
 					label: 'Scholarships',
-					href: '/explore?tab=scholarships',
+					href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
 				})
 			}
 
@@ -253,13 +259,27 @@ const ScholarshipDetail = () => {
 	}
 
 	const handleProgramClick = (programId: string) => {
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		currentParams.delete('from') // Remove 'from' as it will be added back
+		const paramsString = currentParams.toString()
+
 		// Navigate to programmes detail page
-		router.push(`/explore/programmes/${programId}?from=scholarships`)
+		router.push(
+			`/explore/programmes/${programId}?from=scholarships${paramsString ? `&${paramsString}` : ''}`
+		)
 	}
 
 	const handleScholarshipClick = (scholarshipId: string) => {
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		currentParams.delete('from') // Remove 'from' as it will be added back
+		const paramsString = currentParams.toString()
+
 		// Navigate to scholarship detail page
-		router.push(`/explore/scholarships/${scholarshipId}`)
+		router.push(
+			`/explore/scholarships/${scholarshipId}?from=scholarships${paramsString ? `&${paramsString}` : ''}`
+		)
 	}
 
 	const handleApply = async () => {

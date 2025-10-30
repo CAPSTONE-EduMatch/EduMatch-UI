@@ -19,10 +19,9 @@ import { TabType } from '@/types/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useWishlist } from '@/hooks/useWishlist'
-import { applicationService } from '@/lib/application-service'
 import student from '../../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -49,6 +48,7 @@ const Explore = () => {
 	const [selectedFilters, setSelectedFilters] = useState<
 		Record<string, string[]>
 	>({})
+	const [filtersInitialized, setFiltersInitialized] = useState(false)
 
 	// Initialize state from URL parameters on component mount
 	useEffect(() => {
@@ -80,10 +80,65 @@ const Explore = () => {
 				setCurrentPage(pageNumber)
 			}
 		}
-	}, [searchParams])
+
+		// Initialize filters from URL parameters (for refresh scenarios)
+		const initializeFiltersFromURL = () => {
+			const filters: Record<string, string[]> = {}
+			const currentTab = tabFromUrl || 'programmes' // Don't use activeTab here to avoid dependency
+
+			// Parse filters with tab prefix from URL
+			const filterKeys = [
+				'discipline',
+				'country',
+				'duration',
+				'degreeLevel',
+				'attendance',
+				'researchField',
+				'essayRequired',
+				'contractType',
+				'jobType',
+			]
+
+			filterKeys.forEach((key) => {
+				const value = searchParams.get(`${currentTab}_${key}`)
+				if (value) {
+					filters[key] = value.split(',')
+				}
+			})
+
+			// Parse fee range
+			const feeMin = searchParams.get(`${currentTab}_feeMin`)
+			const feeMax = searchParams.get(`${currentTab}_feeMax`)
+			if (feeMin || feeMax) {
+				filters.feeRange = [`${feeMin || 0}-${feeMax || 1000000}`]
+			}
+
+			// Parse salary range
+			const salaryMin = searchParams.get(`${currentTab}_salaryMin`)
+			const salaryMax = searchParams.get(`${currentTab}_salaryMax`)
+			if (salaryMin || salaryMax) {
+				filters.salaryRange = [`${salaryMin || 0}-${salaryMax || 200000}`]
+			}
+
+			return filters
+		}
+
+		// Initialize filters from URL when searchParams is available
+		if (searchParams && searchParams.toString()) {
+			const parsedFilters = initializeFiltersFromURL()
+			if (Object.keys(parsedFilters).length > 0) {
+				setSelectedFilters(parsedFilters)
+			}
+		}
+
+		// Always mark filters as initialized
+		setFiltersInitialized(true)
+	}, [searchParams]) // Remove activeTab from dependencies to prevent infinite loop
 
 	// Update URL when tab, sort, or page changes
 	useEffect(() => {
+		if (!filtersInitialized) return
+
 		const params = new URLSearchParams(searchParams.toString())
 
 		params.set('tab', activeTab)
@@ -106,14 +161,23 @@ const Explore = () => {
 		if (window.location.search !== `?${params.toString()}`) {
 			window.history.replaceState({}, '', newURL)
 		}
-	}, [activeTab, sortBy, currentPage, searchParams])
+	}, [activeTab, sortBy, currentPage, searchParams, filtersInitialized])
 
-	// Wishlist functionality
+	// Handle filters change from FilterSidebar
+	const handleFiltersChange = useCallback(
+		(filters: Record<string, string[]>) => {
+			// Only update if filters have been initialized to prevent race conditions
+			if (filtersInitialized) {
+				setSelectedFilters(filters)
+			}
+		},
+		[filtersInitialized]
+	)
 	const { isInWishlist, toggleWishlistItem } = useWishlist()
 
-	// Application functionality
-	const [appliedPosts, setAppliedPosts] = useState<Set<string>>(new Set())
-	const [applyingPosts, setApplyingPosts] = useState<Set<string>>(new Set())
+	// Application functionality - track applied/applying posts
+	const [appliedPosts] = useState<Set<string>>(new Set())
+	const [applyingPosts] = useState<Set<string>>(new Set())
 
 	// Handle wishlist toggle
 	const handleWishlistToggle = async (postId: string) => {
@@ -130,18 +194,22 @@ const Explore = () => {
 	const handleApply = async (postId: string) => {
 		// Redirect to the appropriate detail page based on the current tab
 		let detailPath = ''
+
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+
 		switch (activeTab) {
 			case 'programmes':
-				detailPath = `/explore/programmes/${postId}?from=programmes`
+				detailPath = `/explore/programmes/${postId}?from=programmes&${currentParams.toString()}`
 				break
 			case 'scholarships':
-				detailPath = `/explore/scholarships/${postId}?from=scholarships`
+				detailPath = `/explore/scholarships/${postId}?from=scholarships&${currentParams.toString()}`
 				break
 			case 'research':
-				detailPath = `/explore/research-labs/${postId}?from=research`
+				detailPath = `/explore/research-labs/${postId}?from=research&${currentParams.toString()}`
 				break
 			default:
-				detailPath = `/explore/programmes/${postId}?from=programmes`
+				detailPath = `/explore/programmes/${postId}?from=programmes&${currentParams.toString()}`
 		}
 
 		// Navigate to the detail page where users can upload documents and apply
@@ -172,8 +240,13 @@ const Explore = () => {
 	const [researchLabsTotalPages, setResearchLabsTotalPages] = useState(0)
 	const [researchLabsTotalItems, setResearchLabsTotalItems] = useState(0)
 
-	// Load data when tab, page, sort, or filters change
+	// Load data when tab, page, sort, or filters change (but only after filters are initialized)
 	useEffect(() => {
+		// Don't load data if filters haven't been initialized from URL yet
+		if (!filtersInitialized) {
+			return
+		}
+
 		const loadData = async () => {
 			try {
 				// Filter out unsupported sort options
@@ -298,7 +371,7 @@ const Explore = () => {
 		}
 
 		loadData()
-	}, [activeTab, currentPage, sortBy, selectedFilters])
+	}, [activeTab, currentPage, sortBy, selectedFilters, filtersInitialized])
 
 	// Reset page to 1 when filters change
 	useEffect(() => {
@@ -499,7 +572,7 @@ const Explore = () => {
 							<div className=" top-4 self-start  flex flex-col gap-6">
 								<FilterSidebar
 									activeTab={activeTab}
-									onFiltersChange={setSelectedFilters}
+									onFiltersChange={handleFiltersChange}
 								/>
 								<AIAssistantCard />
 							</div>

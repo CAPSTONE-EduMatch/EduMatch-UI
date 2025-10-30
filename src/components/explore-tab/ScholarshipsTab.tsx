@@ -3,7 +3,7 @@
 import React from 'react'
 import { ScholarshipCard } from '@/components/ui'
 import { Scholarship } from '@/types/explore-api'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
@@ -23,9 +23,14 @@ export function ScholarshipsTab({
 	onApply = () => {},
 }: ScholarshipsTabProps) {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 
 	const handleScholarshipClick = (scholarshipId: string) => {
-		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		router.push(
+			`/explore/scholarships/${scholarshipId}?from=scholarships&${currentParams.toString()}`
+		)
 	}
 
 	return (

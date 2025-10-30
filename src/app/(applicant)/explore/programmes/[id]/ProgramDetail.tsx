@@ -185,6 +185,12 @@ const ProgramDetail = () => {
 			// Get the 'from' parameter from search params to know which tab we came from
 			const fromTab = searchParams.get('from') || 'programmes'
 
+			// Preserve all original URL parameters except 'from'
+			const currentParams = new URLSearchParams(searchParams.toString())
+			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
+			const paramsString = currentParams.toString()
+			const queryString = paramsString ? `?${paramsString}` : ''
+
 			// Fetch program data from API
 			const programData = await fetchProgramDetail(programId)
 			console.log(
@@ -195,24 +201,24 @@ const ProgramDetail = () => {
 			const programName = programData?.title || 'Information Technology'
 
 			let items: Array<{ label: string; href?: string }> = [
-				{ label: 'Explore', href: '/explore' },
+				{ label: 'Explore', href: `/explore${queryString}` },
 			]
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'scholarships') {
 				items.push({
 					label: 'Scholarships',
-					href: '/explore?tab=scholarships',
+					href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else if (fromTab === 'research') {
 				items.push({
 					label: 'Research Labs',
-					href: '/explore?tab=research',
+					href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else {
 				items.push({
 					label: 'Programmes',
-					href: '/explore?tab=programmes',
+					href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
 				})
 			}
 
@@ -331,11 +337,25 @@ const ProgramDetail = () => {
 			fromTab = 'research'
 		}
 
-		router.push(`/explore/${programId}?from=${fromTab}`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		currentParams.delete('from') // Remove 'from' as it will be added back
+		const paramsString = currentParams.toString()
+
+		router.push(
+			`/explore/${programId}?from=${fromTab}${paramsString ? `&${paramsString}` : ''}`
+		)
 	}
 
 	const handleScholarshipClick = (scholarshipId: string) => {
-		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		currentParams.delete('from') // Remove 'from' as it will be added back
+		const paramsString = currentParams.toString()
+
+		router.push(
+			`/explore/scholarships/${scholarshipId}?from=scholarships${paramsString ? `&${paramsString}` : ''}`
+		)
 	}
 
 	// Check if user has already applied to this post
@@ -556,20 +576,33 @@ const ProgramDetail = () => {
 			case 'overview':
 				return (
 					<div className="space-y-4">
-						<ol className="space-y-4">
-							<li className="text-base">
+						<div className="space-y-4">
+							{/* Description Section */}
+							{currentProgram?.description && (
+								<div className="text-base border-b border-gray-200 pb-4 mb-4">
+									<span className="font-bold text-gray-900">Description:</span>
+									<div
+										className="text-gray-700 mt-2 prose max-w-none"
+										dangerouslySetInnerHTML={{
+											__html: currentProgram.description,
+										}}
+									/>
+								</div>
+							)}
+
+							<div className="text-base">
 								<span className="font-bold text-gray-900">1. Duration:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.program?.duration || 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">2. Start dates:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.startDateFormatted || 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">
 									3. Application deadlines:
 								</span>{' '}
@@ -578,8 +611,8 @@ const ProgramDetail = () => {
 										? `before ${currentProgram.endDateFormatted}`
 										: 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">
 									4. Subdiscipline:
 								</span>{' '}
@@ -591,42 +624,42 @@ const ProgramDetail = () => {
 												.join(', ')
 										: 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">5. Attendance:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.program?.attendance || 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">6. Location:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.location || 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">
 									7. Degree level:
 								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.program?.degreeLevel || 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">8. Match:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.match || 'N/A'}
 								</span>
-							</li>
-							<li className="text-base">
+							</div>
+							<div className="text-base">
 								<span className="font-bold text-gray-900">9. Days left:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.daysLeft !== undefined
 										? `${currentProgram.daysLeft} days`
 										: 'N/A'}
 								</span>
-							</li>
-						</ol>
+							</div>
+						</div>
 					</div>
 				)
 
@@ -1075,10 +1108,10 @@ const ProgramDetail = () => {
 					<h2 className="text-3xl font-bold mb-6">About</h2>
 
 					<div className="prose max-w-none text-gray-700 space-y-4">
-						{currentProgram?.description ? (
+						{currentProgram?.institution.about ? (
 							<div
 								dangerouslySetInnerHTML={{
-									__html: currentProgram.description,
+									__html: currentProgram.institution.about,
 								}}
 							/>
 						) : (
@@ -1159,11 +1192,8 @@ const ProgramDetail = () => {
 									</div>
 								) : (
 									<p>
-										You can upload required documents here. We will send
-										documents and your academic information to university.
-										Common documents include: CV/Resume, Academic Transcripts,
-										Personal Statement, Language Certificates (IELTS, TOEFL),
-										etc.
+										Not have any specific document requirement. You can upload
+										any
 									</p>
 								)}
 							</div>

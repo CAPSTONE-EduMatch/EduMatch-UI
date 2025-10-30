@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
 				const program: Program = {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
-					description: post.other_info || "No description available",
+					description: post.description || "No description available",
 					university: institution.name,
 					logo: institution.logo || "/logos/default.png",
 					field: fieldName, // Use the mapped discipline/subdiscipline name

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
@@ -23,6 +24,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	onBack,
 	onSubmit,
 }) => {
+	const router = useRouter()
 	// State for subdisciplines loaded from database
 	const [subdisciplines, setSubdisciplines] = useState<
 		Array<{ value: string; label: string; discipline: string }>
@@ -1081,7 +1083,10 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 			{/* Success Modal */}
 			<SuccessModal
 				isOpen={showSuccessModal}
-				onClose={() => setShowSuccessModal(false)}
+				onClose={() => {
+					setShowSuccessModal(false)
+					router.replace('/explore?tab=programmes')
+				}}
 				title="Success!"
 				message="Your program post has been created successfully."
 				buttonText="Continue"

@@ -1,11 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
-import { DateInput, CustomSelect, RichTextEditor } from '@/components/ui'
+import {
+	DateInput,
+	CustomSelect,
+	RichTextEditor,
+	SuccessModal,
+	ErrorModal,
+} from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
+import { ApiService } from '@/lib/axios-config'
 
 interface CreateResearchLabPageProps {
 	onBack?: () => void
@@ -16,6 +24,27 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	onBack,
 	onSubmit,
 }) => {
+	const router = useRouter()
+	// State for subdisciplines loaded from database
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
 	const [formData, setFormData] = useState({
 		// Overview Section
 		jobName: 'International Business and Intercultural Management',
@@ -144,7 +173,12 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		},
 	})
 
-	const handleInputChange = (field: string, value: string) => {
+	// Modal states
+	const [showSuccessModal, setShowSuccessModal] = useState(false)
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
+
+	const handleInputChange = (field: string, value: any) => {
 		setFormData((prev) => ({
 			...prev,
 			[field]: value,
@@ -242,9 +276,17 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 
 			// Call the onSubmit callback with the result
 			onSubmit?.(result)
+
+			// Show success modal
+			setShowSuccessModal(true)
 		} catch (error) {
 			console.error('Error creating research lab post:', error)
-			// You might want to show an error message to the user here
+			const errorMsg =
+				error instanceof Error
+					? error.message
+					: 'Failed to create research lab post. Please try again.'
+			setErrorMessage(errorMsg)
+			setShowErrorModal(true)
 		}
 	}
 
@@ -370,6 +412,25 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 								minDate={new Date().toISOString().split('T')[0]}
 								maxDate="2030-12-31"
 							/>
+							{formData.startDate &&
+								formData.applicationDeadline &&
+								(() => {
+									const [startDay, startMonth, startYear] =
+										formData.startDate.split('/')
+									const [deadlineDay, deadlineMonth, deadlineYear] =
+										formData.applicationDeadline.split('/')
+									const startDate = new Date(
+										`${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`
+									)
+									const deadlineDate = new Date(
+										`${deadlineYear}-${deadlineMonth.padStart(2, '0')}-${deadlineDay.padStart(2, '0')}`
+									)
+									return startDate >= deadlineDate ? (
+										<p className="text-xs text-red-500 mt-1">
+											Start date must be before application deadline
+										</p>
+									) : null
+								})()}
 						</div>
 
 						<div className="space-y-2">
@@ -412,6 +473,25 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 								label="Application deadline*"
 								placeholder="dd/mm/yyyy"
 							/>
+							{formData.startDate &&
+								formData.applicationDeadline &&
+								(() => {
+									const [startDay, startMonth, startYear] =
+										formData.startDate.split('/')
+									const [deadlineDay, deadlineMonth, deadlineYear] =
+										formData.applicationDeadline.split('/')
+									const startDate = new Date(
+										`${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`
+									)
+									const deadlineDate = new Date(
+										`${deadlineYear}-${deadlineMonth.padStart(2, '0')}-${deadlineDay.padStart(2, '0')}`
+									)
+									return startDate >= deadlineDate ? (
+										<p className="text-xs text-red-500 mt-1">
+											Application deadline must be after start date
+										</p>
+									) : null
+								})()}
 						</div>
 
 						<div className="space-y-2">
@@ -442,29 +522,20 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 						<div className="space-y-2">
 							<Label htmlFor="researchFields">Research fields*</Label>
 							<CustomSelect
-								value={formData.researchFields}
+								value={(formData.researchFields || []).map((v: string) => ({
+									value: v,
+									label: v,
+								}))}
 								onChange={(options) =>
-									handleInputChange('researchFields', options || [])
+									handleInputChange(
+										'researchFields',
+										Array.isArray(options)
+											? options.map((o: any) => o?.value ?? o?.label)
+											: []
+									)
 								}
 								placeholder="Choose research fields"
-								options={[
-									{ value: 'Data Science', label: 'Data Science' },
-									{ value: 'Data Engineer', label: 'Data Engineer' },
-									{ value: 'Information System', label: 'Information System' },
-									{
-										value: 'Artificial Intelligence',
-										label: 'Artificial Intelligence',
-									},
-									{ value: 'Machine Learning', label: 'Machine Learning' },
-									{ value: 'Computer Vision', label: 'Computer Vision' },
-									{
-										value: 'Natural Language Processing',
-										label: 'Natural Language Processing',
-									},
-									{ value: 'Robotics', label: 'Robotics' },
-									{ value: 'Biotechnology', label: 'Biotechnology' },
-									{ value: 'Materials Science', label: 'Materials Science' },
-								]}
+								options={subdisciplines}
 								variant="default"
 								isMulti
 								isClearable={false}
@@ -636,20 +707,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				</div>
 
 				<div className="space-y-6">
-					{/* File Name */}
-					<div className="space-y-2">
-						<Label htmlFor="fileName">File name</Label>
-						<Input
-							id="fileName"
-							placeholder="Enter file name"
-							value={formData.fileRequirements?.fileName || ''}
-							onChange={(e) =>
-								handleFileRequirementChange('fileName', e.target.value)
-							}
-							inputSize="select"
-						/>
-					</div>
-
 					{/* File Description */}
 					<div className="space-y-2">
 						<Label htmlFor="fileDescription">File description</Label>
@@ -662,20 +719,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 							}
 							inputSize="select"
 						/>
-					</div>
-
-					{/* Add File Button */}
-					<div className="flex justify-end">
-						<Button
-							onClick={() => {
-								// TODO: Implement add file functionality
-								// eslint-disable-next-line no-console
-								console.log('Add new required file')
-							}}
-							className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
-						>
-							Add new required file
-						</Button>
 					</div>
 				</div>
 			</div>
@@ -715,6 +758,26 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 					Submit
 				</Button>
 			</div>
+			{/* Success Modal */}
+			<SuccessModal
+				isOpen={showSuccessModal}
+				onClose={() => {
+					setShowSuccessModal(false)
+					router.replace('/explore?tab=programmes')
+				}}
+				title="Success!"
+				message="Your research lab post has been created successfully."
+				buttonText="Continue"
+			/>
+
+			{/* Error Modal */}
+			<ErrorModal
+				isOpen={showErrorModal}
+				onClose={() => setShowErrorModal(false)}
+				title="Error"
+				message={errorMessage}
+				buttonText="Try Again"
+			/>
 		</div>
 	)
 }

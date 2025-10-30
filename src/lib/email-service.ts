@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { renderCompanyEmail, CompanyEmailOptions } from "./email-template";
 import {
 	NotificationMessage,
 	NotificationType,
@@ -737,10 +738,6 @@ export class EmailService {
 				subject: emailContent.subject,
 				html: emailContent.html,
 			});
-
-			console.log(
-				`Email sent successfully: ${message.type} to ${message.userEmail}`
-			);
 		} catch (error) {
 			console.error("Error sending notification email:", error);
 			throw error;
@@ -754,7 +751,12 @@ export class EmailService {
 		to: string,
 		subject: string,
 		html: string,
-		from?: string
+		from?: string,
+		attachments?: Array<{
+			filename: string;
+			content: Buffer;
+			contentType?: string;
+		}>
 	): Promise<void> {
 		try {
 			await transporter.sendMail({
@@ -762,13 +764,35 @@ export class EmailService {
 				to,
 				subject,
 				html,
+				attachments,
 			});
-
-			console.log(`Custom email sent successfully to ${to}`);
 		} catch (error) {
 			console.error("Error sending custom email:", error);
 			throw error;
 		}
+	}
+
+	/**
+	 * Send a company-branded email using the shared template
+	 */
+	static async sendCompanyEmail(
+		to: string,
+		subject: string,
+		options: CompanyEmailOptions,
+		attachments?: Array<{
+			filename: string;
+			content: Buffer;
+			contentType?: string;
+		}>
+	): Promise<void> {
+		const html = renderCompanyEmail(options);
+		return EmailService.sendCustomEmail(
+			to,
+			subject,
+			html,
+			undefined,
+			attachments
+		);
 	}
 }
 

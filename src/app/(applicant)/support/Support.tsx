@@ -18,12 +18,15 @@ import {
 	Info,
 	Paperclip,
 	Send,
+	Loader2,
 	X,
 	FolderOpen,
 } from 'lucide-react'
 import React, { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Support = () => {
+	const { isAuthenticated, user } = useAuth()
 	const [activeTab, setActiveTab] = useState('account')
 	const [expandedFaqs, setExpandedFaqs] = useState<
 		Record<string, number | null>
@@ -38,6 +41,10 @@ const Support = () => {
 	const [question, setQuestion] = useState('')
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
+	const [email, setEmail] = useState('')
+	const [submitting, setSubmitting] = useState(false)
+	const [submitMessage, setSubmitMessage] = useState<string | null>(null)
+	const [submitError, setSubmitError] = useState<string | null>(null)
 
 	const menuItems = [
 		{
@@ -139,10 +146,57 @@ const Support = () => {
 		setIsClosing(false)
 	}
 
-	const handleSubmit = (event: React.FormEvent) => {
+	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
-		// Handle form submission here
-		// Form data: { problemType, question, uploadedFiles }
+		setSubmitMessage(null)
+		setSubmitError(null)
+		if (!question.trim()) {
+			setSubmitError('Please enter your question')
+			return
+		}
+		if (!isAuthenticated && !email.trim()) {
+			setSubmitError('Please provide your email')
+			return
+		}
+		setSubmitting(true)
+		try {
+			let res: Response
+			if (uploadedFiles.length > 0) {
+				const form = new FormData()
+				form.append('problemType', problemType)
+				form.append('question', question)
+				form.append('email', isAuthenticated ? user?.email : email)
+				uploadedFiles.forEach((file) => form.append('files', file))
+				res = await fetch('/api/support', {
+					method: 'POST',
+					body: form,
+				})
+			} else {
+				res = await fetch('/api/support', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						problemType,
+						question,
+						email: isAuthenticated ? user?.email : email,
+					}),
+				})
+			}
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}))
+				throw new Error(data?.error || 'Failed to submit support request')
+			}
+			setSubmitMessage(
+				'Your request has been submitted. We will contact you soon.'
+			)
+			setQuestion('')
+			if (!isAuthenticated) setEmail('')
+			setUploadedFiles([])
+		} catch (err: any) {
+			setSubmitError(err?.message || 'Something went wrong')
+		} finally {
+			setSubmitting(false)
+		}
 	}
 
 	const renderTabContent = () => {
@@ -323,6 +377,21 @@ const Support = () => {
 						</p>
 
 						<form onSubmit={handleSubmit} className="space-y-6">
+							{!isAuthenticated && (
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-2">
+										Your email
+									</label>
+									<input
+										type="email"
+										value={email}
+										onChange={(e) => setEmail(e.target.value)}
+										className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent"
+										placeholder="you@example.com"
+										required
+									/>
+								</div>
+							)}
 							<div>
 								<label className="block text-sm font-medium text-gray-700 mb-2">
 									Type of problem
@@ -364,12 +433,34 @@ const Support = () => {
 										</label>
 										<button
 											type="submit"
-											className="text-[#126E64] hover:text-teal-700"
+											className={`text-[#126E64] hover:text-teal-700 ${submitting ? 'opacity-60 pointer-events-none' : ''}`}
+											disabled={submitting}
 										>
-											<Send className="w-5 h-5" />
+											{submitting ? (
+												<Loader2 className="w-5 h-5 animate-spin" />
+											) : (
+												<Send className="w-5 h-5" />
+											)}
 										</button>
 									</div>
 								</div>
+
+								{submitting && (
+									<div
+										className="flex items-center gap-2 text-sm text-gray-600 mt-3"
+										aria-live="polite"
+									>
+										<Loader2 className="w-4 h-4 animate-spin" />
+										<span>Sending your request...</span>
+									</div>
+								)}
+
+								{submitError && (
+									<p className="text-sm text-red-600 mt-3">{submitError}</p>
+								)}
+								{submitMessage && (
+									<p className="text-sm text-green-600 mt-3">{submitMessage}</p>
+								)}
 
 								{/* File Upload Note */}
 								<p className="text-xs text-gray-500 mt-2">

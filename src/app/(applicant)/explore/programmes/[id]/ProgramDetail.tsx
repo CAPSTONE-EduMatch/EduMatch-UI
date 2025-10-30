@@ -346,9 +346,6 @@ const ProgramDetail = () => {
 				page: 1,
 				limit: 100, // Get more applications to search through
 			})
-
-			console.log('🔍 Application check response:', response)
-
 			if (
 				response.success &&
 				response.applications &&
@@ -361,12 +358,7 @@ const ProgramDetail = () => {
 
 				if (existingApplication) {
 					setHasApplied(true)
-
 					// Load submitted documents from the application
-					console.log(
-						'🔍 Found existing application with documents:',
-						existingApplication.documents
-					)
 					if (
 						existingApplication.documents &&
 						existingApplication.documents.length > 0
@@ -384,10 +376,6 @@ const ProgramDetail = () => {
 								uploadDate:
 									doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
 							})
-						)
-						console.log(
-							'🔍 Setting uploaded files from database:',
-							submittedFiles
 						)
 						setUploadedFiles(submittedFiles)
 					}
@@ -409,7 +397,6 @@ const ProgramDetail = () => {
 		// Use program ID from URL params as fallback
 		const programId = currentProgram?.id || params.id
 		if (!programId) {
-			console.log('❌ No program ID found')
 			return
 		}
 
@@ -993,11 +980,10 @@ const ProgramDetail = () => {
 							)}
 							{currentProgram?.institution?.userId && (
 								<Button
-									onClick={() =>
-										router.push(
-											`/messages?contact=${currentProgram.institution.userId}`
-										)
-									}
+									onClick={() => {
+										const contactUrl = `/messages?contact=${currentProgram.institution.userId}`
+										router.push(contactUrl)
+									}}
 									variant="outline"
 									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 								>

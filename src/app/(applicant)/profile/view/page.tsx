@@ -220,10 +220,10 @@ export default function ProfileView() {
 		}
 	}
 
-	// Redirect institutions to their dashboard
+	// Redirect institutions to their dashboard immediately after profile loads
 	useEffect(() => {
 		if (profile && profile.role !== 'applicant') {
-			router.push('/institution/dashboard')
+			router.replace('/institution/dashboard')
 		}
 	}, [profile, router])
 
@@ -254,17 +254,14 @@ export default function ProfileView() {
 		)
 	}
 
-	// Check if user is an applicant - redirect institutions to their dashboard
+	// If profile loaded and it's not an applicant, show loading while redirecting
+	// (router.replace will handle the redirect, but show loading during transition)
 	if (profile && profile.role !== 'applicant') {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
-					<div className="text-blue-500 text-6xl mb-4">🔄</div>
-					<h2 className="text-xl font-semibold mb-2">Redirecting...</h2>
-					<p className="text-muted-foreground mb-4">
-						This page is for applicants only. Redirecting you to your dashboard.
-					</p>
-					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+					<p className="mt-4 text-muted-foreground">Redirecting...</p>
 				</div>
 			</div>
 		)

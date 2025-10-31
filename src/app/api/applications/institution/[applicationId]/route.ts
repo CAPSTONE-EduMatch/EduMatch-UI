@@ -46,6 +46,7 @@ export async function GET(
 						},
 						subdiscipline: {
 							select: {
+								subdiscipline_id: true,
 								name: true,
 								discipline: {
 									select: {
@@ -55,6 +56,10 @@ export async function GET(
 							},
 						},
 						documents: {
+							where: {
+								status: true,
+								deleted_at: null,
+							},
 							include: {
 								documentType: {
 									select: {
@@ -271,14 +276,105 @@ export async function GET(
 				level:
 					application.ApplicationProfileSnapshot?.level ||
 					application.applicant.level,
-				// For subdisciplines, we need to fetch the names from the IDs
+				// Fetch subdiscipline and discipline names from IDs
 				subdiscipline:
-					(application.ApplicationProfileSnapshot?.subdiscipline_ids
-						?.length ?? 0) > 0
-						? `${application.ApplicationProfileSnapshot?.subdiscipline_ids?.length ?? 0} interests`
-						: application.applicant.subdiscipline?.name ||
-							"Unknown",
-				discipline: "Multiple disciplines", // We'll need to fetch this from the subdiscipline IDs
+					application.ApplicationProfileSnapshot?.subdiscipline_ids &&
+					application.ApplicationProfileSnapshot.subdiscipline_ids
+						.length > 0
+						? (
+								await Promise.all(
+									application.ApplicationProfileSnapshot.subdiscipline_ids.map(
+										async (subId) => {
+											const sub =
+												await prismaClient.subdiscipline.findUnique(
+													{
+														where: {
+															subdiscipline_id:
+																subId,
+														},
+														include: {
+															discipline: {
+																select: {
+																	name: true,
+																},
+															},
+														},
+													}
+												);
+											return sub
+												? {
+														id: sub.subdiscipline_id,
+														name: sub.name,
+														disciplineName:
+															sub.discipline.name,
+													}
+												: null;
+										}
+									)
+								)
+							).filter(
+								(sub): sub is NonNullable<typeof sub> =>
+									sub !== null
+							)
+						: application.applicant.subdiscipline
+							? [
+									{
+										id: application.applicant.subdiscipline
+											.subdiscipline_id,
+										name: application.applicant
+											.subdiscipline.name,
+										disciplineName:
+											application.applicant.subdiscipline
+												.discipline?.name || "Unknown",
+									},
+								]
+							: [],
+				// Extract unique discipline names from subdisciplines
+				disciplines:
+					application.ApplicationProfileSnapshot?.subdiscipline_ids &&
+					application.ApplicationProfileSnapshot.subdiscipline_ids
+						.length > 0
+						? Array.from(
+								new Set(
+									(
+										await Promise.all(
+											application.ApplicationProfileSnapshot.subdiscipline_ids.map(
+												async (subId) => {
+													const sub =
+														await prismaClient.subdiscipline.findUnique(
+															{
+																where: {
+																	subdiscipline_id:
+																		subId,
+																},
+																include: {
+																	discipline:
+																		{
+																			select: {
+																				name: true,
+																			},
+																		},
+																},
+															}
+														);
+													return (
+														sub?.discipline?.name ||
+														null
+													);
+												}
+											)
+										)
+									).filter(
+										(name): name is string => name !== null
+									)
+								)
+							)
+						: application.applicant.subdiscipline?.discipline?.name
+							? [
+									application.applicant.subdiscipline
+										.discipline.name,
+								]
+							: [],
 				gpa:
 					application.ApplicationProfileSnapshot?.gpa ||
 					application.applicant.gpa,
@@ -303,7 +399,7 @@ export async function GET(
 					application.ApplicationProfileSnapshot?.subdiscipline_ids ||
 					[],
 				// Documents from profile snapshot - use snapshot document IDs
-				// Include soft-deleted documents for profile snapshots to preserve historical data
+				// Only include active, non-deleted documents
 				documents:
 					application.ApplicationProfileSnapshot?.document_ids &&
 					application.ApplicationProfileSnapshot.document_ids.length >
@@ -322,23 +418,142 @@ export async function GET(
 													},
 												}
 											);
-										return doc
-											? {
-													documentId: doc.document_id,
-													name: doc.name,
-													url: doc.url,
-													size: doc.size,
-													documentType:
-														doc.documentType
-															?.name || "OTHER",
-													uploadDate:
-														doc.upload_at.toISOString(),
-													// Include status info for debugging
-													isActive: doc.status,
-													deletedAt:
-														doc.deleted_at?.toISOString(),
-												}
-											: null;
+										// Only include active, non-deleted documents
+										if (
+											doc &&
+											doc.status === true &&
+											doc.deleted_at === null
+										) {
+											// Fetch subdiscipline names for research papers
+											let subdisciplineNames: string[] =
+												[];
+											if (
+												doc.subdiscipline &&
+												doc.subdiscipline.length > 0
+											) {
+												const subdisciplineData =
+													await Promise.all(
+														// Handle comma-separated strings (e.g., "Agricultural Science - Specialization 1, Accounting - Specialization 4")
+														doc.subdiscipline
+															.flatMap((item) =>
+																item.includes(
+																	","
+																)
+																	? item
+																			.split(
+																				","
+																			)
+																			.map(
+																				(
+																					s
+																				) =>
+																					s.trim()
+																			)
+																			.filter(
+																				(
+																					s
+																				) =>
+																					s
+																			)
+																	: [
+																			item.trim(),
+																		]
+															)
+															.map(
+																async (
+																	subId
+																) => {
+																	// Try to find by ID first (if it looks like an ID/UUID)
+																	let sub =
+																		null;
+																	if (
+																		subId.includes(
+																			"_"
+																		) &&
+																		subId.length >
+																			30
+																	) {
+																		sub =
+																			await prismaClient.subdiscipline.findUnique(
+																				{
+																					where: {
+																						subdiscipline_id:
+																							subId,
+																					},
+																					include:
+																						{
+																							discipline:
+																								{
+																									select: {
+																										name: true,
+																									},
+																								},
+																						},
+																				}
+																			);
+																	}
+
+																	// If not found by ID, try by name (most common case for research papers)
+																	if (!sub) {
+																		sub =
+																			await prismaClient.subdiscipline.findFirst(
+																				{
+																					where: {
+																						name: subId,
+																					},
+																					include:
+																						{
+																							discipline:
+																								{
+																									select: {
+																										name: true,
+																									},
+																								},
+																						},
+																				}
+																			);
+																	}
+
+																	return sub
+																		? {
+																				name: sub.name,
+																				disciplineName:
+																					sub
+																						.discipline
+																						.name,
+																			}
+																		: null;
+																}
+															)
+													);
+												subdisciplineNames =
+													subdisciplineData
+														.filter(
+															(
+																sub
+															): sub is NonNullable<
+																typeof sub
+															> => sub !== null
+														)
+														.map((sub) => sub.name);
+											}
+
+											return {
+												documentId: doc.document_id,
+												name: doc.name,
+												url: doc.url,
+												size: doc.size,
+												documentType:
+													doc.documentType?.name ||
+													"OTHER",
+												uploadDate:
+													doc.upload_at.toISOString(),
+												title: doc.title || null,
+												subdiscipline:
+													subdisciplineNames,
+											};
+										}
+										return null;
 									}
 								)
 							).then((docs) => docs.filter((doc) => doc !== null))

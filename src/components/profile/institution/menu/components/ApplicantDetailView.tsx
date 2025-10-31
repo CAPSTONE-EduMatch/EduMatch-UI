@@ -12,6 +12,7 @@ import {
 	TwoPanelLayout,
 } from '@/components/shared'
 import type { Applicant } from './ApplicantsTable'
+import { getCountriesWithSvgFlags } from '@/data/countries'
 import JSZip from 'jszip'
 
 interface ApplicantDetailViewProps {
@@ -28,6 +29,8 @@ interface Document {
 	size: number
 	uploadDate: string
 	url: string
+	title?: string | null
+	subdiscipline?: string[]
 }
 
 interface ApplicationDetails {
@@ -69,8 +72,14 @@ interface ApplicationDetails {
 		countryCode?: string
 		graduated?: boolean
 		level?: string
-		subdiscipline?: string
-		discipline?: string
+		subdiscipline?:
+			| Array<{
+					id: string
+					name: string
+					disciplineName: string
+			  }>
+			| string
+		disciplines?: string[]
 		gpa?: any
 		university?: string
 		countryOfStudy?: string
@@ -128,6 +137,12 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				const result = await response.json()
 
 				if (result.success) {
+					// eslint-disable-next-line no-console
+					console.log('Application details loaded:', {
+						level: result.data?.applicant?.level,
+						subdiscipline: result.data?.applicant?.subdiscipline,
+						disciplines: result.data?.applicant?.disciplines,
+					})
 					setApplicationDetails(result.data)
 				} else {
 					throw new Error(result.error || 'Failed to fetch application details')
@@ -272,12 +287,15 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				(upperType.includes('CV') || upperType.includes('RESUME'))
 			) {
 				return true
+			} else if (documentType === 'degree' && upperType.includes('DEGREE')) {
+				// Check degree first to catch DEGREE_CERTIFICATE
+				return true
 			} else if (
 				documentType === 'certificate' &&
-				(upperType.includes('LANGUAGE') || upperType.includes('CERTIFICATE'))
+				(upperType.includes('LANGUAGE') ||
+					(upperType.includes('CERTIFICATE') && !upperType.includes('DEGREE')))
 			) {
-				return true
-			} else if (documentType === 'degree' && upperType.includes('DEGREE')) {
+				// Certificate category excludes DEGREE_CERTIFICATE
 				return true
 			} else if (
 				documentType === 'transcript' &&
@@ -380,9 +398,78 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	const academicDetails = [
 		{
 			label: 'Program',
-			value: applicationDetails?.applicant?.level
-				? `${applicationDetails.applicant.level} of ${applicationDetails.applicant.subdiscipline || 'Unknown'}`
-				: `${applicant.degreeLevel} of ${applicant.subDiscipline}`,
+			value: (() => {
+				// Check if we have valid level from API
+				const level =
+					applicationDetails?.applicant?.level ||
+					(applicant?.degreeLevel && applicant.degreeLevel !== 'Unknown'
+						? applicant.degreeLevel
+						: null)
+				const subdisciplines = applicationDetails?.applicant?.subdiscipline
+
+				// If we have level and subdisciplines as array
+				if (
+					level &&
+					Array.isArray(subdisciplines) &&
+					subdisciplines.length > 0
+				) {
+					return (
+						<div className="flex flex-col gap-2">
+							{level && <span className="text-sm font-medium">{level}</span>}
+							<div className="flex flex-wrap gap-2">
+								{subdisciplines.map((sub, index) => (
+									<span
+										key={index}
+										className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
+									>
+										{sub.name}
+									</span>
+								))}
+							</div>
+						</div>
+					)
+				}
+
+				// If we have level and subdisciplines as string
+				if (
+					level &&
+					typeof subdisciplines === 'string' &&
+					subdisciplines.trim() !== ''
+				) {
+					return (
+						<div className="flex flex-col gap-2">
+							<span className="text-sm font-medium">{level}</span>
+							<span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap w-fit">
+								{subdisciplines}
+							</span>
+						</div>
+					)
+				}
+
+				// If we only have level
+				if (level && level.trim() !== '') {
+					return <span className="text-sm font-medium">{level}</span>
+				}
+
+				// If we only have subdisciplines
+				if (Array.isArray(subdisciplines) && subdisciplines.length > 0) {
+					return (
+						<div className="flex flex-wrap gap-2 w-full">
+							{subdisciplines.map((sub, index) => (
+								<span
+									key={index}
+									className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
+								>
+									{sub.name}
+								</span>
+							))}
+						</div>
+					)
+				}
+
+				// Final fallback
+				return 'Not provided'
+			})(),
 		},
 		{
 			label: 'GPA',
@@ -403,7 +490,23 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		},
 		{
 			label: 'Country of Study',
-			value: applicationDetails?.applicant?.countryOfStudy || 'Not provided',
+			value: (() => {
+				const countryOfStudy = applicationDetails?.applicant?.countryOfStudy
+				if (!countryOfStudy || countryOfStudy === 'Not provided') {
+					return 'Not provided'
+				}
+				const countryData = getCountriesWithSvgFlags().find(
+					(c) => c.name.toLowerCase() === countryOfStudy.toLowerCase()
+				)
+				return (
+					<div className="flex items-center gap-2">
+						{countryData?.flag && (
+							<span className="text-base">{countryData.flag}</span>
+						)}
+						<span>{countryOfStudy}</span>
+					</div>
+				)
+			})(),
 		},
 		{
 			label: 'Foreign Language',
@@ -418,13 +521,47 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		},
 		{
 			label: 'Phone',
-			value: applicationDetails?.applicant?.phoneNumber
-				? `${applicationDetails.applicant.countryCode || ''} ${applicationDetails.applicant.phoneNumber}`
-				: 'Not provided',
+			value: (() => {
+				const phoneNumber = applicationDetails?.applicant?.phoneNumber
+				const countryCode = applicationDetails?.applicant?.countryCode
+				if (!phoneNumber) {
+					return 'Not provided'
+				}
+				const countryData = countryCode
+					? getCountriesWithSvgFlags().find((c) => c.phoneCode === countryCode)
+					: null
+				return (
+					<div className="flex items-center gap-2">
+						{countryData?.flag && (
+							<span className="text-base">{countryData.flag}</span>
+						)}
+						<span>
+							{countryCode ? `${countryCode} ` : ''}
+							{phoneNumber}
+						</span>
+					</div>
+				)
+			})(),
 		},
 		{
 			label: 'Nationality',
-			value: applicationDetails?.applicant?.nationality || 'Not provided',
+			value: (() => {
+				const nationality = applicationDetails?.applicant?.nationality
+				if (!nationality || nationality === 'Not provided') {
+					return 'Not provided'
+				}
+				const countryData = getCountriesWithSvgFlags().find(
+					(c) => c.name.toLowerCase() === nationality.toLowerCase()
+				)
+				return (
+					<div className="flex items-center gap-2">
+						{countryData?.flag && (
+							<span className="text-base">{countryData.flag}</span>
+						)}
+						<span>{nationality}</span>
+					</div>
+				)
+			})(),
 		},
 		{
 			label: 'Gender',
@@ -473,19 +610,21 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											let category = 'other'
 
 											// Map document type names to category
+											// Check more specific types first to avoid incorrect categorization
 											const upperType = docType.toUpperCase()
 											if (
 												upperType.includes('CV') ||
 												upperType.includes('RESUME')
 											) {
 												category = 'cv'
+											} else if (upperType.includes('DEGREE')) {
+												// Check DEGREE before CERTIFICATE to catch DEGREE_CERTIFICATE
+												category = 'degree'
 											} else if (
 												upperType.includes('LANGUAGE') ||
 												upperType.includes('CERTIFICATE')
 											) {
 												category = 'certificate'
-											} else if (upperType.includes('DEGREE')) {
-												category = 'degree'
 											} else if (upperType.includes('TRANSCRIPT')) {
 												category = 'transcript'
 											} else if (upperType.includes('RESEARCH')) {
@@ -511,63 +650,184 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 										},
 										{} as Record<string, Document[]>
 									)
-								).map(([category, typeDocs]) => (
-									<div
-										key={category}
-										className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
-									>
-										<div className="flex justify-between items-center mb-4">
-											<h3 className="text-lg font-semibold">
-												{getDocumentTypeLabel(category)}
-											</h3>
-											<button
-												onClick={() => handleDownloadFolder(category)}
-												disabled={downloadingZip === category}
-												className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-											>
-												{downloadingZip === category && (
-													<Loader2 className="h-3 w-3 animate-spin" />
-												)}
-												Download folder
-											</button>
-										</div>
+								).map(([category, typeDocs]) => {
+									// Special handling for research papers - group by title
+									if (category === 'research') {
+										// Group research papers by title
+										const groupedPapers = typeDocs.reduce(
+											(acc, doc) => {
+												const title = doc.title || 'Untitled Research Paper'
+												if (!acc[title]) {
+													acc[title] = []
+												}
+												acc[title].push(doc)
+												return acc
+											},
+											{} as Record<string, Document[]>
+										)
 
-										{/* Files List */}
-										<div className="space-y-3 max-h-64 overflow-y-auto">
-											{typeDocs.map((doc) => (
-												<div
-													key={doc.documentId}
-													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+										return (
+											<div
+												key={category}
+												className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+											>
+												<div className="flex justify-between items-center mb-4">
+													<h3 className="text-lg font-semibold">
+														{getDocumentTypeLabel(category)}
+													</h3>
+													<button
+														onClick={() => handleDownloadFolder(category)}
+														disabled={downloadingZip === category}
+														className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+													>
+														{downloadingZip === category && (
+															<Loader2 className="h-3 w-3 animate-spin" />
+														)}
+														Download folder
+													</button>
+												</div>
+
+												{/* Research Papers List - Grouped by Title */}
+												<div className="space-y-6">
+													{Object.entries(groupedPapers).map(
+														([title, papers]) => (
+															<div
+																key={title}
+																className="border rounded-lg p-4 bg-gray-50"
+															>
+																{/* Paper Title and Discipline */}
+																<div className="mb-4 pb-4 border-b border-gray-200">
+																	<h4 className="text-base font-semibold mb-2">
+																		{title}
+																	</h4>
+																	{papers[0]?.subdiscipline &&
+																	papers[0].subdiscipline.length > 0 ? (
+																		<div className="flex flex-wrap gap-2">
+																			{papers[0].subdiscipline.map(
+																				(subName, index) => (
+																					<span
+																						key={index}
+																						className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
+																					>
+																						{subName}
+																					</span>
+																				)
+																			)}
+																		</div>
+																	) : (
+																		<p className="text-sm text-gray-500">
+																			No discipline specified
+																		</p>
+																	)}
+																</div>
+
+																{/* Files List for this Paper */}
+																<div className="space-y-3">
+																	{papers.map((doc) => (
+																		<div
+																			key={doc.documentId}
+																			className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200"
+																		>
+																			<div className="flex items-center gap-3">
+																				<span className="text-2xl">📄</span>
+																				<div>
+																					<p className="font-medium text-sm">
+																						{doc.name}
+																					</p>
+																					<p className="text-sm text-muted-foreground">
+																						{formatFileSize(doc.size)} •{' '}
+																						{formatDate(doc.uploadDate)}
+																					</p>
+																				</div>
+																			</div>
+																			<div className="flex items-center gap-2">
+																				<button
+																					onClick={() => handlePreviewFile(doc)}
+																					className="text-primary hover:text-primary/80 text-sm font-medium"
+																				>
+																					View
+																				</button>
+																				<button
+																					onClick={() =>
+																						handleDownloadFile(doc)
+																					}
+																					className="text-gray-400 hover:text-gray-600 p-1"
+																				>
+																					<Download className="h-4 w-4" />
+																				</button>
+																			</div>
+																		</div>
+																	))}
+																</div>
+															</div>
+														)
+													)}
+												</div>
+											</div>
+										)
+									}
+
+									// Default display for other document types
+									return (
+										<div
+											key={category}
+											className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+										>
+											<div className="flex justify-between items-center mb-4">
+												<h3 className="text-lg font-semibold">
+													{getDocumentTypeLabel(category)}
+												</h3>
+												<button
+													onClick={() => handleDownloadFolder(category)}
+													disabled={downloadingZip === category}
+													className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 												>
-													<div className="flex items-center gap-3">
-														<span className="text-2xl">📄</span>
-														<div>
-															<p className="font-medium text-sm">{doc.name}</p>
-															<p className="text-sm text-muted-foreground">
-																{formatFileSize(doc.size)} •{' '}
-																{formatDate(doc.uploadDate)}
-															</p>
+													{downloadingZip === category && (
+														<Loader2 className="h-3 w-3 animate-spin" />
+													)}
+													Download folder
+												</button>
+											</div>
+
+											{/* Files List */}
+											<div className="space-y-3 max-h-64 overflow-y-auto">
+												{typeDocs.map((doc) => (
+													<div
+														key={doc.documentId}
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+													>
+														<div className="flex items-center gap-3">
+															<span className="text-2xl">📄</span>
+															<div>
+																<p className="font-medium text-sm">
+																	{doc.name}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(doc.size)} •{' '}
+																	{formatDate(doc.uploadDate)}
+																</p>
+															</div>
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => handlePreviewFile(doc)}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
+															>
+																View
+															</button>
+															<button
+																onClick={() => handleDownloadFile(doc)}
+																className="text-gray-400 hover:text-gray-600 p-1"
+															>
+																<Download className="h-4 w-4" />
+															</button>
 														</div>
 													</div>
-													<div className="flex items-center gap-2">
-														<button
-															onClick={() => handlePreviewFile(doc)}
-															className="text-primary hover:text-primary/80 text-sm font-medium"
-														>
-															View
-														</button>
-														<button
-															onClick={() => handleDownloadFile(doc)}
-															className="text-gray-400 hover:text-gray-600 p-1"
-														>
-															<Download className="h-4 w-4" />
-														</button>
-													</div>
-												</div>
-											))}
+												))}
+											</div>
 										</div>
-									</div>
-								))}
+									)
+								})}
 
 								{documents.length === 0 && (
 									<div className="text-center py-8">

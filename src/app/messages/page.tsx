@@ -20,7 +20,7 @@ export default function MessagesPage() {
 				pageTitle="Messages"
 				pageDescription="Please sign in to view your messages"
 			>
-				<div className="min-h-screen bg-gray-50">
+				<div className="">
 					<div className="h-screen">
 						<MessageDialog />
 					</div>
@@ -37,8 +37,8 @@ export default function MessagesPage() {
 				pageDescription="Please sign in to view your messages"
 			>
 				<EduMatchHeader />
-				<div className="min-h-screen bg-gray-50">
-					<div className="h-screen">
+				<div className="">
+					<div className="h-screen pt-24">
 						<MessageDialog />
 					</div>
 				</div>

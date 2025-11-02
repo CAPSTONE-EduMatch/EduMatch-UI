@@ -48,6 +48,9 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
 	const searchParams = useSearchParams()
 
+	// State to track if filters have been initialized from URL
+	const [filtersInitialized, setFiltersInitialized] = useState(false)
+
 	// Separate filter states for each tab
 	const [tabFilters, setTabFilters] = useState<
 		Record<string, Record<string, string[]>>
@@ -360,13 +363,19 @@ export function FilterSidebar({
 
 			setTabFilters(newTabFilters)
 			setTabRanges(newTabRanges)
+
+			// Mark filters as initialized
+			setFiltersInitialized(true)
 		}
 
 		// Only parse on initial mount (when searchParams is first available)
 		if (searchParams && searchParams.toString()) {
 			parseAllTabFiltersFromURL()
+		} else {
+			// If no search params, mark as initialized with empty filters
+			setFiltersInitialized(true)
 		}
-	}, [searchParams]) // Only depend on searchParams
+	}, [searchParams]) // Remove activeTab and onFiltersChange to prevent unnecessary re-runs
 
 	// Initialize filters from URL when tab changes
 	useEffect(() => {
@@ -388,7 +397,14 @@ export function FilterSidebar({
 				...urlData.ranges,
 			},
 		}))
-	}, [activeTab, parseFiltersFromURL])
+	}, [activeTab]) // Only depend on activeTab, not parseFiltersFromURL or filtersInitialized
+
+	// Ensure filters are initialized when component mounts or when switching tabs
+	useEffect(() => {
+		if (!filtersInitialized) {
+			setFiltersInitialized(true)
+		}
+	}, [filtersInitialized])
 
 	// Update URL when filters change
 	useEffect(() => {
@@ -402,7 +418,7 @@ export function FilterSidebar({
 		if (window.location.search !== `?${urlString}`) {
 			window.history.replaceState({}, '', newURL)
 		}
-	}, [tabFilters, tabRanges, activeTab, serializeFiltersToURL])
+	}, [tabFilters, tabRanges, activeTab]) // Remove serializeFiltersToURL to prevent infinite loops
 
 	// Fetch all disciplines data once on mount
 	useEffect(() => {
@@ -422,9 +438,10 @@ export function FilterSidebar({
 		fetchAllDisciplines()
 	}, [])
 
-	// Call onFiltersChange when selectedFilters or ranges change
+	// Call onFiltersChange when selectedFilters or ranges change (only after initialization)
 	useEffect(() => {
-		if (onFiltersChange) {
+		// Only trigger onFiltersChange after filters have been initialized from URL
+		if (onFiltersChange && filtersInitialized) {
 			const currentFilters = tabFilters[activeTab] || {}
 			const currentRanges = tabRanges[activeTab] || {}
 
@@ -442,7 +459,7 @@ export function FilterSidebar({
 			}
 			onFiltersChange(filtersWithRanges)
 		}
-	}, [tabFilters, tabRanges, activeTab, onFiltersChange])
+	}, [tabFilters, tabRanges, activeTab, filtersInitialized]) // Remove onFiltersChange to prevent infinite loops
 
 	// Fetch filter data when tab changes
 	useEffect(() => {

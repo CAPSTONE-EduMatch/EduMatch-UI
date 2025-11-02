@@ -3,7 +3,7 @@
 import React from 'react'
 import { ResearchLabCard } from '@/components/ui'
 import { ResearchLab } from '@/types/explore-api'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ResearchLabsTabProps {
 	researchLabs?: ResearchLab[]
@@ -17,6 +17,7 @@ interface ResearchLabsTabProps {
 	isApplying?: (_id: string) => boolean
 	// eslint-disable-next-line no-unused-vars
 	onApply?: (_id: string) => void
+	onUpdateRequest?: (applicationId: string) => void
 }
 
 export function ResearchLabsTab({
@@ -26,11 +27,17 @@ export function ResearchLabsTab({
 	hasApplied = () => false,
 	isApplying = () => false,
 	onApply = () => {},
+	onUpdateRequest,
 }: ResearchLabsTabProps) {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 
 	const handleLabClick = (labId: string) => {
-		router.push(`/explore/research-labs/${labId}?from=research`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		router.push(
+			`/explore/research-labs/${labId}?from=research&${currentParams.toString()}`
+		)
 	}
 
 	return (
@@ -47,6 +54,8 @@ export function ResearchLabsTab({
 						isApplying={isApplying(lab.id)}
 						onApply={() => onApply(lab.id)}
 						onClick={handleLabClick}
+						applicationId={(lab as any).applicationId}
+						onUpdateRequest={onUpdateRequest}
 					/>
 				))
 			) : (

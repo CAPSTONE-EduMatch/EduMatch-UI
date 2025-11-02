@@ -22,12 +22,12 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
 }) => {
 	return (
 		<div
-			className={`bg-white shadow-sm border lg:col-span-1 h-[750px] w-1/3 ${className}`}
+			className={`bg-white shadow-sm border lg:col-span-1 min-h-[400px] max-h-[150vh] w-1/3 ${className}`}
 		>
-			<div className="p-6 h-full flex flex-col">
+			<div className="p-6 flex flex-col">
 				<div className="space-y-6 flex-1">
 					{/* Header Section */}
-					<div className="flex items-center gap-4">
+					<div className="flex items-center gap-4 flex-shrink-0">
 						{header.avatar && <div className="relative">{header.avatar}</div>}
 						<div className="flex-1">
 							<h2 className="text-lg font-bold text-gray-900">
@@ -39,8 +39,8 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
 						</div>
 					</div>
 
-					{/* Sections */}
-					<div className="space-y-4">
+					{/* Sections - Auto height */}
+					<div className="space-y-4 overflow-y-auto max-h-[calc(90vh-200px)]">
 						{sections.map((section, index) => (
 							<div key={index}>{section}</div>
 						))}

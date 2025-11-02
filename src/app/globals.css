@@ -282,19 +282,14 @@
 }
 
 @layer base {
-	* {
-		@apply border-border;
+	h1 {
+		@apply text-4xl font-bold;
 	}
-	body {
-		@apply bg-background text-foreground;
-		margin: 0;
-		padding: 0;
-		/* overflow-x: hidden; */
+	h2 {
+		@apply text-3xl font-semibold;
 	}
-	html {
-		margin: 0;
-		padding: 0;
-		/* overflow-x: hidden; */
+	h3 {
+		@apply text-2xl font-semibold;
 	}
 }
 
@@ -410,11 +405,11 @@ input[type='range']::-moz-range-track {
 	transform: scale(1.02);
 }
 
-ul {
+/* ul {
 	list-style-type: disc;
-	padding-left: 1.5rem; /* thêm khoảng cách để bullet lộ ra */
+	padding-left: 1.5rem; 
 }
 
 ol {
 	list-style-type: decimal;
-}
+} */

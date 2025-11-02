@@ -178,6 +178,41 @@ export class SQSMessageHandler {
 					bodyText = `Your ${message.metadata?.planName || "subscription"} payment is due on ${message.metadata?.deadlineDate || "soon"}.`;
 					url = "/pricing";
 					break;
+				case "APPLICATION_STATUS_UPDATE":
+					title = `Application Status Update - ${message.metadata?.programName || "Your Application"}`;
+					const status = (
+						message.metadata?.newStatus || ""
+					).toLowerCase();
+					const institutionName =
+						message.metadata?.institutionName || "the institution";
+					const customMessage = message.metadata?.message;
+
+					switch (status) {
+						case "accepted":
+							bodyText = `🎉 Congratulations! Your application for "${message.metadata?.programName || "the program"}" has been approved by ${institutionName}. They will contact you soon with next steps.`;
+							break;
+						case "rejected":
+							bodyText = `Your application for "${message.metadata?.programName || "the program"}" was not selected by ${institutionName} this time. Don't give up - there are many other opportunities available!`;
+							break;
+						case "require_update":
+							if (customMessage) {
+								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information. Message: ${customMessage}`;
+							} else {
+								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information or updates. Please check your messages for details.`;
+							}
+							break;
+						case "submitted":
+							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been submitted and is currently being reviewed by ${institutionName}. We'll notify you as soon as there are any updates.`;
+							break;
+						case "updated":
+							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been updated. The institution will review your changes.`;
+							break;
+						default:
+							bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
+							break;
+					}
+					url = "/applications";
+					break;
 				default:
 					title = "New Notification";
 					bodyText = "You have a new notification from EduMatch.";
@@ -372,6 +407,41 @@ export class NotificationUtils {
 					bodyText = `Your ${message.metadata?.planName || "subscription"} payment is due on ${message.metadata?.deadlineDate || "soon"}.`;
 					url = "/pricing";
 					break;
+				case "APPLICATION_STATUS_UPDATE":
+					title = `Application Status Update - ${message.metadata?.programName || "Your Application"}`;
+					const status = (
+						message.metadata?.newStatus || ""
+					).toLowerCase();
+					const institutionName =
+						message.metadata?.institutionName || "the institution";
+					const customMessage = message.metadata?.message;
+
+					switch (status) {
+						case "accepted":
+							bodyText = `🎉 Congratulations! Your application for "${message.metadata?.programName || "the program"}" has been approved by ${institutionName}. They will contact you soon with next steps.`;
+							break;
+						case "rejected":
+							bodyText = `Your application for "${message.metadata?.programName || "the program"}" was not selected by ${institutionName} this time. Don't give up - there are many other opportunities available!`;
+							break;
+						case "require_update":
+							if (customMessage) {
+								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information. Message: ${customMessage}`;
+							} else {
+								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information or updates. Please check your messages for details.`;
+							}
+							break;
+						case "submitted":
+							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been submitted and is currently being reviewed by ${institutionName}. We'll notify you as soon as there are any updates.`;
+							break;
+						case "updated":
+							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been updated. The institution will review your changes.`;
+							break;
+						default:
+							bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
+							break;
+					}
+					url = "/applications";
+					break;
 				default:
 					title = "New Notification";
 					bodyText = "You have a new notification from EduMatch.";
@@ -440,9 +510,10 @@ export class NotificationUtils {
 		programName: string,
 		oldStatus: string,
 		newStatus: string,
-		institutionName: string
+		institutionName: string,
+		message?: string // Optional message for REQUIRE_UPDATE status
 	): Promise<void> {
-		const message: NotificationMessage = {
+		const notificationMessage: NotificationMessage = {
 			id: `app-status-${userId}-${Date.now()}`,
 			type: NotificationType.APPLICATION_STATUS_UPDATE,
 			userId,
@@ -454,10 +525,15 @@ export class NotificationUtils {
 				oldStatus,
 				newStatus,
 				institutionName,
+				...(message && { message }),
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		await SQSService.sendNotification(notificationMessage);
+
+		// Also store directly in database for immediate display
+		await this.storeNotificationDirectly(notificationMessage);
+		console.log("✅ Notification stored directly in database!");
 	}
 
 	/**

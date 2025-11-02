@@ -6,6 +6,7 @@ import {
 	ApplicationResponse,
 	ApplicationListResponse,
 	ApplicationStatsResponse,
+	ApplicationStatus,
 } from "@/types/application-api";
 
 // GET /api/applications - Get user's applications
@@ -50,11 +51,11 @@ export async function GET(request: NextRequest) {
 						0
 					),
 					pending:
-						statsData.find((s) => s.status === "PENDING")?._count
+						statsData.find((s) => s.status === "SUBMITTED")?._count
 							.application_id || 0,
 					reviewed:
-						statsData.find((s) => s.status === "REVIEWED")?._count
-							.application_id || 0,
+						statsData.find((s) => s.status === "REQUIRE_UPDATE")
+							?._count.application_id || 0,
 					accepted:
 						statsData.find((s) => s.status === "ACCEPTED")?._count
 							.application_id || 0,
@@ -111,13 +112,16 @@ export async function GET(request: NextRequest) {
 			postId: app.post_id,
 			status: app.status,
 			applyAt: app.apply_at.toISOString(),
-			documents: app.details.map((detail: any) => ({
-				documentTypeId: detail.document_type,
-				name: detail.name,
-				url: detail.url,
-				size: detail.size,
-				documentType: detail.documentType?.name || detail.document_type,
-			})),
+			documents: app.details
+				.filter((detail: any) => !detail.is_update_submission)
+				.map((detail: any) => ({
+					documentTypeId: detail.document_type,
+					name: detail.name,
+					url: detail.url,
+					size: detail.size,
+					documentType:
+						detail.documentType?.name || detail.document_type,
+				})),
 			post: {
 				id: app.post.post_id,
 				title: app.post.title,
@@ -341,7 +345,7 @@ export async function POST(request: NextRequest) {
 				applicant_id: applicant.applicant_id,
 				post_id: body.postId,
 				apply_at: new Date(),
-				status: "PENDING",
+				status: "SUBMITTED",
 			},
 		});
 
@@ -450,7 +454,7 @@ export async function POST(request: NextRequest) {
 					application.application_id,
 					post.title,
 					"",
-					"PENDING",
+					"SUBMITTED",
 					institution.institution.name
 				);
 			}
@@ -465,7 +469,7 @@ export async function POST(request: NextRequest) {
 				applicationId: application.application_id,
 				applicantId: application.applicant_id,
 				postId: application.post_id,
-				status: application.status,
+				status: application.status as ApplicationStatus,
 				applyAt: application.apply_at.toISOString(),
 				documents: body.documents || [],
 				post: {

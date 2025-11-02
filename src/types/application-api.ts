@@ -104,10 +104,11 @@ export interface ApplicationStatsResponse {
 }
 
 export type ApplicationStatus =
-	| "PENDING"
-	| "REVIEWED"
+	| "SUBMITTED"
+	| "REQUIRE_UPDATE"
 	| "ACCEPTED"
-	| "REJECTED";
+	| "REJECTED"
+	| "UPDATED";
 
 export interface ApplicationUpdateRequest {
 	status?: ApplicationStatus;

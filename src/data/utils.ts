@@ -53,7 +53,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Comprehensive program covering advanced AI, machine learning, and deep learning techniques. Students will work on cutting-edge research projects and collaborate with industry partners.",
 		university: "Harvard University",
-		logo: "H",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png",
 		field: "Computer Science",
 		country: "United States",
 		date: "15 January 2026",
@@ -69,7 +69,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Interdisciplinary research program focusing on medical device development, tissue engineering, and biomedical imaging technologies for next-generation healthcare solutions.",
 		university: "MIT",
-		logo: "M",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/MIT_logo.svg/1200px-MIT_logo.svg.png",
 		field: "Biomedical Engineering",
 		country: "United States",
 		date: "1 March 2026",
@@ -85,7 +85,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Executive MBA program designed for technology professionals seeking leadership roles. Includes case studies from Fortune 500 companies and startup ecosystems.",
 		university: "Stanford University",
-		logo: "S",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Stanford_University_seal_2003.svg/1200px-Stanford_University_seal_2003.svg.png",
 		field: "Business Administration",
 		country: "United States",
 		date: "20 February 2026",
@@ -101,7 +101,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Comprehensive program covering statistical analysis, machine learning, data visualization, and big data technologies. Industry partnerships provide real-world project experience.",
 		university: "Oxford University",
-		logo: "O",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Oxford-University-Circlet.svg/1200px-Oxford-University-Circlet.svg.png",
 		field: "Data Science",
 		country: "United Kingdom",
 		date: "10 September 2026",
@@ -117,7 +117,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Research-intensive program focusing on renewable energy systems, smart grid technology, and environmental sustainability. Collaboration with leading energy companies.",
 		university: "ETH Zurich",
-		logo: "E",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/ETH_Zurich_Logo_black.svg/1200px-ETH_Zurich_Logo_black.svg.png",
 		field: "Energy Engineering",
 		country: "Switzerland",
 		date: "1 October 2026",
@@ -133,7 +133,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Comprehensive study of global politics, international law, and diplomatic practices. Includes internships at international organizations and embassies.",
 		university: "Cambridge University",
-		logo: "C",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/University_of_Cambridge_coat_of_arms_official.svg/1200px-University_of_Cambridge_coat_of_arms_official.svg.png",
 		field: "International Relations",
 		country: "United Kingdom",
 		date: "5 October 2026",
@@ -149,7 +149,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Advanced program covering network security, cryptography, digital forensics, and risk management. Hands-on experience with industry-standard security tools.",
 		university: "Carnegie Mellon",
-		logo: "CM",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Carnegie_Mellon_University_seal.svg/1200px-Carnegie_Mellon_University_seal.svg.png",
 		field: "Cybersecurity",
 		country: "United States",
 		date: "25 August 2026",
@@ -165,7 +165,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Cutting-edge research program exploring quantum algorithms, quantum cryptography, and quantum hardware development. Access to state-of-the-art quantum laboratories.",
 		university: "University of Tokyo",
-		logo: "UT",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/University_of_Tokyo_Seal.svg/1200px-University_of_Tokyo_Seal.svg.png",
 		field: "Quantum Physics",
 		country: "Japan",
 		date: "1 April 2026",
@@ -181,7 +181,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Innovative program combining finance, technology, and entrepreneurship. Focus on blockchain, digital payments, and algorithmic trading with industry partnerships.",
 		university: "London School of Economics",
-		logo: "LSE",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/LSE_Logo.svg/1200px-LSE_Logo.svg.png",
 		field: "Financial Technology",
 		country: "United Kingdom",
 		date: "15 September 2026",
@@ -197,7 +197,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Interdisciplinary program addressing climate change, environmental policy, and sustainable development. Field research opportunities in diverse ecosystems.",
 		university: "University of California Berkeley",
-		logo: "UCB",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/LSE_Logo.svg/1200px-LSE_Logo.svg.png",
 		field: "Environmental Science",
 		country: "United States",
 		date: "20 August 2026",
@@ -213,7 +213,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Advanced research in neurobiology, brain-computer interfaces, and neurological disorders. Access to cutting-edge neuroimaging and electrophysiology facilities.",
 		university: "University of Melbourne",
-		logo: "UM",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/LSE_Logo.svg/1200px-LSE_Logo.svg.png",
 		field: "Neuroscience",
 		country: "Australia",
 		date: "1 March 2026",
@@ -229,7 +229,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Creative program combining art, technology, and storytelling. Students develop games, VR experiences, and interactive installations using industry tools.",
 		university: "New York University",
-		logo: "NYU",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/LSE_Logo.svg/1200px-LSE_Logo.svg.png",
 		field: "Game Design",
 		country: "United States",
 		date: "30 August 2026",
@@ -245,7 +245,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Comprehensive public health education with emphasis on global health challenges, epidemiology, and health policy. International field placement opportunities.",
 		university: "Johns Hopkins University",
-		logo: "JHU",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/LSE_Logo.svg/1200px-LSE_Logo.svg.png",
 		field: "Public Health",
 		country: "United States",
 		date: "10 September 2026",
@@ -261,7 +261,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Research program focusing on spacecraft design, propulsion systems, and space exploration technologies. Collaboration with space agencies and aerospace industry.",
 		university: "Technical University of Munich",
-		logo: "TUM",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Technical_University_of_Munich_Logo.svg/1200px-Technical_University_of_Munich_Logo.svg.png",
 		field: "Aerospace Engineering",
 		country: "Germany",
 		date: "1 October 2026",
@@ -277,7 +277,7 @@ export const mockPrograms: Program[] = [
 		description:
 			"Innovative design program combining architectural theory, sustainable design, and urban planning. Studio-based learning with real-world design projects.",
 		university: "Delft University of Technology",
-		logo: "TUD",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Delft_University_of_Technology_logo.svg/1200px-Delft_University_of_Technology_logo.svg.png",
 		field: "Architecture",
 		country: "Netherlands",
 		date: "1 September 2026",

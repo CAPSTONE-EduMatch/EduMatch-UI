@@ -3,7 +3,7 @@
 import React from 'react'
 import { ScholarshipCard } from '@/components/ui'
 import { Scholarship } from '@/types/explore-api'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
@@ -12,6 +12,7 @@ interface ScholarshipsTabProps {
 	hasApplied?: (id: string) => boolean
 	isApplying?: (id: string) => boolean
 	onApply?: (id: string) => void
+	onUpdateRequest?: (applicationId: string) => void
 }
 
 export function ScholarshipsTab({
@@ -21,11 +22,17 @@ export function ScholarshipsTab({
 	hasApplied = () => false,
 	isApplying = () => false,
 	onApply = () => {},
+	onUpdateRequest,
 }: ScholarshipsTabProps) {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 
 	const handleScholarshipClick = (scholarshipId: string) => {
-		router.push(`/explore/scholarships/${scholarshipId}?from=scholarships`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		router.push(
+			`/explore/scholarships/${scholarshipId}?from=scholarships&${currentParams.toString()}`
+		)
 	}
 
 	return (
@@ -42,6 +49,8 @@ export function ScholarshipsTab({
 						isApplying={isApplying(scholarship.id)}
 						onApply={() => onApply(scholarship.id)}
 						onClick={handleScholarshipClick}
+						applicationId={(scholarship as any).applicationId}
+						onUpdateRequest={onUpdateRequest}
 					/>
 				))
 			) : (

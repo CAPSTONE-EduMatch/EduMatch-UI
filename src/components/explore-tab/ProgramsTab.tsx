@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { ProgramCard } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { Program } from '@/types/explore-api'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ProgramsTabProps {
 	sortBy?: SortOption
@@ -16,6 +16,7 @@ interface ProgramsTabProps {
 	hasApplied?: (id: string) => boolean
 	isApplying?: (id: string) => boolean
 	onApply?: (id: string) => void
+	onUpdateRequest?: (applicationId: string) => void
 }
 
 export function ProgramsTab({
@@ -25,11 +26,17 @@ export function ProgramsTab({
 	hasApplied = () => false,
 	isApplying = () => false,
 	onApply = () => {},
+	onUpdateRequest,
 }: ProgramsTabProps) {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 
 	const handleProgramClick = (programId: string) => {
-		router.push(`/explore/programmes/${programId}?from=programmes`)
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		router.push(
+			`/explore/programmes/${programId}?from=programmes&${currentParams.toString()}`
+		)
 	}
 
 	const paginatedPrograms = useMemo(() => {
@@ -51,6 +58,8 @@ export function ProgramsTab({
 						hasApplied={hasApplied(program.id)}
 						isApplying={isApplying(program.id)}
 						onApply={() => onApply(program.id)}
+						applicationId={(program as any).applicationId}
+						onUpdateRequest={onUpdateRequest}
 					/>
 				))
 			) : (

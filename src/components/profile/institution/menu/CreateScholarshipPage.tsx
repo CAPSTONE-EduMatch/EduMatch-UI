@@ -1,11 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
-import { DateInput, CustomSelect, RichTextEditor } from '@/components/ui'
+import {
+	DateInput,
+	CustomSelect,
+	RichTextEditor,
+	SuccessModal,
+	ErrorModal,
+} from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
+import { ApiService } from '@/lib/axios-config'
 
 interface CreateScholarshipPageProps {
 	onBack?: () => void
@@ -16,6 +24,27 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 	onBack,
 	onSubmit,
 }) => {
+	const router = useRouter()
+	// State for subdisciplines loaded from database
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+
+	// Load subdisciplines from database
+	useEffect(() => {
+		const loadSubdisciplines = async () => {
+			try {
+				const response = await ApiService.getSubdisciplines()
+				if (response.success) {
+					setSubdisciplines(response.subdisciplines)
+				}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to load subdisciplines:', error)
+			}
+		}
+		loadSubdisciplines()
+	}, [])
 	const [formData, setFormData] = useState({
 		// Overview Section
 		scholarshipName: 'Merit Scholarship for International Students',
@@ -75,7 +104,13 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 		},
 	})
 
-	const handleInputChange = (field: string, value: string) => {
+	// Modal states
+	const [showSuccessModal, setShowSuccessModal] = useState(false)
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
+	const [createdResult, setCreatedResult] = useState<any>(null)
+
+	const handleInputChange = (field: string, value: any) => {
 		setFormData((prev) => ({
 			...prev,
 			[field]: value,
@@ -151,14 +186,17 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 			const result = await response.json()
 			console.log('Scholarship post created:', result)
 
-			// Call the onSubmit callback with the result
-			onSubmit?.(result)
-
-			// Show success message
-			alert('Scholarship post created successfully!')
+			// Defer navigation until modal is closed
+			setCreatedResult(result)
+			setShowSuccessModal(true)
 		} catch (error) {
 			console.error('Error creating scholarship post:', error)
-			// You might want to show an error message to the user here
+			const errorMsg =
+				error instanceof Error
+					? error.message
+					: 'Failed to create scholarship post. Please try again.'
+			setErrorMessage(errorMsg)
+			setShowErrorModal(true)
 		}
 	}
 
@@ -218,6 +256,25 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 								minDate={new Date().toISOString().split('T')[0]}
 								maxDate="2030-12-31"
 							/>
+							{formData.startDate &&
+								formData.applicationDeadline &&
+								(() => {
+									const [startDay, startMonth, startYear] =
+										formData.startDate.split('/')
+									const [deadlineDay, deadlineMonth, deadlineYear] =
+										formData.applicationDeadline.split('/')
+									const startDate = new Date(
+										`${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`
+									)
+									const deadlineDate = new Date(
+										`${deadlineYear}-${deadlineMonth.padStart(2, '0')}-${deadlineDay.padStart(2, '0')}`
+									)
+									return startDate >= deadlineDate ? (
+										<p className="text-xs text-red-500 mt-1">
+											Start date must be before application deadline
+										</p>
+									) : null
+								})()}
 						</div>
 
 						<div className="relative">
@@ -232,6 +289,25 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 								minDate={new Date().toISOString().split('T')[0]}
 								maxDate="2030-12-31"
 							/>
+							{formData.startDate &&
+								formData.applicationDeadline &&
+								(() => {
+									const [startDay, startMonth, startYear] =
+										formData.startDate.split('/')
+									const [deadlineDay, deadlineMonth, deadlineYear] =
+										formData.applicationDeadline.split('/')
+									const startDate = new Date(
+										`${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`
+									)
+									const deadlineDate = new Date(
+										`${deadlineYear}-${deadlineMonth.padStart(2, '0')}-${deadlineDay.padStart(2, '0')}`
+									)
+									return startDate >= deadlineDate ? (
+										<p className="text-xs text-red-500 mt-1">
+											Application deadline must be after start date
+										</p>
+									) : null
+								})()}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="country">Country</Label>
@@ -276,27 +352,20 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 						<div className="space-y-2">
 							<Label htmlFor="subdisciplines">Subdisciplines</Label>
 							<CustomSelect
-								value={formData.subdisciplines}
+								value={(formData.subdisciplines || []).map((v: string) => ({
+									value: v,
+									label: v,
+								}))}
 								onChange={(options) =>
-									handleInputChange('subdisciplines', options || [])
+									handleInputChange(
+										'subdisciplines',
+										Array.isArray(options)
+											? options.map((o: any) => o?.value ?? o?.label)
+											: []
+									)
 								}
 								placeholder="Choose subdisciplines"
-								options={[
-									{ value: 'Information system', label: 'Information system' },
-									{ value: 'Computer Science', label: 'Computer Science' },
-									{ value: 'Data Science', label: 'Data Science' },
-									{
-										value: 'Software Engineering',
-										label: 'Software Engineering',
-									},
-									{
-										value: 'Business Administration',
-										label: 'Business Administration',
-									},
-									{ value: 'Economics', label: 'Economics' },
-									{ value: 'Medicine', label: 'Medicine' },
-									{ value: 'Engineering', label: 'Engineering' },
-								]}
+								options={subdisciplines}
 								variant="default"
 								isMulti
 								isClearable={false}
@@ -467,20 +536,6 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 				</div>
 
 				<div className="space-y-6">
-					{/* File Name */}
-					<div className="space-y-2">
-						<Label htmlFor="fileName">File name</Label>
-						<Input
-							id="fileName"
-							placeholder="Enter file name"
-							value={formData.fileRequirements?.fileName || ''}
-							onChange={(e) =>
-								handleFileRequirementChange('fileName', e.target.value)
-							}
-							inputSize="select"
-						/>
-					</div>
-
 					{/* File Description */}
 					<div className="space-y-2">
 						<Label htmlFor="fileDescription">File description</Label>
@@ -493,20 +548,6 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 							}
 							inputSize="select"
 						/>
-					</div>
-
-					{/* Add File Button */}
-					<div className="flex justify-end">
-						<Button
-							onClick={() => {
-								// TODO: Implement add file functionality
-								// eslint-disable-next-line no-console
-								console.log('Add new required file')
-							}}
-							className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
-						>
-							Add new required file
-						</Button>
 					</div>
 				</div>
 			</div>
@@ -633,6 +674,27 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 					Submit
 				</Button>
 			</div>
+			{/* Success Modal */}
+			<SuccessModal
+				isOpen={showSuccessModal}
+				onClose={() => {
+					setShowSuccessModal(false)
+					// Navigate to parent Programs and replace history
+					router.replace('/explore?tab=programmes')
+				}}
+				title="Success!"
+				message="Your scholarship post has been created successfully."
+				buttonText="Continue"
+			/>
+
+			{/* Error Modal */}
+			<ErrorModal
+				isOpen={showErrorModal}
+				onClose={() => setShowErrorModal(false)}
+				title="Error"
+				message={errorMessage}
+				buttonText="Try Again"
+			/>
 		</div>
 	)
 }

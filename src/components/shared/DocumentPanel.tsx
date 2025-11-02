@@ -23,10 +23,10 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
 }) => {
 	return (
 		<div
-			className={`bg-white shadow-sm border lg:col-span-1 h-[750px] w-2/3 ${className}`}
+			className={`bg-white shadow-sm border lg:col-span-1 min-h-[400px] max-h-[150vh] w-2/3 ${className}`}
 		>
-			<div className="p-6 h-full flex flex-col">
-				<div className="flex flex-col flex-1">
+			<div className="p-6 flex flex-col">
+				<div className="flex flex-col">
 					{/* Navigation Tabs */}
 					<div className="flex border-b flex-shrink-0">
 						{tabs.map((tab) => (
@@ -44,12 +44,12 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
 						))}
 					</div>
 
-					{/* Tab Content - Scrollable */}
-					<div className="flex-1 overflow-hidden max-h-[650px]">
+					{/* Tab Content - Auto height with max constraint */}
+					<div className="overflow-y-auto max-h-[calc(90vh-120px)]">
 						{tabs.map((tab) => (
 							<div
 								key={tab.id}
-								className={`h-full ${activeTab === tab.id ? 'block' : 'hidden'}`}
+								className={activeTab === tab.id ? 'block' : 'hidden'}
 							>
 								{tab.content}
 							</div>

@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
 				(app) => app.status === "rejected"
 			).length,
 			pending: transformedApplications.filter(
-				(app) => app.status === "pending"
+				(app) => app.status === "submitted"
 			).length,
 		};
 

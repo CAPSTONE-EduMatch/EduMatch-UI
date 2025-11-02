@@ -102,7 +102,7 @@ export async function GET(
 			(app) => app.status === "ACCEPTED"
 		).length;
 		const pendingApplications = allApplications.filter(
-			(app) => app.status === "PENDING"
+			(app) => app.status === "SUBMITTED"
 		).length;
 		const rejectedApplications = allApplications.filter(
 			(app) => app.status === "REJECTED"

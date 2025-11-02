@@ -119,10 +119,10 @@ export async function GET(request: NextRequest) {
 		const applicationStats = {
 			total: applicationCount,
 			pending: opportunityPost.applications.filter(
-				(app) => app.status === "PENDING"
+				(app) => app.status === "SUBMITTED"
 			).length,
 			reviewed: opportunityPost.applications.filter(
-				(app) => app.status === "REVIEWED"
+				(app) => app.status === "REQUIRE_UPDATE"
 			).length,
 			accepted: opportunityPost.applications.filter(
 				(app) => app.status === "ACCEPTED"
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
 			// Basic post information
 			id: opportunityPost.post_id,
 			title: opportunityPost.title,
-			description: opportunityPost.other_info || "",
+			description: opportunityPost.description || "",
 			otherInfo: opportunityPost.other_info || "",
 			location: opportunityPost.location || "",
 			startDate: opportunityPost.start_date,
@@ -158,6 +158,7 @@ export async function GET(request: NextRequest) {
 						id: opportunityPost.institution.institution_id,
 						userId: opportunityPost.institution.user_id,
 						name: opportunityPost.institution.name,
+
 						abbreviation: opportunityPost.institution.abbreviation,
 						logo: opportunityPost.institution.logo,
 						country: opportunityPost.institution.country,

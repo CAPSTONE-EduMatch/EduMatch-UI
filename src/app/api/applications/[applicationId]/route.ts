@@ -68,13 +68,15 @@ export async function GET(
 			postId: application.post_id,
 			status: application.status,
 			applyAt: application.apply_at.toISOString(),
-			documents: application.details.map((detail: any) => ({
-				documentTypeId: detail.document_type,
-				name: detail.name,
-				url: detail.url,
-				size: detail.size,
-				documentType: detail.document_type,
-			})),
+			documents: application.details
+				.filter((detail: any) => !detail.is_update_submission)
+				.map((detail: any) => ({
+					documentTypeId: detail.document_type,
+					name: detail.name,
+					url: detail.url,
+					size: detail.size,
+					documentType: detail.document_type,
+				})),
 			post: {
 				id: application.post.post_id,
 				title: application.post.title,
@@ -379,10 +381,10 @@ export async function DELETE(
 			);
 		}
 
-		// Check if application can be cancelled (only PENDING applications)
-		if (application.status !== "PENDING") {
+		// Check if application can be cancelled (only SUBMITTED applications)
+		if (application.status !== "SUBMITTED") {
 			return NextResponse.json(
-				{ error: "Only pending applications can be cancelled" },
+				{ error: "Only submitted applications can be cancelled" },
 				{ status: 400 }
 			);
 		}

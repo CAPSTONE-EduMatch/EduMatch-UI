@@ -95,6 +95,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 	const [isUploading, setIsUploading] = useState(false)
 	const [isInitialLoad, setIsInitialLoad] = useState(false)
 	const messagesEndRef = useRef<HTMLDivElement>(null)
+	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
 
 	// Use AppSync messaging hook
 	const {
@@ -158,6 +160,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 							status: otherUser.status,
 						})
 
+						setIsInitialLoad(true) // Mark as initial load for new thread
+						setShouldAutoScroll(true) // Reset auto-scroll flag
 						selectThread(thread.id)
 						loadMessages(thread.id)
 					}
@@ -251,6 +255,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 							})
 						}
 
+						setIsInitialLoad(true) // Mark as initial load for new thread
+						setShouldAutoScroll(true) // Reset auto-scroll flag
 						selectThread(existingThread.id)
 						loadMessages(existingThread.id)
 
@@ -557,6 +563,9 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 				uploadData.fileType
 			)
 
+			// Always scroll to bottom when sending own file
+			setShouldAutoScroll(true)
+
 			setShowFileUpload(false) // Close the modal after successful upload
 		} catch (error) {
 			// Handle error silently
@@ -575,6 +584,9 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 		setNewMessage('')
 		setIsTyping(false)
 
+		// Always scroll to bottom when sending own message
+		setShouldAutoScroll(true)
+
 		try {
 			// Use AppSync to send message
 			await sendAppSyncMessage(selectedThread.id, messageContent)
@@ -588,21 +600,41 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 	// - Your own messages are never considered "unread"
 	// - This is handled by the threads API which already provides unreadCount
 
-	// Auto-scroll when messages change
+	// Handle scroll events to track if user is at bottom
+	useEffect(() => {
+		const container = messagesContainerRef.current
+		if (!container) return
+
+		const handleScroll = () => {
+			// Check if user is near bottom when scrolling
+			const threshold = 100 // 100px from bottom
+			const nearBottom =
+				container.scrollHeight - container.scrollTop - container.clientHeight <
+				threshold
+			setShouldAutoScroll(nearBottom)
+		}
+
+		container.addEventListener('scroll', handleScroll)
+		return () => container.removeEventListener('scroll', handleScroll)
+	}, [])
+
+	// Auto-scroll when messages change - only if user is at bottom or initial load
 	useEffect(() => {
 		if (messages.length > 0) {
-			// Use instant scroll when messages are first loaded, smooth scroll for new messages
+			// Use instant scroll when messages are first loaded
 			if (isInitialLoad) {
 				// Small delay to ensure DOM is updated for initial load
 				setTimeout(() => {
 					scrollToBottom(false) // Instant scroll for initial load
 					setIsInitialLoad(false)
+					setShouldAutoScroll(true) // Reset flag after initial load
 				}, 50)
-			} else {
+			} else if (shouldAutoScroll) {
+				// Only auto-scroll if user is already at/near the bottom
 				scrollToBottom(true) // Smooth scroll for new messages
 			}
 		}
-	}, [messages, isInitialLoad])
+	}, [messages, isInitialLoad, shouldAutoScroll])
 
 	// Thread selection is now handled by AppSync hook
 
@@ -695,6 +727,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 		// Set the thread locally first
 		setSelectedThread(thread)
 		setIsInitialLoad(true) // Mark as initial load for this thread
+		setShouldAutoScroll(true) // Reset auto-scroll flag
 
 		// Use AppSync to select thread
 		selectThread(thread.id)
@@ -1016,7 +1049,10 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 						</div>
 
 						{/* Messages */}
-						<div className="flex-1 overflow-y-auto p-4 space-y-4">
+						<div
+							ref={messagesContainerRef}
+							className="flex-1 overflow-y-auto p-4 space-y-4"
+						>
 							{Array.isArray(messages) && messages.length === 0 ? (
 								<div className="text-center text-gray-500 py-8">
 									No messages yet. Start the conversation!

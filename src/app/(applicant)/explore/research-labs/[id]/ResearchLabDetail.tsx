@@ -44,6 +44,50 @@ const ResearchLabDetail = () => {
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Research Lab Detail' }])
 
+	// Update breadcrumb when component mounts or research lab data changes
+	useEffect(() => {
+		const updateBreadcrumb = () => {
+			const fromTab = searchParams.get('from') || 'research'
+
+			// Preserve all original URL parameters except 'from'
+			const currentParams = new URLSearchParams(searchParams.toString())
+			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
+			const paramsString = currentParams.toString()
+			const queryString = paramsString ? `?${paramsString}` : ''
+
+			const labName = researchLab?.title || 'Research Lab Detail'
+
+			let items: Array<{ label: string; href?: string }> = [
+				{ label: 'Explore', href: `/explore${queryString}` },
+			]
+
+			// Add intermediate breadcrumb based on where we came from
+			if (fromTab === 'programmes') {
+				items.push({
+					label: 'Programmes',
+					href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
+				})
+			} else if (fromTab === 'scholarships') {
+				items.push({
+					label: 'Scholarships',
+					href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
+				})
+			} else {
+				items.push({
+					label: 'Research Labs',
+					href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
+				})
+			}
+
+			// Add current page (non-clickable)
+			items.push({ label: labName })
+
+			setBreadcrumbItems(items)
+		}
+
+		updateBreadcrumb()
+	}, [searchParams, researchLab?.title])
+
 	const handleApply = async () => {
 		// Add application logic here
 		setIsApplying(true)
@@ -149,8 +193,15 @@ const ResearchLabDetail = () => {
 	}
 
 	const handleResearchLabClick = (researchLabId: string) => {
+		// Preserve current URL parameters to maintain filter state
+		const currentParams = new URLSearchParams(searchParams.toString())
+		currentParams.delete('from') // Remove 'from' as it will be added back
+		const paramsString = currentParams.toString()
+
 		// Navigate to research lab detail page
-		router.push(`/explore/research-labs/${researchLabId}?from=research`)
+		router.push(
+			`/explore/research-labs/${researchLabId}?from=research${paramsString ? `&${paramsString}` : ''}`
+		)
 	}
 
 	const menuItems = [

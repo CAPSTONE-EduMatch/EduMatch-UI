@@ -10,7 +10,7 @@ const sidebarItems = [
 	{ id: 'dashboard', icon: Users, label: 'Dashboard' },
 	{ id: 'certifications', icon: GraduationCap, label: 'Certifications' },
 	{ id: 'posts', icon: Building2, label: 'Posts' },
-	{ id: 'discipline', icon: Building2, label: 'Discipline' },
+	{ id: 'disciplines', icon: Building2, label: 'Disciplines' },
 	{ id: 'user', icon: Users, label: 'User' },
 	{ id: 'payment', icon: CreditCard, label: 'Payment' },
 	{ id: 'plan', icon: Building2, label: 'Plan' },
@@ -51,6 +51,15 @@ export function AdminSidebar({
 				break
 			case 'user':
 				router.push('/admin/users')
+				break
+			case 'certifications':
+				router.push('/admin/certifications')
+				break
+			case 'posts':
+				router.push('/admin/posts')
+				break
+			case 'disciplines':
+				router.push('/admin/disciplines')
 				break
 			case 'payment':
 				router.push('/admin/payments')

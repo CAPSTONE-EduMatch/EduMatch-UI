@@ -12,6 +12,7 @@ interface ScholarshipsTabProps {
 	hasApplied?: (id: string) => boolean
 	isApplying?: (id: string) => boolean
 	onApply?: (id: string) => void
+	onUpdateRequest?: (applicationId: string) => void
 }
 
 export function ScholarshipsTab({
@@ -21,6 +22,7 @@ export function ScholarshipsTab({
 	hasApplied = () => false,
 	isApplying = () => false,
 	onApply = () => {},
+	onUpdateRequest,
 }: ScholarshipsTabProps) {
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -47,6 +49,8 @@ export function ScholarshipsTab({
 						isApplying={isApplying(scholarship.id)}
 						onApply={() => onApply(scholarship.id)}
 						onClick={handleScholarshipClick}
+						applicationId={(scholarship as any).applicationId}
+						onUpdateRequest={onUpdateRequest}
 					/>
 				))
 			) : (

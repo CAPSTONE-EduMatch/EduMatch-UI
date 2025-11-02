@@ -16,6 +16,7 @@ interface ProgramsTabProps {
 	hasApplied?: (id: string) => boolean
 	isApplying?: (id: string) => boolean
 	onApply?: (id: string) => void
+	onUpdateRequest?: (applicationId: string) => void
 }
 
 export function ProgramsTab({
@@ -25,6 +26,7 @@ export function ProgramsTab({
 	hasApplied = () => false,
 	isApplying = () => false,
 	onApply = () => {},
+	onUpdateRequest,
 }: ProgramsTabProps) {
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -56,6 +58,8 @@ export function ProgramsTab({
 						hasApplied={hasApplied(program.id)}
 						isApplying={isApplying(program.id)}
 						onApply={() => onApply(program.id)}
+						applicationId={(program as any).applicationId}
+						onUpdateRequest={onUpdateRequest}
 					/>
 				))
 			) : (

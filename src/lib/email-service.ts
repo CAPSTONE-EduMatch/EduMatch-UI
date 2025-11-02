@@ -262,7 +262,7 @@ export class EmailTemplates {
             <p>New Status: <span class="status-badge status-${metadata.newStatus.toLowerCase()}">${metadata.newStatus}</span></p>
           </div>
           
-          ${this.getStatusSpecificContent(metadata.newStatus)}
+          ${this.getStatusSpecificContent(metadata.newStatus, metadata.message)}
           
           <div style="text-align: center;">
             <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/applications" class="button">View Application</a>
@@ -633,9 +633,12 @@ export class EmailTemplates {
 	/**
 	 * Get status-specific content for application status emails
 	 */
-	private static getStatusSpecificContent(status: string): string {
+	private static getStatusSpecificContent(
+		status: string,
+		message?: string
+	): string {
 		switch (status.toLowerCase()) {
-			case "approved":
+			case "accepted":
 				return `
           <div style="background: #e8f5e8; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #4CAF50;">
             <h3>🎉 Congratulations!</h3>
@@ -649,11 +652,41 @@ export class EmailTemplates {
             <p>Unfortunately, your application was not selected this time. Don't give up - there are many other opportunities available!</p>
           </div>
         `;
-			case "pending":
+			case "require_update":
+				return `
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #2196F3;">
+            <h3>📋 Action Required - Application Review Update</h3>
+            <p>The institution has reviewed your application and requires additional information or updates.</p>
+            ${
+				message
+					? `
+            <div style="background: white; padding: 15px; border-radius: 5px; margin: 15px 0; border: 1px solid #e0e0e0;">
+              <p style="margin: 0 0 10px; font-weight: 600; color: #333;">Message from the institution:</p>
+              <p style="margin: 0; color: #555; white-space: pre-wrap;">${message
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/"/g, "&quot;")
+					.replace(/'/g, "&#39;")}</p>
+            </div>
+            `
+					: ""
+			}
+            <p>Please check your application dashboard and messages to view the complete details and take the necessary action.</p>
+          </div>
+        `;
+			case "submitted":
 				return `
           <div style="background: #fff3e0; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ff9800;">
             <h3>Application Under Review</h3>
-            <p>Your application is currently being reviewed by the institution. We'll notify you as soon as there are any updates.</p>
+            <p>Your application has been submitted and is currently being reviewed by the institution. We'll notify you as soon as there are any updates.</p>
+          </div>
+        `;
+			case "updated":
+				return `
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #2196F3;">
+            <h3>Application Updated</h3>
+            <p>Your application has been updated. The institution will review your changes.</p>
           </div>
         `;
 			default:

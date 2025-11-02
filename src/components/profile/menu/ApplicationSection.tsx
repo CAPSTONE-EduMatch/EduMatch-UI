@@ -22,6 +22,7 @@ import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
 import { ExploreApiService } from '@/lib/explore-api'
+import { ApplicationUpdateResponseModal } from './ApplicationUpdateResponseModal'
 
 interface ApplicationSectionProps {
 	profile: any
@@ -46,18 +47,30 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		},
 	})
 
-	// Explore data state with application status
+	// Explore data state with application status and ID
 	const [programs, setPrograms] = useState<
-		(Program & { applicationStatus?: ApplicationStatus })[]
+		(Program & {
+			applicationStatus?: ApplicationStatus
+			applicationId?: string
+		})[]
 	>([])
 	const [scholarships, setScholarships] = useState<
-		(Scholarship & { applicationStatus?: ApplicationStatus })[]
+		(Scholarship & {
+			applicationStatus?: ApplicationStatus
+			applicationId?: string
+		})[]
 	>([])
 	const [researchLabs, setResearchLabs] = useState<
-		(ResearchLab & { applicationStatus?: ApplicationStatus })[]
+		(ResearchLab & {
+			applicationStatus?: ApplicationStatus
+			applicationId?: string
+		})[]
 	>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [selectedApplicationForUpdate, setSelectedApplicationForUpdate] =
+		useState<string | null>(null)
+	const [showUpdateModal, setShowUpdateModal] = useState(false)
 
 	// Fetch explore data and filter by applications
 	const fetchApplicationData = useCallback(async () => {
@@ -102,18 +115,21 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					}),
 				])
 
-			// Create a map of postId to application status
+			// Create maps of postId to application status and applicationId
 			const applicationStatusMap = new Map<string, ApplicationStatus>()
+			const applicationIdMap = new Map<string, string>()
 			applications.forEach((app) => {
 				applicationStatusMap.set(app.postId, app.status)
+				applicationIdMap.set(app.postId, app.applicationId)
 			})
 
-			// Filter by application post IDs and add application status
+			// Filter by application post IDs and add application status and ID
 			const filteredPrograms = programsResponse.data
 				.filter((program) => applicationPostIds.includes(program.id))
 				.map((program) => ({
 					...program,
 					applicationStatus: applicationStatusMap.get(program.id),
+					applicationId: applicationIdMap.get(program.id),
 				}))
 
 			const filteredScholarships = scholarshipsResponse.data
@@ -121,6 +137,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				.map((scholarship) => ({
 					...scholarship,
 					applicationStatus: applicationStatusMap.get(scholarship.id),
+					applicationId: applicationIdMap.get(scholarship.id),
 				}))
 
 			const filteredResearchLabs = researchResponse.data
@@ -128,6 +145,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				.map((researchLab) => ({
 					...researchLab,
 					applicationStatus: applicationStatusMap.get(researchLab.id),
+					applicationId: applicationIdMap.get(researchLab.id),
 				}))
 
 			setPrograms(filteredPrograms)
@@ -155,8 +173,8 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 
 	// Application status filter options
 	const filterOptions = [
-		{ id: 'PENDING', label: 'Pending', icon: BookOpen },
-		{ id: 'REVIEWED', label: 'Under Review', icon: Clock },
+		{ id: 'SUBMITTED', label: 'Submitted', icon: BookOpen },
+		{ id: 'REQUIRE_UPDATE', label: 'Update Required', icon: Clock },
 		{ id: 'ACCEPTED', label: 'Accepted', icon: Users },
 		{ id: 'REJECTED', label: 'Rejected', icon: X },
 	]
@@ -238,6 +256,25 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		[cancelApplication]
 	)
 
+	// Handle update request click
+	const handleUpdateRequest = useCallback((applicationId: string) => {
+		setSelectedApplicationForUpdate(applicationId)
+		setShowUpdateModal(true)
+	}, [])
+
+	// Handle modal close
+	const handleCloseModal = useCallback(() => {
+		setShowUpdateModal(false)
+		setSelectedApplicationForUpdate(null)
+	}, [])
+
+	// Handle successful update submission
+	const handleUpdateSuccess = useCallback(async () => {
+		// Refresh applications to get updated status
+		await fetchApplicationData()
+		handleCloseModal()
+	}, [fetchApplicationData, handleCloseModal])
+
 	// Render tab content based on active tab
 	const renderTabContent = () => {
 		switch (activeTab) {
@@ -251,6 +288,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						hasApplied={() => true} // All items in applications are applied
 						isApplying={() => false}
 						onApply={() => {}} // No-op for applications
+						onUpdateRequest={handleUpdateRequest} // Handle update requests
 					/>
 				)
 			case 'scholarships':
@@ -262,6 +300,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						hasApplied={() => true} // All items in applications are applied
 						isApplying={() => false}
 						onApply={() => {}} // No-op for applications
+						onUpdateRequest={handleUpdateRequest} // Handle update requests
 					/>
 				)
 			case 'research':
@@ -273,6 +312,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						hasApplied={() => true} // All items in applications are applied
 						isApplying={() => false}
 						onApply={() => {}} // No-op for applications
+						onUpdateRequest={handleUpdateRequest} // Handle update requests
 					/>
 				)
 			default:
@@ -285,6 +325,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						hasApplied={() => true}
 						isApplying={() => false}
 						onApply={() => {}}
+						onUpdateRequest={handleUpdateRequest} // Handle update requests
 					/>
 				)
 		}
@@ -405,6 +446,16 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					</div>
 				) : (
 					renderTabContent()
+				)}
+
+				{/* Update Response Modal */}
+				{selectedApplicationForUpdate && (
+					<ApplicationUpdateResponseModal
+						isOpen={showUpdateModal}
+						onClose={handleCloseModal}
+						applicationId={selectedApplicationForUpdate}
+						onSuccess={handleUpdateSuccess}
+					/>
 				)}
 			</div>
 		</div>

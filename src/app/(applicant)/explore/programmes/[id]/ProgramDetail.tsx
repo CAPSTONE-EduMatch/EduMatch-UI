@@ -19,6 +19,7 @@ import { useWishlist } from '@/hooks/useWishlist'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useApiWrapper } from '@/lib/api-wrapper'
+import { ApplicationUpdateResponseModal } from '@/components/profile/menu/ApplicationUpdateResponseModal'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
@@ -61,6 +62,16 @@ const ProgramDetail = () => {
 	const [hasApplied, setHasApplied] = useState(false)
 	const [isApplying, setIsApplying] = useState(false)
 	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+	const [applicationStatus, setApplicationStatus] = useState<string | null>(
+		null
+	)
+	const [applicationId, setApplicationId] = useState<string | null>(null)
+	const [showUpdateModal, setShowUpdateModal] = useState(false)
+	const [selectedUpdateRequestId, setSelectedUpdateRequestId] = useState<
+		string | null
+	>(null)
+	const [updateRequests, setUpdateRequests] = useState<any[]>([])
+	const [loadingUpdateRequests, setLoadingUpdateRequests] = useState(false)
 
 	// Wishlist functionality
 	const {
@@ -250,6 +261,46 @@ const ProgramDetail = () => {
 		}
 	}, [currentProgram?.id, params.id]) // Removed isCheckingApplication from deps to prevent loops
 
+	// Fetch all update requests when application is loaded
+	useEffect(() => {
+		if (applicationId) {
+			fetchUpdateRequests()
+		} else {
+			setUpdateRequests([])
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [applicationId])
+
+	// Fetch all update requests for the application
+	const fetchUpdateRequests = async () => {
+		if (!applicationId) return
+
+		setLoadingUpdateRequests(true)
+		try {
+			const response = await fetch(
+				`/api/applications/${applicationId}/update-request`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				}
+			)
+
+			if (response.ok) {
+				const result = await response.json()
+				if (result.success && result.updateRequests) {
+					setUpdateRequests(result.updateRequests)
+				}
+			}
+		} catch (error) {
+			console.error('Failed to fetch update requests:', error)
+		} finally {
+			setLoadingUpdateRequests(false)
+		}
+	}
+
 	const handleFileUpload = async (
 		event: React.ChangeEvent<HTMLInputElement>,
 		documentType: string
@@ -378,13 +429,20 @@ const ProgramDetail = () => {
 
 				if (existingApplication) {
 					setHasApplied(true)
+					setApplicationStatus(existingApplication.status || null)
+					setApplicationId(existingApplication.applicationId || null)
 					// Load submitted documents from the application
+					// Filter out update submission documents - only show initial application documents
 					if (
 						existingApplication.documents &&
 						existingApplication.documents.length > 0
 					) {
-						const submittedFiles = existingApplication.documents.map(
-							(doc: any) => ({
+						const submittedFiles = existingApplication.documents
+							.filter(
+								(doc: any) =>
+									!doc.isUpdateSubmission && !doc.is_update_submission
+							)
+							.map((doc: any) => ({
 								id: doc.documentId || doc.documentTypeId || Math.random(), // Generate ID if not available
 								name: doc.name,
 								url: doc.url,
@@ -395,8 +453,7 @@ const ProgramDetail = () => {
 									'application-document',
 								uploadDate:
 									doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
-							})
-						)
+							}))
 						setUploadedFiles(submittedFiles)
 					}
 
@@ -1173,9 +1230,35 @@ const ProgramDetail = () => {
 					transition={{ delay: 0.3 }}
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">
-						{hasApplied ? 'Application Status' : 'Apply here !'}
-					</h2>
+					<div className="flex items-center justify-between mb-6">
+						<h2 className="text-3xl font-bold">
+							{hasApplied ? 'Application Status' : 'Apply here !'}
+						</h2>
+						{hasApplied && applicationStatus && (
+							<span
+								className={`px-4 py-2 rounded-full text-sm font-medium ${
+									applicationStatus === 'SUBMITTED' ||
+									applicationStatus === 'PENDING'
+										? 'bg-yellow-100 text-yellow-800'
+										: applicationStatus === 'REQUIRE_UPDATE'
+											? 'bg-orange-100 text-orange-800'
+											: applicationStatus === 'UPDATED'
+												? 'bg-blue-100 text-blue-800'
+												: applicationStatus === 'ACCEPTED'
+													? 'bg-green-100 text-green-800'
+													: applicationStatus === 'REJECTED'
+														? 'bg-red-100 text-red-800'
+														: 'bg-gray-100 text-gray-800'
+								}`}
+							>
+								{applicationStatus === 'PENDING'
+									? 'SUBMITTED'
+									: applicationStatus === 'REVIEWED'
+										? 'REQUIRE_UPDATE'
+										: applicationStatus}
+							</span>
+						)}
+					</div>
 
 					{!hasApplied && (
 						<>
@@ -1266,29 +1349,192 @@ const ProgramDetail = () => {
 						</>
 					)}
 
-					{hasApplied && (
-						<div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-							<div className="flex items-center gap-3">
-								<div className="text-green-600 text-2xl">✓</div>
-								<div>
-									<h3 className="text-lg font-semibold text-green-800">
-										Application Submitted Successfully!
-									</h3>
-									<p className="text-green-700 mt-1">
-										Your application has been submitted. You will receive
-										updates via email.
-									</p>
+					{/* Display update requests as individual alert boxes */}
+					{hasApplied &&
+						updateRequests.length > 0 &&
+						updateRequests.map((request, index) => (
+							<div
+								key={request.updateRequestId}
+								className={`mb-6 rounded-lg p-6 border ${
+									request.status === 'PENDING'
+										? 'bg-orange-50 border-orange-200'
+										: request.status === 'RESPONDED' ||
+											  request.status === 'REVIEWED'
+											? 'bg-green-50 border-green-200'
+											: 'bg-gray-50 border-gray-200'
+								}`}
+							>
+								<div className="flex items-start gap-3">
+									<div
+										className={`text-2xl ${
+											request.status === 'PENDING'
+												? 'text-orange-600'
+												: request.status === 'RESPONDED' ||
+													  request.status === 'REVIEWED'
+													? 'text-green-600'
+													: 'text-gray-600'
+										}`}
+									>
+										{request.status === 'PENDING'
+											? '⚠'
+											: request.status === 'RESPONDED' ||
+												  request.status === 'REVIEWED'
+												? '✓'
+												: 'ℹ'}
+									</div>
+									<div className="flex-1">
+										<h3
+											className={`text-lg font-semibold ${
+												request.status === 'PENDING'
+													? 'text-orange-800'
+													: request.status === 'RESPONDED' ||
+														  request.status === 'REVIEWED'
+														? 'text-green-800'
+														: 'text-gray-800'
+											}`}
+										>
+											{request.status === 'PENDING'
+												? 'Update Required'
+												: request.status === 'RESPONDED' ||
+													  request.status === 'REVIEWED'
+													? 'Update Submitted Successfully'
+													: 'Update Request'}
+										</h3>
+										<p
+											className={`mt-1 mb-4 ${
+												request.status === 'PENDING'
+													? 'text-orange-700'
+													: request.status === 'RESPONDED' ||
+														  request.status === 'REVIEWED'
+														? 'text-green-700'
+														: 'text-gray-700'
+											}`}
+										>
+											{request.status === 'PENDING'
+												? 'The institution has requested additional information or documents for your application. Please review the request and submit the required updates.'
+												: request.status === 'RESPONDED' ||
+													  request.status === 'REVIEWED'
+													? 'Your update response has been submitted successfully. The institution will review your changes.'
+													: `Update request #${updateRequests.length - index}`}
+										</p>
+										<div className="flex gap-3">
+											{request.status === 'PENDING' && applicationId && (
+												<Button
+													onClick={() => {
+														setSelectedUpdateRequestId(request.updateRequestId)
+														setShowUpdateModal(true)
+													}}
+													className="bg-orange-500 hover:bg-orange-600 text-white"
+												>
+													View Update Request & Submit Response
+												</Button>
+											)}
+											{(request.status === 'RESPONDED' ||
+												request.status === 'REVIEWED') &&
+												applicationId && (
+													<Button
+														onClick={() => {
+															setSelectedUpdateRequestId(
+																request.updateRequestId
+															)
+															setShowUpdateModal(true)
+														}}
+														variant="outline"
+														className="border-green-600 text-green-600 hover:bg-green-50"
+													>
+														View Update Details
+													</Button>
+												)}
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					)}
+						))}
+
+					{hasApplied &&
+						updateRequests.length === 0 &&
+						applicationStatus !== 'REQUIRE_UPDATE' && (
+							<div
+								className={`border rounded-lg p-6 mb-6 ${
+									applicationStatus === 'ACCEPTED'
+										? 'bg-green-50 border-green-200'
+										: applicationStatus === 'REJECTED'
+											? 'bg-red-50 border-red-200'
+											: applicationStatus === 'UPDATED'
+												? 'bg-blue-50 border-blue-200'
+												: 'bg-yellow-50 border-yellow-200'
+								}`}
+							>
+								<div className="flex items-center gap-3">
+									<div
+										className={`text-2xl ${
+											applicationStatus === 'ACCEPTED'
+												? 'text-green-600'
+												: applicationStatus === 'REJECTED'
+													? 'text-red-600'
+													: applicationStatus === 'UPDATED'
+														? 'text-blue-600'
+														: 'text-yellow-600'
+										}`}
+									>
+										{applicationStatus === 'ACCEPTED'
+											? '✓'
+											: applicationStatus === 'REJECTED'
+												? '✗'
+												: applicationStatus === 'UPDATED'
+													? '↻'
+													: '⏳'}
+									</div>
+									<div>
+										<h3
+											className={`text-lg font-semibold ${
+												applicationStatus === 'ACCEPTED'
+													? 'text-green-800'
+													: applicationStatus === 'REJECTED'
+														? 'text-red-800'
+														: applicationStatus === 'UPDATED'
+															? 'text-blue-800'
+															: 'text-yellow-800'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? 'Application Accepted!'
+												: applicationStatus === 'REJECTED'
+													? 'Application Not Selected'
+													: applicationStatus === 'UPDATED'
+														? 'Application Updated'
+														: 'Application Submitted Successfully!'}
+										</h3>
+										<p
+											className={`mt-1 ${
+												applicationStatus === 'ACCEPTED'
+													? 'text-green-700'
+													: applicationStatus === 'REJECTED'
+														? 'text-red-700'
+														: applicationStatus === 'UPDATED'
+															? 'text-blue-700'
+															: 'text-yellow-700'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+												: applicationStatus === 'REJECTED'
+													? 'We regret to inform you that your application was not selected this time.'
+													: applicationStatus === 'UPDATED'
+														? 'Your application has been updated. The institution will review your changes.'
+														: 'Your application has been submitted. You will receive updates via email.'}
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
 
 					{/* Show uploaded files in read-only mode when applied */}
 					{hasApplied && uploadedFiles.length > 0 && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
-									Submitted Documents ({uploadedFiles.length} file
+									Initial Application Documents ({uploadedFiles.length} file
 									{uploadedFiles.length !== 1 ? 's' : ''})
 								</span>
 							</div>
@@ -1607,6 +1853,35 @@ const ProgramDetail = () => {
 					</div>
 				</div>
 			</Modal>
+
+			{/* Update Response Modal */}
+			{applicationId && (
+				<ApplicationUpdateResponseModal
+					isOpen={showUpdateModal}
+					onClose={() => {
+						setShowUpdateModal(false)
+						setSelectedUpdateRequestId(null)
+					}}
+					applicationId={applicationId}
+					updateRequestId={selectedUpdateRequestId || undefined}
+					onSuccess={async () => {
+						// Refresh application status and update requests after successful update
+						const programId = currentProgram?.id || params.id
+						if (programId) {
+							await checkExistingApplication(programId as string)
+						}
+						if (applicationId) {
+							await fetchUpdateRequests()
+						}
+						setShowUpdateModal(false)
+						setSelectedUpdateRequestId(null)
+						showSuccess(
+							'Update Submitted',
+							'Your update response has been submitted successfully. The institution will review your changes.'
+						)
+					}}
+				/>
+			)}
 		</div>
 	)
 }

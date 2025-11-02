@@ -93,6 +93,7 @@ export interface ApplicationStatusMessage extends BaseNotificationMessage {
 		oldStatus: string;
 		newStatus: string;
 		institutionName: string;
+		message?: string; // Optional message for REQUIRE_UPDATE status
 	};
 }
 

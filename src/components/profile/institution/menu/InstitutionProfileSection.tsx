@@ -655,10 +655,28 @@ export const InstitutionProfileSection: React.FC<
 															height="h-9"
 														/>
 													) : (
-														<span className="text-sm font-medium w-full">
-															{profile?.institutionHotlineCode || '+84'}{' '}
-															{profile?.institutionHotline || '0123456789'}
-														</span>
+														(() => {
+															const hotlineCode =
+																profile?.institutionHotlineCode || '+84'
+															const hotlineCountry =
+																getCountriesWithSvgFlags().find(
+																	(c) => c.phoneCode === hotlineCode
+																)
+															return (
+																<div className="flex items-center gap-2">
+																	{hotlineCountry?.flag && (
+																		<span className="text-base">
+																			{hotlineCountry.flag}
+																		</span>
+																	)}
+																	<span className="text-sm font-medium">
+																		{hotlineCode}{' '}
+																		{profile?.institutionHotline ||
+																			'0123456789'}
+																	</span>
+																</div>
+															)
+														})()
 													)}
 												</div>
 												<div className="flex items-center gap-4">
@@ -717,9 +735,28 @@ export const InstitutionProfileSection: React.FC<
 															className="w-full"
 														/>
 													) : (
-														<span className="text-sm font-medium w-full">
-															{profile?.institutionCountry || 'Viet Nam'}
-														</span>
+														(() => {
+															const countryName =
+																profile?.institutionCountry || 'Viet Nam'
+															const countryData =
+																getCountriesWithSvgFlags().find(
+																	(c) =>
+																		c.name.toLowerCase() ===
+																		countryName.toLowerCase()
+																)
+															return (
+																<div className="flex items-center gap-2">
+																	{countryData?.flag && (
+																		<span className="text-base">
+																			{countryData.flag}
+																		</span>
+																	)}
+																	<span className="text-sm font-medium">
+																		{countryName}
+																	</span>
+																</div>
+															)
+														})()
 													)}
 												</div>
 											</div>
@@ -824,10 +861,28 @@ export const InstitutionProfileSection: React.FC<
 															height="h-9"
 														/>
 													) : (
-														<span className="text-sm font-medium w-full">
-															{profile?.representativePhoneCode || '+84'}{' '}
-															{profile?.representativePhone || '0909090909090'}
-														</span>
+														(() => {
+															const phoneCode =
+																profile?.representativePhoneCode || '+84'
+															const phoneCountry =
+																getCountriesWithSvgFlags().find(
+																	(c) => c.phoneCode === phoneCode
+																)
+															return (
+																<div className="flex items-center gap-2">
+																	{phoneCountry?.flag && (
+																		<span className="text-base">
+																			{phoneCountry.flag}
+																		</span>
+																	)}
+																	<span className="text-sm font-medium">
+																		{phoneCode}{' '}
+																		{profile?.representativePhone ||
+																			'0909090909090'}
+																	</span>
+																</div>
+															)
+														})()
 													)}
 												</div>
 											</div>

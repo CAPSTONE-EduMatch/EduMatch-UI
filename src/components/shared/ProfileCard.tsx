@@ -22,7 +22,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
 }) => {
 	return (
 		<div
-			className={`bg-white shadow-sm border lg:col-span-1 min-h-[400px] max-h-[90vh] w-1/3 ${className}`}
+			className={`bg-white shadow-sm border lg:col-span-1 min-h-[400px] max-h-[150vh] w-1/3 ${className}`}
 		>
 			<div className="p-6 flex flex-col">
 				<div className="space-y-6 flex-1">

@@ -23,7 +23,7 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
 }) => {
 	return (
 		<div
-			className={`bg-white shadow-sm border lg:col-span-1 min-h-[400px] max-h-[90vh] w-2/3 ${className}`}
+			className={`bg-white shadow-sm border lg:col-span-1 min-h-[400px] max-h-[150vh] w-2/3 ${className}`}
 		>
 			<div className="p-6 flex flex-col">
 				<div className="flex flex-col">

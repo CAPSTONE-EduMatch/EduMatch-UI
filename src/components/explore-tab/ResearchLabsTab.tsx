@@ -17,6 +17,7 @@ interface ResearchLabsTabProps {
 	isApplying?: (_id: string) => boolean
 	// eslint-disable-next-line no-unused-vars
 	onApply?: (_id: string) => void
+	onUpdateRequest?: (applicationId: string) => void
 }
 
 export function ResearchLabsTab({
@@ -26,6 +27,7 @@ export function ResearchLabsTab({
 	hasApplied = () => false,
 	isApplying = () => false,
 	onApply = () => {},
+	onUpdateRequest,
 }: ResearchLabsTabProps) {
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -52,6 +54,8 @@ export function ResearchLabsTab({
 						isApplying={isApplying(lab.id)}
 						onApply={() => onApply(lab.id)}
 						onClick={handleLabClick}
+						applicationId={(lab as any).applicationId}
+						onUpdateRequest={onUpdateRequest}
 					/>
 				))
 			) : (

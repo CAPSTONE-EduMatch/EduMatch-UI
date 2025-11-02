@@ -119,10 +119,10 @@ export async function GET(request: NextRequest) {
 		const applicationStats = {
 			total: applicationCount,
 			pending: opportunityPost.applications.filter(
-				(app) => app.status === "PENDING"
+				(app) => app.status === "SUBMITTED"
 			).length,
 			reviewed: opportunityPost.applications.filter(
-				(app) => app.status === "REVIEWED"
+				(app) => app.status === "REQUIRE_UPDATE"
 			).length,
 			accepted: opportunityPost.applications.filter(
 				(app) => app.status === "ACCEPTED"

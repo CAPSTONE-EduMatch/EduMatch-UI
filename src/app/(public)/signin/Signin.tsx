@@ -85,50 +85,26 @@ const SignIn: React.FC = () => {
 	// Check profile and redirect accordingly
 	const checkProfileAndRedirect = useCallback(async () => {
 		try {
-			console.log('🔍 Checking user profile...')
-
-			// First check if user is admin
-			try {
-				const adminResponse = await axios.get('/api/auth/admin-check')
-				if (adminResponse.data?.isAdmin) {
-					console.log('👑 Admin user detected, redirecting to admin dashboard')
-					router.push('/admin')
-					return
-				}
-			} catch (adminError) {
-				console.log('ℹ️ Not an admin user, checking regular profile...')
-				// Not an admin, continue with profile check
-			}
-
 			const profileResponse = await axios.get('/api/profile')
 			const profile = profileResponse.data?.profile
 
 			if (profile) {
-				console.log('✅ Profile found:', profile.role)
 				// User has a profile, redirect based on role
 				if (profile.role === 'institution') {
-					console.log('🏢 Redirecting to institution profile')
 					router.push('/profile/view')
 				} else if (profile.role === 'applicant') {
-					console.log('🎓 Redirecting to applicant profile')
 					router.push('/profile/view')
 				} else {
-					console.log('❓ Unknown role, redirecting to explore')
 					router.push('/explore')
 				}
 			} else {
-				console.log('❌ No profile found, redirecting to create profile')
 				router.push('/profile/create')
 			}
 		} catch (error: any) {
-			console.log('❌ Profile check failed:', error?.response?.status)
-
 			// If profile doesn't exist (404), redirect to profile creation
 			if (error?.response?.status === 404) {
-				console.log('📝 No profile found, redirecting to create profile')
 				router.push('/profile/create')
 			} else {
-				console.log('⚠️ Error occurred, redirecting to explore')
 				router.push('/explore')
 			}
 		}
@@ -143,19 +119,14 @@ const SignIn: React.FC = () => {
 	useEffect(() => {
 		const checkExistingAuth = async () => {
 			try {
-				console.log('🔍 Checking existing authentication...')
 				const session = await authClient.getSession()
-				console.log('🔍 Session result:', session)
 
 				if (session?.data?.user) {
-					console.log('✅ User already authenticated, checking profile...')
 					// User is already authenticated, check their profile
 					await checkProfileAndRedirect()
 				} else {
-					console.log('❌ No authenticated user found')
 				}
 			} catch (error) {
-				console.log('❌ Auth check error:', error)
 				// User is not authenticated, continue with signin form
 			}
 		}
@@ -306,7 +277,6 @@ const SignIn: React.FC = () => {
 
 			// If successful signin, handle redirect
 			if (res?.data && !res?.error) {
-				console.log('✅ Sign-in successful, checking profile...')
 				// Check if user has a profile and redirect accordingly
 				await checkProfileAndRedirect()
 				return
@@ -314,7 +284,6 @@ const SignIn: React.FC = () => {
 
 			if (res?.error) {
 				// eslint-disable-next-line no-console
-				console.log('Sign-in error:', res.error) // Debug log to see actual error
 
 				const errorMessage = res.error.message?.toLowerCase() || ''
 
@@ -332,11 +301,9 @@ const SignIn: React.FC = () => {
 						!userCheckResponse.data.isEmailVerified
 					) {
 						shouldTriggerEmailVerification = true
-						console.log('User exists but email is not verified')
 					}
 				} catch (apiError) {
 					// eslint-disable-next-line no-console
-					console.log('Error checking user verification status:', apiError)
 				}
 
 				// Enhanced email verification error detection
@@ -382,8 +349,6 @@ const SignIn: React.FC = () => {
 						setPendingEmail(email)
 						setShowOTPPopup(true)
 					} catch (otpError) {
-						// eslint-disable-next-line no-console
-						console.error('Failed to send verification OTP:', otpError)
 						setErrors({
 							email: 'Failed to send verification code. Please try again.',
 						})
@@ -419,7 +384,6 @@ const SignIn: React.FC = () => {
 			}
 		} catch (err) {
 			// eslint-disable-next-line no-console
-			console.error(err)
 		} finally {
 			setIsLoading(false)
 		}
@@ -692,7 +656,7 @@ const SignIn: React.FC = () => {
 								!String(error.message).includes('FedCM') &&
 								!String(error.message).includes('message channel')
 							) {
-								console.warn('One Tap sign-in error:', error)
+								// eslint-disable-next-line no-console
 							}
 						},
 					},
@@ -707,7 +671,7 @@ const SignIn: React.FC = () => {
 					!String(error.message).includes('FedCM') &&
 					!String(error.message).includes('message channel')
 				) {
-					console.warn('Google OAuth initialization error:', error)
+					// eslint-disable-next-line no-console
 				}
 			}
 		}

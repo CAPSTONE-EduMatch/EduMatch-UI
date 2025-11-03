@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useRouter } from 'next/navigation'
 import { ErrorModal } from '@/components/ui'
 

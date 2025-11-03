@@ -4,12 +4,12 @@ import { Label } from '@/components/ui'
 import { FileUploadManager } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
-import { FileItem } from '@/lib/file-utils'
-import { ProfileFormData } from '@/lib/profile-service'
+import { FileItem } from '@/utils/file/file-utils'
+import { ProfileFormData } from '@/services/profile/profile-service'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import { ApiService } from '@/lib/axios-config'
+import { ApiService } from '@/services/api/axios-config'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData

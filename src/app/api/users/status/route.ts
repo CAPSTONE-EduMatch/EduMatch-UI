@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
 // Update user online status

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ResearchLabCard } from '@/components/ui'
-import { ResearchLab } from '@/types/explore-api'
+import { ResearchLab } from '@/types/api/explore-api'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ResearchLabsTabProps {

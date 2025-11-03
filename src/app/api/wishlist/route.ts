@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../prisma";
 import {
 	WishlistResponse,
@@ -8,7 +8,7 @@ import {
 	WishlistQueryParams,
 	WishlistItem,
 	WishlistErrorResponse,
-} from "@/types/wishlist-api";
+} from "@/types/api/wishlist-api";
 
 // GET /api/wishlist - Get user's wishlist items
 export async function GET(request: NextRequest) {

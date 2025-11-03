@@ -1,0 +1,1 @@
+export { useResearchLabDetail } from "./useResearchLabDetail";

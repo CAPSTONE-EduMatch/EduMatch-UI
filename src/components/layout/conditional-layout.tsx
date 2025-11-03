@@ -3,8 +3,8 @@
 import { usePathname } from 'next/navigation'
 import { EduMatchHeader } from './header'
 import { Footer } from './footer'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
-import { useUserProfile } from '@/hooks/useUserProfile'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useUserProfile } from '@/hooks/profile/useUserProfile'
 
 interface ConditionalLayoutProps {
 	children: React.ReactNode

@@ -1,4 +1,4 @@
-import { NotificationUtils } from "@/lib/sqs-handlers";
+import { NotificationUtils } from "@/services/messaging/sqs-handlers";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";

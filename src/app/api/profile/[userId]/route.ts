@@ -1,5 +1,5 @@
-import { authClient } from "@/app/lib/auth-client";
-import { ProfileService } from "@/lib/profile-service";
+import { authClient } from "@/config/auth-client";
+import { ProfileService } from "@/services/profile/profile-service";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/profile/[userId] - Get user profile

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ScholarshipCard } from '@/components/ui'
-import { Scholarship } from '@/types/explore-api'
+import { Scholarship } from '@/types/api/explore-api'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ScholarshipsTabProps {

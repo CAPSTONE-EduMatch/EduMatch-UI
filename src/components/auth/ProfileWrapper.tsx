@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { ErrorModal } from '@/components/ui'
 import { useState, useEffect } from 'react'
 

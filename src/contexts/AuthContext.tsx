@@ -1,8 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { authClient } from '@/app/lib/auth-client'
-import { clearSessionCache } from '@/lib/appsync-client'
+import { authClient } from '@/config/auth-client'
+import { clearSessionCache } from '@/services/messaging/appsync-client'
 
 interface AuthState {
 	isAuthenticated: boolean

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../prisma/index";
-import { EmailService } from "@/lib/email-service";
-import { requireAuth } from "@/lib/auth-utils";
+import { EmailService } from "@/services/email/email-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 
 function escapeHtml(input: string): string {
 	return input

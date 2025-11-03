@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
-import { authClient } from '@/app/lib/auth-client'
+import { authClient } from '@/config/auth-client'
 import {
 	AuthLayout,
 	FormField,

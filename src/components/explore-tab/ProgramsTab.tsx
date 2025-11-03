@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { ProgramCard } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
-import { Program } from '@/types/explore-api'
+import { Program } from '@/types/api/explore-api'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ProgramsTabProps {

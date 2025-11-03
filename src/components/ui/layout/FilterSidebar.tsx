@@ -17,8 +17,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { TabType } from '@/types/explore'
-import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
+import { TabType } from '@/types/domain/explore'
+import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 
 interface FilterSidebarProps {
 	activeTab: TabType

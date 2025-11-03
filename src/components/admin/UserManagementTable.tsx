@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Card, CardContent } from '@/components/ui'
-import { useAdminUserManagement } from '@/hooks/useAdminUserManagement'
+import { useAdminUserManagement } from '@/hooks/admin/useAdminUserManagement'
 import { motion } from 'framer-motion'
 import { Eye, Filter, RotateCw, Search } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'

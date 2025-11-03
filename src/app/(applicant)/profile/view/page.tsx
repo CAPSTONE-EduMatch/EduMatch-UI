@@ -2,8 +2,8 @@
 
 import { Card, CardContent } from '@/components/ui'
 import { Button } from '@/components/ui'
-import { ApiService, cacheUtils } from '@/lib/axios-config'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { ApiService, cacheUtils } from '@/services/api/axios-config'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
 import { useState, useEffect } from 'react'

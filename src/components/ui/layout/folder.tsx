@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/index'
 import {
 	FolderItem,
 	getFileIcon,
 	getFileColor,
 	getFileCategory,
 	getFileExtension,
-} from '@/lib/file-utils'
+} from '@/utils/file/file-utils'
 
 interface FolderProps {
 	color?: string

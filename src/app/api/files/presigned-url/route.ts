@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",

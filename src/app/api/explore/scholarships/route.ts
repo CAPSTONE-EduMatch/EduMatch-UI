@@ -1,4 +1,4 @@
-import { ExploreApiResponse, PaginationMeta } from "@/types/explore-api";
+import { ExploreApiResponse, PaginationMeta } from "@/types/api/explore-api";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 

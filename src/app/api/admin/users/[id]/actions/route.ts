@@ -1,4 +1,4 @@
-import { AdminUserService } from "@/lib/admin-user-service";
+import { AdminUserService } from "@/services/admin/admin-user-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(

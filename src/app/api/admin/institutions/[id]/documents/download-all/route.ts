@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest } from "next/server";
 import { prismaClient } from "../../../../../../../../prisma/index";
 

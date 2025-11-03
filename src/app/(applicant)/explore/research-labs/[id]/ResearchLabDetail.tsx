@@ -2,7 +2,7 @@
 import { Breadcrumb, Button, Modal, ResearchLabCard } from '@/components/ui'
 
 import { mockResearchLabs } from '@/data/utils'
-import { useResearchLabDetail } from '@/hooks/useResearchLabDetail'
+import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'

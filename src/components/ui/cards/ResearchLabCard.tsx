@@ -9,7 +9,10 @@ import {
 	AlertCircle,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { formatDateToDDMMYYYY, calculateDaysLeft } from '@/lib/date-utils'
+import {
+	formatDateToDDMMYYYY,
+	calculateDaysLeft,
+} from '@/utils/date/date-utils'
 import { Button } from '@/components/ui'
 
 interface ResearchLabCardProps {

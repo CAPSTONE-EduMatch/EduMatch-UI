@@ -14,9 +14,9 @@ import {
 	GraduationCap,
 	FileText,
 } from 'lucide-react'
-import { useAppSyncMessaging } from '@/hooks/useAppSyncMessaging'
+import { useAppSyncMessaging } from '@/hooks/messaging/useAppSyncMessaging'
 import { FileUpload } from './FileUpload'
-import { formatFileSize } from '@/lib/file-utils'
+import { formatFileSize } from '@/utils/file/file-utils'
 
 interface Message {
 	id: string

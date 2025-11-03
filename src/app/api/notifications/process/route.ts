@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SQSMessageHandler } from "@/lib/sqs-handlers";
+import { SQSMessageHandler } from "@/services/messaging/sqs-handlers";
 
 /**
  * API route to process SQS notification messages

@@ -10,9 +10,9 @@ import { AcademicInfoStep } from '@/components/profile/create/steps/AcademicInfo
 import { InstitutionInfoStep } from '@/components/profile/create/steps/InstitutionInfoStep'
 import { InstitutionDetailsStep } from '@/components/profile/create/steps/InstitutionDetailsStep'
 import { CompletionStep } from '@/components/profile/create/steps/CompletionStep'
-import { ProfileFormData } from '@/lib/profile-service'
+import { ProfileFormData } from '@/services/profile/profile-service'
 import { Button } from '@/components/ui'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 
 export default function CreateProfile() {
@@ -227,7 +227,7 @@ export default function CreateProfile() {
 
 		try {
 			// Save profile to database
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 			await ApiService.createProfile(formData)
 
 			// Profile created successfully

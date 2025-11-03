@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ProfileFormData } from '@/lib/profile-service'
+import { ProfileFormData } from '@/services/profile/profile-service'
 import { Label } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
@@ -219,7 +219,7 @@ export function InstitutionInfoStep({
 
 		try {
 			// Upload to S3
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
 			// Update the institution logo with the S3 URL

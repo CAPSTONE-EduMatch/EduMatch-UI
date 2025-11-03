@@ -12,8 +12,8 @@ import { Upload, Building2, Download } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
-import { ApiService, apiClient } from '@/lib/axios-config'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { ApiService, apiClient } from '@/services/api/axios-config'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 
 interface InstitutionProfileSectionProps {
 	profile?: any
@@ -163,7 +163,7 @@ export const InstitutionProfileSection: React.FC<
 			}
 
 			// Import ApiService dynamically
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 
 			// Prepare the profile data for saving
 			const profileData = {
@@ -280,7 +280,7 @@ export const InstitutionProfileSection: React.FC<
 
 		try {
 			// Upload to S3
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
 			// Update the profile photo with the S3 URL
@@ -342,7 +342,7 @@ export const InstitutionProfileSection: React.FC<
 
 		try {
 			// Upload all files to S3
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 			const uploadPromises = files.map((file) =>
 				ApiService.uploadFile(file, 'verification')
 			)
@@ -415,7 +415,7 @@ export const InstitutionProfileSection: React.FC<
 
 		try {
 			// Upload to S3
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
 			// Update the cover image with the S3 URL

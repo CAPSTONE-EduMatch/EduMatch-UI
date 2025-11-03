@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { useState, useRef, useEffect } from 'react'
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/index'
 import {
 	FileItem,
 	getFileIcon,
@@ -10,7 +10,7 @@ import {
 	getFileCategory,
 	getFileExtension,
 	formatFileSize,
-} from '@/lib/file-utils'
+} from '@/utils/file/file-utils'
 
 interface ImageItem {
 	id: string

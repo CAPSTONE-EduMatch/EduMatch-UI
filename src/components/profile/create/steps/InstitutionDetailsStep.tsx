@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ProfileFormData } from '@/lib/profile-service'
+import { ProfileFormData } from '@/services/profile/profile-service'
 import { Label } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { FileUploadManager } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
-import { ApiService } from '@/lib/axios-config'
+import { ApiService } from '@/services/api/axios-config'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData

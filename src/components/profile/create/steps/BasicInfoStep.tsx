@@ -8,10 +8,10 @@ import { DateInput } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { Upload, User } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
-import { ProfileFormData } from '@/lib/profile-service'
+import { ProfileFormData } from '@/services/profile/profile-service'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { usePresignedUpload } from '@/hooks/usePresignedUpload'
+import { usePresignedUpload } from '@/hooks/files/usePresignedUpload'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -46,7 +46,7 @@ export function BasicInfoStep({
 	useEffect(() => {
 		const loadSubdisciplines = async () => {
 			try {
-				const { ApiService } = await import('@/lib/axios-config')
+				const { ApiService } = await import('@/services/api/axios-config')
 				const response = await ApiService.getSubdisciplines()
 				if (response.success) {
 					setSubdisciplines(response.subdisciplines)

@@ -1,5 +1,5 @@
 'use client'
-import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
+import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { ProgramCard, ScholarshipCard, ResearchLabCard } from '@/components/ui'
 import { motion } from 'framer-motion'
 import { Heart, BookOpen, Award, Microscope } from 'lucide-react'

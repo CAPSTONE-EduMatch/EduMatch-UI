@@ -1,7 +1,7 @@
 'use client'
 
-import { downloadInstitutionDocument } from '@/lib/institution-admin-service'
-import type { InstitutionDocument } from '@/types/institution-details'
+import { downloadInstitutionDocument } from '@/services/admin/institution-admin-service'
+import type { InstitutionDocument } from '@/types/domain/institution-details'
 import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
 

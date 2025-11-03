@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Card, CardContent } from '@/components/ui'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { Calendar, Star, User, Wallet } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'

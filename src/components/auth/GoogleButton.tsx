@@ -1,4 +1,4 @@
-import { authClient } from '@/app/lib/auth-client'
+import { authClient } from '@/config/auth-client'
 import { motion } from 'framer-motion'
 import React, { useState } from 'react'
 

@@ -13,15 +13,15 @@ import {
 	AIAssistantCard,
 } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
-import { ExploreApiService } from '@/lib/explore-api'
+import { ExploreApiService } from '@/services/explore/explore-api'
 import { useTranslations } from 'next-intl'
-import { TabType } from '@/types/explore'
-import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
+import { TabType } from '@/types/domain/explore'
+import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useWishlist } from '@/hooks/useWishlist'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import student from '../../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },

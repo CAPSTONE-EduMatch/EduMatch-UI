@@ -1,8 +1,8 @@
 'use client'
 
-import { authClient } from '@/app/lib/auth-client'
+import { authClient } from '@/config/auth-client'
 import { Button, Card, CardContent } from '@/components/ui'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { CreditCard, ExternalLink, Settings } from 'lucide-react'
 import { useState } from 'react'
 

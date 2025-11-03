@@ -11,7 +11,7 @@ import { getCountriesWithSvgFlags } from '@/data/countries'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
-import { useSimpleWarning } from '@/hooks/useSimpleWarning'
+import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
 
 interface AcademicSectionProps {
 	profile: any
@@ -334,7 +334,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 		setIsUploading(true)
 
 		try {
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 
 			// Upload all files
 			const uploadPromises = files.map((file) => ApiService.uploadFile(file))

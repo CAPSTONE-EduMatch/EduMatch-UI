@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { Check } from 'lucide-react'
 
 export function SubscriptionFeaturesCard() {

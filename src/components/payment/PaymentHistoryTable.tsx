@@ -2,7 +2,7 @@
 
 import { Button, Card, CardContent } from '@/components/ui'
 import { Badge } from '@/components/ui/cards/badge'
-import { useInvoices } from '@/hooks/useInvoices'
+import { useInvoices } from '@/hooks/subscription/useInvoices'
 import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 

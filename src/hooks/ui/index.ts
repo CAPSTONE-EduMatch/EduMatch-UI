@@ -1,0 +1,1 @@
+export { useSimpleWarning } from "./useSimpleWarning";

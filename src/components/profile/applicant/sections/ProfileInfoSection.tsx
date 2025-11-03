@@ -11,11 +11,11 @@ import { CustomSelect } from '@/components/ui'
 import { DateInput } from '@/components/ui'
 import { Upload, User, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
-import { formatDateForDisplay } from '@/lib/date-utils'
+import { formatDateForDisplay } from '@/utils/date/date-utils'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
-import { useSimpleWarning } from '@/hooks/useSimpleWarning'
+import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
 
 interface ProfileInfoSectionProps {
 	profile: any
@@ -216,7 +216,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 			formData.append('file', file)
 
 			// Upload to S3
-			const { ApiService } = await import('@/lib/axios-config')
+			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
 			// Update the profile photo with the S3 URL

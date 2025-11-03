@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
-import { WishlistErrorResponse } from "@/types/wishlist-api";
+import { WishlistErrorResponse } from "@/types/api/wishlist-api";
 import {
 	Program,
 	Scholarship,
@@ -12,7 +12,7 @@ import {
 	applyFilters,
 	applySorting,
 	extractAvailableFilters,
-} from "@/lib/explore-utils";
+} from "@/utils/explore/explore-utils";
 
 // GET /api/wishlist/explore - Get explore data with wishlist status
 export async function GET(request: NextRequest) {

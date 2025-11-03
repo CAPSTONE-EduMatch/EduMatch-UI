@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import axios from 'axios'
 
 interface InstitutionRedirectProps {

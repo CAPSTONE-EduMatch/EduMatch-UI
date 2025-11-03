@@ -1,6 +1,6 @@
 'use client'
 
-import { authClient } from '@/app/lib/auth-client'
+import { authClient } from '@/config/auth-client'
 import { Modal } from '@/components/ui'
 import { Button } from '@/components/ui'
 import React, { useEffect, useRef, useState } from 'react'

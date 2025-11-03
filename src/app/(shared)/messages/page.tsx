@@ -2,7 +2,7 @@
 
 import { MessageDialog } from '@/components/message/MessageDialog'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
-import { useUserProfile } from '@/hooks/useUserProfile'
+import { useUserProfile } from '@/hooks/profile/useUserProfile'
 import { EduMatchHeader } from '@/components/layout/header'
 
 export default function MessagesPage() {

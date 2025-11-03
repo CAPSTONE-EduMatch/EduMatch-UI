@@ -1,7 +1,7 @@
 'use client'
 
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
-import { useAdminAuth } from '@/hooks/useAdminAuth'
+import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import { usePathname } from 'next/navigation'
 
 export default function AdminLayout({

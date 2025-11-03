@@ -20,10 +20,10 @@ import {
 	Loader2,
 	AlertCircle,
 } from 'lucide-react'
-import { Program, Scholarship, ResearchLab } from '@/types/explore-api'
-import { useWishlist } from '@/hooks/useWishlist'
-import { WishlistItem, WishlistQueryParams } from '@/types/wishlist-api'
-import { ExploreApiService } from '@/lib/explore-api'
+import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { WishlistItem, WishlistQueryParams } from '@/types/api/wishlist-api'
+import { ExploreApiService } from '@/services/explore/explore-api'
 
 interface WishlistSectionProps {
 	profile: any

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../../prisma";
 import { randomUUID } from "crypto";
 
@@ -151,7 +151,9 @@ export async function POST(
 
 		// Send notification to institution
 		try {
-			const { NotificationUtils } = await import("@/lib/sqs-handlers");
+			const { NotificationUtils } = await import(
+				"@/services/messaging/sqs-handlers"
+			);
 
 			// Get institution info
 			const institutionInfo =

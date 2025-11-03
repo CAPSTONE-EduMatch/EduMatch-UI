@@ -1,4 +1,4 @@
-import { checkAdminRole } from "@/lib/admin-utils";
+import { checkAdminRole } from "@/utils/admin/admin-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 // Inline route configuration to avoid Edge Runtime issues

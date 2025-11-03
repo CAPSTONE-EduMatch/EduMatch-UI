@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../prisma";
 import {
 	ApplicationRequest,
@@ -7,7 +7,7 @@ import {
 	ApplicationListResponse,
 	ApplicationStatsResponse,
 	ApplicationStatus,
-} from "@/types/application-api";
+} from "@/types/api/application-api";
 
 // GET /api/applications - Get user's applications
 export async function GET(request: NextRequest) {
@@ -433,7 +433,9 @@ export async function POST(request: NextRequest) {
 
 		// Send notification to institution
 		try {
-			const { NotificationUtils } = await import("@/lib/sqs-handlers");
+			const { NotificationUtils } = await import(
+				"@/services/messaging/sqs-handlers"
+			);
 
 			// Get institution info
 			const institution = await prismaClient.opportunityPost.findUnique({

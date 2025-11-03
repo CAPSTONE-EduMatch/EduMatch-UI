@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Modal } from '@/components/ui'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 

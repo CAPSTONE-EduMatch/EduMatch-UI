@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma";
 import {
 	ApplicationResponse,
 	ApplicationUpdateRequest,
 	ApplicationUpdateResponse,
-} from "@/types/application-api";
+} from "@/types/api/application-api";
 
 // GET /api/applications/[applicationId] - Get specific application
 export async function GET(
@@ -269,7 +269,9 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import("@/lib/sqs-handlers");
+			const { NotificationUtils } = await import(
+				"@/services/messaging/sqs-handlers"
+			);
 
 			// Get applicant info
 			const applicant = await prismaClient.applicant.findUnique({

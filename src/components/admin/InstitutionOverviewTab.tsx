@@ -1,6 +1,6 @@
 'use client'
 
-import type { InstitutionDetails } from '@/types/institution-details'
+import type { InstitutionDetails } from '@/types/domain/institution-details'
 import { Building2 } from 'lucide-react'
 import Image from 'next/image'
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
-import { NotificationUtils } from "@/lib/sqs-handlers";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { NotificationUtils } from "@/services/messaging/sqs-handlers";
 
 /**
  * API route to send welcome notification after successful signup

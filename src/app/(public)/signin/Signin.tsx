@@ -12,7 +12,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { authClient } from '@/app/lib/auth-client'
+import { authClient } from '@/config/auth-client'
 
 const LEFT_IMAGE =
 	'https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg'

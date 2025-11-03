@@ -22,12 +22,12 @@ import Logo from '../../../public/edumatch_logo.svg'
 import { useRouter } from 'next/navigation'
 // import { useTranslate } from '@/hooks/useTranslate'
 import { useTranslations, useLocale } from 'next-intl'
-import { authClient } from '@/app/lib/auth-client'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
-import { useNotifications } from '@/hooks/useNotifications'
-import { useUnreadMessageCount } from '@/hooks/useUnreadMessageCount'
-import { useUserProfile } from '@/hooks/useUserProfile'
-import { useSubscription } from '@/hooks/useSubscription'
+import { authClient } from '@/config/auth-client'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useNotifications } from '@/hooks/notifications/useNotifications'
+import { useUnreadMessageCount } from '@/hooks/messaging/useUnreadMessageCount'
+import { useUserProfile } from '@/hooks/profile/useUserProfile'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 
 export function EduMatchHeader() {
 	const router = useRouter()

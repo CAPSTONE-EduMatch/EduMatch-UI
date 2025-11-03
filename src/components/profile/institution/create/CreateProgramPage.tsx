@@ -13,7 +13,7 @@ import {
 	ErrorModal,
 } from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
-import { ApiService } from '@/lib/axios-config'
+import { ApiService } from '@/services/api/axios-config'
 
 interface CreateProgramPageProps {
 	onBack?: () => void

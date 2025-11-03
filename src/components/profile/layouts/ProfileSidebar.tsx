@@ -4,9 +4,9 @@ import { LucideIcon, LogOut } from 'lucide-react'
 import Image from 'next/image'
 import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSubscription } from '@/hooks/useSubscription'
-import { useAuthCheck } from '@/hooks/useAuthCheck'
-import { authClient } from '@/app/lib/auth-client'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { authClient } from '@/config/auth-client'
 
 export type ProfileSection = string
 

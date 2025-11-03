@@ -11,7 +11,11 @@ import {
 	Music,
 	Archive,
 } from 'lucide-react'
-import { formatFileSize, getFileCategory, getFileIcon } from '@/lib/file-utils'
+import {
+	formatFileSize,
+	getFileCategory,
+	getFileIcon,
+} from '@/utils/file/file-utils'
 
 interface FileUploadProps {
 	onFileSelect: (file: File) => void

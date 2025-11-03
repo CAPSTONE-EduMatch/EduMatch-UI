@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../prisma";
 import { randomUUID } from "crypto";
@@ -773,7 +773,9 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import("@/lib/sqs-handlers");
+			const { NotificationUtils } = await import(
+				"@/services/messaging/sqs-handlers"
+			);
 
 			if (application.applicant?.user) {
 				await NotificationUtils.sendApplicationStatusNotification(

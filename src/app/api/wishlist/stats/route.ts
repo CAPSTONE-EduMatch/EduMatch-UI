@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma";
 import {
 	WishlistStatsResponse,
 	WishlistStats,
 	WishlistErrorResponse,
-} from "@/types/wishlist-api";
+} from "@/types/api/wishlist-api";
 
 // GET /api/wishlist/stats - Get wishlist statistics
 export async function GET() {

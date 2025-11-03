@@ -1,6 +1,6 @@
 'use client'
 
-import { InstitutionDocument } from '@/types/institution-details'
+import { InstitutionDocument } from '@/types/domain/institution-details'
 import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
 

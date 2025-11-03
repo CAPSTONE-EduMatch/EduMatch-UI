@@ -4,8 +4,11 @@ import { BanUnbanModal } from '@/components/admin/BanUnbanModal'
 import { InstitutionDocumentSection } from '@/components/admin/InstitutionDocumentComponents'
 import { InstitutionOverviewTab } from '@/components/admin/InstitutionOverviewTab'
 import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
-import { useAdminAuth } from '@/hooks/useAdminAuth'
-import { ApiResponse, InstitutionDetails } from '@/types/institution-details'
+import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
+import {
+	ApiResponse,
+	InstitutionDetails,
+} from '@/types/domain/institution-details'
 import { motion } from 'framer-motion'
 import {
 	ArrowLeft,

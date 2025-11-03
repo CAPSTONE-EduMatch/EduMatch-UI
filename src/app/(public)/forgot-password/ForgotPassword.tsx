@@ -1,6 +1,6 @@
 'use client'
 
-import { authClient } from '@/app/lib/auth-client'
+import { authClient } from '@/config/auth-client'
 import { PasswordField } from '@/components/auth'
 import { Input } from '@/components/ui'
 import { motion } from 'framer-motion'

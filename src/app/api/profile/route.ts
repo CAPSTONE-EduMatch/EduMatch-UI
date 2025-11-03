@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
-import { ApplicantProfileService } from "@/lib/applicant-profile-service";
-import { InstitutionProfileService } from "@/lib/institution-profile-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { ApplicantProfileService } from "@/services/profile/applicant-profile-service";
+import { InstitutionProfileService } from "@/services/profile/institution-profile-service";
 import { prismaClient } from "../../../../prisma";
 
 export async function GET() {
@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
 		if (newProfile) {
 			try {
 				const { NotificationUtils } = await import(
-					"@/lib/sqs-handlers"
+					"@/services/messaging/sqs-handlers"
 				);
 
 				// Send welcome notification (for new users)

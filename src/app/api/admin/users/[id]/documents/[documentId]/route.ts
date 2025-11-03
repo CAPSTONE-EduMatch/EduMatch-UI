@@ -1,5 +1,5 @@
-import { AdminUserService } from "@/lib/admin-user-service";
-import { getDocumentService } from "@/lib/document-service";
+import { AdminUserService } from "@/services/admin/admin-user-service";
+import { getDocumentService } from "@/services/document/document-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(

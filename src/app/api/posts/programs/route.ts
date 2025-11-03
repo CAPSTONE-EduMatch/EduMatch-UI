@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { v4 as uuidv4 } from "uuid";
 
 interface CreateProgramRequest {

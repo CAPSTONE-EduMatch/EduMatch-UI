@@ -6,12 +6,12 @@ import { ProgramsSection } from '@/components/profile/institution/sections/Progr
 import { InstitutionProfileSection } from '@/components/profile/institution/sections/InstitutionProfileSection'
 import { InstitutionApplicationSection } from '@/components/profile/institution/sections/InstitutionApplicationSection'
 import { InstitutionSettingsSection } from '@/components/profile/institution/sections/InstitutionSettingsSection'
-import { useUserProfile } from '@/hooks/useUserProfile'
+import { useUserProfile } from '@/hooks/profile/useUserProfile'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ApiService } from '@/lib/axios-config'
+import { ApiService } from '@/services/api/axios-config'
 
 // Payment components
 import { BillingPortalCard } from '@/components/payment/BillingPortalCard'

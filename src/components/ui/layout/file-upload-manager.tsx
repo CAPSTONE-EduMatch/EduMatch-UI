@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
-import { useFileUpload } from '@/hooks/useFileUpload'
-import { FileItem, FolderItem } from '@/lib/file-utils'
+import { useFileUpload } from '@/hooks/files/useFileUpload'
+import { FileItem, FolderItem } from '@/utils/file/file-utils'
 import { Button } from '@/components/ui'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/index'
 
 interface FileUploadManagerProps {
 	className?: string

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma";
 import {
 	WishlistItemResponse,
 	WishlistUpdateRequest,
 	WishlistErrorResponse,
-} from "@/types/wishlist-api";
+} from "@/types/api/wishlist-api";
 
 // GET /api/wishlist/[postId] - Get specific wishlist item
 export async function GET(

@@ -1,5 +1,6 @@
 'use client'
 
+import { SplineArea } from '@/components/charts/SplineArea'
 import { PaymentHistoryTable } from '@/components/payment/PaymentHistoryTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
@@ -9,103 +10,39 @@ import {
 	Clock,
 	CreditCard,
 	DollarSign,
+	Download,
 	Info,
-	TrendingUp,
 	Users,
 	XCircle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-// Mock data for payments - replace with actual API calls
-const mockPaymentStats = {
-	totalRevenue: 125000,
-	monthlyRevenue: 12500,
-	totalTransactions: 1430,
-	successfulTransactions: 1385,
-	pendingTransactions: 25,
-	failedTransactions: 20,
-	totalSubscriptions: 850,
-	activeSubscriptions: 800,
+interface PaymentStats {
+	totalRevenue: number
+	monthlyRevenue: number
+	totalTransactions: number
+	successfulTransactions: number
+	pendingTransactions: number
+	failedTransactions: number
+	totalSubscriptions: number
+	activeSubscriptions: number
 }
 
-const mockRevenueData = [
-	{ month: 'Jan', revenue: 8000, transactions: 120 },
-	{ month: 'Feb', revenue: 8500, transactions: 125 },
-	{ month: 'Mar', revenue: 9200, transactions: 140 },
-	{ month: 'Apr', revenue: 10100, transactions: 155 },
-	{ month: 'May', revenue: 11000, transactions: 165 },
-	{ month: 'Jun', revenue: 12500, transactions: 180 },
+interface ChartDataPoint {
+	month: string
+	revenue: number
+	transactions: number
+}
+
+type Period = 'all' | '7d' | '1m' | '3m' | '6m'
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+	{ value: 'all', label: 'All Time' },
+	{ value: '7d', label: 'Last 7 Days' },
+	{ value: '1m', label: 'Last Month' },
+	{ value: '3m', label: 'Last 3 Months' },
+	{ value: '6m', label: 'Last 6 Months' },
 ]
-
-// Simple Revenue Chart Component
-const RevenueChart = ({
-	data,
-	height = 300,
-}: {
-	data: Array<{ month: string; revenue: number; transactions: number }>
-	height?: number
-}) => {
-	const maxRevenue = Math.max(...data.map((d) => d.revenue))
-	const width = 600
-	const padding = 40
-
-	const points = data
-		.map((item, index) => {
-			const x = padding + (index * (width - 2 * padding)) / (data.length - 1)
-			const y =
-				height - padding - (item.revenue / maxRevenue) * (height - 2 * padding)
-			return `${x},${y}`
-		})
-		.join(' ')
-
-	return (
-		<div className="w-full">
-			<svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-				{/* Grid lines */}
-				{[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
-					const y = height - padding - ratio * (height - 2 * padding)
-					return (
-						<line
-							key={index}
-							x1={padding}
-							y1={y}
-							x2={width - padding}
-							y2={y}
-							stroke="#E5E7EB"
-							strokeWidth="1"
-						/>
-					)
-				})}
-
-				{/* Revenue line */}
-				<polyline
-					points={points}
-					fill="none"
-					stroke="#126E64"
-					strokeWidth="3"
-				/>
-
-				{/* Data points */}
-				{data.map((item, index) => {
-					const x =
-						padding + (index * (width - 2 * padding)) / (data.length - 1)
-					const y =
-						height -
-						padding -
-						(item.revenue / maxRevenue) * (height - 2 * padding)
-					return <circle key={index} cx={x} cy={y} r="4" fill="#126E64" />
-				})}
-			</svg>
-
-			{/* Month labels */}
-			<div className="flex justify-between mt-2 px-10 text-xs text-gray-500">
-				{data.map((item, index) => (
-					<span key={index}>{item.month}</span>
-				))}
-			</div>
-		</div>
-	)
-}
 
 // Stat Card Component
 const PaymentStatCard = ({
@@ -162,17 +99,181 @@ const PaymentStatCard = ({
 
 export default function PaymentsPage() {
 	const [isClient, setIsClient] = useState(false)
-	const [timeFilter, setTimeFilter] = useState('6months')
+	const [selectedPeriod, setSelectedPeriod] = useState<Period>('all')
+	const [stats, setStats] = useState<PaymentStats | null>(null)
+	const [chartData, setChartData] = useState<ChartDataPoint[]>([])
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+	const [exporting, setExporting] = useState<
+		'transactions' | 'statistics' | null
+	>(null)
+
+	// Fetch payment stats
+	const fetchPaymentStats = async (period: Period) => {
+		try {
+			setLoading(true)
+			setError(null)
+
+			const response = await fetch(`/api/admin/payment-stats?period=${period}`)
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch payment statistics')
+			}
+
+			const result = await response.json()
+
+			if (result.success) {
+				setStats(result.data.stats)
+				setChartData(result.data.chartData)
+			} else {
+				throw new Error(result.error || 'Failed to fetch payment statistics')
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'An error occurred')
+		} finally {
+			setLoading(false)
+		}
+	}
 
 	useEffect(() => {
 		setIsClient(true)
 	}, [])
 
-	// Show loading while client is hydrating
-	if (!isClient) {
+	useEffect(() => {
+		if (isClient) {
+			fetchPaymentStats(selectedPeriod)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isClient, selectedPeriod])
+
+	// Export handlers
+	const handleExportTransactions = async () => {
+		try {
+			setExporting('transactions')
+			const response = await fetch(
+				`/api/admin/export-transactions?period=${selectedPeriod}`
+			)
+
+			if (!response.ok) {
+				throw new Error('Failed to export transactions')
+			}
+
+			// Create blob from response
+			const blob = await response.blob()
+			const url = window.URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = `transactions-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`
+			document.body.appendChild(a)
+			a.click()
+			window.URL.revokeObjectURL(url)
+			document.body.removeChild(a)
+		} catch (err) {
+			alert(
+				err instanceof Error
+					? err.message
+					: 'Failed to export transactions. Please try again.'
+			)
+		} finally {
+			setExporting(null)
+		}
+	}
+
+	const handleExportStatistics = async () => {
+		try {
+			setExporting('statistics')
+			const response = await fetch(
+				`/api/admin/export-statistics?period=${selectedPeriod}`
+			)
+
+			if (!response.ok) {
+				throw new Error('Failed to export statistics')
+			}
+
+			// Create blob from response
+			const blob = await response.blob()
+			const url = window.URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = `payment-statistics-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.txt`
+			document.body.appendChild(a)
+			a.click()
+			window.URL.revokeObjectURL(url)
+			document.body.removeChild(a)
+		} catch (err) {
+			alert(
+				err instanceof Error
+					? err.message
+					: 'Failed to export statistics. Please try again.'
+			)
+		} finally {
+			setExporting(null)
+		}
+	}
+
+	// Prepare data for SplineArea chart
+	const prepareChartData = () => {
+		if (!chartData || chartData.length === 0) {
+			return {
+				series: [
+					{ name: 'Revenue ($)', data: [] },
+					{ name: 'Transactions', data: [] },
+				],
+				categories: [],
+			}
+		}
+
+		const categories = chartData.map((item) => item.month)
+		const series = [
+			{
+				name: 'Revenue ($)',
+				data: chartData.map((item) => item.revenue),
+			},
+			{
+				name: 'Transactions',
+				data: chartData.map((item) => item.transactions),
+			},
+		]
+
+		return { series, categories }
+	}
+
+	const { series: chartSeries, categories: chartCategories } =
+		prepareChartData()
+
+	// Show loading while client is hydrating or fetching data
+	if (!isClient || loading) {
 		return (
 			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error || !stats) {
+		return (
+			<div className="min-h-screen bg-[#F5F7FB]">
+				<div className="flex-1">
+					<div className="bg-white shadow-sm px-8 py-6">
+						<h1 className="text-3xl font-bold text-[#126E64]">
+							Payment Management
+						</h1>
+					</div>
+					<div className="p-8 flex items-center justify-center">
+						<div className="text-center">
+							<p className="text-red-600 mb-4">
+								{error || 'Failed to load payment statistics'}
+							</p>
+							<button
+								onClick={() => fetchPaymentStats(selectedPeriod)}
+								className="px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors"
+							>
+								Retry
+							</button>
+						</div>
+					</div>
+				</div>
 			</div>
 		)
 	}
@@ -181,21 +282,10 @@ export default function PaymentsPage() {
 		<div className="min-h-screen bg-[#F5F7FB]">
 			<div className="flex-1">
 				{/* Header */}
-				<div className="bg-white shadow-sm px-8 py-6 flex justify-between items-center">
+				<div className="bg-white shadow-sm px-8 py-6">
 					<h1 className="text-3xl font-bold text-[#126E64]">
 						Payment Management
 					</h1>
-					<div className="flex items-center gap-4">
-						<select
-							value={timeFilter}
-							onChange={(e) => setTimeFilter(e.target.value)}
-							className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#126E64]"
-						>
-							<option value="30days">Last 30 days</option>
-							<option value="6months">Last 6 months</option>
-							<option value="1year">Last year</option>
-						</select>
-					</div>
 				</div>
 
 				{/* Page Content */}
@@ -207,39 +297,29 @@ export default function PaymentsPage() {
 						className="space-y-8"
 					>
 						{/* Revenue Stats Row */}
-						<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							<PaymentStatCard
 								title="Total Revenue"
-								value={`$${mockPaymentStats.totalRevenue.toLocaleString()}`}
+								value={`$${stats.totalRevenue.toLocaleString()}`}
 								icon={DollarSign}
 								iconBgColor="bg-green-500"
-								trend="+12.5%"
-								subtitle="All time revenue"
-								tooltip="Total revenue from subscriptions, application fees, and premium features since platform launch"
-							/>
-							<PaymentStatCard
-								title="Monthly Revenue"
-								value={`$${mockPaymentStats.monthlyRevenue.toLocaleString()}`}
-								icon={TrendingUp}
-								iconBgColor="bg-[#126E64]"
-								trend="+8.2%"
-								subtitle="This month"
-								tooltip="Current month revenue including recurring subscriptions and one-time payments"
+								subtitle="Cumulative revenue"
+								tooltip="Total revenue from subscriptions, application fees, and premium features for the selected period"
 							/>
 							<PaymentStatCard
 								title="Total Transactions"
-								value={mockPaymentStats.totalTransactions.toLocaleString()}
+								value={stats.totalTransactions.toLocaleString()}
 								icon={CreditCard}
 								iconBgColor="bg-blue-500"
 								subtitle="All transactions"
-								tooltip="Total number of payment transactions including successful, pending, and failed payments"
+								tooltip="Total number of payment transactions including successful, pending, and failed payments for the selected period"
 							/>
 							<PaymentStatCard
 								title="Active Subscriptions"
-								value={mockPaymentStats.activeSubscriptions.toLocaleString()}
+								value={stats.activeSubscriptions.toLocaleString()}
 								icon={Users}
 								iconBgColor="bg-purple-500"
-								subtitle={`${mockPaymentStats.totalSubscriptions} total`}
+								subtitle={`${stats.totalSubscriptions} total`}
 								tooltip="Number of users with active subscription plans, excluding expired or cancelled subscriptions"
 							/>
 						</div>
@@ -248,15 +328,15 @@ export default function PaymentsPage() {
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							<PaymentStatCard
 								title="Successful Transactions"
-								value={mockPaymentStats.successfulTransactions.toLocaleString()}
+								value={stats.successfulTransactions.toLocaleString()}
 								icon={CheckCircle}
 								iconBgColor="bg-green-500"
-								subtitle={`${((mockPaymentStats.successfulTransactions / mockPaymentStats.totalTransactions) * 100).toFixed(1)}% success rate`}
+								subtitle={`${stats.totalTransactions > 0 ? ((stats.successfulTransactions / stats.totalTransactions) * 100).toFixed(1) : 0}% success rate`}
 								tooltip="Transactions that have been successfully processed with confirmed payments for subscriptions and purchases"
 							/>
 							<PaymentStatCard
 								title="Pending Transactions"
-								value={mockPaymentStats.pendingTransactions.toLocaleString()}
+								value={stats.pendingTransactions.toLocaleString()}
 								icon={Clock}
 								iconBgColor="bg-yellow-500"
 								subtitle="Awaiting processing"
@@ -264,7 +344,7 @@ export default function PaymentsPage() {
 							/>
 							<PaymentStatCard
 								title="Failed Transactions"
-								value={mockPaymentStats.failedTransactions.toLocaleString()}
+								value={stats.failedTransactions.toLocaleString()}
 								icon={XCircle}
 								iconBgColor="bg-red-500"
 								subtitle="Requires attention"
@@ -282,68 +362,83 @@ export default function PaymentsPage() {
 											<CardTitle className="text-lg font-semibold">
 												Revenue Overview
 											</CardTitle>
+											{/* Period Filter */}
 											<div className="flex items-center gap-2">
-												<span className="text-sm text-gray-600">USD</span>
-												<button className="bg-[#126E64] text-white px-4 py-2 rounded-full text-sm">
-													{timeFilter}
-												</button>
+												<span className="text-sm text-gray-600">Period:</span>
+												<select
+													value={selectedPeriod}
+													onChange={(e) =>
+														setSelectedPeriod(e.target.value as Period)
+													}
+													className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
+												>
+													{PERIOD_OPTIONS.map((option) => (
+														<option key={option.value} value={option.value}>
+															{option.label}
+														</option>
+													))}
+												</select>
 											</div>
 										</div>
 									</CardHeader>
 									<CardContent>
-										<RevenueChart data={mockRevenueData} />
+										{chartData.length > 0 ? (
+											<SplineArea
+												height={350}
+												series={chartSeries}
+												categories={chartCategories}
+											/>
+										) : (
+											<div className="h-[350px] flex items-center justify-center text-gray-500">
+												No data available for the selected period
+											</div>
+										)}
 									</CardContent>
 								</Card>
 							</div>
 
-							{/* Payment Method Distribution */}
-							<div className="space-y-6">
+							{/* Operations Panel */}
+							<div className="space-y-4">
 								<Card className="bg-white border shadow-sm">
 									<CardHeader>
 										<CardTitle className="text-lg font-semibold">
-											Payment Methods
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="space-y-4">
-										<div className="flex items-center justify-between">
-											<div className="flex items-center gap-3">
-												<CreditCard className="w-5 h-5 text-blue-500" />
-												<span className="text-sm">Credit Cards</span>
-											</div>
-											<span className="font-medium">68%</span>
-										</div>
-										<div className="flex items-center justify-between">
-											<div className="flex items-center gap-3">
-												<CreditCard className="w-5 h-5 text-purple-500" />
-												<span className="text-sm">PayPal</span>
-											</div>
-											<span className="font-medium">24%</span>
-										</div>
-										<div className="flex items-center justify-between">
-											<div className="flex items-center gap-3">
-												<CreditCard className="w-5 h-5 text-green-500" />
-												<span className="text-sm">Bank Transfer</span>
-											</div>
-											<span className="font-medium">8%</span>
-										</div>
-									</CardContent>
-								</Card>
-
-								<Card className="bg-white border shadow-sm">
-									<CardHeader>
-										<CardTitle className="text-lg font-semibold">
-											Quick Actions
+											Operations
 										</CardTitle>
 									</CardHeader>
 									<CardContent className="space-y-3">
-										<button className="w-full px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors text-sm">
-											Export Transactions
+										<button
+											onClick={handleExportTransactions}
+											disabled={exporting !== null}
+											className="w-full px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+										>
+											{exporting === 'transactions' ? (
+												<>
+													<div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+													Exporting...
+												</>
+											) : (
+												<>
+													<Download className="w-4 h-4" />
+													Export Transactions
+												</>
+											)}
 										</button>
-										<button className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-											Generate Report
-										</button>
-										<button className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-											Subscription Settings
+										<button
+											onClick={handleExportStatistics}
+											disabled={exporting !== null}
+											className="w-full px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+										>
+											{exporting === 'statistics' ? (
+												<>
+													<div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+													Exporting...
+												</>
+											) : (
+												<>
+													<Download className="w-4 h-4" />
+													Export Statistics Report
+												</>
+											)}
 										</button>
 									</CardContent>
 								</Card>
@@ -351,16 +446,9 @@ export default function PaymentsPage() {
 						</div>
 
 						{/* Payment History Table */}
-						<Card className="bg-white border shadow-sm">
-							<CardHeader>
-								<CardTitle className="text-lg font-semibold">
-									Recent Transactions
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<PaymentHistoryTable />
-							</CardContent>
-						</Card>
+						<div>
+							<PaymentHistoryTable />
+						</div>
 					</motion.div>
 				</div>
 			</div>

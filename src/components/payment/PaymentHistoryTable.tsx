@@ -61,11 +61,11 @@ export function PaymentHistoryTable() {
 						Payment History
 					</h2>
 					<p className="text-gray-600 mb-4">View your past invoices</p>
-					<div className="flex justify-between items-center mb-4">
+					{/* <div className="flex justify-between items-center mb-4">
 						<p className="text-sm text-gray-500">
 							Display {pagination.limit} results of {pagination.total}
 						</p>
-					</div>
+					</div> */}
 				</div>
 
 				{/* Table Container */}

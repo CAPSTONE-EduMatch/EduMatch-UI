@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
 			skip,
 			take: limit,
 		});
+		console.log(invoices);
 
 		// Get total count for pagination
 		const total = await prismaClient.invoice.count({ where });

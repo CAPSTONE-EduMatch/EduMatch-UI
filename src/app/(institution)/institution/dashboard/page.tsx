@@ -1,11 +1,10 @@
 'use client'
 
-import { InstitutionProfileLayout } from '@/components/profile/InstitutionProfileLayout'
+import { InstitutionProfileLayout } from '@/components/profile/layout/InstitutionProfileLayout'
 import { InstitutionOverviewSection } from '@/components/profile/institution/menu/InstitutionOverviewSection'
 import { ProgramsSection } from '@/components/profile/institution/menu/ProgramsSection'
 import { InstitutionProfileSection } from '@/components/profile/institution/menu/InstitutionProfileSection'
 import { InstitutionApplicationSection } from '@/components/profile/institution/menu/InstitutionApplicationSection'
-import { AnalyticsReportsSection } from '@/components/profile/institution/menu/AnalyticsReportsSection'
 import { InstitutionSettingsSection } from '@/components/profile/institution/menu/InstitutionSettingsSection'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
@@ -162,8 +161,6 @@ export default function InstitutionDashboard() {
 						{/* Students content will be loaded here */}
 					</div>
 				)
-			case 'analytics':
-				return <AnalyticsReportsSection profile={profile} />
 			case 'payment':
 				return (
 					<div className="space-y-8">

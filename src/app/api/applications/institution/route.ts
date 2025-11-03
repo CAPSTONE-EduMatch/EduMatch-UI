@@ -45,9 +45,18 @@ export async function GET(request: NextRequest) {
 			},
 		};
 
-		// Add status filter
-		if (status !== "all") {
-			whereClause.status = status.toUpperCase();
+		// Add status filter - handle multiple statuses from comma-separated string
+		if (status !== "all" && status.trim()) {
+			const statusArray = status
+				.split(",")
+				.map((s) => s.trim().toUpperCase());
+			if (statusArray.length === 1) {
+				whereClause.status = statusArray[0];
+			} else {
+				whereClause.status = {
+					in: statusArray,
+				};
+			}
 		}
 
 		// Get total count for pagination
@@ -83,6 +92,17 @@ export async function GET(request: NextRequest) {
 						title: true,
 						start_date: true,
 						end_date: true,
+						degree_level: true,
+						scholarshipPost: {
+							select: {
+								type: true,
+							},
+						},
+						jobPost: {
+							select: {
+								job_type: true,
+							},
+						},
 					},
 				},
 			},
@@ -96,8 +116,17 @@ export async function GET(request: NextRequest) {
 			take: limit,
 		});
 
+		// Helper function to format dates to dd/mm/yyyy
+		const formatDate = (date: Date | null) => {
+			if (!date) return "";
+			const day = date.getDate().toString().padStart(2, "0");
+			const month = (date.getMonth() + 1).toString().padStart(2, "0");
+			const year = date.getFullYear();
+			return `${day}/${month}/${year}`;
+		};
+
 		// Transform data to match the expected format using snapshot data
-		const transformedApplications = applications.map((app) => {
+		const transformedApplications = applications.map((app: any) => {
 			// Use snapshot data if available, otherwise fallback to live data
 			const snapshot = app.ApplicationProfileSnapshot;
 			const transformed = {
@@ -108,9 +137,12 @@ export async function GET(request: NextRequest) {
 					snapshot?.user_name || app.applicant.user.name || "Unknown",
 				email: snapshot?.user_email || app.applicant.user.email,
 				image: snapshot?.user_image || app.applicant.user.image,
-				appliedDate: app.apply_at.toLocaleDateString(),
+				appliedDate: formatDate(app.apply_at),
 				degreeLevel:
-					snapshot?.level || app.applicant.level || "Unknown",
+					app.post.degree_level ||
+					app.post.scholarshipPost?.type ||
+					app.post.jobPost?.job_type ||
+					"Unknown",
 				// For subdisciplines, we'll show a count or "Multiple interests"
 				subDiscipline:
 					(snapshot?.subdiscipline_ids?.length ?? 0) > 0
@@ -159,7 +191,7 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Calculate statistics
+		// Calculate statistics based on all transformed applications (before search filter)
 		const stats = {
 			total: totalCount,
 			approved: transformedApplications.filter(
@@ -173,6 +205,7 @@ export async function GET(request: NextRequest) {
 			).length,
 		};
 
+		// Calculate total pages based on filtered results (after search filter)
 		const totalPages = Math.ceil(filteredApplications.length / limit);
 
 		return NextResponse.json({

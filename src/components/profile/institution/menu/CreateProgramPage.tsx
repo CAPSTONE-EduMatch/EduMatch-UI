@@ -25,6 +25,16 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	onSubmit,
 }) => {
 	const router = useRouter()
+
+	// Handle back navigation with URL cleanup
+	const handleBack = () => {
+		// Remove action and type from URL when going back
+		const url = new URL(window.location.href)
+		url.searchParams.delete('action')
+		url.searchParams.delete('type')
+		router.replace(url.pathname + url.search, { scroll: false })
+		onBack?.()
+	}
 	// State for subdisciplines loaded from database
 	const [subdisciplines, setSubdisciplines] = useState<
 		Array<{ value: string; label: string; discipline: string }>

@@ -44,11 +44,6 @@ const institutionNavItems: NavItem[] = [
 		icon: Users,
 	},
 	{
-		id: 'analytics' as InstitutionProfileSection,
-		label: 'Analytics & Reports',
-		icon: BarChart3,
-	},
-	{
 		id: 'payment' as InstitutionProfileSection,
 		label: 'Payments',
 		icon: CreditCard,

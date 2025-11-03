@@ -19,7 +19,7 @@ import { useWishlist } from '@/hooks/useWishlist'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useApiWrapper } from '@/lib/api-wrapper'
-import { ApplicationUpdateResponseModal } from '@/components/profile/menu/ApplicationUpdateResponseModal'
+import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()

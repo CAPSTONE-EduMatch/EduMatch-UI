@@ -13,12 +13,12 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
-} from '@/components/profile/menu/ApplicantProfileLayout'
-import { ProfileInfoSection } from '@/components/profile/menu/ProfileInfoSection'
-import { AcademicSection } from '@/components/profile/menu/AcademicSection'
-import { WishlistSection } from '@/components/profile/menu/WishlistSection'
-import { ApplicationSection } from '@/components/profile/menu/ApplicationSection'
-import { SettingsSection } from '@/components/profile/menu/SettingsSection'
+} from '@/components/profile/applicant/sections/ApplicantProfileLayout'
+import { ProfileInfoSection } from '@/components/profile/applicant/sections/ProfileInfoSection'
+import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
+import { WishlistSection } from '@/components/profile/applicant/sections/WishlistSection'
+import { ApplicationSection } from '@/components/profile/applicant/sections/ApplicationSection'
+import { SettingsSection } from '@/components/profile/applicant/sections/SettingsSection'
 
 // Payment components
 import { BillingPortalCard } from '@/components/payment/BillingPortalCard'

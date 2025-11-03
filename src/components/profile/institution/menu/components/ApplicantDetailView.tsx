@@ -10,7 +10,7 @@ import {
 	ProfileCard,
 	DocumentPanel,
 	TwoPanelLayout,
-} from '@/components/shared'
+} from '@/components/profile/shared'
 import { UpdateApplicationModal } from './UpdateApplicationModal'
 import type { Applicant } from './ApplicantsTable'
 import { getCountriesWithSvgFlags } from '@/data/countries'
@@ -122,6 +122,27 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	onRequireUpdate,
 }) => {
 	const router = useRouter()
+
+	// Handle back navigation with URL cleanup
+	const handleBack = () => {
+		// Call onBack to update parent state (this will update URL via parent's handleBackToList)
+		onBack()
+	}
+
+	// Handle browser back button - detect when user navigates away
+	useEffect(() => {
+		const handlePopState = () => {
+			// When browser back button is clicked, check if applicationId is removed
+			const url = new URL(window.location.href)
+			if (!url.searchParams.has('applicationId')) {
+				onBack()
+			}
+		}
+
+		window.addEventListener('popstate', handlePopState)
+		return () => window.removeEventListener('popstate', handlePopState)
+	}, [onBack])
+
 	const [activeTab, setActiveTab] = useState<'academic' | 'requirements'>(
 		'academic'
 	)
@@ -140,14 +161,12 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	// Fetch application details from API
 	useEffect(() => {
+		const applicationId = applicant.id
+
 		const fetchApplicationDetails = async () => {
 			try {
 				setLoading(true)
 				setError(null)
-
-				// Assuming the applicant object has an applicationId or we can derive it
-				// You might need to pass the applicationId as a prop or get it from the applicant object
-				const applicationId = applicant.id // or however you get the application ID
 
 				const response = await fetch(
 					`/api/applications/institution/${applicationId}`,
@@ -167,12 +186,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				const result = await response.json()
 
 				if (result.success) {
-					// eslint-disable-next-line no-console
-					console.log('Application details loaded:', {
-						level: result.data?.applicant?.level,
-						subdiscipline: result.data?.applicant?.subdiscipline,
-						disciplines: result.data?.applicant?.disciplines,
-					})
 					setApplicationDetails(result.data)
 				} else {
 					throw new Error(result.error || 'Failed to fetch application details')
@@ -189,6 +202,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		}
 
 		fetchApplicationDetails()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [applicant.id])
 
 	// Get documents from API data - use profile snapshot documents for Academic Profile tab
@@ -281,8 +295,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			!applicationDetails?.applicant?.documents ||
 			applicationDetails.applicant.documents.length === 0
 		) {
-			// eslint-disable-next-line no-console
-			console.log('No documents to download')
 			return
 		}
 
@@ -787,7 +799,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 							<div className="flex items-center justify-center py-20">
 								<div className="flex flex-col items-center gap-3">
 									<Loader2 className="h-8 w-8 animate-spin text-primary" />
-									<p className="text-gray-600 text-sm">Loading documents...</p>
+									<p className="text-gray-600 text-sm">Loading...</p>
 								</div>
 							</div>
 						) : error ? (
@@ -1096,7 +1108,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 							<div className="flex items-center justify-center py-20">
 								<div className="flex flex-col items-center gap-3">
 									<Loader2 className="h-8 w-8 animate-spin text-primary" />
-									<p className="text-gray-600 text-sm">Loading documents...</p>
+									<p className="text-gray-600 text-sm">Loading...</p>
 								</div>
 							</div>
 						) : error ? (
@@ -1401,7 +1413,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				<div className="flex items-center">
 					<Button
 						variant="outline"
-						onClick={onBack}
+						onClick={handleBack}
 						className="flex items-center gap-2"
 						size="sm"
 					>
@@ -1412,9 +1424,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				<div className="flex items-center justify-center py-20">
 					<div className="flex flex-col items-center gap-3">
 						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<p className="text-gray-600 text-sm">
-							Loading applicant details...
-						</p>
+						<p className="text-gray-600 text-sm">Loading...</p>
 					</div>
 				</div>
 			</div>
@@ -1428,7 +1438,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				<div className="flex items-center">
 					<Button
 						variant="outline"
-						onClick={onBack}
+						onClick={handleBack}
 						className="flex items-center gap-2"
 						size="sm"
 					>
@@ -1487,6 +1497,10 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 									? `${new Date(applicationDetails.applicant.birthday).toLocaleDateString()} - ${applicationDetails.applicant.gender}`
 									: 'Details not available',
 						}}
+						status={
+							applicationDetails?.application?.status?.toLowerCase() ||
+							applicant.status
+						}
 						sections={[
 							<InfoSection
 								key="academic"

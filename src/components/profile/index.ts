@@ -7,23 +7,23 @@ export { InstitutionDetailsStep } from "./create/steps/InstitutionDetailsStep";
 export { CompletionStep } from "./create/steps/CompletionStep";
 
 // Profile View Layout Components
-export { ProfileLayoutBase } from "./ProfileLayoutBase";
-export type { NavItem, ProfileSection } from "./ProfileLayoutBase";
+export { ProfileLayoutBase } from "./layout/ProfileLayoutBase";
+export type { NavItem, ProfileSection } from "./layout/ProfileLayoutBase";
 
 export {
 	InstitutionProfileLayout,
 	type InstitutionProfileSection,
-} from "./InstitutionProfileLayout";
+} from "./layout/InstitutionProfileLayout";
 
 export {
 	ApplicantProfileLayout,
 	type ApplicantProfileSection,
-} from "./menu/ApplicantProfileLayout";
+} from "./applicant/sections/ApplicantProfileLayout";
 
 // Profile View Section Components
-export { ProfileInfoSection } from "./menu/ProfileInfoSection";
-export { AcademicSection } from "./menu/AcademicSection";
-export { WishlistSection } from "./menu/WishlistSection";
-export { ApplicationSection } from "./menu/ApplicationSection";
-export { PaymentSection } from "./menu/PaymentSection";
-export { SettingsSection } from "./menu/SettingsSection";
+export { ProfileInfoSection } from "./applicant/sections/ProfileInfoSection";
+export { AcademicSection } from "./applicant/sections/AcademicSection";
+export { WishlistSection } from "./applicant/sections/WishlistSection";
+export { ApplicationSection } from "./applicant/sections/ApplicationSection";
+export { PaymentSection } from "./applicant/sections/PaymentSection";
+export { SettingsSection } from "./applicant/sections/SettingsSection";

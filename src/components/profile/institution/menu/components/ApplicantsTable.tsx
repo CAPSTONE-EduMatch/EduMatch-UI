@@ -17,41 +17,49 @@ export interface Applicant {
 interface ApplicantsTableProps {
 	applicants: Applicant[]
 	onMoreDetail: (applicant: Applicant) => void
-	onStatusChange?: (applicantId: string, newStatus: string) => void
 }
 
 export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 	applicants,
 	onMoreDetail,
-	onStatusChange,
 }) => {
 	const getStatusColor = (status: string) => {
-		switch (status) {
+		// Normalize status to lowercase for comparison
+		const normalizedStatus = status.toLowerCase()
+		switch (normalizedStatus) {
 			case 'submitted':
 				return 'bg-blue-100 text-blue-800'
+			case 'require_update':
 			case 'under_review':
 				return 'bg-cyan-100 text-cyan-800'
 			case 'accepted':
 				return 'bg-green-100 text-green-800'
 			case 'rejected':
-				return 'bg-gray-100 text-gray-800'
-			case 'new_request':
 				return 'bg-red-100 text-red-800'
+			case 'updated':
+			case 'new_request':
+				return 'bg-purple-100 text-purple-800'
 			default:
 				return 'bg-gray-100 text-gray-800'
 		}
 	}
 
 	const getStatusLabel = (status: string) => {
-		switch (status) {
+		// Normalize status to lowercase for comparison
+		const normalizedStatus = status.toLowerCase()
+		switch (normalizedStatus) {
 			case 'submitted':
 				return 'Submitted'
+			case 'require_update':
+				return 'Require Update'
 			case 'under_review':
 				return 'Under review'
 			case 'accepted':
 				return 'Accepted'
 			case 'rejected':
 				return 'Reject'
+			case 'updated':
+				return 'Updated'
 			case 'new_request':
 				return 'New request'
 			default:
@@ -95,7 +103,6 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 									<button
 										onClick={() => {
 											// TODO: Navigate to post details
-											console.log('Navigate to post:', applicant.postId)
 										}}
 										className="text-[#126E64] hover:text-[#126E64] text-sm underline hover:no-underline transition-all duration-200 font-medium"
 									>
@@ -135,19 +142,11 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 
 								{/* Status */}
 								<div className="text-center">
-									<select
-										value={applicant.status}
-										onChange={(e) =>
-											onStatusChange?.(applicant.id, e.target.value)
-										}
-										className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 outline-none cursor-pointer ${getStatusColor(applicant.status)}`}
+									<span
+										className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${getStatusColor(applicant.status)}`}
 									>
-										<option value="submitted">Submitted</option>
-										<option value="under_review">Under review</option>
-										<option value="accepted">Accepted</option>
-										<option value="rejected">Rejected</option>
-										<option value="new_request">New request</option>
-									</select>
+										{getStatusLabel(applicant.status)}
+									</span>
 								</div>
 
 								{/* Matching Score */}

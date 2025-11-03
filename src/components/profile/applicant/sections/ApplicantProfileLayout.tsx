@@ -9,7 +9,7 @@ import {
 	CreditCard,
 	Settings,
 } from 'lucide-react'
-import { ProfileLayoutBase, NavItem } from '../ProfileLayoutBase'
+import { ProfileLayoutBase, NavItem } from '../../layout/ProfileLayoutBase'
 
 type ApplicantProfileSection =
 	| 'profile'

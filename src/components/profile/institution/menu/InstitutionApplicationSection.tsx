@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
 	StatisticsCards,
 	SearchAndFilter,
@@ -19,6 +19,7 @@ export const InstitutionApplicationSection: React.FC<
 	InstitutionApplicationSectionProps
 > = ({ profile }) => {
 	const router = useRouter()
+	const searchParams = useSearchParams()
 	const [searchQuery, setSearchQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<string>('newest')
@@ -37,21 +38,14 @@ export const InstitutionApplicationSection: React.FC<
 	const [error, setError] = useState<string | null>(null)
 	const itemsPerPage = 10
 
-	// Fetch applications from API
+	// Fetch applications from API - fetch all data once on mount
 	const fetchApplications = useCallback(async () => {
 		setLoading(true)
 		setError(null)
 
 		try {
-			const params = new URLSearchParams({
-				search: searchQuery,
-				status: statusFilter.join(','),
-				sortBy: sortBy,
-				page: currentPage.toString(),
-				limit: itemsPerPage.toString(),
-			})
-
-			const response = await fetch(`/api/applications/institution?${params}`, {
+			// Fetch without filters to get all data
+			const response = await fetch(`/api/applications/institution?limit=1000`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -77,12 +71,35 @@ export const InstitutionApplicationSection: React.FC<
 		} finally {
 			setLoading(false)
 		}
-	}, [searchQuery, statusFilter, sortBy, currentPage, itemsPerPage])
+	}, [])
 
-	// Fetch applications when component mounts or filters change
+	// Fetch applications only when component mounts
 	useEffect(() => {
 		fetchApplications()
-	}, [fetchApplications])
+	}, [fetchApplications]) // eslint-disable-line react-hooks/exhaustive-deps
+
+	// Check URL for applicationId and auto-select applicant if found
+	useEffect(() => {
+		const applicationIdFromUrl = searchParams.get('applicationId')
+
+		// Only auto-select if:
+		// 1. There's an applicationId in URL
+		// 2. We have applicants loaded
+		// 3. No applicant is currently selected
+		// 4. The URL applicationId matches what we want to show
+		if (applicationIdFromUrl && applicants.length > 0 && !selectedApplicant) {
+			// Find the applicant matching the ID from URL
+			const applicant = applicants.find(
+				(app) => app.id === applicationIdFromUrl
+			)
+			if (applicant) {
+				setSelectedApplicant(applicant)
+			}
+		} else if (!applicationIdFromUrl && selectedApplicant) {
+			// If URL doesn't have applicationId but we have a selected applicant, clear it
+			setSelectedApplicant(null)
+		}
+	}, [searchParams, applicants, selectedApplicant])
 
 	// Filter and search applicants (client-side for immediate feedback)
 	const filteredApplicants = useMemo(() => {
@@ -103,8 +120,21 @@ export const InstitutionApplicationSection: React.FC<
 			filtered = filtered.filter((app) => statusFilter.includes(app.status))
 		}
 
+		// Sort applicants
+		filtered.sort((a, b) => {
+			if (sortBy === 'newest') {
+				return (
+					new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime()
+				)
+			} else {
+				return (
+					new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime()
+				)
+			}
+		})
+
 		return filtered
-	}, [applicants, searchQuery, statusFilter])
+	}, [applicants, searchQuery, statusFilter, sortBy])
 
 	// Pagination
 	const totalPages = Math.ceil(filteredApplicants.length / itemsPerPage)
@@ -121,33 +151,45 @@ export const InstitutionApplicationSection: React.FC<
 	}
 
 	const handleMoreDetail = (applicant: Applicant) => {
+		// Update local state first
 		setSelectedApplicant(applicant)
+		// Update URL to include applicationId using router.push like ProgramsSection
+		const url = new URL(window.location.href)
+		url.searchParams.set('applicationId', applicant.id)
+		// Ensure we stay on the application tab
+		url.searchParams.set('tab', 'application')
+		// Use router.push to update URL without full page reload
+		router.push(url.pathname + url.search)
 	}
 
 	const handleBackToList = () => {
+		// Update local state first
+		setSelectedApplicant(null)
+		// Remove applicationId from URL using router.push like ProgramsSection
+		const url = new URL(window.location.href)
+		url.searchParams.delete('applicationId')
+		// Ensure we stay on the application tab
+		url.searchParams.set('tab', 'application')
+		// Use router.push to update URL without full page reload
+		router.push(url.pathname + url.search)
+	}
+
+	const handleApprove = () => {
+		// Refresh applications after approval
+		fetchApplications()
 		setSelectedApplicant(null)
 	}
 
-	const handleContact = (applicant: Applicant) => {
-		// Navigate to messages with contact parameter
-		router.push(`/messages?contact=${applicant.userId}`)
+	const handleReject = () => {
+		// Refresh applications after rejection
+		fetchApplications()
+		setSelectedApplicant(null)
 	}
 
-	const handleApprove = (applicant: Applicant) => {
-		// TODO: Implement approval functionality
-	}
-
-	const handleReject = (applicant: Applicant) => {
-		// TODO: Implement rejection functionality
-	}
-
-	const handleRequireUpdate = (applicant: Applicant) => {
-		// TODO: Implement require update functionality
-	}
-
-	const handleStatusChange = (applicantId: string, newStatus: string) => {
-		// TODO: Implement status update functionality
-		// This would typically update the applicant's status in the database
+	const handleRequireUpdate = () => {
+		// Refresh applications after update request
+		fetchApplications()
+		setSelectedApplicant(null)
 	}
 
 	// Show detail view if an applicant is selected
@@ -236,7 +278,6 @@ export const InstitutionApplicationSection: React.FC<
 					<ApplicantsTable
 						applicants={paginatedApplicants}
 						onMoreDetail={handleMoreDetail}
-						onStatusChange={handleStatusChange}
 					/>
 
 					{/* Pagination */}

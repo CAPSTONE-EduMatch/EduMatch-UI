@@ -1,6 +1,6 @@
 'use client'
 
-import { ProfileSidebar } from '@/components/profile/ProfileSidebar'
+import { ProfileSidebar } from '@/components/profile/layout/ProfileSidebar'
 import { useAdminAuth } from '@/hooks/useAdminAuth'
 import { Building2, CreditCard, GraduationCap, Users } from 'lucide-react'
 import Image from 'next/image'

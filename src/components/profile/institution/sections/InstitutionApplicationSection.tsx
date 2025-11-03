@@ -9,7 +9,7 @@ import {
 	Pagination,
 	ApplicantDetailView,
 	type Applicant,
-} from './components'
+} from '../components'
 
 interface InstitutionApplicationSectionProps {
 	profile: any

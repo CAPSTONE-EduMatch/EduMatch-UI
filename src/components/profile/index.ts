@@ -7,18 +7,18 @@ export { InstitutionDetailsStep } from "./create/steps/InstitutionDetailsStep";
 export { CompletionStep } from "./create/steps/CompletionStep";
 
 // Profile View Layout Components
-export { ProfileLayoutBase } from "./layout/ProfileLayoutBase";
-export type { NavItem, ProfileSection } from "./layout/ProfileLayoutBase";
+export { ProfileLayoutBase } from "./layouts/ProfileLayoutBase";
+export type { NavItem, ProfileSection } from "./layouts/ProfileLayoutBase";
 
 export {
 	InstitutionProfileLayout,
 	type InstitutionProfileSection,
-} from "./layout/InstitutionProfileLayout";
+} from "./layouts/InstitutionProfileLayout";
 
 export {
 	ApplicantProfileLayout,
 	type ApplicantProfileSection,
-} from "./applicant/sections/ApplicantProfileLayout";
+} from "./layouts/ApplicantProfileLayout";
 
 // Profile View Section Components
 export { ProfileInfoSection } from "./applicant/sections/ProfileInfoSection";

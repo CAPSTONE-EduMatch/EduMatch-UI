@@ -3,7 +3,7 @@
 import { BanUnbanModal } from '@/components/admin/BanUnbanModal'
 import { DocumentSection } from '@/components/admin/DocumentComponents'
 import { RevokeSessionsModal } from '@/components/admin/RevokeSessionsModal'
-import { ProfileSidebar } from '@/components/profile/layout/ProfileSidebar'
+import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
 import { useAdminAuth } from '@/hooks/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/user-details'
 import { motion } from 'framer-motion'

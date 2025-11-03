@@ -8,10 +8,10 @@ import {
 	PostsTable,
 	Pagination,
 	type Post,
-} from './components'
-import { CreateProgramPage } from './CreateProgramPage'
-import { CreateScholarshipPage } from './CreateScholarshipPage'
-import { CreateResearchLabPage } from './CreateResearchLabPage'
+} from '../components'
+import { CreateProgramPage } from '@/components/profile/institution/create/CreateProgramPage'
+import { CreateScholarshipPage } from '@/components/profile/institution/create/CreateScholarshipPage'
+import { CreateResearchLabPage } from '@/components/profile/institution/create/CreateResearchLabPage'
 
 interface ProgramsSectionProps {
 	profile: any

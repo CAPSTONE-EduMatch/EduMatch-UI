@@ -13,7 +13,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
-} from '@/components/profile/applicant/sections/ApplicantProfileLayout'
+} from '@/components/profile/layouts/ApplicantProfileLayout'
 import { ProfileInfoSection } from '@/components/profile/applicant/sections/ProfileInfoSection'
 import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
 import { WishlistSection } from '@/components/profile/applicant/sections/WishlistSection'

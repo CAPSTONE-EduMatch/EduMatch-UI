@@ -1,0 +1,708 @@
+'use client'
+
+import { Breadcrumb, Button } from '@/components/ui'
+import {
+	ApplicantsTable,
+	SuggestedApplicantsTable,
+	type Applicant,
+} from '@/components/profile/institution/components'
+
+import { AnimatePresence, motion } from 'framer-motion'
+import Image from 'next/image'
+import { useRouter, useParams } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useNotification } from '@/contexts/NotificationContext'
+import CoverImage from '../../../../../../../public/EduMatch_Default.png'
+import { Edit, Users } from 'lucide-react'
+
+const InstitutionResearchLabDetail = () => {
+	const router = useRouter()
+	const params = useParams()
+	const [activeTab, setActiveTab] = useState('job-description')
+	const [currentResearchLab, setCurrentResearchLab] = useState<any>(null)
+	const [breadcrumbItems, setBreadcrumbItems] = useState<
+		Array<{ label: string; href?: string }>
+	>([
+		{ label: 'Dashboard', href: '/institution/dashboard' },
+		{ label: 'Programs', href: '/institution/dashboard/programs' },
+		{ label: 'Research Lab Detail' },
+	])
+	const [isLoadingResearchLab, setIsLoadingResearchLab] = useState(true)
+	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
+	const [transformedApplicants, setTransformedApplicants] = useState<
+		Applicant[]
+	>([])
+	const [suggestedApplicants, setSuggestedApplicants] = useState<Applicant[]>(
+		[]
+	)
+
+	// Notification system
+	const { showError } = useNotification()
+
+	// Dynamic info items based on current research lab data
+	const infoItems = [
+		{
+			label: 'Salary',
+			value: currentResearchLab?.salary || 'N/A',
+		},
+		{
+			label: 'Country',
+			value: currentResearchLab?.country || 'N/A',
+		},
+		{
+			label: 'Job type',
+			value: currentResearchLab?.jobType || 'N/A',
+		},
+		{
+			label: 'Application deadline',
+			value: currentResearchLab?.applicationDeadline || 'N/A',
+		},
+		{
+			label: 'Location',
+			value: currentResearchLab?.location || 'N/A',
+		},
+		{
+			label: 'Status',
+			value: currentResearchLab?.status || 'N/A',
+		},
+	]
+
+	// Fetch research lab details from API
+	const fetchResearchLabDetail = async (researchLabId: string) => {
+		try {
+			setIsLoadingResearchLab(true)
+			const response = await fetch(
+				`/api/explore/research/research-detail?id=${researchLabId}`
+			)
+			const data = await response.json()
+
+			if (data.success && data.data) {
+				setCurrentResearchLab(data.data)
+				return data.data
+			} else {
+				showError('Error', 'Failed to load research lab details')
+				return null
+			}
+		} catch (error) {
+			showError('Error', 'Failed to load research lab details')
+			return null
+		} finally {
+			setIsLoadingResearchLab(false)
+		}
+	}
+
+	// Helper function to format date
+	const formatDate = (dateString: string | Date) => {
+		if (!dateString) return 'N/A'
+		const date = new Date(dateString)
+		const day = date.getDate().toString().padStart(2, '0')
+		const month = (date.getMonth() + 1).toString().padStart(2, '0')
+		const year = date.getFullYear()
+		return `${day}/${month}/${year}`
+	}
+
+	// Transform applications to match Applicant interface
+	const transformApplications = (apps: any[]): Applicant[] => {
+		return apps.map((app) => ({
+			id: app.id,
+			postId: app.postId || (params.id as string),
+			name: app.name || 'Unknown',
+			appliedDate: app.appliedDate || formatDate(new Date()),
+			degreeLevel: app.degreeLevel || 'Unknown',
+			subDiscipline: app.subDiscipline || 'Unknown',
+			status: app.status?.toLowerCase() || 'submitted',
+			matchingScore: app.matchingScore || Math.floor(Math.random() * 30) + 70,
+			userId: app.userId,
+			gpa: app.snapshotData?.gpa || app.gpa || undefined,
+		}))
+	}
+
+	// Fetch applications for this research lab
+	const fetchApplications = async (researchLabId: string) => {
+		try {
+			setIsLoadingApplications(true)
+			const response = await fetch(
+				`/api/applications/institution?postId=${researchLabId}&page=1&limit=100`
+			)
+			const data = await response.json()
+
+			if (data.success && data.applications) {
+				const transformed = transformApplications(data.applications)
+				setTransformedApplicants(transformed)
+				// For suggested applicants, filter by high matching score (80+)
+				const suggested = transformed
+					.filter((app) => app.matchingScore >= 80)
+					.sort((a, b) => b.matchingScore - a.matchingScore)
+					.slice(0, 10)
+				setSuggestedApplicants(suggested)
+			}
+		} catch (error) {
+			// Failed to fetch applications
+		} finally {
+			setIsLoadingApplications(false)
+		}
+	}
+
+	// Load research lab data when component mounts
+	useEffect(() => {
+		const updateBreadcrumb = async () => {
+			// Get research lab ID from URL params
+			const researchLabId = params.id as string
+
+			if (!researchLabId) {
+				showError('Error', 'Research Lab ID is required')
+				return
+			}
+
+			// Fetch research lab data from API
+			const researchLabData = await fetchResearchLabDetail(researchLabId)
+
+			if (researchLabData) {
+				const researchLabName = researchLabData?.title || 'Research Lab Detail'
+
+				const items: Array<{ label: string; href?: string }> = [
+					{ label: 'Dashboard', href: '/institution/dashboard' },
+					{ label: 'Programs', href: '/institution/dashboard/programs' },
+					{ label: researchLabName },
+				]
+
+				setBreadcrumbItems(items)
+
+				// Fetch applications for this research lab
+				await fetchApplications(researchLabId)
+			}
+		}
+
+		updateBreadcrumb()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params.id])
+
+	const handleEditResearchLab = () => {
+		// Navigate to edit research lab page
+		router.push(
+			`/institution/dashboard/programs?action=edit&type=Research Lab&id=${params.id}`
+		)
+	}
+
+	const handleViewApplications = () => {
+		// Navigate to applications section
+		router.push(`/institution/dashboard/applications`)
+	}
+
+	const handleApplicantDetail = (applicant: Applicant) => {
+		// Navigate to applicant detail view
+		router.push(`/institution/dashboard/applications/${applicant.id}`)
+	}
+
+	const getStatusColor = (status: string) => {
+		switch (status?.toUpperCase()) {
+			case 'PUBLISHED':
+				return 'bg-green-100 text-green-800'
+			case 'DRAFT':
+				return 'bg-gray-100 text-gray-800'
+			case 'CLOSED':
+				return 'bg-blue-100 text-blue-800'
+			default:
+				return 'bg-gray-100 text-gray-800'
+		}
+	}
+
+	const menuItems = [
+		{ id: 'job-description', label: 'Job Description' },
+		{ id: 'requirements', label: 'Requirements' },
+		{ id: 'offer', label: 'Offer Information' },
+		{ id: 'lab-info', label: 'Lab Information' },
+	]
+
+	const renderTabContent = () => {
+		switch (activeTab) {
+			case 'job-description':
+				return (
+					<div className="space-y-6">
+						{currentResearchLab?.description && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Description:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.description,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.researchFocus && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Research Focus:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.researchFocus,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.researchFields &&
+							currentResearchLab.researchFields.length > 0 && (
+								<div>
+									<h3 className="text-xl font-bold text-gray-900 mb-4">
+										Research Fields:
+									</h3>
+									<div className="flex flex-wrap gap-2">
+										{currentResearchLab.researchFields.map((field: string) => (
+											<span
+												key={field}
+												className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-sm"
+											>
+												{field}
+											</span>
+										))}
+									</div>
+								</div>
+							)}
+					</div>
+				)
+
+			case 'requirements':
+				return (
+					<div className="space-y-6">
+						{currentResearchLab?.mainResponsibility && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Main Responsibility:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.mainResponsibility,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.qualificationRequirement && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Qualification Requirements:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.qualificationRequirement,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.experienceRequirement && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Experience Requirements:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.experienceRequirement,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.requiredDocuments &&
+							currentResearchLab.requiredDocuments.length > 0 && (
+								<div>
+									<h3 className="text-xl font-bold text-gray-900 mb-4">
+										Required Documents:
+									</h3>
+									<ul className="list-disc pl-5 space-y-2 text-gray-700">
+										{currentResearchLab.requiredDocuments.map((doc: any) => (
+											<li key={doc.id}>
+												<span className="font-semibold">{doc.name}</span>
+												{doc.description && <span>: {doc.description}</span>}
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+					</div>
+				)
+
+			case 'offer':
+				return (
+					<div className="space-y-6">
+						{currentResearchLab?.salaryDescription && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Salary Description:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.salaryDescription,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.benefit && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Benefits:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.benefit,
+									}}
+								/>
+							</div>
+						)}
+
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<p className="font-bold text-gray-900">Contract Type:</p>
+								<p className="text-gray-700">
+									{currentResearchLab?.contractType || 'N/A'}
+								</p>
+							</div>
+							<div>
+								<p className="font-bold text-gray-900">Attendance:</p>
+								<p className="text-gray-700">
+									{currentResearchLab?.attendance || 'N/A'}
+								</p>
+							</div>
+						</div>
+					</div>
+				)
+
+			case 'lab-info':
+				return (
+					<div className="space-y-6">
+						{currentResearchLab?.labFacilities && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Lab Facilities:
+								</h3>
+								<div
+									className="text-gray-700 prose max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.labFacilities,
+									}}
+								/>
+							</div>
+						)}
+
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<p className="font-bold text-gray-900">Lab Type:</p>
+								<p className="text-gray-700">
+									{currentResearchLab?.labType || 'N/A'}
+								</p>
+							</div>
+							<div>
+								<p className="font-bold text-gray-900">Lab Director:</p>
+								<p className="text-gray-700">
+									{currentResearchLab?.labDirector || 'N/A'}
+								</p>
+							</div>
+							<div>
+								<p className="font-bold text-gray-900">Lab Capacity:</p>
+								<p className="text-gray-700">
+									{currentResearchLab?.labCapacity || 'N/A'}
+								</p>
+							</div>
+							<div>
+								<p className="font-bold text-gray-900">Lab Website:</p>
+								{currentResearchLab?.labWebsite ? (
+									<a
+										href={currentResearchLab.labWebsite}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-[#126E64] hover:underline"
+									>
+										{currentResearchLab.labWebsite}
+									</a>
+								) : (
+									<p className="text-gray-700">N/A</p>
+								)}
+							</div>
+						</div>
+
+						{currentResearchLab?.labContactEmail && (
+							<div>
+								<p className="font-bold text-gray-900">Contact Email:</p>
+								<a
+									href={`mailto:${currentResearchLab.labContactEmail}`}
+									className="text-[#126E64] hover:underline"
+								>
+									{currentResearchLab.labContactEmail}
+								</a>
+							</div>
+						)}
+					</div>
+				)
+
+			default:
+				return null
+		}
+	}
+
+	if (isLoadingResearchLab) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#126E64] mx-auto"></div>
+					<p className="mt-4 text-muted-foreground">
+						Loading research lab details...
+					</p>
+				</div>
+			</div>
+		)
+	}
+
+	if (!currentResearchLab) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<div className="text-red-500 text-6xl mb-4">⚠️</div>
+					<h2 className="text-xl font-semibold mb-2">Research Lab Not Found</h2>
+					<p className="text-muted-foreground mb-4">
+						The research lab you&apos;re looking for doesn&apos;t exist or has
+						been removed.
+					</p>
+					<Button
+						onClick={() => router.push('/institution/dashboard/programs')}
+						className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md"
+					>
+						Back to Programs
+					</Button>
+				</div>
+			</div>
+		)
+	}
+
+	return (
+		<div className="min-h-screen bg-background">
+			{/* Header Section with Cover Image */}
+			<motion.div
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				className="relative h-[500px] w-full"
+			>
+				<Image
+					src={currentResearchLab?.institution?.coverImage || CoverImage}
+					alt={currentResearchLab?.institution?.name || 'University'}
+					fill
+					className="object-cover"
+					priority
+				/>
+
+				<div className="container mx-auto px-4 h-full relative">
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.2 }}
+						className="absolute bottom-0 right-4 translate-y-1/3 bg-white rounded-2xl shadow-xl p-8 max-w-lg flex flex-col justify-center items-center"
+					>
+						<h1 className="text-3xl font-bold mb-2">
+							{currentResearchLab?.title || 'Loading...'}
+						</h1>
+						<p className="text-gray-600 mb-6">
+							{currentResearchLab?.institution?.name || 'Loading...'}
+						</p>
+
+						<div className="flex items-center gap-3 mb-4">
+							<Button
+								onClick={handleEditResearchLab}
+								variant="outline"
+								className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+							>
+								<Edit className="w-4 h-4 mr-2" />
+								Edit Research Lab
+							</Button>
+							<span
+								className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor('PUBLISHED')}`}
+							>
+								PUBLISHED
+							</span>
+						</div>
+
+						<p className="text-sm text-gray-500">
+							Number of applications: {transformedApplicants.length}
+						</p>
+					</motion.div>
+				</div>
+			</motion.div>
+
+			{/* Main Content */}
+			<motion.div
+				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-10"
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+			>
+				{/* Breadcrumb */}
+				<div className="mb-6">
+					<Breadcrumb items={breadcrumbItems} />
+				</div>
+
+				{/* Info Cards */}
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.3 }}
+					className="bg-white py-6 shadow-xl border"
+				>
+					<div className="container mx-auto px-4">
+						<div className="grid grid-cols-2 md:grid-cols-6 gap-6">
+							{infoItems.map((item, index) => (
+								<div key={index} className="text-center md:text-left">
+									<p className="text-sm text-gray-500 mb-1">{item.label}</p>
+									<p className="font-semibold text-gray-900">{item.value}</p>
+								</div>
+							))}
+						</div>
+					</div>
+				</motion.div>
+
+				{/* About Section */}
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.3 }}
+					className="p-8 bg-white py-6 shadow-xl border"
+				>
+					<h2 className="text-3xl font-bold mb-6">About</h2>
+
+					<div className="prose max-w-none text-gray-700 space-y-4">
+						{currentResearchLab?.institution?.about ? (
+							<div
+								dangerouslySetInnerHTML={{
+									__html: currentResearchLab.institution.about,
+								}}
+							/>
+						) : (
+							<p>No description available.</p>
+						)}
+					</div>
+				</motion.div>
+
+				{/* Tab Content Section */}
+				<div className="grid grid-cols-1 lg:grid-cols-4 gap-8 p-8 bg-white py-6 shadow-xl border">
+					{/* Left Sidebar Menu */}
+					<motion.aside
+						initial={{ x: -20, opacity: 0 }}
+						animate={{ x: 0, opacity: 1 }}
+						transition={{ delay: 0.4 }}
+						className="lg:col-span-1"
+					>
+						<div className="space-y-2 border-r h-full border-gray-200 pr-4">
+							{menuItems.map((item) => (
+								<button
+									key={item.id}
+									onClick={() => setActiveTab(item.id)}
+									className={`w-full text-left px-6 py-3 rounded-full transition-all ${
+										activeTab === item.id
+											? 'bg-teal-100 text-teal-700 font-semibold'
+											: 'text-gray-700 hover:bg-gray-100 font-medium'
+									}`}
+								>
+									{item.label}
+								</button>
+							))}
+						</div>
+					</motion.aside>
+
+					{/* Right Content - Dynamic Tab Content */}
+					<motion.div
+						initial={{ x: 20, opacity: 0 }}
+						animate={{ x: 0, opacity: 1 }}
+						transition={{ delay: 0.5 }}
+						className="lg:col-span-3"
+					>
+						<AnimatePresence mode="wait">
+							<motion.div
+								key={activeTab}
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -10 }}
+								transition={{ duration: 0.2 }}
+							>
+								{renderTabContent()}
+							</motion.div>
+						</AnimatePresence>
+					</motion.div>
+				</div>
+
+				{/* Applications Table Section */}
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.6 }}
+					className="p-8 bg-white py-6 shadow-xl border"
+				>
+					<div className="flex items-center justify-between mb-6">
+						<h2 className="text-3xl font-bold">Applications</h2>
+						<Button
+							onClick={handleViewApplications}
+							className="bg-[#126E64] hover:bg-teal-700 text-white"
+						>
+							<Users className="w-4 h-4 mr-2" />
+							View All Applications
+						</Button>
+					</div>
+
+					{/* Applicants Table */}
+					{isLoadingApplications ? (
+						<div className="text-center py-8">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
+							<p className="mt-2 text-gray-600">Loading applications...</p>
+						</div>
+					) : transformedApplicants.length > 0 ? (
+						<div className="border bg-white border-gray-200 rounded-xl p-6">
+							<ApplicantsTable
+								applicants={transformedApplicants}
+								onMoreDetail={handleApplicantDetail}
+								hidePostId={true}
+							/>
+						</div>
+					) : (
+						<div className="text-center py-8 bg-gray-50 rounded-lg">
+							<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+							<p className="text-gray-600">No applications yet</p>
+						</div>
+					)}
+				</motion.div>
+
+				{/* Suggested Applicants Section */}
+				{suggestedApplicants.length > 0 && (
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.7 }}
+						className="p-8 bg-white py-6 shadow-xl border"
+					>
+						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
+						<p className="text-gray-600 mb-6">
+							These applicants have high matching scores (80%+) and may be a
+							good fit for this research lab.
+						</p>
+						<div className="border bg-white border-gray-200 rounded-xl p-6">
+							<SuggestedApplicantsTable
+								applicants={suggestedApplicants}
+								onMoreDetail={handleApplicantDetail}
+							/>
+						</div>
+					</motion.div>
+				)}
+			</motion.div>
+		</div>
+	)
+}
+
+export default InstitutionResearchLabDetail

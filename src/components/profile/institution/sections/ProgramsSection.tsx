@@ -201,9 +201,14 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	}
 
 	const handleMoreDetail = (post: Post) => {
-		// TODO: Implement post detail view
-		// eslint-disable-next-line no-console
-		console.log('View post details:', post.id)
+		// Navigate to the appropriate detail page based on post type
+		if (post.type === 'Program') {
+			router.push(`/institution/dashboard/programmes/${post.id}`)
+		} else if (post.type === 'Scholarship') {
+			router.push(`/institution/dashboard/scholarships/${post.id}`)
+		} else if (post.type === 'Research Lab') {
+			router.push(`/institution/dashboard/reseach-labs/${post.id}`)
+		}
 	}
 
 	const handleAddNew = (
@@ -211,7 +216,6 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	) => {
 		// Update URL to show create form using Next.js router
 		const url = new URL(window.location.href)
-		url.searchParams.set('tab', 'programs')
 		url.searchParams.set('action', 'create')
 		url.searchParams.set('type', postType)
 
@@ -228,10 +232,8 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		const url = new URL(window.location.href)
 		url.searchParams.delete('action')
 		url.searchParams.delete('type')
-		// Ensure we stay on the programs tab
-		url.searchParams.set('tab', 'programs')
 		// Use router.push to update URL without full page reload
-		router.push(url.pathname + url.search)
+		router.push(url.pathname)
 		// Update local state
 		setShowCreateForm(false)
 		setCreateFormType(null)

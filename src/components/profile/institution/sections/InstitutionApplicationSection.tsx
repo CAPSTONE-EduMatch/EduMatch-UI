@@ -1,13 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import {
 	StatisticsCards,
 	SearchAndFilter,
 	ApplicantsTable,
 	Pagination,
-	ApplicantDetailView,
 	type Applicant,
 } from '../components'
 
@@ -19,14 +18,11 @@ export const InstitutionApplicationSection: React.FC<
 	InstitutionApplicationSectionProps
 > = ({ profile }) => {
 	const router = useRouter()
-	const searchParams = useSearchParams()
 	const [searchQuery, setSearchQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<string>('newest')
 	const [currentPage, setCurrentPage] = useState(1)
-	const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(
-		null
-	)
+	// Note: selectedApplicant is no longer needed as detail view is in separate route
 	const [applicants, setApplicants] = useState<Applicant[]>([])
 	const [stats, setStats] = useState({
 		total: 0,
@@ -78,28 +74,8 @@ export const InstitutionApplicationSection: React.FC<
 		fetchApplications()
 	}, [fetchApplications]) // eslint-disable-line react-hooks/exhaustive-deps
 
-	// Check URL for applicationId and auto-select applicant if found
-	useEffect(() => {
-		const applicationIdFromUrl = searchParams.get('applicationId')
-
-		// Only auto-select if:
-		// 1. There's an applicationId in URL
-		// 2. We have applicants loaded
-		// 3. No applicant is currently selected
-		// 4. The URL applicationId matches what we want to show
-		if (applicationIdFromUrl && applicants.length > 0 && !selectedApplicant) {
-			// Find the applicant matching the ID from URL
-			const applicant = applicants.find(
-				(app) => app.id === applicationIdFromUrl
-			)
-			if (applicant) {
-				setSelectedApplicant(applicant)
-			}
-		} else if (!applicationIdFromUrl && selectedApplicant) {
-			// If URL doesn't have applicationId but we have a selected applicant, clear it
-			setSelectedApplicant(null)
-		}
-	}, [searchParams, applicants, selectedApplicant])
+	// Note: Applicant detail view is now handled in a separate route
+	// No need to check for applicationId in URL here
 
 	// Filter and search applicants (client-side for immediate feedback)
 	const filteredApplicants = useMemo(() => {
@@ -151,59 +127,15 @@ export const InstitutionApplicationSection: React.FC<
 	}
 
 	const handleMoreDetail = (applicant: Applicant) => {
-		// Update local state first
-		setSelectedApplicant(applicant)
-		// Update URL to include applicationId using router.push like ProgramsSection
-		const url = new URL(window.location.href)
-		url.searchParams.set('applicationId', applicant.id)
-		// Ensure we stay on the application tab
-		url.searchParams.set('tab', 'application')
-		// Use router.push to update URL without full page reload
-		router.push(url.pathname + url.search)
+		// Navigate to dedicated applicant detail route
+		router.push(`/institution/dashboard/applications/${applicant.id}`)
 	}
 
-	const handleBackToList = () => {
-		// Update local state first
-		setSelectedApplicant(null)
-		// Remove applicationId from URL using router.push like ProgramsSection
-		const url = new URL(window.location.href)
-		url.searchParams.delete('applicationId')
-		// Ensure we stay on the application tab
-		url.searchParams.set('tab', 'application')
-		// Use router.push to update URL without full page reload
-		router.push(url.pathname + url.search)
-	}
+	// Note: These handlers are no longer needed as detail view is in separate route
+	// Actions are handled in the detail page component
 
-	const handleApprove = () => {
-		// Refresh applications after approval
-		fetchApplications()
-		setSelectedApplicant(null)
-	}
-
-	const handleReject = () => {
-		// Refresh applications after rejection
-		fetchApplications()
-		setSelectedApplicant(null)
-	}
-
-	const handleRequireUpdate = () => {
-		// Refresh applications after update request
-		fetchApplications()
-		setSelectedApplicant(null)
-	}
-
-	// Show detail view if an applicant is selected
-	if (selectedApplicant) {
-		return (
-			<ApplicantDetailView
-				applicant={selectedApplicant}
-				onBack={handleBackToList}
-				onApprove={handleApprove}
-				onReject={handleReject}
-				onRequireUpdate={handleRequireUpdate}
-			/>
-		)
-	}
+	// Note: Applicant detail view is now shown in a separate route
+	// This component only shows the list view
 
 	// Show loading state
 	if (loading) {

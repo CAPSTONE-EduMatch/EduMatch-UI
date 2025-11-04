@@ -1,11 +1,11 @@
 'use client'
 
-import { InstitutionOverviewSection } from '@/components/profile/institution/sections/InstitutionOverviewSection'
-import { useProfileContext } from './ProfileContext'
+import { ProgramsSection } from '@/components/profile/institution/sections/ProgramsSection'
+import { useProfileContext } from '../ProfileContext'
 import { motion } from 'framer-motion'
 
-export default function DashboardPage() {
-	const { profile } = useProfileContext()
+export default function ProgramsPage() {
+	const { profile, refreshProfile } = useProfileContext()
 
 	return (
 		<motion.div
@@ -14,8 +14,9 @@ export default function DashboardPage() {
 			exit={{ opacity: 0, y: -20 }}
 			transition={{ duration: 0.3 }}
 		>
-			<InstitutionOverviewSection
+			<ProgramsSection
 				profile={profile}
+				onProfileUpdate={refreshProfile}
 				onNavigationAttempt={() => true}
 			/>
 		</motion.div>

@@ -2,118 +2,61 @@
 
 import { AdminTable } from '@/components/admin/AdminTable'
 import { Card, CardContent } from '@/components/ui'
+import { useAdminPostManagement } from '@/hooks/admin'
+import { PostStatus } from '@prisma/client'
 import { ChevronRight, Search, Users } from 'lucide-react'
-import { useState } from 'react'
 
 interface Post {
 	id: string
 	title: string
-	status: 'Published' | 'Closed' | 'Rejected' | 'Approved'
+	status: PostStatus
 	postedBy: string
-	postedDate: string
-	type: 'Program' | 'Scholarship'
+	postedDate: Date
+	type: 'Program' | 'Scholarship' | 'Job'
 }
 
-const mockPosts: Post[] = [
-	{
-		id: 'SC001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Approved',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Program',
-	},
-	{
-		id: 'PR001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Rejected',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Scholarship',
-	},
-	{
-		id: 'SC001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Closed',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Program',
-	},
-	{
-		id: 'SC001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Published',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Scholarship',
-	},
-	{
-		id: 'SC001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Published',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Program',
-	},
-	{
-		id: 'SC001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Published',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Scholarship',
-	},
-	{
-		id: 'SC001',
-		title: "Lorem Ipsum is simply dummy text of the industry's....",
-		status: 'Published',
-		postedBy: 'Bach Khoa Univer...',
-		postedDate: '01/01/2022',
-		type: 'Scholarship',
-	},
-]
-
-const getStatusColor = (status: Post['status']) => {
+const getStatusColor = (status: PostStatus) => {
 	switch (status) {
-		case 'Published':
+		case 'PUBLISHED':
 			return 'bg-[#126E64] text-white'
-		case 'Closed':
+		case 'CLOSED':
 			return 'bg-[#6EB6FF] text-black'
-		case 'Rejected':
+		case 'ARCHIVED':
 			return 'bg-[#D5D5D5] text-black'
-		case 'Approved':
-			return 'bg-[#126E64] text-white'
+		case 'DRAFT':
+			return 'bg-[#F0A227] text-white'
 		default:
 			return 'bg-gray-200 text-black'
 	}
 }
 
+const getStatusLabel = (status: PostStatus) => {
+	switch (status) {
+		case 'PUBLISHED':
+			return 'Published'
+		case 'CLOSED':
+			return 'Closed'
+		case 'ARCHIVED':
+			return 'Archived'
+		case 'DRAFT':
+			return 'Draft'
+		case 'SUBMITTED':
+			return 'Submitted'
+		default:
+			return status
+	}
+}
+
 export default function AdminPostsPage() {
-	const [searchQuery, setSearchQuery] = useState('')
-	const [currentPage, setCurrentPage] = useState(1)
-	const [typeFilter, setTypeFilter] = useState<
-		'all' | 'Program' | 'Scholarship'
-	>('all')
-	const [statusFilter, setStatusFilter] = useState<
-		'all' | 'Published' | 'Closed' | 'Rejected' | 'Approved'
-	>('all')
-
-	// Filter posts based on search and filters
-	const filteredPosts = mockPosts.filter((post) => {
-		const matchesSearch =
-			searchQuery === '' ||
-			post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			post.postedBy.toLowerCase().includes(searchQuery.toLowerCase())
-		const matchesType = typeFilter === 'all' || post.type === typeFilter
-		const matchesStatus = statusFilter === 'all' || post.status === statusFilter
-		return matchesSearch && matchesType && matchesStatus
-	})
-
-	const totalPages = Math.ceil(filteredPosts.length / 10)
-	const paginatedPosts = filteredPosts.slice(
-		(currentPage - 1) * 10,
-		currentPage * 10
-	)
+	const {
+		posts,
+		stats,
+		pagination,
+		filters,
+		isLoading,
+		updateFilters,
+		changePage,
+	} = useAdminPostManagement()
 
 	// Define table columns
 	const columns = [
@@ -144,7 +87,7 @@ export default function AdminPostsPage() {
 						post.status
 					)}`}
 				>
-					{post.status}
+					{getStatusLabel(post.status)}
 				</span>
 			)) as (post: Post) => React.ReactNode,
 			className: '110px',
@@ -167,7 +110,7 @@ export default function AdminPostsPage() {
 			// eslint-disable-next-line no-unused-vars
 			accessor: ((post: Post) => (
 				<div className="text-gray-700 text-sm text-center">
-					{post.postedDate}
+					{new Date(post.postedDate).toLocaleDateString()}
 				</div>
 			)) as (post: Post) => React.ReactNode,
 			className: '100px',
@@ -211,7 +154,9 @@ export default function AdminPostsPage() {
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Total posts</p>
-								<p className="text-2xl font-semibold text-[#989898]">100</p>
+								<p className="text-2xl font-semibold text-[#989898]">
+									{stats.total}
+								</p>
 							</div>
 						</CardContent>
 					</Card>
@@ -224,7 +169,9 @@ export default function AdminPostsPage() {
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Published posts</p>
-								<p className="text-2xl font-semibold text-[#989898]">100</p>
+								<p className="text-2xl font-semibold text-[#989898]">
+									{stats.published}
+								</p>
 							</div>
 						</CardContent>
 					</Card>
@@ -237,7 +184,9 @@ export default function AdminPostsPage() {
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Closed posts</p>
-								<p className="text-2xl font-semibold text-[#989898]">100</p>
+								<p className="text-2xl font-semibold text-[#989898]">
+									{stats.closed}
+								</p>
 							</div>
 						</CardContent>
 					</Card>
@@ -251,8 +200,8 @@ export default function AdminPostsPage() {
 					<div className="flex-1 relative">
 						<input
 							type="text"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
+							value={filters.search || ''}
+							onChange={(e) => updateFilters({ search: e.target.value })}
 							placeholder="Search by title or institution..."
 							className="w-full px-6 py-3 pr-16 rounded-full border-2 border-[#126E64] text-base outline-none focus:ring-2 focus:ring-[#126E64]/30"
 						/>
@@ -262,39 +211,39 @@ export default function AdminPostsPage() {
 					</div>
 					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
 						<select
-							value={typeFilter}
+							value={filters.type || 'all'}
 							onChange={(e) =>
-								setTypeFilter(
-									e.target.value as 'all' | 'Program' | 'Scholarship'
-								)
+								updateFilters({
+									type: e.target.value as
+										| 'all'
+										| 'Program'
+										| 'Scholarship'
+										| 'Job',
+								})
 							}
 							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[90px]"
 						>
 							<option value="all">All Types</option>
 							<option value="Program">Program</option>
 							<option value="Scholarship">Scholarship</option>
+							<option value="Job">Job</option>
 						</select>
 					</div>
 					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
 						<select
-							value={statusFilter}
+							value={filters.status || 'all'}
 							onChange={(e) =>
-								setStatusFilter(
-									e.target.value as
-										| 'all'
-										| 'Published'
-										| 'Closed'
-										| 'Rejected'
-										| 'Approved'
-								)
+								updateFilters({
+									status: e.target.value as 'all' | PostStatus,
+								})
 							}
 							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[90px]"
 						>
 							<option value="all">All Status</option>
-							<option value="Published">Published</option>
-							<option value="Closed">Closed</option>
-							<option value="Rejected">Rejected</option>
-							<option value="Approved">Approved</option>
+							<option value="PUBLISHED">Published</option>
+							<option value="CLOSED">Closed</option>
+							<option value="DRAFT">Draft</option>
+							<option value="ARCHIVED">Archived</option>
 						</select>
 					</div>
 				</div>
@@ -302,18 +251,22 @@ export default function AdminPostsPage() {
 				{/* Posts Table */}
 				<div>
 					<h2 className="text-2xl font-bold text-black mb-6">
-						Posts ({filteredPosts.length} total)
+						Posts ({pagination.totalCount} total)
 					</h2>
 
 					<AdminTable
-						data={paginatedPosts}
+						data={posts}
 						columns={columns}
-						currentPage={currentPage}
-						totalPages={totalPages}
-						totalItems={filteredPosts.length}
-						itemsPerPage={10}
-						onPageChange={setCurrentPage}
-						emptyMessage="No posts found matching your criteria."
+						currentPage={pagination.currentPage}
+						totalPages={pagination.totalPages}
+						totalItems={pagination.totalCount}
+						itemsPerPage={pagination.limit}
+						onPageChange={changePage}
+						emptyMessage={
+							isLoading
+								? 'Loading posts...'
+								: 'No posts found matching your criteria.'
+						}
 					/>
 				</div>
 			</div>

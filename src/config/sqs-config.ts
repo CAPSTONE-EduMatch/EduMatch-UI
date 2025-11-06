@@ -51,6 +51,7 @@ export enum NotificationType {
 	WELCOME = "WELCOME",
 	USER_BANNED = "USER_BANNED",
 	SESSION_REVOKED = "SESSION_REVOKED",
+	WISHLIST_DEADLINE = "WISHLIST_DEADLINE",
 }
 
 // Base notification message structure
@@ -159,6 +160,17 @@ export interface SessionRevokedMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface WishlistDeadlineMessage extends BaseNotificationMessage {
+	type: NotificationType.WISHLIST_DEADLINE;
+	metadata: {
+		postId: string;
+		postTitle: string;
+		deadlineDate: string;
+		daysRemaining: number;
+		institutionName?: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
@@ -169,7 +181,8 @@ export type NotificationMessage =
 	| SubscriptionExpiringMessage
 	| WelcomeMessage
 	| UserBannedMessage
-	| SessionRevokedMessage;
+	| SessionRevokedMessage
+	| WishlistDeadlineMessage;
 
 // SQS Service class
 export class SQSService {

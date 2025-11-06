@@ -291,7 +291,7 @@
    "Type": "AWS::Lambda::Function",
    "Properties": {
     "Code": {
-     "ZipFile": "\nconst { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');\n\nconst sqsClient = new SQSClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  for (const record of event.Records) {\n    try {\n      const message = JSON.parse(record.body);\n      \n      // Store notification in database\n      await storeNotificationInDatabase(message);\n      \n      // Forward message to email queue\n      const emailCommand = new SendMessageCommand({\n        QueueUrl: process.env.EMAILS_QUEUE_URL,\n        MessageBody: JSON.stringify(message),\n        MessageAttributes: {\n          Type: {\n            DataType: 'String',\n            StringValue: message.type,\n          },\n          UserEmail: {\n            DataType: 'String',\n            StringValue: message.userEmail,\n          },\n        },\n        MessageGroupId: message.userEmail,\n        MessageDeduplicationId: message.id,\n      });\n      \n      await sqsClient.send(emailCommand);\n      \n    } catch (error) {\n      console.error('Error processing notification:', error);\n      throw error; // This will trigger retry\n    }\n  }\n};\n\nasync function storeNotificationInDatabase(message) {\n  try {\n    // Create notification title and body based on type\n    let title = \"\";\n    let bodyText = \"\";\n    let url = \"/\";\n\n    switch (message.type) {\n      case \"WELCOME\":\n        title = \"Welcome to EduMatch!\";\n        bodyText = `Welcome ${message.metadata?.firstName || \"User\"}! Your account has been created successfully.`;\n        url = \"/applicant-profile/create\";\n        break;\n      case \"PROFILE_CREATED\":\n        title = \"Profile Created Successfully!\";\n        bodyText = `Your ${message.metadata?.role || \"profile\"} profile has been created and is now live.`;\n        url = \"/profile/view\";\n        break;\n      case \"PAYMENT_DEADLINE\":\n        title = \"Payment Deadline Reminder\";\n        bodyText = `Your ${message.metadata?.planName || \"subscription\"} payment is due on ${message.metadata?.deadlineDate || \"soon\"}.`;\n        url = \"/pricing\";\n        break;\n      default:\n        title = \"New Notification\";\n        bodyText = \"You have a new notification from EduMatch.\";\n        break;\n    }\n\n    // Call your API to store notification\n    const response = await fetch(`${process.env.API_BASE_URL || 'https://your-app-url.com'}/api/notifications/store`, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({\n        id: message.id,\n        userId: message.userId,\n        type: message.type,\n        title,\n        bodyText,\n        url,\n        createAt: message.createAt || new Date().toISOString(),\n        queuedAt: message.queuedAt || new Date().toISOString(),\n        payload: message.metadata || {},\n      }),\n    });\n\n    if (!response.ok) {\n      throw new Error(`Failed to store notification: ${response.status}`);\n    }\n  } catch (error) {\n    console.error('❌ Error storing notification in database:', error);\n    throw error;\n  }\n}\n      "
+     "ZipFile": "\nconst { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');\n\nconst sqsClient = new SQSClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  for (const record of event.Records) {\n    try {\n      const message = JSON.parse(record.body);\n      \n      // Store notification in database\n      await storeNotificationInDatabase(message);\n      \n      // Forward message to email queue\n      const emailCommand = new SendMessageCommand({\n        QueueUrl: process.env.EMAILS_QUEUE_URL,\n        MessageBody: JSON.stringify(message),\n        MessageAttributes: {\n          Type: {\n            DataType: 'String',\n            StringValue: message.type,\n          },\n          UserEmail: {\n            DataType: 'String',\n            StringValue: message.userEmail,\n          },\n        },\n        MessageGroupId: message.userEmail,\n        MessageDeduplicationId: message.id,\n      });\n      \n      await sqsClient.send(emailCommand);\n      \n    } catch (error) {\n      console.error('Error processing notification:', error);\n      throw error; // This will trigger retry\n    }\n  }\n};\n\nasync function storeNotificationInDatabase(message) {\n  try {\n    // Create notification title and body based on type\n    let title = \"\";\n    let bodyText = \"\";\n    let url = \"/\";\n\n    switch (message.type) {\n      case \"WELCOME\":\n        title = \"Welcome to EduMatch!\";\n        bodyText = `Welcome ${message.metadata?.firstName || \"User\"}! Your account has been created successfully.`;\n        url = \"/profile/create\";\n        break;\n      case \"PROFILE_CREATED\":\n        title = \"Profile Created Successfully!\";\n        bodyText = `Your ${message.metadata?.role || \"profile\"} profile has been created and is now live.`;\n        url = \"/profile/view\";\n        break;\n      case \"PAYMENT_DEADLINE\":\n        title = \"Payment Deadline Reminder\";\n        bodyText = `Your ${message.metadata?.planName || \"subscription\"} payment is due on ${message.metadata?.deadlineDate || \"soon\"}.`;\n        url = \"/pricing\";\n        break;\n      default:\n        title = \"New Notification\";\n        bodyText = \"You have a new notification from EduMatch.\";\n        break;\n    }\n\n    // Call your API to store notification\n    const response = await fetch(`${process.env.API_BASE_URL || 'https://your-app-url.com'}/api/notifications/store`, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({\n        id: message.id,\n        userId: message.userId,\n        type: message.type,\n        title,\n        bodyText,\n        url,\n        createAt: message.createAt || new Date().toISOString(),\n        queuedAt: message.queuedAt || new Date().toISOString(),\n        payload: message.metadata || {},\n      }),\n    });\n\n    if (!response.ok) {\n      throw new Error(`Failed to store notification: ${response.status}`);\n    }\n  } catch (error) {\n    console.error('❌ Error storing notification in database:', error);\n    throw error;\n  }\n}\n      "
     },
     "Environment": {
      "Variables": {
@@ -745,7 +745,7 @@
       "ApiId"
      ]
     },
-    "Expires": 1792185858
+    "Expires": 1793966571
    },
    "DependsOn": [
     "EduMatchMessagingApiSchema41540462"
@@ -1492,10 +1492,101 @@
     "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/GetUnreadCountResolver/Resource"
    }
   },
+  "WishlistDeadlineCronLogGroupE76C266E": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineCronLogGroup/Resource"
+   }
+  },
+  "WishlistDeadlineCron419D9359": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst https = require('https');\nconst http = require('http');\n\nexports.handler = async (event) => {\n  console.log('🔄 Starting wishlist deadline cron job...');\n  console.log('📦 Event received:', JSON.stringify(event, null, 2));\n  \n  const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';\n  const cronSecret = process.env.CRON_SECRET;\n  \n  console.log('📍 API URL:', apiUrl);\n  console.log('🔑 CRON_SECRET set:', !!cronSecret);\n  \n  if (!cronSecret) {\n    console.warn('⚠️ WARNING: CRON_SECRET not set in Lambda environment variables!');\n    console.warn('⚠️ The API endpoint may reject the request if CRON_SECRET is required.');\n  }\n  \n  try {\n    const url = new URL(apiUrl + '/api/cron/wishlist-deadlines');\n    const headers = {\n      'Content-Type': 'application/json',\n    };\n    \n    // Only add Authorization header if CRON_SECRET is set\n    if (cronSecret) {\n      headers['Authorization'] = `Bearer ${cronSecret}`;\n    }\n    \n    const options = {\n      method: 'POST',\n      headers: headers,\n      timeout: 30000, // 30 seconds\n    };\n    \n    const response = await new Promise((resolve, reject) => {\n      const client = url.protocol === 'https:' ? https : http;\n      \n      const req = client.request(url, options, (res) => {\n        let data = '';\n        \n        res.on('data', (chunk) => {\n          data += chunk;\n        });\n        \n        res.on('end', () => {\n          resolve({\n            statusCode: res.statusCode,\n            headers: res.headers,\n            body: data,\n          });\n        });\n      });\n      \n      req.on('error', (error) => {\n        reject(error);\n      });\n      \n      req.on('timeout', () => {\n        req.destroy();\n        reject(new Error('Request timeout'));\n      });\n      \n      req.end();\n    });\n    \n    console.log('📊 Response status:', response.statusCode);\n    console.log('📊 Response headers:', JSON.stringify(response.headers, null, 2));\n    console.log('📊 Response body length:', response.body ? response.body.length : 0);\n    console.log('📊 Response body preview (first 200 chars):', response.body ? response.body.substring(0, 200) : 'empty');\n    \n    // Check if response is HTML (404 or error page) - check before parsing\n    const bodyStr = response.body || '';\n    const trimmedBody = bodyStr.trim();\n    \n    if (trimmedBody && (trimmedBody.startsWith('<!DOCTYPE') || trimmedBody.startsWith('<html') || trimmedBody.startsWith('<!doctype'))) {\n      console.error('❌ API returned HTML instead of JSON - likely 404 or error page');\n      console.error('❌ Response status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`API endpoint returned HTML (likely 404). Status: ${response.statusCode}. The route /api/cron/wishlist-deadlines does not exist or is not deployed. Please deploy your Next.js app to include this route.`);\n    }\n    \n    // Check if status code indicates error\n    if (response.statusCode >= 400) {\n      console.error('❌ API returned error status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`API endpoint returned error status ${response.statusCode}. Response: ${trimmedBody.substring(0, 200)}`);\n    }\n    \n    let result;\n    try {\n      result = JSON.parse(bodyStr);\n    } catch (parseError) {\n      console.error('❌ Failed to parse response body as JSON');\n      console.error('❌ Response status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`Failed to parse API response as JSON: ${parseError.message}. Response might be HTML or invalid JSON. Status: ${response.statusCode}`);\n    }\n    \n    if (response.statusCode === 200) {\n      console.log('✅ Cron job executed successfully:', JSON.stringify(result, null, 2));\n      return {\n        statusCode: 200,\n        body: JSON.stringify({\n          success: true,\n          message: 'Wishlist deadline cron job completed',\n          result,\n        }),\n      };\n    } else {\n      console.error('❌ API returned error:', response.statusCode, result);\n      throw new Error(`API returned ${response.statusCode}: ${JSON.stringify(result)}`);\n    }\n  } catch (error) {\n    console.error('❌ Error executing cron job:', error);\n    console.error('❌ Error stack:', error.stack);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "API_BASE_URL": "https://dev.d1jaxpbx3axxsh.amplifyapp.com",
+      "CRON_SECRET": ""
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "WishlistDeadlineCronLogGroupE76C266E"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineCron/Resource"
+   }
+  },
+  "WishlistDeadlineRuleFF2DFDA3": {
+   "Type": "AWS::Events::Rule",
+   "Properties": {
+    "Description": "Trigger wishlist deadline notifications daily at 9 AM UTC",
+    "ScheduleExpression": "cron(0 9 * * ? *)",
+    "State": "ENABLED",
+    "Targets": [
+     {
+      "Arn": {
+       "Fn::GetAtt": [
+        "WishlistDeadlineCron419D9359",
+        "Arn"
+       ]
+      },
+      "Id": "Target0"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineRule/Resource"
+   }
+  },
+  "WishlistDeadlineRuleAllowEventRuleEduMatchNotificationStackWishlistDeadlineCron0FAC1353CACB6C43": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "WishlistDeadlineCron419D9359",
+      "Arn"
+     ]
+    },
+    "Principal": "events.amazonaws.com",
+    "SourceArn": {
+     "Fn::GetAtt": [
+      "WishlistDeadlineRuleFF2DFDA3",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineRule/AllowEventRuleEduMatchNotificationStackWishlistDeadlineCron0FAC1353"
+   }
+  },
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WQQW7DIBBFz5I9nsbeZRnVbRZx1cTuvhpj6pBgIAYcWYi7V+CmStXVvP++gBEFFPkG1iu8mYx2l0zwFnxjkV4I3synN1cD/uiYY+T5SyYIhOMAvlYiuTQPSnA6x7hQIEL1Bnyl+t2onI7NnQMROLQdgn91klquZGx/+WVi0jbKjZS9odZc9rH+bwPpZomD6lrwH9guyyQIBLU2s6TgdyPq01VsNY9tSsfqb2roiQ0YxVbzPZtJma4t2xItLi/G8iFVaf0HUTOjxMTG9B0/HELS9+PvzmpnA5GqY3A2T1NRQJ7DenU2nGejk5YPDOplfgM96q/SlQEAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/22QQW/CMAyFfwv34EFvO6J14wDToN19clOvBNIkNAmoivLfp6QwMWknf++9yI5dQLF8hsUMr3bO29NcigZC7ZCfGF7tV7BnC2HvyRN7+VYZIhPYQ6i0zF6uOy0FH5OcKDKpOwthq7v1oL1JyZ0jk9g3LUJ484o7oVVKf/n1QsrV2g+c3tEYoboU/+/uaOiFtUKryNpRYa/bBsInNtPXMkSGxthRcQjrAc3hLFdGpDSr/favqvmBekzGyogNjazMbcumRIfT/BQ+qG1e5sGoyGp5oSEf58aRUVrAQqj87WxeUoz58b3ph3fGu8iUbgmO9ulSFLBcwmJ2tELMB6+c6Amqqf4Ab5RBAbkBAAA="
    },
    "Metadata": {
     "aws:cdk:path": "EduMatchNotificationStack/CDKMetadata/Default"
@@ -1585,6 +1676,30 @@
    },
    "Export": {
     "Name": "EduMatch-ThreadsTableName"
+   }
+  },
+  "WishlistDeadlineCronArn": {
+   "Description": "Wishlist Deadline Cron Lambda ARN",
+   "Value": {
+    "Fn::GetAtt": [
+     "WishlistDeadlineCron419D9359",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-WishlistDeadlineCronArn"
+   }
+  },
+  "WishlistDeadlineRuleArn": {
+   "Description": "EventBridge Rule ARN for Wishlist Deadline Cron",
+   "Value": {
+    "Fn::GetAtt": [
+     "WishlistDeadlineRuleFF2DFDA3",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-WishlistDeadlineRuleArn"
    }
   }
  },

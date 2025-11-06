@@ -253,6 +253,24 @@ export class ApiService {
 		const response = await apiClient.get("/api/subdisciplines");
 		return response.data;
 	}
+
+	// Notification settings endpoints
+	static async getNotificationSettings() {
+		const response = await apiClient.get("/api/notification-settings");
+		return response.data;
+	}
+
+	static async updateNotificationSettings(settings: {
+		applicationStatus: boolean;
+		wishlistDeadline: boolean;
+		payment: boolean;
+	}) {
+		const response = await apiClient.put(
+			"/api/notification-settings",
+			settings
+		);
+		return response.data;
+	}
 }
 
 // Cache management utilities

@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
 import { Eye, EyeOff } from 'lucide-react'
+import { ApiService } from '@/services/api/axios-config'
 
 interface SettingsSectionProps {
 	profile: any
@@ -17,9 +18,54 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 		wishlistDeadline: true,
 		payment: true,
 	})
+	const [loading, setLoading] = useState(true)
+	const [saving, setSaving] = useState(false)
 
-	const handleNotificationChange = (key: string, value: boolean) => {
-		setNotifications((prev) => ({ ...prev, [key]: value }))
+	// Fetch notification settings on mount
+	useEffect(() => {
+		const fetchNotificationSettings = async () => {
+			try {
+				setLoading(true)
+				const response = await ApiService.getNotificationSettings()
+				if (response.success && response.settings) {
+					setNotifications({
+						applicationStatus: response.settings.applicationStatus ?? true,
+						wishlistDeadline: response.settings.wishlistDeadline ?? true,
+						payment: response.settings.payment ?? true,
+					})
+				}
+			} catch (error) {
+				console.error('Failed to fetch notification settings:', error)
+				// Keep default values on error
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		fetchNotificationSettings()
+	}, [])
+
+	const handleNotificationChange = async (key: string, value: boolean) => {
+		// Optimistically update UI
+		const updatedNotifications = { ...notifications, [key]: value }
+		setNotifications(updatedNotifications)
+
+		// Save to database
+		try {
+			setSaving(true)
+			await ApiService.updateNotificationSettings({
+				applicationStatus: updatedNotifications.applicationStatus,
+				wishlistDeadline: updatedNotifications.wishlistDeadline,
+				payment: updatedNotifications.payment,
+			})
+		} catch (error) {
+			console.error('Failed to update notification settings:', error)
+			// Revert on error
+			setNotifications(notifications)
+			alert('Failed to update notification settings. Please try again.')
+		} finally {
+			setSaving(false)
+		}
 	}
 
 	const handleDeleteAccount = () => {
@@ -48,7 +94,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 							</label>
 							<input
 								type="email"
-								value="Example123@gmail.com"
+								value={profile?.user?.email || ''}
 								readOnly
 								className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 							/>
@@ -93,83 +139,92 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 						Notification Preferences
 					</h2>
 
-					<div className="space-y-6 mt-6">
-						{/* Application Status Updates */}
-						<div className="flex items-center justify-between">
-							<div className="flex-1">
-								<h3 className="text-lg font-medium text-gray-900">
-									Application status updates
-								</h3>
-								<p className="text-gray-600 text-sm mt-1">
-									Get notified when your application status changes through
-									email
-								</p>
-							</div>
-							<label className="relative inline-flex items-center cursor-pointer">
-								<input
-									type="checkbox"
-									checked={notifications.applicationStatus}
-									onChange={(e) =>
-										handleNotificationChange(
-											'applicationStatus',
-											e.target.checked
-										)
-									}
-									className="sr-only peer"
-								/>
-								<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-							</label>
+					{loading ? (
+						<div className="flex items-center justify-center py-8">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
 						</div>
+					) : (
+						<div className="space-y-6 mt-6">
+							{/* Application Status Updates */}
+							<div className="flex items-center justify-between">
+								<div className="flex-1">
+									<h3 className="text-lg font-medium text-gray-900">
+										Application status updates
+									</h3>
+									<p className="text-gray-600 text-sm mt-1">
+										Get notified when your application status changes through
+										email
+									</p>
+								</div>
+								<label className="relative inline-flex items-center cursor-pointer">
+									<input
+										type="checkbox"
+										checked={notifications.applicationStatus}
+										onChange={(e) =>
+											handleNotificationChange(
+												'applicationStatus',
+												e.target.checked
+											)
+										}
+										disabled={saving}
+										className="sr-only peer"
+									/>
+									<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-disabled:opacity-50"></div>
+								</label>
+							</div>
 
-						{/* Deadline for Wishlist Items */}
-						<div className="flex items-center justify-between">
-							<div className="flex-1">
-								<h3 className="text-lg font-medium text-gray-900">
-									Deadline for wishlist items
-								</h3>
-								<p className="text-gray-600 text-sm mt-1">
-									Get email notifications when events in your wishlist are about
-									to expire
-								</p>
+							{/* Deadline for Wishlist Items */}
+							<div className="flex items-center justify-between">
+								<div className="flex-1">
+									<h3 className="text-lg font-medium text-gray-900">
+										Deadline for wishlist items
+									</h3>
+									<p className="text-gray-600 text-sm mt-1">
+										Get email notifications when events in your wishlist are
+										about to expire
+									</p>
+								</div>
+								<label className="relative inline-flex items-center cursor-pointer">
+									<input
+										type="checkbox"
+										checked={notifications.wishlistDeadline}
+										onChange={(e) =>
+											handleNotificationChange(
+												'wishlistDeadline',
+												e.target.checked
+											)
+										}
+										disabled={saving}
+										className="sr-only peer"
+									/>
+									<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-disabled:opacity-50"></div>
+								</label>
 							</div>
-							<label className="relative inline-flex items-center cursor-pointer">
-								<input
-									type="checkbox"
-									checked={notifications.wishlistDeadline}
-									onChange={(e) =>
-										handleNotificationChange(
-											'wishlistDeadline',
-											e.target.checked
-										)
-									}
-									className="sr-only peer"
-								/>
-								<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-							</label>
-						</div>
 
-						{/* Payment */}
-						<div className="flex items-center justify-between">
-							<div className="flex-1">
-								<h3 className="text-lg font-medium text-gray-900">Payment</h3>
-								<p className="text-gray-600 text-sm mt-1">
-									Get email notifications 3 days before membership fee payment
-									is due
-								</p>
+							{/* Payment */}
+							<div className="flex items-center justify-between">
+								<div className="flex-1">
+									<h3 className="text-lg font-medium text-gray-900">Payment</h3>
+									<p className="text-gray-600 text-sm mt-1">
+										Get email notifications 3 days before membership fee payment
+										is due
+									</p>
+								</div>
+								<label className="relative inline-flex items-center cursor-pointer">
+									<input
+										type="checkbox"
+										checked={notifications.payment}
+										onChange={(e) =>
+											handleNotificationChange('payment', e.target.checked)
+										}
+										disabled={saving}
+										className="sr-only peer"
+									/>
+									<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-disabled:opacity-50"></div>
+								</label>
 							</div>
-							<label className="relative inline-flex items-center cursor-pointer">
-								<input
-									type="checkbox"
-									checked={notifications.payment}
-									onChange={(e) =>
-										handleNotificationChange('payment', e.target.checked)
-									}
-									className="sr-only peer"
-								/>
-								<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-							</label>
 						</div>
-					</div>
+					)}
 				</div>
 
 				{/* Delete Account Section */}

@@ -442,6 +442,14 @@ export class NotificationUtils {
 					}
 					url = "/applications";
 					break;
+				case "WISHLIST_DEADLINE":
+					title = `Deadline Approaching - ${message.metadata?.postTitle || "Wishlist Item"}`;
+					const daysRemaining = message.metadata?.daysRemaining || 0;
+					const daysText =
+						daysRemaining === 1 ? "1 day" : `${daysRemaining} days`;
+					bodyText = `⏰ Don't miss this opportunity! "${message.metadata?.postTitle || "An item in your wishlist"}" is approaching its deadline in ${daysText}. Make sure to submit your application before it expires!`;
+					url = `/explore/programs/program-detail?postId=${message.metadata?.postId || ""}`;
+					break;
 				default:
 					title = "New Notification";
 					bodyText = "You have a new notification from EduMatch.";
@@ -622,5 +630,38 @@ export class NotificationUtils {
 		};
 
 		await SQSService.sendNotification(message);
+	}
+
+	/**
+	 * Send a wishlist deadline notification
+	 */
+	static async sendWishlistDeadlineNotification(
+		userId: string,
+		userEmail: string,
+		postId: string,
+		postTitle: string,
+		deadlineDate: string,
+		daysRemaining: number,
+		institutionName?: string
+	): Promise<void> {
+		const message: NotificationMessage = {
+			id: `wishlist-deadline-${userId}-${postId}-${Date.now()}`,
+			type: NotificationType.WISHLIST_DEADLINE,
+			userId,
+			userEmail,
+			timestamp: new Date().toISOString(),
+			metadata: {
+				postId,
+				postTitle,
+				deadlineDate,
+				daysRemaining,
+				...(institutionName && { institutionName }),
+			},
+		};
+
+		await SQSService.sendNotification(message);
+
+		// Also store directly in database for immediate display
+		await this.storeNotificationDirectly(message);
 	}
 }

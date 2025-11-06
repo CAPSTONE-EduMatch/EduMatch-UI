@@ -12,7 +12,9 @@ import {
 	WelcomeMessage,
 	UserBannedMessage,
 	SessionRevokedMessage,
+	WishlistDeadlineMessage,
 } from "@/config/sqs-config";
+import { isNotificationEnabled } from "@/utils/notifications/notification-settings-helper";
 
 // Email service configuration
 const transporter = nodemailer.createTransport({
@@ -204,6 +206,78 @@ export class EmailTemplates {
           <p>If you have already made this payment, please ignore this email.</p>
           
           <p>Need help? Contact our support team at <a href="mailto:support@edumatch.com">support@edumatch.com</a></p>
+          
+          <p>Best regards,<br>The EduMatch Team</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 EduMatch. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+		return { subject, html };
+	}
+
+	/**
+	 * Generate wishlist deadline email template
+	 */
+	static generateWishlistDeadlineEmail(message: WishlistDeadlineMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		const deadlineDate = new Date(
+			metadata.deadlineDate
+		).toLocaleDateString();
+		const daysText =
+			metadata.daysRemaining === 1
+				? "1 day"
+				: `${metadata.daysRemaining} days`;
+		const subject = `Deadline Approaching - ${metadata.postTitle}`;
+
+		const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wishlist Deadline Reminder</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .warning-icon { font-size: 48px; color: #9C27B0; text-align: center; margin: 20px 0; }
+          .button { display: inline-block; background: #9C27B0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .deadline-box { background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #9C27B0; }
+          .days-remaining { font-size: 24px; font-weight: bold; color: #9C27B0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>⏰ Deadline Approaching</h1>
+        </div>
+        <div class="content">
+          <div class="warning-icon">📅</div>
+          <h2>Don't Miss This Opportunity!</h2>
+          <p>This is a friendly reminder that an opportunity in your wishlist is approaching its deadline.</p>
+          
+          <div class="deadline-box">
+            <p><strong>Opportunity Details:</strong></p>
+            <p><strong>Title:</strong> ${metadata.postTitle}</p>
+            ${metadata.institutionName ? `<p><strong>Institution:</strong> ${metadata.institutionName}</p>` : ""}
+            <p><strong>Deadline:</strong> <span class="days-remaining">${deadlineDate}</span></p>
+            <p><strong>Time Remaining:</strong> <span class="days-remaining">${daysText}</span></p>
+          </div>
+          
+          <p>Don't miss out on this opportunity! Make sure to submit your application before the deadline.</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || ""}/explore/programs/program-detail?postId=${metadata.postId}" class="button">View Opportunity</a>
+          </div>
+          
+          <p>If you've already applied or are no longer interested, you can remove this item from your wishlist.</p>
           
           <p>Best regards,<br>The EduMatch Team</p>
         </div>
@@ -704,11 +778,49 @@ export class EmailTemplates {
 export class EmailService {
 	/**
 	 * Send email based on notification message
+	 * Checks user notification settings before sending
 	 */
 	static async sendNotificationEmail(
 		message: NotificationMessage
 	): Promise<void> {
 		try {
+			// Check notification settings before sending email
+			let shouldSendEmail = true;
+
+			switch (message.type) {
+				case NotificationType.APPLICATION_STATUS_UPDATE:
+					shouldSendEmail = await isNotificationEnabled(
+						message.userId,
+						"application"
+					);
+					break;
+				case NotificationType.PAYMENT_DEADLINE:
+					shouldSendEmail = await isNotificationEnabled(
+						message.userId,
+						"subscription"
+					);
+					break;
+				case NotificationType.WISHLIST_DEADLINE:
+					shouldSendEmail = await isNotificationEnabled(
+						message.userId,
+						"wishlist"
+					);
+					break;
+				// Other notification types (WELCOME, PROFILE_CREATED, etc.) are always sent
+				default:
+					shouldSendEmail = true;
+			}
+
+			// If user has disabled this notification type, skip sending email
+			if (!shouldSendEmail) {
+				if (process.env.NODE_ENV === "development") {
+					console.log(
+						`⏭️ Skipping email for ${message.type} - user has disabled this notification type`
+					);
+				}
+				return;
+			}
+
 			let emailContent: { subject: string; html: string };
 
 			// Generate email content based on notification type
@@ -758,6 +870,11 @@ export class EmailService {
 				case NotificationType.SESSION_REVOKED:
 					emailContent = EmailTemplates.generateRevokeSessionEmail(
 						message as SessionRevokedMessage
+					);
+					break;
+				case NotificationType.WISHLIST_DEADLINE:
+					emailContent = EmailTemplates.generateWishlistDeadlineEmail(
+						message as WishlistDeadlineMessage
 					);
 					break;
 				default:

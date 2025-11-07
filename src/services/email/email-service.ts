@@ -6,6 +6,7 @@ import {
 	ProfileCreatedMessage,
 	PaymentDeadlineMessage,
 	ApplicationStatusMessage,
+	DocumentUpdatedMessage,
 	PaymentSuccessMessage,
 	PaymentFailedMessage,
 	SubscriptionExpiringMessage,
@@ -343,6 +344,66 @@ export class EmailTemplates {
           </div>
           
           <p>If you have any questions about this update, please don't hesitate to contact the institution directly or reach out to our support team.</p>
+          
+          <p>Best regards,<br>The EduMatch Team</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 EduMatch. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+		return { subject, html };
+	}
+
+	/**
+	 * Generate document updated email template
+	 */
+	static generateDocumentUpdatedEmail(message: DocumentUpdatedMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		const subject = `Document Updated - ${metadata.programName}`;
+
+		const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document Updated</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .info-icon { font-size: 48px; color: #9C27B0; text-align: center; margin: 20px 0; }
+          .button { display: inline-block; background: #9C27B0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Document Updated</h1>
+        </div>
+        <div class="content">
+          <div class="info-icon">📄</div>
+          <h2>New Documents Received</h2>
+          <p>An applicant has uploaded or updated required documents for their application to <strong>${metadata.programName}</strong>.</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #9C27B0;">
+            <p><strong>Application Details:</strong></p>
+            <p>Program: ${metadata.programName}</p>
+            <p>Applicant: ${metadata.applicantName}</p>
+            <p>Documents Updated: ${metadata.documentCount}</p>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/institution/dashboard/applications/${metadata.applicationId}" class="button">Review Application</a>
+          </div>
+          
+          <p>Please review the updated documents and take appropriate action on the application.</p>
           
           <p>Best regards,<br>The EduMatch Team</p>
         </div>
@@ -794,6 +855,12 @@ export class EmailService {
 						"application"
 					);
 					break;
+				case NotificationType.DOCUMENT_UPDATED:
+					shouldSendEmail = await isNotificationEnabled(
+						message.userId,
+						"wishlist"
+					);
+					break;
 				case NotificationType.PAYMENT_DEADLINE:
 					shouldSendEmail = await isNotificationEnabled(
 						message.userId,
@@ -845,6 +912,11 @@ export class EmailService {
 						EmailTemplates.generateApplicationStatusEmail(
 							message as ApplicationStatusMessage
 						);
+					break;
+				case NotificationType.DOCUMENT_UPDATED:
+					emailContent = EmailTemplates.generateDocumentUpdatedEmail(
+						message as DocumentUpdatedMessage
+					);
 					break;
 				case NotificationType.PAYMENT_SUCCESS:
 					emailContent = EmailTemplates.generatePaymentSuccessEmail(

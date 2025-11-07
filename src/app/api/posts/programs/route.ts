@@ -242,3 +242,202 @@ export async function POST(request: NextRequest) {
 		);
 	}
 }
+
+export async function PUT(request: NextRequest) {
+	try {
+		const body: CreateProgramRequest & { postId: string } =
+			await request.json();
+		const { postId, ...updateData } = body;
+
+		if (!postId) {
+			return NextResponse.json(
+				{ error: "Post ID is required for update" },
+				{ status: 400 }
+			);
+		}
+
+		// Get user from session
+		const { user } = await requireAuth();
+
+		// Get institution for the user
+		const institution = await prismaClient.institution.findUnique({
+			where: { user_id: user.id },
+		});
+
+		if (!institution) {
+			return NextResponse.json(
+				{ error: "Institution not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Verify the post belongs to this institution
+		const existingPost = await prismaClient.opportunityPost.findFirst({
+			where: {
+				post_id: postId,
+				institution_id: institution.institution_id,
+			},
+		});
+
+		if (!existingPost) {
+			return NextResponse.json(
+				{ error: "Post not found or access denied" },
+				{ status: 404 }
+			);
+		}
+
+		// Parse dates with validation
+		const startDate = new Date(updateData.startDate);
+		const applicationDeadline = new Date(updateData.applicationDeadline);
+
+		// Validate dates
+		if (isNaN(startDate.getTime())) {
+			return NextResponse.json(
+				{ error: "Invalid start date format" },
+				{ status: 400 }
+			);
+		}
+		if (isNaN(applicationDeadline.getTime())) {
+			return NextResponse.json(
+				{ error: "Invalid application deadline format" },
+				{ status: 400 }
+			);
+		}
+
+		// Update the opportunity post
+		await prismaClient.opportunityPost.update({
+			where: { post_id: postId },
+			data: {
+				title: updateData.programTitle,
+				start_date: startDate,
+				end_date: applicationDeadline,
+				location: updateData.location,
+				other_info: updateData.otherInformation.content,
+				degree_level: updateData.degreeLevel,
+				description: updateData.description,
+			},
+		});
+
+		// Update the program post
+		await prismaClient.programPost.update({
+			where: { post_id: postId },
+			data: {
+				duration: updateData.duration,
+				attendance: updateData.attendance,
+				course_include: updateData.courseInclude,
+				gpa: updateData.academicRequirements.gpa
+					? parseFloat(updateData.academicRequirements.gpa)
+					: null,
+				gre: updateData.academicRequirements.gre
+					? parseInt(updateData.academicRequirements.gre)
+					: null,
+				gmat: updateData.academicRequirements.gmat
+					? parseInt(updateData.academicRequirements.gmat)
+					: null,
+				tuition_fee: updateData.tuitionFee.international
+					? parseFloat(updateData.tuitionFee.international)
+					: null,
+				fee_description: updateData.tuitionFee.description,
+				scholarship_info: updateData.scholarship.information,
+				language_requirement:
+					updateData.languageRequirements.length > 0
+						? updateData.languageRequirements[0].language
+						: null,
+			},
+		});
+
+		// Delete existing certificates and recreate
+		await prismaClient.postCertificate.deleteMany({
+			where: { post_id: postId },
+		});
+
+		if (
+			updateData.languageRequirements &&
+			updateData.languageRequirements.length > 0
+		) {
+			for (const langReq of updateData.languageRequirements) {
+				if (langReq.language && langReq.certificate && langReq.score) {
+					await prismaClient.postCertificate.create({
+						data: {
+							certificate_id: `cert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							post_id: postId,
+							name: langReq.certificate,
+							score: langReq.score,
+						},
+					});
+				}
+			}
+		}
+
+		// Delete existing documents and recreate
+		await prismaClient.postDocument.deleteMany({
+			where: { post_id: postId },
+		});
+
+		if (
+			updateData.fileRequirements.fileName &&
+			updateData.fileRequirements.fileDescription
+		) {
+			let documentType = await prismaClient.documentType.findFirst({
+				where: { name: "Required Documents" },
+			});
+
+			if (!documentType) {
+				documentType = await prismaClient.documentType.create({
+					data: {
+						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						name: "Required Documents",
+						description: "Documents required for application",
+					},
+				});
+			}
+
+			await prismaClient.postDocument.create({
+				data: {
+					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					post_id: postId,
+					document_type_id: documentType.document_type_id,
+					name: updateData.fileRequirements.fileName,
+					description: updateData.fileRequirements.fileDescription,
+				},
+			});
+		}
+
+		// Delete existing subdisciplines and recreate
+		await prismaClient.postSubdiscipline.deleteMany({
+			where: { post_id: postId },
+		});
+
+		const subdiscipline = await prismaClient.subdiscipline.findFirst({
+			where: { name: updateData.subdiscipline },
+		});
+
+		if (subdiscipline) {
+			await prismaClient.postSubdiscipline.create({
+				data: {
+					subdiscipline_id: subdiscipline.subdiscipline_id,
+					post_id: postId,
+					add_at: new Date(),
+				},
+			});
+		}
+
+		return NextResponse.json({
+			success: true,
+			post: {
+				id: postId,
+				title: updateData.programTitle,
+			},
+		});
+	} catch (error) {
+		console.error("Error updating program post:", error);
+		return NextResponse.json(
+			{
+				error: "Failed to update program post",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
+	}
+}

@@ -45,6 +45,7 @@ export enum NotificationType {
 	PROFILE_CREATED = "PROFILE_CREATED",
 	PAYMENT_DEADLINE = "PAYMENT_DEADLINE",
 	APPLICATION_STATUS_UPDATE = "APPLICATION_STATUS_UPDATE",
+	DOCUMENT_UPDATED = "DOCUMENT_UPDATED",
 	PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
 	PAYMENT_FAILED = "PAYMENT_FAILED",
 	SUBSCRIPTION_EXPIRING = "SUBSCRIPTION_EXPIRING",
@@ -95,6 +96,17 @@ export interface ApplicationStatusMessage extends BaseNotificationMessage {
 		newStatus: string;
 		institutionName: string;
 		message?: string; // Optional message for REQUIRE_UPDATE status
+	};
+}
+
+export interface DocumentUpdatedMessage extends BaseNotificationMessage {
+	type: NotificationType.DOCUMENT_UPDATED;
+	metadata: {
+		applicationId: string;
+		programName: string;
+		applicantName: string;
+		institutionName: string;
+		documentCount: number;
 	};
 }
 
@@ -176,6 +188,7 @@ export type NotificationMessage =
 	| ProfileCreatedMessage
 	| PaymentDeadlineMessage
 	| ApplicationStatusMessage
+	| DocumentUpdatedMessage
 	| PaymentSuccessMessage
 	| PaymentFailedMessage
 	| SubscriptionExpiringMessage

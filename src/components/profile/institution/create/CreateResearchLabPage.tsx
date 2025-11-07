@@ -18,12 +18,17 @@ import { ApiService } from '@/services/api/axios-config'
 interface CreateResearchLabPageProps {
 	onBack?: () => void
 	onSubmit?: (data: any) => void
+	initialData?: any
+	editId?: string
 }
 
 export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	onBack,
 	onSubmit,
+	initialData,
+	editId,
 }) => {
+	const isEditMode = !!editId && !!initialData
 	const router = useRouter()
 	// State for subdisciplines loaded from database
 	const [subdisciplines, setSubdisciplines] = useState<
@@ -45,6 +50,82 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		}
 		loadSubdisciplines()
 	}, [])
+
+	// Populate form with initialData when in edit mode
+	useEffect(() => {
+		if (initialData && isEditMode) {
+			// Helper to format date from API format to dd/mm/yyyy
+			const formatDateForInput = (dateString: string | Date | null) => {
+				if (!dateString) return ''
+				const date = new Date(dateString)
+				const day = date.getDate().toString().padStart(2, '0')
+				const month = (date.getMonth() + 1).toString().padStart(2, '0')
+				const year = date.getFullYear()
+				return `${day}/${month}/${year}`
+			}
+
+			// Get research fields from initialData
+			// researchFields is an array of strings in the API response
+			const researchFields = Array.isArray(initialData.researchFields)
+				? initialData.researchFields
+				: []
+
+			setFormData({
+				jobName: initialData.title || '',
+				startDate: formatDateForInput(initialData.startDate),
+				applicationDeadline: formatDateForInput(
+					initialData.applicationDeadline || initialData.date
+				),
+				country: initialData.country || initialData.location || '',
+				researchFields: researchFields,
+				typeOfContract: initialData.contractType || '',
+				attendance: initialData.attendance || '',
+				jobType: initialData.jobType || '',
+				salary: {
+					min: initialData.salary?.split('-')[0]?.replace('$', '').trim() || '',
+					max: initialData.salary?.split('-')[1]?.replace('$', '').trim() || '',
+					description: initialData.salaryDescription || '',
+				},
+				benefit: initialData.benefit || '',
+				mainResponsibility: initialData.mainResponsibility || '',
+				qualificationRequirement: initialData.qualificationRequirement || '',
+				experienceRequirement: initialData.experienceRequirement || '',
+				assessmentCriteria: initialData.assessmentCriteria || '',
+				otherRequirement: initialData.otherRequirement || '',
+				labDescription: initialData.description || '',
+				labType: initialData.labType || '',
+				researchFocus: initialData.researchFocus || '',
+				labCapacity: initialData.labCapacity?.toString() || '',
+				labFacilities: initialData.labFacilities || '',
+				researchAreas: initialData.researchAreas || '',
+				researchRequirements: {
+					academicBackground: initialData.academicBackground || '',
+					researchExperience: initialData.researchExperience || '',
+					technicalSkills: initialData.technicalSkills || '',
+				},
+				applicationRequirements: {
+					documents: initialData.applicationDocuments || '',
+					researchProposal: initialData.researchProposal || '',
+					recommendations: initialData.recommendations || '',
+				},
+				labInformation: {
+					director: initialData.labDirector || '',
+					contactEmail: initialData.labContactEmail || '',
+					website: initialData.labWebsite || '',
+				},
+				fileRequirements: {
+					fileName:
+						initialData.requiredDocuments?.[0]?.name || 'Required Documents',
+					fileDescription:
+						initialData.requiredDocuments?.[0]?.description || '',
+				},
+				additionalInformation: {
+					content: initialData.otherInfo || '',
+				},
+			})
+		}
+	}, [initialData, isEditMode])
+
 	const [formData, setFormData] = useState({
 		// Overview Section
 		jobName: 'International Business and Intercultural Management',
@@ -177,6 +258,7 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [createdResult, setCreatedResult] = useState<any>(null)
 
 	const handleInputChange = (field: string, value: any) => {
 		setFormData((prev) => ({
@@ -254,30 +336,45 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 			}
 
+			const requestBody = {
+				...formData,
+				startDate: convertDateFormat(formData.startDate),
+				applicationDeadline: convertDateFormat(formData.applicationDeadline),
+				status: status,
+				...(isEditMode && editId && { postId: editId }),
+			}
+
 			const response = await fetch('/api/posts/research', {
-				method: 'POST',
+				method: isEditMode ? 'PUT' : 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({
-					...formData,
-					startDate: convertDateFormat(formData.startDate),
-					applicationDeadline: convertDateFormat(formData.applicationDeadline),
-					status: status,
-				}),
+				body: JSON.stringify(requestBody),
 			})
 
 			if (!response.ok) {
-				throw new Error('Failed to create research lab post')
+				const errorData = await response.json()
+				throw new Error(
+					errorData.error ||
+						(isEditMode
+							? 'Failed to update research lab post'
+							: 'Failed to create research lab post')
+				)
 			}
 
 			const result = await response.json()
-			console.log('Research lab post created:', result)
+			console.log(
+				isEditMode
+					? 'Research lab post updated:'
+					: 'Research lab post created:',
+				result
+			)
 
-			// Call the onSubmit callback with the result
-			onSubmit?.(result)
+			// Store result for onSubmit callback
+			setCreatedResult(result)
 
 			// Show success modal
+			// onSubmit will be called when modal closes
 			setShowSuccessModal(true)
 		} catch (error) {
 			console.error('Error creating research lab post:', error)
@@ -296,7 +393,7 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-primary mb-2">
-						Create Research Lab
+						{isEditMode ? 'Edit Research Lab' : 'Create Research Lab'}
 					</h1>
 				</div>
 				{onBack && (
@@ -763,10 +860,20 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				isOpen={showSuccessModal}
 				onClose={() => {
 					setShowSuccessModal(false)
-					router.replace('/explore?tab=programmes')
+					// If onSubmit callback is provided, use it (stays on programs page)
+					// Otherwise, redirect to explore (for backward compatibility)
+					if (onSubmit) {
+						onSubmit(createdResult)
+					} else {
+						router.replace('/explore?tab=programmes')
+					}
 				}}
 				title="Success!"
-				message="Your research lab post has been created successfully."
+				message={
+					isEditMode
+						? 'Your research lab post has been updated successfully.'
+						: 'Your research lab post has been created successfully.'
+				}
 				buttonText="Continue"
 			/>
 

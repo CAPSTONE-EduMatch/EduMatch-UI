@@ -15,10 +15,7 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
-export async function GET(
-	request: NextRequest,
-	{ params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
 		const id = searchParams.get("id");
@@ -31,10 +28,10 @@ export async function GET(
 		}
 
 		// Query the opportunity post with scholarship data
+		// Note: Not filtering by status to allow institutions to view their own scholarships regardless of status
 		const post = await prismaClient.opportunityPost.findUnique({
 			where: {
 				post_id: id,
-				status: "PUBLISHED", // Only fetch published scholarships
 			},
 			include: {
 				institution: {
@@ -96,12 +93,17 @@ export async function GET(
 				: "",
 			daysLeft,
 			amount: scholarshipData?.grant || "N/A",
+			awardAmount: scholarshipData?.award_amount
+				? scholarshipData.award_amount.toString()
+				: "",
 			match,
 			applicationCount: post.applications.length,
 			type: scholarshipData?.type || "",
 			number: scholarshipData?.number || 0,
 			scholarshipCoverage: scholarshipData?.scholarship_coverage || "",
 			eligibility: scholarshipData?.eligibility || "",
+			awardDuration: scholarshipData?.award_duration || "",
+			renewable: scholarshipData?.renewable ? "Yes" : "No",
 			location: post.location || "",
 			startDate: post.start_date
 				? new Date(post.start_date).toLocaleDateString("en-US", {
@@ -137,6 +139,7 @@ export async function GET(
 				id: sd.subdiscipline?.subdiscipline_id,
 				name: sd.subdiscipline?.name || "",
 			})),
+			status: post.status || "DRAFT",
 		};
 
 		return NextResponse.json(

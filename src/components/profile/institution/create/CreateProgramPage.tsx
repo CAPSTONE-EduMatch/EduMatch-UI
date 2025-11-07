@@ -18,23 +18,19 @@ import { ApiService } from '@/services/api/axios-config'
 interface CreateProgramPageProps {
 	onBack?: () => void
 	onSubmit?: () => void
+	initialData?: any
+	editId?: string
 }
 
 export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	onBack,
 	onSubmit,
+	initialData,
+	editId,
 }) => {
+	const isEditMode = !!editId && !!initialData
 	const router = useRouter()
 
-	// Handle back navigation with URL cleanup
-	const handleBack = () => {
-		// Remove action and type from URL when going back
-		const url = new URL(window.location.href)
-		url.searchParams.delete('action')
-		url.searchParams.delete('type')
-		router.replace(url.pathname + url.search, { scroll: false })
-		onBack?.()
-	}
 	// State for subdisciplines loaded from database
 	const [subdisciplines, setSubdisciplines] = useState<
 		Array<{ value: string; label: string; discipline: string }>
@@ -60,6 +56,83 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}
 		loadSubdisciplines()
 	}, [])
+
+	// Populate form with initialData when in edit mode
+	useEffect(() => {
+		if (initialData && isEditMode) {
+			// Helper to format date from API format to dd/mm/yyyy
+			const formatDateForInput = (dateString: string | Date | null) => {
+				if (!dateString) return ''
+				const date = new Date(dateString)
+				const day = date.getDate().toString().padStart(2, '0')
+				const month = (date.getMonth() + 1).toString().padStart(2, '0')
+				const year = date.getFullYear()
+				return `${day}/${month}/${year}`
+			}
+
+			// Get subdiscipline name from initialData
+			const subdisciplineName =
+				initialData.subdiscipline?.[0]?.name ||
+				initialData.subdiscipline?.[0]?.subdisciplineName ||
+				initialData.fields?.[0]?.name ||
+				''
+
+			// Get language requirements from certificates
+			const languageRequirements =
+				initialData.program?.certificates?.map((cert: any) => ({
+					language: cert.language || 'English',
+					certificate: cert.name || '',
+					score: cert.score || '',
+				})) || []
+
+			setFormData({
+				programTitle: initialData.title || '',
+				startDate: formatDateForInput(
+					initialData.startDate || initialData.program?.startDate
+				),
+				applicationDeadline: formatDateForInput(
+					initialData.endDate || initialData.program?.endDate
+				),
+				subdiscipline: subdisciplineName,
+				duration: initialData.program?.duration || '',
+				degreeLevel:
+					initialData.program?.degreeLevel || initialData.degreeLevel || '',
+				attendance: initialData.program?.attendance || '',
+				location: initialData.location || '',
+				courseInclude: initialData.program?.courseInclude || '',
+				description: initialData.description || '',
+				academicRequirements: {
+					gpa: initialData.program?.gpa?.toString() || '',
+					gre: initialData.program?.gre?.toString() || '',
+					gmat: initialData.program?.gmat?.toString() || '',
+				},
+				languageRequirements:
+					languageRequirements.length > 0
+						? languageRequirements
+						: [
+								{
+									language: 'English',
+									certificate: 'IELTS',
+									score: '7.0',
+								},
+							],
+				fileRequirements: {
+					fileName: initialData.documents?.[0]?.name || 'Required Documents',
+					fileDescription: initialData.documents?.[0]?.description || '',
+				},
+				tuitionFee: {
+					international: initialData.program?.tuitionFee?.toString() || '',
+					description: initialData.program?.feeDescription || '',
+				},
+				scholarship: {
+					information: initialData.program?.scholarshipInfo || '',
+				},
+				otherInformation: {
+					content: initialData.otherInfo || '',
+				},
+			})
+		}
+	}, [initialData, isEditMode])
 
 	const [formData, setFormData] = useState({
 		// Overview Section
@@ -368,42 +441,58 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 			}
 
+			const requestBody = {
+				...formData,
+				startDate: convertDateFormat(formData.startDate),
+				applicationDeadline: convertDateFormat(formData.applicationDeadline),
+				status: status,
+				...(isEditMode && editId && { postId: editId }),
+			}
+
 			const response = await fetch('/api/posts/programs', {
-				method: 'POST',
+				method: isEditMode ? 'PUT' : 'POST',
 				credentials: 'include', // Include cookies for authentication
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({
-					...formData,
-					startDate: convertDateFormat(formData.startDate),
-					applicationDeadline: convertDateFormat(formData.applicationDeadline),
-					status: status,
-				}),
+				body: JSON.stringify(requestBody),
 			})
 
 			if (!response.ok) {
 				const errorData = await response.json()
-				throw new Error(errorData.error || 'Failed to create program post')
+				throw new Error(
+					errorData.error ||
+						(isEditMode
+							? 'Failed to update program post'
+							: 'Failed to create program post')
+				)
 			}
 
 			const result = await response.json()
 			// eslint-disable-next-line no-console
-			console.log('Program post created:', result)
-
-			// Call the onSubmit callback
-			onSubmit?.()
+			console.log(
+				isEditMode ? 'Program post updated:' : 'Program post created:',
+				result
+			)
 
 			// Show success modal
+			// onSubmit will be called when modal closes
 			setShowSuccessModal(true)
 		} catch (error) {
 			// eslint-disable-next-line no-console
-			console.error('Error creating program post:', error)
+			console.error(
+				isEditMode
+					? 'Error updating program post:'
+					: 'Error creating program post:',
+				error
+			)
 			// Show specific error message to user
 			const errorMsg =
 				error instanceof Error
 					? error.message
-					: 'Failed to create program post. Please try again.'
+					: isEditMode
+						? 'Failed to update program post. Please try again.'
+						: 'Failed to create program post. Please try again.'
 			setErrorMessage(errorMsg)
 			setShowErrorModal(true)
 		}
@@ -414,7 +503,9 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 			{/* Page Header */}
 			<div className="flex items-center justify-between">
 				<div>
-					<h1 className="text-2xl font-bold text-primary mb-2">Create Post</h1>
+					<h1 className="text-2xl font-bold text-primary mb-2">
+						{isEditMode ? 'Edit Program' : 'Create Program'}
+					</h1>
 				</div>
 				{onBack && (
 					<Button
@@ -1095,10 +1186,20 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 				isOpen={showSuccessModal}
 				onClose={() => {
 					setShowSuccessModal(false)
-					router.replace('/explore?tab=programmes')
+					// If onSubmit callback is provided, use it (stays on programs page)
+					// Otherwise, redirect to explore (for backward compatibility)
+					if (onSubmit) {
+						onSubmit()
+					} else {
+						router.replace('/explore?tab=programmes')
+					}
 				}}
 				title="Success!"
-				message="Your program post has been created successfully."
+				message={
+					isEditMode
+						? 'Your program post has been updated successfully.'
+						: 'Your program post has been created successfully.'
+				}
 				buttonText="Continue"
 			/>
 

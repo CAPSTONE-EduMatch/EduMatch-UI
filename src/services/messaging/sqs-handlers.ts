@@ -157,6 +157,14 @@ export class SQSMessageHandler {
 			// Import prisma client dynamically to avoid circular dependencies
 			const { prismaClient } = await import("../../../prisma");
 
+			// Determine user role to set appropriate URLs
+			const user = await prismaClient.user.findUnique({
+				where: { id: message.userId },
+				select: { role_id: true },
+			});
+
+			const isInstitution = user?.role_id === "2";
+
 			// Create notification title and body based on type
 			let title = "";
 			let bodyText = "";
@@ -171,12 +179,16 @@ export class SQSMessageHandler {
 				case "PROFILE_CREATED":
 					title = "Profile Created Successfully!";
 					bodyText = `Your ${message.metadata?.role || "profile"} profile has been created and is now live.`;
-					url = "/profile/view";
+					url = isInstitution
+						? "/institution/dashboard/profile"
+						: "/profile/view";
 					break;
 				case "PAYMENT_DEADLINE":
 					title = "Payment Deadline Reminder";
 					bodyText = `Your ${message.metadata?.planName || "subscription"} payment is due on ${message.metadata?.deadlineDate || "soon"}.`;
-					url = "/pricing";
+					url = isInstitution
+						? "/institution/dashboard/payment"
+						: "/pricing";
 					break;
 				case "APPLICATION_STATUS_UPDATE":
 					title = `Application Status Update - ${message.metadata?.programName || "Your Application"}`;
@@ -187,31 +199,59 @@ export class SQSMessageHandler {
 						message.metadata?.institutionName || "the institution";
 					const customMessage = message.metadata?.message;
 
-					switch (status) {
-						case "accepted":
-							bodyText = `🎉 Congratulations! Your application for "${message.metadata?.programName || "the program"}" has been approved by ${institutionName}. They will contact you soon with next steps.`;
-							break;
-						case "rejected":
-							bodyText = `Your application for "${message.metadata?.programName || "the program"}" was not selected by ${institutionName} this time. Don't give up - there are many other opportunities available!`;
-							break;
-						case "require_update":
-							if (customMessage) {
-								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information. Message: ${customMessage}`;
-							} else {
-								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information or updates. Please check your messages for details.`;
-							}
-							break;
-						case "submitted":
-							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been submitted and is currently being reviewed by ${institutionName}. We'll notify you as soon as there are any updates.`;
-							break;
-						case "updated":
-							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been updated. The institution will review your changes.`;
-							break;
-						default:
-							bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
-							break;
+					if (isInstitution) {
+						// Institution receiving notification about new application
+						switch (status) {
+							case "submitted":
+								bodyText = `📝 New application received for "${message.metadata?.programName || "your program"}" from an applicant. Please review the application.`;
+								url = `/institution/dashboard/applications/${message.metadata?.applicationId || ""}`;
+								break;
+							default:
+								bodyText = `Application status for "${message.metadata?.programName || "your program"}" has been updated.`;
+								url = `/institution/dashboard/applications/${message.metadata?.applicationId || ""}`;
+								break;
+						}
+					} else {
+						// Applicant receiving notification about their application
+						switch (status) {
+							case "accepted":
+								bodyText = `🎉 Congratulations! Your application for "${message.metadata?.programName || "the program"}" has been approved by ${institutionName}. They will contact you soon with next steps.`;
+								break;
+							case "rejected":
+								bodyText = `Your application for "${message.metadata?.programName || "the program"}" was not selected by ${institutionName} this time. Don't give up - there are many other opportunities available!`;
+								break;
+							case "require_update":
+								if (customMessage) {
+									bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information. Message: ${customMessage}`;
+								} else {
+									bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information or updates. Please check your messages for details.`;
+								}
+								break;
+							case "submitted":
+								bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been submitted and is currently being reviewed by ${institutionName}. We'll notify you as soon as there are any updates.`;
+								break;
+							case "updated":
+								bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been updated. The institution will review your changes.`;
+								break;
+							default:
+								bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
+								break;
+						}
+						url = "/applications";
 					}
-					url = "/applications";
+					break;
+				case "DOCUMENT_UPDATED":
+					title = `Document Updated - ${message.metadata?.programName || "Application"}`;
+					bodyText = `📄 ${message.metadata?.applicantName || "An applicant"} has uploaded or updated ${message.metadata?.documentCount || 0} document(s) for their application to "${message.metadata?.programName || "the program"}". Please review the updated documents.`;
+					url = `/institution/dashboard/applications/${message.metadata?.applicationId || ""}`;
+					break;
+				case "WISHLIST_DEADLINE":
+					title = `Deadline Approaching - ${message.metadata?.postTitle || "Wishlist Item"}`;
+					const daysRemaining = message.metadata?.daysRemaining || 0;
+					const daysText =
+						daysRemaining === 1 ? "1 day" : `${daysRemaining} days`;
+					bodyText = `⏰ Don't miss this opportunity! "${message.metadata?.postTitle || "An item in your wishlist"}" is approaching its deadline in ${daysText}. Make sure to submit your application before it expires!`;
+					url = `/explore/programs/program-detail?postId=${message.metadata?.postId || ""}`;
 					break;
 				default:
 					title = "New Notification";
@@ -386,6 +426,14 @@ export class NotificationUtils {
 			// Import prisma client dynamically to avoid circular dependencies
 			const { prismaClient } = await import("../../../prisma");
 
+			// Determine user role to set appropriate URLs
+			const user = await prismaClient.user.findUnique({
+				where: { id: message.userId },
+				select: { role_id: true },
+			});
+
+			const isInstitution = user?.role_id === "2";
+
 			// Create notification title and body based on type
 			let title = "";
 			let bodyText = "";
@@ -400,12 +448,16 @@ export class NotificationUtils {
 				case "PROFILE_CREATED":
 					title = "Profile Created Successfully!";
 					bodyText = `Your ${message.metadata?.role || "profile"} profile has been created and is now live.`;
-					url = "/profile/view";
+					url = isInstitution
+						? "/institution/dashboard/profile"
+						: "/profile/view";
 					break;
 				case "PAYMENT_DEADLINE":
 					title = "Payment Deadline Reminder";
 					bodyText = `Your ${message.metadata?.planName || "subscription"} payment is due on ${message.metadata?.deadlineDate || "soon"}.`;
-					url = "/pricing";
+					url = isInstitution
+						? "/institution/dashboard/payment"
+						: "/pricing";
 					break;
 				case "APPLICATION_STATUS_UPDATE":
 					title = `Application Status Update - ${message.metadata?.programName || "Your Application"}`;
@@ -416,31 +468,51 @@ export class NotificationUtils {
 						message.metadata?.institutionName || "the institution";
 					const customMessage = message.metadata?.message;
 
-					switch (status) {
-						case "accepted":
-							bodyText = `🎉 Congratulations! Your application for "${message.metadata?.programName || "the program"}" has been approved by ${institutionName}. They will contact you soon with next steps.`;
-							break;
-						case "rejected":
-							bodyText = `Your application for "${message.metadata?.programName || "the program"}" was not selected by ${institutionName} this time. Don't give up - there are many other opportunities available!`;
-							break;
-						case "require_update":
-							if (customMessage) {
-								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information. Message: ${customMessage}`;
-							} else {
-								bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information or updates. Please check your messages for details.`;
-							}
-							break;
-						case "submitted":
-							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been submitted and is currently being reviewed by ${institutionName}. We'll notify you as soon as there are any updates.`;
-							break;
-						case "updated":
-							bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been updated. The institution will review your changes.`;
-							break;
-						default:
-							bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
-							break;
+					if (isInstitution) {
+						// Institution receiving notification about new application
+						switch (status) {
+							case "submitted":
+								bodyText = `📝 New application received for "${message.metadata?.programName || "your program"}" from an applicant. Please review the application.`;
+								url = `/institution/dashboard/applications/${message.metadata?.applicationId || ""}`;
+								break;
+							default:
+								bodyText = `Application status for "${message.metadata?.programName || "your program"}" has been updated.`;
+								url = `/institution/dashboard/applications/${message.metadata?.applicationId || ""}`;
+								break;
+						}
+					} else {
+						// Applicant receiving notification about their application
+						switch (status) {
+							case "accepted":
+								bodyText = `🎉 Congratulations! Your application for "${message.metadata?.programName || "the program"}" has been approved by ${institutionName}. They will contact you soon with next steps.`;
+								break;
+							case "rejected":
+								bodyText = `Your application for "${message.metadata?.programName || "the program"}" was not selected by ${institutionName} this time. Don't give up - there are many other opportunities available!`;
+								break;
+							case "require_update":
+								if (customMessage) {
+									bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information. Message: ${customMessage}`;
+								} else {
+									bodyText = `📋 Action Required: ${institutionName} has reviewed your application for "${message.metadata?.programName || "the program"}" and requires additional information or updates. Please check your messages for details.`;
+								}
+								break;
+							case "submitted":
+								bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been submitted and is currently being reviewed by ${institutionName}. We'll notify you as soon as there are any updates.`;
+								break;
+							case "updated":
+								bodyText = `Your application for "${message.metadata?.programName || "the program"}" has been updated. The institution will review your changes.`;
+								break;
+							default:
+								bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
+								break;
+						}
+						url = "/applications";
 					}
-					url = "/applications";
+					break;
+				case "DOCUMENT_UPDATED":
+					title = `Document Updated - ${message.metadata?.programName || "Application"}`;
+					bodyText = `📄 ${message.metadata?.applicantName || "An applicant"} has uploaded or updated ${message.metadata?.documentCount || 0} document(s) for their application to "${message.metadata?.programName || "the program"}". Please review the updated documents.`;
+					url = `/institution/dashboard/applications/${message.metadata?.applicationId || ""}`;
 					break;
 				case "WISHLIST_DEADLINE":
 					title = `Deadline Approaching - ${message.metadata?.postTitle || "Wishlist Item"}`;
@@ -630,6 +702,39 @@ export class NotificationUtils {
 		};
 
 		await SQSService.sendNotification(message);
+	}
+
+	/**
+	 * Send a document updated notification
+	 */
+	static async sendDocumentUpdateNotification(
+		userId: string,
+		userEmail: string,
+		applicationId: string,
+		programName: string,
+		applicantName: string,
+		institutionName: string,
+		documentCount: number
+	): Promise<void> {
+		const message: NotificationMessage = {
+			id: `document-updated-${userId}-${Date.now()}`,
+			type: NotificationType.DOCUMENT_UPDATED,
+			userId,
+			userEmail,
+			timestamp: new Date().toISOString(),
+			metadata: {
+				applicationId,
+				programName,
+				applicantName,
+				institutionName,
+				documentCount,
+			},
+		};
+
+		await SQSService.sendNotification(message);
+
+		// Also store directly in database for immediate display
+		await this.storeNotificationDirectly(message);
 	}
 
 	/**

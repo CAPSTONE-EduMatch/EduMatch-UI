@@ -17,13 +17,18 @@ import { ApiService } from '@/services/api/axios-config'
 
 interface CreateScholarshipPageProps {
 	onBack?: () => void
-	onSubmit?: (data: any) => void
+	onSubmit?: () => void
+	initialData?: any
+	editId?: string
 }
 
 export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 	onBack,
 	onSubmit,
+	initialData,
+	editId,
 }) => {
+	const isEditMode = !!editId && !!initialData
 	const router = useRouter()
 	// State for subdisciplines loaded from database
 	const [subdisciplines, setSubdisciplines] = useState<
@@ -45,6 +50,67 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 		}
 		loadSubdisciplines()
 	}, [])
+
+	// Populate form with initialData when in edit mode
+	useEffect(() => {
+		if (initialData && isEditMode) {
+			// Helper to format date from API format to dd/mm/yyyy
+			const formatDateForInput = (dateString: string | Date | null) => {
+				if (!dateString) return ''
+				const date = new Date(dateString)
+				const day = date.getDate().toString().padStart(2, '0')
+				const month = (date.getMonth() + 1).toString().padStart(2, '0')
+				const year = date.getFullYear()
+				return `${day}/${month}/${year}`
+			}
+
+			// Get subdisciplines from initialData
+			const subdisciplineNames =
+				initialData.subdisciplines?.map((sd: any) => sd.name) || []
+
+			// Parse eligibility requirements
+			const eligibilityParts =
+				initialData.eligibility?.split('; ').filter(Boolean) || []
+			const academicMerit = eligibilityParts[0] || ''
+			const financialNeed = eligibilityParts[1] || ''
+			const otherCriteria = eligibilityParts[2] || ''
+
+			setFormData({
+				scholarshipName: initialData.title || '',
+				startDate: formatDateForInput(initialData.startDate),
+				applicationDeadline: formatDateForInput(
+					initialData.date || initialData.applicationDeadline
+				),
+				subdisciplines: subdisciplineNames,
+				country: initialData.country || initialData.location || '',
+				scholarshipDescription: initialData.description || '',
+				scholarshipType: initialData.type || '',
+				numberOfScholarships: initialData.number?.toString() || '1',
+				grant: initialData.amount || initialData.scholarshipCoverage || '',
+				scholarshipCoverage: initialData.scholarshipCoverage || '',
+				eligibilityRequirements: {
+					academicMerit,
+					financialNeed,
+					otherCriteria,
+				},
+				fileRequirements: {
+					fileName:
+						initialData.requiredDocuments?.[0]?.name || 'Required Documents',
+					fileDescription:
+						initialData.requiredDocuments?.[0]?.description || '',
+				},
+				awardDetails: {
+					amount: initialData.awardAmount || initialData.amount || '',
+					duration: initialData.awardDuration || '',
+					renewable: initialData.renewable || 'No',
+				},
+				additionalInformation: {
+					content: initialData.otherInfo || '',
+				},
+			})
+		}
+	}, [initialData, isEditMode])
+
 	const [formData, setFormData] = useState({
 		// Overview Section
 		scholarshipName: 'Merit Scholarship for International Students',
@@ -166,25 +232,37 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 			}
 
+			const requestBody = {
+				...formData,
+				startDate: convertDateFormat(formData.startDate),
+				applicationDeadline: convertDateFormat(formData.applicationDeadline),
+				status: status,
+				...(isEditMode && editId && { postId: editId }),
+			}
+
 			const response = await fetch('/api/posts/scholarships', {
-				method: 'POST',
+				method: isEditMode ? 'PUT' : 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({
-					...formData,
-					startDate: convertDateFormat(formData.startDate),
-					applicationDeadline: convertDateFormat(formData.applicationDeadline),
-					status: status,
-				}),
+				body: JSON.stringify(requestBody),
 			})
 
 			if (!response.ok) {
-				throw new Error('Failed to create scholarship post')
+				const errorData = await response.json()
+				throw new Error(
+					errorData.error ||
+						(isEditMode
+							? 'Failed to update scholarship post'
+							: 'Failed to create scholarship post')
+				)
 			}
 
 			const result = await response.json()
-			console.log('Scholarship post created:', result)
+			console.log(
+				isEditMode ? 'Scholarship post updated:' : 'Scholarship post created:',
+				result
+			)
 
 			// Defer navigation until modal is closed
 			setCreatedResult(result)
@@ -206,7 +284,7 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-primary mb-2">
-						Create Scholarship
+						{isEditMode ? 'Edit Scholarship' : 'Create Scholarship'}
 					</h1>
 				</div>
 				{onBack && (
@@ -679,11 +757,20 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 				isOpen={showSuccessModal}
 				onClose={() => {
 					setShowSuccessModal(false)
-					// Navigate to parent Programs and replace history
-					router.replace('/explore?tab=programmes')
+					// If onSubmit callback is provided, use it (stays on programs page)
+					// Otherwise, redirect to explore (for backward compatibility)
+					if (onSubmit) {
+						onSubmit()
+					} else {
+						router.replace('/explore?tab=programmes')
+					}
 				}}
 				title="Success!"
-				message="Your scholarship post has been created successfully."
+				message={
+					isEditMode
+						? 'Your scholarship post has been updated successfully.'
+						: 'Your scholarship post has been created successfully.'
+				}
 				buttonText="Continue"
 			/>
 

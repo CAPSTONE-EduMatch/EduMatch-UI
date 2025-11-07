@@ -20,9 +20,6 @@ export async function GET(request: NextRequest) {
 		const { searchParams } = new URL(request.url);
 		const id = searchParams.get("id");
 
-		// eslint-disable-next-line no-console
-		console.log("API called with ID:", id); // Debug log
-
 		if (!id) {
 			return NextResponse.json(
 				{ message: "Research Lab ID is required" },
@@ -31,10 +28,10 @@ export async function GET(request: NextRequest) {
 		}
 
 		// Query the opportunity post with job data for research lab
+		// Note: Not filtering by status to allow institutions to view their own research labs regardless of status
 		const post = await prismaClient.opportunityPost.findUnique({
 			where: {
 				post_id: id,
-				status: "PUBLISHED", // Only fetch published research labs
 			},
 			include: {
 				institution: {
@@ -66,11 +63,6 @@ export async function GET(request: NextRequest) {
 				},
 			},
 		});
-
-		// eslint-disable-next-line no-console
-		console.log("Found post:", post ? "Yes" : "No"); // Debug log
-		// eslint-disable-next-line no-console
-		console.log("Has jobPost:", post?.jobPost ? "Yes" : "No"); // Debug log
 
 		if (!post || !post.jobPost) {
 			return NextResponse.json(
@@ -189,6 +181,7 @@ export async function GET(request: NextRequest) {
 				id: sd.subdiscipline?.subdiscipline_id,
 				name: sd.subdiscipline?.name || "",
 			})),
+			status: post.status || "DRAFT",
 		};
 
 		return NextResponse.json(

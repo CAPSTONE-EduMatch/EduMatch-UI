@@ -1,17 +1,17 @@
-import { stripe } from "@better-auth/stripe";
-import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, emailOTP, oneTap, customSession } from "better-auth/plugins";
-import dotenv from "dotenv";
-import nodeMailer from "nodemailer";
-import Stripe from "stripe";
-import { prismaClient } from "../../prisma";
-import { redisClient } from "@/config/redis";
 import {
 	checkOTPRateLimitByType,
 	recordOTPAttemptByType,
 	type OTPType,
 } from "@/config/otp-rate-limit";
+import { redisClient } from "@/config/redis";
+import { stripe } from "@better-auth/stripe";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { admin, customSession, emailOTP, oneTap } from "better-auth/plugins";
+import dotenv from "dotenv";
+import nodeMailer from "nodemailer";
+import Stripe from "stripe";
+import { prismaClient } from "../../prisma";
 dotenv.config();
 
 // Validate required environment variables
@@ -167,6 +167,32 @@ export const auth = betterAuth({
 							applications: 25,
 							scholarships: 100,
 							programs: 75,
+						},
+					},
+					{
+						name: "institution_monthly",
+						priceId:
+							process.env.STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
+							process.env
+								.NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
+							"price_1InstitutionMonthly",
+						limits: {
+							applications: 999999,
+							scholarships: 999999,
+							programs: 999999,
+						},
+					},
+					{
+						name: "institution_yearly",
+						priceId:
+							process.env.STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
+							process.env
+								.NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
+							"price_1InstitutionYearly",
+						limits: {
+							applications: 999999,
+							scholarships: 999999,
+							programs: 999999,
 						},
 					},
 				],

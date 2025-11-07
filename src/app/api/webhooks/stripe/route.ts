@@ -12,13 +12,14 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 // Map Stripe price IDs to plan names
 const PRICE_TO_PLAN_MAPPING = {
-	price_1SFXgR1f58RNYg0098jAKotV: "standard",
-	price_1S4fZ61f58RNYg00FWakIrLm: "premium",
-	// Add fallback for environment variables
-	[process.env.STRIPE_STANDARD_PRICE_ID || ""]: "standard",
-	[process.env.STRIPE_PREMIUM_PRICE_ID || ""]: "premium",
-	[process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID || ""]: "standard",
-	[process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID || ""]: "premium",
+	[process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID ||
+	"price_1SFXgR1f58RNYg0098jAKotV"]: "standard",
+	[process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ||
+	"price_1S4fZ61f58RNYg00FWakIrLm"]: "premium",
+	[process.env.NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
+	"price_1InstitutionMonthly"]: "institution_monthly",
+	[process.env.NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
+	"price_1InstitutionYearly"]: "institution_yearly",
 } as const;
 
 // Helper function to get plan name from subscription

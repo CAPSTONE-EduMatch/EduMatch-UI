@@ -1,10 +1,19 @@
 'use client'
 
 import { BillingPortalCard } from '@/components/payment/BillingPortalCard'
-import { SubscriptionFeaturesCard } from '@/components/payment/SubscriptionFeaturesCard'
+import { InstitutionPaymentSection } from '@/components/payment/InstitutionPaymentSection'
+import { InstitutionSubscriptionFeaturesCard } from '@/components/payment/InstitutionSubscriptionFeaturesCard'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { motion } from 'framer-motion'
 
 export default function PaymentPage() {
+	const { subscriptions } = useSubscription()
+
+	// Check if user has an active subscription
+	const hasActiveSubscription = subscriptions.some(
+		(sub) => sub.status === 'active'
+	)
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 20 }}
@@ -13,16 +22,24 @@ export default function PaymentPage() {
 			transition={{ duration: 0.3 }}
 			className="space-y-8"
 		>
-			<div>
-				<h1 className="text-3xl font-bold text-gray-900 mb-2">
-					My Subscription
-				</h1>
-				<p className="text-gray-600">
-					Manage your subscription plan and billing through Stripe
-				</p>
-			</div>
-			<SubscriptionFeaturesCard />
-			<BillingPortalCard />
+			{/* Show payment completion section if no active subscription */}
+			{!hasActiveSubscription ? (
+				<InstitutionPaymentSection />
+			) : (
+				<>
+					{/* Show subscription management if already subscribed */}
+					<div>
+						<h1 className="text-3xl font-bold text-gray-900 mb-2">
+							My Subscription
+						</h1>
+						<p className="text-gray-600">
+							Manage your subscription plan and billing through Stripe
+						</p>
+					</div>
+					<InstitutionSubscriptionFeaturesCard />
+					<BillingPortalCard />
+				</>
+			)}
 		</motion.div>
 	)
 }

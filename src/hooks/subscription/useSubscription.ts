@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
 import { authClient } from "@/config/auth-client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 
 export interface Subscription {
@@ -42,13 +42,25 @@ const PLAN_HIERARCHY = {
 	free: 0,
 	standard: 1,
 	premium: 2,
+	institution_monthly: 3,
+	institution_yearly: 4,
 } as const;
 
 // Map plan names to Stripe price IDs
 // IMPORTANT: Update these with your actual Stripe price IDs from your Stripe Dashboard
 const PLAN_PRICE_MAPPING = {
-	standard: "price_1SFXgR1f58RNYg0098jAKotV", // Your actual standard plan price ID
-	premium: "price_1S4fZ61f58RNYg00FWakIrLm", // Your actual premium plan price ID
+	standard:
+		process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID ||
+		"price_1SFXgR1f58RNYg0098jAKotV",
+	premium:
+		process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ||
+		"price_1S4fZ61f58RNYg00FWakIrLm",
+	institution_monthly:
+		process.env.NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
+		"price_1InstitutionMonthly",
+	institution_yearly:
+		process.env.NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
+		"price_1InstitutionYearly",
 } as const;
 
 export function useSubscription(): SubscriptionHook {
@@ -152,13 +164,30 @@ export function useSubscription(): SubscriptionHook {
 				);
 			}
 
+			// Determine redirect URLs based on current context and plan type
+			const isInstitutionPlan = planId.startsWith("institution_");
+			const isOnInstitutionPage =
+				window.location.pathname.includes("/institution");
+			const baseUrl = window.location.origin;
+
+			// If it's an institution plan OR user is on institution pages, redirect to institution dashboard
+			const shouldRedirectToInstitution =
+				isInstitutionPlan || isOnInstitutionPage;
+
+			const successUrl = shouldRedirectToInstitution
+				? `${baseUrl}/institution/dashboard/payment?success=true`
+				: `${baseUrl}/pricing?success=true`;
+			const cancelUrl = shouldRedirectToInstitution
+				? `${baseUrl}/institution/dashboard/payment?canceled=true`
+				: `${baseUrl}/pricing?canceled=true`;
+
 			// Prepare upgrade parameters for Checkout Session
 			// Always create a new subscription via Checkout Session to avoid Customer Portal issues
 			const upgradeParams: any = {
 				plan: planId,
 				// price: priceId, // Add the Stripe price ID
-				successUrl: `${window.location.origin}/pricing?success=true`,
-				cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+				successUrl,
+				cancelUrl,
 			};
 
 			// If user has an existing subscription, we need to handle the upgrade differently
@@ -244,10 +273,18 @@ export function useSubscription(): SubscriptionHook {
 		try {
 			setError(null);
 
+			// Determine return URL based on current context
+			const isOnInstitutionPage =
+				window.location.pathname.includes("/institution");
+			const baseUrl = window.location.origin;
+			const returnUrl = isOnInstitutionPage
+				? `${baseUrl}/institution/dashboard/payment`
+				: `${baseUrl}/pricing`;
+
 			// Use the authClient to cancel subscription
 			const { error } = await authClient.subscription.cancel({
 				subscriptionId,
-				returnUrl: `${window.location.origin}/pricing`,
+				returnUrl,
 			});
 
 			if (error) {

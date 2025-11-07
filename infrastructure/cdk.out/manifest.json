@@ -18,7 +18,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-deploy-role-555225979596-ap-northeast-1",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::555225979596:role/cdk-hnb659fds-cfn-exec-role-555225979596-ap-northeast-1",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-555225979596-ap-northeast-1/0d1e611c3a3e655a7ac8f35805e3a4d91c152d05f7ca161e051e9c1f609b99f9.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-555225979596-ap-northeast-1/63d79697d4ca5bf14e2b7c89877694dd0fc671ae31e1bacb2c050ba0eab7fd6c.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -364,6 +364,30 @@
             "data": "EduMatchMessagingApiGetUnreadCountResolverBF0F926F"
           }
         ],
+        "/EduMatchNotificationStack/WishlistDeadlineCronLogGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WishlistDeadlineCronLogGroupE76C266E"
+          }
+        ],
+        "/EduMatchNotificationStack/WishlistDeadlineCron/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WishlistDeadlineCron419D9359"
+          }
+        ],
+        "/EduMatchNotificationStack/WishlistDeadlineRule/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WishlistDeadlineRuleFF2DFDA3"
+          }
+        ],
+        "/EduMatchNotificationStack/WishlistDeadlineRule/AllowEventRuleEduMatchNotificationStackWishlistDeadlineCron0FAC1353": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WishlistDeadlineRuleAllowEventRuleEduMatchNotificationStackWishlistDeadlineCron0FAC1353CACB6C43"
+          }
+        ],
         "/EduMatchNotificationStack/NotificationsQueueUrl": [
           {
             "type": "aws:cdk:logicalId",
@@ -410,6 +434,18 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ThreadsTableName"
+          }
+        ],
+        "/EduMatchNotificationStack/WishlistDeadlineCronArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WishlistDeadlineCronArn"
+          }
+        ],
+        "/EduMatchNotificationStack/WishlistDeadlineRuleArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WishlistDeadlineRuleArn"
           }
         ],
         "/EduMatchNotificationStack/CDKMetadata/Default": [

@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 		const search = searchParams.get("search") || "";
 		const status = searchParams.get("status") || "all";
 		const sortBy = searchParams.get("sortBy") || "newest";
+		const postId = searchParams.get("postId") || "";
 		const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
 		const limit = Math.max(
 			1,
@@ -44,6 +45,11 @@ export async function GET(request: NextRequest) {
 				institution_id: institution.institution_id,
 			},
 		};
+
+		// Add postId filter if provided (to filter applications for a specific post)
+		if (postId && postId.trim()) {
+			whereClause.post.post_id = postId;
+		}
 
 		// Add status filter - handle multiple statuses from comma-separated string
 		if (status !== "all" && status.trim()) {

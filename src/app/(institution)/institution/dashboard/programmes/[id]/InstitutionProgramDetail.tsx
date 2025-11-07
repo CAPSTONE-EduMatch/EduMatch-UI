@@ -600,13 +600,15 @@ const InstitutionProgramDetail = () => {
 						</p>
 
 						<div className="flex items-center gap-3 mb-4">
-							<Button
-								onClick={handleEditProgram}
-								variant="outline"
-								className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-							>
-								Edit Program
-							</Button>
+							{currentProgram?.status === 'DRAFT' && (
+								<Button
+									onClick={handleEditProgram}
+									variant="outline"
+									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+								>
+									Edit Program
+								</Button>
+							)}
 							<span
 								className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
 							>

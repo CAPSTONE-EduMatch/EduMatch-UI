@@ -34,17 +34,22 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		'Program' | 'Scholarship' | 'Research Lab' | null
 	>(null)
 
-	// Check if we're in create mode via URL parameter (only for programs tab)
+	// Check if we're in create or edit mode via URL parameter
 	const currentTab = searchParams.get('tab')
-	const isCreateMode =
-		currentTab === 'programs' && searchParams.get('action') === 'create'
-	const createType = isCreateMode
-		? (searchParams.get('type') as
-				| 'Program'
-				| 'Scholarship'
-				| 'Research Lab'
-				| null)
-		: null
+	const action = searchParams.get('action')
+	const editId = searchParams.get('id')
+	const isCreateMode = action === 'create'
+	const isEditMode = action === 'edit' && editId
+	const createType =
+		isCreateMode || isEditMode
+			? (searchParams.get('type') as
+					| 'Program'
+					| 'Scholarship'
+					| 'Research Lab'
+					| null)
+			: null
+	const [editData, setEditData] = useState<any>(null)
+	const [loadingEditData, setLoadingEditData] = useState(false)
 	const [posts, setPosts] = useState<Post[]>([])
 	const [stats, setStats] = useState({
 		total: 0,
@@ -103,16 +108,51 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		fetchPosts()
 	}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+	// Load edit data when in edit mode
+	useEffect(() => {
+		const loadEditData = async () => {
+			if (isEditMode && editId && createType) {
+				setLoadingEditData(true)
+				try {
+					let apiUrl = ''
+					if (createType === 'Program') {
+						apiUrl = `/api/explore/programs/program-detail?id=${editId}`
+					} else if (createType === 'Scholarship') {
+						apiUrl = `/api/explore/scholarships/scholarship-detail?id=${editId}`
+					} else if (createType === 'Research Lab') {
+						apiUrl = `/api/explore/research/research-detail?id=${editId}`
+					}
+
+					if (apiUrl) {
+						const response = await fetch(apiUrl)
+						const result = await response.json()
+						if (result.success && result.data) {
+							setEditData(result.data)
+						}
+					}
+				} catch (error) {
+					console.error('Failed to load edit data:', error)
+				} finally {
+					setLoadingEditData(false)
+				}
+			} else {
+				setEditData(null)
+			}
+		}
+
+		loadEditData()
+	}, [isEditMode, editId, createType])
+
 	// Sync URL parameters with component state
 	useEffect(() => {
-		if (isCreateMode && createType) {
+		if ((isCreateMode || isEditMode) && createType) {
 			setCreateFormType(createType)
 			setShowCreateForm(true)
 		} else {
 			setShowCreateForm(false)
 			setCreateFormType(null)
 		}
-	}, [isCreateMode, createType])
+	}, [isCreateMode, isEditMode, createType])
 
 	// Listen for browser back/forward navigation
 	useEffect(() => {
@@ -228,15 +268,17 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	}
 
 	const handleBackToList = () => {
-		// Remove create parameters from URL using Next.js router
+		// Remove create/edit parameters from URL using Next.js router
 		const url = new URL(window.location.href)
 		url.searchParams.delete('action')
 		url.searchParams.delete('type')
+		url.searchParams.delete('id')
 		// Use router.push to update URL without full page reload
 		router.push(url.pathname)
 		// Update local state
 		setShowCreateForm(false)
 		setCreateFormType(null)
+		setEditData(null)
 	}
 
 	const handleCreateSubmit = () => {
@@ -246,13 +288,31 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		fetchPosts()
 	}
 
-	// Show create form if active (for all types including Program)
+	// Show loading state when loading edit data
+	if (loadingEditData) {
+		return (
+			<div className="space-y-6">
+				<div className="rounded-xl p-6 w-full py-8">
+					<div className="flex items-center justify-center h-64">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+							<p className="mt-4 text-muted-foreground">Loading data...</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Show create/edit form if active (for all types including Program)
 	if (showCreateForm && createFormType) {
 		if (createFormType === 'Program') {
 			return (
 				<CreateProgramPage
 					onBack={handleBackToList}
 					onSubmit={handleCreateSubmit}
+					initialData={isEditMode ? editData : undefined}
+					editId={isEditMode ? editId : undefined}
 				/>
 			)
 		}
@@ -261,6 +321,8 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 				<CreateScholarshipPage
 					onBack={handleBackToList}
 					onSubmit={handleCreateSubmit}
+					initialData={isEditMode ? editData : undefined}
+					editId={isEditMode ? editId : undefined}
 				/>
 			)
 		}
@@ -269,6 +331,8 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 				<CreateResearchLabPage
 					onBack={handleBackToList}
 					onSubmit={handleCreateSubmit}
+					initialData={isEditMode ? editData : undefined}
+					editId={isEditMode ? editId : undefined}
 				/>
 			)
 		}

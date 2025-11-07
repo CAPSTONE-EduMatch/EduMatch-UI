@@ -155,7 +155,7 @@ export async function POST(
 				"@/services/messaging/sqs-handlers"
 			);
 
-			// Get institution info
+			// Get institution info and applicant info
 			const institutionInfo =
 				await prismaClient.opportunityPost.findUnique({
 					where: { post_id: application.post_id },
@@ -168,15 +168,33 @@ export async function POST(
 					},
 				});
 
-			if (institutionInfo?.institution?.user) {
-				await NotificationUtils.sendApplicationStatusNotification(
+			const applicantInfo = await prismaClient.application.findUnique({
+				where: { application_id: params.applicationId },
+				include: {
+					applicant: {
+						include: {
+							user: true,
+						},
+					},
+				},
+			});
+
+			if (
+				institutionInfo?.institution?.user &&
+				applicantInfo?.applicant
+			) {
+				const applicantName =
+					`${applicantInfo.applicant.first_name || ""} ${applicantInfo.applicant.last_name || ""}`.trim() ||
+					"Applicant";
+
+				await NotificationUtils.sendDocumentUpdateNotification(
 					institutionInfo.institution.user.id,
 					institutionInfo.institution.user.email || "",
 					params.applicationId,
 					institutionInfo.title || "Application",
-					"REQUIRE_UPDATE",
-					"UPDATED",
-					institutionInfo.institution.name
+					applicantName,
+					institutionInfo.institution.name,
+					applicationDetails.length
 				);
 			}
 		} catch (notificationError) {

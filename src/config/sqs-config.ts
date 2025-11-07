@@ -45,12 +45,14 @@ export enum NotificationType {
 	PROFILE_CREATED = "PROFILE_CREATED",
 	PAYMENT_DEADLINE = "PAYMENT_DEADLINE",
 	APPLICATION_STATUS_UPDATE = "APPLICATION_STATUS_UPDATE",
+	DOCUMENT_UPDATED = "DOCUMENT_UPDATED",
 	PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
 	PAYMENT_FAILED = "PAYMENT_FAILED",
 	SUBSCRIPTION_EXPIRING = "SUBSCRIPTION_EXPIRING",
 	WELCOME = "WELCOME",
 	USER_BANNED = "USER_BANNED",
 	SESSION_REVOKED = "SESSION_REVOKED",
+	WISHLIST_DEADLINE = "WISHLIST_DEADLINE",
 }
 
 // Base notification message structure
@@ -94,6 +96,17 @@ export interface ApplicationStatusMessage extends BaseNotificationMessage {
 		newStatus: string;
 		institutionName: string;
 		message?: string; // Optional message for REQUIRE_UPDATE status
+	};
+}
+
+export interface DocumentUpdatedMessage extends BaseNotificationMessage {
+	type: NotificationType.DOCUMENT_UPDATED;
+	metadata: {
+		applicationId: string;
+		programName: string;
+		applicantName: string;
+		institutionName: string;
+		documentCount: number;
 	};
 }
 
@@ -159,17 +172,30 @@ export interface SessionRevokedMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface WishlistDeadlineMessage extends BaseNotificationMessage {
+	type: NotificationType.WISHLIST_DEADLINE;
+	metadata: {
+		postId: string;
+		postTitle: string;
+		deadlineDate: string;
+		daysRemaining: number;
+		institutionName?: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
 	| PaymentDeadlineMessage
 	| ApplicationStatusMessage
+	| DocumentUpdatedMessage
 	| PaymentSuccessMessage
 	| PaymentFailedMessage
 	| SubscriptionExpiringMessage
 	| WelcomeMessage
 	| UserBannedMessage
-	| SessionRevokedMessage;
+	| SessionRevokedMessage
+	| WishlistDeadlineMessage;
 
 // SQS Service class
 export class SQSService {

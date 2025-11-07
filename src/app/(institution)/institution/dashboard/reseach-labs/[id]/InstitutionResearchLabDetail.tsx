@@ -103,18 +103,37 @@ const InstitutionResearchLabDetail = () => {
 
 	// Transform applications to match Applicant interface
 	const transformApplications = (apps: any[]): Applicant[] => {
-		return apps.map((app) => ({
-			id: app.id,
-			postId: app.postId || (params.id as string),
-			name: app.name || 'Unknown',
-			appliedDate: app.appliedDate || formatDate(new Date()),
-			degreeLevel: app.degreeLevel || 'Unknown',
-			subDiscipline: app.subDiscipline || 'Unknown',
-			status: app.status?.toLowerCase() || 'submitted',
-			matchingScore: app.matchingScore || Math.floor(Math.random() * 30) + 70,
-			userId: app.userId,
-			gpa: app.snapshotData?.gpa || app.gpa || undefined,
-		}))
+		if (!Array.isArray(apps)) {
+			return []
+		}
+
+		return apps.map((app) => {
+			return {
+				id: app.id || app.application_id || '',
+				postId: app.postId || app.post_id || (params.id as string),
+				name: app.name || 'Unknown',
+				appliedDate:
+					app.appliedDate || app.applied_date || formatDate(new Date()),
+				degreeLevel: app.degreeLevel || app.degree_level || 'Unknown',
+				subDiscipline:
+					app.subDiscipline ||
+					app.sub_discipline ||
+					app.subdiscipline ||
+					'Unknown',
+				status: (app.status?.toLowerCase() || 'submitted') as
+					| 'submitted'
+					| 'under_review'
+					| 'accepted'
+					| 'rejected'
+					| 'new_request',
+				matchingScore:
+					app.matchingScore ||
+					app.matching_score ||
+					Math.floor(Math.random() * 30) + 70,
+				userId: app.userId || app.user_id,
+				gpa: app.snapshotData?.gpa || app.gpa || undefined,
+			}
+		})
 	}
 
 	// Fetch applications for this research lab
@@ -124,10 +143,22 @@ const InstitutionResearchLabDetail = () => {
 			const response = await fetch(
 				`/api/applications/institution?postId=${researchLabId}&page=1&limit=100`
 			)
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`)
+			}
+
 			const data = await response.json()
 
-			if (data.success && data.applications) {
-				const transformed = transformApplications(data.applications)
+			// The API returns applications in data.data, not data.applications
+			const applications = data.data || []
+
+			if (
+				data.success &&
+				Array.isArray(applications) &&
+				applications.length > 0
+			) {
+				const transformed = transformApplications(applications)
 				setTransformedApplicants(transformed)
 				// For suggested applicants, filter by high matching score (80+)
 				const suggested = transformed
@@ -135,9 +166,14 @@ const InstitutionResearchLabDetail = () => {
 					.sort((a, b) => b.matchingScore - a.matchingScore)
 					.slice(0, 10)
 				setSuggestedApplicants(suggested)
+			} else {
+				setTransformedApplicants([])
+				setSuggestedApplicants([])
 			}
 		} catch (error) {
 			// Failed to fetch applications
+			setTransformedApplicants([])
+			setSuggestedApplicants([])
 		} finally {
 			setIsLoadingApplications(false)
 		}
@@ -517,18 +553,19 @@ const InstitutionResearchLabDetail = () => {
 						</p>
 
 						<div className="flex items-center gap-3 mb-4">
-							<Button
-								onClick={handleEditResearchLab}
-								variant="outline"
-								className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-							>
-								<Edit className="w-4 h-4 mr-2" />
-								Edit Research Lab
-							</Button>
+							{currentResearchLab?.status === 'DRAFT' && (
+								<Button
+									onClick={handleEditResearchLab}
+									variant="outline"
+									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+								>
+									Edit Research Lab
+								</Button>
+							)}
 							<span
-								className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor('PUBLISHED')}`}
+								className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentResearchLab?.status || '')}`}
 							>
-								PUBLISHED
+								{currentResearchLab?.status || 'DRAFT'}
 							</span>
 						</div>
 
@@ -651,8 +688,8 @@ const InstitutionResearchLabDetail = () => {
 						<Button
 							onClick={handleViewApplications}
 							className="bg-[#126E64] hover:bg-teal-700 text-white"
+							size="sm"
 						>
-							<Users className="w-4 h-4 mr-2" />
 							View All Applications
 						</Button>
 					</div>
@@ -680,7 +717,7 @@ const InstitutionResearchLabDetail = () => {
 				</motion.div>
 
 				{/* Suggested Applicants Section */}
-				{suggestedApplicants.length > 0 && (
+				{suggestedApplicants.length >= 0 && (
 					<motion.div
 						initial={{ y: 20, opacity: 0 }}
 						animate={{ y: 0, opacity: 1 }}

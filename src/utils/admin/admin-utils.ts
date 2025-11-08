@@ -2,17 +2,12 @@ import { NextRequest } from "next/server";
 
 /**
  * Edge Runtime compatible admin check function
- * This function checks if the user has admin role by checking session/cookies
+ * Makes an internal API call to verify user role from the database
  */
 export async function checkAdminRole(request: NextRequest): Promise<boolean> {
 	try {
-		// For middleware (Edge Runtime), we need to check admin role from cookies
-		// Better Auth stores role information in session
-
-		// Get all cookies and look for session data
+		// Check if session cookie exists first
 		const allCookies = request.cookies.getAll();
-
-		// Look for session cookie that might contain role information
 		const sessionCookie = allCookies.find(
 			(cookie) =>
 				cookie.name.includes("session") ||
@@ -24,46 +19,59 @@ export async function checkAdminRole(request: NextRequest): Promise<boolean> {
 			return false;
 		}
 
-		// For Edge Runtime compatibility, we'll use an API approach
-		// Make an internal API call to check admin status
-		try {
-			const response = await fetch(
-				`${request.nextUrl.origin}/api/auth/admin-check`,
-				{
-					method: "GET",
-					headers: {
-						Cookie: request.headers.get("cookie") || "",
-						"Cache-Control": "no-cache",
-					},
-				}
-			);
+		// Use Next.js rewrite to make internal API call without SSL issues
+		// Create a URL for the API endpoint
+		const apiUrl = new URL("/api/auth/admin-check", request.nextUrl.origin);
 
-			if (response.ok) {
-				const data = await response.json();
-				return data.isAdmin === true;
-			}
-		} catch (apiError) {
+		// For Edge Runtime in middleware, we need to use http:// for localhost
+		// This avoids SSL handshake issues
+		if (
+			request.nextUrl.hostname === "localhost" ||
+			request.nextUrl.hostname === "127.0.0.1"
+		) {
+			apiUrl.protocol = "http:";
+		}
+
+		const response = await fetch(apiUrl.toString(), {
+			method: "GET",
+			headers: {
+				Cookie: request.headers.get("cookie") || "",
+				"x-forwarded-host": request.headers.get("host") || "",
+			},
+			cache: "no-store",
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			const isAdmin = data.isAdmin === true;
+
 			// eslint-disable-next-line no-console
 			console.log(
-				"[ADMIN CHECK] API call failed, falling back to demo mode with error: ",
-				apiError
+				`[ADMIN CHECK] User ${data.userId} - Role: ${data.role} - IsAdmin: ${isAdmin}`
 			);
+
+			return isAdmin;
 		}
 
-		// For development/demo purposes, allow admin access
-		// In production, implement proper role verification
-		const adminParam = request.nextUrl.searchParams.get("admin");
-		const adminHeader = request.headers.get("x-admin-role");
-
-		if (adminParam === "true" || adminHeader === "admin") {
-			return true;
-		}
-
-		// For demo purposes, allow access - in production this should be false
-		return true;
+		// eslint-disable-next-line no-console
+		console.log(
+			"[ADMIN CHECK] API call returned non-OK status:",
+			response.status
+		);
+		return false;
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error("[ADMIN CHECK] Error checking admin role:", error);
+
+		// In development, allow admin access for testing
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.log(
+				"[ADMIN CHECK] Development mode - allowing access due to error"
+			);
+			return true;
+		}
+
 		return false;
 	}
 }

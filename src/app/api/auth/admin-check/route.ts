@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
 		// Better Auth admin plugin adds role information to user
 		const isAdmin =
 			user.email === process.env.ADMIN_EMAIL || user.role === "admin";
+		console.log(
+			`[ADMIN CHECK API] User ${user.id} admin status: ${isAdmin} User role: ${user.role}`
+		);
 
 		return NextResponse.json({
 			isAdmin,

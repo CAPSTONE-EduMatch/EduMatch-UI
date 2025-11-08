@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 	try {
 		// Get session from request
 		const { user } = await requireAuth();
+		console.log("[ADMIN CHECK API] Authenticated user:", user);
 
 		if (!user) {
 			return NextResponse.json(

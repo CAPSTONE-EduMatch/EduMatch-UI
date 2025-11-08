@@ -53,6 +53,8 @@ export enum NotificationType {
 	USER_BANNED = "USER_BANNED",
 	SESSION_REVOKED = "SESSION_REVOKED",
 	WISHLIST_DEADLINE = "WISHLIST_DEADLINE",
+	PASSWORD_CHANGED = "PASSWORD_CHANGED",
+	ACCOUNT_DELETED = "ACCOUNT_DELETED",
 }
 
 // Base notification message structure
@@ -183,6 +185,26 @@ export interface WishlistDeadlineMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface PasswordChangedMessage extends BaseNotificationMessage {
+	type: NotificationType.PASSWORD_CHANGED;
+	metadata: {
+		firstName: string;
+		lastName: string;
+		changeTime: string;
+		ipAddress?: string;
+		userAgent?: string;
+	};
+}
+
+export interface AccountDeletedMessage extends BaseNotificationMessage {
+	type: NotificationType.ACCOUNT_DELETED;
+	metadata: {
+		firstName: string;
+		lastName: string;
+		deletionTime: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
@@ -195,7 +217,9 @@ export type NotificationMessage =
 	| WelcomeMessage
 	| UserBannedMessage
 	| SessionRevokedMessage
-	| WishlistDeadlineMessage;
+	| WishlistDeadlineMessage
+	| PasswordChangedMessage
+	| AccountDeletedMessage;
 
 // SQS Service class
 export class SQSService {

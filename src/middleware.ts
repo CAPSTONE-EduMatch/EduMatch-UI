@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Inline route configuration to avoid Edge Runtime issues
 const routeConfig = {
-	publicRoutes: ["/", "/about", "/api/health", "/explore"],
+	publicRoutes: ["/", "/about", "/api/health"],
 	authRoutes: ["/signin", "/signup", "/forgot-password"],
 	// All routes that require authentication
 	protectedRoutes: ["/files", "/admin", "/profile", "/messages", "/profile"],

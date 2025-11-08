@@ -1,21 +1,23 @@
-import nodemailer from "nodemailer";
-import { renderCompanyEmail, CompanyEmailOptions } from "./email-template";
 import {
-	NotificationMessage,
-	NotificationType,
-	ProfileCreatedMessage,
-	PaymentDeadlineMessage,
+	AccountDeletedMessage,
 	ApplicationStatusMessage,
 	DocumentUpdatedMessage,
-	PaymentSuccessMessage,
+	NotificationMessage,
+	NotificationType,
+	PasswordChangedMessage,
+	PaymentDeadlineMessage,
 	PaymentFailedMessage,
-	SubscriptionExpiringMessage,
-	WelcomeMessage,
-	UserBannedMessage,
+	PaymentSuccessMessage,
+	ProfileCreatedMessage,
 	SessionRevokedMessage,
+	SubscriptionExpiringMessage,
+	UserBannedMessage,
+	WelcomeMessage,
 	WishlistDeadlineMessage,
 } from "@/config/sqs-config";
 import { isNotificationEnabled } from "@/utils/notifications/notification-settings-helper";
+import nodemailer from "nodemailer";
+import { CompanyEmailOptions, renderCompanyEmail } from "./email-template";
 
 // Email service configuration
 const transporter = nodemailer.createTransport({
@@ -833,6 +835,146 @@ export class EmailTemplates {
         `;
 		}
 	}
+
+	/**
+	 * Generate password changed email template
+	 */
+	static generatePasswordChangedEmail(message: PasswordChangedMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		const subject = `Security Alert: Password Changed - EduMatch`;
+
+		const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Changed - EduMatch</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .security-notice { background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🔐 Security Alert</h1>
+          <p>Your password has been changed</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${metadata.firstName} ${metadata.lastName},</h2>
+
+          <div class="security-notice">
+            <h3>🔔 Password Change Notification</h3>
+            <p>Your EduMatch account password was successfully changed.</p>
+            <p><strong>Change Time:</strong> ${new Date(metadata.changeTime).toLocaleString()}</p>
+            ${metadata.ipAddress ? `<p><strong>IP Address:</strong> ${metadata.ipAddress}</p>` : ""}
+          </div>
+
+          <h3>What you should do next:</h3>
+          <ul>
+            <li>Verify this was you by checking the change time and location</li>
+            <li>If you didn't make this change, <strong>contact support immediately</strong></li>
+            <li>Update your password recovery options if needed</li>
+            <li>Review your account activity regularly</li>
+          </ul>
+
+          <div style="text-align: center;">
+            <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile" class="button">Review Account Security</a>
+          </div>
+
+          <p><strong>Didn't make this change?</strong> Contact our security team immediately at <a href="mailto:security@edumatch.com">security@edumatch.com</a> or call our support hotline.</p>
+
+          <p>For your security, we've automatically logged you out of all devices. You'll need to sign in again with your new password.</p>
+
+          <p>Best regards,<br>The EduMatch Security Team</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 EduMatch. All rights reserved.</p>
+          <p>This is an automated security notification. Please do not reply to this email.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+		return { subject, html };
+	}
+
+	/**
+	 * Generate account deleted email template
+	 */
+	static generateAccountDeletedEmail(message: AccountDeletedMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		const subject = `Account Deleted - EduMatch`;
+
+		const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Account Deleted - EduMatch</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .warning-icon { font-size: 48px; color: #f44336; text-align: center; margin: 20px 0; }
+          .info-box { background: #ffebee; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f44336; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Account Deleted</h1>
+        </div>
+        <div class="content">
+          <div class="warning-icon">🗑️</div>
+          <h2>Dear ${metadata.firstName} ${metadata.lastName},</h2>
+          <p>This email confirms that your EduMatch account has been successfully deleted.</p>
+          
+          <div class="info-box">
+            <p><strong>Account Deletion Details:</strong></p>
+            <p><strong>Deletion Time:</strong> ${new Date(metadata.deletionTime).toLocaleString()}</p>
+            <p><strong>Account Status:</strong> Deactivated</p>
+          </div>
+          
+          <h3>What this means:</h3>
+          <ul>
+            <li>Your account has been deactivated and is no longer accessible</li>
+            <li>Your profile is hidden from all search results</li>
+            <li>You cannot submit new applications or access existing ones</li>
+            <li>All active sessions have been terminated</li>
+          </ul>
+          
+          <h3>Data Retention:</h3>
+          <p>Your personal data will be retained for a limited period as required by law and our privacy policy. After this period, your data will be permanently deleted.</p>
+          
+          <h3>Want to come back?</h3>
+          <p>If you change your mind, you can create a new account at any time. However, your previous applications and profile information will not be restored.</p>
+          
+          <p>We appreciate the time you spent with EduMatch and wish you the best in your future endeavors.</p>
+          
+          <p>Best regards,<br>The EduMatch Team</p>
+        </div>
+        <div class="footer">
+          <p>© 2024 EduMatch. All rights reserved.</p>
+          <p>This is a confirmation of your account deletion request.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+		return { subject, html };
+	}
 }
 
 // Email service class
@@ -947,6 +1089,16 @@ export class EmailService {
 				case NotificationType.WISHLIST_DEADLINE:
 					emailContent = EmailTemplates.generateWishlistDeadlineEmail(
 						message as WishlistDeadlineMessage
+					);
+					break;
+				case NotificationType.PASSWORD_CHANGED:
+					emailContent = EmailTemplates.generatePasswordChangedEmail(
+						message as PasswordChangedMessage
+					);
+					break;
+				case NotificationType.ACCOUNT_DELETED:
+					emailContent = EmailTemplates.generateAccountDeletedEmail(
+						message as AccountDeletedMessage
 					);
 					break;
 				default:

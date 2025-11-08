@@ -45,7 +45,8 @@ export async function checkAdminRole(request: NextRequest): Promise<boolean> {
 		} catch (apiError) {
 			// eslint-disable-next-line no-console
 			console.log(
-				"[ADMIN CHECK] API call failed, falling back to demo mode"
+				"[ADMIN CHECK] API call failed, falling back to demo mode with error: ",
+				apiError
 			);
 		}
 

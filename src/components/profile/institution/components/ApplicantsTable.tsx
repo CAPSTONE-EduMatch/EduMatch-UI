@@ -140,13 +140,10 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 								</div>
 
 								{/* Sub-discipline */}
-								<div className="text-gray-700 text-sm text-center group relative">
-									<div className="truncate">{applicant.subDiscipline}</div>
-									{applicant.subDiscipline.length > 15 && (
-										<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
-											{applicant.subDiscipline}
-										</div>
-									)}
+								<div className="text-gray-700 text-sm text-center">
+									<div className="break-words whitespace-normal">
+										{applicant.subDiscipline}
+									</div>
 								</div>
 
 								{/* Status */}

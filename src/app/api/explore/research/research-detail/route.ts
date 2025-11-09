@@ -129,6 +129,7 @@ export async function GET(request: NextRequest) {
 			otherInfo: post.other_info || "",
 			applicationCount: post.applications.length,
 			jobType: jobData?.job_type || "Researcher",
+			professorName: jobData?.professor_name || "",
 			contractType: jobData?.contract_type || "",
 			attendance: jobData?.attendance || "",
 			location: post.location || "",
@@ -148,8 +149,11 @@ export async function GET(request: NextRequest) {
 				: "",
 
 			// Job Description Details
-			researchFields: jobData?.research_areas
-				? jobData.research_areas.split(",").map((area) => area.trim())
+			// Get research fields from subdisciplines (join table) - these are the actual names
+			researchFields: post.subdisciplines
+				? post.subdisciplines
+						.map((sd) => sd.subdiscipline?.name || "")
+						.filter((name) => name !== "")
 				: [],
 			researchFocus: jobData?.research_focus || "",
 			researchExperience: jobData?.research_experience || "",
@@ -188,9 +192,9 @@ export async function GET(request: NextRequest) {
 				about: post.institution?.about,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
-				id: doc.document_type_id,
-				name: doc.documentType?.name || "",
-				description: doc.documentType?.description || "",
+				id: doc.document_id,
+				name: doc.name || "",
+				description: doc.description || "",
 			})),
 			subdisciplines: post.subdisciplines.map((sd) => ({
 				id: sd.subdiscipline?.subdiscipline_id,

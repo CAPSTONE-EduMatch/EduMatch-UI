@@ -53,10 +53,10 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 							placeholder="All Status"
 							options={[
 								{ value: 'submitted', label: 'Submitted' },
-								{ value: 'under_review', label: 'Under Review' },
 								{ value: 'accepted', label: 'Accepted' },
 								{ value: 'rejected', label: 'Rejected' },
-								{ value: 'new_request', label: 'New Request' },
+								{ value: 'require_update', label: 'Require Update' },
+								{ value: 'updated', label: 'Updated' },
 							]}
 							variant="default"
 							isClearable

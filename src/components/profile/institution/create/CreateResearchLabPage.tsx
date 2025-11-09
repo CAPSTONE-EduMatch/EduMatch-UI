@@ -81,6 +81,7 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				typeOfContract: initialData.contractType || '',
 				attendance: initialData.attendance || '',
 				jobType: initialData.jobType || '',
+				professorName: initialData.professorName || '',
 				salary: {
 					min: initialData.salary?.split('-')[0]?.replace(/[^0-9]/g, '')
 						? parseInt(
@@ -144,6 +145,7 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		typeOfContract: 'Full-time',
 		attendance: 'On-site',
 		jobType: 'Research Assistant',
+		professorName: '',
 
 		// Offer Information Section
 		salary: {
@@ -303,6 +305,61 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		}
 	}
 
+	// Validation helper functions
+	const getSalaryError = (): string | null => {
+		const minValue = formData.salary.min.replace(/,/g, '')
+		const maxValue = formData.salary.max.replace(/,/g, '')
+
+		if (!minValue && !maxValue) return null // Both empty is OK
+
+		if (minValue && maxValue) {
+			const minNum = parseFloat(minValue)
+			const maxNum = parseFloat(maxValue)
+
+			if (isNaN(minNum) || isNaN(maxNum)) {
+				return 'Salary values must be valid numbers'
+			}
+
+			if (minNum < 0 || maxNum < 0) {
+				return 'Salary values must be positive numbers'
+			}
+
+			if (minNum > maxNum) {
+				return 'Minimum salary must be less than or equal to maximum salary'
+			}
+		}
+
+		return null
+	}
+
+	const handleLabCapacityChange = (value: string) => {
+		// Only allow positive integers
+		const numericValue = value.replace(/[^0-9]/g, '')
+		setFormData((prev) => ({
+			...prev,
+			labCapacity: numericValue,
+		}))
+	}
+
+	const getLabCapacityError = (): string | null => {
+		if (!formData.labCapacity) return null
+
+		const capacity = parseInt(formData.labCapacity)
+		if (isNaN(capacity)) {
+			return 'Lab capacity must be a valid number'
+		}
+
+		if (capacity <= 0) {
+			return 'Lab capacity must be greater than 0'
+		}
+
+		if (capacity > 10000) {
+			return 'Lab capacity must be less than 10,000'
+		}
+
+		return null
+	}
+
 	const handleResearchRequirementChange = (field: string, value: string) => {
 		setFormData((prev) => ({
 			...prev,
@@ -355,6 +412,21 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
 		try {
+			// Validate form data before submitting
+			const salaryError = getSalaryError()
+			if (salaryError) {
+				setErrorMessage(salaryError)
+				setShowErrorModal(true)
+				return
+			}
+
+			const labCapacityError = getLabCapacityError()
+			if (labCapacityError) {
+				setErrorMessage(labCapacityError)
+				setShowErrorModal(true)
+				return
+			}
+
 			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
 			const convertDateFormat = (dateString: string) => {
 				if (!dateString) return ''
@@ -536,6 +608,20 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 						</div>
 					</div>
 
+					{/* Professor Name */}
+					<div className="space-y-2">
+						<Label htmlFor="professorName">Professor name</Label>
+						<Input
+							id="professorName"
+							placeholder="Enter professor name"
+							value={formData.professorName}
+							onChange={(e) =>
+								handleInputChange('professorName', e.target.value)
+							}
+							inputSize="select"
+						/>
+					</div>
+
 					{/* Right Column Fields */}
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div className="relative">
@@ -714,6 +800,11 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 									onChange={(e) => handleSalaryChange('min', e.target.value)}
 									inputSize="select"
 								/>
+								{getSalaryError() && (
+									<p className="text-xs text-red-500 mt-1">
+										{getSalaryError()}
+									</p>
+								)}
 							</div>
 							<div className="space-y-2">
 								<Label htmlFor="maxSalary">Max:</Label>

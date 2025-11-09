@@ -148,9 +148,9 @@ export async function GET(request: NextRequest) {
 				type: post.institution?.type,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
-				id: doc.document_type_id,
-				name: doc.documentType?.name || "",
-				description: doc.documentType?.description || "",
+				id: doc.document_id,
+				name: doc.name || "",
+				description: doc.description || "",
 			})),
 			subdisciplines: post.subdisciplines.map((sd) => ({
 				id: sd.subdiscipline?.subdiscipline_id,

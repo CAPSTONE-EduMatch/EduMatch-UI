@@ -65,13 +65,9 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		// Get total count for pagination
-		const totalCount = await prismaClient.application.count({
-			where: whereClause,
-		});
-
-		// Query applications with related data including profile snapshot
-		const applications = await prismaClient.application.findMany({
+		// Query ALL applications first (without pagination) to apply filtering
+		// This is necessary because search filter depends on transformed data
+		const allApplications = await prismaClient.application.findMany({
 			where: whereClause,
 			include: {
 				ApplicationProfileSnapshot: true, // Include the profile snapshot
@@ -118,8 +114,6 @@ export async function GET(request: NextRequest) {
 					: sortBy === "oldest"
 						? { apply_at: "asc" }
 						: { apply_at: "desc" },
-			skip,
-			take: limit,
 		});
 
 		// Helper function to format dates to dd/mm/yyyy
@@ -131,8 +125,33 @@ export async function GET(request: NextRequest) {
 			return `${day}/${month}/${year}`;
 		};
 
+		// Fetch all unique subdiscipline IDs from snapshots (academic info)
+		const snapshotSubdisciplineIds = allApplications
+			.map((app: any) => app.ApplicationProfileSnapshot?.subdiscipline_id)
+			.filter((id: string | null | undefined) => id) as string[];
+
+		// Batch fetch subdiscipline names for all snapshot subdiscipline IDs
+		const snapshotSubdisciplinesMap = new Map<string, string>();
+		if (snapshotSubdisciplineIds.length > 0) {
+			const uniqueIds = Array.from(new Set(snapshotSubdisciplineIds));
+			const subdisciplines = await prismaClient.subdiscipline.findMany({
+				where: {
+					subdiscipline_id: {
+						in: uniqueIds,
+					},
+				},
+				select: {
+					subdiscipline_id: true,
+					name: true,
+				},
+			});
+			subdisciplines.forEach((sub) => {
+				snapshotSubdisciplinesMap.set(sub.subdiscipline_id, sub.name);
+			});
+		}
+
 		// Transform data to match the expected format using snapshot data
-		const transformedApplications = applications.map((app: any) => {
+		const transformedApplications = allApplications.map((app: any) => {
 			// Use snapshot data if available, otherwise fallback to live data
 			const snapshot = app.ApplicationProfileSnapshot;
 			const transformed = {
@@ -149,11 +168,15 @@ export async function GET(request: NextRequest) {
 					app.post.scholarshipPost?.type ||
 					app.post.jobPost?.job_type ||
 					"Unknown",
-				// For subdisciplines, we'll show a count or "Multiple interests"
+				// Get subdiscipline from academic info (not interests)
+				// Priority: 1. Applicant's current subdiscipline, 2. Snapshot's subdiscipline_id (academic), 3. Unknown
 				subDiscipline:
-					(snapshot?.subdiscipline_ids?.length ?? 0) > 0
-						? `${snapshot?.subdiscipline_ids?.length ?? 0} interests`
-						: app.applicant.subdiscipline?.name || "Unknown",
+					app.applicant.subdiscipline?.name ||
+					(snapshot?.subdiscipline_id
+						? snapshotSubdisciplinesMap.get(
+								snapshot.subdiscipline_id
+							) || "Unknown"
+						: "Unknown"),
 				status: app.status.toLowerCase(),
 				matchingScore: Math.floor(Math.random() * 30) + 70, // Mock matching score
 				postTitle: app.post.title,
@@ -181,7 +204,7 @@ export async function GET(request: NextRequest) {
 			return transformed;
 		});
 
-		// Apply search filter
+		// Apply search filter (client-side because it depends on transformed data)
 		let filteredApplications = transformedApplications;
 		if (search) {
 			filteredApplications = transformedApplications.filter(
@@ -197,9 +220,20 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
+		// Get total count AFTER filtering
+		const totalFilteredCount = filteredApplications.length;
+
+		// Apply pagination AFTER filtering
+		const startIndex = skip;
+		const endIndex = startIndex + limit;
+		const paginatedApplications = filteredApplications.slice(
+			startIndex,
+			endIndex
+		);
+
 		// Calculate statistics based on all transformed applications (before search filter)
 		const stats = {
-			total: totalCount,
+			total: allApplications.length,
 			approved: transformedApplications.filter(
 				(app) => app.status === "accepted"
 			).length,
@@ -211,14 +245,14 @@ export async function GET(request: NextRequest) {
 			).length,
 		};
 
-		// Calculate total pages based on filtered results (after search filter)
-		const totalPages = Math.ceil(filteredApplications.length / limit);
+		// Calculate total pages based on filtered count
+		const totalPages = Math.ceil(totalFilteredCount / limit);
 
 		return NextResponse.json({
 			success: true,
-			data: filteredApplications,
+			data: paginatedApplications,
 			meta: {
-				total: totalCount,
+				total: totalFilteredCount,
 				page,
 				limit,
 				totalPages,

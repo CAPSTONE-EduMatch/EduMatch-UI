@@ -248,6 +248,7 @@ model JobPost {
   contract_type             String
   attendance                String
   job_type                  String
+  professor_name            String?
   min_salary                Decimal?        @db.Decimal
   max_salary                Decimal?        @db.Decimal
   salary_description        String?

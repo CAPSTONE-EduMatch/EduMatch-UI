@@ -234,6 +234,37 @@ const InstitutionScholarshipDetail = () => {
 		router.push(`/institution/dashboard/applications/${applicant.id}`)
 	}
 
+	const handleCloseScholarship = async () => {
+		try {
+			const response = await fetch(`/api/posts/scholarships`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					postId: params.id,
+					status: 'CLOSED',
+				}),
+			})
+
+			if (!response.ok) {
+				throw new Error('Failed to close scholarship')
+			}
+
+			const result = await response.json()
+
+			if (result.success) {
+				// Refresh scholarship data
+				const scholarshipId = params.id as string
+				await fetchScholarshipDetail(scholarshipId)
+			} else {
+				showError('Error', result.error || 'Failed to close scholarship')
+			}
+		} catch (error) {
+			showError('Error', 'Failed to close scholarship')
+		}
+	}
+
 	const getStatusColor = (status: string) => {
 		switch (status?.toUpperCase()) {
 			case 'PUBLISHED':
@@ -463,6 +494,15 @@ const InstitutionScholarshipDetail = () => {
 									Edit Scholarship
 								</Button>
 							)}
+							{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' && (
+								<Button
+									onClick={handleCloseScholarship}
+									variant="outline"
+									className="text-orange-600 border-orange-600 hover:bg-orange-50"
+								>
+									Close Scholarship
+								</Button>
+							)}
 							<span
 								className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
 							>
@@ -620,28 +660,34 @@ const InstitutionScholarshipDetail = () => {
 					</motion.div>
 				)}
 
-				{/* Suggested Applicants Section - Only show for PUBLISHED status */}
-				{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' &&
-					suggestedApplicants.length > 0 && (
-						<motion.div
-							initial={{ y: 20, opacity: 0 }}
-							animate={{ y: 0, opacity: 1 }}
-							transition={{ delay: 0.7 }}
-							className="p-8 bg-white py-6 shadow-xl border"
-						>
-							<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
-							<p className="text-gray-600 mb-6">
-								These applicants have high matching scores (80%+) and may be a
-								good fit for this scholarship.
-							</p>
+				{/* Suggested Applicants Section - Always show for PUBLISHED status */}
+				{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' && (
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.7 }}
+						className="p-8 bg-white py-6 shadow-xl border"
+					>
+						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
+						<p className="text-gray-600 mb-6">
+							These applicants have high matching scores (80%+) and may be a
+							good fit for this scholarship.
+						</p>
+						{suggestedApplicants.length > 0 ? (
 							<div className="border bg-white border-gray-200 rounded-xl p-6">
 								<SuggestedApplicantsTable
 									applicants={suggestedApplicants}
 									onMoreDetail={handleApplicantDetail}
 								/>
 							</div>
-						</motion.div>
-					)}
+						) : (
+							<div className="text-center py-8 bg-gray-50 rounded-lg">
+								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+								<p className="text-gray-600">No suggested applicants yet</p>
+							</div>
+						)}
+					</motion.div>
+				)}
 			</motion.div>
 		</div>
 	)

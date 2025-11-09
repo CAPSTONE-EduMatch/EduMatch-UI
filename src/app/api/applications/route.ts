@@ -324,6 +324,10 @@ export async function POST(request: NextRequest) {
 					},
 				},
 				documents: {
+					where: {
+						status: true, // Only include active documents
+						deleted_at: null, // Exclude deleted documents
+					},
 					select: {
 						document_id: true,
 					},

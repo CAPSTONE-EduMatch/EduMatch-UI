@@ -137,6 +137,8 @@ export async function GET(
 							document_id: {
 								in: documentIds,
 							},
+							status: true, // Only include active documents
+							deleted_at: null, // Exclude deleted documents
 						},
 						include: {
 							documentType: true,
@@ -286,6 +288,30 @@ export async function GET(
 					};
 				});
 			}
+		}
+
+		// Fetch academic subdiscipline from snapshot if needed
+		let snapshotSubdiscipline = null;
+		if (
+			!application.applicant.subdiscipline &&
+			application.ApplicationProfileSnapshot?.subdiscipline_id
+		) {
+			snapshotSubdiscipline = await prismaClient.subdiscipline.findUnique(
+				{
+					where: {
+						subdiscipline_id:
+							application.ApplicationProfileSnapshot
+								.subdiscipline_id,
+					},
+					include: {
+						discipline: {
+							select: {
+								name: true,
+							},
+						},
+					},
+				}
+			);
 		}
 
 		// Transform the data for the frontend
@@ -483,59 +509,30 @@ export async function GET(
 				level:
 					application.ApplicationProfileSnapshot?.level ||
 					application.applicant.level,
-				// Fetch subdiscipline and discipline names from IDs
-				subdiscipline:
-					application.ApplicationProfileSnapshot?.subdiscipline_ids &&
-					application.ApplicationProfileSnapshot.subdiscipline_ids
-						.length > 0
-						? (
-								await Promise.all(
-									application.ApplicationProfileSnapshot.subdiscipline_ids.map(
-										async (subId) => {
-											const sub =
-												await prismaClient.subdiscipline.findUnique(
-													{
-														where: {
-															subdiscipline_id:
-																subId,
-														},
-														include: {
-															discipline: {
-																select: {
-																	name: true,
-																},
-															},
-														},
-													}
-												);
-											return sub
-												? {
-														id: sub.subdiscipline_id,
-														name: sub.name,
-														disciplineName:
-															sub.discipline.name,
-													}
-												: null;
-										}
-									)
-								)
-							).filter(
-								(sub): sub is NonNullable<typeof sub> =>
-									sub !== null
-							)
-						: application.applicant.subdiscipline
-							? [
-									{
-										id: application.applicant.subdiscipline
-											.subdiscipline_id,
-										name: application.applicant
-											.subdiscipline.name,
-										disciplineName:
-											application.applicant.subdiscipline
-												.discipline?.name || "Unknown",
-									},
-								]
-							: [],
+				// Get subdiscipline from academic info (not interests)
+				// Priority: 1. Applicant's current subdiscipline, 2. Snapshot's subdiscipline_id (academic)
+				subdiscipline: application.applicant.subdiscipline
+					? [
+							{
+								id: application.applicant.subdiscipline
+									.subdiscipline_id,
+								name: application.applicant.subdiscipline.name,
+								disciplineName:
+									application.applicant.subdiscipline
+										.discipline?.name || "Unknown",
+							},
+						]
+					: snapshotSubdiscipline
+						? [
+								{
+									id: snapshotSubdiscipline.subdiscipline_id,
+									name: snapshotSubdiscipline.name,
+									disciplineName:
+										snapshotSubdiscipline.discipline
+											?.name || "Unknown",
+								},
+							]
+						: [],
 				// Extract unique discipline names from subdisciplines
 				disciplines:
 					application.ApplicationProfileSnapshot?.subdiscipline_ids &&

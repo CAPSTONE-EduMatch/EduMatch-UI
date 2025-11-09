@@ -7,12 +7,12 @@ import {
 	Breadcrumb,
 	FilterSidebar,
 	Pagination,
-	SearchBar,
 	SortDropdown,
 	TabSelector,
 	AIAssistantCard,
 	ErrorModal,
 } from '@/components/ui'
+import { Search } from 'lucide-react'
 import type { SortOption } from '@/components/ui'
 import { ExploreApiService } from '@/services/explore/explore-api'
 import { useTranslations } from 'next-intl'
@@ -54,6 +54,9 @@ const Explore = () => {
 	>({})
 	const [filtersInitialized, setFiltersInitialized] = useState(false)
 	const [showAuthModal, setShowAuthModal] = useState(false)
+	const [searchQuery, setSearchQuery] = useState('')
+	const [searchInput, setSearchInput] = useState('')
+	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
 	// Initialize state from URL parameters on component mount
 	useEffect(() => {
@@ -84,6 +87,13 @@ const Explore = () => {
 			if (!isNaN(pageNumber) && pageNumber > 0) {
 				setCurrentPage(pageNumber)
 			}
+		}
+
+		// Get search query from URL
+		const searchFromUrl = searchParams.get('search')
+		if (searchFromUrl) {
+			setSearchQuery(searchFromUrl)
+			setSearchInput(searchFromUrl)
 		}
 
 		// Initialize filters from URL parameters (for refresh scenarios)
@@ -159,6 +169,9 @@ const Explore = () => {
 		} else {
 			params.delete('page')
 		}
+
+		// Note: searchQuery is not included here since it's only updated when search is triggered
+		// The search parameter is updated in handleSearchChange function
 
 		const newURL = `${window.location.pathname}?${params.toString()}`
 
@@ -316,6 +329,7 @@ const Explore = () => {
 						page: currentPage,
 						limit: ITEMS_PER_PAGE_PROGRAMS,
 						sortBy: apiSortBy,
+						search: searchQuery || undefined,
 						discipline: selectedFilters.discipline,
 						country: selectedFilters.country,
 						attendance: selectedFilters.attendance,
@@ -334,6 +348,7 @@ const Explore = () => {
 						page: currentPage,
 						limit: ITEMS_PER_PAGE_SCHOLARSHIPS,
 						sortBy: apiSortBy,
+						search: searchQuery || undefined,
 						discipline: selectedFilters.discipline,
 						country: selectedFilters.country,
 						degreeLevel: selectedFilters.degreeLevel,
@@ -367,6 +382,7 @@ const Explore = () => {
 						page: currentPage,
 						limit: ITEMS_PER_PAGE_RESEARCH,
 						sortBy: apiSortBy,
+						search: searchQuery || undefined,
 						researchField: selectedFilters.researchField,
 						country: selectedFilters.country,
 						degreeLevel: selectedFilters.degreeLevel,
@@ -405,12 +421,28 @@ const Explore = () => {
 		}
 
 		loadData()
-	}, [activeTab, currentPage, sortBy, selectedFilters, filtersInitialized])
+	}, [
+		activeTab,
+		currentPage,
+		sortBy,
+		selectedFilters,
+		searchQuery,
+		filtersInitialized,
+	])
 
 	// Reset page to 1 when filters change
 	useEffect(() => {
 		setCurrentPage(1)
 	}, [selectedFilters, activeTab])
+
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (searchTimeoutRef.current) {
+				clearTimeout(searchTimeoutRef.current)
+			}
+		}
+	}, [])
 
 	// Tab change handler
 	const handleTabChange = (tabId: string) => {
@@ -454,6 +486,68 @@ const Explore = () => {
 		setSortBy(newSort)
 		setCurrentPage(1) // Reset to first page when sorting changes
 		// URL will be updated automatically via useEffect
+	}
+
+	// Handle search change - this now only executes search, not on every keystroke
+	const handleSearchChange = (query: string) => {
+		setSearchQuery(query)
+		setCurrentPage(1) // Reset to first page when searching
+
+		// Update URL immediately when search is triggered
+		const params = new URLSearchParams(searchParams.toString())
+
+		if (query && query.trim() !== '') {
+			params.set('search', query.trim())
+		} else {
+			params.delete('search')
+		}
+
+		// Reset page to 1 when searching
+		params.delete('page')
+
+		const newURL = `${window.location.pathname}?${params.toString()}`
+		window.history.replaceState({}, '', newURL)
+	}
+
+	// Handle search input change (for local state only)
+	const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const newValue = e.target.value
+		setSearchInput(newValue)
+
+		// Clear existing timeout
+		if (searchTimeoutRef.current) {
+			clearTimeout(searchTimeoutRef.current)
+		}
+
+		// Only search if input has at least 3 characters or is empty (to clear search)
+		if (newValue.length >= 3 || newValue.length === 0) {
+			// Set new timeout for debounced search (500ms delay)
+			searchTimeoutRef.current = setTimeout(() => {
+				handleSearchChange(newValue)
+			}, 500)
+		} else if (newValue.length < 3 && searchQuery !== '') {
+			// If input is less than 3 characters and there's an active search, clear it
+			searchTimeoutRef.current = setTimeout(() => {
+				handleSearchChange('')
+			}, 500)
+		}
+	}
+
+	// Handle search submit (on button click or Enter key)
+	const handleSearchSubmit = () => {
+		// Clear any pending timeout
+		if (searchTimeoutRef.current) {
+			clearTimeout(searchTimeoutRef.current)
+		}
+		// Immediately search with current input
+		handleSearchChange(searchInput)
+	}
+
+	// Handle Enter key press in search input
+	const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === 'Enter') {
+			handleSearchSubmit()
+		}
 	}
 
 	const renderTabContent = () => {
@@ -579,7 +673,22 @@ const Explore = () => {
 					>
 						{t('search.title')}
 					</motion.h2>
-					<SearchBar />
+					<div className="flex-1 relative">
+						<input
+							type="text"
+							value={searchInput}
+							onChange={handleSearchInputChange}
+							onKeyPress={handleSearchKeyPress}
+							placeholder="Search by name of program, scholarship, or research lab"
+							className="w-full px-6 py-3 pr-16 rounded-full border-2 border-[#126E64] text-base outline-none focus:ring-2 focus:ring-[#126E64]/30"
+						/>
+						<button
+							onClick={handleSearchSubmit}
+							className="absolute right-0 top-0 bottom-0 bg-[#126E64] rounded-r-full px-5 flex items-center hover:bg-[#0f5850] transition-colors"
+						>
+							<Search className="w-5 h-5 text-white" />
+						</button>
+					</div>
 				</div>
 				<div className="border-b-2">
 					<TabSelector

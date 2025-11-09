@@ -126,18 +126,8 @@ export const auth = betterAuth({
 			// allowedAttempts: 5, // Max 5 attempts per hour
 			expiresIn: 300, // OTP expires in 5 minutes
 		}),
-		// Stripe plugin disabled - handling subscriptions manually
-		// ...(stripeClient && process.env.STRIPE_WEBHOOK_SECRET && !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.includes('GET_THIS_FROM') ? [
-		//   stripe({
-		//     stripeClient,
-		//     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
-		//     createCustomerOnSignUp: false, // Don't create subscriptions on signup
-		//     subscription: {
-		//       enabled: false, // Disable automatic subscription management
-		//       plans: [] // Empty plans when disabled
-		//     }
-		//   })
-		// ] : [])
+		// Stripe plugin - Better Auth handles webhooks at /api/auth/stripe/webhook
+		// We add onSubscriptionComplete hook to also create invoices
 		stripe({
 			stripeClient,
 			stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
@@ -275,6 +265,30 @@ export const auth = betterAuth({
 
 						// eslint-disable-next-line no-console
 						console.log("👤 User ID from subscription:", userId);
+
+						// Create invoice record from subscription
+						// This is crucial - Better Auth doesn't create invoices automatically
+						try {
+							const { createInvoiceFromSubscription } =
+								await import(
+									"@/services/payments/invoice-service"
+								);
+							await createInvoiceFromSubscription(
+								stripeSubscription.stripeSubscriptionId
+							);
+							// eslint-disable-next-line no-console
+							console.log(
+								"✅ Invoice created for subscription:",
+								stripeSubscription.stripeSubscriptionId
+							);
+						} catch (invoiceError) {
+							// eslint-disable-next-line no-console
+							console.error(
+								"❌ Error creating invoice from subscription:",
+								invoiceError
+							);
+							// Don't fail the whole process if invoice creation fails
+						}
 
 						if (userId) {
 							// Find existing subscription

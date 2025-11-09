@@ -9,9 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function GET(request: NextRequest) {
 	try {
-		// Get session from request
+		// Get session from request with role information
 		const { user } = await requireAuth();
-		console.log("[ADMIN CHECK API] Authenticated user:", user);
 
 		if (!user) {
 			return NextResponse.json(
@@ -20,18 +19,20 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Check if user has admin role
-		// Better Auth admin plugin adds role information to user
+		// Check if user has admin role from database
 		const isAdmin =
 			user.email === process.env.ADMIN_EMAIL || user.role === "admin";
+
+		// eslint-disable-next-line no-console
 		console.log(
-			`[ADMIN CHECK API] User ${user.id} admin status: ${isAdmin} User role: ${user.role}`
+			`[ADMIN CHECK API] User: ${user.email} (${user.id}) - Role: ${user.role || "none"} - IsAdmin: ${isAdmin}`
 		);
 
 		return NextResponse.json({
 			isAdmin,
 			userId: user.id,
-			role: user.role,
+			role: user.role || null,
+			email: user.email,
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console

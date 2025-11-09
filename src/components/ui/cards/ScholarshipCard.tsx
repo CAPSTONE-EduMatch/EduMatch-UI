@@ -100,9 +100,10 @@ export function ScholarshipCard({
 			</h3>
 
 			{/* Description */}
-			<p className="text-gray-600 mb-4 line-clamp-3">
-				{scholarship.description}
-			</p>
+			<p
+				className="text-gray-600 mb-4 line-clamp-3"
+				dangerouslySetInnerHTML={{ __html: scholarship.description }}
+			/>
 
 			{/* Bottom section */}
 			<div className="flex justify-between gap-3 items-center">

@@ -676,67 +676,71 @@ const InstitutionResearchLabDetail = () => {
 					</motion.div>
 				</div>
 
-				{/* Applications Table Section */}
-				<motion.div
-					initial={{ y: 20, opacity: 0 }}
-					animate={{ y: 0, opacity: 1 }}
-					transition={{ delay: 0.6 }}
-					className="p-8 bg-white py-6 shadow-xl border"
-				>
-					<div className="flex items-center justify-between mb-6">
-						<h2 className="text-3xl font-bold">Applications</h2>
-						<Button
-							onClick={handleViewApplications}
-							className="bg-[#126E64] hover:bg-teal-700 text-white"
-							size="sm"
-						>
-							View All Applications
-						</Button>
-					</div>
-
-					{/* Applicants Table */}
-					{isLoadingApplications ? (
-						<div className="text-center py-8">
-							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
-							<p className="mt-2 text-gray-600">Loading applications...</p>
-						</div>
-					) : transformedApplicants.length > 0 ? (
-						<div className="border bg-white border-gray-200 rounded-xl p-6">
-							<ApplicantsTable
-								applicants={transformedApplicants}
-								onMoreDetail={handleApplicantDetail}
-								hidePostId={true}
-							/>
-						</div>
-					) : (
-						<div className="text-center py-8 bg-gray-50 rounded-lg">
-							<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-							<p className="text-gray-600">No applications yet</p>
-						</div>
-					)}
-				</motion.div>
-
-				{/* Suggested Applicants Section */}
-				{suggestedApplicants.length >= 0 && (
+				{/* Applications Table Section - Only show for CLOSED or PUBLISHED status */}
+				{(currentResearchLab?.status?.toUpperCase() === 'CLOSED' ||
+					currentResearchLab?.status?.toUpperCase() === 'PUBLISHED') && (
 					<motion.div
 						initial={{ y: 20, opacity: 0 }}
 						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.7 }}
+						transition={{ delay: 0.6 }}
 						className="p-8 bg-white py-6 shadow-xl border"
 					>
-						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
-						<p className="text-gray-600 mb-6">
-							These applicants have high matching scores (80%+) and may be a
-							good fit for this research lab.
-						</p>
-						<div className="border bg-white border-gray-200 rounded-xl p-6">
-							<SuggestedApplicantsTable
-								applicants={suggestedApplicants}
-								onMoreDetail={handleApplicantDetail}
-							/>
+						<div className="flex items-center justify-between mb-6">
+							<h2 className="text-3xl font-bold">Applications</h2>
+							<Button
+								onClick={handleViewApplications}
+								className="bg-[#126E64] hover:bg-teal-700 text-white"
+								size="sm"
+							>
+								View All Applications
+							</Button>
 						</div>
+
+						{/* Applicants Table */}
+						{isLoadingApplications ? (
+							<div className="text-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
+								<p className="mt-2 text-gray-600">Loading applications...</p>
+							</div>
+						) : transformedApplicants.length > 0 ? (
+							<div className="border bg-white border-gray-200 rounded-xl p-6">
+								<ApplicantsTable
+									applicants={transformedApplicants}
+									onMoreDetail={handleApplicantDetail}
+									hidePostId={true}
+								/>
+							</div>
+						) : (
+							<div className="text-center py-8 bg-gray-50 rounded-lg">
+								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+								<p className="text-gray-600">No applications yet</p>
+							</div>
+						)}
 					</motion.div>
 				)}
+
+				{/* Suggested Applicants Section - Only show for PUBLISHED status */}
+				{currentResearchLab?.status?.toUpperCase() === 'PUBLISHED' &&
+					suggestedApplicants.length > 0 && (
+						<motion.div
+							initial={{ y: 20, opacity: 0 }}
+							animate={{ y: 0, opacity: 1 }}
+							transition={{ delay: 0.7 }}
+							className="p-8 bg-white py-6 shadow-xl border"
+						>
+							<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
+							<p className="text-gray-600 mb-6">
+								These applicants have high matching scores (80%+) and may be a
+								good fit for this research lab.
+							</p>
+							<div className="border bg-white border-gray-200 rounded-xl p-6">
+								<SuggestedApplicantsTable
+									applicants={suggestedApplicants}
+									onMoreDetail={handleApplicantDetail}
+								/>
+							</div>
+						</motion.div>
+					)}
 			</motion.div>
 		</div>
 	)

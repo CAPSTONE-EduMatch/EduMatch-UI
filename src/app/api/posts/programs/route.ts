@@ -315,6 +315,7 @@ export async function PUT(request: NextRequest) {
 				other_info: updateData.otherInformation.content,
 				degree_level: updateData.degreeLevel,
 				description: updateData.description,
+				...(updateData.status && { status: updateData.status }),
 			},
 		});
 

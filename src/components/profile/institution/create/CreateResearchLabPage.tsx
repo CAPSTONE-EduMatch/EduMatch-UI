@@ -82,8 +82,16 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				attendance: initialData.attendance || '',
 				jobType: initialData.jobType || '',
 				salary: {
-					min: initialData.salary?.split('-')[0]?.replace('$', '').trim() || '',
-					max: initialData.salary?.split('-')[1]?.replace('$', '').trim() || '',
+					min: initialData.salary?.split('-')[0]?.replace(/[^0-9]/g, '')
+						? parseInt(
+								initialData.salary.split('-')[0].replace(/[^0-9]/g, '')
+							).toLocaleString('en-US')
+						: '',
+					max: initialData.salary?.split('-')[1]?.replace(/[^0-9]/g, '')
+						? parseInt(
+								initialData.salary.split('-')[1].replace(/[^0-9]/g, '')
+							).toLocaleString('en-US')
+						: '',
 					description: initialData.salaryDescription || '',
 				},
 				benefit: initialData.benefit || '',
@@ -268,13 +276,31 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	}
 
 	const handleSalaryChange = (field: string, value: string) => {
-		setFormData((prev) => ({
-			...prev,
-			salary: {
-				...prev.salary,
-				[field]: value,
-			},
-		}))
+		// Only allow numbers for min and max salary fields
+		if (field === 'min' || field === 'max') {
+			// Remove all non-numeric characters (including commas)
+			const numericValue = value.replace(/[^0-9]/g, '')
+			// Format with thousand separators
+			const formattedValue = numericValue
+				? parseInt(numericValue).toLocaleString('en-US')
+				: ''
+			setFormData((prev) => ({
+				...prev,
+				salary: {
+					...prev.salary,
+					[field]: formattedValue,
+				},
+			}))
+		} else {
+			// For description field, allow any text
+			setFormData((prev) => ({
+				...prev,
+				salary: {
+					...prev.salary,
+					[field]: value,
+				},
+			}))
+		}
 	}
 
 	const handleResearchRequirementChange = (field: string, value: string) => {
@@ -336,10 +362,23 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 			}
 
+			// Remove thousand separators from salary before submitting
+			const salaryMinWithoutCommas = formData.salary.min
+				? formData.salary.min.replace(/,/g, '')
+				: ''
+			const salaryMaxWithoutCommas = formData.salary.max
+				? formData.salary.max.replace(/,/g, '')
+				: ''
+
 			const requestBody = {
 				...formData,
 				startDate: convertDateFormat(formData.startDate),
 				applicationDeadline: convertDateFormat(formData.applicationDeadline),
+				salary: {
+					...formData.salary,
+					min: salaryMinWithoutCommas,
+					max: salaryMaxWithoutCommas,
+				},
 				status: status,
 				...(isEditMode && editId && { postId: editId }),
 			}

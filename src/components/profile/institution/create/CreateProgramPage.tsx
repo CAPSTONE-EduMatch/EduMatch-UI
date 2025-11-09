@@ -121,7 +121,11 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 					fileDescription: initialData.documents?.[0]?.description || '',
 				},
 				tuitionFee: {
-					international: initialData.program?.tuitionFee?.toString() || '',
+					international: initialData.program?.tuitionFee
+						? parseInt(
+								initialData.program.tuitionFee.toString()
+							).toLocaleString('en-US')
+						: '',
 					description: initialData.program?.feeDescription || '',
 				},
 				scholarship: {
@@ -311,13 +315,31 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	}
 
 	const handleTuitionFeeChange = (field: string, value: string) => {
-		setFormData((prev) => ({
-			...prev,
-			tuitionFee: {
-				...prev.tuitionFee,
-				[field]: value,
-			},
-		}))
+		// Only allow numbers for tuition fee
+		if (field === 'international') {
+			// Remove all non-numeric characters (including commas)
+			const numericValue = value.replace(/[^0-9]/g, '')
+			// Format with thousand separators
+			const formattedValue = numericValue
+				? parseInt(numericValue).toLocaleString('en-US')
+				: ''
+			setFormData((prev) => ({
+				...prev,
+				tuitionFee: {
+					...prev.tuitionFee,
+					[field]: formattedValue,
+				},
+			}))
+		} else {
+			// For description field, allow any text
+			setFormData((prev) => ({
+				...prev,
+				tuitionFee: {
+					...prev.tuitionFee,
+					[field]: value,
+				},
+			}))
+		}
 	}
 
 	const handleScholarshipChange = (field: string, value: string) => {
@@ -386,7 +408,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}
 	}
 
-	// Function to validate and format GRE score (130-170 range)
+	// Function to validate and format GRE score (260-340 range)
 	const handleGreInput = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value
 
@@ -399,12 +421,12 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		// Allow only numbers
 		let cleanValue = value.replace(/[^0-9]/g, '')
 
-		// Convert to number and validate range (130-170)
+		// Convert to number and validate range (260-340)
 		const numValue = parseInt(cleanValue)
-		if (!isNaN(numValue) && numValue >= 130 && numValue <= 170) {
+		if (!isNaN(numValue) && numValue >= 260 && numValue <= 340) {
 			handleAcademicRequirementChange('gre', cleanValue)
 		} else if (cleanValue.length <= 3) {
-			// Allow partial input while typing (e.g., "1", "13", "130")
+			// Allow partial input while typing (e.g., "2", "26", "260")
 			handleAcademicRequirementChange('gre', cleanValue)
 		}
 	}
@@ -432,6 +454,30 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}
 	}
 
+	// Helper function to validate GRE score and return error message
+	const getGreError = (): string | null => {
+		const greValue = formData.academicRequirements.gre
+		if (!greValue) return null
+		const numValue = parseInt(greValue)
+		if (isNaN(numValue)) return null
+		if (numValue < 260 || numValue > 340) {
+			return 'GRE score must be between 260 and 340'
+		}
+		return null
+	}
+
+	// Helper function to validate GMAT score and return error message
+	const getGmatError = (): string | null => {
+		const gmatValue = formData.academicRequirements.gmat
+		if (!gmatValue) return null
+		const numValue = parseInt(gmatValue)
+		if (isNaN(numValue)) return null
+		if (numValue < 200 || numValue > 800) {
+			return 'GMAT score must be between 200 and 800'
+		}
+		return null
+	}
+
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
 		try {
 			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
@@ -441,10 +487,19 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 				return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 			}
 
+			// Remove thousand separators from tuition fee before submitting
+			const tuitionFeeWithoutCommas = formData.tuitionFee.international
+				? formData.tuitionFee.international.replace(/,/g, '')
+				: ''
+
 			const requestBody = {
 				...formData,
 				startDate: convertDateFormat(formData.startDate),
 				applicationDeadline: convertDateFormat(formData.applicationDeadline),
+				tuitionFee: {
+					...formData.tuitionFee,
+					international: tuitionFeeWithoutCommas,
+				},
 				status: status,
 				...(isEditMode && editId && { postId: editId }),
 			}
@@ -807,7 +862,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 									/>
 								</div>
 							</div>
-							<div className="flex flex-col sm:flex-row sm:items-center gap-4">
+							<div className="flex flex-col gap-2">
 								<div className="flex items-center gap-2">
 									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
 										GRE
@@ -816,7 +871,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 										|
 									</span>
 									<Input
-										placeholder="130-170"
+										placeholder="260-340"
 										value={formData.academicRequirements.gre}
 										onChange={handleGreInput}
 										inputSize="select"
@@ -824,8 +879,11 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 										width="w-24"
 									/>
 								</div>
+								{getGreError() && (
+									<p className="text-xs text-red-500 ml-1">{getGreError()}</p>
+								)}
 							</div>
-							<div className="flex flex-col sm:flex-row sm:items-center gap-4">
+							<div className="flex flex-col gap-2">
 								<div className="flex items-center gap-2">
 									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
 										GMAT
@@ -842,6 +900,9 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 										width="w-24"
 									/>
 								</div>
+								{getGmatError() && (
+									<p className="text-xs text-red-500 ml-1">{getGmatError()}</p>
+								)}
 							</div>
 						</div>
 					</div>

@@ -251,6 +251,10 @@ async function createOrUpdateInvoiceRecord(
 				? new Date(invoice.status_transitions.paid_at * 1000)
 				: null,
 		};
+		console.log(
+			"🔍 Creating/updating invoice record with data:",
+			invoiceData
+		);
 
 		// Try to update existing invoice first
 		const existingInvoice = await prismaClient.invoice.findFirst({

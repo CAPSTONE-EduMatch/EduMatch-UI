@@ -224,7 +224,9 @@ const InstitutionProgramDetail = () => {
 
 	const handleEditProgram = () => {
 		// Navigate to edit program page
-		router.push(`/institution/dashboard/programs?action=edit&id=${params.id}`)
+		router.push(
+			`/institution/dashboard/programs?action=edit&type=Program&id=${params.id}`
+		)
 	}
 
 	const handleViewApplications = () => {
@@ -235,6 +237,36 @@ const InstitutionProgramDetail = () => {
 	const handleApplicantDetail = (applicant: Applicant) => {
 		// Navigate to applicant detail view
 		router.push(`/institution/dashboard/applications/${applicant.id}`)
+	}
+
+	const handleCloseProgram = async () => {
+		try {
+			const response = await fetch(`/api/posts/programs`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					postId: params.id,
+					status: 'CLOSED',
+				}),
+			})
+
+			if (!response.ok) {
+				throw new Error('Failed to close program')
+			}
+
+			const result = await response.json()
+
+			if (result.success) {
+				// Refresh program data
+				await fetchProgramDetail(params.id as string)
+			} else {
+				showError('Error', result.error || 'Failed to close program')
+			}
+		} catch (error) {
+			showError('Error', 'Failed to close program')
+		}
 	}
 
 	const getStatusColor = (status: string) => {
@@ -609,6 +641,15 @@ const InstitutionProgramDetail = () => {
 									Edit Program
 								</Button>
 							)}
+							{currentProgram?.status?.toUpperCase() === 'PUBLISHED' && (
+								<Button
+									onClick={handleCloseProgram}
+									variant="outline"
+									className="text-orange-600 border-orange-600 hover:bg-orange-50"
+								>
+									Close Program
+								</Button>
+							)}
 							<span
 								className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
 							>
@@ -766,28 +807,34 @@ const InstitutionProgramDetail = () => {
 					</motion.div>
 				)}
 
-				{/* Suggested Applicants Section - Only show for PUBLISHED status */}
-				{currentProgram?.status?.toUpperCase() === 'PUBLISHED' &&
-					suggestedApplicants.length > 0 && (
-						<motion.div
-							initial={{ y: 20, opacity: 0 }}
-							animate={{ y: 0, opacity: 1 }}
-							transition={{ delay: 0.7 }}
-							className="p-8 bg-white py-6 shadow-xl border"
-						>
-							<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
-							<p className="text-gray-600 mb-6">
-								These applicants have high matching scores (80%+) and may be a
-								good fit for this program.
-							</p>
+				{/* Suggested Applicants Section - Always show for PUBLISHED status */}
+				{currentProgram?.status?.toUpperCase() === 'PUBLISHED' && (
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.7 }}
+						className="p-8 bg-white py-6 shadow-xl border"
+					>
+						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
+						<p className="text-gray-600 mb-6">
+							These applicants have high matching scores (80%+) and may be a
+							good fit for this program.
+						</p>
+						{suggestedApplicants.length > 0 ? (
 							<div className="border bg-white border-gray-200 rounded-xl">
 								<SuggestedApplicantsTable
 									applicants={suggestedApplicants}
 									onMoreDetail={handleApplicantDetail}
 								/>
 							</div>
-						</motion.div>
-					)}
+						) : (
+							<div className="text-center py-8 bg-gray-50 rounded-lg">
+								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+								<p className="text-gray-600">No suggested applicants yet</p>
+							</div>
+						)}
+					</motion.div>
+				)}
 			</motion.div>
 		</div>
 	)

@@ -15,6 +15,19 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
+// Helper function to format currency with commas
+function formatCurrency(amount: any): string {
+	if (!amount) return "0";
+	const num =
+		typeof amount === "string"
+			? parseFloat(amount)
+			: typeof amount === "number"
+				? amount
+				: parseFloat(amount.toString()); // Handle Prisma Decimal
+	if (isNaN(num)) return "0";
+	return num.toLocaleString("en-US");
+}
+
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
@@ -43,6 +56,7 @@ export async function GET(request: NextRequest) {
 						country: true,
 						website: true,
 						about: true,
+						type: true,
 					},
 				},
 				scholarshipPost: true,
@@ -79,7 +93,7 @@ export async function GET(request: NextRequest) {
 		const scholarship = {
 			id: post.post_id,
 			title: post.title,
-			description: scholarshipData?.description || "",
+			description: post?.description || "No description available",
 			provider: post.institution?.name || "",
 			university: post.institution?.name || "",
 			essayRequired: scholarshipData?.essay_required ? "Yes" : "No",
@@ -92,13 +106,15 @@ export async function GET(request: NextRequest) {
 					})
 				: "",
 			daysLeft,
-			amount: scholarshipData?.grant || "N/A",
+			amount: scholarshipData?.grant
+				? `$${formatCurrency(scholarshipData.grant)}`
+				: "N/A",
 			awardAmount: scholarshipData?.award_amount
-				? scholarshipData.award_amount.toString()
+				? `$${formatCurrency(scholarshipData.award_amount)}`
 				: "",
 			match,
-			applicationCount: post.applications.length,
 			type: scholarshipData?.type || "",
+			applicationCount: post.applications.length,
 			number: scholarshipData?.number || 0,
 			scholarshipCoverage: scholarshipData?.scholarship_coverage || "",
 			eligibility: scholarshipData?.eligibility || "",
@@ -129,11 +145,12 @@ export async function GET(request: NextRequest) {
 				country: post.institution?.country,
 				website: post.institution?.website,
 				about: post.institution?.about,
+				type: post.institution?.type,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
-				id: doc.document_type_id,
-				name: doc.documentType?.name || "",
-				description: doc.documentType?.description || "",
+				id: doc.document_id,
+				name: doc.name || "",
+				description: doc.description || "",
 			})),
 			subdisciplines: post.subdisciplines.map((sd) => ({
 				id: sd.subdiscipline?.subdiscipline_id,

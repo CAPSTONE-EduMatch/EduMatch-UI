@@ -14,6 +14,7 @@ interface CreateResearchLabRequest {
 	typeOfContract: string;
 	attendance: string;
 	jobType: string;
+	professorName?: string;
 	degree_level: string;
 
 	// Offer Information Section
@@ -64,15 +65,15 @@ interface CreateResearchLabRequest {
 		website: string;
 	};
 
-	// File Requirements
-	fileRequirements: {
-		fileName: string;
-		fileDescription: string;
+	// File Requirements - optional
+	fileRequirements?: {
+		fileName?: string;
+		fileDescription?: string;
 	};
 
-	// Additional Information
-	additionalInformation: {
-		content: string;
+	// Additional Information - optional
+	additionalInformation?: {
+		content?: string;
 	};
 
 	// Status
@@ -149,13 +150,108 @@ export async function POST(request: NextRequest) {
 				start_date: startDate,
 				end_date: applicationDeadline,
 				location: body.country,
-				other_info: body.labDescription,
+				other_info: body.additionalInformation?.content || null,
 				status: body.status || "DRAFT", // Use provided status or default to DRAFT
 				create_at: new Date(),
 				institution_id: institution.institution_id,
 				degree_level: body.degree_level || "RESEARCH", // Add required degree_level field
 			},
 		});
+
+		// Validate salary min/max
+		let minSalary: number | null = null;
+		let maxSalary: number | null = null;
+
+		if (body.salary.min) {
+			const minValue = parseFloat(body.salary.min);
+			if (isNaN(minValue)) {
+				// eslint-disable-next-line no-console
+				console.error("Invalid min_salary value:", body.salary.min);
+				return NextResponse.json(
+					{ error: "Invalid minimum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (minValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Min salary cannot be negative:", minValue);
+				return NextResponse.json(
+					{ error: "Minimum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			minSalary = minValue;
+		}
+
+		if (body.salary.max) {
+			const maxValue = parseFloat(body.salary.max);
+			if (isNaN(maxValue)) {
+				// eslint-disable-next-line no-console
+				console.error("Invalid max_salary value:", body.salary.max);
+				return NextResponse.json(
+					{ error: "Invalid maximum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (maxValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Max salary cannot be negative:", maxValue);
+				return NextResponse.json(
+					{ error: "Maximum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			maxSalary = maxValue;
+		}
+
+		// Validate min <= max
+		if (minSalary !== null && maxSalary !== null && minSalary > maxSalary) {
+			// eslint-disable-next-line no-console
+			console.error("Min salary cannot be greater than max salary:", {
+				min: minSalary,
+				max: maxSalary,
+			});
+			return NextResponse.json(
+				{
+					error: "Minimum salary must be less than or equal to maximum salary",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Validate lab capacity
+		let labCapacity: number | null = null;
+		if (body.labCapacity) {
+			const capacityValue = parseInt(body.labCapacity);
+			if (isNaN(capacityValue)) {
+				// eslint-disable-next-line no-console
+				console.error("Invalid lab_capacity value:", body.labCapacity);
+				return NextResponse.json(
+					{ error: "Invalid lab capacity value" },
+					{ status: 400 }
+				);
+			}
+			if (capacityValue <= 0) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Lab capacity must be greater than 0:",
+					capacityValue
+				);
+				return NextResponse.json(
+					{ error: "Lab capacity must be greater than 0" },
+					{ status: 400 }
+				);
+			}
+			if (capacityValue > 10000) {
+				// eslint-disable-next-line no-console
+				console.error("Lab capacity exceeds maximum:", capacityValue);
+				return NextResponse.json(
+					{ error: "Lab capacity must be less than 10,000" },
+					{ status: 400 }
+				);
+			}
+			labCapacity = capacityValue;
+		}
 
 		// Create the job post (research position)
 		await prismaClient.jobPost.create({
@@ -164,12 +260,9 @@ export async function POST(request: NextRequest) {
 				contract_type: body.typeOfContract,
 				attendance: body.attendance,
 				job_type: body.jobType,
-				min_salary: body.salary.min
-					? parseFloat(body.salary.min)
-					: null,
-				max_salary: body.salary.max
-					? parseFloat(body.salary.max)
-					: null,
+				professor_name: body.professorName || null,
+				min_salary: minSalary,
+				max_salary: maxSalary,
 				salary_description: body.salary.description,
 				benefit: body.benefit,
 				main_responsibility: body.mainResponsibility,
@@ -179,9 +272,7 @@ export async function POST(request: NextRequest) {
 				other_requirement: body.otherRequirement,
 				lab_type: body.labType,
 				research_focus: body.researchFocus,
-				lab_capacity: body.labCapacity
-					? parseInt(body.labCapacity)
-					: null,
+				lab_capacity: labCapacity,
 				research_areas: body.researchAreas,
 				lab_facilities: body.labFacilities,
 				lab_director: body.labInformation.director,
@@ -200,10 +291,8 @@ export async function POST(request: NextRequest) {
 		});
 
 		// Create post documents for file requirements
-		if (
-			body.fileRequirements.fileName &&
-			body.fileRequirements.fileDescription
-		) {
+		// Only need fileDescription, fileName is optional (will use default)
+		if (body.fileRequirements?.fileDescription) {
 			// First, get or create a document type for "Research Documents"
 			let documentType = await prismaClient.documentType.findFirst({
 				where: { name: "Research Documents" },
@@ -225,21 +314,51 @@ export async function POST(request: NextRequest) {
 					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 					post_id: opportunityPost.post_id,
 					document_type_id: documentType.document_type_id,
-					name: body.fileRequirements.fileName,
-					description: body.fileRequirements.fileDescription,
+					name:
+						body.fileRequirements?.fileName || "Required Documents",
+					description: body.fileRequirements?.fileDescription || "",
 				},
 			});
 		}
 
 		// Link to subdisciplines (research fields)
+		// Also save subdiscipline IDs as comma-separated string in research_areas
+		const subdisciplineIds: string[] = [];
 		if (body.researchFields && body.researchFields.length > 0) {
+			// eslint-disable-next-line no-console
+			console.log(
+				"Research fields received:",
+				JSON.stringify(body.researchFields)
+			);
+
 			for (const researchField of body.researchFields) {
-				const subdiscipline =
-					await prismaClient.subdiscipline.findFirst({
-						where: { name: researchField },
+				// Trim whitespace and handle case-insensitive matching
+				const trimmedField = researchField?.trim();
+				if (!trimmedField) {
+					// eslint-disable-next-line no-console
+					console.warn("Empty research field, skipping");
+					continue;
+				}
+
+				// Try case-insensitive search first
+				let subdiscipline = await prismaClient.subdiscipline.findFirst({
+					where: {
+						name: {
+							equals: trimmedField,
+							mode: "insensitive", // Case-insensitive search
+						},
+					},
+				});
+
+				// If not found, try exact match (fallback)
+				if (!subdiscipline) {
+					subdiscipline = await prismaClient.subdiscipline.findFirst({
+						where: { name: trimmedField },
 					});
+				}
 
 				if (subdiscipline) {
+					// Save to PostSubdiscipline join table
 					await prismaClient.postSubdiscipline.create({
 						data: {
 							subdiscipline_id: subdiscipline.subdiscipline_id,
@@ -247,7 +366,28 @@ export async function POST(request: NextRequest) {
 							add_at: new Date(),
 						},
 					});
+					// Collect subdiscipline IDs for research_areas field
+					subdisciplineIds.push(subdiscipline.subdiscipline_id);
+					// eslint-disable-next-line no-console
+					console.log(
+						`Successfully linked research field "${trimmedField}" to subdiscipline ${subdiscipline.subdiscipline_id}`
+					);
+				} else {
+					// eslint-disable-next-line no-console
+					console.error(
+						`Subdiscipline not found for research field: "${trimmedField}"`
+					);
 				}
+			}
+
+			// Update research_areas field with comma-separated subdiscipline IDs
+			if (subdisciplineIds.length > 0) {
+				await prismaClient.jobPost.update({
+					where: { post_id: opportunityPost.post_id },
+					data: {
+						research_areas: subdisciplineIds.join(","),
+					},
+				});
 			}
 		}
 
@@ -261,7 +401,11 @@ export async function POST(request: NextRequest) {
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console
-		console.error("Error creating research lab post:", error);
+		console.error("Error creating research lab post:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+			timestamp: new Date().toISOString(),
+		});
 		return NextResponse.json(
 			{
 				error: "Failed to create research lab post",
@@ -348,11 +492,115 @@ export async function PUT(request: NextRequest) {
 				start_date: startDate,
 				end_date: applicationDeadline,
 				location: updateData.country,
-				other_info: updateData.labDescription,
+				other_info: updateData.additionalInformation?.content || null,
 				degree_level: updateData.degree_level || "RESEARCH",
 				...(updateData.status && { status: updateData.status }),
 			},
 		});
+
+		// Validate salary min/max
+		let minSalary: number | null = null;
+		let maxSalary: number | null = null;
+
+		if (updateData.salary.min) {
+			const minValue = parseFloat(updateData.salary.min);
+			if (isNaN(minValue)) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Invalid min_salary value:",
+					updateData.salary.min
+				);
+				return NextResponse.json(
+					{ error: "Invalid minimum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (minValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Min salary cannot be negative:", minValue);
+				return NextResponse.json(
+					{ error: "Minimum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			minSalary = minValue;
+		}
+
+		if (updateData.salary.max) {
+			const maxValue = parseFloat(updateData.salary.max);
+			if (isNaN(maxValue)) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Invalid max_salary value:",
+					updateData.salary.max
+				);
+				return NextResponse.json(
+					{ error: "Invalid maximum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (maxValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Max salary cannot be negative:", maxValue);
+				return NextResponse.json(
+					{ error: "Maximum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			maxSalary = maxValue;
+		}
+
+		// Validate min <= max
+		if (minSalary !== null && maxSalary !== null && minSalary > maxSalary) {
+			// eslint-disable-next-line no-console
+			console.error("Min salary cannot be greater than max salary:", {
+				min: minSalary,
+				max: maxSalary,
+			});
+			return NextResponse.json(
+				{
+					error: "Minimum salary must be less than or equal to maximum salary",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Validate lab capacity
+		let labCapacity: number | null = null;
+		if (updateData.labCapacity) {
+			const capacityValue = parseInt(updateData.labCapacity);
+			if (isNaN(capacityValue)) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Invalid lab_capacity value:",
+					updateData.labCapacity
+				);
+				return NextResponse.json(
+					{ error: "Invalid lab capacity value" },
+					{ status: 400 }
+				);
+			}
+			if (capacityValue <= 0) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Lab capacity must be greater than 0:",
+					capacityValue
+				);
+				return NextResponse.json(
+					{ error: "Lab capacity must be greater than 0" },
+					{ status: 400 }
+				);
+			}
+			if (capacityValue > 10000) {
+				// eslint-disable-next-line no-console
+				console.error("Lab capacity exceeds maximum:", capacityValue);
+				return NextResponse.json(
+					{ error: "Lab capacity must be less than 10,000" },
+					{ status: 400 }
+				);
+			}
+			labCapacity = capacityValue;
+		}
 
 		// Update the job post (research position)
 		await prismaClient.jobPost.update({
@@ -361,12 +609,9 @@ export async function PUT(request: NextRequest) {
 				contract_type: updateData.typeOfContract,
 				attendance: updateData.attendance,
 				job_type: updateData.jobType,
-				min_salary: updateData.salary.min
-					? parseFloat(updateData.salary.min)
-					: null,
-				max_salary: updateData.salary.max
-					? parseFloat(updateData.salary.max)
-					: null,
+				professor_name: updateData.professorName || null,
+				min_salary: minSalary,
+				max_salary: maxSalary,
 				salary_description: updateData.salary.description,
 				benefit: updateData.benefit,
 				main_responsibility: updateData.mainResponsibility,
@@ -376,9 +621,7 @@ export async function PUT(request: NextRequest) {
 				other_requirement: updateData.otherRequirement,
 				lab_type: updateData.labType,
 				research_focus: updateData.researchFocus,
-				lab_capacity: updateData.labCapacity
-					? parseInt(updateData.labCapacity)
-					: null,
+				lab_capacity: labCapacity,
 				research_areas: updateData.researchAreas,
 				lab_facilities: updateData.labFacilities,
 				lab_director: updateData.labInformation.director,
@@ -404,10 +647,8 @@ export async function PUT(request: NextRequest) {
 			where: { post_id: postId },
 		});
 
-		if (
-			updateData.fileRequirements.fileName &&
-			updateData.fileRequirements.fileDescription
-		) {
+		// Only need fileDescription, fileName is optional (will use default)
+		if (updateData.fileRequirements?.fileDescription) {
 			let documentType = await prismaClient.documentType.findFirst({
 				where: { name: "Research Documents" },
 			});
@@ -428,8 +669,11 @@ export async function PUT(request: NextRequest) {
 					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 					post_id: postId,
 					document_type_id: documentType.document_type_id,
-					name: updateData.fileRequirements.fileName,
-					description: updateData.fileRequirements.fileDescription,
+					name:
+						updateData.fileRequirements?.fileName ||
+						"Required Documents",
+					description:
+						updateData.fileRequirements?.fileDescription || "",
 				},
 			});
 		}
@@ -439,14 +683,44 @@ export async function PUT(request: NextRequest) {
 			where: { post_id: postId },
 		});
 
+		// Link to subdisciplines (research fields)
+		// Also save subdiscipline IDs as comma-separated string in research_areas
+		const subdisciplineIds: string[] = [];
 		if (updateData.researchFields && updateData.researchFields.length > 0) {
+			// eslint-disable-next-line no-console
+			console.log(
+				"Research fields received for update:",
+				JSON.stringify(updateData.researchFields)
+			);
+
 			for (const researchField of updateData.researchFields) {
-				const subdiscipline =
-					await prismaClient.subdiscipline.findFirst({
-						where: { name: researchField },
+				// Trim whitespace and handle case-insensitive matching
+				const trimmedField = researchField?.trim();
+				if (!trimmedField) {
+					// eslint-disable-next-line no-console
+					console.warn("Empty research field, skipping");
+					continue;
+				}
+
+				// Try case-insensitive search first
+				let subdiscipline = await prismaClient.subdiscipline.findFirst({
+					where: {
+						name: {
+							equals: trimmedField,
+							mode: "insensitive", // Case-insensitive search
+						},
+					},
+				});
+
+				// If not found, try exact match (fallback)
+				if (!subdiscipline) {
+					subdiscipline = await prismaClient.subdiscipline.findFirst({
+						where: { name: trimmedField },
 					});
+				}
 
 				if (subdiscipline) {
+					// Save to PostSubdiscipline join table
 					await prismaClient.postSubdiscipline.create({
 						data: {
 							subdiscipline_id: subdiscipline.subdiscipline_id,
@@ -454,8 +728,45 @@ export async function PUT(request: NextRequest) {
 							add_at: new Date(),
 						},
 					});
+					// Collect subdiscipline IDs for research_areas field
+					subdisciplineIds.push(subdiscipline.subdiscipline_id);
+					// eslint-disable-next-line no-console
+					console.log(
+						`Successfully linked research field "${trimmedField}" to subdiscipline ${subdiscipline.subdiscipline_id}`
+					);
+				} else {
+					// eslint-disable-next-line no-console
+					console.error(
+						`Subdiscipline not found for research field: "${trimmedField}"`
+					);
 				}
 			}
+
+			// Update research_areas field with comma-separated subdiscipline IDs
+			if (subdisciplineIds.length > 0) {
+				await prismaClient.jobPost.update({
+					where: { post_id: postId },
+					data: {
+						research_areas: subdisciplineIds.join(","),
+					},
+				});
+			} else {
+				// Clear research_areas if no subdisciplines found
+				await prismaClient.jobPost.update({
+					where: { post_id: postId },
+					data: {
+						research_areas: null,
+					},
+				});
+			}
+		} else {
+			// Clear research_areas if no research fields provided
+			await prismaClient.jobPost.update({
+				where: { post_id: postId },
+				data: {
+					research_areas: null,
+				},
+			});
 		}
 
 		return NextResponse.json({
@@ -466,7 +777,12 @@ export async function PUT(request: NextRequest) {
 			},
 		});
 	} catch (error) {
-		console.error("Error updating research lab post:", error);
+		// eslint-disable-next-line no-console
+		console.error("Error updating research lab post:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+			timestamp: new Date().toISOString(),
+		});
 		return NextResponse.json(
 			{
 				error: "Failed to update research lab post",

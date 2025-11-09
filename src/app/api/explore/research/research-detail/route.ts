@@ -15,6 +15,19 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
+// Helper function to format currency with commas
+function formatCurrency(amount: any): string {
+	if (!amount) return "0";
+	const num =
+		typeof amount === "string"
+			? parseFloat(amount)
+			: typeof amount === "number"
+				? amount
+				: parseFloat(amount.toString()); // Handle Prisma Decimal
+	if (isNaN(num)) return "0";
+	return num.toLocaleString("en-US");
+}
+
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
@@ -84,14 +97,15 @@ export async function GET(request: NextRequest) {
 		// Format salary display
 		const formatSalary = () => {
 			if (jobData.min_salary && jobData.max_salary) {
-				return `$${jobData.min_salary} - $${jobData.max_salary}`;
+				return `$${formatCurrency(jobData.min_salary)} - $${formatCurrency(jobData.max_salary)}`;
 			} else if (jobData.min_salary) {
-				return `From $${jobData.min_salary}`;
+				return `From $${formatCurrency(jobData.min_salary)}`;
 			} else if (jobData.max_salary) {
-				return `Up to $${jobData.max_salary}`;
-			} else if (jobData.salary_description) {
-				return jobData.salary_description;
+				return `Up to $${formatCurrency(jobData.max_salary)}`;
 			}
+			//  else if (jobData.salary_description) {
+			// 	return jobData.salary_description;
+			// }
 			return "Competitive";
 		};
 
@@ -112,8 +126,10 @@ export async function GET(request: NextRequest) {
 			daysLeft,
 			salary: formatSalary(),
 			match,
+			otherInfo: post.other_info || "",
 			applicationCount: post.applications.length,
 			jobType: jobData?.job_type || "Researcher",
+			professorName: jobData?.professor_name || "",
 			contractType: jobData?.contract_type || "",
 			attendance: jobData?.attendance || "",
 			location: post.location || "",
@@ -133,8 +149,11 @@ export async function GET(request: NextRequest) {
 				: "",
 
 			// Job Description Details
-			researchFields: jobData?.research_areas
-				? jobData.research_areas.split(",").map((area) => area.trim())
+			// Get research fields from subdisciplines (join table) - these are the actual names
+			researchFields: post.subdisciplines
+				? post.subdisciplines
+						.map((sd) => sd.subdiscipline?.name || "")
+						.filter((name) => name !== "")
 				: [],
 			researchFocus: jobData?.research_focus || "",
 			researchExperience: jobData?.research_experience || "",
@@ -173,9 +192,9 @@ export async function GET(request: NextRequest) {
 				about: post.institution?.about,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
-				id: doc.document_type_id,
-				name: doc.documentType?.name || "",
-				description: doc.documentType?.description || "",
+				id: doc.document_id,
+				name: doc.name || "",
+				description: doc.description || "",
 			})),
 			subdisciplines: post.subdisciplines.map((sd) => ({
 				id: sd.subdiscipline?.subdiscipline_id,

@@ -34,6 +34,19 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
+// Helper function to format currency with commas
+function formatCurrency(amount: any): string {
+	if (!amount) return "0";
+	const num =
+		typeof amount === "string"
+			? parseFloat(amount)
+			: typeof amount === "number"
+				? amount
+				: parseFloat(amount.toString()); // Handle Prisma Decimal
+	if (isNaN(num)) return "0";
+	return num.toLocaleString("en-US");
+}
+
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
@@ -72,7 +85,7 @@ export async function GET(request: NextRequest) {
 		if (search) {
 			whereClause.OR = [
 				{ title: { contains: search, mode: "insensitive" } },
-				{ other_info: { contains: search, mode: "insensitive" } },
+				// { other_info: { contains: search, mode: "insensitive" } },
 			];
 		}
 
@@ -219,7 +232,7 @@ export async function GET(request: NextRequest) {
 					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
 					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend
 					price: postProgram.tuition_fee
-						? `${postProgram.tuition_fee} USD`
+						? `$${formatCurrency(postProgram.tuition_fee)}`
 						: "Contact for pricing",
 					match: calculateMatchPercentage(),
 					funding:

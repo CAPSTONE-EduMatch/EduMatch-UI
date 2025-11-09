@@ -3,7 +3,6 @@ import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { v4 as uuidv4 } from "uuid";
-import { de } from "date-fns/locale";
 
 interface CreateScholarshipRequest {
 	// Overview Section
@@ -16,26 +15,28 @@ interface CreateScholarshipRequest {
 
 	// Detail Section
 	scholarshipDescription: string;
-	scholarshipType: string;
+	scholarshipType: string | string[]; // Can be string or array
 	numberOfScholarships: string;
 	grant: string;
 	scholarshipCoverage: string;
 
-	// Eligibility Requirements
-	eligibilityRequirements: {
-		academicMerit: string;
-		financialNeed: string;
-		otherCriteria: string;
+	// Eligibility Requirements - can be string or object
+	eligibilityRequirements:
+		| string
+		| {
+				academicMerit: string;
+				financialNeed: string;
+				otherCriteria: string;
+		  };
+
+	// File Requirements - optional
+	fileRequirements?: {
+		fileName?: string;
+		fileDescription?: string;
 	};
 
-	// File Requirements
-	fileRequirements: {
-		fileName: string;
-		fileDescription: string;
-	};
-
-	// Award Details
-	awardDetails: {
+	// Award Details - optional
+	awardDetails?: {
 		amount: string;
 		duration: string;
 		renewable: string;
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
 				start_date: startDate,
 				end_date: applicationDeadline,
 				location: body.country,
-				other_info: body.scholarshipDescription,
+				other_info: body.additionalInformation?.content || null,
 				status: body.status || "DRAFT", // Use provided status or default to DRAFT
 				create_at: new Date(),
 				institution_id: institution.institution_id,
@@ -128,42 +129,61 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
+		// Handle eligibility requirements - can be string or object
+		let eligibilityString = "";
+		let essayRequired = false;
+
+		if (typeof body.eligibilityRequirements === "string") {
+			// Frontend sends string directly
+			eligibilityString = body.eligibilityRequirements;
+			essayRequired =
+				eligibilityString.toLowerCase().includes("essay") ||
+				eligibilityString.toLowerCase().includes("writing");
+		} else {
+			// Legacy format - object with separate fields
+			const eligibilityArray = [
+				body.eligibilityRequirements.academicMerit,
+				body.eligibilityRequirements.financialNeed,
+				body.eligibilityRequirements.otherCriteria,
+			].filter(Boolean);
+			eligibilityString = eligibilityArray.join("; ");
+			essayRequired =
+				body.eligibilityRequirements.otherCriteria
+					?.toLowerCase()
+					.includes("essay") ||
+				body.eligibilityRequirements.otherCriteria
+					?.toLowerCase()
+					.includes("writing") ||
+				false;
+		}
+
+		// Handle scholarship type - can be string or array
+		const scholarshipTypeString = Array.isArray(body.scholarshipType)
+			? body.scholarshipType.join(", ")
+			: body.scholarshipType || "";
+
 		// Create the scholarship post
 		await prismaClient.scholarshipPost.create({
 			data: {
 				post_id: opportunityPost.post_id,
 				description: body.scholarshipDescription,
-				type: body.scholarshipType,
+				type: scholarshipTypeString,
 				number: parseInt(body.numberOfScholarships) || 1,
 				grant: body.grant,
 				scholarship_coverage: body.scholarshipCoverage,
-				essay_required:
-					body.eligibilityRequirements.otherCriteria
-						.toLowerCase()
-						.includes("essay") ||
-					body.eligibilityRequirements.otherCriteria
-						.toLowerCase()
-						.includes("writing"),
-				eligibility: [
-					body.eligibilityRequirements.academicMerit,
-					body.eligibilityRequirements.financialNeed,
-					body.eligibilityRequirements.otherCriteria,
-				]
-					.filter(Boolean)
-					.join("; "),
-				award_amount: body.awardDetails.amount
+				essay_required: essayRequired,
+				eligibility: eligibilityString || null,
+				award_amount: body.awardDetails?.amount
 					? parseFloat(body.awardDetails.amount)
 					: null,
-				award_duration: body.awardDetails.duration,
-				renewable: body.awardDetails.renewable === "Yes",
+				award_duration: body.awardDetails?.duration || null,
+				renewable: body.awardDetails?.renewable === "Yes" || false,
 			},
 		});
 
 		// Create post documents for file requirements
-		if (
-			body.fileRequirements.fileName &&
-			body.fileRequirements.fileDescription
-		) {
+		// Only need fileDescription, fileName is optional (will use default)
+		if (body.fileRequirements?.fileDescription) {
 			// First, get or create a document type for "Scholarship Documents"
 			let documentType = await prismaClient.documentType.findFirst({
 				where: { name: "Scholarship Documents" },
@@ -174,8 +194,7 @@ export async function POST(request: NextRequest) {
 					data: {
 						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 						name: "Scholarship Documents",
-						description:
-							"Documents required for scholarship application",
+						description: null,
 					},
 				});
 			}
@@ -185,8 +204,9 @@ export async function POST(request: NextRequest) {
 					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 					post_id: opportunityPost.post_id,
 					document_type_id: documentType.document_type_id,
-					name: body.fileRequirements.fileName,
-					description: body.fileRequirements.fileDescription,
+					name:
+						body.fileRequirements?.fileName || "Required Documents",
+					description: body.fileRequirements?.fileDescription || "",
 				},
 			});
 		}
@@ -308,40 +328,62 @@ export async function PUT(request: NextRequest) {
 				start_date: startDate,
 				end_date: applicationDeadline,
 				location: updateData.country,
-				other_info: updateData.scholarshipDescription,
+				other_info: updateData.additionalInformation?.content || null,
 				degree_level: updateData.degree_level || "SCHOLARSHIP",
 				...(updateData.status && { status: updateData.status }),
 			},
 		});
+
+		// Handle eligibility requirements - can be string or object
+		let eligibilityString = "";
+		let essayRequired = false;
+
+		if (typeof updateData.eligibilityRequirements === "string") {
+			// Frontend sends string directly
+			eligibilityString = updateData.eligibilityRequirements;
+			essayRequired =
+				eligibilityString.toLowerCase().includes("essay") ||
+				eligibilityString.toLowerCase().includes("writing");
+		} else {
+			// Legacy format - object with separate fields
+			const eligibilityArray = [
+				updateData.eligibilityRequirements.academicMerit,
+				updateData.eligibilityRequirements.financialNeed,
+				updateData.eligibilityRequirements.otherCriteria,
+			].filter(Boolean);
+			eligibilityString = eligibilityArray.join("; ");
+			essayRequired =
+				updateData.eligibilityRequirements.otherCriteria
+					?.toLowerCase()
+					.includes("essay") ||
+				updateData.eligibilityRequirements.otherCriteria
+					?.toLowerCase()
+					.includes("writing") ||
+				false;
+		}
+
+		// Handle scholarship type - can be string or array
+		const scholarshipTypeString = Array.isArray(updateData.scholarshipType)
+			? updateData.scholarshipType.join(", ")
+			: updateData.scholarshipType || "";
 
 		// Update the scholarship post
 		await prismaClient.scholarshipPost.update({
 			where: { post_id: postId },
 			data: {
 				description: updateData.scholarshipDescription,
-				type: updateData.scholarshipType,
+				type: scholarshipTypeString,
 				number: parseInt(updateData.numberOfScholarships) || 1,
 				grant: updateData.grant,
 				scholarship_coverage: updateData.scholarshipCoverage,
-				essay_required:
-					updateData.eligibilityRequirements.otherCriteria
-						.toLowerCase()
-						.includes("essay") ||
-					updateData.eligibilityRequirements.otherCriteria
-						.toLowerCase()
-						.includes("writing"),
-				eligibility: [
-					updateData.eligibilityRequirements.academicMerit,
-					updateData.eligibilityRequirements.financialNeed,
-					updateData.eligibilityRequirements.otherCriteria,
-				]
-					.filter(Boolean)
-					.join("; "),
-				award_amount: updateData.awardDetails.amount
+				essay_required: essayRequired,
+				eligibility: eligibilityString || null,
+				award_amount: updateData.awardDetails?.amount
 					? parseFloat(updateData.awardDetails.amount)
 					: null,
-				award_duration: updateData.awardDetails.duration,
-				renewable: updateData.awardDetails.renewable === "Yes",
+				award_duration: updateData.awardDetails?.duration || null,
+				renewable:
+					updateData.awardDetails?.renewable === "Yes" || false,
 			},
 		});
 
@@ -350,10 +392,8 @@ export async function PUT(request: NextRequest) {
 			where: { post_id: postId },
 		});
 
-		if (
-			updateData.fileRequirements.fileName &&
-			updateData.fileRequirements.fileDescription
-		) {
+		// Only need fileDescription, fileName is optional (will use default)
+		if (updateData.fileRequirements?.fileDescription) {
 			let documentType = await prismaClient.documentType.findFirst({
 				where: { name: "Scholarship Documents" },
 			});
@@ -363,8 +403,7 @@ export async function PUT(request: NextRequest) {
 					data: {
 						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 						name: "Scholarship Documents",
-						description:
-							"Documents required for scholarship application",
+						description: null,
 					},
 				});
 			}
@@ -374,8 +413,11 @@ export async function PUT(request: NextRequest) {
 					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 					post_id: postId,
 					document_type_id: documentType.document_type_id,
-					name: updateData.fileRequirements.fileName,
-					description: updateData.fileRequirements.fileDescription,
+					name:
+						updateData.fileRequirements?.fileName ||
+						"Required Documents",
+					description:
+						updateData.fileRequirements?.fileDescription || "",
 				},
 			});
 		}
@@ -412,6 +454,7 @@ export async function PUT(request: NextRequest) {
 			},
 		});
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("Error updating scholarship post:", error);
 		return NextResponse.json(
 			{

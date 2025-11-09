@@ -632,7 +632,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 								{subdisciplines.map((sub, index) => (
 									<span
 										key={index}
-										className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
+										className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium break-words whitespace-normal"
 									>
 										{sub.name}
 									</span>
@@ -651,7 +651,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					return (
 						<div className="flex flex-col gap-2">
 							<span className="text-sm font-medium">{level}</span>
-							<span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap w-fit">
+							<span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium break-words whitespace-normal w-fit">
 								{subdisciplines}
 							</span>
 						</div>
@@ -670,7 +670,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 							{subdisciplines.map((sub, index) => (
 								<span
 									key={index}
-									className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
+									className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium break-words whitespace-normal"
 								>
 									{sub.name}
 								</span>

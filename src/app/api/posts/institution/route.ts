@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 		// Parse query parameters
 		const search = searchParams.get("search") || "";
-		const status = searchParams.get("status") || "all";
+		const statusParam = searchParams.get("status") || "all";
 		const postType = searchParams.get("type") || "all";
 		const sortBy = searchParams.get("sortBy") || "newest";
 		const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
@@ -44,18 +44,62 @@ export async function GET(request: NextRequest) {
 			institution_id: institution.institution_id,
 		};
 
-		// Add status filter
-		if (status !== "all") {
-			whereClause.status = status.toUpperCase();
+		// Add status filter - handle multiple statuses
+		if (statusParam !== "all" && statusParam) {
+			// Split by comma to handle multiple statuses
+			const statusArray = statusParam
+				.split(",")
+				.map((s) => s.trim().toUpperCase())
+				.filter((s) => s);
+
+			if (statusArray.length === 1) {
+				// Single status
+				whereClause.status = statusArray[0];
+			} else if (statusArray.length > 1) {
+				// Multiple statuses - use 'in' operator
+				whereClause.status = { in: statusArray };
+			}
 		}
 
-		// Get total count for pagination
-		const totalCount = await prismaClient.opportunityPost.count({
-			where: whereClause,
-		});
+		// Add post type filter to where clause if specified - handle multiple types
+		if (postType !== "all" && postType) {
+			// Split by comma to handle multiple types
+			const typeArray = postType
+				.split(",")
+				.map((t) => t.trim())
+				.filter((t) => t);
 
-		// Query posts with related data
-		const posts = await prismaClient.opportunityPost.findMany({
+			if (typeArray.length === 1) {
+				// Single type
+				const singleType = typeArray[0];
+				if (singleType === "Program") {
+					whereClause.programPost = { isNot: null };
+				} else if (singleType === "Scholarship") {
+					whereClause.scholarshipPost = { isNot: null };
+				} else if (singleType === "Research Lab") {
+					whereClause.jobPost = { isNot: null };
+				}
+			} else if (typeArray.length > 1) {
+				// Multiple types - use OR condition
+				const orConditions: any[] = [];
+				if (typeArray.includes("Program")) {
+					orConditions.push({ programPost: { isNot: null } });
+				}
+				if (typeArray.includes("Scholarship")) {
+					orConditions.push({ scholarshipPost: { isNot: null } });
+				}
+				if (typeArray.includes("Research Lab")) {
+					orConditions.push({ jobPost: { isNot: null } });
+				}
+				if (orConditions.length > 0) {
+					whereClause.OR = orConditions;
+				}
+			}
+		}
+
+		// Query ALL posts first (without pagination) to apply filtering
+		// This is necessary because search and type filters depend on transformed data
+		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
 			include: {
 				programPost: {
@@ -99,13 +143,11 @@ export async function GET(request: NextRequest) {
 					: sortBy === "oldest"
 						? { create_at: "asc" }
 						: { create_at: "desc" },
-			skip,
-			take: limit,
 		});
 
 		// Get application counts for each post
 		const applicationCounts = await Promise.all(
-			posts.map(async (post) => {
+			allPosts.map(async (post) => {
 				const count = await prismaClient.application.count({
 					where: { post_id: post.post_id },
 				});
@@ -122,7 +164,7 @@ export async function GET(request: NextRequest) {
 		);
 
 		// Transform data to match the expected format
-		const transformedPosts = posts.map((post) => {
+		const transformedPosts = allPosts.map((post) => {
 			// Determine post type and extract relevant data
 			let postType = "Program";
 			let postData = null;
@@ -164,7 +206,7 @@ export async function GET(request: NextRequest) {
 			};
 		});
 
-		// Apply search filter
+		// Apply search filter (client-side because it depends on transformed data)
 		let filteredPosts = transformedPosts;
 		if (search) {
 			filteredPosts = transformedPosts.filter(
@@ -179,24 +221,19 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Apply post type filter
-		if (postType !== "all") {
-			// Map frontend filter values to API values
-			const typeMapping: { [key: string]: string } = {
-				Program: "Program",
-				Scholarship: "Scholarship",
-				"Research Lab": "Research Lab",
-			};
+		// Note: Post type filter is already applied in the database query above
 
-			const mappedType = typeMapping[postType] || postType;
-			filteredPosts = filteredPosts.filter(
-				(post) => post.type === mappedType
-			);
-		}
+		// Get total count AFTER filtering
+		const totalFilteredCount = filteredPosts.length;
 
-		// Calculate statistics
+		// Apply pagination AFTER filtering
+		const startIndex = skip;
+		const endIndex = startIndex + limit;
+		const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+
+		// Calculate statistics (based on all posts, not filtered)
 		const stats = {
-			total: totalCount,
+			total: allPosts.length,
 			published: transformedPosts.filter(
 				(post) => post.status === "published"
 			).length,
@@ -209,13 +246,14 @@ export async function GET(request: NextRequest) {
 				.length,
 		};
 
-		const totalPages = Math.ceil(filteredPosts.length / limit);
+		// Calculate total pages based on filtered count
+		const totalPages = Math.ceil(totalFilteredCount / limit);
 
 		return NextResponse.json({
 			success: true,
-			data: filteredPosts,
+			data: paginatedPosts,
 			meta: {
-				total: totalCount,
+				total: totalFilteredCount,
 				page,
 				limit,
 				totalPages,

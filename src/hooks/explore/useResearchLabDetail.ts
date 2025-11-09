@@ -11,6 +11,7 @@ export interface ResearchLabDetail {
 	daysLeft: number;
 	salary: string;
 	match: string;
+	otherInfo: string;
 	applicationCount: number;
 	jobType: string;
 	contractType: string;

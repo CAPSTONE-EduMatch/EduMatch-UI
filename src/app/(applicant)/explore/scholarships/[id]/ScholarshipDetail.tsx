@@ -414,7 +414,7 @@ const ScholarshipDetail = () => {
 								Description
 							</h3>
 							<p
-								className="text-gray-700 mb-6"
+								className="text-gray-700 mb-6 prose prose-content"
 								dangerouslySetInnerHTML={{
 									__html:
 										currentScholarship?.description ||
@@ -431,7 +431,7 @@ const ScholarshipDetail = () => {
 								<li className="text-base">
 									<span className="font-bold text-gray-900">1. Amount:</span>{' '}
 									<span
-										className="text-gray-700"
+										className="text-gray-700 prose prose-content"
 										dangerouslySetInnerHTML={{
 											__html: currentScholarship?.amount || 'N/A',
 										}}
@@ -446,7 +446,7 @@ const ScholarshipDetail = () => {
 								<li className="text-base">
 									<span className="font-bold text-gray-900">3. Coverage:</span>{' '}
 									<span
-										className="text-gray-700"
+										className="text-gray-700 prose prose-content"
 										dangerouslySetInnerHTML={{
 											__html: currentScholarship?.scholarshipCoverage || 'N/A',
 										}}
@@ -633,7 +633,7 @@ const ScholarshipDetail = () => {
 							</div>
 						)}
 
-						<div>
+						{/* <div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
 								Application Statistics
 							</h3>
@@ -641,7 +641,7 @@ const ScholarshipDetail = () => {
 								<strong>Current Applications:</strong>{' '}
 								{currentScholarship?.applicationCount || 0}
 							</p>
-						</div>
+						</div> */}
 					</div>
 				)
 
@@ -769,9 +769,9 @@ const ScholarshipDetail = () => {
 								</span>
 							</div>
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Type</span>
+								<span className="text-md text-gray-500">Insitutuion Type</span>
 								<span className="text-xl text-black font-bold">
-									{currentScholarship?.type || 'N/A'}
+									{currentScholarship?.institution.type || 'N/A'}
 								</span>
 							</div>
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">

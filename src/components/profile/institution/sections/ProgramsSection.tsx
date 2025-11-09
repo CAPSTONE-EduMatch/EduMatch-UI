@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
 	PostsStatisticsCards,
@@ -16,7 +16,7 @@ import { CreateResearchLabPage } from '@/components/profile/institution/create/C
 interface ProgramsSectionProps {
 	profile: any
 	onProfileUpdate?: () => Promise<void>
-	onNavigationAttempt?: (targetSection: string) => boolean
+	onNavigationAttempt?: (_targetSection: string) => boolean
 }
 
 export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
@@ -35,7 +35,6 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	>(null)
 
 	// Check if we're in create or edit mode via URL parameter
-	const currentTab = searchParams.get('tab')
 	const action = searchParams.get('action')
 	const editId = searchParams.get('id')
 	const isCreateMode = action === 'create'
@@ -57,6 +56,12 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		closed: 0,
 		draft: 0,
 		submitted: 0,
+	})
+	const [paginationMeta, setPaginationMeta] = useState({
+		total: 0,
+		page: 1,
+		limit: 10,
+		totalPages: 1,
 	})
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -93,6 +98,9 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 			if (result.success) {
 				setPosts(result.data)
 				setStats(result.stats)
+				if (result.meta) {
+					setPaginationMeta(result.meta)
+				}
 			} else {
 				throw new Error(result.error || 'Failed to fetch posts')
 			}
@@ -103,10 +111,11 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		}
 	}
 
-	// Fetch posts only when component mounts
+	// Fetch posts when filters, search, sort, or page changes
 	useEffect(() => {
 		fetchPosts()
-	}, []) // eslint-disable-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentPage, searchQuery, typeFilter, statusFilter, sortBy])
 
 	// Load edit data when in edit mode
 	useEffect(() => {
@@ -131,6 +140,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 						}
 					}
 				} catch (error) {
+					// eslint-disable-next-line no-console
 					console.error('Failed to load edit data:', error)
 				} finally {
 					setLoadingEditData(false)
@@ -158,15 +168,10 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	useEffect(() => {
 		const handlePopState = () => {
 			// Force re-evaluation of URL parameters when browser navigation occurs
-			const currentTab = searchParams.get('tab')
 			const currentAction = searchParams.get('action')
 			const currentType = searchParams.get('type')
 
-			if (
-				currentTab === 'programs' &&
-				currentAction === 'create' &&
-				currentType
-			) {
+			if (currentAction === 'create' && currentType) {
 				setCreateFormType(
 					currentType as 'Program' | 'Scholarship' | 'Research Lab'
 				)
@@ -181,76 +186,28 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		return () => window.removeEventListener('popstate', handlePopState)
 	}, [searchParams])
 
-	// Filter and search posts (client-side for immediate feedback)
-	const filteredPosts = useMemo(() => {
-		let filtered = posts
-
-		// Search filter
-		if (searchQuery) {
-			filtered = filtered.filter(
-				(post) =>
-					post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					post.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					post.id.toLowerCase().includes(searchQuery.toLowerCase())
-			)
-		}
-
-		// Type filter
-		if (typeFilter.length > 0) {
-			filtered = filtered.filter((post) => typeFilter.includes(post.type))
-		}
-
-		// Status filter
-		if (statusFilter.length > 0) {
-			filtered = filtered.filter((post) => statusFilter.includes(post.status))
-		}
-
-		// Sort posts by date (postedDate is in dd/mm/yyyy format)
-		filtered.sort((a, b) => {
-			// Parse dd/mm/yyyy format to Date
-			const parseDate = (dateStr: string): number => {
-				if (!dateStr) return 0
-				const parts = dateStr.split('/')
-				if (parts.length !== 3) return 0
-				// Create date: month is 0-indexed, so subtract 1
-				const date = new Date(
-					parseInt(parts[2]),
-					parseInt(parts[1]) - 1,
-					parseInt(parts[0])
-				)
-				return date.getTime()
-			}
-
-			const dateA = parseDate(a.postedDate)
-			const dateB = parseDate(b.postedDate)
-
-			if (sortBy === 'newest') {
-				return dateB - dateA
-			} else {
-				return dateA - dateB
-			}
-		})
-
-		return filtered
-	}, [posts, searchQuery, typeFilter, statusFilter, sortBy])
-
-	// Pagination
-	const totalPages = Math.ceil(filteredPosts.length / itemsPerPage)
-	const startIndex = (currentPage - 1) * itemsPerPage
-	const paginatedPosts = filteredPosts.slice(
-		startIndex,
-		startIndex + itemsPerPage
-	)
+	// Note: Filtering, searching, and sorting are now handled server-side
+	// The API returns the filtered and paginated results
 
 	// Event handlers
 	const handleTypeFilterChange = (filter: string[]) => {
 		setTypeFilter(filter)
-		setCurrentPage(1)
+		setCurrentPage(1) // Reset to page 1 when filter changes
 	}
 
 	const handleStatusFilterChange = (filter: string[]) => {
 		setStatusFilter(filter)
-		setCurrentPage(1)
+		setCurrentPage(1) // Reset to page 1 when filter changes
+	}
+
+	const handleSearchChange = (query: string) => {
+		setSearchQuery(query)
+		setCurrentPage(1) // Reset to page 1 when search changes
+	}
+
+	const handleSortChange = (sort: string) => {
+		setSortBy(sort)
+		setCurrentPage(1) // Reset to page 1 when sort changes
 	}
 
 	const handleMoreDetail = (post: Post) => {
@@ -351,45 +308,6 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		}
 	}
 
-	// Show loading state
-	if (loading) {
-		return (
-			<div className="space-y-6">
-				<div className="rounded-xl p-6 w-full py-8">
-					<div className="flex items-center justify-center h-64">
-						<div className="text-center">
-							<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-							<p className="mt-4 text-muted-foreground">Loading posts...</p>
-						</div>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
-	// Show error state
-	if (error) {
-		return (
-			<div className="space-y-6">
-				<div className="rounded-xl p-6 w-full py-8">
-					<div className="flex items-center justify-center h-64">
-						<div className="text-center">
-							<div className="text-red-500 text-6xl mb-4">⚠️</div>
-							<h2 className="text-xl font-semibold mb-2">Error</h2>
-							<p className="text-muted-foreground mb-4">{error}</p>
-							<button
-								onClick={fetchPosts}
-								className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md"
-							>
-								Try Again
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
 	return (
 		<div className="space-y-6">
 			<div className="rounded-xl p-6 w-full py-8">
@@ -406,30 +324,67 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 				/>
 
 				{/* Posts Section */}
-				<div className="border bg-white border-gray-200 rounded-xl p-6">
+				<div className="border bg-white border-gray-200 rounded-xl p-6 relative">
+					{/* Subtle loading indicator */}
+					{loading && (
+						<div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 overflow-hidden z-10">
+							<div
+								className="h-full bg-teal-600 animate-pulse"
+								style={{ width: '30%' }}
+							></div>
+						</div>
+					)}
+
+					{/* Error message */}
+					{error && (
+						<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<span className="text-red-600">⚠️</span>
+								<span className="text-sm text-red-700">{error}</span>
+							</div>
+							<button
+								onClick={fetchPosts}
+								className="text-xs text-red-600 hover:text-red-800 underline"
+							>
+								Retry
+							</button>
+						</div>
+					)}
+
 					{/* Search and Filter Bar */}
 					<PostsSearchAndFilter
 						searchQuery={searchQuery}
-						onSearchChange={setSearchQuery}
+						onSearchChange={handleSearchChange}
 						typeFilter={typeFilter}
 						onTypeFilterChange={handleTypeFilterChange}
 						statusFilter={statusFilter}
 						onStatusFilterChange={handleStatusFilterChange}
 						sortBy={sortBy}
-						onSortChange={setSortBy}
+						onSortChange={handleSortChange}
 						onAddNew={handleAddNew}
 						profile={profile}
 					/>
 
 					{/* Posts Table */}
-					<PostsTable posts={paginatedPosts} onMoreDetail={handleMoreDetail} />
+					{loading && posts.length === 0 ? (
+						<div className="flex items-center justify-center h-64">
+							<div className="text-center">
+								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+								<p className="mt-4 text-muted-foreground">Loading posts...</p>
+							</div>
+						</div>
+					) : (
+						<div className={loading ? 'opacity-60 pointer-events-none' : ''}>
+							<PostsTable posts={posts} onMoreDetail={handleMoreDetail} />
+						</div>
+					)}
 
 					{/* Pagination */}
 					<Pagination
-						currentPage={currentPage}
-						totalPages={totalPages}
-						itemsPerPage={itemsPerPage}
-						totalItems={filteredPosts.length}
+						currentPage={paginationMeta.page}
+						totalPages={paginationMeta.totalPages}
+						itemsPerPage={paginationMeta.limit}
+						totalItems={paginationMeta.total}
 						onPageChange={setCurrentPage}
 					/>
 				</div>

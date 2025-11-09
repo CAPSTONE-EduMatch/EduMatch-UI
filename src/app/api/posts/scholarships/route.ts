@@ -310,6 +310,7 @@ export async function PUT(request: NextRequest) {
 				location: updateData.country,
 				other_info: updateData.scholarshipDescription,
 				degree_level: updateData.degree_level || "SCHOLARSHIP",
+				...(updateData.status && { status: updateData.status }),
 			},
 		});
 

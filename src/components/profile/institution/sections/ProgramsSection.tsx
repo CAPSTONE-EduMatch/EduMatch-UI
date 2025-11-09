@@ -205,16 +205,29 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 			filtered = filtered.filter((post) => statusFilter.includes(post.status))
 		}
 
-		// Sort posts
+		// Sort posts by date (postedDate is in dd/mm/yyyy format)
 		filtered.sort((a, b) => {
+			// Parse dd/mm/yyyy format to Date
+			const parseDate = (dateStr: string): number => {
+				if (!dateStr) return 0
+				const parts = dateStr.split('/')
+				if (parts.length !== 3) return 0
+				// Create date: month is 0-indexed, so subtract 1
+				const date = new Date(
+					parseInt(parts[2]),
+					parseInt(parts[1]) - 1,
+					parseInt(parts[0])
+				)
+				return date.getTime()
+			}
+
+			const dateA = parseDate(a.postedDate)
+			const dateB = parseDate(b.postedDate)
+
 			if (sortBy === 'newest') {
-				return (
-					new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime()
-				)
+				return dateB - dateA
 			} else {
-				return (
-					new Date(a.postedDate).getTime() - new Date(b.postedDate).getTime()
-				)
+				return dateA - dateB
 			}
 		})
 

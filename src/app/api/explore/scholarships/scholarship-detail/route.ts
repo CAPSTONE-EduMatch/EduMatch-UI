@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 		const scholarship = {
 			id: post.post_id,
 			title: post.title,
-			description: scholarshipData?.description || post.other_info || "",
+			description: scholarshipData?.description || "",
 			provider: post.institution?.name || "",
 			university: post.institution?.name || "",
 			essayRequired: scholarshipData?.essay_required ? "Yes" : "No",
@@ -119,8 +119,8 @@ export async function GET(request: NextRequest) {
 						day: "numeric",
 					})
 				: "",
-			tuitionFee: "N/A", // Not in schema, set default
-			duration: "N/A", // Not in schema, set default
+			// tuitionFee: "N/A", // Not in schema, set default
+			// duration: "N/A", // Not in schema, set default
 			institution: {
 				id: post.institution?.institution_id,
 				name: post.institution?.name,

@@ -146,8 +146,8 @@ export async function GET(request: NextRequest) {
 				const scholarship: Scholarship = {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
-					description: post.other_info || "No description available",
-					provider: postScholarship.type || "Provided by institution",
+					description: post.description || "No description available",
+					provider: institution.type || "Provided by institution",
 					university: institution.name,
 					essayRequired: postScholarship.essay_required
 						? "Yes"

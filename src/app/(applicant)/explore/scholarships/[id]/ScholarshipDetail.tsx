@@ -54,33 +54,34 @@ const ScholarshipDetail = () => {
 	const [isUploading, setIsUploading] = useState(false)
 	const [hasApplied, setHasApplied] = useState(false)
 	const [isApplying, setIsApplying] = useState(false)
-	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
-	const [uploadProgress, setUploadProgress] = useState<any[]>([])
+	const [eligibilityFilters, setEligibilityFilters] = useState<
+		Record<string, string[]>
+	>({})
 
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
 
 	// Dynamic info items based on current scholarship data
-	const infoItems = [
-		{
-			label: 'Tuition fee',
-			value: currentScholarship?.tuitionFee || 'N/A',
-		},
-		{ label: 'Duration', value: currentScholarship?.duration || 'N/A' },
-		{
-			label: 'Application deadline',
-			value: currentScholarship?.applicationDeadline || 'N/A',
-		},
-		{
-			label: 'Start Date',
-			value: currentScholarship?.startDate || 'N/A',
-		},
-		{
-			label: 'Location',
-			value: currentScholarship?.location || 'N/A',
-		},
-	]
+	// const infoItems = [
+	// 	{
+	// 		label: 'Tuition fee',
+	// 		value: currentScholarship?.tuitionFee || 'N/A',
+	// 	},
+	// 	{ label: 'Duration', value: currentScholarship?.duration || 'N/A' },
+	// 	{
+	// 		label: 'Application deadline',
+	// 		value: currentScholarship?.applicationDeadline || 'N/A',
+	// 	},
+	// 	{
+	// 		label: 'Start Date',
+	// 		value: currentScholarship?.startDate || 'N/A',
+	// 	},
+	// 	{
+	// 		label: 'Location',
+	// 		value: currentScholarship?.location || 'N/A',
+	// 	},
+	// ]
 
 	const eligibilityProgramsPerPage = 6
 
@@ -156,32 +157,56 @@ const ScholarshipDetail = () => {
 	// Fetch eligibility programs when scholarship data is available
 	useEffect(() => {
 		const fetchEligibilityPrograms = async () => {
-			if (!currentScholarship) return
+			if (!currentScholarship) {
+				// eslint-disable-next-line no-console
+				console.log('No current scholarship data available')
+				return
+			}
+
+			// eslint-disable-next-line no-console
+			console.log(
+				'Fetching eligibility programs for scholarship:',
+				currentScholarship.id
+			)
+			// eslint-disable-next-line no-console
+			console.log('Current filters:', eligibilityFilters)
 
 			setEligibilityProgramsLoading(true)
 			try {
 				const params = new URLSearchParams()
-				// Map scholarship subdisciplines to discipline param
-				// if (
-				// 	currentScholarship.subdisciplines &&
-				// 	currentScholarship.subdisciplines.length > 0
-				// ) {
-				// 	const disciplines = currentScholarship.subdisciplines
-				// 		.map((sd: any) => sd.name)
-				// 		.join(',')
-				// 	params.append('discipline', disciplines)
-				// }
-				// Map scholarship country to country param
-				// if (currentScholarship.country) {
-				// 	params.append('country', currentScholarship.country)
-				// }
-				// Map scholarship type to degreeLevel param
-				// if (currentScholarship.type) {
-				// 	params.append('degreeLevel', currentScholarship.type)
-				// }
+
+				// Apply eligibility filters only
+				Object.entries(eligibilityFilters).forEach(([key, values]) => {
+					if (values && values.length > 0) {
+						if (key === 'feeRange') {
+							// Parse feeRange as minFee and maxFee
+							const range = values[0]
+							if (range && range !== '0-1000000') {
+								const [min, max] = range.split('-').map(Number)
+								if (!isNaN(min) && !isNaN(max)) {
+									params.append('minFee', min.toString())
+									params.append('maxFee', max.toString())
+									// eslint-disable-next-line no-console
+									console.log(`Added fee range: minFee=${min}, maxFee=${max}`)
+								}
+							}
+						} else {
+							params.append(key, values.join(','))
+							// eslint-disable-next-line no-console
+							console.log(`Added filter: ${key} = ${values.join(',')}`)
+						}
+					}
+				})
+
+				// Don't auto-apply scholarship data as filters - let user choose manually
+				// This prevents overly restrictive filtering that returns no results
+
 				// Add pagination with 6 items per page
 				params.append('page', eligibilityProgramsPage.toString())
 				params.append('limit', eligibilityProgramsPerPage.toString())
+
+				// eslint-disable-next-line no-console
+				console.log('API URL:', `/api/explore/programs?${params.toString()}`)
 
 				const response = await fetch(
 					`/api/explore/programs?${params.toString()}`
@@ -190,6 +215,9 @@ const ScholarshipDetail = () => {
 					throw new Error('Failed to fetch eligibility programs')
 				}
 				const data = await response.json()
+
+				// eslint-disable-next-line no-console
+				console.log('API Response:', data)
 				if (data.data && data.data.length >= 0) {
 					setEligibilityPrograms(data.data)
 					setEligibilityProgramsTotalPages(data.meta?.totalPages || 1)
@@ -208,7 +236,12 @@ const ScholarshipDetail = () => {
 		}
 
 		fetchEligibilityPrograms()
-	}, [currentScholarship, eligibilityProgramsPage, eligibilityProgramsPerPage])
+	}, [
+		currentScholarship,
+		eligibilityProgramsPage,
+		eligibilityProgramsPerPage,
+		eligibilityFilters,
+	])
 
 	// Reset pagination when scholarship changes
 	useEffect(() => {
@@ -249,9 +282,18 @@ const ScholarshipDetail = () => {
 			) {
 				setShowAuthModal(true)
 			} else {
+				// eslint-disable-next-line no-console
 				console.error('Failed to toggle wishlist item:', error)
 			}
 		}
+	}
+
+	const handleEligibilityFiltersChange = (
+		filters: Record<string, string[]>
+	) => {
+		setEligibilityFilters(filters)
+		// Reset to page 1 when filters change
+		setEligibilityProgramsPage(1)
 	}
 
 	// Handle sign in navigation
@@ -272,6 +314,8 @@ const ScholarshipDetail = () => {
 	) => {
 		const files = event.target.files
 		if (files) {
+			setIsUploading(true)
+
 			const fileArray = Array.from(files).map((file, index) => ({
 				id: Date.now() + index,
 				name: file.name,
@@ -279,8 +323,13 @@ const ScholarshipDetail = () => {
 				type: file.type,
 				file: file,
 				documentType: documentType,
+				status: 'uploaded',
+				extractedData: null,
 			}))
+
+			// Add files to state immediately
 			setUploadedFiles((prev) => [...prev, ...fileArray])
+			setIsUploading(false)
 		}
 	}
 
@@ -364,10 +413,14 @@ const ScholarshipDetail = () => {
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
 								Description
 							</h3>
-							<p className="text-gray-700 mb-6">
-								{currentScholarship?.description ||
-									'No description available for this scholarship.'}
-							</p>
+							<p
+								className="text-gray-700 mb-6"
+								dangerouslySetInnerHTML={{
+									__html:
+										currentScholarship?.description ||
+										'No description available for this scholarship.',
+								}}
+							/>
 						</div>
 
 						<div>
@@ -377,9 +430,12 @@ const ScholarshipDetail = () => {
 							<ol className="space-y-4">
 								<li className="text-base">
 									<span className="font-bold text-gray-900">1. Amount:</span>{' '}
-									<span className="text-gray-700">
-										{currentScholarship?.amount || 'N/A'}
-									</span>
+									<span
+										className="text-gray-700"
+										dangerouslySetInnerHTML={{
+											__html: currentScholarship?.amount || 'N/A',
+										}}
+									/>
 								</li>
 								<li className="text-base">
 									<span className="font-bold text-gray-900">2. Type:</span>{' '}
@@ -389,9 +445,12 @@ const ScholarshipDetail = () => {
 								</li>
 								<li className="text-base">
 									<span className="font-bold text-gray-900">3. Coverage:</span>{' '}
-									<span className="text-gray-700">
-										{currentScholarship?.scholarshipCoverage || 'N/A'}
-									</span>
+									<span
+										className="text-gray-700"
+										dangerouslySetInnerHTML={{
+											__html: currentScholarship?.scholarshipCoverage || 'N/A',
+										}}
+									/>
 								</li>
 								<li className="text-base">
 									<span className="font-bold text-gray-900">
@@ -559,14 +618,17 @@ const ScholarshipDetail = () => {
 											</a>
 										</p>
 									)}
-									{currentScholarship.institution.about && (
+									{/* {currentScholarship.institution.about && (
 										<div className="mt-4">
 											<strong>About:</strong>
-											<p className="text-gray-700 mt-2">
-												{currentScholarship.institution.about}
-											</p>
+											<p
+												className="text-gray-700 mt-2"
+												dangerouslySetInnerHTML={{
+													__html: currentScholarship.institution.about,
+												}}
+											/>
 										</div>
-									)}
+									)} */}
 								</div>
 							</div>
 						)}
@@ -735,7 +797,7 @@ const ScholarshipDetail = () => {
 				{/* <div className="mb-6">
 					<Breadcrumb items={breadcrumbItems} />
 				</div> */}
-				<motion.div
+				{/* <motion.div
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
@@ -751,7 +813,7 @@ const ScholarshipDetail = () => {
 							))}
 						</div>
 					</div>
-				</motion.div>
+				</motion.div> */}
 				{/* -----------------------------------------------About Content---------------------------------------------- */}
 
 				<motion.div
@@ -763,30 +825,12 @@ const ScholarshipDetail = () => {
 					<h2 className="text-3xl font-bold mb-6">About</h2>
 
 					<div className="prose max-w-none text-gray-700 space-y-4">
-						<p>
-							{currentScholarship?.description ||
-								'No description available for this scholarship.'}
-						</p>
-
 						{currentScholarship?.institution?.about && (
-							<>
-								<h3 className="text-xl font-semibold">About the Institution</h3>
-								<p>{currentScholarship.institution.about}</p>
-							</>
-						)}
-
-						{currentScholarship?.eligibility && (
-							<>
-								<h3 className="text-xl font-semibold">Eligibility</h3>
-								<p>{currentScholarship.eligibility}</p>
-							</>
-						)}
-
-						{currentScholarship?.scholarshipCoverage && (
-							<>
-								<h3 className="text-xl font-semibold">Coverage</h3>
-								<p>{currentScholarship.scholarshipCoverage}</p>
-							</>
+							<p
+								dangerouslySetInnerHTML={{
+									__html: currentScholarship.institution.about,
+								}}
+							/>
 						)}
 					</div>
 				</motion.div>
@@ -849,7 +893,10 @@ const ScholarshipDetail = () => {
 
 					<div className="flex gap-8">
 						{/* Filter Sidebar */}
-						<FilterSidebar activeTab="programmes" />
+						<FilterSidebar
+							activeTab="programmes"
+							onFiltersChange={handleEligibilityFiltersChange}
+						/>
 
 						{/* Programs Content */}
 						<div className="flex-1">
@@ -943,13 +990,14 @@ const ScholarshipDetail = () => {
 					{/* File Upload Area */}
 					<div className="w-full mb-6">
 						{currentScholarship?.requiredDocuments &&
-							currentScholarship.requiredDocuments.length > 0 &&
+						currentScholarship.requiredDocuments.length > 0 ? (
+							// Show specific upload areas for each required document
 							currentScholarship.requiredDocuments.map((doc: any) => {
 								const filesForThisType = uploadedFiles.filter(
 									(file) => file.documentType === doc.id
 								)
 								return (
-									<div key={doc.id} className="space-y-2">
+									<div key={doc.id} className="space-y-2 mb-4">
 										<label className="text-sm font-medium text-gray-700">
 											{doc.name}
 											{filesForThisType.length > 0 && (
@@ -959,11 +1007,6 @@ const ScholarshipDetail = () => {
 												</span>
 											)}
 										</label>
-										{/* {doc.description && (
-															<p className="text-xs text-gray-500 mb-2">
-																{doc.description}
-															</p>
-														)} */}
 										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
 											<div className="text-4xl mb-4">📁</div>
 											<div className="space-y-2">
@@ -978,33 +1021,48 @@ const ScholarshipDetail = () => {
 													htmlFor={`file-upload-${doc.id}`}
 													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
 												>
-													Click here to upload file
+													Click here to upload {doc.name}
 												</label>
 											</div>
 										</div>
-
-										{/* Show uploaded files for this document type */}
-										{/* {filesForThisType.length > 0 && (
-															<div className="space-y-1">
-																{filesForThisType.map((file) => (
-																	<div
-																		key={file.id}
-																		className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
-																	>
-																		<span className="truncate flex-1">{file.name}</span>
-																		<button
-																			onClick={() => removeFile(file.id)}
-																			className="text-red-500 hover:text-red-700 ml-2"
-																		>
-																			✕
-																		</button>
-																	</div>
-																))}
-															</div>
-														)} */}
 									</div>
 								)
-							})}
+							})
+						) : (
+							// Show general upload area when no specific documents required
+							<div className="space-y-2">
+								<label className="text-sm font-medium text-gray-700">
+									Upload Documents
+									{uploadedFiles.length > 0 && (
+										<span className="ml-2 text-xs text-green-600">
+											({uploadedFiles.length} file
+											{uploadedFiles.length !== 1 ? 's' : ''})
+										</span>
+									)}
+								</label>
+								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+									<div className="text-4xl mb-4">📁</div>
+									<div className="space-y-2">
+										<input
+											type="file"
+											multiple
+											onChange={(e) => handleFileUpload(e)}
+											className="hidden"
+											id="file-upload-general"
+										/>
+										<label
+											htmlFor="file-upload-general"
+											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+										>
+											Click here to upload files
+										</label>
+										<p className="text-xs text-gray-500">
+											Upload any supporting documents for your application
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 
 					{/* File Management */}
@@ -1026,26 +1084,6 @@ const ScholarshipDetail = () => {
 									</Button>
 								)}
 							</div>
-
-							{/* Upload Progress */}
-							{isUploading && uploadProgress.length > 0 && (
-								<div className="space-y-2 mb-4">
-									{uploadProgress.map((progress) => (
-										<div key={progress.fileIndex} className="space-y-1">
-											<div className="flex justify-between text-sm">
-												<span>File {progress.fileIndex + 1}</span>
-												<span>{progress.progress}%</span>
-											</div>
-											<div className="w-full bg-gray-200 rounded-full h-2">
-												<div
-													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
-													style={{ width: `${progress.progress}%` }}
-												></div>
-											</div>
-										</div>
-									))}
-								</div>
-							)}
 						</div>
 					)}
 
@@ -1066,9 +1104,7 @@ const ScholarshipDetail = () => {
 									: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
-							disabled={
-								hasApplied || isApplying || isUploading || isCheckingApplication
-							}
+							disabled={hasApplied || isApplying || isUploading}
 						>
 							{hasApplied ? (
 								'✓ Application Submitted'
@@ -1081,11 +1117,6 @@ const ScholarshipDetail = () => {
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 									Uploading Files...
-								</div>
-							) : isCheckingApplication ? (
-								<div className="flex items-center gap-2">
-									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Checking...
 								</div>
 							) : (
 								'Submit Application'

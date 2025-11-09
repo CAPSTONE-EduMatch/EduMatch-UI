@@ -2,7 +2,13 @@
 
 import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
-import { Building2, CreditCard, GraduationCap, Users } from 'lucide-react'
+import {
+	Building2,
+	CreditCard,
+	GraduationCap,
+	KeyRound,
+	Users,
+} from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
@@ -17,6 +23,7 @@ const sidebarItems = [
 	{ id: 'transaction', icon: Building2, label: 'Transaction' },
 	{ id: 'supports', icon: Building2, label: 'Supports' },
 	{ id: 'track-user-log', icon: Building2, label: 'Track user log' },
+	{ id: 'change-password', icon: KeyRound, label: 'Change Password' },
 	{ id: 'logout', icon: Building2, label: 'Log out' },
 ]
 
@@ -69,6 +76,9 @@ export function AdminSidebar({
 				break
 			case 'institution':
 				router.push('/admin/institutions')
+				break
+			case 'change-password':
+				router.push('/admin/settings')
 				break
 			case 'logout':
 				// Handle logout logic here

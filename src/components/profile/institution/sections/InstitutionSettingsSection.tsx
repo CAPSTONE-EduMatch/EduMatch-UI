@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { PasswordChangeSection } from '@/components/profile/shared/PasswordChangeSection'
 import { Button } from '@/components/ui'
-import { Eye, EyeOff } from 'lucide-react'
 import { ApiService } from '@/services/api/axios-config'
+import React, { useEffect, useState } from 'react'
 
 interface InstitutionSettingsSectionProps {
 	profile: any
@@ -101,35 +101,11 @@ export const InstitutionSettingsSection: React.FC<
 						</div>
 
 						{/* Password Field */}
-						<div>
-							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Password
-							</label>
-							<div className="relative">
-								<input
-									type={showPassword ? 'text' : 'password'}
-									value="********************"
-									readOnly
-									className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
-								/>
-								<button
-									type="button"
-									onClick={() => setShowPassword(!showPassword)}
-									className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-								>
-									{showPassword ? (
-										<EyeOff className="w-5 h-5" />
-									) : (
-										<Eye className="w-5 h-5" />
-									)}
-								</button>
-							</div>
-							<div className="text-right mt-2">
-								<button className="text-green-600 hover:text-green-700 text-sm font-medium">
-									Change password
-								</button>
-							</div>
-						</div>
+						<PasswordChangeSection
+							profile={profile}
+							showPassword={showPassword}
+							setShowPassword={setShowPassword}
+						/>
 					</div>
 				</div>
 

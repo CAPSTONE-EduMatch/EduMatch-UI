@@ -42,6 +42,7 @@ export interface ResearchLab {
 	date: string;
 	daysLeft: number;
 	match: string;
+	institution: string;
 	popular?: number;
 }
 
@@ -526,6 +527,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		description:
 			"Cutting-edge research in deep learning, natural language processing, and computer vision. Current projects include autonomous systems, medical AI, and ethical AI frameworks.",
 		professor: "Prof. Sarah Chen",
+		institution: "Stanford University",
 		field: "Computer Science",
 		country: "United States",
 		position: "PhD Position",
@@ -540,6 +542,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		description:
 			"Advanced research in quantum algorithms, quantum cryptography, and quantum error correction. Collaboration with industry partners and access to quantum hardware.",
 		professor: "Prof. Michael Rodriguez",
+		institution: "University of Cambridge",
 		field: "Quantum Physics",
 		country: "United Kingdom",
 		position: "Postdoc Position",
@@ -554,6 +557,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		description:
 			"Interdisciplinary research combining engineering and biology to develop novel therapeutic approaches. Focus on tissue engineering, drug delivery, and biomedical devices.",
 		professor: "Prof. Emily Watson",
+		institution: "Technical University of Munich",
 		field: "Biomedical Engineering",
 		country: "Germany",
 		position: "Research Assistant",
@@ -568,6 +572,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		description:
 			"Global climate research addressing environmental challenges through innovative technologies. Projects include renewable energy, carbon capture, and climate modeling.",
 		professor: "Prof. David Kim",
+		institution: "University of Toronto",
 		field: "Environmental Science",
 		country: "Canada",
 		position: "PhD Position",
@@ -582,6 +587,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		description:
 			"Pioneering research in neurotechnology, brain stimulation, and neural prosthetics. Development of therapeutic interventions for neurological disorders.",
 		professor: "Prof. Anna Nakamura",
+		institution: "University of Tokyo",
 		field: "Neuroscience",
 		country: "Japan",
 		position: "Research Fellow",
@@ -596,6 +602,7 @@ export const mockResearchLabs: ResearchLab[] = [
 		description:
 			"Space exploration research including satellite technology, planetary science, and space propulsion systems. Collaboration with space agencies and aerospace industry.",
 		professor: "Prof. James Thompson",
+		institution: "Sorbonne University",
 		field: "Aerospace Engineering",
 		country: "France",
 		position: "PhD Position",
@@ -603,132 +610,6 @@ export const mockResearchLabs: ResearchLab[] = [
 		daysLeft: 336,
 		match: "85%",
 		popular: 8500,
-	},
-	{
-		id: "research-7",
-		title: "Cybersecurity and Digital Privacy Laboratory",
-		description:
-			"Research in network security, cryptography, and privacy-preserving technologies. Development of secure systems for emerging technologies like IoT and blockchain.",
-		professor: "Prof. Lisa Zhang",
-		field: "Cybersecurity",
-		country: "Singapore",
-		position: "Research Assistant",
-		date: "10 December 2025",
-		daysLeft: 71,
-		match: "93%",
-		popular: 9300,
-	},
-	{
-		id: "research-8",
-		title: "Materials Science and Nanotechnology Lab",
-		description:
-			"Advanced materials research for next-generation technologies. Focus on nanomaterials, smart materials, and applications in electronics and energy storage.",
-		professor: "Prof. Roberto Silva",
-		field: "Materials Science",
-		country: "Brazil",
-		position: "Postdoc Position",
-		date: "1 April 2026",
-		daysLeft: 183,
-		match: "86%",
-		popular: 8600,
-	},
-	{
-		id: "research-9",
-		title: "Financial Technology and Blockchain Research Center",
-		description:
-			"Research in digital finance, cryptocurrency, and distributed ledger technologies. Analysis of market dynamics and development of new financial instruments.",
-		professor: "Prof. Maria Gonzalez",
-		field: "Financial Technology",
-		country: "Spain",
-		position: "Research Fellow",
-		date: "15 May 2026",
-		daysLeft: 227,
-		match: "88%",
-		popular: 8800,
-	},
-	{
-		id: "research-10",
-		title: "Robotics and Autonomous Systems Laboratory",
-		description:
-			"Development of intelligent robotic systems for manufacturing, healthcare, and service applications. Research in human-robot interaction and swarm robotics.",
-		professor: "Prof. Andreas Mueller",
-		field: "Robotics",
-		country: "Switzerland",
-		position: "PhD Position",
-		date: "1 October 2026",
-		daysLeft: 366,
-		match: "91%",
-		popular: 9100,
-	},
-	{
-		id: "research-11",
-		title: "Digital Health and Medical Informatics Lab",
-		description:
-			"Research at the intersection of healthcare and technology. Development of digital health solutions, medical data analytics, and telemedicine platforms.",
-		professor: "Prof. Rachel Johnson",
-		field: "Medical Informatics",
-		country: "Australia",
-		position: "Research Assistant",
-		date: "20 March 2026",
-		daysLeft: 171,
-		match: "84%",
-		popular: 8400,
-	},
-	{
-		id: "research-12",
-		title: "Energy Storage and Battery Technology Research",
-		description:
-			"Advanced research in energy storage systems, battery technology, and grid integration. Development of sustainable energy solutions for transportation and utilities.",
-		professor: "Prof. Yuki Tanaka",
-		field: "Energy Engineering",
-		country: "South Korea",
-		position: "Postdoc Position",
-		date: "1 June 2026",
-		daysLeft: 244,
-		match: "83%",
-		popular: 8300,
-	},
-	{
-		id: "research-13",
-		title: "Social Media and Digital Communication Laboratory",
-		description:
-			"Research in social networks, digital communication patterns, and online behavior. Analysis of information spread, digital influence, and social media impact.",
-		professor: "Prof. Sophie Dubois",
-		field: "Communication Studies",
-		country: "Netherlands",
-		position: "Research Fellow",
-		date: "15 April 2026",
-		daysLeft: 197,
-		match: "82%",
-		popular: 8200,
-	},
-	{
-		id: "research-14",
-		title: "Urban Planning and Smart Cities Research Center",
-		description:
-			"Interdisciplinary research in urban development, smart city technologies, and sustainable urban planning. Focus on IoT integration and data-driven city management.",
-		professor: "Prof. Alessandro Rossi",
-		field: "Urban Planning",
-		country: "Italy",
-		position: "PhD Position",
-		date: "1 July 2026",
-		daysLeft: 274,
-		match: "86%",
-		popular: 8600,
-	},
-	{
-		id: "research-15",
-		title: "Agricultural Technology and Food Security Lab",
-		description:
-			"Research in precision agriculture, food technology, and sustainable farming practices. Development of solutions for global food security and climate-resilient agriculture.",
-		professor: "Prof. Priya Patel",
-		field: "Agricultural Science",
-		country: "India",
-		position: "Research Assistant",
-		date: "15 August 2026",
-		daysLeft: 319,
-		match: "81%",
-		popular: 8100,
 	},
 ];
 

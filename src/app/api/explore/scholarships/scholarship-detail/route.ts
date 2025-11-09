@@ -15,6 +15,19 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
+// Helper function to format currency with commas
+function formatCurrency(amount: any): string {
+	if (!amount) return "0";
+	const num =
+		typeof amount === "string"
+			? parseFloat(amount)
+			: typeof amount === "number"
+				? amount
+				: parseFloat(amount.toString()); // Handle Prisma Decimal
+	if (isNaN(num)) return "0";
+	return num.toLocaleString("en-US");
+}
+
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
@@ -80,7 +93,7 @@ export async function GET(request: NextRequest) {
 		const scholarship = {
 			id: post.post_id,
 			title: post.title,
-			description: scholarshipData?.description || "",
+			description: post?.description || "No description available",
 			provider: post.institution?.name || "",
 			university: post.institution?.name || "",
 			essayRequired: scholarshipData?.essay_required ? "Yes" : "No",
@@ -93,9 +106,11 @@ export async function GET(request: NextRequest) {
 					})
 				: "",
 			daysLeft,
-			amount: scholarshipData?.grant || "N/A",
+			amount: scholarshipData?.grant
+				? `$${formatCurrency(scholarshipData.grant)}`
+				: "N/A",
 			awardAmount: scholarshipData?.award_amount
-				? scholarshipData.award_amount.toString()
+				? `$${formatCurrency(scholarshipData.award_amount)}`
 				: "",
 			match,
 			type: scholarshipData?.type || "",

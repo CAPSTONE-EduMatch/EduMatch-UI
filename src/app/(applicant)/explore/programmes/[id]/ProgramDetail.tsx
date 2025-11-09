@@ -735,14 +735,14 @@ const ProgramDetail = () => {
 									{currentProgram?.program?.degreeLevel || 'N/A'}
 								</span>
 							</div>
-							<div className="text-base">
+							{/* <div className="text-base">
 								<span className="font-bold text-gray-900">8. Match:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.match || 'N/A'}
 								</span>
-							</div>
+							</div> */}
 							<div className="text-base">
-								<span className="font-bold text-gray-900">9. Days left:</span>{' '}
+								<span className="font-bold text-gray-900">8. Days left:</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.daysLeft !== undefined
 										? `${currentProgram.daysLeft} days`

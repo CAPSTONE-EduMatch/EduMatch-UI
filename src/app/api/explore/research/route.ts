@@ -8,6 +8,7 @@ interface ResearchLab {
 	title: string;
 	description: string;
 	professor: string;
+	institution: string;
 	field: string;
 	country: string;
 	position: string;
@@ -84,6 +85,15 @@ export async function GET(request: NextRequest) {
 		// Query posts with JobPost data (for research positions)
 		const posts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
+			include: {
+				institution: {
+					select: {
+						institution_id: true,
+						name: true,
+						country: true,
+					},
+				},
+			},
 			orderBy:
 				sortBy === "newest"
 					? { create_at: "desc" }
@@ -114,7 +124,7 @@ export async function GET(request: NextRequest) {
 		});
 
 		// Get institution data
-		const institutions = await prismaClient.institution.findMany();
+		// const institutions = await prismaClient.institution.findMany();
 
 		// Get disciplines and subdisciplines from database (for future use)
 		// const disciplines = await prismaClient.discipline.findMany({
@@ -143,12 +153,6 @@ export async function GET(request: NextRequest) {
 				const postJob = postJobMap.get(post.post_id);
 				if (!postJob) return null;
 
-				// Find a matching institution (simplified logic)
-				const institution = institutions[0] || {
-					name: "Research Institution",
-					country: "Unknown",
-				};
-
 				const applicationCount =
 					applicationCountMap.get(post.post_id) || 0;
 
@@ -164,8 +168,11 @@ export async function GET(request: NextRequest) {
 					title: post.title,
 					description: post.description || "No description available",
 					professor: "Prof. Researcher", // Default value since not in JobPost
-					field: (postJob as any)?.job_type || "Research",
-					country: institution.country || "Unknown",
+					institution:
+						post.institution?.name || "Research Institution",
+					field: (postJob as any)?.field || "Research", // Add field property
+					country:
+						post.institution?.country || post.location || "Unknown",
 					position: (postJob as any)?.job_type || "Research Position",
 					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
 					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend

@@ -99,6 +99,7 @@ export interface ResearchLab {
 	field: string;
 	country: string;
 	position: string;
+	institution: string;
 	date: string;
 	daysLeft: number;
 	match: string;

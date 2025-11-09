@@ -32,6 +32,19 @@ function calculateMatchPercentage(): string {
 	return `${Math.floor(Math.random() * 30) + 70}%`;
 }
 
+// Helper function to format currency with commas
+function formatCurrency(amount: any): string {
+	if (!amount) return "0";
+	const num =
+		typeof amount === "string"
+			? parseFloat(amount)
+			: typeof amount === "number"
+				? amount
+				: parseFloat(amount.toString()); // Handle Prisma Decimal
+	if (isNaN(num)) return "0";
+	return num.toLocaleString("en-US");
+}
+
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url);
@@ -73,6 +86,16 @@ export async function GET(request: NextRequest) {
 		// First, get ALL posts and their related data to apply filters properly
 		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: whereClause,
+			include: {
+				institution: {
+					select: {
+						institution_id: true,
+						name: true,
+						country: true,
+						type: true,
+					},
+				},
+			},
 		});
 
 		// Get ScholarshipPost data for all posts
@@ -97,7 +120,7 @@ export async function GET(request: NextRequest) {
 		});
 
 		// Get institution data
-		const institutions = await prismaClient.institution.findMany();
+		// const institutions = await prismaClient.institution.findMany();
 
 		// Get disciplines and subdisciplines from database
 		const disciplines = await prismaClient.discipline.findMany({
@@ -127,12 +150,6 @@ export async function GET(request: NextRequest) {
 				const postScholarship = allPostScholarshipMap.get(post.post_id);
 				if (!postScholarship) return null;
 
-				// Find a matching institution (simplified logic)
-				const institution = institutions[0] || {
-					name: "University",
-					country: "Unknown",
-				};
-
 				const applicationCount =
 					allApplicationCountMap.get(post.post_id) || 0;
 
@@ -147,15 +164,19 @@ export async function GET(request: NextRequest) {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
 					description: post.description || "No description available",
-					provider: institution.type || "Provided by institution",
-					university: institution.name,
+					provider:
+						post.institution?.type || "Provided by institution",
+					university: post.institution?.name || "University",
 					essayRequired: postScholarship.essay_required
 						? "Yes"
 						: "No",
-					country: institution.country || "Unknown",
+					country:
+						post.institution?.country || post.location || "Unknown",
 					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
 					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend
-					amount: postScholarship.grant || "Contact for details",
+					amount: postScholarship.grant
+						? `$${formatCurrency(postScholarship.grant)}`
+						: "Contact for details",
 					match: calculateMatchPercentage(),
 					applicationCount, // Add application count for popularity sorting
 				};

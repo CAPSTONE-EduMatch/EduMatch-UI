@@ -21,6 +21,7 @@ interface ResearchLabCardProps {
 		title: string
 		description: string
 		professor: string
+		institution: string
 		field: string
 		country: string
 		position: string
@@ -109,7 +110,7 @@ export function ResearchLabCard({
 					<div className="flex items-center gap-3 min-w-max">
 						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
 							<Building className="w-4 h-4" />
-							<span>{lab.field}</span>
+							<span>{lab.institution}</span>
 						</div>
 						<div className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap">
 							<MapPin className="w-4 h-4" />

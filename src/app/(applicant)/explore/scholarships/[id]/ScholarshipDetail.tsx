@@ -633,7 +633,7 @@ const ScholarshipDetail = () => {
 							</div>
 						)}
 
-						<div>
+						{/* <div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
 								Application Statistics
 							</h3>
@@ -641,7 +641,7 @@ const ScholarshipDetail = () => {
 								<strong>Current Applications:</strong>{' '}
 								{currentScholarship?.applicationCount || 0}
 							</p>
-						</div>
+						</div> */}
 					</div>
 				)
 

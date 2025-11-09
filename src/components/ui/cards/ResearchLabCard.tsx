@@ -92,7 +92,10 @@ export function ResearchLabCard({
 			<h3 className="text-xl font-bold text-gray-900 mb-3">{lab.title}</h3>
 
 			{/* Description */}
-			<p className="text-gray-600 mb-4 line-clamp-3">{lab.description}</p>
+			<p
+				className="text-gray-600 mb-4 line-clamp-3 prose prose-content"
+				dangerouslySetInnerHTML={{ __html: lab.description }}
+			/>
 
 			{/* Professor */}
 			<div className="flex items-center gap-2 mb-4 text-[#116E63] font-medium">

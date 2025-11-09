@@ -42,7 +42,7 @@ const Explore = () => {
 	const { isAuthenticated } = useAuthCheck()
 	const breadcrumbItems = [
 		{ label: 'Home', href: '/' },
-		{ label: 'Explore', href: '/explore' },
+		{ label: 'Explore' }, // No href makes it non-clickable when on current page
 	]
 
 	const contentRef = useRef<HTMLDivElement>(null)

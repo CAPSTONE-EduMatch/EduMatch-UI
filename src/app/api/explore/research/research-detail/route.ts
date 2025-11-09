@@ -89,9 +89,10 @@ export async function GET(request: NextRequest) {
 				return `From $${jobData.min_salary}`;
 			} else if (jobData.max_salary) {
 				return `Up to $${jobData.max_salary}`;
-			} else if (jobData.salary_description) {
-				return jobData.salary_description;
 			}
+			//  else if (jobData.salary_description) {
+			// 	return jobData.salary_description;
+			// }
 			return "Competitive";
 		};
 

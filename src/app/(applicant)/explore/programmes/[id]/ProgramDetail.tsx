@@ -672,7 +672,7 @@ const ProgramDetail = () => {
 								<div className="text-base border-b border-gray-200 pb-4 mb-4">
 									<span className="font-bold text-gray-900">Description:</span>
 									<div
-										className="text-gray-700 mt-2 prose max-w-none"
+										className="text-gray-700 mt-2 prose prose-content max-w-none"
 										dangerouslySetInnerHTML={{
 											__html: currentProgram.description,
 										}}
@@ -774,7 +774,7 @@ const ProgramDetail = () => {
 							<div>
 								<p className="font-bold text-gray-900 mb-3">Courses include:</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.program.courseInclude,
 									}}
@@ -895,7 +895,7 @@ const ProgramDetail = () => {
 								<li>
 									{currentProgram?.program?.tuitionFeeFormatted ||
 										(currentProgram?.program?.tuitionFee
-											? `$${currentProgram.program.tuitionFee}/year`
+											? `$${currentProgram.program.tuitionFeeFormatted}/year`
 											: 'Contact institution for tuition fee information')}
 								</li>
 							</ul>
@@ -905,7 +905,7 @@ const ProgramDetail = () => {
 							<div>
 								<p className="font-bold text-gray-900 mb-2">Fee description:</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.program.feeDescription,
 									}}
@@ -924,7 +924,7 @@ const ProgramDetail = () => {
 							</h3>
 							{currentProgram?.program?.scholarshipInfo ? (
 								<div
-									className="text-gray-700 mb-6 prose max-w-none"
+									className="text-gray-700 mb-6 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.program.scholarshipInfo,
 									}}
@@ -996,7 +996,7 @@ const ProgramDetail = () => {
 									Other Information:
 								</h3>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.otherInfo,
 									}}
@@ -1200,6 +1200,7 @@ const ProgramDetail = () => {
 					<div className="prose max-w-none text-gray-700 space-y-4">
 						{currentProgram?.institution.about ? (
 							<div
+								className="prose prose-content max-w-none"
 								dangerouslySetInnerHTML={{
 									__html: currentProgram.institution.about,
 								}}

@@ -101,7 +101,7 @@ export function ScholarshipCard({
 
 			{/* Description */}
 			<p
-				className="text-gray-600 mb-4 line-clamp-3"
+				className="text-gray-600 mb-4 line-clamp-3 prose prose-content"
 				dangerouslySetInnerHTML={{ __html: scholarship.description }}
 			/>
 

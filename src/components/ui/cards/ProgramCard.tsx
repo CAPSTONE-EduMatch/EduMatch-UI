@@ -123,7 +123,7 @@ export function ProgramCard({
 
 			{/* Description */}
 			<div
-				className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0"
+				className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0 prose prose-content"
 				dangerouslySetInnerHTML={{ __html: program.description }}
 			/>
 

@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
 						country: true,
 						website: true,
 						about: true,
+						type: true,
 					},
 				},
 				scholarshipPost: true,
@@ -97,8 +98,8 @@ export async function GET(request: NextRequest) {
 				? scholarshipData.award_amount.toString()
 				: "",
 			match,
-			applicationCount: post.applications.length,
 			type: scholarshipData?.type || "",
+			applicationCount: post.applications.length,
 			number: scholarshipData?.number || 0,
 			scholarshipCoverage: scholarshipData?.scholarship_coverage || "",
 			eligibility: scholarshipData?.eligibility || "",
@@ -129,6 +130,7 @@ export async function GET(request: NextRequest) {
 				country: post.institution?.country,
 				website: post.institution?.website,
 				about: post.institution?.about,
+				type: post.institution?.type,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
 				id: doc.document_type_id,

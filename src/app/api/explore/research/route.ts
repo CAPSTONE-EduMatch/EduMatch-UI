@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
 				const lab: ResearchLab = {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
-					description: post.other_info || "No description available",
+					description: post.description || "No description available",
 					professor: "Prof. Researcher", // Default value since not in JobPost
 					field: (postJob as any)?.job_type || "Research",
 					country: institution.country || "Unknown",

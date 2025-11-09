@@ -302,15 +302,12 @@ const ResearchLabDetail = () => {
 								<span className="font-bold text-gray-900">
 									1. Research Field:
 								</span>
-								<ul className="list-disc pl-5 mt-2 space-y-1 text-gray-700">
-									{researchLab.researchFields.length > 0 ? (
-										researchLab.researchFields.map((field, index) => (
-											<li key={index}>{field}</li>
-										))
-									) : (
-										<li>Not specified</li>
-									)}
-								</ul>
+								<div
+									className="mt-2 prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.researchFields,
+									}}
+								/>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">2. Start date:</span>{' '}
@@ -356,11 +353,15 @@ const ResearchLabDetail = () => {
 								<span className="font-bold text-gray-900">
 									8. Detail description:
 								</span>
-								<div className="mt-2 text-gray-700">
-									{researchLab.description ||
-										researchLab.mainResponsibility ||
-										'No description available'}
-								</div>
+								<div
+									className="mt-2 text-gray-700 prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html:
+											researchLab.description ||
+											researchLab.mainResponsibility ||
+											'No description available',
+									}}
+								/>
 							</li>
 						</ol>
 					</div>
@@ -384,18 +385,24 @@ const ResearchLabDetail = () => {
 						{researchLab.benefit && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">Benefit:</p>
-								<div className="text-gray-700 whitespace-pre-line">
-									{researchLab.benefit}
-								</div>
+								<div
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.benefit,
+									}}
+								/>
 							</div>
 						)}
 
 						{researchLab.labFacilities && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">Lab Facilities:</p>
-								<div className="text-gray-700 whitespace-pre-line">
-									{researchLab.labFacilities}
-								</div>
+								<div
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.labFacilities,
+									}}
+								/>
 							</div>
 						)}
 					</div>
@@ -409,11 +416,14 @@ const ResearchLabDetail = () => {
 								<p className="text-base mb-4">
 									<span className="font-bold text-gray-900">
 										1. Main responsibilities:
-									</span>{' '}
-									<span className="text-gray-700">
-										{researchLab.mainResponsibility}
 									</span>
 								</p>
+								<div
+									className="text-gray-700 prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.mainResponsibility,
+									}}
+								/>
 							</div>
 						)}
 
@@ -422,9 +432,12 @@ const ResearchLabDetail = () => {
 								<p className="font-bold text-gray-900 mb-3">
 									2. Qualification requirements:
 								</p>
-								<div className="text-gray-700 whitespace-pre-line">
-									{researchLab.qualificationRequirement}
-								</div>
+								<div
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.qualificationRequirement,
+									}}
+								/>
 							</div>
 						)}
 
@@ -433,9 +446,12 @@ const ResearchLabDetail = () => {
 								<p className="font-bold text-gray-900 mb-3">
 									3. Experience requirements:
 								</p>
-								<div className="text-gray-700 whitespace-pre-line">
-									{researchLab.experienceRequirement}
-								</div>
+								<div
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.experienceRequirement,
+									}}
+								/>
 							</div>
 						)}
 
@@ -444,9 +460,12 @@ const ResearchLabDetail = () => {
 								<p className="font-bold text-gray-900 mb-3">
 									4. Assessment criteria:
 								</p>
-								<div className="text-gray-700 whitespace-pre-line">
-									{researchLab.assessmentCriteria}
-								</div>
+								<div
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.assessmentCriteria,
+									}}
+								/>
 							</div>
 						)}
 
@@ -457,9 +476,12 @@ const ResearchLabDetail = () => {
 										5. Other requirements:
 									</span>
 								</p>
-								<div className="mt-2 text-gray-700 whitespace-pre-line">
-									{researchLab.otherRequirement}
-								</div>
+								<div
+									className="mt-2 text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.otherRequirement,
+									}}
+								/>
 							</div>
 						)}
 
@@ -490,127 +512,143 @@ const ResearchLabDetail = () => {
 			case 'other-information':
 				return (
 					<div className="space-y-6">
-						{(researchLab.labContactEmail || researchLab.labWebsite) && (
-							<div>
-								<p className="text-base mb-4">
-									<span className="font-bold text-gray-900">1. Contact:</span>{' '}
-									<span className="text-gray-700">
-										For inquiries or collaboration opportunities, please reach
-										out via{' '}
-										{researchLab.labContactEmail && (
-											<span className="text-gray-700">
-												{researchLab.labContactEmail}
-											</span>
-										)}
-										{researchLab.labWebsite && (
-											<>
-												{' '}
-												or visit our website at{' '}
-												<a
-													href={researchLab.labWebsite}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-blue-600 hover:underline"
-												>
-													{researchLab.labWebsite}
-												</a>
-												.
-											</>
-										)}
-									</span>
-								</p>
-							</div>
-						)}
+						{/* 1. Contact */}
+						<div>
+							<p className="text-base mb-4">
+								<span className="font-bold text-gray-900">1. Contact:</span>{' '}
+								<span className="text-gray-700">
+									{researchLab?.labContactEmail || researchLab?.labWebsite ? (
+										<>
+											For inquiries or collaboration opportunities, please reach
+											out via{' '}
+											{researchLab?.labContactEmail ? (
+												<span className="text-gray-700">
+													{researchLab.labContactEmail}
+												</span>
+											) : (
+												''
+											)}
+											{researchLab?.labWebsite ? (
+												<>
+													{' '}
+													or visit our website at{' '}
+													<a
+														href={researchLab.labWebsite}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-blue-600 hover:underline"
+													>
+														{researchLab.labWebsite}
+													</a>
+													.
+												</>
+											) : (
+												''
+											)}
+										</>
+									) : (
+										<span className="text-gray-500 italic">Not available.</span>
+									)}
+								</span>
+							</p>
+						</div>
 
-						{researchLab.location && (
-							<div>
-								<p className="text-base mb-4">
-									<span className="font-bold text-gray-900">
-										2. Work location:
-									</span>{' '}
-									<span className="text-gray-700">{researchLab.location}</span>
-								</p>
-							</div>
-						)}
+						{/* 2. Work Location */}
+						<div>
+							<p className="text-base mb-4">
+								<span className="font-bold text-gray-900">
+									2. Work location:
+								</span>{' '}
+								<span className="text-gray-700">
+									{researchLab?.location && researchLab.location.trim() !== ''
+										? researchLab.location
+										: 'Not available'}
+								</span>
+							</p>
+						</div>
 
-						{researchLab.labDirector && (
-							<div>
-								<p className="text-base mb-4">
-									<span className="font-bold text-gray-900">
-										3. Lab Director:
-									</span>{' '}
-									<span className="text-gray-700">
-										{researchLab.labDirector}
-									</span>
-								</p>
-							</div>
-						)}
+						{/* 3. Lab Director */}
+						<div>
+							<p className="text-base mb-4">
+								<span className="font-bold text-gray-900">
+									3. Lab Director:
+								</span>{' '}
+								<span className="text-gray-700">
+									{researchLab?.labDirector &&
+									researchLab.labDirector.trim() !== ''
+										? researchLab.labDirector
+										: 'Not available'}
+								</span>
+							</p>
+						</div>
 
-						{/* {researchLab.labWebsite && (
-							<div>
-								<p className="text-base mb-4">
-									<span className="font-bold text-gray-900">
-										4. Lab Website:
-									</span>{' '}
-									<a
-										href={researchLab.labWebsite}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="text-blue-600 hover:text-blue-800 underline"
-									>
-										{researchLab.labWebsite}
-									</a>
-								</p>
-							</div>
-						)} */}
+						{/* 4. Lab Capacity */}
+						<div>
+							<p className="text-base mb-4">
+								<span className="font-bold text-gray-900">
+									4. Lab Capacity:
+								</span>{' '}
+								<span className="text-gray-700">
+									{researchLab?.labCapacity && researchLab.labCapacity > 0
+										? `${researchLab.labCapacity} researchers`
+										: 'Not specified'}
+								</span>
+							</p>
+						</div>
 
-						{researchLab.labCapacity > 0 && (
-							<div>
-								<p className="text-base mb-4">
-									<span className="font-bold text-gray-900">
-										4. Lab Capacity:
-									</span>{' '}
-									<span className="text-gray-700">
-										{researchLab.labCapacity} researchers
-									</span>
+						{/* 5. Lab Facilities */}
+						<div>
+							<p className="text-base mb-4">
+								<span className="font-bold text-gray-900">
+									5. Lab Facilities:
+								</span>
+							</p>
+							{researchLab?.labFacilities &&
+							researchLab.labFacilities.trim() !== '' ? (
+								<div
+									className="text-gray-700 prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.labFacilities,
+									}}
+								/>
+							) : (
+								<p className="text-gray-500 italic">
+									No facilities information available.
 								</p>
-							</div>
-						)}
+							)}
+						</div>
 
-						{researchLab.labFacilities && (
-							<div>
-								<p className="text-base mb-4">
-									<span className="font-bold text-gray-900">
-										5. Lab Facilities:
-									</span>{' '}
-									<span className="text-gray-700">
-										{researchLab.labFacilities}
-									</span>
-								</p>
-							</div>
-						)}
-
-						{researchLab.recommendations && (
-							<div>
-								<p className="font-bold text-gray-900 mb-3">
-									6. Recommendations:
-								</p>
+						{/* 6. Recommendations */}
+						<div>
+							<p className="font-bold text-gray-900 mb-3">
+								6. Recommendations:
+							</p>
+							{researchLab?.recommendations &&
+							researchLab.recommendations.trim() !== '' ? (
 								<div className="text-gray-700 whitespace-pre-line">
 									{researchLab.recommendations}
 								</div>
-							</div>
-						)}
-
-						{/* {researchLab.applicationDocuments && (
-							<div>
-								<p className="font-bold text-gray-900 mb-3">
-									7. Application Documents:
+							) : (
+								<p className="text-gray-500 italic">
+									No recommendations provided.
 								</p>
+							)}
+						</div>
+
+						{/* 7. Application Documents */}
+						<div>
+							<p className="font-bold text-gray-900 mb-3">
+								7. Application Documents:
+							</p>
+							{researchLab?.applicationDocuments &&
+							researchLab.applicationDocuments.trim() !== '' ? (
 								<div className="text-gray-700 whitespace-pre-line">
 									{researchLab.applicationDocuments}
 								</div>
-							</div>
-						)} */}
+							) : (
+								<p className="text-gray-500 italic">No documents listed.</p>
+							)}
+						</div>
 					</div>
 				)
 
@@ -743,30 +781,37 @@ const ResearchLabDetail = () => {
 							<div className="text-red-500">Error: {error}</div>
 						</div>
 					) : researchLab ? (
-						<div className="prose max-w-none text-gray-700 space-y-4">
-							<p>
-								{researchLab.description ||
-									researchLab.institution.about ||
-									'The research lab focuses on cutting-edge developments and brings together world-class researchers, graduate students, and industry partners to tackle challenging problems.'}
-							</p>
+						<div className="prose prose-content max-w-none text-gray-700 space-y-4">
+							<div
+								className="prose prose-content max-w-none"
+								dangerouslySetInnerHTML={{
+									__html: researchLab.institution.about || 'no description',
+								}}
+							/>
 
-							{researchLab.researchFocus && (
+							{/* {researchLab.researchFocus && (
 								<div>
 									<p className="font-semibold">Research Focus:</p>
-									<p>{researchLab.researchFocus}</p>
+									<div
+										className="prose prose-content max-w-none"
+										dangerouslySetInnerHTML={{
+											__html: researchLab.researchFocus,
+										}}
+									/>
 								</div>
 							)}
 
 							{researchLab.researchFields.length > 0 && (
 								<div>
 									<p className="font-semibold">Research Areas:</p>
-									<ul className="list-disc pl-5 space-y-2">
-										{researchLab.researchFields.map((field, index) => (
-											<li key={index}>{field}</li>
-										))}
-									</ul>
+									<div
+										className="prose prose-content max-w-none"
+										dangerouslySetInnerHTML={{
+											__html: researchLab.researchFields,
+										}}
+									/>
 								</div>
-							)}
+							)} */}
 
 							{researchLab.institution.website && (
 								<div>
@@ -871,7 +916,7 @@ const ResearchLabDetail = () => {
 					{/* File Upload Area */}
 					<div className="w-full mb-6">
 						{researchLab?.requiredDocuments &&
-							researchLab.requiredDocuments.length > 0 &&
+						researchLab.requiredDocuments.length > 0 ? (
 							researchLab.requiredDocuments.map((doc: any) => {
 								const filesForThisType = uploadedFiles.filter(
 									(file) => file.documentType === doc.id
@@ -932,7 +977,39 @@ const ResearchLabDetail = () => {
 																		)} */}
 									</div>
 								)
-							})}
+							})
+						) : (
+							// Always show file upload area even if no required documents
+							<div className="space-y-2">
+								<label className="text-sm font-medium text-gray-700">
+									Upload Documents
+									{uploadedFiles.length > 0 && (
+										<span className="ml-2 text-xs text-green-600">
+											({uploadedFiles.length} file
+											{uploadedFiles.length !== 1 ? 's' : ''})
+										</span>
+									)}
+								</label>
+								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+									<div className="text-4xl mb-4">📁</div>
+									<div className="space-y-2">
+										<input
+											type="file"
+											multiple
+											onChange={(e) => handleFileUpload(e)}
+											className="hidden"
+											id="file-upload-general"
+										/>
+										<label
+											htmlFor="file-upload-general"
+											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+										>
+											Click here to upload file
+										</label>
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 
 					{/* File Management */}

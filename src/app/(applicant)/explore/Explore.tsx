@@ -11,6 +11,7 @@ import {
 	SortDropdown,
 	TabSelector,
 	AIAssistantCard,
+	ErrorModal,
 } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { ExploreApiService } from '@/services/explore/explore-api'
@@ -20,8 +21,9 @@ import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import student from '../../../../public/student.png'
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
@@ -36,6 +38,8 @@ const ITEMS_PER_PAGE_RESEARCH = 5
 const Explore = () => {
 	const t = useTranslations('')
 	const searchParams = useSearchParams()
+	const router = useRouter()
+	const { isAuthenticated } = useAuthCheck()
 	const breadcrumbItems = [
 		{ label: 'Home', href: '/' },
 		{ label: 'Explore', href: '/explore' },
@@ -49,6 +53,7 @@ const Explore = () => {
 		Record<string, string[]>
 	>({})
 	const [filtersInitialized, setFiltersInitialized] = useState(false)
+	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Initialize state from URL parameters on component mount
 	useEffect(() => {
@@ -181,13 +186,42 @@ const Explore = () => {
 
 	// Handle wishlist toggle
 	const handleWishlistToggle = async (postId: string) => {
+		// Check if user is authenticated before attempting to toggle
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			return
+		}
+
 		try {
 			await toggleWishlistItem(postId)
 		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to toggle wishlist item:', error)
-			// You could add a toast notification here
+			// Check if error is due to authentication
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error'
+			if (
+				errorMessage.includes('Authentication required') ||
+				errorMessage.includes('not authenticated') ||
+				errorMessage.includes('401')
+			) {
+				setShowAuthModal(true)
+			} else {
+				// eslint-disable-next-line no-console
+				console.error('Failed to toggle wishlist item:', error)
+				// You could add a toast notification here
+			}
 		}
+	}
+
+	// Handle sign in navigation
+	const handleSignIn = () => {
+		setShowAuthModal(false)
+		router.push('/signin')
+	}
+
+	// Handle sign up navigation
+	const handleSignUp = () => {
+		setShowAuthModal(false)
+		router.push('/signup')
 	}
 
 	// Handle application - redirect to detail page for document upload
@@ -677,6 +711,20 @@ const Explore = () => {
 					</div>
 				</div>
 			</div>
+
+			{/* Authentication Required Modal */}
+			<ErrorModal
+				isOpen={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				title="Authentication Required"
+				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+				buttonText="Sign In"
+				onButtonClick={handleSignIn}
+				showSecondButton={true}
+				secondButtonText="Sign Up"
+				onSecondButtonClick={handleSignUp}
+				showCloseButton={true}
+			/>
 		</div>
 	)
 }

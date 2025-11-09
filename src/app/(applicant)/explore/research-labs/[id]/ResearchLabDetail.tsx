@@ -1,5 +1,11 @@
 'use client'
-import { Breadcrumb, Button, Modal, ResearchLabCard } from '@/components/ui'
+import {
+	Breadcrumb,
+	Button,
+	Modal,
+	ResearchLabCard,
+	ErrorModal,
+} from '@/components/ui'
 
 import { mockResearchLabs } from '@/data/utils'
 import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
@@ -7,12 +13,26 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 
 const ResearchLabDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const params = useParams()
-	const [isWishlisted, setIsWishlisted] = useState(false)
+	const { isAuthenticated } = useAuthCheck()
+	const [showAuthModal, setShowAuthModal] = useState(false)
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist({
+		autoFetch: true,
+		initialParams: {
+			page: 1,
+			limit: 100,
+			status: 1,
+		},
+	})
+
 	const [activeTab, setActiveTab] = useState('job-description')
 	const [researchLabWishlist, setResearchLabWishlist] = useState<string[]>([])
 
@@ -142,10 +162,47 @@ const ResearchLabDetail = () => {
 		updateBreadcrumb()
 	}, [searchParams, researchLab?.title])
 
-	const handleRResearchLabWishlistToggle = (id: string) => {
-		setResearchLabWishlist((prev) =>
-			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-		)
+	const handleRResearchLabWishlistToggle = async (id: string) => {
+		// Check if user is authenticated before attempting to toggle
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			return
+		}
+
+		try {
+			await toggleWishlistItem(id)
+			// Update local state to reflect the change
+			setResearchLabWishlist((prev) =>
+				prev.includes(id)
+					? prev.filter((itemId) => itemId !== id)
+					: [...prev, id]
+			)
+		} catch (error) {
+			// Check if error is due to authentication
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error'
+			if (
+				errorMessage.includes('Authentication required') ||
+				errorMessage.includes('not authenticated') ||
+				errorMessage.includes('401')
+			) {
+				setShowAuthModal(true)
+			} else {
+				console.error('Failed to toggle wishlist item:', error)
+			}
+		}
+	}
+
+	// Handle sign in navigation
+	const handleSignIn = () => {
+		setShowAuthModal(false)
+		router.push('/signin')
+	}
+
+	// Handle sign up navigation
+	const handleSignUp = () => {
+		setShowAuthModal(false)
+		router.push('/signup')
 	}
 
 	const handleFileUpload = (
@@ -595,7 +652,14 @@ const ResearchLabDetail = () => {
 									onClick={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
-										setIsWishlisted(!isWishlisted)
+										const labId =
+											researchLab?.id ||
+											(typeof params.id === 'string'
+												? params.id
+												: String(params.id))
+										if (labId) {
+											handleRResearchLabWishlistToggle(labId)
+										}
 									}}
 									className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
 									whileHover={{ scale: 1.1 }}
@@ -603,7 +667,12 @@ const ResearchLabDetail = () => {
 								>
 									<Heart
 										className={`w-6 h-6 transition-all duration-200 ${
-											isWishlisted
+											isInWishlist(
+												researchLab?.id ||
+													(typeof params.id === 'string'
+														? params.id
+														: String(params.id))
+											)
 												? 'fill-red-500 text-red-500'
 												: 'text-gray-400 hover:text-red-500'
 										}`}
@@ -1111,6 +1180,20 @@ const ResearchLabDetail = () => {
 					</div>
 				</div>
 			</Modal>
+
+			{/* Authentication Required Modal */}
+			<ErrorModal
+				isOpen={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				title="Authentication Required"
+				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+				buttonText="Sign In"
+				onButtonClick={handleSignIn}
+				showSecondButton={true}
+				secondButtonText="Sign Up"
+				onSecondButtonClick={handleSignUp}
+				showCloseButton={true}
+			/>
 		</div>
 	)
 }

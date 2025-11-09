@@ -6,6 +6,7 @@ import {
 	Pagination,
 	ProgramCard,
 	ScholarshipCard,
+	ErrorModal,
 } from '@/components/ui'
 
 import { mockPrograms } from '@/data/utils'
@@ -20,6 +21,7 @@ import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useApiWrapper } from '@/services/api/api-wrapper'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
@@ -91,6 +93,8 @@ const ProgramDetail = () => {
 	// Notification system
 	const { showSuccess, showError } = useNotification()
 	const apiWrapper = useApiWrapper()
+	const { isAuthenticated } = useAuthCheck()
+	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Dynamic info items based on current program data
 	const infoItems = [
@@ -553,6 +557,12 @@ const ProgramDetail = () => {
 		const programId = currentProgram?.id || params.id
 		if (!programId) return
 
+		// Check if user is authenticated before attempting to toggle
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			return
+		}
+
 		try {
 			// Get current state before toggle
 			const wasWishlisted = isInWishlist(programId)
@@ -568,17 +578,40 @@ const ProgramDetail = () => {
 					: 'This program has been added to your wishlist.'
 			)
 		} catch (error) {
-			console.error('Failed to toggle wishlist item:', error)
-			showError(
-				'Wishlist Error',
-				'Failed to update wishlist. Please try again.',
-				{
-					onRetry: handleWishlistToggle,
-					showRetry: true,
-					retryText: 'Retry',
-				}
-			)
+			// Check if error is due to authentication
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error'
+			if (
+				errorMessage.includes('Authentication required') ||
+				errorMessage.includes('not authenticated') ||
+				errorMessage.includes('401')
+			) {
+				setShowAuthModal(true)
+			} else {
+				console.error('Failed to toggle wishlist item:', error)
+				showError(
+					'Wishlist Error',
+					'Failed to update wishlist. Please try again.',
+					{
+						onRetry: handleWishlistToggle,
+						showRetry: true,
+						retryText: 'Retry',
+					}
+				)
+			}
 		}
+	}
+
+	// Handle sign in navigation
+	const handleSignIn = () => {
+		setShowAuthModal(false)
+		router.push('/signin')
+	}
+
+	// Handle sign up navigation
+	const handleSignUp = () => {
+		setShowAuthModal(false)
+		router.push('/signup')
 	}
 
 	// Helper function to determine document type based on file name
@@ -1882,6 +1915,20 @@ const ProgramDetail = () => {
 					}}
 				/>
 			)}
+
+			{/* Authentication Required Modal */}
+			<ErrorModal
+				isOpen={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				title="Authentication Required"
+				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+				buttonText="Sign In"
+				onButtonClick={handleSignIn}
+				showSecondButton={true}
+				secondButtonText="Sign Up"
+				onSecondButtonClick={handleSignUp}
+				showCloseButton={true}
+			/>
 		</div>
 	)
 }

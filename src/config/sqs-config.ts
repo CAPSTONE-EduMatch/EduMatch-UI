@@ -181,6 +181,7 @@ export interface WishlistDeadlineMessage extends BaseNotificationMessage {
 		postTitle: string;
 		deadlineDate: string;
 		daysRemaining: number;
+		postType?: "programme" | "scholarship" | "research-lab";
 		institutionName?: string;
 	};
 }

@@ -38,6 +38,21 @@ async function resolveManagerUserId(): Promise<string | null> {
 	return null;
 }
 
+/**
+ * Parse support receiver emails from environment variable
+ * Supports multiple emails separated by semicolons (;)
+ * Returns comma-separated string for nodemailer
+ */
+function getSupportReceiverEmails(): string {
+	const receiverEmails =
+		process.env.SUPPORT_RECEIVER_EMAIL || "tuantran12032004@gmail.com";
+	return receiverEmails
+		.split(";")
+		.map((email) => email.trim())
+		.filter((email) => email.length > 0)
+		.join(",");
+}
+
 export async function POST(request: NextRequest) {
 	try {
 		const contentType = request.headers.get("content-type") || "";
@@ -134,9 +149,9 @@ export async function POST(request: NextRequest) {
 		}
 
 		if (!managerId) {
+			// Send email to admin(s)
 			await EmailService.sendCompanyEmail(
-				process.env.SUPPORT_RECEIVER_EMAIL ||
-					"tuantran12032004@gmail.com",
+				getSupportReceiverEmails(),
 				`Support Request: ${problemType}`,
 				{
 					title: "New Support Request",
@@ -150,6 +165,38 @@ export async function POST(request: NextRequest) {
 					helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
 				},
 				emailAttachments.length ? emailAttachments : undefined
+			);
+
+			// Send confirmation email to customer
+			await EmailService.sendCompanyEmail(
+				senderEmail,
+				`Support Request Received - ${problemType}`,
+				{
+					title: "Support Request Received",
+					preheader: "Thank you for contacting EduMatch support",
+					bodyHtml: `
+						<p>Thank you for contacting EduMatch support. We have received your request and our team will review it shortly.</p>
+						
+						<p><strong>Your Request Details:</strong></p>
+						<p><strong>Problem type:</strong> ${escapeHtml(problemType)}</p>
+						<p><strong>Your message:</strong></p>
+						<pre style=\"white-space:pre-wrap;font-family:inherit;background:#f5f5f5;padding:12px;border-radius:4px;\">${escapeHtml(question)}</pre>
+						
+						<p><strong>What happens next?</strong></p>
+						<ul>
+							<li>Our support team will review your request</li>
+							<li>You will receive a response via email within 24-48 hours</li>
+							<li>If you need urgent assistance, please contact us directly</li>
+						</ul>
+						
+						<p>If you have any additional information or questions, please reply to this email or visit our help center.</p>
+					`,
+					primaryCta: {
+						label: "Visit Help Center",
+						url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+					},
+					helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+				}
 			);
 
 			return NextResponse.json({ success: true, stored: false });
@@ -181,8 +228,9 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
+		// Send email to admin(s)
 		await EmailService.sendCompanyEmail(
-			process.env.SUPPORT_RECEIVER_EMAIL || "tuantran12032004@gmail.com",
+			getSupportReceiverEmails(),
 			`Support Request: ${problemType}`,
 			{
 				title: "New Support Request",
@@ -193,12 +241,48 @@ export async function POST(request: NextRequest) {
 					<p><strong>Authenticated:</strong> ${userId ? "Yes" : "No"}</p>
 					${applicantId ? `<p><strong>Applicant ID:</strong> ${escapeHtml(applicantId)}</p>` : ""}
 					${institutionId ? `<p><strong>Institution ID:</strong> ${escapeHtml(institutionId)}</p>` : ""}
+					<p><strong>Support ID:</strong> ${escapeHtml(supportId)}</p>
 					<hr style=\"border:none;height:1px;background:#e5e7eb;margin:12px 0;\" />
 					<pre style=\"white-space:pre-wrap;font-family:inherit;\">${escapeHtml(question)}</pre>
 				`,
 				helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
 			},
 			emailAttachments.length ? emailAttachments : undefined
+		);
+
+		// Send confirmation email to customer
+		await EmailService.sendCompanyEmail(
+			senderEmail,
+			`Support Request Received - ${problemType}`,
+			{
+				title: "Support Request Received",
+				preheader: "Thank you for contacting EduMatch support",
+				bodyHtml: `
+					<p>Thank you for contacting EduMatch support. We have received your request and our team will review it shortly.</p>
+					
+					<p><strong>Your Request Details:</strong></p>
+					<p><strong>Support ID:</strong> ${escapeHtml(supportId)}</p>
+					<p><strong>Problem type:</strong> ${escapeHtml(problemType)}</p>
+					<p><strong>Your message:</strong></p>
+					<pre style=\"white-space:pre-wrap;font-family:inherit;background:#f5f5f5;padding:12px;border-radius:4px;\">${escapeHtml(question)}</pre>
+					
+					<p><strong>What happens next?</strong></p>
+					<ul>
+						<li>Our support team will review your request</li>
+						<li>You will receive a response via email within 24-48 hours</li>
+						<li>If you need urgent assistance, please contact us directly</li>
+					</ul>
+					
+					<p><strong>Reference your request:</strong> When contacting us about this request, please include your Support ID: <strong>${escapeHtml(supportId)}</strong></p>
+					
+					<p>If you have any additional information or questions, please reply to this email or visit our help center.</p>
+				`,
+				primaryCta: {
+					label: "Visit Help Center",
+					url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+				},
+				helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+			}
 		);
 
 		return NextResponse.json({

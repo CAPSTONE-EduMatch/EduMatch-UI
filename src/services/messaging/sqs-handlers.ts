@@ -251,7 +251,21 @@ export class SQSMessageHandler {
 					const daysText =
 						daysRemaining === 1 ? "1 day" : `${daysRemaining} days`;
 					bodyText = `⏰ Don't miss this opportunity! "${message.metadata?.postTitle || "An item in your wishlist"}" is approaching its deadline in ${daysText}. Make sure to submit your application before it expires!`;
-					url = `/explore/programs/program-detail?postId=${message.metadata?.postId || ""}`;
+
+					// Wishlist is only for applicants, determine URL based on post type
+					const postType = message.metadata?.postType || "programme";
+					switch (postType) {
+						case "scholarship":
+							url = `/explore/scholarships/${message.metadata?.postId || ""}`;
+							break;
+						case "research-lab":
+							url = `/explore/research-labs/${message.metadata?.postId || ""}`;
+							break;
+						case "programme":
+						default:
+							url = `/explore/programmes/${message.metadata?.postId || ""}`;
+							break;
+					}
 					break;
 				default:
 					title = "New Notification";
@@ -516,11 +530,29 @@ export class NotificationUtils {
 					break;
 				case "WISHLIST_DEADLINE":
 					title = `Deadline Approaching - ${message.metadata?.postTitle || "Wishlist Item"}`;
-					const daysRemaining = message.metadata?.daysRemaining || 0;
-					const daysText =
-						daysRemaining === 1 ? "1 day" : `${daysRemaining} days`;
-					bodyText = `⏰ Don't miss this opportunity! "${message.metadata?.postTitle || "An item in your wishlist"}" is approaching its deadline in ${daysText}. Make sure to submit your application before it expires!`;
-					url = `/explore/programs/program-detail?postId=${message.metadata?.postId || ""}`;
+					const daysRemainingWishlist =
+						message.metadata?.daysRemaining || 0;
+					const daysTextWishlist =
+						daysRemainingWishlist === 1
+							? "1 day"
+							: `${daysRemainingWishlist} days`;
+					bodyText = `⏰ Don't miss this opportunity! "${message.metadata?.postTitle || "An item in your wishlist"}" is approaching its deadline in ${daysTextWishlist}. Make sure to submit your application before it expires!`;
+
+					// Wishlist is only for applicants, determine URL based on post type
+					const postTypeWishlist =
+						message.metadata?.postType || "programme";
+					switch (postTypeWishlist) {
+						case "scholarship":
+							url = `/explore/scholarships/${message.metadata?.postId || ""}`;
+							break;
+						case "research-lab":
+							url = `/explore/research-labs/${message.metadata?.postId || ""}`;
+							break;
+						case "programme":
+						default:
+							url = `/explore/programmes/${message.metadata?.postId || ""}`;
+							break;
+					}
 					break;
 				default:
 					title = "New Notification";
@@ -747,7 +779,8 @@ export class NotificationUtils {
 		postTitle: string,
 		deadlineDate: string,
 		daysRemaining: number,
-		institutionName?: string
+		institutionName?: string,
+		postType: "programme" | "scholarship" | "research-lab" = "programme"
 	): Promise<void> {
 		const message: NotificationMessage = {
 			id: `wishlist-deadline-${userId}-${postId}-${Date.now()}`,
@@ -760,6 +793,7 @@ export class NotificationUtils {
 				postTitle,
 				deadlineDate,
 				daysRemaining,
+				postType,
 				...(institutionName && { institutionName }),
 			},
 		};

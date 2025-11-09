@@ -50,6 +50,21 @@ export async function POST(request: NextRequest) {
 				post: {
 					include: {
 						institution: true,
+						programPost: {
+							select: {
+								post_id: true,
+							},
+						},
+						scholarshipPost: {
+							select: {
+								post_id: true,
+							},
+						},
+						jobPost: {
+							select: {
+								post_id: true,
+							},
+						},
 					},
 				},
 			},
@@ -119,6 +134,17 @@ export async function POST(request: NextRequest) {
 					continue; // Skip if we already notified about this post recently
 				}
 
+				// Determine post type
+				let postType: "programme" | "scholarship" | "research-lab" =
+					"programme";
+				if (item.post.programPost) {
+					postType = "programme";
+				} else if (item.post.scholarshipPost) {
+					postType = "scholarship";
+				} else if (item.post.jobPost) {
+					postType = "research-lab";
+				}
+
 				// Send notification
 				await NotificationUtils.sendWishlistDeadlineNotification(
 					item.applicant.user.id,
@@ -127,7 +153,8 @@ export async function POST(request: NextRequest) {
 					item.post.title,
 					endDate.toISOString(),
 					daysRemaining,
-					item.post.institution?.name
+					item.post.institution?.name,
+					postType
 				);
 
 				notificationsSent++;

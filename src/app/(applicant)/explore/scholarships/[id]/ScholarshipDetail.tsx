@@ -17,6 +17,10 @@ import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { applicationService } from '@/services/application/application-service'
+import { useFileUpload } from '@/hooks/files/useFileUpload'
+import { useNotification } from '@/contexts/NotificationContext'
+import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 
 const ScholarshipDetail = () => {
 	const router = useRouter()
@@ -51,9 +55,31 @@ const ScholarshipDetail = () => {
 	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
-	const [isUploading, setIsUploading] = useState(false)
+
+	// S3 File upload functionality
+	const { uploadFiles, isUploading, uploadProgress } = useFileUpload({
+		category: 'application-documents',
+		onProgress: () => {},
+	})
+
+	// Application state
 	const [hasApplied, setHasApplied] = useState(false)
 	const [isApplying, setIsApplying] = useState(false)
+	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+	const [applicationStatus, setApplicationStatus] = useState<string | null>(
+		null
+	)
+	const [applicationId, setApplicationId] = useState<string | null>(null)
+	const [showUpdateModal, setShowUpdateModal] = useState(false)
+	const [selectedUpdateRequestId, setSelectedUpdateRequestId] = useState<
+		string | null
+	>(null)
+	const [updateRequests, setUpdateRequests] = useState<any[]>([])
+	const [loadingUpdateRequests, setLoadingUpdateRequests] = useState(false)
+
+	// Notification system
+	const { showSuccess, showError } = useNotification()
+
 	const [eligibilityFilters, setEligibilityFilters] = useState<
 		Record<string, string[]>
 	>({})
@@ -250,6 +276,157 @@ const ScholarshipDetail = () => {
 		}
 	}, [currentScholarship?.id])
 
+	// Check for existing application when component loads
+	useEffect(() => {
+		const scholarshipId = currentScholarship?.id || params.id
+		if (scholarshipId && !isCheckingApplication) {
+			// Add a small delay to prevent rapid successive calls
+			const timeoutId = setTimeout(() => {
+				checkExistingApplication(scholarshipId as string)
+			}, 200) // 200ms delay
+
+			return () => clearTimeout(timeoutId)
+		}
+	}, [currentScholarship?.id, params.id]) // Removed isCheckingApplication from deps to prevent loops
+
+	// Fetch all update requests when application is loaded
+	useEffect(() => {
+		if (applicationId) {
+			fetchUpdateRequests()
+		} else {
+			setUpdateRequests([])
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [applicationId])
+
+	// Fetch all update requests for the application
+	const fetchUpdateRequests = async () => {
+		if (!applicationId) return
+
+		setLoadingUpdateRequests(true)
+		try {
+			const response = await fetch(
+				`/api/applications/${applicationId}/update-request`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				}
+			)
+
+			if (response.ok) {
+				const result = await response.json()
+				if (result.success && result.updateRequests) {
+					setUpdateRequests(result.updateRequests)
+				}
+			}
+		} catch (error) {
+			console.error('Failed to fetch update requests:', error)
+		} finally {
+			setLoadingUpdateRequests(false)
+		}
+	}
+
+	// Check if user has already applied to this post
+	const checkExistingApplication = async (scholarshipId: string) => {
+		try {
+			setIsCheckingApplication(true)
+			const response = await applicationService.getApplications({
+				page: 1,
+				limit: 100, // Get more applications to search through
+			})
+			if (
+				response.success &&
+				response.applications &&
+				response.applications.length > 0
+			) {
+				// Check if any application is for this specific post
+				const existingApplication = response.applications.find(
+					(app) => app.postId === scholarshipId
+				)
+
+				if (existingApplication) {
+					setHasApplied(true)
+					setApplicationStatus(existingApplication.status || null)
+					setApplicationId(existingApplication.applicationId || null)
+					// Load submitted documents from the application
+					// Filter out update submission documents - only show initial application documents
+					if (
+						existingApplication.documents &&
+						existingApplication.documents.length > 0
+					) {
+						const submittedFiles = existingApplication.documents
+							.filter(
+								(doc: any) =>
+									!doc.isUpdateSubmission && !doc.is_update_submission
+							)
+							.map((doc: any) => ({
+								id: doc.documentId || doc.documentTypeId || Math.random(), // Generate ID if not available
+								name: doc.name,
+								url: doc.url,
+								size: doc.size || 0,
+								documentType:
+									doc.documentType ||
+									doc.documentTypeId ||
+									'application-document',
+								uploadDate:
+									doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
+							}))
+						setUploadedFiles(submittedFiles)
+					}
+
+					return true
+				}
+			}
+			return false
+		} catch (error) {
+			console.error('Failed to check existing application:', error)
+			return false
+		} finally {
+			setIsCheckingApplication(false)
+		}
+	}
+
+	// Helper function to determine document type based on file name
+	const getDocumentType = (fileName: string): string => {
+		const lowerName = fileName.toLowerCase()
+
+		if (lowerName.includes('cv') || lowerName.includes('resume')) {
+			return 'cv-resume'
+		} else if (
+			lowerName.includes('transcript') ||
+			lowerName.includes('academic')
+		) {
+			return 'transcript'
+		} else if (
+			lowerName.includes('certificate') ||
+			lowerName.includes('cert')
+		) {
+			return 'certificate'
+		} else if (
+			lowerName.includes('proposal') ||
+			lowerName.includes('research')
+		) {
+			return 'research-proposal'
+		} else if (lowerName.includes('portfolio')) {
+			return 'portfolio'
+		} else if (
+			lowerName.includes('letter') ||
+			lowerName.includes('recommendation')
+		) {
+			return 'recommendation-letter'
+		} else if (
+			lowerName.includes('statement') ||
+			lowerName.includes('motivation')
+		) {
+			return 'personal-statement'
+		} else {
+			return 'application-document'
+		}
+	}
+
 	const handleProgramWishlistToggle = (id: string) => {
 		setProgramWishlist((prev) =>
 			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
@@ -308,28 +485,40 @@ const ScholarshipDetail = () => {
 		router.push('/signup')
 	}
 
-	const handleFileUpload = (
+	const handleFileUpload = async (
 		event: React.ChangeEvent<HTMLInputElement>,
-		documentType?: string
+		documentType: string
 	) => {
 		const files = event.target.files
-		if (files) {
-			setIsUploading(true)
+		if (files && files.length > 0) {
+			try {
+				// Upload files to S3
+				const uploadedFileData = await uploadFiles(Array.from(files))
 
-			const fileArray = Array.from(files).map((file, index) => ({
-				id: Date.now() + index,
-				name: file.name,
-				size: file.size,
-				type: file.type,
-				file: file,
-				documentType: documentType,
-				status: 'uploaded',
-				extractedData: null,
-			}))
-
-			// Add files to state immediately
-			setUploadedFiles((prev) => [...prev, ...fileArray])
-			setIsUploading(false)
+				// Add uploaded files to state with document type
+				if (uploadedFileData) {
+					const filesWithType = uploadedFileData.map((file) => ({
+						...file,
+						documentType: documentType,
+					}))
+					setUploadedFiles((prev) => [...prev, ...filesWithType])
+				}
+				showSuccess(
+					'Files Uploaded Successfully',
+					`${uploadedFileData?.length || 0} file(s) have been uploaded successfully.`
+				)
+			} catch (error) {
+				console.error('❌ Failed to upload files to S3:', error)
+				showError(
+					'Upload Failed',
+					'Failed to upload files. Please try again.',
+					{
+						onRetry: () => handleFileUpload(event, documentType),
+						showRetry: true,
+						retryText: 'Retry Upload',
+					}
+				)
+			}
 		}
 	}
 
@@ -383,16 +572,83 @@ const ScholarshipDetail = () => {
 		)
 	}
 
+	// Handle application submission
 	const handleApply = async () => {
-		// Add application logic here
-		setIsApplying(true)
+		// Use scholarship ID from URL params as fallback
+		const scholarshipId = currentScholarship?.id || params.id
+		if (!scholarshipId) {
+			return
+		}
+
+		// Check if already applied
+		if (hasApplied) {
+			showError(
+				'Already Applied',
+				'You have already applied to this scholarship. You cannot submit multiple applications.',
+				{
+					showRetry: false,
+				}
+			)
+			return
+		}
+
 		try {
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 2000))
-			setHasApplied(true)
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Error submitting application:', error)
+			setIsApplying(true)
+
+			const response = await applicationService.submitApplication({
+				postId:
+					typeof scholarshipId === 'string'
+						? scholarshipId
+						: String(scholarshipId),
+				documents: uploadedFiles.map((file) => ({
+					documentTypeId: file.documentType || getDocumentType(file.name), // Use stored document type or fallback to filename detection
+					name: file.name,
+					url: file.url, // S3 URL from upload
+					size: file.size,
+				})),
+			})
+
+			if (response.success) {
+				setHasApplied(true)
+				showSuccess(
+					'Application Submitted!',
+					'Your application has been submitted successfully. You will receive updates via email.'
+				)
+			} else {
+				showError(
+					'Application Failed',
+					response.error || 'Failed to submit application. Please try again.',
+					{
+						onRetry: handleApply,
+						showRetry: true,
+						retryText: 'Retry',
+					}
+				)
+			}
+		} catch (error: any) {
+			console.error('Failed to submit application:', error)
+
+			// Handle specific "already applied" error
+			if (error.message && error.message.includes('already applied')) {
+				setHasApplied(true)
+				showError(
+					'Already Applied',
+					'You have already applied to this scholarship. You cannot submit multiple applications.',
+					{
+						showRetry: false,
+					}
+				)
+			} else {
+				showError(
+					'Application Error',
+					'An unexpected error occurred. Please try again.',
+					{
+						onRetry: handleApply,
+						showRetry: true,
+						retryText: 'Retry',
+					}
+				)
+			}
 		} finally {
 			setIsApplying(false)
 		}
@@ -726,7 +982,18 @@ const ScholarshipDetail = () => {
 										Visit website
 									</Button>
 								)}
-								{/* <Button className="">Apply</Button> */}
+								{currentScholarship?.institution?.userId && (
+									<Button
+										onClick={() => {
+											const contactUrl = `/messages?contact=${(currentScholarship.institution as any).userId}`
+											router.push(contactUrl)
+										}}
+										variant="outline"
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+									>
+										Contact Institution
+									</Button>
+								)}
 								<motion.button
 									onClick={(e) => {
 										e.preventDefault()
@@ -968,105 +1235,55 @@ const ScholarshipDetail = () => {
 				>
 					<h2 className="text-3xl font-bold mb-6">Apply here !</h2>
 
-					<div className="text-gray-600 mb-6">
-						{currentScholarship?.requiredDocuments &&
-						currentScholarship.requiredDocuments.length > 0 ? (
-							<div className="space-y-3">
-								{currentScholarship.requiredDocuments.map((doc: any) => (
-									<p key={doc.id}>
-										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
-										{doc.description}
-									</p>
-								))}
-							</div>
-						) : (
-							<p>
-								You can upload required documents here. We will send documents
-								and your academic information to university.
-							</p>
-						)}
-					</div>
-
-					{/* File Upload Area */}
-					<div className="w-full mb-6">
-						{currentScholarship?.requiredDocuments &&
-						currentScholarship.requiredDocuments.length > 0 ? (
-							// Show specific upload areas for each required document
-							currentScholarship.requiredDocuments.map((doc: any) => {
-								const filesForThisType = uploadedFiles.filter(
-									(file) => file.documentType === doc.id
-								)
-								return (
-									<div key={doc.id} className="space-y-2 mb-4">
-										<label className="text-sm font-medium text-gray-700">
-											{doc.name}
-											{filesForThisType.length > 0 && (
-												<span className="ml-2 text-xs text-green-600">
-													({filesForThisType.length} file
-													{filesForThisType.length !== 1 ? 's' : ''})
-												</span>
-											)}
-										</label>
-										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-											<div className="text-4xl mb-4">📁</div>
-											<div className="space-y-2">
-												<input
-													type="file"
-													multiple
-													onChange={(e) => handleFileUpload(e, doc.id)}
-													className="hidden"
-													id={`file-upload-${doc.id}`}
-												/>
-												<label
-													htmlFor={`file-upload-${doc.id}`}
-													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-												>
-													Click here to upload {doc.name}
-												</label>
-											</div>
-										</div>
+					{!hasApplied && (
+						<>
+							<div className="text-gray-600 mb-6">
+								{currentScholarship?.requiredDocuments &&
+								currentScholarship.requiredDocuments.length > 0 ? (
+									<div className="space-y-3">
+										{currentScholarship.requiredDocuments.map((doc: any) => (
+											<p key={doc.id}>
+												<span className="font-medium">{doc.name}:</span>{' '}
+												{doc.description}
+											</p>
+										))}
 									</div>
-								)
-							})
-						) : (
-							// Show general upload area when no specific documents required
-							<div className="space-y-2">
-								<label className="text-sm font-medium text-gray-700">
-									Upload Documents
-									{uploadedFiles.length > 0 && (
-										<span className="ml-2 text-xs text-green-600">
-											({uploadedFiles.length} file
-											{uploadedFiles.length !== 1 ? 's' : ''})
-										</span>
-									)}
-								</label>
-								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-									<div className="text-4xl mb-4">📁</div>
-									<div className="space-y-2">
-										<input
-											type="file"
-											multiple
-											onChange={(e) => handleFileUpload(e)}
-											className="hidden"
-											id="file-upload-general"
-										/>
-										<label
-											htmlFor="file-upload-general"
-											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-										>
-											Click here to upload files
-										</label>
-										<p className="text-xs text-gray-500">
-											Upload any supporting documents for your application
-										</p>
+								) : (
+									<p>
+										Not have any specific document requirement. You can upload
+										any
+									</p>
+								)}
+							</div>
+
+							{/* File Upload Area */}
+							<div className="w-full mb-6">
+								<div className="space-y-2">
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+										<div className="text-4xl mb-4">📁</div>
+										<div className="space-y-2">
+											<input
+												type="file"
+												multiple
+												onChange={(e) => handleFileUpload(e, 'other')}
+												className="hidden"
+												id="file-upload-other"
+											/>
+											<label
+												htmlFor="file-upload-other"
+												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+											>
+												Click here to upload files
+											</label>
+										</div>
 									</div>
 								</div>
 							</div>
-						)}
-					</div>
+						</>
+					)}
 
 					{/* File Management */}
-					{(uploadedFiles.length > 0 || isUploading) && (
+					{!hasApplied && (uploadedFiles.length > 0 || isUploading) && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium">
@@ -1084,11 +1301,299 @@ const ScholarshipDetail = () => {
 									</Button>
 								)}
 							</div>
+
+							{/* Upload Progress */}
+							{isUploading && uploadProgress.length > 0 && (
+								<div className="space-y-2 mb-4">
+									{uploadProgress.map((progress) => (
+										<div key={progress.fileIndex} className="space-y-1">
+											<div className="flex justify-between text-sm">
+												<span>File {progress.fileIndex + 1}</span>
+												<span>{progress.progress}%</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+													style={{ width: `${progress.progress}%` }}
+												></div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					)}
+
+					{/* Display update requests as individual alert boxes */}
+					{hasApplied &&
+						updateRequests.length > 0 &&
+						updateRequests.map((request, index) => (
+							<div
+								key={request.updateRequestId}
+								className={`mb-6 rounded-lg p-6 border ${
+									request.status === 'PENDING'
+										? 'bg-orange-50 border-orange-200'
+										: request.status === 'RESPONDED' ||
+											  request.status === 'REVIEWED'
+											? 'bg-green-50 border-green-200'
+											: 'bg-gray-50 border-gray-200'
+								}`}
+							>
+								<div className="flex items-start gap-3">
+									<div
+										className={`text-2xl ${
+											request.status === 'PENDING'
+												? 'text-orange-600'
+												: request.status === 'RESPONDED' ||
+													  request.status === 'REVIEWED'
+													? 'text-green-600'
+													: 'text-gray-600'
+										}`}
+									>
+										{request.status === 'PENDING'
+											? '⚠'
+											: request.status === 'RESPONDED' ||
+												  request.status === 'REVIEWED'
+												? '✓'
+												: 'ℹ'}
+									</div>
+									<div className="flex-1">
+										<h3
+											className={`text-lg font-semibold ${
+												request.status === 'PENDING'
+													? 'text-orange-800'
+													: request.status === 'RESPONDED' ||
+														  request.status === 'REVIEWED'
+														? 'text-green-800'
+														: 'text-gray-800'
+											}`}
+										>
+											{request.status === 'PENDING'
+												? 'Update Required'
+												: request.status === 'RESPONDED' ||
+													  request.status === 'REVIEWED'
+													? 'Update Submitted Successfully'
+													: 'Update Request'}
+										</h3>
+										<p
+											className={`mt-1 mb-4 ${
+												request.status === 'PENDING'
+													? 'text-orange-700'
+													: request.status === 'RESPONDED' ||
+														  request.status === 'REVIEWED'
+														? 'text-green-700'
+														: 'text-gray-700'
+											}`}
+										>
+											{request.status === 'PENDING'
+												? 'The institution has requested additional information or documents for your application. Please review the request and submit the required updates.'
+												: request.status === 'RESPONDED' ||
+													  request.status === 'REVIEWED'
+													? 'Your update response has been submitted successfully. The institution will review your changes.'
+													: `Update request #${updateRequests.length - index}`}
+										</p>
+										<div className="flex gap-3">
+											{request.status === 'PENDING' && applicationId && (
+												<Button
+													onClick={() => {
+														setSelectedUpdateRequestId(request.updateRequestId)
+														setShowUpdateModal(true)
+													}}
+													className="bg-orange-500 hover:bg-orange-600 text-white"
+												>
+													View Update Request & Submit Response
+												</Button>
+											)}
+											{(request.status === 'RESPONDED' ||
+												request.status === 'REVIEWED') &&
+												applicationId && (
+													<Button
+														onClick={() => {
+															setSelectedUpdateRequestId(
+																request.updateRequestId
+															)
+															setShowUpdateModal(true)
+														}}
+														variant="outline"
+														className="border-green-600 text-green-600 hover:bg-green-50"
+													>
+														View Update Details
+													</Button>
+												)}
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
+
+					{hasApplied &&
+						updateRequests.length === 0 &&
+						applicationStatus !== 'REQUIRE_UPDATE' && (
+							<div
+								className={`border rounded-lg p-6 mb-6 ${
+									applicationStatus === 'ACCEPTED'
+										? 'bg-green-50 border-green-200'
+										: applicationStatus === 'REJECTED'
+											? 'bg-red-50 border-red-200'
+											: applicationStatus === 'UPDATED'
+												? 'bg-blue-50 border-blue-200'
+												: 'bg-yellow-50 border-yellow-200'
+								}`}
+							>
+								<div className="flex items-center gap-3">
+									<div
+										className={`text-2xl ${
+											applicationStatus === 'ACCEPTED'
+												? 'text-green-600'
+												: applicationStatus === 'REJECTED'
+													? 'text-red-600'
+													: applicationStatus === 'UPDATED'
+														? 'text-blue-600'
+														: 'text-yellow-600'
+										}`}
+									>
+										{applicationStatus === 'ACCEPTED'
+											? '✓'
+											: applicationStatus === 'REJECTED'
+												? '✗'
+												: applicationStatus === 'UPDATED'
+													? '↻'
+													: '⏳'}
+									</div>
+									<div>
+										<h3
+											className={`text-lg font-semibold ${
+												applicationStatus === 'ACCEPTED'
+													? 'text-green-800'
+													: applicationStatus === 'REJECTED'
+														? 'text-red-800'
+														: applicationStatus === 'UPDATED'
+															? 'text-blue-800'
+															: 'text-yellow-800'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? 'Application Accepted!'
+												: applicationStatus === 'REJECTED'
+													? 'Application Not Selected'
+													: applicationStatus === 'UPDATED'
+														? 'Application Updated'
+														: 'Application Submitted Successfully!'}
+										</h3>
+										<p
+											className={`mt-1 ${
+												applicationStatus === 'ACCEPTED'
+													? 'text-green-700'
+													: applicationStatus === 'REJECTED'
+														? 'text-red-700'
+														: applicationStatus === 'UPDATED'
+															? 'text-blue-700'
+															: 'text-yellow-700'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+												: applicationStatus === 'REJECTED'
+													? 'We regret to inform you that your application was not selected this time.'
+													: applicationStatus === 'UPDATED'
+														? 'Your application has been updated. The institution will review your changes.'
+														: 'Your application has been submitted. You will receive updates via email.'}
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+
+					{/* Show uploaded files in read-only mode when applied */}
+					{hasApplied && uploadedFiles.length > 0 && (
+						<div className="bg-gray-50 rounded-lg p-4 mb-6">
+							<div className="flex items-center justify-between mb-4">
+								<span className="font-medium text-gray-700">
+									Initial Application Documents ({uploadedFiles.length} file
+									{uploadedFiles.length !== 1 ? 's' : ''})
+								</span>
+							</div>
+							<div className="text-gray-600 mb-6">
+								{currentScholarship?.requiredDocuments &&
+								currentScholarship.requiredDocuments.length > 0 ? (
+									<div className="space-y-3">
+										{currentScholarship.requiredDocuments.map(
+											(doc: any, index: number) => (
+												<p key={doc.id || index}>
+													<span className="font-medium">{doc.name}:</span>{' '}
+													{doc.description}
+												</p>
+											)
+										)}
+									</div>
+								) : (
+									<p>
+										These are the documents you submitted with your application.
+										They cannot be modified or deleted.
+									</p>
+								)}
+							</div>
+							<div className="space-y-3">
+								{uploadedFiles.map((file) => (
+									<div
+										key={file.id}
+										className="flex items-center gap-3 p-3 bg-white rounded-lg border"
+									>
+										<div className="text-2xl">📄</div>
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium text-gray-900 truncate">
+												{file.name}
+											</p>
+											<div className="flex items-center gap-2 text-xs text-gray-500">
+												<span>{(file.size / 1024).toFixed(1)} KB</span>
+												{file.uploadDate && (
+													<>
+														<span>•</span>
+														<span>
+															Uploaded:{' '}
+															{new Date(file.uploadDate).toLocaleDateString()}
+														</span>
+													</>
+												)}
+											</div>
+										</div>
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => {
+													// Open S3 file URL in new tab
+													window.open(file.url, '_blank')
+												}}
+												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+											>
+												View
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => {
+													// Download the file
+													const link = document.createElement('a')
+													link.href = file.url
+													link.download = file.name
+													document.body.appendChild(link)
+													link.click()
+													document.body.removeChild(link)
+												}}
+												className="text-blue-600 border-blue-600 hover:bg-blue-50"
+											>
+												Download
+											</Button>
+										</div>
+									</div>
+								))}
+							</div>
 						</div>
 					)}
 
 					<div className="flex gap-3 justify-center">
-						{uploadedFiles.length > 0 && (
+						{!hasApplied && uploadedFiles.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}
@@ -1104,7 +1609,9 @@ const ScholarshipDetail = () => {
 									: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
-							disabled={hasApplied || isApplying || isUploading}
+							disabled={
+								hasApplied || isApplying || isUploading || isCheckingApplication
+							}
 						>
 							{hasApplied ? (
 								'✓ Application Submitted'
@@ -1117,6 +1624,11 @@ const ScholarshipDetail = () => {
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 									Uploading Files...
+								</div>
+							) : isCheckingApplication ? (
+								<div className="flex items-center gap-2">
+									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+									Checking...
 								</div>
 							) : (
 								'Submit Application'
@@ -1210,20 +1722,33 @@ const ScholarshipDetail = () => {
 													</p>
 												</div>
 												<div className="flex gap-2">
-													<Button
-														variant="outline"
-														onClick={() => {
-															// Create a download link for the file
-															const url = URL.createObjectURL(file.file)
-															const a = document.createElement('a')
-															a.href = url
-															a.download = file.name
-															a.click()
-															URL.revokeObjectURL(url)
-														}}
-													>
-														View
-													</Button>
+													{file.url ? (
+														<>
+															<Button
+																variant="outline"
+																onClick={() => {
+																	// Open S3 file URL in new tab
+																	window.open(file.url, '_blank')
+																}}
+															>
+																View
+															</Button>
+															<Button
+																variant="outline"
+																onClick={() => {
+																	// Download the file
+																	const link = document.createElement('a')
+																	link.href = file.url
+																	link.download = file.name
+																	document.body.appendChild(link)
+																	link.click()
+																	document.body.removeChild(link)
+																}}
+															>
+																Download
+															</Button>
+														</>
+													) : null}
 													<Button
 														variant="outline"
 														onClick={() => removeFile(file.id)}
@@ -1295,6 +1820,35 @@ const ScholarshipDetail = () => {
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
 			/>
+
+			{/* Update Response Modal */}
+			{applicationId && (
+				<ApplicationUpdateResponseModal
+					isOpen={showUpdateModal}
+					onClose={() => {
+						setShowUpdateModal(false)
+						setSelectedUpdateRequestId(null)
+					}}
+					applicationId={applicationId}
+					updateRequestId={selectedUpdateRequestId || undefined}
+					onSuccess={async () => {
+						// Refresh application status and update requests after successful update
+						const scholarshipId = currentScholarship?.id || params.id
+						if (scholarshipId) {
+							await checkExistingApplication(scholarshipId as string)
+						}
+						if (applicationId) {
+							await fetchUpdateRequests()
+						}
+						setShowUpdateModal(false)
+						setSelectedUpdateRequestId(null)
+						showSuccess(
+							'Update Submitted',
+							'Your update response has been submitted successfully. The institution will review your changes.'
+						)
+					}}
+				/>
+			)}
 		</div>
 	)
 }

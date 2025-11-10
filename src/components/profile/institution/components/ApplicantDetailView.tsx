@@ -28,7 +28,8 @@ interface Document {
 	documentId: string
 	name: string
 	size: number
-	uploadDate: string
+	uploadDate?: string
+	updatedAt?: string
 	url: string
 	title?: string | null
 	subdiscipline?: string[]
@@ -85,6 +86,7 @@ interface ApplicationDetails {
 	}>
 	applicant: {
 		applicantId: string
+		userId?: string
 		firstName?: string
 		lastName?: string
 		name: string
@@ -248,31 +250,141 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		})
 	}
 
-	const createZipFromDocuments = async (docs: Document[], zipName: string) => {
+	const createZipFromDocuments = async (
+		docs: Document[],
+		zipName: string,
+		organizeByCategory: boolean = false
+	) => {
 		const zip = new JSZip()
 
-		// Create a folder for the documents
-		const folder = zip.folder(zipName) || zip
+		// Create a root folder for the documents
+		const rootFolder = zip.folder(zipName) || zip
 
-		// Add each document to the zip
-		for (const doc of docs) {
-			try {
-				// Fetch the document content
-				const response = await fetch(doc.url)
-				if (!response.ok) {
-					// eslint-disable-next-line no-console
-					console.warn(`Failed to fetch document: ${doc.name}`)
-					continue
+		if (organizeByCategory) {
+			// Group documents by category
+			const documentsByCategory = docs.reduce(
+				(acc, doc) => {
+					// Use document_type from API
+					const docType = (doc as any).documentType || 'OTHER'
+					let category = 'other'
+
+					// Map document type names to category (same logic as in the UI)
+					const upperType = docType.toUpperCase()
+					if (upperType.includes('CV') || upperType.includes('RESUME')) {
+						category = 'cv'
+					} else if (upperType.includes('DEGREE')) {
+						category = 'degree'
+					} else if (
+						upperType.includes('LANGUAGE') ||
+						upperType.includes('CERTIFICATE')
+					) {
+						category = 'certificate'
+					} else if (upperType.includes('TRANSCRIPT')) {
+						category = 'transcript'
+					} else if (upperType.includes('RESEARCH')) {
+						category = 'research'
+					} else if (upperType.includes('PORTFOLIO')) {
+						category = 'portfolio'
+					} else if (upperType.includes('PERSONAL')) {
+						category = 'personal'
+					} else if (upperType.includes('RECOMMENDATION')) {
+						category = 'recommendation'
+					} else if (upperType.includes('PASSPORT')) {
+						category = 'passport'
+					} else if (upperType.includes('INSTITUTION')) {
+						category = 'institution'
+					} else if (upperType.includes('REQUIRED')) {
+						category = 'required'
+					} else {
+						category = 'other'
+					}
+
+					if (!acc[category]) acc[category] = []
+					acc[category].push(doc)
+					return acc
+				},
+				{} as Record<string, Document[]>
+			)
+
+			// Create folders for each category and add documents
+			for (const [category, categoryDocs] of Object.entries(
+				documentsByCategory
+			)) {
+				const categoryLabel = getDocumentTypeLabel(category)
+				const categoryFolder =
+					rootFolder.folder(categoryLabel.replace(/\s+/g, '_')) || rootFolder
+
+				// Special handling for research papers - group by title
+				if (category === 'research') {
+					const groupedPapers = categoryDocs.reduce(
+						(acc, doc) => {
+							const title = doc.title || 'Untitled Research Paper'
+							if (!acc[title]) {
+								acc[title] = []
+							}
+							acc[title].push(doc)
+							return acc
+						},
+						{} as Record<string, Document[]>
+					)
+
+					// Create subfolders for each research paper title
+					for (const [title, papers] of Object.entries(groupedPapers)) {
+						const titleFolder =
+							categoryFolder.folder(title.replace(/\s+/g, '_')) ||
+							categoryFolder
+
+						for (const doc of papers) {
+							try {
+								const response = await fetch(doc.url)
+								if (!response.ok) {
+									console.warn(`Failed to fetch document: ${doc.name}`)
+									continue
+								}
+
+								const blob = await response.blob()
+								const arrayBuffer = await blob.arrayBuffer()
+								titleFolder.file(doc.name, arrayBuffer)
+							} catch (error) {
+								console.warn(`Error adding document ${doc.name} to zip:`, error)
+							}
+						}
+					}
+				} else {
+					// For other categories, add documents directly to category folder
+					for (const doc of categoryDocs) {
+						try {
+							const response = await fetch(doc.url)
+							if (!response.ok) {
+								console.warn(`Failed to fetch document: ${doc.name}`)
+								continue
+							}
+
+							const blob = await response.blob()
+							const arrayBuffer = await blob.arrayBuffer()
+							categoryFolder.file(doc.name, arrayBuffer)
+						} catch (error) {
+							console.warn(`Error adding document ${doc.name} to zip:`, error)
+						}
+					}
 				}
+			}
+		} else {
+			// Original behavior: add all documents to root folder
+			for (const doc of docs) {
+				try {
+					const response = await fetch(doc.url)
+					if (!response.ok) {
+						console.warn(`Failed to fetch document: ${doc.name}`)
+						continue
+					}
 
-				const blob = await response.blob()
-				const arrayBuffer = await blob.arrayBuffer()
-
-				// Add to zip with the document name
-				folder.file(doc.name, arrayBuffer)
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.warn(`Error adding document ${doc.name} to zip:`, error)
+					const blob = await response.blob()
+					const arrayBuffer = await blob.arrayBuffer()
+					rootFolder.file(doc.name, arrayBuffer)
+				} catch (error) {
+					console.warn(`Error adding document ${doc.name} to zip:`, error)
+				}
 			}
 		}
 
@@ -301,9 +413,11 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		setDownloadingZip('all')
 		try {
 			const zipName = `${applicant.name.replace(/\s+/g, '_')}_All_Documents`
+			// Organize documents by category
 			await createZipFromDocuments(
 				applicationDetails.applicant.documents,
-				zipName
+				zipName,
+				true // organizeByCategory = true
 			)
 		} catch (error) {
 			// eslint-disable-next-line no-console
@@ -408,12 +522,34 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		}
 	}
 
-	const handleDownloadFile = (doc: Document) => {
+	const handleDownloadFile = async (doc: Document) => {
 		// Download file directly
-		if (doc.url) {
+		if (!doc.url) {
+			console.error('Document URL is missing')
+			return
+		}
+		try {
+			// Fetch the file as a blob to ensure proper download
+			const response = await fetch(doc.url)
+			const blob = await response.blob()
+			const blobUrl = window.URL.createObjectURL(blob)
+
+			const link = document.createElement('a')
+			link.href = blobUrl
+			link.download = doc.name
+			document.body.appendChild(link)
+			link.click()
+			document.body.removeChild(link)
+
+			// Clean up the blob URL
+			window.URL.revokeObjectURL(blobUrl)
+		} catch (error) {
+			console.error('Failed to download file:', error)
+			// Fallback: try direct download
 			const link = document.createElement('a')
 			link.href = doc.url
 			link.download = doc.name
+			link.target = '_blank'
 			document.body.appendChild(link)
 			link.click()
 			document.body.removeChild(link)
@@ -948,7 +1084,11 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																					</p>
 																					<p className="text-sm text-muted-foreground">
 																						{formatFileSize(doc.size)} •{' '}
-																						{formatDate(doc.uploadDate)}
+																						{formatDate(
+																							doc.uploadDate ||
+																								doc.updatedAt ||
+																								''
+																						)}
 																					</p>
 																				</div>
 																			</div>
@@ -1016,7 +1156,9 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																</p>
 																<p className="text-sm text-muted-foreground">
 																	{formatFileSize(doc.size)} •{' '}
-																	{formatDate(doc.uploadDate)}
+																	{formatDate(
+																		doc.uploadDate || doc.updatedAt || ''
+																	)}
 																</p>
 															</div>
 														</div>
@@ -1180,7 +1322,9 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																</p>
 																<p className="text-xs text-muted-foreground">
 																	{formatFileSize(doc.size)} •{' '}
-																	{formatDate(doc.uploadDate)}
+																	{formatDate(
+																		doc.uploadDate || doc.updatedAt || ''
+																	)}
 																</p>
 															</div>
 														</div>
@@ -1363,14 +1507,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																			View
 																		</button>
 																		<button
-																			onClick={() => {
-																				const link = document.createElement('a')
-																				link.href = doc.url
-																				link.download = doc.name
-																				document.body.appendChild(link)
-																				link.click()
-																				document.body.removeChild(link)
-																			}}
+																			onClick={() => handleDownloadFile(doc)}
 																			className="text-gray-400 hover:text-gray-600 p-1"
 																		>
 																			<Download className="h-4 w-4" />
@@ -1518,7 +1655,14 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 								<Button
 									onClick={() => {
 										// Navigate to messages with contact parameter
-										router.push(`/messages?contact=${applicant.userId}`)
+										// Use userId from applicationDetails (API response) which includes userId
+										const userId =
+											applicationDetails?.applicant?.userId || applicant.userId
+										if (userId) {
+											router.push(
+												`/institution/dashboard/messages?contact=${userId}`
+											)
+										}
 									}}
 									className="w-full bg-orange-500 hover:bg-orange-600 text-white"
 									size="md"
@@ -1526,50 +1670,56 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 									Contact Applicant
 								</Button>
 
-								<div className="grid grid-cols-3 gap-2">
-									<Button
-										onClick={handleApprove}
-										disabled={processingStatus !== null}
-										className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-										size="sm"
-									>
-										{processingStatus === 'approve' ? (
-											<>
-												<Loader2 className="h-3 w-3 mr-1 animate-spin" />
-												Processing...
-											</>
-										) : (
-											'Approve'
-										)}
-									</Button>
+								{/* Only show action buttons if status is not ACCEPTED or REJECTED */}
+								{applicationDetails?.application?.status?.toUpperCase() !==
+									'ACCEPTED' &&
+									applicationDetails?.application?.status?.toUpperCase() !==
+										'REJECTED' && (
+										<div className="grid grid-cols-3 gap-2">
+											<Button
+												onClick={handleApprove}
+												disabled={processingStatus !== null}
+												className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+												size="sm"
+											>
+												{processingStatus === 'approve' ? (
+													<>
+														<Loader2 className="h-3 w-3 mr-1 animate-spin" />
+														Processing...
+													</>
+												) : (
+													'Approve'
+												)}
+											</Button>
 
-									<Button
-										onClick={handleReject}
-										disabled={processingStatus !== null}
-										variant="outline"
-										className="border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-										size="sm"
-									>
-										{processingStatus === 'reject' ? (
-											<>
-												<Loader2 className="h-3 w-3 mr-1 animate-spin" />
-												Processing...
-											</>
-										) : (
-											'Reject'
-										)}
-									</Button>
+											<Button
+												onClick={handleReject}
+												disabled={processingStatus !== null}
+												variant="outline"
+												className="border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+												size="sm"
+											>
+												{processingStatus === 'reject' ? (
+													<>
+														<Loader2 className="h-3 w-3 mr-1 animate-spin" />
+														Processing...
+													</>
+												) : (
+													'Reject'
+												)}
+											</Button>
 
-									<Button
-										onClick={() => setShowUpdateModal(true)}
-										disabled={processingStatus !== null}
-										variant="outline"
-										className="border-blue-500 text-blue-500 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-										size="sm"
-									>
-										Update
-									</Button>
-								</div>
+											<Button
+												onClick={() => setShowUpdateModal(true)}
+												disabled={processingStatus !== null}
+												variant="outline"
+												className="border-blue-500 text-blue-500 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+												size="sm"
+											>
+												Update
+											</Button>
+										</div>
+									)}
 							</div>
 						}
 					/>

@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
 				institution: {
 					select: {
 						institution_id: true,
+						user_id: true,
 						name: true,
 						abbreviation: true,
 						logo: true,
@@ -139,6 +140,7 @@ export async function GET(request: NextRequest) {
 			// duration: "N/A", // Not in schema, set default
 			institution: {
 				id: post.institution?.institution_id,
+				userId: post.institution?.user_id,
 				name: post.institution?.name,
 				abbreviation: post.institution?.abbreviation,
 				logo: post.institution?.logo,

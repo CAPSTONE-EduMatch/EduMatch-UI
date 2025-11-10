@@ -51,6 +51,7 @@ export interface ResearchLabDetail {
 
 	institution: {
 		id: string;
+		userId?: string;
 		name: string;
 		abbreviation: string;
 		logo: string;

@@ -194,12 +194,25 @@ export const useAppSyncMessaging = () => {
 		async (threadId: string) => {
 			try {
 				setError(null);
+
+				// Optimistically update local state immediately (no delay)
+				setThreads((prev) =>
+					prev.map((thread) =>
+						thread.id === threadId
+							? { ...thread, unreadCount: 0 }
+							: thread
+					)
+				);
+
+				// Clear unread count on server
 				await clearThreadUnreadCount(threadId);
 
-				// Refresh threads to get updated unread counts
-				loadThreads();
+				// Force refresh threads to ensure sync with server (bypass 30-second cache)
+				loadThreads(true);
 			} catch (err) {
 				setError("Failed to clear unread count");
+				// On error, refresh threads to get correct state
+				loadThreads(true);
 			}
 		},
 		[loadThreads]

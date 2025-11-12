@@ -12,7 +12,7 @@ import {
 
 import { mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart } from 'lucide-react'
+import { Heart, Trash2 } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
@@ -520,6 +520,14 @@ const ScholarshipDetail = () => {
 				)
 			}
 		}
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
 	const removeFile = (fileId: number) => {
@@ -1706,56 +1714,45 @@ const ScholarshipDetail = () => {
 									<h3 className="text-lg font-medium text-foreground border-b pb-2">
 										Uploaded Files ({uploadedFiles.length})
 									</h3>
-									<div className="grid grid-cols-1 gap-4">
+									<div className="space-y-3">
 										{uploadedFiles.map((file) => (
 											<div
 												key={file.id}
-												className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+												className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 											>
-												<div className="text-2xl">📄</div>
-												<div className="flex-1 min-w-0">
-													<p className="text-sm font-medium text-foreground truncate">
-														{file.name}
-													</p>
-													<p className="text-xs text-muted-foreground">
-														{(file.size / 1024).toFixed(1)} KB
-													</p>
+												<div className="flex items-center gap-3">
+													<span className="text-2xl">📄</span>
+													<div>
+														<p className="font-medium text-sm">
+															{file.name || 'Document'}
+														</p>
+														<p className="text-sm text-muted-foreground">
+															{formatFileSize(file.size || 0)}
+															{file.fileType ? ` • ${file.fileType}` : ''}
+														</p>
+													</div>
 												</div>
-												<div className="flex gap-2">
+												<div className="flex items-center gap-2">
 													{file.url ? (
 														<>
-															<Button
-																variant="outline"
+															<button
 																onClick={() => {
 																	// Open S3 file URL in new tab
 																	window.open(file.url, '_blank')
 																}}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
 															>
 																View
-															</Button>
-															<Button
-																variant="outline"
-																onClick={() => {
-																	// Download the file
-																	const link = document.createElement('a')
-																	link.href = file.url
-																	link.download = file.name
-																	document.body.appendChild(link)
-																	link.click()
-																	document.body.removeChild(link)
-																}}
-															>
-																Download
-															</Button>
+															</button>
 														</>
 													) : null}
-													<Button
-														variant="outline"
+													<button
 														onClick={() => removeFile(file.id)}
-														className="text-red-500 hover:text-red-700"
+														className="text-gray-400 hover:text-red-600 p-1"
+														title="Delete document"
 													>
-														Delete
-													</Button>
+														<Trash2 className="h-4 w-4" />
+													</button>
 												</div>
 											</div>
 										))}

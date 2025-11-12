@@ -209,6 +209,23 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	// Get documents from API data - use profile snapshot documents for Academic Profile tab
 	const documents: Document[] = applicationDetails?.applicant?.documents || []
+
+	// Helper function to get applicant name from firstName/lastName or fallback to name
+	const getApplicantName = () => {
+		if (applicationDetails?.applicant) {
+			const { firstName, lastName, name } = applicationDetails.applicant
+			if (firstName || lastName) {
+				return [firstName, lastName].filter(Boolean).join(' ').trim()
+			}
+			if (name) {
+				return name
+			}
+		}
+		return applicant.name || 'Unknown'
+	}
+
+	const applicantName = getApplicantName()
+
 	const getDocumentTypeLabel = (documentType: string) => {
 		// Map category keys to display labels
 		const categoryLabels = {
@@ -412,7 +429,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 		setDownloadingZip('all')
 		try {
-			const zipName = `${applicant.name.replace(/\s+/g, '_')}_All_Documents`
+			const zipName = `${applicantName.replace(/\s+/g, '_')}_All_Documents`
 			// Organize documents by category
 			await createZipFromDocuments(
 				applicationDetails.applicant.documents,
@@ -506,7 +523,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		setDownloadingZip(documentType)
 		try {
 			const folderName = getDocumentTypeLabel(documentType).replace(/\s+/g, '_')
-			const zipName = `${applicant.name.replace(/\s+/g, '_')}_${folderName}`
+			const zipName = `${applicantName.replace(/\s+/g, '_')}_${folderName}`
 			await createZipFromDocuments(typeDocs, zipName)
 		} catch (error) {
 			// eslint-disable-next-line no-console
@@ -1284,7 +1301,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 													setDownloadingZip('application')
 													try {
-														const zipName = `${applicant.name.replace(/\s+/g, '_')}_Application_Documents`
+														const zipName = `${applicantName.replace(/\s+/g, '_')}_Application_Documents`
 														await createZipFromDocuments(
 															applicationDetails.application.documents,
 															zipName
@@ -1448,7 +1465,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																		`update-${request.updateRequestId}`
 																	)
 																	try {
-																		const zipName = `${applicant.name.replace(/\s+/g, '_')}_Update_${request.updateRequestId.substring(0, 8)}`
+																		const zipName = `${applicantName.replace(/\s+/g, '_')}_Update_${request.updateRequestId.substring(0, 8)}`
 																		await createZipFromDocuments(
 																			docsToDownload,
 																			zipName
@@ -1617,7 +1634,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 							avatar: applicationDetails?.applicant?.image ? (
 								<Image
 									src={applicationDetails.applicant.image}
-									alt={applicationDetails.applicant.name}
+									alt={applicantName}
 									width={64}
 									height={64}
 									className="w-16 h-16 rounded-full object-cover"
@@ -1627,7 +1644,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 									<User className="w-8 h-8 text-gray-400" />
 								</div>
 							),
-							title: applicationDetails?.applicant?.name || applicant.name,
+							title: applicantName,
 							subtitle:
 								applicationDetails?.applicant?.birthday &&
 								applicationDetails?.applicant?.gender
@@ -1740,7 +1757,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				isOpen={showUpdateModal}
 				onClose={() => setShowUpdateModal(false)}
 				onSubmit={handleUpdateRequest}
-				applicantName={applicationDetails?.applicant?.name || applicant.name}
+				applicantName={applicantName}
 			/>
 		</div>
 	)

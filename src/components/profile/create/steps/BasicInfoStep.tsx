@@ -6,7 +6,8 @@ import { PhoneInput } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { DateInput } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
-import { Upload, User } from 'lucide-react'
+import { Tooltip } from '@/components/ui'
+import { Upload, User, Info } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { ProfileFormData } from '@/services/profile/profile-service'
 import { useState, useRef, useEffect } from 'react'
@@ -60,17 +61,23 @@ export function BasicInfoStep({
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [phoneValidationError, setPhoneValidationError] = useState('')
+	const [validationErrors, setValidationErrors] = useState<
+		Record<string, boolean>
+	>({})
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const hasAutoFilledNames = useRef(false)
 	const { uploadFile, isUploading } = usePresignedUpload()
 
+	// Pre-fill email with user's email (for all authenticated users)
+	useEffect(() => {
+		if (user?.email && !formData.email) {
+			onInputChange('email', user.email)
+		}
+	}, [user?.email, formData.email, onInputChange])
+
 	// Auto-fill Google login data when component mounts (only for Google OAuth users)
 	useEffect(() => {
 		if (user && user.image) {
-			if (user.email && !formData.email) {
-				onInputChange('email', user.email)
-			}
-
 			// Auto-fill name from Google account
 			if (user.name) {
 				const nameParts = user.name.trim().split(' ')
@@ -160,32 +167,40 @@ export function BasicInfoStep({
 		return true
 	}
 
+	// Function to validate required fields
+	const validateRequiredFields = () => {
+		const errors: Record<string, boolean> = {}
+
+		// Email validation regex
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+		// Required fields validation
+		if (!formData.firstName?.trim()) errors.firstName = true
+		if (!formData.lastName?.trim()) errors.lastName = true
+		if (!formData.email?.trim()) {
+			errors.email = true
+		} else if (!emailRegex.test(formData.email)) {
+			errors.email = true
+		}
+		if (!formData.gender) errors.gender = true
+		if (!formData.nationality) errors.nationality = true
+
+		setValidationErrors(errors)
+		return Object.keys(errors).length === 0
+	}
+
 	// Function to handle form validation and submission
 	const handleNext = () => {
-		// Validate required fields
-		if (!formData.firstName.trim()) {
-			alert('Please enter your first name')
-			return
-		}
-
-		if (!formData.lastName.trim()) {
-			alert('Please enter your last name')
-			return
-		}
-
-		if (!formData.email.trim()) {
-			alert('Please enter your email address')
-			return
-		}
-
 		// Validate phone number
 		const isPhoneValid = validatePhoneNumber()
 
-		if (!isPhoneValid) {
-			return // Don't proceed if phone validation fails
-		}
+		// Validate required fields
+		const areRequiredFieldsValid = validateRequiredFields()
 
-		onNext()
+		if (areRequiredFieldsValid && isPhoneValid) {
+			onNext()
+		}
+		// Just validate and show red highlighting, no popup
 	}
 
 	// Function to handle name input (only letters and spaces, no numbers)
@@ -196,6 +211,14 @@ export function BasicInfoStep({
 			// Remove any non-letter characters except spaces (no numbers, symbols)
 			const lettersAndSpaces = value.replace(/[^a-zA-Z\s]/g, '')
 			onInputChange(field, lettersAndSpaces)
+			// Clear validation error when user starts typing
+			if (validationErrors[field]) {
+				setValidationErrors((prev) => {
+					const newErrors = { ...prev }
+					delete newErrors[field]
+					return newErrors
+				})
+			}
 		}
 
 	// Function to handle phone number input (only numbers)
@@ -258,27 +281,43 @@ export function BasicInfoStep({
 				{/* Form Fields */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div className="space-y-2">
-						<Label htmlFor="firstName">First Name</Label>
+						<Label htmlFor="firstName">
+							First Name <span className="text-red-500">*</span>
+						</Label>
 						<Input
 							id="firstName"
 							placeholder="Enter your first name"
 							value={formData.firstName}
 							onChange={handleNameInput('firstName')}
 							inputSize="select"
+							className={
+								validationErrors.firstName
+									? 'border-red-500 focus:border-red-500'
+									: ''
+							}
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="lastName">Last Name</Label>
+						<Label htmlFor="lastName">
+							Last Name <span className="text-red-500">*</span>
+						</Label>
 						<Input
 							id="lastName"
 							placeholder="Enter your last name"
 							value={formData.lastName}
 							onChange={handleNameInput('lastName')}
 							inputSize="select"
+							className={
+								validationErrors.lastName
+									? 'border-red-500 focus:border-red-500'
+									: ''
+							}
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="gender">Gender</Label>
+						<Label htmlFor="gender">
+							Gender <span className="text-red-500">*</span>
+						</Label>
 						<CustomSelect
 							value={
 								formData.gender
@@ -290,9 +329,17 @@ export function BasicInfoStep({
 										}
 									: null
 							}
-							onChange={(option) =>
+							onChange={(option) => {
 								onSelectChange('gender')(option?.value || '')
-							}
+								// Clear validation error when user selects
+								if (validationErrors.gender) {
+									setValidationErrors((prev) => {
+										const newErrors = { ...prev }
+										delete newErrors.gender
+										return newErrors
+									})
+								}
+							}}
 							placeholder="Choose gender"
 							options={[
 								{ value: 'male', label: 'Male' },
@@ -300,52 +347,107 @@ export function BasicInfoStep({
 							]}
 							isClearable={false}
 							className="w-full"
+							styles={
+								validationErrors.gender
+									? {
+											control: (provided: any, state: any) => ({
+												...provided,
+												border: '1px solid #ef4444',
+												backgroundColor: '#F5F7FB',
+												color: '#374151',
+												minHeight: '40px',
+												height: state.isMulti ? 'auto' : '40px',
+												borderRadius: '20px',
+												fontSize: '14px',
+												padding: state.isMulti ? '8px 16px' : '0 16px',
+												display: 'flex',
+												alignItems:
+													state.isMulti &&
+													Array.isArray(state.getValue()) &&
+													state.getValue().length > 0
+														? 'flex-start'
+														: 'center',
+												flexWrap: 'wrap',
+												'&:hover': {
+													border: '1px solid #ef4444',
+												},
+												'&:focus-within': {
+													border: '1px solid #ef4444',
+													boxShadow: '0 0 0 1px #ef4444',
+												},
+											}),
+											menu: (provided: any) => ({
+												...provided,
+												fontSize: '14px',
+											}),
+											option: (provided: any) => ({
+												...provided,
+												fontSize: '14px',
+												padding: '8px 16px',
+											}),
+										}
+									: undefined
+							}
 						/>
 					</div>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<DateInput
-						id="birthday"
-						value={formData.birthday}
-						onChange={(value) => onInputChange('birthday', value)}
-						label="Birthday"
-						placeholder="dd/mm/yyyy"
-					/>
 					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
-						<div className="relative">
-							<Input
-								id="email"
-								type="email"
-								placeholder="example123@gmail.com"
-								value={formData.email}
-								onChange={onInputChangeEvent('email')}
-								inputSize="select"
-								disabled={
-									user?.email && user?.image && formData.email === user.email
-								}
-							/>
-							{user?.email && user?.image && formData.email === user.email && (
-								<div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-									<div className="group relative">
-										<div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center cursor-help">
-											<span className="text-white text-xs font-bold">i</span>
-										</div>
-										<div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-											Email from Google account
-											<div className="absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-										</div>
-									</div>
-								</div>
+						<DateInput
+							id="birthday"
+							value={formData.birthday}
+							onChange={(value) => onInputChange('birthday', value)}
+							label="Birthday"
+							placeholder="dd/mm/yyyy"
+						/>
+					</div>
+					<div className="space-y-2">
+						<div className="flex items-center gap-2">
+							<Label htmlFor="email">
+								Email <span className="text-red-500">*</span>
+							</Label>
+							{user?.email && formData.email === user.email && (
+								<Tooltip content="Email is pre-filled from your account and cannot be changed">
+									<Info className="w-3 h-3" />
+								</Tooltip>
 							)}
 						</div>
+						<Input
+							id="email"
+							type="email"
+							placeholder="example123@gmail.com"
+							value={formData.email}
+							onChange={(e) => {
+								onInputChangeEvent('email')(e)
+								// Clear validation error when user starts typing
+								if (validationErrors.email) {
+									setValidationErrors((prev) => {
+										const newErrors = { ...prev }
+										delete newErrors.email
+										return newErrors
+									})
+								}
+							}}
+							inputSize="select"
+							disabled={user?.email && formData.email === user.email}
+							className={`
+								${
+									user?.email && formData.email === user.email
+										? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60'
+										: ''
+								}
+								${validationErrors.email ? 'border-red-500 focus:border-red-500' : ''}
+							`}
+						/>
 					</div>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div className="space-y-2">
-						<Label htmlFor="nationality">Nationality</Label>
+						<Label htmlFor="nationality">
+							Nationality <span className="text-red-500">*</span>
+						</Label>
 						<CustomSelect
 							value={
 								formData.nationality
@@ -356,9 +458,17 @@ export function BasicInfoStep({
 										)
 									: null
 							}
-							onChange={(option) =>
+							onChange={(option) => {
 								onSelectChange('nationality')(option?.name || '')
-							}
+								// Clear validation error when user selects
+								if (validationErrors.nationality) {
+									setValidationErrors((prev) => {
+										const newErrors = { ...prev }
+										delete newErrors.nationality
+										return newErrors
+									})
+								}
+							}}
 							placeholder="Choose your nationality"
 							options={getCountriesWithSvgFlags()}
 							formatOptionLabel={(option: any) => (
@@ -375,6 +485,48 @@ export function BasicInfoStep({
 									.toLowerCase()
 									.includes(inputValue.toLowerCase())
 							}}
+							className="w-full"
+							styles={
+								validationErrors.nationality
+									? {
+											control: (provided: any, state: any) => ({
+												...provided,
+												border: '1px solid #ef4444',
+												backgroundColor: '#F5F7FB',
+												color: '#374151',
+												minHeight: '40px',
+												height: state.isMulti ? 'auto' : '40px',
+												borderRadius: '20px',
+												fontSize: '14px',
+												padding: state.isMulti ? '8px 16px' : '0 16px',
+												display: 'flex',
+												alignItems:
+													state.isMulti &&
+													Array.isArray(state.getValue()) &&
+													state.getValue().length > 0
+														? 'flex-start'
+														: 'center',
+												flexWrap: 'wrap',
+												'&:hover': {
+													border: '1px solid #ef4444',
+												},
+												'&:focus-within': {
+													border: '1px solid #ef4444',
+													boxShadow: '0 0 0 1px #ef4444',
+												},
+											}),
+											menu: (provided: any) => ({
+												...provided,
+												fontSize: '14px',
+											}),
+											option: (provided: any) => ({
+												...provided,
+												fontSize: '14px',
+												padding: '8px 16px',
+											}),
+										}
+									: undefined
+							}
 						/>
 					</div>
 					<div className="space-y-2">

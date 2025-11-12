@@ -1,23 +1,15 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { SortDropdown } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { TabSelector } from '@/components/ui'
-import {
-	BookOpen,
-	Clock,
-	Users,
-	X,
-	Search,
-	Loader2,
-	AlertCircle,
-} from 'lucide-react'
+import { BookOpen, Clock, Users, X, Search } from 'lucide-react'
 import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { useApplications } from '@/hooks/application/useApplications'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
-import { Application, ApplicationStatus } from '@/types/api/application-api'
+import { ApplicationStatus } from '@/types/api/application-api'
 import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
@@ -152,6 +144,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			setScholarships(filteredScholarships)
 			setResearchLabs(filteredResearchLabs)
 		} catch (err) {
+			// eslint-disable-next-line no-console
 			console.error('Error fetching application data:', err)
 			setError('Failed to load application data')
 		} finally {
@@ -244,12 +237,13 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		setSortBy(sort)
 	}, [])
 
-	// Handle cancel application
+	// Handle cancel application (currently unused but may be needed in future)
 	const handleCancelApplication = useCallback(
 		async (applicationId: string) => {
 			try {
 				await cancelApplication(applicationId)
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('Failed to cancel application:', error)
 			}
 		},
@@ -331,37 +325,24 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		}
 	}
 
-	// Show loading state - only show if we're actually loading applications or fetching data
-	if (applicationsLoading || loading) {
-		return (
-			<div className="min-h-screen bg-background flex items-center justify-center">
-				<div className="text-center">
-					<Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-teal-500" />
-					<p className="text-gray-600">Loading your applications...</p>
-				</div>
-			</div>
-		)
-	}
-
-	// Show error state
-	if (error) {
-		return (
-			<div className="min-h-screen bg-background flex items-center justify-center">
-				<div className="text-center">
-					<AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
-					<p className="text-red-600 mb-4">Failed to load applications</p>
-					<p className="text-gray-600 mb-4">{error}</p>
-					<Button onClick={fetchApplicationData} variant="outline">
-						Try Again
-					</Button>
-				</div>
-			</div>
-		)
-	}
-
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				{/* Error message */}
+				{error && (
+					<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<span className="text-red-600">⚠️</span>
+							<span className="text-sm text-red-700">{error}</span>
+						</div>
+						<button
+							onClick={fetchApplicationData}
+							className="text-xs text-red-600 hover:text-red-800 underline"
+						>
+							Retry
+						</button>
+					</div>
+				)}
 				{/* Header Section */}
 				<div className="mb-6">
 					<h2 className="text-2xl font-bold text-gray-900 mb-4">Application</h2>
@@ -397,6 +378,16 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					{/* Separator Line */}
 					<div className="border-b border-gray-200 mb-4"></div>
 
+					{/* Progress loading indicator */}
+					{(applicationsLoading || loading) && (
+						<div className="mb-4 h-1 bg-gray-100 overflow-hidden rounded-full">
+							<div
+								className="h-full bg-teal-600 animate-pulse"
+								style={{ width: '30%' }}
+							></div>
+						</div>
+					)}
+
 					{/* Detailed Filter Buttons */}
 					<div className="flex flex-wrap gap-2">
 						{filterOptions.map((filter) => {
@@ -427,26 +418,34 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				</div>
 
 				{/* Tab Content */}
-				{currentTabData.totalItems === 0 ? (
-					<div className="text-center py-12">
-						<div className="text-6xl mb-4">📝</div>
-						<h3 className="text-xl font-semibold text-gray-900 mb-2">
-							No applications found
-						</h3>
-						<p className="text-gray-600 mb-6">
-							You haven&apos;t applied to any programs, scholarships, or
-							research labs yet.
-						</p>
-						<Button
-							onClick={() => (window.location.href = '/explore')}
-							className="bg-teal-600 hover:bg-teal-700 text-white"
-						>
-							Explore Opportunities
-						</Button>
-					</div>
-				) : (
-					renderTabContent()
-				)}
+				<div
+					className={
+						applicationsLoading || loading
+							? 'opacity-60 pointer-events-none'
+							: ''
+					}
+				>
+					{currentTabData.totalItems === 0 ? (
+						<div className="text-center py-12">
+							<div className="text-6xl mb-4">📝</div>
+							<h3 className="text-xl font-semibold text-gray-900 mb-2">
+								No applications found
+							</h3>
+							<p className="text-gray-600 mb-6">
+								You haven&apos;t applied to any programs, scholarships, or
+								research labs yet.
+							</p>
+							<Button
+								onClick={() => (window.location.href = '/explore')}
+								className="bg-teal-600 hover:bg-teal-700 text-white"
+							>
+								Explore Opportunities
+							</Button>
+						</div>
+					) : (
+						renderTabContent()
+					)}
+				</div>
 
 				{/* Update Response Modal */}
 				{selectedApplicationForUpdate && (

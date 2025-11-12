@@ -5,24 +5,13 @@ import { Button } from '@/components/ui'
 import { SortDropdown } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { TabSelector } from '@/components/ui'
+import { CheckboxSelect } from '@/components/ui'
 import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
-import {
-	BookOpen,
-	Clock,
-	GraduationCap,
-	Users,
-	X,
-	Globe,
-	DollarSign,
-	Search,
-	Loader2,
-	AlertCircle,
-} from 'lucide-react'
+import { X, Search } from 'lucide-react'
 import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
-import { WishlistItem, WishlistQueryParams } from '@/types/api/wishlist-api'
 import { ExploreApiService } from '@/services/explore/explore-api'
 
 interface WishlistSectionProps {
@@ -33,6 +22,16 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	const [sortBy, setSortBy] = useState<SortOption>('newest')
 	const [activeTab, setActiveTab] = useState<string>('programmes')
 	const [searchQuery, setSearchQuery] = useState<string>('')
+
+	// Filter states
+	const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>([])
+	const [selectedCountries, setSelectedCountries] = useState<string[]>([])
+	const [selectedFeeRange, setSelectedFeeRange] = useState<string | null>(null)
+	const [selectedFunding, setSelectedFunding] = useState<string[]>([])
+	const [selectedDuration, setSelectedDuration] = useState<string[]>([])
+	const [selectedDegreeLevel, setSelectedDegreeLevel] = useState<string[]>([])
+	const [selectedAttendance, setSelectedAttendance] = useState<string[]>([])
+	const [showExpired, setShowExpired] = useState<boolean>(false)
 
 	// Main category tabs
 	const categories = [
@@ -53,6 +52,14 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	const [researchLabs, setResearchLabs] = useState<ResearchLab[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+
+	// Available filter options from API
+	const [availableFilters, setAvailableFilters] = useState<{
+		disciplines?: string[]
+		countries?: string[]
+		degreeLevels?: string[]
+		attendanceTypes?: string[]
+	}>({})
 
 	// Fetch explore data and filter by wishlist
 	const fetchWishlistData = useCallback(async () => {
@@ -97,6 +104,16 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					}),
 				])
 
+			// Extract available filters from API responses
+			// Use the first response that has availableFilters, or combine them
+			const filters = programsResponse.availableFilters || {}
+			setAvailableFilters({
+				disciplines: filters.disciplines || [],
+				countries: filters.countries || [],
+				degreeLevels: filters.degreeLevels || [],
+				attendanceTypes: filters.attendanceTypes || [],
+			})
+
 			// Filter by wishlist post IDs
 			const filteredPrograms = programsResponse.data.filter((program) =>
 				wishlistPostIds.includes(program.id)
@@ -112,6 +129,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			setScholarships(filteredScholarships)
 			setResearchLabs(filteredResearchLabs)
 		} catch (err) {
+			// eslint-disable-next-line no-console
 			console.error('Error fetching wishlist data:', err)
 			setError('Failed to load wishlist data')
 		} finally {
@@ -123,18 +141,6 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	React.useEffect(() => {
 		fetchWishlistData()
 	}, [fetchWishlistData])
-
-	// Detailed filter options
-	const filterOptions = [
-		{ id: 'discipline', label: 'Discipline', icon: BookOpen },
-		{ id: 'country', label: 'Country', icon: Globe },
-		{ id: 'fee', label: 'Fee', icon: DollarSign },
-		{ id: 'funding', label: 'Funding', icon: DollarSign },
-		{ id: 'duration', label: 'Duration', icon: Clock },
-		{ id: 'degree', label: 'Degree level', icon: GraduationCap },
-		{ id: 'attendance', label: 'Attendance', icon: Users },
-		{ id: 'expired', label: 'Expired', icon: X },
-	]
 
 	// Wishlist functionality for cards
 	const { isInWishlist, toggleWishlistItem } = useWishlist()
@@ -157,29 +163,184 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		setSortBy(sort)
 	}, [])
 
-	// Get current tab data
+	// Available filter options - use from API or fallback to static
+	const availableOptions = useMemo(() => {
+		const durations = [
+			'Less than 1 year',
+			'1 year',
+			'1.5 years',
+			'2 years',
+			'More than 2 years',
+		]
+
+		const feeRanges = [
+			{ value: '0-10000', label: '$0 - $10,000' },
+			{ value: '10000-25000', label: '$10,000 - $25,000' },
+			{ value: '25000-50000', label: '$25,000 - $50,000' },
+			{ value: '50000-100000', label: '$50,000 - $100,000' },
+			{ value: '100000-999999', label: '$100,000+' },
+		]
+
+		return {
+			disciplines: availableFilters.disciplines || [],
+			countries: availableFilters.countries || [],
+			attendanceTypes: availableFilters.attendanceTypes || [],
+			degreeLevels: availableFilters.degreeLevels || [],
+			durations,
+			feeRanges,
+		}
+	}, [availableFilters])
+
+	// Apply filters to data
+	const filteredData = useMemo(() => {
+		let data: (Program | Scholarship | ResearchLab)[] =
+			activeTab === 'programmes'
+				? programs
+				: activeTab === 'scholarships'
+					? scholarships
+					: researchLabs
+
+		// Apply search filter
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase()
+			data = data.filter((item) => {
+				// Search in title and description
+				const matchesTitle = item.title.toLowerCase().includes(query)
+				const matchesDescription = item.description
+					.toLowerCase()
+					.includes(query)
+
+				// Search in institution/university/provider names
+				const matchesInstitution =
+					('university' in item &&
+						(item as Program).university.toLowerCase().includes(query)) ||
+					('provider' in item &&
+						(item as Scholarship).provider.toLowerCase().includes(query)) ||
+					('institution' in item &&
+						(item as ResearchLab).institution.toLowerCase().includes(query))
+
+				// Search in field/discipline/position
+				const matchesField =
+					('field' in item &&
+						(item as Program).field.toLowerCase().includes(query)) ||
+					('position' in item &&
+						(item as ResearchLab).position.toLowerCase().includes(query))
+
+				// Search in country
+				const matchesCountry = item.country.toLowerCase().includes(query)
+
+				return (
+					matchesTitle ||
+					matchesDescription ||
+					matchesInstitution ||
+					matchesField ||
+					matchesCountry
+				)
+			})
+		}
+
+		// Apply discipline filter
+		if (selectedDisciplines.length > 0) {
+			data = data.filter((item) => {
+				const field =
+					'field' in item
+						? (item as Program).field
+						: 'position' in item
+							? (item as unknown as ResearchLab).position
+							: ''
+				return selectedDisciplines.some((d) =>
+					field.toLowerCase().includes(d.toLowerCase())
+				)
+			})
+		}
+
+		// Apply country filter
+		if (selectedCountries.length > 0) {
+			data = data.filter((item) => selectedCountries.includes(item.country))
+		}
+
+		// Apply fee range filter (for programmes)
+		if (selectedFeeRange && activeTab === 'programmes') {
+			const [min, max] = selectedFeeRange.split('-').map(Number)
+			data = data.filter((item) => {
+				if ('price' in item && item.price) {
+					const priceStr = item.price.replace(/[^0-9]/g, '')
+					const price = parseInt(priceStr)
+					return price >= min && price <= max
+				}
+				return false
+			})
+		}
+
+		// Apply duration filter (for programmes)
+		if (selectedDuration.length > 0 && activeTab === 'programmes') {
+			// Duration filtering would need additional data from the API
+			// For now, we'll skip this as it's not available in the current data structure
+		}
+
+		// Apply degree level filter
+		if (selectedDegreeLevel.length > 0) {
+			data = data.filter((item) => {
+				if ('field' in item) {
+					const field = (item as Program).field.toLowerCase()
+					return selectedDegreeLevel.some((level) => {
+						const levelLower = level.toLowerCase()
+						if (levelLower === 'master')
+							return (
+								field.includes('master') ||
+								field.includes('msc') ||
+								field.includes('ma')
+							)
+						if (levelLower === 'phd')
+							return field.includes('phd') || field.includes('doctorate')
+						if (levelLower === 'bachelor')
+							return (
+								field.includes('bachelor') ||
+								field.includes('bsc') ||
+								field.includes('ba')
+							)
+						return false
+					})
+				}
+				return false
+			})
+		}
+
+		// Apply attendance filter
+		if (selectedAttendance.length > 0) {
+			data = data.filter(
+				(item) =>
+					'attendance' in item &&
+					selectedAttendance.includes((item as Program).attendance)
+			)
+		}
+
+		// Apply expired filter
+		if (!showExpired) {
+			data = data.filter((item) => item.daysLeft >= 0)
+		}
+
+		return data
+	}, [
+		programs,
+		scholarships,
+		researchLabs,
+		activeTab,
+		searchQuery,
+		selectedDisciplines,
+		selectedCountries,
+		selectedFeeRange,
+		selectedDuration,
+		selectedDegreeLevel,
+		selectedAttendance,
+		showExpired,
+	])
+
+	// Get current tab data with filters applied
 	const getCurrentTabData = () => {
-		switch (activeTab) {
-			case 'programmes':
-				return {
-					data: programs,
-					totalItems: programs.length,
-				}
-			case 'scholarships':
-				return {
-					data: scholarships,
-					totalItems: scholarships.length,
-				}
-			case 'research':
-				return {
-					data: researchLabs,
-					totalItems: researchLabs.length,
-				}
-			default:
-				return {
-					data: programs,
-					totalItems: programs.length,
-				}
+		return {
+			data: filteredData,
+			totalItems: filteredData.length,
 		}
 	}
 
@@ -187,11 +348,16 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 
 	// Render tab content based on active tab
 	const renderTabContent = () => {
+		const filteredPrograms = activeTab === 'programmes' ? filteredData : []
+		const filteredScholarships =
+			activeTab === 'scholarships' ? filteredData : []
+		const filteredResearchLabs = activeTab === 'research' ? filteredData : []
+
 		switch (activeTab) {
 			case 'programmes':
 				return (
 					<ProgramsTab
-						programs={programs}
+						programs={filteredPrograms as Program[]}
 						sortBy={sortBy}
 						isInWishlist={isInWishlist}
 						onWishlistToggle={toggleWishlistItem}
@@ -203,7 +369,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			case 'scholarships':
 				return (
 					<ScholarshipsTab
-						scholarships={scholarships}
+						scholarships={filteredScholarships as Scholarship[]}
 						isInWishlist={isInWishlist}
 						onWishlistToggle={toggleWishlistItem}
 						hasApplied={() => false} // Wishlist items are not applied
@@ -214,7 +380,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			case 'research':
 				return (
 					<ResearchLabsTab
-						researchLabs={researchLabs}
+						researchLabs={filteredResearchLabs as ResearchLab[]}
 						isInWishlist={isInWishlist}
 						onWishlistToggle={toggleWishlistItem}
 						hasApplied={() => false} // Wishlist items are not applied
@@ -225,7 +391,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			default:
 				return (
 					<ProgramsTab
-						programs={programs}
+						programs={filteredPrograms as Program[]}
 						sortBy={sortBy}
 						isInWishlist={isInWishlist}
 						onWishlistToggle={toggleWishlistItem}
@@ -237,37 +403,59 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		}
 	}
 
-	// Show loading state - only show if we're actually loading wishlist or fetching data
-	if (wishlistLoading || loading) {
-		return (
-			<div className="min-h-screen bg-background flex items-center justify-center">
-				<div className="text-center">
-					<Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-teal-500" />
-					<p className="text-gray-600">Loading your wishlist...</p>
-				</div>
-			</div>
-		)
+	// Clear all filters
+	const clearAllFilters = () => {
+		setSelectedDisciplines([])
+		setSelectedCountries([])
+		setSelectedFeeRange(null)
+		setSelectedFunding([])
+		setSelectedDuration([])
+		setSelectedDegreeLevel([])
+		setSelectedAttendance([])
+		setShowExpired(false)
 	}
 
-	// Show error state
-	if (error) {
+	// Check if any filters are active
+	const hasActiveFilters = useMemo(() => {
 		return (
-			<div className="min-h-screen bg-background flex items-center justify-center">
-				<div className="text-center">
-					<AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
-					<p className="text-red-600 mb-4">Failed to load wishlist</p>
-					<p className="text-gray-600 mb-4">{error}</p>
-					<Button onClick={fetchWishlistData} variant="outline">
-						Try Again
-					</Button>
-				</div>
-			</div>
+			selectedDisciplines.length > 0 ||
+			selectedCountries.length > 0 ||
+			selectedFeeRange !== null ||
+			selectedFunding.length > 0 ||
+			selectedDuration.length > 0 ||
+			selectedDegreeLevel.length > 0 ||
+			selectedAttendance.length > 0 ||
+			showExpired
 		)
-	}
+	}, [
+		selectedDisciplines,
+		selectedCountries,
+		selectedFeeRange,
+		selectedFunding,
+		selectedDuration,
+		selectedDegreeLevel,
+		selectedAttendance,
+		showExpired,
+	])
 
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				{/* Error message */}
+				{error && (
+					<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<span className="text-red-600">⚠️</span>
+							<span className="text-sm text-red-700">{error}</span>
+						</div>
+						<button
+							onClick={fetchWishlistData}
+							className="text-xs text-red-600 hover:text-red-800 underline"
+						>
+							Retry
+						</button>
+					</div>
+				)}
 				{/* Header Section */}
 				<div className="mb-6">
 					<h2 className="text-2xl font-bold text-gray-900 mb-4">Wishlist</h2>
@@ -303,21 +491,181 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					{/* Separator Line */}
 					<div className="border-b border-gray-200 mb-4"></div>
 
-					{/* Detailed Filter Buttons */}
-					<div className="flex flex-wrap gap-2">
-						{filterOptions.map((filter) => {
-							const IconComponent = filter.icon
-							return (
-								<Button
-									key={filter.id}
-									variant="outline"
-									className="flex items-center gap-2 rounded-full px-4 py-2 text-sm border-gray-200 hover:border-gray-300"
-								>
-									<IconComponent className="w-4 h-4" />
-									<span>{filter.label}</span>
-								</Button>
-							)
-						})}
+					{/* Progress loading indicator */}
+					{(wishlistLoading || loading) && (
+						<div className="mb-4 h-1 bg-gray-100 overflow-hidden rounded-full">
+							<div
+								className="h-full bg-teal-600 animate-pulse"
+								style={{ width: '30%' }}
+							></div>
+						</div>
+					)}
+
+					{/* Detailed Filter Dropdowns */}
+					<div className="flex flex-wrap gap-2 items-center">
+						{/* Discipline Filter */}
+						<div className="w-48">
+							<CheckboxSelect
+								value={selectedDisciplines.map((d) => ({ value: d, label: d }))}
+								onChange={(selected) =>
+									setSelectedDisciplines(
+										selected.map((item: any) => item.value)
+									)
+								}
+								placeholder="All Disciplines"
+								options={availableOptions.disciplines.map((d) => ({
+									value: d as string,
+									label: d as string,
+								}))}
+								variant="default"
+								isClearable
+								className="w-full"
+							/>
+						</div>
+
+						{/* Country Filter */}
+						<div className="w-48">
+							<CheckboxSelect
+								value={selectedCountries.map((c) => ({ value: c, label: c }))}
+								onChange={(selected) =>
+									setSelectedCountries(selected.map((item: any) => item.value))
+								}
+								placeholder="All Countries"
+								options={availableOptions.countries.map((c) => ({
+									value: c,
+									label: c,
+								}))}
+								variant="default"
+								isClearable
+								className="w-full"
+							/>
+						</div>
+
+						{/* Fee Range Filter (Programmes only) */}
+						{activeTab === 'programmes' && (
+							<div className="w-48">
+								<CheckboxSelect
+									value={
+										selectedFeeRange
+											? [
+													{
+														value: selectedFeeRange,
+														label:
+															availableOptions.feeRanges.find(
+																(fr) => fr.value === selectedFeeRange
+															)?.label || selectedFeeRange,
+													},
+												]
+											: []
+									}
+									onChange={(selected) => {
+										setSelectedFeeRange(
+											selected && selected.length > 0 ? selected[0].value : null
+										)
+									}}
+									placeholder="Fee Range"
+									options={availableOptions.feeRanges}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
+							</div>
+						)}
+
+						{/* Duration Filter (Programmes only) */}
+						{activeTab === 'programmes' && (
+							<div className="w-48">
+								<CheckboxSelect
+									value={selectedDuration.map((d) => ({ value: d, label: d }))}
+									onChange={(selected) =>
+										setSelectedDuration(selected.map((item: any) => item.value))
+									}
+									placeholder="All Durations"
+									options={availableOptions.durations.map((d) => ({
+										value: d,
+										label: d,
+									}))}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
+							</div>
+						)}
+
+						{/* Degree Level Filter */}
+						<div className="w-48">
+							<CheckboxSelect
+								value={selectedDegreeLevel.map((d) => ({ value: d, label: d }))}
+								onChange={(selected) =>
+									setSelectedDegreeLevel(
+										selected.map((item: any) => item.value)
+									)
+								}
+								placeholder="All Degree Levels"
+								options={availableOptions.degreeLevels.map((d) => ({
+									value: d,
+									label: d,
+								}))}
+								variant="default"
+								isClearable
+								className="w-full"
+							/>
+						</div>
+
+						{/* Attendance Filter */}
+						{activeTab !== 'scholarships' && (
+							<div className="w-48">
+								<CheckboxSelect
+									value={selectedAttendance.map((a) => ({
+										value: a,
+										label: a,
+									}))}
+									onChange={(selected) =>
+										setSelectedAttendance(
+											selected.map((item: any) => item.value)
+										)
+									}
+									placeholder="All Attendance"
+									options={availableOptions.attendanceTypes.map((a) => ({
+										value: a,
+										label: a,
+									}))}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
+							</div>
+						)}
+
+						{/* Expired Toggle */}
+						<div className="flex items-center gap-2">
+							<input
+								type="checkbox"
+								id="showExpired"
+								checked={showExpired}
+								onChange={(e) => setShowExpired(e.target.checked)}
+								className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+							/>
+							<label
+								htmlFor="showExpired"
+								className="text-sm text-gray-700 cursor-pointer"
+							>
+								Show Expired
+							</label>
+						</div>
+
+						{/* Clear Filters Button */}
+						{hasActiveFilters && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={clearAllFilters}
+								className="flex items-center gap-2 rounded-full px-4 py-2 text-sm border-gray-200 hover:border-gray-300"
+							>
+								<X className="w-4 h-4" />
+								Clear Filters
+							</Button>
+						)}
 					</div>
 				</div>
 
@@ -327,25 +675,42 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 				</div>
 
 				{/* Tab Content */}
-				{currentTabData.totalItems === 0 ? (
-					<div className="text-center py-12">
-						<div className="text-6xl mb-4">📝</div>
-						<h3 className="text-xl font-semibold text-gray-900 mb-2">
-							No items in your wishlist
-						</h3>
-						<p className="text-gray-600 mb-6">
-							Start exploring and add programs, scholarships, or research
-							opportunities to your wishlist.
-						</p>
-						<Button
-							onClick={() => (window.location.href = '/explore')}
-							className="bg-teal-600 hover:bg-teal-700 text-white"
-						>
-							Explore Opportunities
-						</Button>
+				{(wishlistLoading || loading) && currentTabData.totalItems === 0 ? (
+					<div className="flex items-center justify-center h-64">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+							<p className="mt-4 text-muted-foreground">
+								Loading your wishlist...
+							</p>
+						</div>
 					</div>
 				) : (
-					renderTabContent()
+					<div
+						className={
+							wishlistLoading || loading ? 'opacity-60 pointer-events-none' : ''
+						}
+					>
+						{currentTabData.totalItems === 0 ? (
+							<div className="text-center py-12">
+								<div className="text-6xl mb-4">📝</div>
+								<h3 className="text-xl font-semibold text-gray-900 mb-2">
+									No items in your wishlist
+								</h3>
+								<p className="text-gray-600 mb-6">
+									Start exploring and add programs, scholarships, or research
+									opportunities to your wishlist.
+								</p>
+								<Button
+									onClick={() => (window.location.href = '/explore')}
+									className="bg-teal-600 hover:bg-teal-700 text-white"
+								>
+									Explore Opportunities
+								</Button>
+							</div>
+						) : (
+							renderTabContent()
+						)}
+					</div>
 				)}
 			</div>
 		</div>

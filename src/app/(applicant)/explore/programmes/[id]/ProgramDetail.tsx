@@ -11,7 +11,7 @@ import {
 
 import { mockPrograms } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Heart, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
@@ -340,6 +340,14 @@ const ProgramDetail = () => {
 				)
 			}
 		}
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
 	const removeFile = (fileId: number) => {
@@ -1802,40 +1810,41 @@ const ProgramDetail = () => {
 										<h4 className="text-md font-medium text-gray-700 border-b border-gray-200 pb-1">
 											Other Documents ({uploadedFiles.length})
 										</h4>
-										<div className="grid grid-cols-1 gap-3">
+										<div className="space-y-3">
 											{uploadedFiles.map((file) => (
 												<div
 													key={file.id}
-													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 												>
-													<div className="text-2xl">📄</div>
-													<div className="flex-1 min-w-0">
-														<p className="text-sm font-medium text-foreground truncate">
-															{file.name}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{(file.size / 1024).toFixed(1)} KB
-														</p>
+													<div className="flex items-center gap-3">
+														<span className="text-2xl">📄</span>
+														<div>
+															<p className="font-medium text-sm">
+																{file.name || 'Document'}
+															</p>
+															<p className="text-sm text-muted-foreground">
+																{formatFileSize(file.size || 0)}
+																{file.fileType ? ` • ${file.fileType}` : ''}
+															</p>
+														</div>
 													</div>
-													<div className="flex gap-2">
-														<Button
-															variant="outline"
-															size="sm"
+													<div className="flex items-center gap-2">
+														<button
 															onClick={() => {
 																// Open S3 file URL in new tab
 																window.open(file.url, '_blank')
 															}}
+															className="text-primary hover:text-primary/80 text-sm font-medium"
 														>
 															View
-														</Button>
-														<Button
-															variant="outline"
-															size="sm"
+														</button>
+														<button
 															onClick={() => removeFile(file.id)}
-															className="text-red-500 hover:text-red-700"
+															className="text-gray-400 hover:text-red-600 p-1"
+															title="Delete document"
 														>
-															Delete
-														</Button>
+															<Trash2 className="h-4 w-4" />
+														</button>
 													</div>
 												</div>
 											))}

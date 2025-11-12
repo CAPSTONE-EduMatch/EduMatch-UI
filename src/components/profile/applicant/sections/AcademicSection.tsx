@@ -121,19 +121,16 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			}
 			setEditedProfile(updatedProfile)
 
-			// Call the parent's profile update callback to refresh parent state
-			if (onProfileUpdate) {
-				await onProfileUpdate()
-			}
+			// Exit editing mode first
+			setIsEditing(false)
+			setHasUnsavedChanges(false)
 
+			// Show success message
 			setShowSuccessModal(true)
 
 			// Dispatch event to update header
 			console.log('Dispatching profileUpdated event from AcademicSection...')
 			window.dispatchEvent(new CustomEvent('profileUpdated'))
-
-			setIsEditing(false)
-			setHasUnsavedChanges(false)
 		} catch (error: any) {
 			setErrorMessage(
 				error.response?.data?.error ||
@@ -1561,7 +1558,20 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			{/* Success Modal */}
 			<SuccessModal
 				isOpen={showSuccessModal}
-				onClose={() => setShowSuccessModal(false)}
+				onClose={async () => {
+					setShowSuccessModal(false)
+					// Call the onProfileUpdate callback after modal is closed
+					// This ensures the modal is visible before any context updates
+					if (onProfileUpdate) {
+						try {
+							await onProfileUpdate()
+						} catch (error) {
+							// Silently handle callback errors to not disrupt user experience
+							// eslint-disable-next-line no-console
+							console.error('Error in onProfileUpdate callback:', error)
+						}
+					}
+				}}
 				title="Success!"
 				message="Your academic information has been updated successfully."
 				buttonText="Continue"

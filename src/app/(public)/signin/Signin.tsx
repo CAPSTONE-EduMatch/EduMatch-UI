@@ -272,11 +272,13 @@ const SignIn: React.FC = () => {
 			const res = await authClient.signIn.email({
 				email,
 				password,
-				callbackURL: '/', // We'll handle redirect client-side
+				callbackURL: '/signin', // Stay on signin page, we'll handle redirect client-side
 			})
 
 			// If successful signin, handle redirect
 			if (res?.data && !res?.error) {
+				// Wait a moment for session to be established
+				await new Promise((resolve) => setTimeout(resolve, 100))
 				// Check if user has a profile and redirect accordingly
 				await checkProfileAndRedirect()
 				return

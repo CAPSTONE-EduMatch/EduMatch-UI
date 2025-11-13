@@ -11,11 +11,16 @@ export const prismaClient =
 if (process.env.NODE_ENV !== "production")
 	globalForPrisma.prisma = prismaClient;
 
-async function main() {
-	// Your main function logic here
-	await prismaClient.$connect();
-	// Add your application logic here
-	console.log("Connected to the database");
+export async function connectDatabase() {
+	// Only connect on server side
+	if (typeof window === "undefined") {
+		try {
+			await prismaClient.$connect();
+			/* eslint-disable no-console */
+			console.log("Connected to the database");
+		} catch (error) {
+			console.error("Failed to connect to database:", error);
+			/* eslint-enable no-console */
+		}
+	}
 }
-
-main();

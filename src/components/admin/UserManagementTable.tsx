@@ -1,9 +1,10 @@
 'use client'
 
+import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Button, Card, CardContent } from '@/components/ui'
 import { useAdminUserManagement } from '@/hooks/admin/useAdminUserManagement'
 import { motion } from 'framer-motion'
-import { Eye, Filter, RotateCw, Search } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 interface UserManagementTableProps {
@@ -27,7 +28,7 @@ const UserManagementTable = memo(function UserManagementTable({
 		pagination,
 	} = useAdminUserManagement()
 
-	// Local state for UI - independent of query filters to prevent focus loss
+	// Local state for UI
 	const [searchInput, setSearchInput] = useState('')
 	const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>(
 		'all'
@@ -39,35 +40,11 @@ const UserManagementTable = memo(function UserManagementTable({
 		filters.sortDirection || 'desc'
 	)
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-	const isSearchingRef = useRef(false)
-	const searchInputRef = useRef<HTMLInputElement>(null)
-	const wasFocusedRef = useRef(false)
 
 	// Set userType filter when component mounts or userType changes
 	useEffect(() => {
 		updateFilters({ userType })
 	}, [userType, updateFilters])
-
-	// Track when search input is focused
-	const handleSearchFocus = useCallback(() => {
-		wasFocusedRef.current = true
-	}, [])
-
-	const handleSearchBlur = useCallback(() => {
-		wasFocusedRef.current = false
-	}, [])
-
-	// Restore focus after data fetch if input was previously focused
-	useEffect(() => {
-		if (wasFocusedRef.current && searchInputRef.current && !loading) {
-			const timeoutId = setTimeout(() => {
-				if (searchInputRef.current && wasFocusedRef.current) {
-					searchInputRef.current.focus()
-				}
-			}, 10)
-			return () => clearTimeout(timeoutId)
-		}
-	}, [loading, users]) // Re-run when loading state changes or users update
 
 	// Debounced search to prevent excessive API calls
 	const debouncedSearch = useCallback(
@@ -77,26 +54,12 @@ const UserManagementTable = memo(function UserManagementTable({
 			}
 
 			searchTimeoutRef.current = setTimeout(() => {
-				isSearchingRef.current = true
 				updateFilters({
 					search: value.trim(),
 				})
-				setTimeout(() => {
-					isSearchingRef.current = false
-				}, 100)
 			}, 500) // 500ms delay
 		},
 		[updateFilters]
-	)
-
-	// Handle search input change - updates local state immediately for UI
-	const handleSearchChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const value = e.target.value
-			setSearchInput(value) // Update UI immediately
-			debouncedSearch(value) // Trigger API call after delay
-		},
-		[debouncedSearch]
 	)
 
 	// Clean up timeout on unmount
@@ -200,74 +163,40 @@ const UserManagementTable = memo(function UserManagementTable({
 
 	return (
 		<div className="space-y-8">
-			{/* Header and Search */}
-			<div className="flex justify-between items-center gap-6">
-				<h2 className="text-2xl font-bold text-black capitalize min-w-fit">
+			{/* Header */}
+			<div className="flex justify-between items-center mb-4">
+				<h2 className="text-2xl font-bold text-black capitalize">
 					{userType}s ({total} total)
 				</h2>
-
-				{/* Search Bar */}
-				<div className="flex-1 max-w-2xl">
-					<div className="relative">
-						<input
-							ref={searchInputRef}
-							key="search-input-stable"
-							type="text"
-							placeholder="Search by name or email..."
-							value={searchInput}
-							onChange={handleSearchChange}
-							onFocus={handleSearchFocus}
-							onBlur={handleSearchBlur}
-							className="w-full px-6 py-3 pr-16 rounded-full border-2 border-[#126E64] focus:outline-none focus:ring-2 focus:ring-[#126E64]/30 text-gray-700 text-base"
-						/>
-						<div className="absolute right-0 top-0 bottom-0 bg-[#126E64] rounded-r-full px-5 flex items-center">
-							<Search className="w-5 h-5 text-white" />
-						</div>
-					</div>
-				</div>
-
-				{/* Filters */}
-				<div className="flex gap-4 min-w-fit">
-					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
-						<Filter className="w-4 h-4 text-gray-600" />
-						<select
-							value={statusFilter}
-							onChange={(e) => handleStatusFilter(e.target.value)}
-							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[80px]"
-						>
-							<option value="all">All Status</option>
-							<option value="active">Active</option>
-							<option value="banned">Banned</option>
-						</select>
-					</div>
-
-					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
-						<RotateCw className="w-4 h-4 text-gray-600" />
-						<select
-							value={sortBy}
-							onChange={(e) => handleSort(e.target.value)}
-							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[60px]"
-						>
-							<option value="name">Name</option>
-							<option value="createdAt">Created Date</option>
-							<option value="email">Email</option>
-						</select>
-					</div>
-
-					<div className="bg-white border-2 border-gray-300 rounded-full px-3 py-3 flex items-center shadow-sm hover:shadow-md transition-shadow">
-						<select
-							value={sortDirection}
-							onChange={(e) =>
-								handleSortDirection(e.target.value as 'asc' | 'desc')
-							}
-							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm"
-						>
-							<option value="desc">↓ Desc</option>
-							<option value="asc">↑ Asc</option>
-						</select>
-					</div>
-				</div>
 			</div>
+
+			{/* Search and Filters */}
+			<SearchAndFilter
+				searchQuery={searchInput}
+				onSearchChange={(query) => {
+					setSearchInput(query)
+					debouncedSearch(query)
+				}}
+				statusFilter={statusFilter === 'all' ? [] : [statusFilter]}
+				onStatusFilterChange={(statusArray: string[]) => {
+					const newStatus = statusArray.length === 0 ? 'all' : statusArray[0]
+					handleStatusFilter(newStatus)
+				}}
+				sortBy={sortBy}
+				onSortChange={(sort) => handleSort(sort)}
+				sortDirection={sortDirection}
+				onSortDirectionChange={(direction) => handleSortDirection(direction)}
+				searchPlaceholder="Search by name or email..."
+				statusOptions={[
+					{ value: 'active', label: 'Active' },
+					{ value: 'banned', label: 'Banned' },
+				]}
+				sortOptions={[
+					{ value: 'name', label: 'Name' },
+					{ value: 'createdAt', label: 'Created Date' },
+					{ value: 'email', label: 'Email' },
+				]}
+			/>
 
 			{/* Table with horizontal scroll */}
 			<Card className="bg-white rounded-[24px] shadow-xl overflow-hidden border-0">

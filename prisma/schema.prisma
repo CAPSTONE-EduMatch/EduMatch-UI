@@ -684,6 +684,8 @@ enum PostStatus {
   CLOSED
   ARCHIVED
   SUBMITTED
+  UPDATED
+  REQUIRE_UPDATE
 }
 
 enum ApplicationStatus {

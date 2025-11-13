@@ -1,10 +1,12 @@
 'use client'
 
 import { AdminTable } from '@/components/admin/AdminTable'
+import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import { useAdminPostManagement } from '@/hooks/admin'
 import { PostStatus } from '@prisma/client'
-import { ChevronRight, Search, Users } from 'lucide-react'
+import { ChevronRight, Users } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface Post {
 	id: string
@@ -12,7 +14,7 @@ interface Post {
 	status: PostStatus
 	postedBy: string
 	postedDate: Date
-	type: 'Program' | 'Scholarship' | 'Job'
+	type: 'Program' | 'Scholarship' | 'Job' | 'Research Lab'
 }
 
 const getStatusColor = (status: PostStatus) => {
@@ -25,6 +27,12 @@ const getStatusColor = (status: PostStatus) => {
 			return 'bg-[#D5D5D5] text-black'
 		case 'DRAFT':
 			return 'bg-[#F0A227] text-white'
+		case 'SUBMITTED':
+			return 'bg-[#3B82F6] text-white'
+		case 'UPDATED':
+			return 'bg-[#10B981] text-white'
+		case 'REQUIRE_UPDATE':
+			return 'bg-[#F59E0B] text-white'
 		default:
 			return 'bg-gray-200 text-black'
 	}
@@ -42,12 +50,17 @@ const getStatusLabel = (status: PostStatus) => {
 			return 'Draft'
 		case 'SUBMITTED':
 			return 'Submitted'
+		case 'UPDATED':
+			return 'Updated'
+		case 'REQUIRE_UPDATE':
+			return 'Require Update'
 		default:
 			return status
 	}
 }
 
 export default function AdminPostsPage() {
+	const router = useRouter()
 	const {
 		posts,
 		stats,
@@ -80,7 +93,6 @@ export default function AdminPostsPage() {
 		},
 		{
 			header: 'Status',
-			// eslint-disable-next-line no-unused-vars
 			accessor: ((post: Post) => (
 				<span
 					className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(
@@ -89,12 +101,11 @@ export default function AdminPostsPage() {
 				>
 					{getStatusLabel(post.status)}
 				</span>
-			)) as (post: Post) => React.ReactNode,
+			)) as (_post: Post) => React.ReactNode,
 			className: '110px',
 		},
 		{
 			header: 'Posted by',
-			// eslint-disable-next-line no-unused-vars
 			accessor: ((post: Post) => (
 				<div className="text-gray-700 text-sm text-center group relative">
 					<div className="truncate">{post.postedBy}</div>
@@ -102,32 +113,32 @@ export default function AdminPostsPage() {
 						{post.postedBy}
 					</div>
 				</div>
-			)) as (post: Post) => React.ReactNode,
+			)) as (_post: Post) => React.ReactNode,
 			className: 'minmax(130px, 1fr)',
 		},
 		{
 			header: 'Posted date',
-			// eslint-disable-next-line no-unused-vars
 			accessor: ((post: Post) => (
 				<div className="text-gray-700 text-sm text-center">
 					{new Date(post.postedDate).toLocaleDateString()}
 				</div>
-			)) as (post: Post) => React.ReactNode,
+			)) as (_post: Post) => React.ReactNode,
 			className: '100px',
 		},
 		{
 			header: 'Type',
-			// eslint-disable-next-line no-unused-vars
 			accessor: ((post: Post) => (
 				<div className="text-gray-700 text-sm text-center">{post.type}</div>
-			)) as (post: Post) => React.ReactNode,
+			)) as (_post: Post) => React.ReactNode,
 			className: '100px',
 		},
 		{
 			header: 'Actions',
-			// eslint-disable-next-line no-unused-vars
 			accessor: ((post: Post) => (
-				<button className="flex items-center justify-center gap-1 text-[#126E64] hover:underline text-sm mx-auto">
+				<button
+					onClick={() => router.push(`/admin/posts/${post.id}`)}
+					className="flex items-center justify-center gap-1 text-[#126E64] hover:underline text-sm mx-auto"
+				>
 					<span>View Details</span>
 					<ChevronRight className="w-4 h-4" />
 				</button>
@@ -196,57 +207,40 @@ export default function AdminPostsPage() {
 			{/* Main Content */}
 			<div className="px-8">
 				{/* Search and Filters */}
-				<div className="mb-6 flex items-center gap-4">
-					<div className="flex-1 relative">
-						<input
-							type="text"
-							value={filters.search || ''}
-							onChange={(e) => updateFilters({ search: e.target.value })}
-							placeholder="Search by title or institution..."
-							className="w-full px-6 py-3 pr-16 rounded-full border-2 border-[#126E64] text-base outline-none focus:ring-2 focus:ring-[#126E64]/30"
-						/>
-						<div className="absolute right-0 top-0 bottom-0 bg-[#126E64] rounded-r-full px-5 flex items-center">
-							<Search className="w-5 h-5 text-white" />
-						</div>
-					</div>
-					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
-						<select
-							value={filters.type || 'all'}
-							onChange={(e) =>
-								updateFilters({
-									type: e.target.value as
-										| 'all'
-										| 'Program'
-										| 'Scholarship'
-										| 'Job',
-								})
-							}
-							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[90px]"
-						>
-							<option value="all">All Types</option>
-							<option value="Program">Program</option>
-							<option value="Scholarship">Scholarship</option>
-							<option value="Job">Job</option>
-						</select>
-					</div>
-					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
-						<select
-							value={filters.status || 'all'}
-							onChange={(e) =>
-								updateFilters({
-									status: e.target.value as 'all' | PostStatus,
-								})
-							}
-							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[90px]"
-						>
-							<option value="all">All Status</option>
-							<option value="PUBLISHED">Published</option>
-							<option value="CLOSED">Closed</option>
-							<option value="DRAFT">Draft</option>
-							<option value="ARCHIVED">Archived</option>
-						</select>
-					</div>
-				</div>
+				<SearchAndFilter
+					searchQuery={filters.search || ''}
+					onSearchChange={(query) => updateFilters({ search: query })}
+					statusFilter={
+						filters.status && filters.status !== 'all' ? [filters.status] : []
+					}
+					onStatusFilterChange={(statusArray: string[]) => {
+						updateFilters({
+							status:
+								statusArray.length > 0 ? (statusArray[0] as PostStatus) : 'all',
+						})
+					}}
+					sortBy={
+						filters.sortDirection === 'desc'
+							? 'newest'
+							: filters.sortDirection === 'asc'
+								? 'oldest'
+								: 'newest'
+					}
+					onSortChange={(sort: string) => {
+						updateFilters({
+							sortBy: 'create_at',
+							sortDirection: sort === 'newest' ? 'desc' : 'asc',
+						})
+					}}
+					// Custom props for admin posts filtering
+					typeFilter={filters.type || 'all'}
+					onTypeFilterChange={(type: string) =>
+						updateFilters({
+							type: type as 'all' | 'Program' | 'Scholarship' | 'Job',
+						})
+					}
+					searchPlaceholder="Search by title or institution..."
+				/>
 
 				{/* Posts Table */}
 				<div>

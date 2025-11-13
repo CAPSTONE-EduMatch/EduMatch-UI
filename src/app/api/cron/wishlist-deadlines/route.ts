@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
 					postType = "research-lab";
 				}
 
-				// Send notification
+				// Send notification to SQS (Lambda will process it)
 				console.log(
 					`📤 Sending wishlist deadline notification for user ${item.applicant.user.id}, post ${item.post.post_id}`
 				);
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 					postType
 				);
 				console.log(
-					`✅ Successfully sent wishlist deadline notification for user ${item.applicant.user.id}`
+					`✅ Successfully sent wishlist deadline notification to SQS for user ${item.applicant.user.id}`
 				);
 
 				notificationsSent++;
@@ -181,6 +181,9 @@ export async function POST(request: NextRequest) {
 				}
 			}
 		}
+
+		// Note: Emails are now sent directly after queuing to SQS
+		// The SQS Lambda will also process messages, but direct sending ensures immediate delivery
 
 		return NextResponse.json({
 			success: true,

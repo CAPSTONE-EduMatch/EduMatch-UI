@@ -172,6 +172,20 @@ async function storeNotificationInDatabase(message) {
         bodyText = \`Your \${message.metadata?.planName || "subscription"} payment is due on \${message.metadata?.deadlineDate || "soon"}.\`;
         url = "/pricing";
         break;
+      case "WISHLIST_DEADLINE":
+        title = \`Deadline Approaching - \${message.metadata?.postTitle || "Wishlist Item"}\`;
+        const daysRemaining = message.metadata?.daysRemaining || 0;
+        const daysText = daysRemaining === 1 ? "1 day" : \`\${daysRemaining} days\`;
+        bodyText = \`⏰ Don't miss this opportunity! "\${message.metadata?.postTitle || "An item in your wishlist"}" is approaching its deadline in \${daysText}. Make sure to submit your application before it expires!\`;
+        const postType = message.metadata?.postType || "programme";
+        if (postType === "scholarship") {
+          url = \`/explore/scholarships/\${message.metadata?.postId || ""}\`;
+        } else if (postType === "research-lab") {
+          url = \`/explore/research-labs/\${message.metadata?.postId || ""}\`;
+        } else {
+          url = \`/explore/programmes/\${message.metadata?.postId || ""}\`;
+        }
+        break;
       default:
         title = "New Notification";
         bodyText = "You have a new notification from EduMatch.";
@@ -219,6 +233,9 @@ async function storeNotificationInDatabase(message) {
 				environment: {
 					NOTIFICATIONS_QUEUE_URL: notificationsQueue.queueUrl,
 					EMAILS_QUEUE_URL: emailsQueue.queueUrl,
+					API_BASE_URL:
+						process.env.API_BASE_URL ||
+						"https://dev.d1jaxpbx3axxsh.amplifyapp.com",
 				},
 			}
 		);
@@ -299,7 +316,31 @@ const emailTemplates = {
       <p>Expiry Date: \${new Date(metadata.expiryDate).toLocaleDateString()}</p>
       <p>Best regards,<br>The EduMatch Team</p>
     \`
-  })
+  }),
+  WISHLIST_DEADLINE: (metadata) => {
+    const daysRemaining = metadata.daysRemaining || 0;
+    const daysText = daysRemaining === 1 ? "1 day" : \`\${daysRemaining} days\`;
+    const postType = metadata.postType || "programme";
+    let url = \`https://dev.d1jaxpbx3axxsh.amplifyapp.com/explore/programmes/\${metadata.postId || ""}\`;
+    if (postType === "scholarship") {
+      url = \`https://dev.d1jaxpbx3axxsh.amplifyapp.com/explore/scholarships/\${metadata.postId || ""}\`;
+    } else if (postType === "research-lab") {
+      url = \`https://dev.d1jaxpbx3axxsh.amplifyapp.com/explore/research-labs/\${metadata.postId || ""}\`;
+    }
+    return {
+      subject: \`Deadline Approaching - \${metadata.postTitle || "Wishlist Item"}\`,
+      html: \`
+        <h1>Deadline Approaching!</h1>
+        <p>Don't miss this opportunity!</p>
+        <p><strong>\${metadata.postTitle || "An item in your wishlist"}</strong> is approaching its deadline in <strong>\${daysText}</strong>.</p>
+        \${metadata.institutionName ? \`<p>Institution: \${metadata.institutionName}</p>\` : ""}
+        <p>Deadline: \${new Date(metadata.deadlineDate).toLocaleDateString()}</p>
+        <p><a href="\${url}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Details</a></p>
+        <p>Make sure to submit your application before it expires!</p>
+        <p>Best regards,<br>The EduMatch Team</p>
+      \`
+    };
+  }
 };
 
 exports.handler = async (event) => {
@@ -316,50 +357,26 @@ exports.handler = async (event) => {
       
       const emailContent = template(message.metadata);
       
-      // Send email by calling your Next.js app's email API
-      const emailPayload = {
-        to: message.userEmail,
-        subject: emailContent.subject,
-        html: emailContent.html,
-        from: 'edumatch.noreply@gmail.com'
-      };
+      // Send email by calling your Next.js app's email service API
+      // Use the notification processing endpoint which handles all email types properly
+      const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';
       
-      // Call your Next.js app's email API endpoint
-      // Try localhost first (for development), then fallback to deployed URL
-      let baseUrl = 'http://localhost:3000';
-      try {
-        // Try localhost first
-        const localhostResponse = await fetch('http://localhost:3000/api/send-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(emailPayload),
-          signal: AbortSignal.timeout(2000) // 2 second timeout
-        });
-        
-        if (localhostResponse.ok) {
-          continue; // Skip to next message
-        }
-      } catch (localhostError) {
-        // Localhost not available, continue to deployed URL
-      }
-      
-      // Fallback to deployed URL
-      baseUrl = 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';
-      const response = await fetch('https://dev.d1jaxpbx3axxsh.amplifyapp.com/api/send-email', {
+      // Call the email service endpoint that processes notification messages
+      const response = await fetch(\`\${apiUrl}/api/notifications/send-email\`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(emailPayload)
+        body: JSON.stringify(message) // Send the full notification message
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to send email via deployed URL:', response.status, errorData);
-        throw new Error(\`Email sending failed: \${response.status} - \${errorData.error}\`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to send email via API:', response.status, errorData);
+        throw new Error(\`Email sending failed: \${response.status} - \${errorData.error || 'Unknown error'}\`);
       }
+      
+      console.log('Email sent successfully via API for:', message.userEmail);
       
     } catch (error) {
       console.error('Error processing email:', error);
@@ -375,7 +392,9 @@ exports.handler = async (event) => {
 				retention: logs.RetentionDays.ONE_WEEK,
 			}),
 			environment: {
-				// Email processing logs are available in CloudWatch
+				API_BASE_URL:
+					process.env.API_BASE_URL ||
+					"https://dev.d1jaxpbx3axxsh.amplifyapp.com",
 			},
 		});
 

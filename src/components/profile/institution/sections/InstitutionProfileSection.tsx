@@ -40,6 +40,10 @@ export const InstitutionProfileSection: React.FC<
 	const [verificationDocuments, setVerificationDocuments] = useState<any[]>([])
 	const [isUploadingDocument, setIsUploadingDocument] = useState(false)
 	const [isUploadingCoverImage, setIsUploadingCoverImage] = useState(false)
+	const [subdisciplines, setSubdisciplines] = useState<
+		Array<{ value: string; label: string; discipline: string }>
+	>([])
+	const [isLoadingDisciplines, setIsLoadingDisciplines] = useState(true)
 
 	// Use the authentication check hook
 	const { isAuthenticated } = useAuthCheck()
@@ -67,6 +71,28 @@ export const InstitutionProfileSection: React.FC<
 			// eslint-disable-next-line no-console
 			console.error('Failed to load verification documents:', error)
 			setVerificationDocuments([])
+		}
+	}, [])
+
+	// Load subdisciplines from database
+	const loadDisciplines = useCallback(async () => {
+		try {
+			setIsLoadingDisciplines(true)
+			const response = await ApiService.getSubdisciplines()
+
+			if (response.success && response.subdisciplines) {
+				// Transform subdisciplines to the format needed for CustomSelect
+				setSubdisciplines(response.subdisciplines)
+			} else {
+				// Fallback to empty array if API response is unexpected
+				setSubdisciplines([])
+			}
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Failed to load subdisciplines:', error)
+			setSubdisciplines([])
+		} finally {
+			setIsLoadingDisciplines(false)
 		}
 	}, [])
 
@@ -101,6 +127,11 @@ export const InstitutionProfileSection: React.FC<
 
 		loadProfile()
 	}, [isAuthenticated, propProfile, loadVerificationDocuments])
+
+	// Load disciplines on component mount
+	useEffect(() => {
+		loadDisciplines()
+	}, [loadDisciplines])
 
 	const handleSave = async () => {
 		setIsSaving(true)
@@ -213,18 +244,15 @@ export const InstitutionProfileSection: React.FC<
 			} catch (error) {
 				setErrorMessage('Failed to refresh profile. Please try again.')
 				setShowErrorModal(true)
+				setIsSaving(false)
+				return
 			}
 
-			// Call the onProfileUpdate callback if provided
-			if (onProfileUpdate) {
-				await onProfileUpdate()
-			}
+			// Exit editing mode first
+			setIsEditing(false)
 
 			// Show success message
 			setShowSuccessModal(true)
-
-			// Exit editing mode
-			setIsEditing(false)
 		} catch (error: any) {
 			setErrorMessage(
 				error.response?.data?.error ||
@@ -443,6 +471,14 @@ export const InstitutionProfileSection: React.FC<
 
 	const handleCoverImageUploadClick = () => {
 		coverImageInputRef.current?.click()
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
 	const handlePreviewDocument = (doc: any) => {
@@ -1010,72 +1046,40 @@ export const InstitutionProfileSection: React.FC<
 														</h3>
 														{isEditing ? (
 															<div className="space-y-2">
-																<CustomSelect
-																	options={[
-																		{
-																			value: 'Computer Science',
-																			label: 'Computer Science',
-																		},
-																		{
-																			value: 'Business Administration',
-																			label: 'Business Administration',
-																		},
-																		{
-																			value: 'Engineering',
-																			label: 'Engineering',
-																		},
-																		{ value: 'Medicine', label: 'Medicine' },
-																		{ value: 'Law', label: 'Law' },
-																		{
-																			value: 'Arts & Humanities',
-																			label: 'Arts & Humanities',
-																		},
-																		{ value: 'Sciences', label: 'Sciences' },
-																		{
-																			value: 'Social Sciences',
-																			label: 'Social Sciences',
-																		},
-																		{ value: 'Education', label: 'Education' },
-																		{
-																			value: 'Architecture',
-																			label: 'Architecture',
-																		},
-																		{
-																			value: 'Agriculture',
-																			label: 'Agriculture',
-																		},
-																		{
-																			value: 'Veterinary Science',
-																			label: 'Veterinary Science',
-																		},
-																		{ value: 'Other', label: 'Other' },
-																	]}
-																	value={
-																		editedProfile?.institutionDisciplines?.map(
-																			(discipline: string) => ({
-																				value: discipline,
-																				label: discipline,
-																			})
-																		) || []
-																	}
-																	onChange={(selectedOptions) => {
-																		const values = selectedOptions
-																			? selectedOptions.map(
-																					(option: any) => option.value
-																				)
-																			: []
-																		handleFieldChange(
-																			'institutionDisciplines',
-																			values
-																		)
-																	}}
-																	placeholder="Select disciplines..."
-																	isMulti
-																	isClearable
-																	className="w-full"
-																	isSearchable
-																	maxSelectedHeight="120px"
-																/>
+																{isLoadingDisciplines ? (
+																	<div className="text-sm text-gray-500">
+																		Loading disciplines...
+																	</div>
+																) : (
+																	<CustomSelect
+																		options={subdisciplines}
+																		value={
+																			editedProfile?.institutionDisciplines?.map(
+																				(discipline: string) => ({
+																					value: discipline,
+																					label: discipline,
+																				})
+																			) || []
+																		}
+																		onChange={(selectedOptions) => {
+																			const values = selectedOptions
+																				? selectedOptions.map(
+																						(option: any) => option.value
+																					)
+																				: []
+																			handleFieldChange(
+																				'institutionDisciplines',
+																				values
+																			)
+																		}}
+																		placeholder="Select subdisciplines..."
+																		isMulti
+																		isClearable
+																		className="w-full"
+																		isSearchable
+																		maxSelectedHeight="120px"
+																	/>
+																)}
 															</div>
 														) : (
 															<>
@@ -1292,46 +1296,40 @@ export const InstitutionProfileSection: React.FC<
 															{verificationDocuments.map((doc) => (
 																<div
 																	key={doc.id}
-																	className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+																	className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 																>
 																	<div className="flex items-center gap-3">
-																		<div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-																			<Building2 className="w-5 h-5 text-gray-600" />
-																		</div>
+																		<span className="text-2xl">📄</span>
 																		<div>
-																			<h4 className="font-medium text-gray-900">
+																			<p className="font-medium text-sm">
 																				{doc.name ||
 																					doc.originalName ||
 																					'Document'}
-																			</h4>
-																			<div className="flex items-center gap-4 text-sm text-gray-500">
-																				<span>
-																					{(
-																						(doc.size || doc.fileSize) / 1024
-																					).toFixed(1)}{' '}
-																					KB
-																				</span>
-																				<span>
-																					{doc.fileType || 'Unknown type'}
-																				</span>
-																			</div>
+																			</p>
+																			<p className="text-sm text-muted-foreground">
+																				{formatFileSize(
+																					doc.size || doc.fileSize || 0
+																				)}
+																				{doc.fileType
+																					? ` • ${doc.fileType}`
+																					: ''}
+																			</p>
 																		</div>
 																	</div>
 																	<div className="flex items-center gap-2">
 																		<button
 																			onClick={() => handlePreviewDocument(doc)}
-																			className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+																			className="text-primary hover:text-primary/80 text-sm font-medium"
 																		>
-																			Preview
+																			View
 																		</button>
 																		<button
 																			onClick={() => {
 																				handleDownloadDocument(doc)
 																			}}
-																			className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-																			title="Download document"
+																			className="text-gray-400 hover:text-gray-600 p-1"
 																		>
-																			<Download className="w-4 h-4 text-gray-600" />
+																			<Download className="h-4 w-4" />
 																		</button>
 																	</div>
 																</div>
@@ -1385,7 +1383,20 @@ export const InstitutionProfileSection: React.FC<
 					{/* Success Modal */}
 					<SuccessModal
 						isOpen={showSuccessModal}
-						onClose={() => setShowSuccessModal(false)}
+						onClose={async () => {
+							setShowSuccessModal(false)
+							// Call the onProfileUpdate callback after modal is closed
+							// This ensures the modal is visible before any context updates
+							if (onProfileUpdate) {
+								try {
+									await onProfileUpdate()
+								} catch (error) {
+									// Silently handle callback errors to not disrupt user experience
+									// eslint-disable-next-line no-console
+									console.error('Error in onProfileUpdate callback:', error)
+								}
+							}
+						}}
 						title="Success!"
 						message="Your profile has been updated successfully."
 						buttonText="Continue"

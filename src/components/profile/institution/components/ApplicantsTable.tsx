@@ -11,7 +11,7 @@ export interface Applicant {
 	subDiscipline: string
 	status: 'submitted' | 'under_review' | 'accepted' | 'rejected' | 'new_request'
 	matchingScore: number
-	userId?: string // User ID for thread matching
+	userId: string // User ID for thread matching
 	gpa?: number | string // GPA for suggested applicants
 }
 
@@ -77,13 +77,16 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 		return 'bg-red-500'
 	}
 
-	const gridCols = hidePostId ? 'grid-cols-7' : 'grid-cols-8'
+	// Use custom grid template columns for better space distribution
+	const gridCols = hidePostId
+		? 'grid-cols-[minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
+		: 'grid-cols-[180px_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
 
 	return (
 		<div className="overflow-x-auto">
 			<div className="w-full min-w-full">
 				<div
-					className={`bg-[#126E64] text-white grid ${gridCols} px-8 py-5 text-center font-bold text-base`}
+					className={`bg-[#126E64] text-white grid ${gridCols} px-4 py-5 text-center font-bold text-base gap-2`}
 				>
 					{!hidePostId && <div className="text-left">Post ID</div>}
 					<div className="text-left">Name</div>
@@ -92,7 +95,7 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 					<div>Sub-discipline</div>
 					<div>Status</div>
 					<div>Matching Score</div>
-					<div className="pl-8">Actions</div>
+					<div>Actions</div>
 				</div>
 
 				<div className="divide-y divide-gray-100">
@@ -103,7 +106,7 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 						return (
 							<div
 								key={applicant.id}
-								className={`${rowBg} grid ${gridCols} px-8 py-5 items-center`}
+								className={`${rowBg} grid ${gridCols} px-4 py-5 items-center gap-2`}
 							>
 								{/* Post ID */}
 								{!hidePostId && (
@@ -112,17 +115,25 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 											onClick={() => {
 												// TODO: Navigate to post details
 											}}
-											className="text-[#126E64] hover:text-[#126E64] text-sm underline hover:no-underline transition-all duration-200 font-medium"
+											className="text-[#126E64] hover:text-[#126E64] text-sm underline hover:no-underline transition-all duration-200 font-medium group relative"
+											title={applicant.postId}
 										>
-											{applicant.postId}
+											<span className="truncate block">
+												{applicant.postId.substring(0, 8)}...
+											</span>
+											<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
+												{applicant.postId}
+											</div>
 										</button>
 									</div>
 								)}
 
 								{/* Name */}
 								<div className="font-semibold text-base text-black text-left group relative">
-									<div className="truncate">{applicant.name}</div>
-									{applicant.name.length > 20 && (
+									<div className="truncate" title={applicant.name}>
+										{applicant.name}
+									</div>
+									{applicant.name.length > 15 && (
 										<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
 											{applicant.name}
 										</div>
@@ -135,15 +146,23 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 								</div>
 
 								{/* Degree Level */}
-								<div className="text-gray-700 text-sm text-center">
+								<div
+									className="text-gray-700 text-sm text-center truncate"
+									title={applicant.degreeLevel}
+								>
 									{applicant.degreeLevel}
 								</div>
 
 								{/* Sub-discipline */}
-								<div className="text-gray-700 text-sm text-center">
-									<div className="break-words whitespace-normal">
+								<div className="text-gray-700 text-sm text-center group relative">
+									<div className="truncate" title={applicant.subDiscipline}>
 										{applicant.subDiscipline}
 									</div>
+									{applicant.subDiscipline.length > 20 && (
+										<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap max-w-xs">
+											{applicant.subDiscipline}
+										</div>
+									)}
 								</div>
 
 								{/* Status */}
@@ -173,7 +192,7 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 								</div>
 
 								{/* Actions */}
-								<div className="flex justify-center gap-2.5 pl-8">
+								<div className="flex justify-center">
 									<button
 										onClick={() => onMoreDetail(applicant)}
 										className="text-[#126E64] hover:text-[#126E64] text-xs underline hover:no-underline transition-all duration-200"

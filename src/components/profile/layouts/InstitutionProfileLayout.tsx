@@ -12,7 +12,7 @@ import {
 	Check,
 	MessageCircle,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { ProfileLayoutBase, NavItem } from './ProfileLayoutBase'
 import { useNotifications } from '@/hooks/notifications/useNotifications'
 import { useUnreadMessageCount } from '@/hooks/messaging/useUnreadMessageCount'
@@ -72,9 +72,13 @@ export const InstitutionProfileLayout: React.FC<
 	InstitutionProfileLayoutProps
 > = ({ activeSection, onSectionChange, children, profile, onEditProfile }) => {
 	const router = useRouter()
+	const pathname = usePathname()
 	const { notifications, unreadCount, markAsRead } = useNotifications()
 	const unreadMessageCount = useUnreadMessageCount()
 	const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+
+	// Hide message and bell icons on messages page
+	const isMessagesPage = pathname?.startsWith('/institution/dashboard/messages')
 
 	// Format notification time
 	const formatNotificationTime = (dateString: string) => {
@@ -135,108 +139,111 @@ export const InstitutionProfileLayout: React.FC<
 			roleLabel="Institution"
 			roleIcon={<Building2 className="w-8 h-8 text-white" />}
 			containerPaddingTop="pt-0"
+			noPadding={isMessagesPage}
 		>
 			{/* Message and Notification Icons - Top Right */}
-			<div className="flex justify-end items-center gap-3 mb-4 pr-4">
-				{/* Teal Chat Icon */}
-				<div className="relative">
-					<div
-						className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors bg-white shadow-sm"
-						onClick={() => router.push('/messages')}
-					>
-						<MessageCircle className="w-5 h-5 text-[#126e64]" />
-						{/* Badge for unread messages */}
-						{unreadMessageCount > 0 && (
-							<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-								{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Orange Bell Icon */}
-				<div className="relative notification-dropdown">
-					<div
-						className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors bg-white shadow-sm"
-						onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-					>
-						<Bell className="w-5 h-5 text-[#f0a227]" />
-						{/* Badge for unread notifications */}
-						{unreadCount > 0 && (
-							<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-								{unreadCount > 99 ? '99+' : unreadCount}
-							</div>
-						)}
-					</div>
-
-					{/* Notification Dropdown */}
-					{isNotificationOpen && (
-						<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-[99999]">
-							{/* Header */}
-							<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-								<h3 className="text-sm font-semibold text-gray-700">
-									Notifications
-								</h3>
-								{unreadCount > 0 && (
-									<button
-										onClick={handleMarkAllAsRead}
-										className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-									>
-										<Check className="w-3 h-3" />
-										Mark all read
-									</button>
-								)}
-							</div>
-
-							{/* Notifications List */}
-							<div className="max-h-96 overflow-y-auto">
-								{notifications.length === 0 ? (
-									<div className="px-4 py-8 text-center text-gray-500">
-										<Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-										<p className="text-sm">No notifications yet</p>
-									</div>
-								) : (
-									notifications.map((notification) => (
-										<div
-											key={notification.id}
-											className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer ${
-												!notification.read_at ? 'bg-blue-50' : ''
-											}`}
-											onClick={() =>
-												handleNotificationClick(
-													notification.id,
-													notification.url
-												)
-											}
-										>
-											<div className="flex items-start gap-3">
-												<div
-													className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-														!notification.read_at
-															? 'bg-[#126e64]'
-															: 'bg-gray-300'
-													}`}
-												></div>
-												<div className="flex-1">
-													<h4 className="text-sm font-medium text-gray-800 mb-1">
-														{notification.title}
-													</h4>
-													<p className="text-xs text-gray-500 mb-2">
-														{notification.bodyText}
-													</p>
-												</div>
-												<span className="text-xs text-gray-400">
-													{formatNotificationTime(notification.createAt)}
-												</span>
-											</div>
-										</div>
-									))
-								)}
-							</div>
+			{!isMessagesPage && (
+				<div className="flex justify-end items-center gap-3 mb-4 pr-4">
+					{/* Teal Chat Icon */}
+					<div className="relative">
+						<div
+							className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors bg-white shadow-sm"
+							onClick={() => router.push('/institution/dashboard/messages')}
+						>
+							<MessageCircle className="w-5 h-5 text-[#126e64]" />
+							{/* Badge for unread messages */}
+							{unreadMessageCount > 0 && (
+								<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+									{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+								</div>
+							)}
 						</div>
-					)}
+					</div>
+
+					{/* Orange Bell Icon */}
+					<div className="relative notification-dropdown">
+						<div
+							className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors bg-white shadow-sm"
+							onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+						>
+							<Bell className="w-5 h-5 text-[#f0a227]" />
+							{/* Badge for unread notifications */}
+							{unreadCount > 0 && (
+								<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+									{unreadCount > 99 ? '99+' : unreadCount}
+								</div>
+							)}
+						</div>
+
+						{/* Notification Dropdown */}
+						{isNotificationOpen && (
+							<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-[99999]">
+								{/* Header */}
+								<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+									<h3 className="text-sm font-semibold text-gray-700">
+										Notifications
+									</h3>
+									{unreadCount > 0 && (
+										<button
+											onClick={handleMarkAllAsRead}
+											className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+										>
+											<Check className="w-3 h-3" />
+											Mark all read
+										</button>
+									)}
+								</div>
+
+								{/* Notifications List */}
+								<div className="max-h-96 overflow-y-auto">
+									{notifications.length === 0 ? (
+										<div className="px-4 py-8 text-center text-gray-500">
+											<Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+											<p className="text-sm">No notifications yet</p>
+										</div>
+									) : (
+										notifications.map((notification) => (
+											<div
+												key={notification.id}
+												className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer ${
+													!notification.read_at ? 'bg-blue-50' : ''
+												}`}
+												onClick={() =>
+													handleNotificationClick(
+														notification.id,
+														notification.url
+													)
+												}
+											>
+												<div className="flex items-start gap-3">
+													<div
+														className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+															!notification.read_at
+																? 'bg-[#126e64]'
+																: 'bg-gray-300'
+														}`}
+													></div>
+													<div className="flex-1">
+														<h4 className="text-sm font-medium text-gray-800 mb-1">
+															{notification.title}
+														</h4>
+														<p className="text-xs text-gray-500 mb-2">
+															{notification.bodyText}
+														</p>
+													</div>
+													<span className="text-xs text-gray-400">
+														{formatNotificationTime(notification.createAt)}
+													</span>
+												</div>
+											</div>
+										))
+									)}
+								</div>
+							</div>
+						)}
+					</div>
 				</div>
-			</div>
+			)}
 
 			{children}
 		</ProfileLayoutBase>

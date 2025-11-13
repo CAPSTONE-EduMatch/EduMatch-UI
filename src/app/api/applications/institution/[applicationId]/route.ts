@@ -130,6 +130,8 @@ export async function GET(
 
 			if (documentIds.length > 0) {
 				// Fetch all documents from snapshot by ID from ApplicantDocument table
+				// IMPORTANT: Do NOT filter by status or deleted_at - snapshot preserves state at application time
+				// Even if a document is deleted later, it should still display if it was in the snapshot
 				// Use findMany with 'in' for better performance when fetching multiple documents
 				const snapshotDocs =
 					await prismaClient.applicantDocument.findMany({
@@ -137,8 +139,7 @@ export async function GET(
 							document_id: {
 								in: documentIds,
 							},
-							status: true, // Only include active documents
-							deleted_at: null, // Exclude deleted documents
+							// No status or deleted_at filter - snapshot documents should display even if deleted
 						},
 						include: {
 							documentType: true,
@@ -461,6 +462,7 @@ export async function GET(
 			},
 			applicant: {
 				applicantId: application.applicant.applicant_id,
+				userId: application.applicant.user.id, // Include userId for messaging
 				// Use snapshot data if available, otherwise fallback to live data
 				firstName:
 					application.ApplicationProfileSnapshot?.first_name ||
@@ -468,10 +470,26 @@ export async function GET(
 				lastName:
 					application.ApplicationProfileSnapshot?.last_name ||
 					application.applicant.last_name,
-				name:
-					application.ApplicationProfileSnapshot?.user_name ||
-					application.applicant.user.name ||
-					`${application.applicant.first_name || ""} ${application.applicant.last_name || ""}`.trim(),
+				name: (() => {
+					// First try snapshot user_name or user.name
+					if (application.ApplicationProfileSnapshot?.user_name) {
+						return application.ApplicationProfileSnapshot.user_name;
+					}
+					if (application.applicant.user.name) {
+						return application.applicant.user.name;
+					}
+					// Construct from firstName and lastName (using snapshot or live data)
+					const firstName =
+						application.ApplicationProfileSnapshot?.first_name ||
+						application.applicant.first_name;
+					const lastName =
+						application.ApplicationProfileSnapshot?.last_name ||
+						application.applicant.last_name;
+					return (
+						`${firstName || ""} ${lastName || ""}`.trim() ||
+						"Unknown"
+					);
+				})(),
 				email:
 					application.ApplicationProfileSnapshot?.user_email ||
 					application.applicant.user.email,

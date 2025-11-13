@@ -13,7 +13,7 @@ export async function GET(
 
 		const { userId } = params;
 
-		// Get specific user
+		// Get specific user with applicant data if available
 		const user = await prismaClient.user.findUnique({
 			where: {
 				id: userId,
@@ -24,6 +24,16 @@ export async function GET(
 				email: true,
 				image: true,
 				createdAt: true,
+				applicant: {
+					select: {
+						level: true,
+						subdiscipline: {
+							select: {
+								name: true,
+							},
+						},
+					},
+				},
 			},
 		});
 
@@ -38,6 +48,9 @@ export async function GET(
 			email: user.email || "",
 			image: user.image,
 			status: "offline", // You can implement real-time status later
+			// Include applicant data if available
+			degreeLevel: user.applicant?.level || null,
+			subDiscipline: user.applicant?.subdiscipline?.name || null,
 		};
 
 		return new Response(

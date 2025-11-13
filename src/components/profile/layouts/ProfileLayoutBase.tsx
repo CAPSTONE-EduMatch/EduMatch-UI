@@ -31,6 +31,7 @@ interface ProfileLayoutBaseProps {
 	roleIcon?: React.ReactNode
 	containerPaddingTop?: string
 	sidebarStyle?: SidebarStyle
+	noPadding?: boolean // Remove padding for full-width pages like messages
 }
 
 export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
@@ -43,11 +44,12 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 	roleIcon,
 	containerPaddingTop = 'pt-24',
 	sidebarStyle,
+	noPadding = false,
 }) => {
 	return (
 		<div className={`bg-gray-50 min-h-screen `}>
-			<div className="pr-8">
-				<div className="flex gap-8 min-h-screen">
+			<div className={noPadding ? '' : 'pr-8'}>
+				<div className={`flex ${noPadding ? '' : 'gap-8'} min-h-screen`}>
 					{/* Sidebar */}
 					<ProfileSidebar
 						activeSection={activeSection}
@@ -61,7 +63,11 @@ export const ProfileLayoutBase: React.FC<ProfileLayoutBaseProps> = ({
 					/>
 
 					{/* Main Content Area */}
-					<div className={`w-full pb-12 pt-10 ${containerPaddingTop}`}>
+					<div
+						className={`w-full ${
+							noPadding ? 'pb-0 pt-0' : `pb-12 pt-8 ${containerPaddingTop}`
+						}`}
+					>
 						{/* Content */}
 						<div className="w-full">{children}</div>
 					</div>

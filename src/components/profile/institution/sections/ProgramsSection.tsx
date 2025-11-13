@@ -262,7 +262,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	if (loadingEditData) {
 		return (
 			<div className="space-y-6">
-				<div className="rounded-xl p-6 w-full py-8">
+				<div className="rounded-xl p-6 w-full">
 					<div className="flex items-center justify-center h-64">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -310,7 +310,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 
 	return (
 		<div className="space-y-6">
-			<div className="rounded-xl p-6 w-full py-8">
+			<div className="rounded-xl p-6 w-full">
 				{/* Page Title */}
 				<h1 className="text-2xl font-bold text-gray-900 mb-4">
 					{profile?.institutionName || 'Institution'}&apos;s Posts

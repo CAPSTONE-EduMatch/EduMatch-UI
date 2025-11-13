@@ -124,7 +124,7 @@ export const InstitutionApplicationSection: React.FC<
 	// Show list view by default
 	return (
 		<div className="space-y-6">
-			<div className="rounded-xl p-6 w-full py-8">
+			<div className="rounded-xl p-6 w-full">
 				{/* Page Title */}
 				<h1 className="text-2xl font-bold text-gray-900 mb-4">
 					{profile?.institutionName || 'Institution'}&apos;s Applications

@@ -9,7 +9,7 @@ import {
 	Pagination,
 	SortDropdown,
 	TabSelector,
-	AIAssistantCard,
+	// AIAssistantCard,
 	ErrorModal,
 } from '@/components/ui'
 import { Search } from 'lucide-react'
@@ -40,10 +40,7 @@ const Explore = () => {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const { isAuthenticated } = useAuthCheck()
-	const breadcrumbItems = [
-		{ label: 'Home', href: '/' },
-		{ label: 'Explore' }, // No href makes it non-clickable when on current page
-	]
+	const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: 'Explore' }]
 
 	const contentRef = useRef<HTMLDivElement>(null)
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
@@ -57,7 +54,9 @@ const Explore = () => {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [searchInput, setSearchInput] = useState('')
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
+	const handleExploreMore = () => {
+		router.push('/pricing')
+	}
 	// Initialize state from URL parameters on component mount
 	useEffect(() => {
 		// Get tab from URL
@@ -648,8 +647,10 @@ const Explore = () => {
 					<div className="text-white">
 						<h1 className="text-2xl font-bold mb-2">John Dewey:</h1>
 						<p className="text-sm max-w-xl">
-							&ldquo;Education is not preparation for life; education is life
-							itself.&rdquo;
+							Were all instructors to realize that the quality of mental
+							process, not the production of correct answers, is the measure of
+							educative growth something hardly less than a revolution in
+							teaching would be worked
 						</p>
 					</div>
 				</div>
@@ -717,7 +718,7 @@ const Explore = () => {
 									activeTab={activeTab}
 									onFiltersChange={handleFiltersChange}
 								/>
-								<AIAssistantCard />
+								{/* <AIAssistantCard /> */}
 							</div>
 							<div className="w-full">
 								{currentTabData.loading ? (
@@ -767,7 +768,10 @@ const Explore = () => {
 								{t('subscription.description')}
 							</p>
 
-							<Button className="bg-[#116E63] hover:bg-teal-700 text-white mb-6">
+							<Button
+								className="bg-[#116E63] hover:bg-teal-700 text-white mb-6"
+								onClick={handleExploreMore}
+							>
 								{t('buttons.explore_more')}
 							</Button>
 

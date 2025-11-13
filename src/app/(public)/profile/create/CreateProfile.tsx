@@ -14,6 +14,7 @@ import { ProfileFormData } from '@/services/profile/profile-service'
 import { Button } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
+import { Trash2 } from 'lucide-react'
 
 export default function CreateProfile() {
 	const router = useRouter()
@@ -82,16 +83,15 @@ export default function CreateProfile() {
 	// Debug: Log user object in CreateProfile
 	useEffect(() => {}, [user, isAuthenticated])
 
-	// Pre-fill email if user is authenticated (only for Google OAuth users)
+	// Pre-fill email if user is authenticated (for all authenticated users)
 	useEffect(() => {
-		// Only auto-fill for Google OAuth users (indicated by user.image)
-		if (isAuthenticated && user?.email && user?.image && !formData.email) {
+		if (isAuthenticated && user?.email && !formData.email) {
 			setFormData((prev) => ({
 				...prev,
 				email: user.email,
 			}))
 		}
-	}, [isAuthenticated, user?.email, user?.image, formData.email])
+	}, [isAuthenticated, user?.email, formData.email])
 
 	const handleNext = () => {
 		const maxStep = formData.role === 'applicant' ? 4 : 4
@@ -171,6 +171,14 @@ export default function CreateProfile() {
 			// Handle other file types as needed
 			// Files uploaded successfully
 		}
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
 	const getAllFiles = () => {
@@ -404,30 +412,32 @@ export default function CreateProfile() {
 										<h3 className="text-lg font-medium text-foreground border-b pb-2">
 											CV / Resume ({formData.cvFiles.length})
 										</h3>
-										<div className="grid grid-cols-1 gap-4">
+										<div className="space-y-3">
 											{formData.cvFiles.map((file) => (
 												<div
 													key={file.id}
-													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 												>
-													<div className="text-2xl">📄</div>
-													<div className="flex-1 min-w-0">
-														<p className="text-sm font-medium text-foreground truncate">
-															{file.name || file.originalName}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{(file.size / 1024).toFixed(1)} KB
-														</p>
+													<div className="flex items-center gap-3 flex-1 min-w-0">
+														<span className="text-2xl flex-shrink-0">📄</span>
+														<div className="min-w-0 flex-1">
+															<p className="font-medium text-sm truncate">
+																{file.name || file.originalName || 'Document'}
+															</p>
+															<p className="text-sm text-muted-foreground">
+																{formatFileSize(file.size || 0)}
+																{file.fileType ? ` • ${file.fileType}` : ''}
+															</p>
+														</div>
 													</div>
-													<div className="flex gap-2">
-														<Button
-															variant="outline"
+													<div className="flex items-center gap-2">
+														<button
 															onClick={() => window.open(file.url, '_blank')}
+															className="text-primary hover:text-primary/80 text-sm font-medium"
 														>
 															View
-														</Button>
-														<Button
-															variant="outline"
+														</button>
+														<button
 															onClick={() => {
 																const updatedFiles = formData.cvFiles.filter(
 																	(f) => f.id !== file.id
@@ -437,10 +447,11 @@ export default function CreateProfile() {
 																	cvFiles: updatedFiles,
 																})
 															}}
-															className="text-red-500 hover:text-red-700"
+															className="text-gray-400 hover:text-red-600 p-1"
+															title="Delete document"
 														>
-															Delete
-														</Button>
+															<Trash2 className="h-4 w-4" />
+														</button>
 													</div>
 												</div>
 											))}
@@ -456,32 +467,34 @@ export default function CreateProfile() {
 												Foreign Language Certificates (
 												{formData.languageCertFiles.length})
 											</h3>
-											<div className="grid grid-cols-1 gap-4">
+											<div className="space-y-3">
 												{formData.languageCertFiles.map((file) => (
 													<div
 														key={file.id}
-														className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 													>
-														<div className="text-2xl">
-															{file.category === 'image' ? '🖼️' : '📄'}
+														<div className="flex items-center gap-3 flex-1 min-w-0">
+															<span className="text-2xl flex-shrink-0">
+																{file.category === 'image' ? '🖼️' : '📄'}
+															</span>
+															<div className="min-w-0 flex-1">
+																<p className="font-medium text-sm truncate">
+																	{file.name || file.originalName || 'Document'}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(file.size || 0)}
+																	{file.fileType ? ` • ${file.fileType}` : ''}
+																</p>
+															</div>
 														</div>
-														<div className="flex-1 min-w-0">
-															<p className="text-sm font-medium text-foreground truncate">
-																{file.name || file.originalName}
-															</p>
-															<p className="text-xs text-muted-foreground">
-																{(file.size / 1024).toFixed(1)} KB
-															</p>
-														</div>
-														<div className="flex gap-2">
-															<Button
-																variant="outline"
+														<div className="flex items-center gap-2">
+															<button
 																onClick={() => window.open(file.url, '_blank')}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
 															>
 																View
-															</Button>
-															<Button
-																variant="outline"
+															</button>
+															<button
 																onClick={() => {
 																	const updatedFiles =
 																		formData.languageCertFiles.filter(
@@ -492,10 +505,11 @@ export default function CreateProfile() {
 																		languageCertFiles: updatedFiles,
 																	})
 																}}
-																className="text-red-500 hover:text-red-700"
+																className="text-gray-400 hover:text-red-600 p-1"
+																title="Delete document"
 															>
-																Delete
-															</Button>
+																<Trash2 className="h-4 w-4" />
+															</button>
 														</div>
 													</div>
 												))}
@@ -509,32 +523,34 @@ export default function CreateProfile() {
 										<h3 className="text-lg font-medium text-foreground border-b pb-2">
 											Degree Certificates ({formData.degreeFiles.length})
 										</h3>
-										<div className="grid grid-cols-1 gap-4">
+										<div className="space-y-3">
 											{formData.degreeFiles.map((file) => (
 												<div
 													key={file.id}
-													className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 												>
-													<div className="text-2xl">
-														{file.category === 'image' ? '🖼️' : '📄'}
+													<div className="flex items-center gap-3 flex-1 min-w-0">
+														<span className="text-2xl flex-shrink-0">
+															{file.category === 'image' ? '🖼️' : '📄'}
+														</span>
+														<div className="min-w-0 flex-1">
+															<p className="font-medium text-sm truncate">
+																{file.name || file.originalName || 'Document'}
+															</p>
+															<p className="text-sm text-muted-foreground">
+																{formatFileSize(file.size || 0)}
+																{file.fileType ? ` • ${file.fileType}` : ''}
+															</p>
+														</div>
 													</div>
-													<div className="flex-1 min-w-0">
-														<p className="text-sm font-medium text-foreground truncate">
-															{file.name || file.originalName}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{(file.size / 1024).toFixed(1)} KB
-														</p>
-													</div>
-													<div className="flex gap-2">
-														<Button
-															variant="outline"
+													<div className="flex items-center gap-2">
+														<button
 															onClick={() => window.open(file.url, '_blank')}
+															className="text-primary hover:text-primary/80 text-sm font-medium"
 														>
 															View
-														</Button>
-														<Button
-															variant="outline"
+														</button>
+														<button
 															onClick={() => {
 																const updatedFiles =
 																	formData.degreeFiles.filter(
@@ -545,10 +561,11 @@ export default function CreateProfile() {
 																	degreeFiles: updatedFiles,
 																})
 															}}
-															className="text-red-500 hover:text-red-700"
+															className="text-gray-400 hover:text-red-600 p-1"
+															title="Delete document"
 														>
-															Delete
-														</Button>
+															<Trash2 className="h-4 w-4" />
+														</button>
 													</div>
 												</div>
 											))}
@@ -563,32 +580,34 @@ export default function CreateProfile() {
 											<h3 className="text-lg font-medium text-foreground border-b pb-2">
 												Academic Transcripts ({formData.transcriptFiles.length})
 											</h3>
-											<div className="grid grid-cols-1 gap-4">
+											<div className="space-y-3">
 												{formData.transcriptFiles.map((file) => (
 													<div
 														key={file.id}
-														className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 													>
-														<div className="text-2xl">
-															{file.category === 'image' ? '🖼️' : '📄'}
+														<div className="flex items-center gap-3 flex-1 min-w-0">
+															<span className="text-2xl flex-shrink-0">
+																{file.category === 'image' ? '🖼️' : '📄'}
+															</span>
+															<div className="min-w-0 flex-1">
+																<p className="font-medium text-sm truncate">
+																	{file.name || file.originalName || 'Document'}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(file.size || 0)}
+																	{file.fileType ? ` • ${file.fileType}` : ''}
+																</p>
+															</div>
 														</div>
-														<div className="flex-1 min-w-0">
-															<p className="text-sm font-medium text-foreground truncate">
-																{file.name || file.originalName}
-															</p>
-															<p className="text-xs text-muted-foreground">
-																{(file.size / 1024).toFixed(1)} KB
-															</p>
-														</div>
-														<div className="flex gap-2">
-															<Button
-																variant="outline"
+														<div className="flex items-center gap-2">
+															<button
 																onClick={() => window.open(file.url, '_blank')}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
 															>
 																View
-															</Button>
-															<Button
-																variant="outline"
+															</button>
+															<button
 																onClick={() => {
 																	const updatedFiles =
 																		formData.transcriptFiles.filter(
@@ -599,10 +618,11 @@ export default function CreateProfile() {
 																		transcriptFiles: updatedFiles,
 																	})
 																}}
-																className="text-red-500 hover:text-red-700"
+																className="text-gray-400 hover:text-red-600 p-1"
+																title="Delete document"
 															>
-																Delete
-															</Button>
+																<Trash2 className="h-4 w-4" />
+															</button>
 														</div>
 													</div>
 												))}
@@ -641,32 +661,40 @@ export default function CreateProfile() {
 																		</p>
 																	)}
 																</div>
-																<div className="grid grid-cols-1 gap-3">
+																<div className="space-y-3">
 																	{paper.files.map((file) => (
 																		<div
 																			key={file.id}
-																			className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+																			className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 																		>
-																			<div className="text-2xl">📄</div>
-																			<div className="flex-1 min-w-0">
-																				<p className="text-sm font-medium text-foreground truncate">
-																					{file.name || file.originalName}
-																				</p>
-																				<p className="text-xs text-muted-foreground">
-																					{(file.size / 1024).toFixed(1)} KB
-																				</p>
+																			<div className="flex items-center gap-3 flex-1 min-w-0">
+																				<span className="text-2xl flex-shrink-0">
+																					📄
+																				</span>
+																				<div className="min-w-0 flex-1">
+																					<p className="font-medium text-sm truncate">
+																						{file.name ||
+																							file.originalName ||
+																							'Document'}
+																					</p>
+																					<p className="text-sm text-muted-foreground">
+																						{formatFileSize(file.size || 0)}
+																						{file.fileType
+																							? ` • ${file.fileType}`
+																							: ''}
+																					</p>
+																				</div>
 																			</div>
-																			<div className="flex gap-2">
-																				<Button
-																					variant="outline"
+																			<div className="flex items-center gap-2">
+																				<button
 																					onClick={() =>
 																						window.open(file.url, '_blank')
 																					}
+																					className="text-primary hover:text-primary/80 text-sm font-medium"
 																				>
 																					View
-																				</Button>
-																				<Button
-																					variant="outline"
+																				</button>
+																				<button
 																					onClick={() => {
 																						const updatedPapers = [
 																							...formData.researchPapers,
@@ -684,10 +712,11 @@ export default function CreateProfile() {
 																							researchPapers: updatedPapers,
 																						})
 																					}}
-																					className="text-red-500 hover:text-red-700"
+																					className="text-gray-400 hover:text-red-600 p-1"
+																					title="Delete document"
 																				>
-																					Delete
-																				</Button>
+																					<Trash2 className="h-4 w-4" />
+																				</button>
 																			</div>
 																		</div>
 																	))}
@@ -707,35 +736,41 @@ export default function CreateProfile() {
 												Institution Verification Documents (
 												{formData.institutionVerificationDocuments.length})
 											</h3>
-											<div className="grid grid-cols-1 gap-4">
+											<div className="space-y-3">
 												{formData.institutionVerificationDocuments.map(
 													(file) => (
 														<div
 															key={file.id}
-															className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+															className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 														>
-															<div className="text-2xl">
-																{file.type?.startsWith('image/') ? '🖼️' : '📄'}
+															<div className="flex items-center gap-3 flex-1 min-w-0">
+																<span className="text-2xl flex-shrink-0">
+																	{file.type?.startsWith('image/')
+																		? '🖼️'
+																		: '📄'}
+																</span>
+																<div className="min-w-0 flex-1">
+																	<p className="font-medium text-sm break-words">
+																		{file.name ||
+																			file.originalName ||
+																			'Document'}
+																	</p>
+																	<p className="text-sm text-muted-foreground">
+																		{formatFileSize(file.size || 0)}
+																		{file.fileType ? ` • ${file.fileType}` : ''}
+																	</p>
+																</div>
 															</div>
-															<div className="flex-1 min-w-0">
-																<p className="text-sm font-medium text-foreground truncate">
-																	{file.name || file.originalName}
-																</p>
-																<p className="text-xs text-muted-foreground">
-																	{(file.size / 1024).toFixed(1)} KB
-																</p>
-															</div>
-															<div className="flex gap-2">
-																<Button
-																	variant="outline"
+															<div className="flex items-center gap-2">
+																<button
 																	onClick={() =>
 																		window.open(file.url, '_blank')
 																	}
+																	className="text-primary hover:text-primary/80 text-sm font-medium"
 																>
 																	View
-																</Button>
-																<Button
-																	variant="outline"
+																</button>
+																<button
 																	onClick={() => {
 																		const updatedFiles =
 																			formData.institutionVerificationDocuments.filter(
@@ -747,10 +782,11 @@ export default function CreateProfile() {
 																				updatedFiles,
 																		})
 																	}}
-																	className="text-red-500 hover:text-red-700"
+																	className="text-gray-400 hover:text-red-600 p-1"
+																	title="Delete document"
 																>
-																	Delete
-																</Button>
+																	<Trash2 className="h-4 w-4" />
+																</button>
 															</div>
 														</div>
 													)

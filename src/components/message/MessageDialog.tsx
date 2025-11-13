@@ -97,6 +97,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 	const messagesEndRef = useRef<HTMLDivElement>(null)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+	const processedContactRef = useRef<string | null>(null) // Track processed contact to prevent re-processing
 
 	// Use AppSync messaging hook
 	const {
@@ -176,8 +177,37 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 	useEffect(() => {
 		const handleContactParam = async () => {
 			const contactParam = searchParams.get('contact')
+
+			// If contact parameter is empty or invalid, clean up URL and reset state
+			if (contactParam !== null && (!contactParam || !contactParam.trim())) {
+				const url = new URL(window.location.href)
+				url.searchParams.delete('contact')
+				window.history.replaceState({}, '', url.toString())
+				setIsCheckingThread(false)
+				setShowContactPreview(false)
+				setContactApplicant(null)
+				processedContactRef.current = null
+				return
+			}
+
+			// Reset processed ref if contact param changed (allows re-processing new contacts)
+			if (
+				contactParam &&
+				processedContactRef.current &&
+				processedContactRef.current !== contactParam
+			) {
+				processedContactRef.current = null
+			}
+
 			// Don't handle contact parameter if we're already in a specific thread
-			if (contactParam && !threadId) {
+			// Skip if we've already processed this contact parameter (prevents re-processing)
+			if (
+				contactParam &&
+				contactParam.trim() &&
+				!threadId &&
+				processedContactRef.current !== contactParam
+			) {
+				processedContactRef.current = contactParam // Mark as processed
 				setIsCheckingThread(true)
 
 				if (appSyncThreads.length > 0) {
@@ -201,7 +231,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 					)
 
 					if (existingThread) {
-						// Navigate directly to existing thread
+						// Navigate directly to existing thread - OPTIMIZED
 						const threadObject: Thread = {
 							id: existingThread.id,
 							title: applicantData?.name || 'User',
@@ -222,53 +252,60 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 						}
 						setSelectedThread(threadObject)
 
-						// Fetch actual user data to get correct image and status
-						try {
-							const userResponse = await fetch(`/api/users/${userId}`)
-							if (userResponse.ok) {
-								const userData = await userResponse.json()
-								setSelectedUser({
-									id: userId,
-									name: userData.user.name || applicantData?.name || 'User',
-									email: userData.user.email || applicantData?.email || '',
-									image: userData.user.image || applicantData?.image,
-									status: userData.user.status || 'offline',
-								})
-							} else {
-								// Fallback to applicant data if user fetch fails
-								setSelectedUser({
-									id: userId,
-									name: applicantData?.name || 'User',
-									email: applicantData?.email || '',
-									image: applicantData?.image,
-									status: 'offline',
-								})
-							}
-						} catch (error) {
-							// Fallback to applicant data if user fetch fails
+						// Set initial state
+						setIsInitialLoad(true)
+						setShouldAutoScroll(true)
+
+						// Use applicantData if available, otherwise fetch user data in parallel with loading messages
+						if (applicantData) {
+							// Use applicant data immediately - no API call needed
 							setSelectedUser({
 								id: userId,
-								name: applicantData?.name || 'User',
-								email: applicantData?.email || '',
-								image: applicantData?.image,
-								status: 'offline',
+								name: applicantData.name || 'User',
+								email: applicantData.email || '',
+								image: applicantData.image,
+								status: 'offline', // Will be updated if user data is fetched
 							})
 						}
 
-						setIsInitialLoad(true) // Mark as initial load for new thread
-						setShouldAutoScroll(true) // Reset auto-scroll flag
+						// Load messages (selectThread already calls loadMessages, so we only need one)
 						selectThread(existingThread.id)
-						loadMessages(existingThread.id)
 
-						// Clear unread count for this thread when selected
-						try {
-							await clearUnreadCount(existingThread.id)
-						} catch (error) {
-							// Handle error silently
+						// Fetch user data only if we don't have applicantData (non-blocking)
+						if (!applicantData) {
+							fetch(`/api/users/${userId}`)
+								.then((response) => {
+									if (response.ok) {
+										return response.json()
+									}
+									return null
+								})
+								.then((userData) => {
+									if (userData?.user) {
+										setSelectedUser({
+											id: userId,
+											name: userData.user.name || 'User',
+											email: userData.user.email || '',
+											image: userData.user.image,
+											status: userData.user.status || 'offline',
+										})
+									}
+								})
+								.catch(() => {
+									// Silently fail - we already have basic data
+								})
 						}
 
-						// Update URL and add to history for proper back navigation
+						// Clear unread count (fire-and-forget, don't wait)
+						clearUnreadCount(existingThread.id).catch(() => {
+							// Silently fail
+						})
+
+						// Update URL - this will remove contact param from URL
 						window.history.pushState({}, '', `/messages/${existingThread.id}`)
+						// Clear processed ref since we've navigated away from contact param
+						processedContactRef.current = null
+						setIsCheckingThread(false)
 					} else {
 						// No existing thread - show preview for new contact
 						if (applicantData) {
@@ -286,8 +323,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 										name: userData.user.name || 'User',
 										email: userData.user.email || '',
 										image: userData.user.image,
-										degreeLevel: 'Unknown',
-										subDiscipline: 'Unknown',
+										degreeLevel: userData.user.degreeLevel || 'Unknown',
+										subDiscipline: userData.user.subDiscipline || 'Unknown',
 										status: userData.user.status || 'offline',
 										postTitle: 'Application',
 									}
@@ -343,8 +380,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 												name: userData.user.name || 'User',
 												email: userData.user.email || '',
 												image: userData.user.image,
-												degreeLevel: 'Unknown',
-												subDiscipline: 'Unknown',
+												degreeLevel: userData.user.degreeLevel || 'Unknown',
+												subDiscipline: userData.user.subDiscipline || 'Unknown',
 												status: userData.user.status || 'offline',
 												postTitle: 'Application',
 											}
@@ -385,7 +422,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 		appSyncThreads.length, // Only depend on length, not the full array
 		user?.id, // Only depend on user ID, not full user object
 		threadId,
-		isCheckingThread,
+		// Removed isCheckingThread from dependencies - it's set inside the effect
 	])
 
 	// Auto-scroll to bottom

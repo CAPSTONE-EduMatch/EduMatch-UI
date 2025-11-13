@@ -31,6 +31,9 @@ const getActiveSection = (pathname: string): InstitutionProfileSection => {
 	if (pathname.startsWith('/institution/dashboard/payment')) {
 		return 'payment'
 	}
+	if (pathname.startsWith('/institution/dashboard/messages')) {
+		return 'overview' // Messages doesn't have its own section, use overview
+	}
 	return 'overview'
 }
 

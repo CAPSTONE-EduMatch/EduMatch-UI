@@ -13,37 +13,47 @@ export class SQSMessageHandler {
 	 */
 	static async processNotificationMessages(): Promise<void> {
 		try {
-			console.log("Processing notification messages...");
+			console.log("📬 Processing notification messages...");
 
 			const messages = await SQSService.receiveMessages(
 				QUEUE_URLS.NOTIFICATIONS
 			);
 
 			if (messages.length === 0) {
-				console.log("No notification messages to process");
+				console.log(
+					"⚠️ No notification messages to process - queue is empty"
+				);
 				return;
 			}
 
-			console.log(`Processing ${messages.length} notification messages`);
+			console.log(
+				`✅ Found ${messages.length} notification message(s) in queue`
+			);
 
 			for (const message of messages) {
 				try {
+					console.log(
+						`📨 Processing notification message: ${message.MessageId || "unknown"}`
+					);
 					await this.processNotificationMessage(message);
 					// Delete message after successful processing
 					await SQSService.deleteMessage(
 						QUEUE_URLS.NOTIFICATIONS,
 						message.ReceiptHandle!
 					);
+					console.log(
+						`✅ Notification message processed and deleted: ${message.MessageId || "unknown"}`
+					);
 				} catch (error) {
 					console.error(
-						"Error processing notification message:",
+						`❌ Error processing notification message ${message.MessageId || "unknown"}:`,
 						error
 					);
 					// Message will remain in queue for retry
 				}
 			}
 		} catch (error) {
-			console.error("Error processing notification messages:", error);
+			console.error("❌ Error processing notification messages:", error);
 			throw error;
 		}
 	}
@@ -53,34 +63,45 @@ export class SQSMessageHandler {
 	 */
 	static async processEmailMessages(): Promise<void> {
 		try {
-			console.log("Processing email messages...");
+			console.log("📧 Processing email messages...");
 
 			const messages = await SQSService.receiveMessages(
 				QUEUE_URLS.EMAILS
 			);
 
 			if (messages.length === 0) {
-				console.log("No email messages to process");
+				console.log("⚠️ No email messages to process - queue is empty");
 				return;
 			}
 
-			console.log(`Processing ${messages.length} email messages`);
+			console.log(
+				`✅ Found ${messages.length} email message(s) in queue`
+			);
 
 			for (const message of messages) {
 				try {
+					console.log(
+						`📨 Processing email message: ${message.MessageId || "unknown"}`
+					);
 					await this.processEmailMessage(message);
 					// Delete message after successful processing
 					await SQSService.deleteMessage(
 						QUEUE_URLS.EMAILS,
 						message.ReceiptHandle!
 					);
+					console.log(
+						`✅ Email message processed and deleted: ${message.MessageId || "unknown"}`
+					);
 				} catch (error) {
-					console.error("Error processing email message:", error);
+					console.error(
+						`❌ Error processing email message ${message.MessageId || "unknown"}:`,
+						error
+					);
 					// Message will remain in queue for retry
 				}
 			}
 		} catch (error) {
-			console.error("Error processing email messages:", error);
+			console.error("❌ Error processing email messages:", error);
 			throw error;
 		}
 	}
@@ -128,17 +149,24 @@ export class SQSMessageHandler {
 			);
 
 			console.log(
-				`Processing email: ${notificationMessage.type} for ${notificationMessage.userEmail}`
+				`📧 Processing email: ${notificationMessage.type} for ${notificationMessage.userEmail} (user: ${notificationMessage.userId})`
 			);
 
 			// Send the email
 			await EmailService.sendNotificationEmail(notificationMessage);
 
 			console.log(
-				`Email processed successfully: ${notificationMessage.type}`
+				`✅ Email sent successfully: ${notificationMessage.type} to ${notificationMessage.userEmail}`
 			);
 		} catch (error) {
-			console.error("Error processing email message:", error);
+			console.error(
+				`❌ Error processing email message for ${message.MessageId || "unknown"}:`,
+				error
+			);
+			if (error instanceof Error) {
+				console.error(`❌ Error details: ${error.message}`);
+				console.error(`❌ Error stack: ${error.stack}`);
+			}
 			throw error;
 		}
 	}
@@ -798,7 +826,26 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		console.log(
+			`📤 Attempting to send wishlist deadline notification to SQS for user ${userId}, post ${postId}`
+		);
+		try {
+			await SQSService.sendNotification(message);
+			console.log(
+				`✅ Successfully sent wishlist deadline notification to SQS for user ${userId}`
+			);
+		} catch (sqsError) {
+			console.error(
+				`❌ Failed to send wishlist deadline notification to SQS for user ${userId}:`,
+				sqsError
+			);
+			if (sqsError instanceof Error) {
+				console.error(`❌ SQS Error details:`, sqsError.message);
+				console.error(`❌ SQS Error stack:`, sqsError.stack);
+			}
+			// Re-throw to ensure the error is visible
+			throw sqsError;
+		}
 
 		// Also store directly in database for immediate display
 		await this.storeNotificationDirectly(message);

@@ -7,9 +7,28 @@ import { SQSMessageHandler } from "@/services/messaging/sqs-handlers";
  */
 export async function POST(request: NextRequest) {
 	try {
-		console.log("Processing notification messages via API...");
+		// Optional: Add authentication/authorization for processing endpoint
+		// Skip auth check in development mode for testing
+		const isDevelopment = process.env.NODE_ENV !== "production";
+		const authHeader = request.headers.get("authorization");
+		const cronSecret = process.env.CRON_SECRET;
+
+		if (
+			!isDevelopment &&
+			cronSecret &&
+			authHeader !== `Bearer ${cronSecret}`
+		) {
+			return NextResponse.json(
+				{ error: "Unauthorized" },
+				{ status: 401 }
+			);
+		}
+
+		console.log("📬 Processing notification messages via API...");
 
 		await SQSMessageHandler.processNotificationMessages();
+
+		console.log("✅ Notification messages processed successfully");
 
 		return NextResponse.json({
 			success: true,
@@ -35,9 +54,28 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
 	try {
-		console.log("Processing email messages via API...");
+		// Optional: Add authentication/authorization for processing endpoint
+		// Skip auth check in development mode for testing
+		const isDevelopment = process.env.NODE_ENV !== "production";
+		const authHeader = request.headers.get("authorization");
+		const cronSecret = process.env.CRON_SECRET;
+
+		if (
+			!isDevelopment &&
+			cronSecret &&
+			authHeader !== `Bearer ${cronSecret}`
+		) {
+			return NextResponse.json(
+				{ error: "Unauthorized" },
+				{ status: 401 }
+			);
+		}
+
+		console.log("📧 Processing email messages via API...");
 
 		await SQSMessageHandler.processEmailMessages();
+
+		console.log("✅ Email messages processed successfully");
 
 		return NextResponse.json({
 			success: true,

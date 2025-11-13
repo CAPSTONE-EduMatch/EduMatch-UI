@@ -1277,11 +1277,84 @@ exports.handler = async (event) => {
     
     if (response.statusCode === 200) {
       console.log('✅ Cron job executed successfully:', JSON.stringify(result, null, 2));
+      
+      // Wait a few seconds for messages to be fully queued
+      if (result.notificationsSent > 0) {
+        console.log('⏳ Waiting 3 seconds for messages to be fully queued in SQS...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+      
+      // Process notification queue (forward to email queue)
+      console.log('📬 Processing notification queue...');
+      try {
+        const notificationQueueUrl = new URL(apiUrl + '/api/notifications/process');
+        const notificationResponse = await new Promise((resolve, reject) => {
+          const client = notificationQueueUrl.protocol === 'https:' ? https : http;
+          const req = client.request(notificationQueueUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(cronSecret ? { 'Authorization': \`Bearer \${cronSecret}\` } : {}),
+            },
+            timeout: 30000,
+          }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              resolve({
+                statusCode: res.statusCode,
+                body: data,
+              });
+            });
+          });
+          req.on('error', reject);
+          req.on('timeout', () => { req.destroy(); reject(new Error('Notification queue timeout')); });
+          req.end();
+        });
+        console.log('📬 Notification queue processed:', notificationResponse.statusCode);
+      } catch (notificationError) {
+        console.error('⚠️ Error processing notification queue:', notificationError);
+        // Don't fail the entire job if queue processing fails
+      }
+      
+      // Process email queue (send emails)
+      console.log('📧 Processing email queue...');
+      try {
+        const emailQueueUrl = new URL(apiUrl + '/api/notifications/process');
+        const emailResponse = await new Promise((resolve, reject) => {
+          const client = emailQueueUrl.protocol === 'https:' ? https : http;
+          const req = client.request(emailQueueUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(cronSecret ? { 'Authorization': \`Bearer \${cronSecret}\` } : {}),
+            },
+            timeout: 60000, // 60 seconds for email sending
+          }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              resolve({
+                statusCode: res.statusCode,
+                body: data,
+              });
+            });
+          });
+          req.on('error', reject);
+          req.on('timeout', () => { req.destroy(); reject(new Error('Email queue timeout')); });
+          req.end();
+        });
+        console.log('📧 Email queue processed:', emailResponse.statusCode);
+      } catch (emailError) {
+        console.error('⚠️ Error processing email queue:', emailError);
+        // Don't fail the entire job if email processing fails
+      }
+      
       return {
         statusCode: 200,
         body: JSON.stringify({
           success: true,
-          message: 'Wishlist deadline cron job completed',
+          message: 'Wishlist deadline cron job completed and queues processed',
           result,
         }),
       };

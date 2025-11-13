@@ -13,10 +13,16 @@ export async function POST(request: NextRequest) {
 	try {
 		// Optional: Add authentication/authorization for cron endpoint
 		// For example, check for a secret token in headers
+		// Skip auth check in development mode for testing
+		const isDevelopment = process.env.NODE_ENV !== "production";
 		const authHeader = request.headers.get("authorization");
 		const cronSecret = process.env.CRON_SECRET;
 
-		if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+		if (
+			!isDevelopment &&
+			cronSecret &&
+			authHeader !== `Bearer ${cronSecret}`
+		) {
 			return NextResponse.json(
 				{ error: "Unauthorized" },
 				{ status: 401 }
@@ -146,6 +152,9 @@ export async function POST(request: NextRequest) {
 				}
 
 				// Send notification
+				console.log(
+					`📤 Sending wishlist deadline notification for user ${item.applicant.user.id}, post ${item.post.post_id}`
+				);
 				await NotificationUtils.sendWishlistDeadlineNotification(
 					item.applicant.user.id,
 					item.applicant.user.email || "",
@@ -156,6 +165,9 @@ export async function POST(request: NextRequest) {
 					item.post.institution?.name,
 					postType
 				);
+				console.log(
+					`✅ Successfully sent wishlist deadline notification for user ${item.applicant.user.id}`
+				);
 
 				notificationsSent++;
 			} catch (error) {
@@ -163,7 +175,10 @@ export async function POST(request: NextRequest) {
 					error instanceof Error ? error.message : "Unknown error"
 				}`;
 				errors.push(errorMessage);
-				console.error(errorMessage, error);
+				console.error(`❌ ${errorMessage}`, error);
+				if (error instanceof Error) {
+					console.error(`❌ Error stack:`, error.stack);
+				}
 			}
 		}
 

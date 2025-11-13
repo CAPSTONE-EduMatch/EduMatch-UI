@@ -88,6 +88,8 @@ export default function TestEmailPage() {
 			emailQueue?: any
 		}
 	} | null>(null)
+	const [queueStatusLoading, setQueueStatusLoading] = useState(false)
+	const [queueStatus, setQueueStatus] = useState<any>(null)
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -202,6 +204,24 @@ export default function TestEmailPage() {
 		}
 	}
 
+	const handleCheckQueueStatus = async () => {
+		setQueueStatusLoading(true)
+		setQueueStatus(null)
+
+		try {
+			const response = await fetch('/api/debug/queue-status')
+			const data = await response.json()
+			setQueueStatus(data)
+		} catch (error) {
+			setQueueStatus({
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			})
+		} finally {
+			setQueueStatusLoading(false)
+		}
+	}
+
 	return (
 		<div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
 			<div className="max-w-3xl mx-auto">
@@ -310,6 +330,77 @@ export default function TestEmailPage() {
 							</div>
 						</div>
 					)}
+
+					{/* Queue Status Check Section */}
+					<div className="mt-8 pt-8 border-t border-gray-200">
+						<h2 className="text-lg font-semibold text-gray-900 mb-4">
+							Check SQS Queue Status
+						</h2>
+						<p className="text-sm text-gray-600 mb-4">
+							Check what messages are currently in the notifications and emails
+							queues. This helps debug why emails aren&apos;t being sent.
+						</p>
+						<button
+							type="button"
+							onClick={handleCheckQueueStatus}
+							disabled={queueStatusLoading}
+							className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{queueStatusLoading ? 'Checking...' : 'Check Queue Status'}
+						</button>
+
+						{queueStatus && (
+							<div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+								<div className="space-y-4">
+									<div>
+										<h3 className="font-medium text-gray-900 mb-2">
+											Notifications Queue
+										</h3>
+										<p className="text-sm text-gray-600">
+											Messages: {queueStatus.notificationsQueue?.count || 0}
+										</p>
+										{queueStatus.notificationsQueue?.messages &&
+											queueStatus.notificationsQueue.messages.length > 0 && (
+												<div className="mt-2 text-xs bg-white p-2 rounded border">
+													<pre className="whitespace-pre-wrap">
+														{JSON.stringify(
+															queueStatus.notificationsQueue.messages,
+															null,
+															2
+														)}
+													</pre>
+												</div>
+											)}
+									</div>
+									<div>
+										<h3 className="font-medium text-gray-900 mb-2">
+											Emails Queue
+										</h3>
+										<p className="text-sm text-gray-600">
+											Messages: {queueStatus.emailsQueue?.count || 0}
+										</p>
+										{queueStatus.emailsQueue?.messages &&
+											queueStatus.emailsQueue.messages.length > 0 && (
+												<div className="mt-2 text-xs bg-white p-2 rounded border">
+													<pre className="whitespace-pre-wrap">
+														{JSON.stringify(
+															queueStatus.emailsQueue.messages,
+															null,
+															2
+														)}
+													</pre>
+												</div>
+											)}
+									</div>
+									{queueStatus.note && (
+										<p className="text-xs text-gray-500 italic">
+											{queueStatus.note}
+										</p>
+									)}
+								</div>
+							</div>
+						)}
+					</div>
 
 					{/* Cron Job Test Section */}
 					<div className="mt-8 pt-8 border-t border-gray-200">

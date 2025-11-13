@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
+import { randomUUID } from "crypto";
 
 /**
  * POST /api/notifications/store - Store notification from Lambda
@@ -21,9 +22,14 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Generate a new unique notification ID for each database record
+		// The message ID (id) is for SQS deduplication, but each notification
+		// stored in the database should have a unique ID
+		const notificationId = randomUUID();
+
 		// Map the notification stack fields to the database schema
 		const notificationData = {
-			notification_id: id,
+			notification_id: notificationId,
 			user_id: userId,
 			type: type,
 			title: title,
@@ -35,6 +41,7 @@ export async function POST(request: NextRequest) {
 		};
 
 		// Store notification in database
+		// Each notification gets a unique ID, so we can use create
 		const notification = await prismaClient.notification.create({
 			data: notificationData,
 		});

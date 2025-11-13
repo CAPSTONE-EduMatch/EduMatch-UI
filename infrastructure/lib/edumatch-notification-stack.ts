@@ -111,18 +111,34 @@ export class EduMatchNotificationStack extends cdk.Stack {
 				handler: "index.handler",
 				code: lambda.Code.fromInline(`
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
+const https = require('https');
+const { URL } = require('url');
 
 const sqsClient = new SQSClient({ region: 'ap-northeast-1' });
 
 exports.handler = async (event) => {
+  console.log('📬 NotificationProcessor Lambda triggered with', event.Records.length, 'record(s)');
+  
   for (const record of event.Records) {
     try {
       const message = JSON.parse(record.body);
+      console.log('Processing notification:', message.type, 'for user:', message.userId);
       
-      // Store notification in database
-      await storeNotificationInDatabase(message);
+      // Store notification in database (continue even if this fails)
+      try {
+        await storeNotificationInDatabase(message);
+        console.log('✅ Notification stored in database');
+      } catch (storageError) {
+        // Log the error but continue processing
+        // This ensures emails are still sent even if notification storage fails
+        console.error('⚠️ Failed to store notification in database, but continuing:', storageError.message);
+        // Check if it's a duplicate error - if so, that's okay, notification already exists
+        if (storageError.message && storageError.message.includes('Unique constraint')) {
+          console.log('ℹ️ Notification already exists in database, skipping storage');
+        }
+      }
       
-      // Forward message to email queue
+      // Forward message to email queue (always do this, even if storage failed)
       const emailCommand = new SendMessageCommand({
         QueueUrl: process.env.EMAILS_QUEUE_URL,
         MessageBody: JSON.stringify(message),
@@ -141,12 +157,16 @@ exports.handler = async (event) => {
       });
       
       await sqsClient.send(emailCommand);
+      console.log('✅ Message forwarded to email queue');
       
     } catch (error) {
-      console.error('Error processing notification:', error);
+      console.error('❌ Error processing notification:', error);
+      console.error('Error stack:', error.stack);
       throw error; // This will trigger retry
     }
   }
+  
+  console.log('✅ All notifications processed successfully');
 };
 
 async function storeNotificationInDatabase(message) {
@@ -192,30 +212,63 @@ async function storeNotificationInDatabase(message) {
         break;
     }
 
-    // Call your API to store notification
-    const response = await fetch(\`\${process.env.API_BASE_URL || 'https://your-app-url.com'}/api/notifications/store\`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: message.id,
-        userId: message.userId,
-        type: message.type,
-        title,
-        bodyText,
-        url,
-        createAt: message.createAt || new Date().toISOString(),
-        queuedAt: message.queuedAt || new Date().toISOString(),
-        payload: message.metadata || {},
-      }),
+    // Call your API to store notification using https module
+    const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';
+    const apiPath = '/api/notifications/store';
+    const urlObj = new URL(apiPath, apiUrl);
+    
+    const postData = JSON.stringify({
+      id: message.id,
+      userId: message.userId,
+      type: message.type,
+      title,
+      bodyText,
+      url,
+      createAt: message.createAt || new Date().toISOString(),
+      queuedAt: message.queuedAt || new Date().toISOString(),
+      payload: message.metadata || {},
     });
-
-    if (!response.ok) {
-      throw new Error(\`Failed to store notification: \${response.status}\`);
-    }
+    
+    const response = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port || 443,
+        path: urlObj.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+        },
+      };
+      
+      const req = https.request(options, (res) => {
+        let data = '';
+        
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({ statusCode: res.statusCode, data });
+          } else {
+            reject(new Error(\`Failed to store notification: \${res.statusCode} - \${data}\`));
+          }
+        });
+      });
+      
+      req.on('error', (error) => {
+        reject(error);
+      });
+      
+      req.write(postData);
+      req.end();
+    });
+    
+    console.log('✅ Notification stored in database successfully');
   } catch (error) {
     console.error('❌ Error storing notification in database:', error);
+    console.error('Error stack:', error.stack);
     throw error;
   }
 }
@@ -245,144 +298,76 @@ async function storeNotificationInDatabase(message) {
 			runtime: lambda.Runtime.NODEJS_18_X,
 			handler: "index.handler",
 			code: lambda.Code.fromInline(`
-const { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } = require('@aws-sdk/client-sqs');
 const https = require('https');
-
-const sqsClient = new SQSClient({ region: 'ap-northeast-1' });
-
-// Email templates (simplified versions)
-const emailTemplates = {
-  WELCOME: (metadata) => ({
-    subject: \`Welcome to EduMatch, \${metadata.firstName}!\`,
-    html: \`
-      <h1>Welcome to EduMatch!</h1>
-      <p>Hello \${metadata.firstName} \${metadata.lastName},</p>
-      <p>Welcome to EduMatch! We're thrilled to have you join our community.</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  PROFILE_CREATED: (metadata) => ({
-    subject: 'Profile Created Successfully - Welcome to EduMatch!',
-    html: \`
-      <h1>Profile Created Successfully!</h1>
-      <p>Congratulations, \${metadata.firstName}!</p>
-      <p>Your \${metadata.role} profile has been successfully created.</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  PAYMENT_DEADLINE: (metadata) => ({
-    subject: \`Payment Deadline Reminder - \${metadata.planName} Subscription\`,
-    html: \`
-      <h1>Payment Deadline Reminder</h1>
-      <p>Your \${metadata.planName} subscription payment is due soon.</p>
-      <p>Amount: \${metadata.currency} \${metadata.amount}</p>
-      <p>Deadline: \${new Date(metadata.deadlineDate).toLocaleDateString()}</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  APPLICATION_STATUS_UPDATE: (metadata) => ({
-    subject: \`Application Status Update - \${metadata.programName}\`,
-    html: \`
-      <h1>Application Status Update</h1>
-      <p>Your application to \${metadata.programName} at \${metadata.institutionName} has been updated.</p>
-      <p>New Status: \${metadata.newStatus}</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  PAYMENT_SUCCESS: (metadata) => ({
-    subject: \`Payment Successful - \${metadata.planName} Subscription\`,
-    html: \`
-      <h1>Payment Successful!</h1>
-      <p>Thank you for your payment.</p>
-      <p>Plan: \${metadata.planName}</p>
-      <p>Amount: \${metadata.currency} \${metadata.amount}</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  PAYMENT_FAILED: (metadata) => ({
-    subject: \`Payment Failed - \${metadata.planName} Subscription\`,
-    html: \`
-      <h1>Payment Failed</h1>
-      <p>We were unable to process your payment for \${metadata.planName}.</p>
-      <p>Reason: \${metadata.failureReason}</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  SUBSCRIPTION_EXPIRING: (metadata) => ({
-    subject: \`Subscription Expiring Soon - \${metadata.planName}\`,
-    html: \`
-      <h1>Subscription Expiring Soon</h1>
-      <p>Your \${metadata.planName} subscription will expire in \${metadata.daysRemaining} days.</p>
-      <p>Expiry Date: \${new Date(metadata.expiryDate).toLocaleDateString()}</p>
-      <p>Best regards,<br>The EduMatch Team</p>
-    \`
-  }),
-  WISHLIST_DEADLINE: (metadata) => {
-    const daysRemaining = metadata.daysRemaining || 0;
-    const daysText = daysRemaining === 1 ? "1 day" : \`\${daysRemaining} days\`;
-    const postType = metadata.postType || "programme";
-    let url = \`https://dev.d1jaxpbx3axxsh.amplifyapp.com/explore/programmes/\${metadata.postId || ""}\`;
-    if (postType === "scholarship") {
-      url = \`https://dev.d1jaxpbx3axxsh.amplifyapp.com/explore/scholarships/\${metadata.postId || ""}\`;
-    } else if (postType === "research-lab") {
-      url = \`https://dev.d1jaxpbx3axxsh.amplifyapp.com/explore/research-labs/\${metadata.postId || ""}\`;
-    }
-    return {
-      subject: \`Deadline Approaching - \${metadata.postTitle || "Wishlist Item"}\`,
-      html: \`
-        <h1>Deadline Approaching!</h1>
-        <p>Don't miss this opportunity!</p>
-        <p><strong>\${metadata.postTitle || "An item in your wishlist"}</strong> is approaching its deadline in <strong>\${daysText}</strong>.</p>
-        \${metadata.institutionName ? \`<p>Institution: \${metadata.institutionName}</p>\` : ""}
-        <p>Deadline: \${new Date(metadata.deadlineDate).toLocaleDateString()}</p>
-        <p><a href="\${url}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Details</a></p>
-        <p>Make sure to submit your application before it expires!</p>
-        <p>Best regards,<br>The EduMatch Team</p>
-      \`
-    };
-  }
-};
+const { URL } = require('url');
 
 exports.handler = async (event) => {
+  console.log('📧 EmailProcessor Lambda triggered with', event.Records.length, 'record(s)');
+  
   for (const record of event.Records) {
     try {
       const message = JSON.parse(record.body);
-      
-      // Get email template
-      const template = emailTemplates[message.type];
-      if (!template) {
-        console.error('Unknown email type:', message.type);
-        continue;
-      }
-      
-      const emailContent = template(message.metadata);
+      console.log('Processing email for:', message.type, 'to:', message.userEmail);
       
       // Send email by calling your Next.js app's email service API
-      // Use the notification processing endpoint which handles all email types properly
+      // The API endpoint handles all email types and templates
       const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';
+      const apiPath = '/api/notifications/send-email';
       
-      // Call the email service endpoint that processes notification messages
-      const response = await fetch(\`\${apiUrl}/api/notifications/send-email\`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message) // Send the full notification message
+      // Use https module instead of fetch for better Lambda compatibility
+      const url = new URL(apiPath, apiUrl);
+      
+      const postData = JSON.stringify(message);
+      
+      const response = await new Promise((resolve, reject) => {
+        const options = {
+          hostname: url.hostname,
+          port: url.port || 443,
+          path: url.pathname,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+          },
+        };
+        
+        const req = https.request(options, (res) => {
+          let data = '';
+          
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              console.log('✅ Email sent successfully via API for:', message.userEmail);
+              resolve({ statusCode: res.statusCode, data });
+            } else {
+              console.error('❌ Failed to send email via API:', res.statusCode, data);
+              reject(new Error(\`Email sending failed: \${res.statusCode} - \${data}\`));
+            }
+          });
+        });
+        
+        req.on('error', (error) => {
+          console.error('❌ Request error:', error);
+          reject(error);
+        });
+        
+        req.write(postData);
+        req.end();
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Failed to send email via API:', response.status, errorData);
-        throw new Error(\`Email sending failed: \${response.status} - \${errorData.error || 'Unknown error'}\`);
-      }
-      
-      console.log('Email sent successfully via API for:', message.userEmail);
+      console.log('✅ Email processed successfully for:', message.userEmail);
       
     } catch (error) {
-      console.error('Error processing email:', error);
+      console.error('❌ Error processing email:', error);
+      console.error('Error stack:', error.stack);
       throw error; // This will trigger retry
     }
   }
+  
+  console.log('✅ All emails processed successfully');
 };
       `),
 			role: lambdaRole,

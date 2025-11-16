@@ -15,7 +15,7 @@ import {
 	ChevronDown,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TabType } from '@/types/domain/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
@@ -89,7 +89,7 @@ export function FilterSidebar({
 		>
 	>({
 		programmes: {
-			fee: { min: 0, max: 1000000 },
+			fee: { min: 0, max: 2000000 },
 		},
 		scholarships: {},
 		research: {
@@ -133,8 +133,6 @@ export function FilterSidebar({
 	const showSubdisciplines =
 		tabDisciplineState[activeTab]?.showSubdisciplines || false
 	const searchTerms = tabSearchTerms[activeTab] || {}
-	const feeRange = tabRanges[activeTab]?.fee || { min: 0, max: 1000000 }
-	const salaryRange = tabRanges[activeTab]?.salary || { min: 0, max: 200000 }
 
 	// Dynamic filter data
 	const [dynamicFilters, setDynamicFilters] = useState<{
@@ -164,6 +162,26 @@ export function FilterSidebar({
 	// Store all disciplines data
 	const [allDisciplinesData, setAllDisciplinesData] =
 		useState<DisciplineData | null>(null)
+
+	// Add debounce refs for fee and salary ranges
+	const feeDebounceRef = useRef<NodeJS.Timeout | null>(null)
+	const salaryDebounceRef = useRef<NodeJS.Timeout | null>(null)
+
+	// Temporary state for fee and salary ranges (for immediate UI updates)
+	const [tempFeeRange, setTempFeeRange] = useState<{
+		min: number
+		max: number
+	} | null>(null)
+	const [tempSalaryRange, setTempSalaryRange] = useState<{
+		min: number
+		max: number
+	} | null>(null)
+
+	// Get current ranges (use temp if available, otherwise use actual)
+	const currentFeeRange = tempFeeRange ||
+		tabRanges[activeTab]?.fee || { min: 0, max: 2000000 }
+	const currentSalaryRange = tempSalaryRange ||
+		tabRanges[activeTab]?.salary || { min: 0, max: 200000 }
 
 	// Helper function to serialize filters to URL with tab prefix
 	const serializeFiltersToURL = useCallback(
@@ -202,7 +220,7 @@ export function FilterSidebar({
 
 			// Add ranges to URL with tab prefix
 			if (ranges.fee) {
-				if (ranges.fee.min !== 0 || ranges.fee.max !== 1000000) {
+				if (ranges.fee.min !== 0 || ranges.fee.max !== 2000000) {
 					params.set(`${activeTab}_feeMin`, ranges.fee.min.toString())
 					params.set(`${activeTab}_feeMax`, ranges.fee.max.toString())
 				}
@@ -249,7 +267,7 @@ export function FilterSidebar({
 		if (feeMin || feeMax) {
 			ranges.fee = {
 				min: feeMin ? parseInt(feeMin) : 0,
-				max: feeMax ? parseInt(feeMax) : 1000000,
+				max: feeMax ? parseInt(feeMax) : 2000000,
 			}
 		}
 
@@ -293,7 +311,7 @@ export function FilterSidebar({
 			}
 			const newTabRanges = {
 				programmes: {
-					fee: { min: 0, max: 1000000 },
+					fee: { min: 0, max: 2000000 },
 				},
 				scholarships: {},
 				research: {
@@ -332,7 +350,7 @@ export function FilterSidebar({
 				if (feeMin || feeMax) {
 					ranges.fee = {
 						min: feeMin ? parseInt(feeMin) : 0,
-						max: feeMax ? parseInt(feeMax) : 1000000,
+						max: feeMax ? parseInt(feeMax) : 2000000,
 					}
 				}
 
@@ -425,13 +443,31 @@ export function FilterSidebar({
 		const fetchAllDisciplines = async () => {
 			try {
 				const response = await fetch('/api/disciplines')
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`)
+				}
 				const data = await response.json()
-				setAllDisciplinesData(data)
+
+				// Ensure the data has the expected structure
+				const disciplinesData = {
+					disciplines: data.disciplines || [],
+					subdisciplines: data.subdisciplines || [],
+					subdisciplinesByDiscipline: data.subdisciplinesByDiscipline || {},
+				}
+
+				setAllDisciplinesData(disciplinesData)
 			} catch (error) {
 				if (process.env.NODE_ENV === 'development') {
 					// eslint-disable-next-line no-console
 					console.error('Error fetching all disciplines:', error)
 				}
+
+				// Set empty data structure on error
+				setAllDisciplinesData({
+					disciplines: [],
+					subdisciplines: [],
+					subdisciplinesByDiscipline: {},
+				})
 			}
 		}
 
@@ -459,7 +495,7 @@ export function FilterSidebar({
 			}
 			onFiltersChange(filtersWithRanges)
 		}
-	}, [tabFilters, tabRanges, activeTab, filtersInitialized]) // Remove onFiltersChange to prevent infinite loops
+	}, [tabFilters, tabRanges, activeTab, filtersInitialized, onFiltersChange])
 
 	// Fetch filter data when tab changes
 	useEffect(() => {
@@ -761,7 +797,7 @@ export function FilterSidebar({
 			currentDisciplineState.selectedDiscipline !== '' ||
 			currentDisciplineState.showSubdisciplines ||
 			(currentRanges.fee &&
-				(currentRanges.fee.min !== 0 || currentRanges.fee.max !== 1000000)) ||
+				(currentRanges.fee.min !== 0 || currentRanges.fee.max !== 2000000)) ||
 			(currentRanges.salary &&
 				(currentRanges.salary.min !== 0 || currentRanges.salary.max !== 200000))
 
@@ -785,7 +821,7 @@ export function FilterSidebar({
 					...prev,
 					[activeTab]: {
 						...prev[activeTab],
-						fee: { min: 0, max: 1000000 },
+						fee: { min: 0, max: 2000000 },
 					},
 				}))
 				setTabSearchTerms((prev) => ({
@@ -857,39 +893,71 @@ export function FilterSidebar({
 		}))
 	}
 
-	// Helper functions for range updates
-	const updateFeeRange = (newMin?: number, newMax?: number) => {
-		setTabRanges((prev) => ({
-			...prev,
-			[activeTab]: {
-				...prev[activeTab],
-				fee: {
-					min: newMin !== undefined ? newMin : prev[activeTab]?.fee?.min || 0,
-					max:
-						newMax !== undefined
-							? newMax
-							: prev[activeTab]?.fee?.max || 1000000,
-				},
-			},
-		}))
-	}
+	// Helper functions for range updates with debouncing
+	const updateFeeRange = useCallback(
+		(newMin?: number, newMax?: number) => {
+			// Update temporary state immediately for UI responsiveness
+			const currentRange = tabRanges[activeTab]?.fee || { min: 0, max: 2000000 }
+			const updatedRange = {
+				min: newMin !== undefined ? newMin : currentRange.min,
+				max: newMax !== undefined ? newMax : currentRange.max,
+			}
+			setTempFeeRange(updatedRange)
 
-	const updateSalaryRange = (newMin?: number, newMax?: number) => {
-		setTabRanges((prev) => ({
-			...prev,
-			[activeTab]: {
-				...prev[activeTab],
-				salary: {
-					min:
-						newMin !== undefined ? newMin : prev[activeTab]?.salary?.min || 0,
-					max:
-						newMax !== undefined
-							? newMax
-							: prev[activeTab]?.salary?.max || 200000,
-				},
-			},
-		}))
-	}
+			// Clear existing timeout
+			if (feeDebounceRef.current) {
+				clearTimeout(feeDebounceRef.current)
+			}
+
+			// Set new timeout to update actual state after 500ms
+			feeDebounceRef.current = setTimeout(() => {
+				setTabRanges((prev) => ({
+					...prev,
+					[activeTab]: {
+						...prev[activeTab],
+						fee: updatedRange,
+					},
+				}))
+				// Clear temp state
+				setTempFeeRange(null)
+			}, 500)
+		},
+		[activeTab, tabRanges]
+	)
+
+	const updateSalaryRange = useCallback(
+		(newMin?: number, newMax?: number) => {
+			// Update temporary state immediately for UI responsiveness
+			const currentRange = tabRanges[activeTab]?.salary || {
+				min: 0,
+				max: 200000,
+			}
+			const updatedRange = {
+				min: newMin !== undefined ? newMin : currentRange.min,
+				max: newMax !== undefined ? newMax : currentRange.max,
+			}
+			setTempSalaryRange(updatedRange)
+
+			// Clear existing timeout
+			if (salaryDebounceRef.current) {
+				clearTimeout(salaryDebounceRef.current)
+			}
+
+			// Set new timeout to update actual state after 500ms
+			salaryDebounceRef.current = setTimeout(() => {
+				setTabRanges((prev) => ({
+					...prev,
+					[activeTab]: {
+						...prev[activeTab],
+						salary: updatedRange,
+					},
+				}))
+				// Clear temp state
+				setTempSalaryRange(null)
+			}, 500)
+		},
+		[activeTab, tabRanges]
+	)
 
 	const toggleSection = (sectionKey: string) => {
 		setCollapsedSections((prev) => ({
@@ -912,13 +980,32 @@ export function FilterSidebar({
 		essayRequired?: string[]
 		sections: readonly string[]
 	} => {
+		// Helper function to safely get disciplines
+		const getDisciplinesFromData = () => {
+			if (!allDisciplinesData || !allDisciplinesData.disciplines) {
+				return []
+			}
+			return allDisciplinesData.disciplines.map((d) => d.name || '')
+		}
+
+		// Helper function to safely get subdisciplines
+		const getSubdisciplinesFromData = () => {
+			if (
+				!allDisciplinesData ||
+				!allDisciplinesData.subdisciplinesByDiscipline
+			) {
+				return {}
+			}
+			return allDisciplinesData.subdisciplinesByDiscipline
+		}
+
 		switch (activeTab) {
 			case 'programmes':
 				return {
 					// Use ALL disciplines from database instead of just from current programs
-					disciplines: allDisciplinesData?.disciplines.map((d) => d.name) || [],
-					subdisciplines: allDisciplinesData?.subdisciplinesByDiscipline || {},
-					countries: dynamicFilters.countries,
+					disciplines: getDisciplinesFromData(),
+					subdisciplines: getSubdisciplinesFromData(),
+					countries: dynamicFilters.countries || [],
 					durations: [
 						'Less than 1 year',
 						'1 year',
@@ -926,8 +1013,8 @@ export function FilterSidebar({
 						'2 years',
 						'More than 2 years',
 					],
-					degreeLevels: dynamicFilters.degreeLevels,
-					attendanceTypes: dynamicFilters.attendanceTypes,
+					degreeLevels: dynamicFilters.degreeLevels || [],
+					attendanceTypes: dynamicFilters.attendanceTypes || [],
 					sections: [
 						'discipline',
 						'country',
@@ -941,11 +1028,11 @@ export function FilterSidebar({
 			case 'scholarships':
 				return {
 					// Use ALL disciplines from database
-					disciplines: allDisciplinesData?.disciplines.map((d) => d.name) || [],
-					subdisciplines: allDisciplinesData?.subdisciplinesByDiscipline || {},
-					countries: dynamicFilters.countries,
-					degreeLevels: dynamicFilters.degreeLevels,
-					essayRequired: dynamicFilters.essayRequired,
+					disciplines: getDisciplinesFromData(),
+					subdisciplines: getSubdisciplinesFromData(),
+					countries: dynamicFilters.countries || [],
+					degreeLevels: dynamicFilters.degreeLevels || [],
+					essayRequired: dynamicFilters.essayRequired || [],
 					sections: [
 						'discipline',
 						'country',
@@ -956,18 +1043,18 @@ export function FilterSidebar({
 
 			case 'research':
 				return {
-					researchFields: dynamicFilters.researchFields,
-					countries: dynamicFilters.countries,
+					researchFields: dynamicFilters.researchFields || [],
+					countries: dynamicFilters.countries || [],
 					salaryRanges: [
 						'$50,000 - $70,000',
 						'$70,000 - $90,000',
 						'$90,000 - $120,000',
 						'$120,000+',
 					],
-					degreeLevels: dynamicFilters.degreeLevels,
-					attendanceTypes: dynamicFilters.attendanceTypes,
-					contractTypes: dynamicFilters.contractTypes,
-					jobTypes: dynamicFilters.jobTypes,
+					degreeLevels: dynamicFilters.degreeLevels || [],
+					attendanceTypes: dynamicFilters.attendanceTypes || [],
+					contractTypes: dynamicFilters.contractTypes || [],
+					jobTypes: dynamicFilters.jobTypes || [],
 					sections: [
 						'researchField',
 						'country',
@@ -1440,7 +1527,7 @@ export function FilterSidebar({
 									initial={{ opacity: 0, height: 0 }}
 									animate={{ opacity: 1, height: 'auto' }}
 									exit={{ opacity: 0, height: 0 }}
-									transition={{ duration: 0.3 }}
+									// transition={{ duration: 0.3 }}
 								>
 									<div className="space-y-4">
 										{/* Range Display */}
@@ -1471,11 +1558,11 @@ export function FilterSidebar({
 													min="0"
 													max="2000000"
 													step="1000"
-													value={feeRange.min}
+													value={currentFeeRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value)
 														updateFeeRange(
-															Math.min(newMin, feeRange.max - 1000)
+															Math.min(newMin, currentFeeRange.max - 1000)
 														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-10"
@@ -1490,12 +1577,12 @@ export function FilterSidebar({
 													min="0"
 													max="2000000"
 													step="1000"
-													value={feeRange.max}
+													value={currentFeeRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value)
 														updateFeeRange(
 															undefined,
-															Math.max(newMax, feeRange.min + 1000)
+															Math.max(newMax, currentFeeRange.min + 1000)
 														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20"
@@ -1510,8 +1597,8 @@ export function FilterSidebar({
 													<div
 														className="absolute h-2 bg-[#116E63] rounded-lg"
 														style={{
-															left: `${(feeRange.min / 2000000) * 100}%`,
-															right: `${100 - (feeRange.max / 2000000) * 100}%`,
+															left: `${(currentFeeRange.min / 2000000) * 100}%`,
+															right: `${100 - (currentFeeRange.max / 2000000) * 100}%`,
 														}}
 													/>
 												</div>
@@ -1524,11 +1611,14 @@ export function FilterSidebar({
 												<label className="text-xs text-gray-500">Min ($)</label>
 												<input
 													type="number"
-													value={feeRange.min}
+													value={currentFeeRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value) || 0
 														updateFeeRange(
-															Math.min(Math.max(newMin, 0), feeRange.max - 1000)
+															Math.min(
+																Math.max(newMin, 0),
+																currentFeeRange.max - 1000
+															)
 														)
 													}}
 													className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#116E63] focus:border-[#116E63]"
@@ -1540,14 +1630,14 @@ export function FilterSidebar({
 												<label className="text-xs text-gray-500">Max ($)</label>
 												<input
 													type="number"
-													value={feeRange.max}
+													value={currentFeeRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value) || 0
 														updateFeeRange(
 															undefined,
 															Math.max(
 																Math.min(newMax, 2000000),
-																feeRange.min + 1000
+																currentFeeRange.min + 1000
 															)
 														)
 													}}
@@ -1605,11 +1695,11 @@ export function FilterSidebar({
 													min="0"
 													max="300000"
 													step="5000"
-													value={salaryRange.min}
+													value={currentSalaryRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value)
 														updateSalaryRange(
-															Math.min(newMin, salaryRange.max - 5000)
+															Math.min(newMin, currentSalaryRange.max - 5000)
 														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-10"
@@ -1624,12 +1714,12 @@ export function FilterSidebar({
 													min="0"
 													max="300000"
 													step="5000"
-													value={salaryRange.max}
+													value={currentSalaryRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value)
 														updateSalaryRange(
 															undefined,
-															Math.max(newMax, salaryRange.min + 5000)
+															Math.max(newMax, currentSalaryRange.min + 5000)
 														)
 													}}
 													className="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20"
@@ -1644,8 +1734,8 @@ export function FilterSidebar({
 													<div
 														className="absolute h-2 bg-[#116E63] rounded-lg"
 														style={{
-															left: `${(salaryRange.min / 300000) * 100}%`,
-															right: `${100 - (salaryRange.max / 300000) * 100}%`,
+															left: `${(currentSalaryRange.min / 300000) * 100}%`,
+															right: `${100 - (currentSalaryRange.max / 300000) * 100}%`,
 														}}
 													/>
 												</div>
@@ -1658,13 +1748,13 @@ export function FilterSidebar({
 												<label className="text-xs text-gray-500">Min ($)</label>
 												<input
 													type="number"
-													value={salaryRange.min}
+													value={currentSalaryRange.min}
 													onChange={(e) => {
 														const newMin = Number.parseInt(e.target.value) || 0
 														updateSalaryRange(
 															Math.min(
 																Math.max(newMin, 0),
-																salaryRange.max - 5000
+																currentSalaryRange.max - 5000
 															)
 														)
 													}}
@@ -1677,14 +1767,14 @@ export function FilterSidebar({
 												<label className="text-xs text-gray-500">Max ($)</label>
 												<input
 													type="number"
-													value={salaryRange.max}
+													value={currentSalaryRange.max}
 													onChange={(e) => {
 														const newMax = Number.parseInt(e.target.value) || 0
 														updateSalaryRange(
 															undefined,
 															Math.max(
 																Math.min(newMax, 300000),
-																salaryRange.min + 5000
+																currentSalaryRange.min + 5000
 															)
 														)
 													}}

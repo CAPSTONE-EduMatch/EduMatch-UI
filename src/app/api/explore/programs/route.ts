@@ -112,6 +112,7 @@ export async function GET(request: NextRequest) {
 				postsWithInstitution: allPosts.filter((p) => p.institution)
 					.length,
 				whereClause: JSON.stringify(whereClause),
+				sortBy,
 			});
 		}
 
@@ -315,10 +316,29 @@ export async function GET(request: NextRequest) {
 		// Sort programs
 		switch (sortBy) {
 			case "most-popular":
-				allPrograms.sort(
-					(a, b) =>
-						(b.applicationCount || 0) - (a.applicationCount || 0)
-				);
+				allPrograms.sort((a, b) => {
+					// Primary sort: by application count (descending)
+					const appCountDiff =
+						(b.applicationCount || 0) - (a.applicationCount || 0);
+					if (appCountDiff !== 0) return appCountDiff;
+
+					// Secondary sort: by creation date for equal popularity (newer first)
+					const originalPostA = allPosts.find(
+						(p) => p.post_id === a.id
+					);
+					const originalPostB = allPosts.find(
+						(p) => p.post_id === b.id
+					);
+
+					if (originalPostA && originalPostB) {
+						return (
+							new Date(originalPostB.create_at).getTime() -
+							new Date(originalPostA.create_at).getTime()
+						);
+					}
+
+					return 0;
+				});
 				break;
 			case "match-score":
 				allPrograms.sort(

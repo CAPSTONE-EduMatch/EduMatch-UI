@@ -68,7 +68,7 @@ const Explore = () => {
 			setActiveTab(tabFromUrl as TabType)
 		}
 
-		// Get sort from URL
+		// Get sort from URL - ensure consistent default
 		const sortFromUrl = searchParams.get('sort') as SortOption
 		if (
 			sortFromUrl &&
@@ -77,6 +77,9 @@ const Explore = () => {
 			)
 		) {
 			setSortBy(sortFromUrl)
+		} else {
+			// Always set explicit default if no sort in URL
+			setSortBy('most-popular')
 		}
 
 		// Get page from URL
@@ -145,8 +148,10 @@ const Explore = () => {
 			}
 		}
 
-		// Always mark filters as initialized
-		setFiltersInitialized(true)
+		// Always mark filters as initialized - delay to ensure state is settled
+		setTimeout(() => {
+			setFiltersInitialized(true)
+		}, 10) // Small delay to ensure all state updates are processed
 	}, [searchParams]) // Remove activeTab from dependencies to prevent infinite loop
 
 	// Update URL when tab, sort, or page changes
@@ -157,11 +162,8 @@ const Explore = () => {
 
 		params.set('tab', activeTab)
 
-		if (sortBy !== 'most-popular') {
-			params.set('sort', sortBy)
-		} else {
-			params.delete('sort')
-		}
+		// Always set sort parameter to ensure consistency
+		params.set('sort', sortBy)
 
 		if (currentPage !== 1) {
 			params.set('page', currentPage.toString())
@@ -295,13 +297,13 @@ const Explore = () => {
 
 		const loadData = async () => {
 			try {
-				// Filter out unsupported sort options
+				// Use consistent sort logic - match the state default
 				let apiSortBy:
 					| 'most-popular'
 					| 'newest'
 					| 'match-score'
 					| 'deadline'
-					| undefined = 'newest'
+					| undefined = 'most-popular' // Changed from 'newest' to match state default
 				if (
 					sortBy === 'most-popular' ||
 					sortBy === 'newest' ||
@@ -309,6 +311,17 @@ const Explore = () => {
 					sortBy === 'deadline'
 				) {
 					apiSortBy = sortBy
+				}
+
+				// Debug log to track sort consistency
+				if (process.env.NODE_ENV === 'development') {
+					// eslint-disable-next-line no-console
+					console.log(
+						'Loading data with sort:',
+						sortBy,
+						'-> API sort:',
+						apiSortBy
+					)
 				}
 
 				if (activeTab === 'programmes') {
@@ -419,7 +432,15 @@ const Explore = () => {
 			}
 		}
 
-		loadData()
+		// Add small delay to ensure sortBy state is fully updated
+		const timeoutId = setTimeout(() => {
+			loadData()
+		}, 50)
+
+		// Cleanup timeout
+		return () => {
+			clearTimeout(timeoutId)
+		}
 	}, [
 		activeTab,
 		currentPage,

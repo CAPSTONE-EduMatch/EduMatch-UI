@@ -41,14 +41,16 @@ export async function GET(request: NextRequest) {
 		const researchField =
 			searchParams.get("researchField")?.split(",") || [];
 		const country = searchParams.get("country")?.split(",") || [];
+		const degreeLevel = searchParams.get("degreeLevel")?.split(",") || [];
 		const jobType = searchParams.get("jobType")?.split(",") || [];
 		const contractType = searchParams.get("contractType")?.split(",") || [];
-		const minSalary = searchParams.get("minSalary")
-			? parseInt(searchParams.get("minSalary")!)
-			: undefined;
-		const maxSalary = searchParams.get("maxSalary")
-			? parseInt(searchParams.get("maxSalary")!)
-			: undefined;
+		// Note: salary filters not implemented for research positions
+		// const minSalary = searchParams.get("minSalary")
+		// 	? parseInt(searchParams.get("minSalary")!)
+		// 	: undefined;
+		// const maxSalary = searchParams.get("maxSalary")
+		// 	? parseInt(searchParams.get("maxSalary")!)
+		// 	: undefined;
 		const sortBy = searchParams.get("sortBy") || "most-popular";
 
 		// Parse pagination parameters
@@ -59,8 +61,8 @@ export async function GET(request: NextRequest) {
 		); // Max 50 per page
 		const skip = (page - 1) * limit;
 
-		// Build where clause for filtering - only posts with JobPost records (research positions)
-		const whereClause: any = {
+		// Build base where clause for filtering - only posts with JobPost records (research positions)
+		const baseWhereClause: any = {
 			status: "PUBLISHED", // Only show published posts
 			post_id: {
 				in: await prismaClient.jobPost
@@ -71,16 +73,71 @@ export async function GET(request: NextRequest) {
 
 		// Add search filter
 		if (search) {
-			whereClause.OR = [
+			baseWhereClause.OR = [
 				{ title: { contains: search, mode: "insensitive" } },
 				// { other_info: { contains: search, mode: "insensitive" } },
 			];
 		}
 
-		// Get total count for pagination
-		const totalCount = await prismaClient.opportunityPost.count({
-			where: whereClause,
-		});
+		// Build additional filter conditions
+		const filterConditions: any[] = [];
+
+		// Apply country filter
+		if (country.length > 0) {
+			filterConditions.push({
+				OR: [
+					{
+						institution: {
+							country: { in: country },
+						},
+					},
+					{
+						location: { in: country },
+					},
+				],
+			});
+		}
+
+		// Apply degree level filter
+		if (degreeLevel.length > 0) {
+			filterConditions.push({
+				degree_level: {
+					in: degreeLevel,
+				},
+			});
+		}
+
+		// Apply subdiscipline (research field) filter
+		if (researchField.length > 0) {
+			filterConditions.push({
+				subdisciplines: {
+					some: {
+						subdiscipline: {
+							name: {
+								in: researchField,
+							},
+						},
+					},
+				},
+			});
+		}
+
+		// Apply job type filter
+		if (jobType.length > 0) {
+			filterConditions.push({
+				jobPost: {
+					job_type: {
+						in: jobType,
+					},
+				},
+			});
+		}
+
+		// Combine base where clause with filter conditions
+		const whereClause = {
+			...baseWhereClause,
+			...(filterConditions.length > 0 && { AND: filterConditions }),
+		};
 
 		// Query posts with JobPost data (for research positions)
 		const posts = await prismaClient.opportunityPost.findMany({
@@ -93,6 +150,22 @@ export async function GET(request: NextRequest) {
 						country: true,
 					},
 				},
+				subdisciplines: {
+					include: {
+						subdiscipline: {
+							select: {
+								subdiscipline_id: true,
+								name: true,
+							},
+						},
+					},
+				},
+				jobPost: {
+					select: {
+						job_type: true,
+						post_id: true,
+					},
+				},
 			},
 			orderBy:
 				sortBy === "newest"
@@ -100,19 +173,10 @@ export async function GET(request: NextRequest) {
 					: sortBy === "oldest"
 						? { create_at: "asc" }
 						: { create_at: "desc" }, // default to newest
-			skip,
-			take: limit,
-		});
-
-		// Get JobPost data for each post (research positions)
-		const postIds = posts.map((post: any) => post.post_id);
-		const postJobs = await prismaClient.jobPost.findMany({
-			where: {
-				post_id: { in: postIds },
-			},
 		});
 
 		// Get application counts for each post (for popularity sorting)
+		const postIds = posts.map((post: any) => post.post_id);
 		const applicationCounts = await prismaClient.application.groupBy({
 			by: ["post_id"],
 			where: {
@@ -122,22 +186,6 @@ export async function GET(request: NextRequest) {
 				application_id: true,
 			},
 		});
-
-		// Get institution data
-		// const institutions = await prismaClient.institution.findMany();
-
-		// Get disciplines and subdisciplines from database (for future use)
-		// const disciplines = await prismaClient.discipline.findMany({
-		// 	where: { status: true },
-		// 	include: {
-		// 		Sub_Discipline: {
-		// 			where: { status: true },
-		// 		},
-		// 	},
-		// });
-
-		// Create a map for quick lookups
-		const postJobMap = new Map(postJobs.map((pj: any) => [pj.post_id, pj]));
 
 		// Create application count map
 		const applicationCountMap = new Map(
@@ -150,7 +198,7 @@ export async function GET(request: NextRequest) {
 		// Transform data to ResearchLab format
 		let labs: ResearchLab[] = posts
 			.map((post: any) => {
-				const postJob = postJobMap.get(post.post_id);
+				const postJob = post.jobPost; // Use included jobPost data
 				if (!postJob) return null;
 
 				const applicationCount =
@@ -163,6 +211,12 @@ export async function GET(request: NextRequest) {
 							post.start_date.getTime() + 90 * 24 * 60 * 60 * 1000
 						);
 
+				// Get subdiscipline names for the field property
+				const subdisciplineNames =
+					post.subdisciplines
+						?.map((sd: any) => sd.subdiscipline?.name)
+						.filter((name: string) => name) || [];
+
 				const lab: ResearchLab = {
 					id: post.post_id, // Use the original post ID directly
 					title: post.title,
@@ -170,7 +224,10 @@ export async function GET(request: NextRequest) {
 					professor: "Prof. Researcher", // Default value since not in JobPost
 					institution:
 						post.institution?.name || "Research Institution",
-					field: (postJob as any)?.field || "Research", // Add field property
+					field:
+						subdisciplineNames.length > 0
+							? subdisciplineNames.join(", ")
+							: "Research", // Use subdiscipline names instead of old field
 					country:
 						post.institution?.country || post.location || "Unknown",
 					position: (postJob as any)?.job_type || "Research Position",
@@ -184,40 +241,7 @@ export async function GET(request: NextRequest) {
 			})
 			.filter((lab: any): lab is ResearchLab => lab !== null);
 
-		// Apply client-side filters
-		if (researchField.length > 0) {
-			labs = labs.filter((lab) =>
-				researchField.some((field) =>
-					lab.field.toLowerCase().includes(field.toLowerCase())
-				)
-			);
-		}
-
-		// Apply degree level filtering based on OpportunityPost.degree_level
-		const degreeLevel = searchParams.get("degreeLevel")?.split(",") || [];
-
-		if (degreeLevel.length > 0) {
-			labs = labs.filter((lab) => {
-				// Find the original post to get the degree_level
-				const originalPost = posts.find(
-					(p: any) => p.post_id === lab.id
-				);
-				const postDegreeLevel = originalPost?.degree_level || "";
-
-				return degreeLevel.some((level) =>
-					postDegreeLevel.toLowerCase().includes(level.toLowerCase())
-				);
-			});
-		}
-
-		if (country.length > 0) {
-			labs = labs.filter((lab) => country.includes(lab.country));
-		}
-
-		if (jobType.length > 0) {
-			labs = labs.filter((lab) => jobType.includes(lab.position));
-		}
-
+		// Apply additional client-side filters that couldn't be done in DB query
 		if (contractType.length > 0) {
 			labs = labs.filter((lab) =>
 				contractType.some((type) =>
@@ -246,20 +270,51 @@ export async function GET(request: NextRequest) {
 			// newest and oldest are handled by DB orderBy above
 		}
 
+		// Get total count of filtered results (before pagination)
+		const totalFilteredCount = await prismaClient.opportunityPost.count({
+			where: whereClause,
+		});
+
+		// Apply pagination to the sorted results
+		const paginatedLabs = labs.slice(skip, skip + limit);
+
 		const meta: PaginationMeta = {
-			total: totalCount,
+			total: totalFilteredCount,
 			page,
 			limit,
-			totalPages: Math.ceil(totalCount / limit),
+			totalPages: Math.ceil(totalFilteredCount / limit),
 		};
 
 		// Extract available filter options from all research labs (before pagination)
+		// Note: labs here contains all filtered results before pagination
 		const availableCountries = Array.from(
 			new Set(labs.map((lab) => lab.country).filter(Boolean))
 		).sort();
 
 		const availableResearchFields = Array.from(
 			new Set(labs.map((lab) => lab.field).filter(Boolean))
+		).sort();
+
+		// Extract unique disciplines from subdiscipline field data for discipline filter
+		const availableDisciplines = Array.from(
+			new Set(
+				labs
+					.flatMap((lab) => {
+						if (!lab.field || typeof lab.field !== "string")
+							return [];
+						return lab.field
+							.split(",")
+							.map((subdiscipline) => {
+								// Extract discipline name from "Discipline - Specialization" format
+								const disciplineName = subdiscipline
+									.trim()
+									.split(" - ")[0];
+								return disciplineName.trim();
+							})
+							.filter((name) => name && name.length > 0);
+					})
+					.filter(Boolean)
+			)
 		).sort();
 
 		const availableJobTypes = Array.from(
@@ -294,10 +349,11 @@ export async function GET(request: NextRequest) {
 		).sort();
 
 		const response: ExploreApiResponse<ResearchLab> = {
-			data: labs,
+			data: paginatedLabs, // Use paginated labs instead of all labs
 			meta,
 			availableFilters: {
 				countries: availableCountries,
+				disciplines: availableDisciplines, // Add available disciplines for filter
 				researchFields: availableResearchFields,
 				jobTypes: availableJobTypes,
 				degreeLevels: availableDegreeLevels,

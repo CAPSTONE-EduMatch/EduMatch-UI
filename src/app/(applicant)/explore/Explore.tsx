@@ -25,6 +25,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import student from '../../../../public/student.png'
+
 const categories = [
 	{ id: 'programmes', label: 'Programmes' },
 	{ id: 'scholarships', label: 'Scholarships' },
@@ -395,7 +396,7 @@ const Explore = () => {
 						limit: ITEMS_PER_PAGE_RESEARCH,
 						sortBy: apiSortBy,
 						search: searchQuery || undefined,
-						researchField: selectedFilters.researchField,
+						discipline: selectedFilters.discipline, // Changed from researchField to discipline
 						country: selectedFilters.country,
 						degreeLevel: selectedFilters.degreeLevel,
 						attendance: selectedFilters.attendance,

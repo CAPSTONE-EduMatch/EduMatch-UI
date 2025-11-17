@@ -87,8 +87,19 @@ export class ExploreApiService {
 
 		// Add filters to search params
 		if (filters.search) searchParams.set("search", filters.search);
-		if (filters.researchField?.length)
-			searchParams.set("researchField", filters.researchField.join(","));
+
+		// Handle research field filtering - prioritize discipline over researchField
+		const researchFields = [];
+		if (filters.discipline?.length) {
+			researchFields.push(...filters.discipline);
+		}
+		if (filters.researchField?.length) {
+			researchFields.push(...filters.researchField);
+		}
+		if (researchFields.length > 0) {
+			searchParams.set("researchField", researchFields.join(","));
+		}
+
 		if (filters.country?.length)
 			searchParams.set("country", filters.country.join(","));
 		if (filters.minSalary !== undefined)

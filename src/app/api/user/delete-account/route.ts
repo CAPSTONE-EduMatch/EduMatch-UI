@@ -1,9 +1,9 @@
 import { NotificationType, SQSService } from "@/config/sqs-config";
 import { requireAuth } from "@/utils/auth/auth-utils";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
 	try {
 		// Get the authenticated user
 		const { user } = await requireAuth();

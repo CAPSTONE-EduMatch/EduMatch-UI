@@ -503,6 +503,29 @@ export const auth = betterAuth({
 	database: prismaAdapter(prismaClient, {
 		provider: "postgresql",
 	}),
+	databaseHooks: {
+		session: {
+			create: {
+				before: async (session) => {
+					// Check if user is deactivated (status = false)
+					const user = await prismaClient.user.findUnique({
+						where: { id: session.userId },
+						select: { status: true, email: true },
+					});
+
+					if (!user) {
+						throw new Error("User not found");
+					}
+
+					if (user.status === false) {
+						throw new Error(
+							"Your account has been deactivated. Please contact support to reactivate your account."
+						);
+					}
+				},
+			},
+		},
+	},
 	session: {
 		// Optimized cookie caching with shorter maxAge for better security
 		cookieCache: {

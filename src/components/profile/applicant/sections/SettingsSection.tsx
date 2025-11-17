@@ -278,6 +278,14 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 						</ul>
 					</div>
 
+					<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+						<p className="text-blue-800 text-sm">
+							<strong>Note:</strong> Your account data will be preserved and you
+							can contact support to reactivate your account in the future if
+							needed.
+						</p>
+					</div>
+
 					{/* Delete Button */}
 					<Button
 						onClick={handleDeleteAccount}

@@ -6,11 +6,15 @@ import {
 	ResearchLabCard,
 	ErrorModal,
 } from '@/components/ui'
+import {
+	DocumentSelector,
+	SelectedDocument,
+} from '@/components/ui/DocumentSelector'
 
 import { mockResearchLabs } from '@/data/utils'
 import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Trash2 } from 'lucide-react'
+import { Heart, Trash2, Check } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
@@ -68,6 +72,21 @@ const ResearchLabDetail = () => {
 	// Notification system
 	const { showSuccess, showError } = useNotification()
 
+	// Handle documents selection from DocumentSelector
+	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
+		setSelectedDocuments(documents)
+		// Convert selected documents to uploadedFiles format for compatibility
+		const convertedFiles = documents.map((doc) => ({
+			id: doc.document_id,
+			name: doc.name,
+			url: doc.url,
+			size: doc.size,
+			documentType: doc.documentType,
+			source: doc.source,
+		}))
+		setUploadedFiles(convertedFiles)
+	}
+
 	// Dynamic info items based on current lab data
 	const infoItems = [
 		{ label: 'Salary', value: researchLab?.salary || 'Up to $2000' },
@@ -80,9 +99,13 @@ const ResearchLabDetail = () => {
 	]
 
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+	const [selectedDocuments, setSelectedDocuments] = useState<
+		SelectedDocument[]
+	>([])
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+	const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Research Lab Detail' }])
@@ -284,6 +307,12 @@ const ResearchLabDetail = () => {
 
 	// Handle application submission
 	const handleApply = async () => {
+		// Check authentication first
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			return
+		}
+
 		// Use research lab ID from URL params as fallback
 		const researchLabId = researchLab?.id || params.id
 		if (!researchLabId) {
@@ -336,8 +365,6 @@ const ResearchLabDetail = () => {
 				)
 			}
 		} catch (error: any) {
-			console.error('Failed to submit application:', error)
-
 			// Handle specific "already applied" error
 			if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
@@ -450,6 +477,14 @@ const ResearchLabDetail = () => {
 		event: React.ChangeEvent<HTMLInputElement>,
 		documentType: string
 	) => {
+		// Check authentication first
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			// Clear the input to prevent file selection
+			event.target.value = ''
+			return
+		}
+
 		const files = event.target.files
 		if (files && files.length > 0) {
 			try {
@@ -491,12 +526,17 @@ const ResearchLabDetail = () => {
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
-	const removeFile = (fileId: number) => {
+	const removeFile = (fileId: number | string) => {
 		setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId))
+		// Also remove from selectedDocuments
+		setSelectedDocuments((prev) =>
+			prev.filter((doc) => doc.document_id !== fileId)
+		)
 	}
 
 	const removeAllFiles = () => {
 		setUploadedFiles([])
+		setSelectedDocuments([])
 		setShowDeleteConfirmModal(false)
 	}
 
@@ -1083,126 +1123,217 @@ const ResearchLabDetail = () => {
 										: applicationStatus}
 							</span>
 						)}
-					</div>
-
-					<div className="text-gray-600 mb-6">
-						{researchLab?.requiredDocuments &&
-						researchLab.requiredDocuments.length > 0 ? (
-							<div className="space-y-3">
-								{researchLab.requiredDocuments.map((doc: any) => (
-									<p key={doc.id}>
-										{/* <span className="font-medium">{doc.name}:</span>{' '} */}
-										{doc.description}
+					</div>{' '}
+					{!hasApplied && (
+						<>
+							<div className="text-gray-600 mb-6">
+								{researchLab?.requiredDocuments &&
+								researchLab.requiredDocuments.length > 0 ? (
+									<div className="space-y-3">
+										{researchLab.requiredDocuments.map((doc: any) => (
+											<p key={doc.id}>
+												<span className="font-medium">{doc.name}:</span>{' '}
+												{doc.description}
+											</p>
+										))}
+									</div>
+								) : (
+									<p>
+										You can upload required documents here. We will send
+										documents and your academic information to university.
 									</p>
-								))}
+								)}
 							</div>
-						) : (
-							<p>
-								You can upload required documents here. We will send documents
-								and your academic information to university.
-							</p>
-						)}
-					</div>
 
-					{/* File Upload Area */}
-					<div className="w-full mb-6">
-						{researchLab?.requiredDocuments &&
-						researchLab.requiredDocuments.length > 0 ? (
-							researchLab.requiredDocuments.map((doc: any) => {
-								const filesForThisType = uploadedFiles.filter(
-									(file) => file.documentType === doc.id
-								)
-								return (
-									<div key={doc.id} className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">
-											{doc.name}
-											{filesForThisType.length > 0 && (
-												<span className="ml-2 text-xs text-green-600">
-													({filesForThisType.length} file
-													{filesForThisType.length !== 1 ? 's' : ''})
-												</span>
-											)}
-										</label>
-										{/* {doc.description && (
-																			<p className="text-xs text-gray-500 mb-2">
-																				{doc.description}
-																			</p>
-																		)} */}
-										<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-											<div className="text-4xl mb-4">📁</div>
-											<div className="space-y-2">
+							{/* Application Documents Section */}
+							<div className="w-full mb-6">
+								<div className="space-y-6">
+									{/* Header */}
+									<div className="text-center">
+										<h3 className="text-xl font-semibold text-gray-900 mb-2">
+											Application Documents
+										</h3>
+										<p className="text-gray-600">
+											Select documents from your profile or upload new files
+										</p>
+									</div>
+
+									{/* Show simple note if no documents selected yet */}
+									{selectedDocuments.length === 0 ? (
+										<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+											<div className="text-6xl mb-4">📁</div>
+											<h4 className="text-lg font-medium text-gray-900 mb-2">
+												No documents ready
+											</h4>
+											<p className="text-gray-600 mb-6">
+												Get started by selecting documents from your profile
+											</p>
+											<Button
+												onClick={() => setShowDocumentSelector(true)}
+												className="bg-[#126E64] hover:bg-teal-700 text-white px-8 py-3"
+											>
+												📄 Select Documents
+											</Button>
+										</div>
+									) : (
+										<>
+											{/* Selected Documents Summary */}
+											<div className="bg-[#e1fdeb] border border-green-200 rounded-xl p-6">
+												<div className="flex items-center gap-4">
+													<div className="w-12 h-12 bg-[#126E64] rounded-full flex items-center justify-center">
+														<Check className="w-6 h-6 text-white" />
+													</div>
+													<div className="flex-1">
+														<h4 className="text-lg font-semibold text-green-800">
+															{selectedDocuments.length} Document
+															{selectedDocuments.length !== 1 ? 's' : ''} Ready
+														</h4>
+														<p className="text-green-600">
+															{(() => {
+																const profileDocs = selectedDocuments.filter(
+																	(d) => d.source === 'existing'
+																).length
+																const uploadedDocs = selectedDocuments.filter(
+																	(d) => d.source === 'new'
+																).length
+
+																if (profileDocs > 0 && uploadedDocs > 0) {
+																	return `${profileDocs} from profile, ${uploadedDocs} uploaded`
+																} else if (profileDocs > 0) {
+																	return `${profileDocs} from profile`
+																} else if (uploadedDocs > 0) {
+																	return `${uploadedDocs} uploaded`
+																} else {
+																	return 'Ready to submit'
+																}
+															})()}
+														</p>
+													</div>
+													<div className="flex gap-3">
+														<Button
+															variant="outline"
+															onClick={() => setShowDocumentSelector(true)}
+															className="text-green-700 border-green-300 bg-white hover:bg-green-50"
+														>
+															Edit Selection
+														</Button>
+													</div>
+												</div>
+											</div>
+
+											{/* Upload Additional Files */}
+											<div className="border-2 border-dashed rounded-xl p-8 text-center">
 												<input
 													type="file"
 													multiple
-													onChange={(e) => handleFileUpload(e, doc.id)}
+													onChange={async (e) => {
+														const files = e.target.files
+														if (files && files.length > 0) {
+															try {
+																const uploadedFileData = await uploadFiles(
+																	Array.from(files)
+																)
+																if (uploadedFileData) {
+																	const newDocuments = uploadedFileData.map(
+																		(file) => ({
+																			document_id: `temp_${Date.now()}_${Math.random()}`,
+																			name: file.name,
+																			url: file.url,
+																			size: file.size,
+																			documentType: 'general',
+																			source: 'new' as const,
+																		})
+																	)
+																	const updatedDocs = [
+																		...selectedDocuments,
+																		...newDocuments,
+																	]
+																	setSelectedDocuments(updatedDocs)
+																	handleDocumentsSelected(updatedDocs)
+																	showSuccess(
+																		'Files Uploaded',
+																		`${uploadedFileData.length} file(s) uploaded successfully`
+																	)
+																}
+															} catch (error) {
+																showError(
+																	'Upload Failed',
+																	'Failed to upload files. Please try again.'
+																)
+															}
+														}
+														e.target.value = ''
+													}}
 													className="hidden"
-													id={`file-upload-${doc.id}`}
+													id="file-upload-additional"
+													accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
 												/>
 												<label
-													htmlFor={`file-upload-${doc.id}`}
-													className="text-sm text-[#126E64] cursor-pointer hover:underline block"
+													htmlFor="file-upload-additional"
+													className="cursor-pointer block"
 												>
-													Click here to upload file
+													<div className="text-5xl mb-4">📁</div>
+													<h4 className="text-lg font-medium text-orange-800 mb-2">
+														Upload Additional Files
+													</h4>
+													<p className="text-orange-700">
+														Click to add more documents from your computer
+													</p>
+													<p className="text-sm text-gray-500 mt-2">
+														PDF, DOC, DOCX, JPG, PNG (max 10MB each)
+													</p>
 												</label>
 											</div>
-										</div>
 
-										{/* Show uploaded files for this document type */}
-										{/* {filesForThisType.length > 0 && (
-																			<div className="space-y-1">
-																				{filesForThisType.map((file) => (
-																					<div
-																						key={file.id}
-																						className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
-																					>
-																						<span className="truncate flex-1">{file.name}</span>
-																						<button
-																							onClick={() => removeFile(file.id)}
-																							className="text-red-500 hover:text-red-700 ml-2"
-																						>
-																							✕
-																						</button>
-																					</div>
-																				))}
-																			</div>
-																		)} */}
-									</div>
-								)
-							})
-						) : (
-							// Always show file upload area even if no required documents
-							<div className="space-y-2">
-								<label className="text-sm font-medium text-gray-700">
-									Upload Documents
-									{uploadedFiles.length > 0 && (
-										<span className="ml-2 text-xs text-green-600">
-											({uploadedFiles.length} file
-											{uploadedFiles.length !== 1 ? 's' : ''})
-										</span>
+											{/* Show uploaded additional files if any */}
+											{/* {selectedDocuments.filter((doc) => doc.source === 'new')
+												.length > 0 && (
+												<div className="space-y-3">
+													<h5 className="font-medium text-gray-900">
+														Newly Uploaded Files:
+													</h5>
+													{selectedDocuments
+														.filter((doc) => doc.source === 'new')
+														.map((doc) => (
+															<div
+																key={doc.document_id}
+																className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+															>
+																<div className="flex items-center gap-3">
+																	<div className="text-2xl">📄</div>
+																	<div>
+																		<p className="font-medium text-gray-900">
+																			{doc.name}
+																		</p>
+																		<p className="text-sm text-gray-500">
+																			{formatFileSize(doc.size)} • Just uploaded
+																		</p>
+																	</div>
+																</div>
+																<button
+																	onClick={() => {
+																		const updatedDocs =
+																			selectedDocuments.filter(
+																				(d) => d.document_id !== doc.document_id
+																			)
+																		setSelectedDocuments(updatedDocs)
+																		handleDocumentsSelected(updatedDocs)
+																	}}
+																	className="text-red-500 hover:text-red-700 p-2"
+																	title="Remove document"
+																>
+																	<Trash2 className="h-4 w-4" />
+																</button>
+															</div>
+														))}
+												</div>
+											)} */}
+										</>
 									)}
-								</label>
-								<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-									<div className="text-4xl mb-4">📁</div>
-									<div className="space-y-2">
-										<input
-											type="file"
-											multiple
-											onChange={(e) => handleFileUpload(e, 'other')}
-											className="hidden"
-											id="file-upload-general"
-										/>
-										<label
-											htmlFor="file-upload-general"
-											className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-										>
-											Click here to upload file
-										</label>
-									</div>
 								</div>
 							</div>
-						)}
-					</div>
-
+						</>
+					)}
 					{/* File Management */}
 					{!hasApplied && (uploadedFiles.length > 0 || isUploading) && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -1244,7 +1375,6 @@ const ResearchLabDetail = () => {
 							)}
 						</div>
 					)}
-
 					{/* Display update requests as individual alert boxes */}
 					{hasApplied &&
 						updateRequests.length > 0 &&
@@ -1346,7 +1476,6 @@ const ResearchLabDetail = () => {
 								</div>
 							</div>
 						))}
-
 					{hasApplied &&
 						updateRequests.length === 0 &&
 						applicationStatus !== 'REQUIRE_UPDATE' && (
@@ -1424,7 +1553,6 @@ const ResearchLabDetail = () => {
 								</div>
 							</div>
 						)}
-
 					{/* Show uploaded files in read-only mode when applied */}
 					{hasApplied && uploadedFiles.length > 0 && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -1512,9 +1640,17 @@ const ResearchLabDetail = () => {
 							</div>
 						</div>
 					)}
-
+					{/* Show helpful message when no files uploaded */}
+					{!hasApplied && uploadedFiles.length === 0 && (
+						<div className="text-center mb-4">
+							<p className="text-amber-600 text-sm font-medium">
+								📁 Please upload at least one document to submit your
+								application
+							</p>
+						</div>
+					)}
 					<div className="flex gap-3 justify-center">
-						{!hasApplied && uploadedFiles.length > 0 && (
+						{!hasApplied && selectedDocuments.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}
@@ -1527,12 +1663,31 @@ const ResearchLabDetail = () => {
 							className={
 								hasApplied
 									? 'bg-green-600 hover:bg-green-700 text-white'
-									: 'bg-[#126E64] hover:bg-teal-700 text-white'
+									: uploadedFiles.length === 0 &&
+										  !isApplying &&
+										  !isUploading &&
+										  !isCheckingApplication
+										? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
+										: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
 							disabled={
-								hasApplied || isApplying || isUploading || isCheckingApplication
+								hasApplied ||
+								isApplying ||
+								isUploading ||
+								isCheckingApplication ||
+								uploadedFiles.length === 0
 							}
+							style={{
+								cursor:
+									uploadedFiles.length === 0 &&
+									!hasApplied &&
+									!isApplying &&
+									!isUploading &&
+									!isCheckingApplication
+										? 'not-allowed'
+										: 'pointer',
+							}}
 						>
 							{hasApplied ? (
 								'✓ Application Submitted'
@@ -1551,6 +1706,8 @@ const ResearchLabDetail = () => {
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 									Checking...
 								</div>
+							) : uploadedFiles.length === 0 ? (
+								'Upload Files to Continue'
 							) : (
 								'Submit Application'
 							)}
@@ -1766,6 +1923,28 @@ const ResearchLabDetail = () => {
 					}}
 				/>
 			)}
+
+			{/* Document Selector Modal */}
+			<Modal
+				isOpen={showDocumentSelector}
+				onClose={() => setShowDocumentSelector(false)}
+				title="Select Documents for Application"
+				maxWidth="xl"
+			>
+				<div className="max-h-[70vh] overflow-y-auto">
+					<DocumentSelector
+						onDocumentsSelected={handleDocumentsSelected}
+						selectedDocuments={selectedDocuments}
+						requiredDocumentTypes={
+							researchLab?.requiredDocuments?.map((doc: any) => ({
+								id: doc.id,
+								name: doc.name,
+								description: doc.description,
+							})) || []
+						}
+					/>
+				</div>
+			</Modal>
 		</div>
 	)
 }

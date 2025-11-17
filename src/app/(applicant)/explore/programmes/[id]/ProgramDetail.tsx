@@ -8,10 +8,21 @@ import {
 	ScholarshipCard,
 	ErrorModal,
 } from '@/components/ui'
+import {
+	DocumentSelector,
+	SelectedDocument,
+} from '@/components/ui/DocumentSelector'
 
 import { mockPrograms } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Heart, Trash2 } from 'lucide-react'
+import {
+	ChevronLeft,
+	ChevronRight,
+	Heart,
+	Trash2,
+	Check,
+	File,
+} from 'lucide-react'
 import Image from 'next/image'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
@@ -22,6 +33,7 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { useApiWrapper } from '@/services/api/api-wrapper'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useApplicantDocuments } from '@/hooks/documents/useApplicantDocuments'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
@@ -31,7 +43,11 @@ const ProgramDetail = () => {
 	const [currentPage, setCurrentPage] = useState(1)
 	const [carouselIndex, setCarouselIndex] = useState(0)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+	const [selectedDocuments, setSelectedDocuments] = useState<
+		SelectedDocument[]
+	>([])
 	const [showManageModal, setShowManageModal] = useState(false)
+	const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
 
@@ -305,41 +321,19 @@ const ProgramDetail = () => {
 		}
 	}
 
-	const handleFileUpload = async (
-		event: React.ChangeEvent<HTMLInputElement>,
-		documentType: string
-	) => {
-		const files = event.target.files
-		if (files && files.length > 0) {
-			try {
-				// Upload files to S3
-				const uploadedFileData = await uploadFiles(Array.from(files))
-
-				// Add uploaded files to state with document type
-				if (uploadedFileData) {
-					const filesWithType = uploadedFileData.map((file) => ({
-						...file,
-						documentType: documentType,
-					}))
-					setUploadedFiles((prev) => [...prev, ...filesWithType])
-				}
-				showSuccess(
-					'Files Uploaded Successfully',
-					`${uploadedFileData?.length || 0} file(s) have been uploaded successfully.`
-				)
-			} catch (error) {
-				console.error('❌ Failed to upload files to S3:', error)
-				showError(
-					'Upload Failed',
-					'Failed to upload files. Please try again.',
-					{
-						onRetry: () => handleFileUpload(event, documentType),
-						showRetry: true,
-						retryText: 'Retry Upload',
-					}
-				)
-			}
-		}
+	// Handle documents selection from DocumentSelector
+	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
+		setSelectedDocuments(documents)
+		// Convert selected documents to uploadedFiles format for compatibility
+		const convertedFiles = documents.map((doc) => ({
+			id: doc.document_id,
+			name: doc.name,
+			url: doc.url,
+			size: doc.size,
+			documentType: doc.documentType,
+			source: doc.source,
+		}))
+		setUploadedFiles(convertedFiles)
 	}
 
 	const formatFileSize = (bytes: number) => {
@@ -350,12 +344,17 @@ const ProgramDetail = () => {
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
-	const removeFile = (fileId: number) => {
+	const removeFile = (fileId: number | string) => {
 		setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId))
+		// Also remove from selectedDocuments
+		setSelectedDocuments((prev) =>
+			prev.filter((doc) => doc.document_id !== fileId)
+		)
 	}
 
 	const removeAllFiles = () => {
 		setUploadedFiles([])
+		setSelectedDocuments([])
 		setShowDeleteConfirmModal(false)
 	}
 
@@ -483,6 +482,12 @@ const ProgramDetail = () => {
 
 	// Handle application submission
 	const handleApply = async () => {
+		// Check authentication first
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			return
+		}
+
 		// Use program ID from URL params as fallback
 		const programId = currentProgram?.id || params.id
 		if (!programId) {
@@ -532,8 +537,6 @@ const ProgramDetail = () => {
 				)
 			}
 		} catch (error: any) {
-			console.error('Failed to submit application:', error)
-
 			// Handle specific "already applied" error
 			if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
@@ -1323,72 +1326,236 @@ const ProgramDetail = () => {
 								)}
 							</div>
 
-							{/* File Upload Area */}
+							{/* Application Documents Section */}
 							<div className="w-full mb-6">
-								<div className="space-y-2">
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-										<div className="text-4xl mb-4">📁</div>
-										<div className="space-y-2">
-											<input
-												type="file"
-												multiple
-												onChange={(e) => handleFileUpload(e, 'other')}
-												className="hidden"
-												id="file-upload-other"
-											/>
-											<label
-												htmlFor="file-upload-other"
-												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-											>
-												Click here to upload files
-											</label>
-										</div>
+								<div className="space-y-6">
+									{/* Header */}
+									<div className="text-center">
+										<h3 className="text-xl font-semibold text-gray-900 mb-2">
+											Application Documents
+										</h3>
+										<p className="text-gray-600">
+											Select documents from your profile or upload new files
+										</p>
 									</div>
-								</div>
-							</div>
 
-							{/* File Management */}
-							{(uploadedFiles.length > 0 || isUploading) && (
-								<div className="bg-gray-50 rounded-lg p-4 mb-6">
-									<div className="flex items-center justify-between mb-4">
-										<span className="font-medium">
-											{isUploading
-												? 'Uploading files...'
-												: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
-										</span>
-										{uploadedFiles.length > 0 && (
+									{/* Show simple note if no documents selected yet */}
+									{selectedDocuments.length === 0 ? (
+										<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+											<div className="text-6xl mb-4">📁</div>
+											<h4 className="text-lg font-medium text-gray-900 mb-2">
+												No documents ready
+											</h4>
+											<p className="text-gray-600 mb-6">
+												Get started by selecting documents from your profile
+											</p>
 											<Button
-												variant="outline"
-												onClick={handleOpenModal}
-												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+												onClick={() => setShowDocumentSelector(true)}
+												className="bg-[#126E64] hover:bg-teal-700 text-white px-8 py-3"
 											>
-												Manage Files
+												📄 Select Documents
 											</Button>
-										)}
-									</div>
-
-									{/* Upload Progress */}
-									{isUploading && uploadProgress.length > 0 && (
-										<div className="space-y-2 mb-4">
-											{uploadProgress.map((progress) => (
-												<div key={progress.fileIndex} className="space-y-1">
-													<div className="flex justify-between text-sm">
-														<span>File {progress.fileIndex + 1}</span>
-														<span>{progress.progress}%</span>
+										</div>
+									) : (
+										<>
+											{/* Selected Documents Summary */}
+											<div className="bg-[#e1fdeb] border border-green-200 rounded-xl p-6">
+												<div className="flex items-center gap-4">
+													<div className="w-12 h-12 bg-[#126E64] rounded-full flex items-center justify-center">
+														<Check className="w-6 h-6 text-white" />
 													</div>
-													<div className="w-full bg-gray-200 rounded-full h-2">
-														<div
-															className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
-															style={{ width: `${progress.progress}%` }}
-														></div>
+													<div className="flex-1">
+														<h4 className="text-lg font-semibold text-green-800">
+															{selectedDocuments.length} Document
+															{selectedDocuments.length !== 1 ? 's' : ''} Ready
+														</h4>
+														<p className="text-green-600">
+															{(() => {
+																const profileDocs = selectedDocuments.filter(
+																	(d) => d.source === 'existing'
+																).length
+																const uploadedDocs = selectedDocuments.filter(
+																	(d) => d.source === 'new'
+																).length
+
+																if (profileDocs > 0 && uploadedDocs > 0) {
+																	return `${profileDocs} from profile, ${uploadedDocs} uploaded`
+																} else if (profileDocs > 0) {
+																	return `${profileDocs} from profile`
+																} else if (uploadedDocs > 0) {
+																	return `${uploadedDocs} uploaded`
+																} else {
+																	return 'Ready to submit'
+																}
+															})()}
+														</p>
+													</div>
+													<div className="flex gap-3">
+														<Button
+															variant="outline"
+															onClick={() => setShowDocumentSelector(true)}
+															className="text-green-700 border-green-300 bg-white hover:bg-green-50"
+														>
+															Edit Selection
+														</Button>
 													</div>
 												</div>
-											))}
-										</div>
+											</div>
+
+											{/* Upload Additional Files */}
+											<div className="border-2 border-dashed  rounded-xl p-8 text-center ">
+												<input
+													type="file"
+													multiple
+													onChange={async (e) => {
+														const files = e.target.files
+														if (files && files.length > 0) {
+															try {
+																const uploadedFileData = await uploadFiles(
+																	Array.from(files)
+																)
+																if (uploadedFileData) {
+																	const newDocuments = uploadedFileData.map(
+																		(file) => ({
+																			document_id: `temp_${Date.now()}_${Math.random()}`,
+																			name: file.name,
+																			url: file.url,
+																			size: file.size,
+																			documentType: 'general',
+																			source: 'new' as const,
+																		})
+																	)
+																	const updatedDocs = [
+																		...selectedDocuments,
+																		...newDocuments,
+																	]
+																	setSelectedDocuments(updatedDocs)
+																	handleDocumentsSelected(updatedDocs)
+																	showSuccess(
+																		'Files Uploaded',
+																		`${uploadedFileData.length} file(s) uploaded successfully`
+																	)
+																}
+															} catch (error) {
+																showError(
+																	'Upload Failed',
+																	'Failed to upload files. Please try again.'
+																)
+															}
+														}
+														e.target.value = ''
+													}}
+													className="hidden"
+													id="file-upload-additional"
+													accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+												/>
+												<label
+													htmlFor="file-upload-additional"
+													className="cursor-pointer block"
+												>
+													<div className="text-5xl mb-4">📁</div>
+													<h4 className="text-lg font-medium text-orange-800 mb-2">
+														Upload Additional Files
+													</h4>
+													<p className="text-orange-700">
+														Click to add more documents from your computer
+													</p>
+													<p className="text-sm text-gray-500 mt-2">
+														PDF, DOC, DOCX, JPG, PNG (max 10MB each)
+													</p>
+												</label>
+											</div>
+
+											{/* Show uploaded additional files if any */}
+											{/* {selectedDocuments.filter((doc) => doc.source === 'new')
+												.length > 0 && (
+												<div className="space-y-3">
+													<h5 className="font-medium text-gray-900">
+														Newly Uploaded Files:
+													</h5>
+													{selectedDocuments
+														.filter((doc) => doc.source === 'new')
+														.map((doc) => (
+															<div
+																key={doc.document_id}
+																className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+															>
+																<div className="flex items-center gap-3">
+																	<div className="text-2xl">📄</div>
+																	<div>
+																		<p className="font-medium text-gray-900">
+																			{doc.name}
+																		</p>
+																		<p className="text-sm text-gray-500">
+																			{formatFileSize(doc.size)} • Just uploaded
+																		</p>
+																	</div>
+																</div>
+																<button
+																	onClick={() => {
+																		const updatedDocs =
+																			selectedDocuments.filter(
+																				(d) => d.document_id !== doc.document_id
+																			)
+																		setSelectedDocuments(updatedDocs)
+																		handleDocumentsSelected(updatedDocs)
+																	}}
+																	className="text-red-500 hover:text-red-700 p-2"
+																	title="Remove document"
+																>
+																	<Trash2 className="h-4 w-4" />
+																</button>
+															</div>
+														))}
+												</div>
+											)} */}
+										</>
 									)}
 								</div>
-							)}
+							</div>
 						</>
+					)}
+
+					{/* File Management */}
+					{!hasApplied && (uploadedFiles.length > 0 || isUploading) && (
+						<div className="bg-gray-50 rounded-lg p-4 mb-6">
+							<div className="flex items-center justify-between mb-4">
+								<span className="font-medium">
+									{isUploading
+										? 'Uploading files...'
+										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
+								</span>
+								{uploadedFiles.length > 0 && (
+									<Button
+										variant="outline"
+										onClick={handleOpenModal}
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+									>
+										Manage Files
+									</Button>
+								)}
+							</div>
+
+							{/* Upload Progress */}
+							{isUploading && uploadProgress.length > 0 && (
+								<div className="space-y-2 mb-4">
+									{uploadProgress.map((progress) => (
+										<div key={progress.fileIndex} className="space-y-1">
+											<div className="flex justify-between text-sm">
+												<span>File {progress.fileIndex + 1}</span>
+												<span>{progress.progress}%</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+													style={{ width: `${progress.progress}%` }}
+												></div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
 					)}
 
 					{/* Display update requests as individual alert boxes */}
@@ -1657,8 +1824,26 @@ const ProgramDetail = () => {
 						</div>
 					)}
 
+					{!hasApplied && uploadedFiles.length === 0 && (
+						<div className="text-center mb-6">
+							<div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+								<div className="flex items-center justify-center gap-2 text-amber-700">
+									<span className="text-lg">⚠️</span>
+									<p className="font-medium">
+										Please select at least one document to submit your
+										application
+									</p>
+								</div>
+								<p className="text-sm text-amber-600 mt-2">
+									Use the &quot;Select Documents&quot; button above to choose
+									files from your profile or upload new ones
+								</p>
+							</div>
+						</div>
+					)}
+
 					<div className="flex gap-3 justify-center">
-						{!hasApplied && uploadedFiles.length > 0 && (
+						{!hasApplied && selectedDocuments.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}
@@ -1671,12 +1856,31 @@ const ProgramDetail = () => {
 							className={
 								hasApplied
 									? 'bg-green-600 hover:bg-green-700 text-white'
-									: 'bg-[#126E64] hover:bg-teal-700 text-white'
+									: uploadedFiles.length === 0 &&
+										  !isApplying &&
+										  !isUploading &&
+										  !isCheckingApplication
+										? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
+										: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
 							disabled={
-								hasApplied || isApplying || isUploading || isCheckingApplication
+								hasApplied ||
+								isApplying ||
+								isUploading ||
+								isCheckingApplication ||
+								uploadedFiles.length === 0
 							}
+							style={{
+								cursor:
+									uploadedFiles.length === 0 &&
+									!hasApplied &&
+									!isApplying &&
+									!isUploading &&
+									!isCheckingApplication
+										? 'not-allowed'
+										: 'pointer',
+							}}
 						>
 							{hasApplied ? (
 								'✓ Application Submitted'
@@ -1695,6 +1899,8 @@ const ProgramDetail = () => {
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 									Checking...
 								</div>
+							) : uploadedFiles.length === 0 ? (
+								'Upload Files to Continue'
 							) : (
 								'Submit Application'
 							)}
@@ -1925,6 +2131,112 @@ const ProgramDetail = () => {
 					}}
 				/>
 			)}
+
+			{/* Document Selector Modal */}
+			<Modal
+				isOpen={showDocumentSelector}
+				onClose={() => setShowDocumentSelector(false)}
+				title="Select Documents for Application"
+				maxWidth="xl"
+			>
+				<div className="max-h-[70vh] overflow-y-auto">
+					<DocumentSelector
+						onDocumentsSelected={handleDocumentsSelected}
+						selectedDocuments={selectedDocuments}
+						requiredDocumentTypes={
+							currentProgram?.documents?.map((doc: any) => ({
+								id: doc.document_type_id || doc.document_id,
+								name: doc.name,
+								description: doc.description,
+							})) || []
+						}
+					/>
+				</div>
+
+				{/* Sticky Footer with Actions */}
+				<div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 -mx-6 -mb-6 mt-6">
+					<div className="flex items-center justify-between">
+						{/* Left Side - Summary */}
+						<div className="flex items-center gap-4">
+							{selectedDocuments.length > 0 ? (
+								<div className="flex items-center gap-3">
+									<div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+										<Check className="w-5 h-5 text-green-600" />
+									</div>
+									<div>
+										<p className="font-semibold text-gray-900">
+											{selectedDocuments.length} document
+											{selectedDocuments.length !== 1 ? 's' : ''} selected from
+											profile
+										</p>
+										<p className="text-sm text-gray-500">Ready to submit</p>
+									</div>
+								</div>
+							) : (
+								<div className="flex items-center gap-3">
+									<div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+										<File className="w-5 h-5 text-gray-400" />
+									</div>
+									<div>
+										<p className="font-medium text-gray-900">
+											No documents selected
+										</p>
+										<p className="text-sm text-gray-500">
+											Choose files to continue
+										</p>
+									</div>
+								</div>
+							)}
+						</div>
+
+						{/* Right Side - Action Buttons */}
+						<div className="flex gap-3">
+							<Button
+								variant="outline"
+								onClick={() => {
+									setShowDocumentSelector(false)
+									setSelectedDocuments([])
+									setUploadedFiles([])
+								}}
+								className="px-6 py-3 text-gray-600 border-gray-300 hover:bg-gray-50"
+							>
+								Cancel
+							</Button>
+							<Button
+								onClick={() => {
+									setShowDocumentSelector(false)
+									if (selectedDocuments.length > 0) {
+										showSuccess(
+											'Documents Selected!',
+											`${selectedDocuments.length} document${
+												selectedDocuments.length !== 1 ? 's' : ''
+											} ready for application submission`
+										)
+									}
+								}}
+								disabled={selectedDocuments.length === 0}
+								className={`px-6 py-3 transition-all duration-200 ${
+									selectedDocuments.length === 0
+										? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+										: 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl'
+								}`}
+							>
+								{selectedDocuments.length === 0 ? (
+									'Select Documents First'
+								) : (
+									<div className="flex items-center gap-2">
+										<Check className="w-4 h-4" />
+										<span>
+											Continue with {selectedDocuments.length} Document
+											{selectedDocuments.length !== 1 ? 's' : ''}
+										</span>
+									</div>
+								)}
+							</Button>
+						</div>
+					</div>
+				</div>
+			</Modal>
 
 			{/* Authentication Required Modal */}
 			<ErrorModal

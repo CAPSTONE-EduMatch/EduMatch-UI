@@ -9,18 +9,24 @@ import {
 	ScholarshipCard,
 	ErrorModal,
 } from '@/components/ui'
+import {
+	DocumentSelector,
+	SelectedDocument,
+} from '@/components/ui/DocumentSelector'
 
 import { mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Trash2 } from 'lucide-react'
+import { Heart, Trash2, Check } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { applicationService } from '@/services/application/application-service'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
+import { ExploreApiService } from '@/services/explore/explore-api'
+import type { ExploreFilters } from '@/types/api/explore-api'
 
 const ScholarshipDetail = () => {
 	const router = useRouter()
@@ -40,8 +46,6 @@ const ScholarshipDetail = () => {
 	})
 
 	const [activeTab, setActiveTab] = useState('detail')
-	const [scholarshipWishlist, setScholarshipWishlist] = useState<string[]>([])
-	const [programWishlist, setProgramWishlist] = useState<string[]>([])
 	const [eligibilityProgramsPage, setEligibilityProgramsPage] = useState(1)
 	const [eligibilityPrograms, setEligibilityPrograms] = useState<any[]>([])
 	const [eligibilityProgramsLoading, setEligibilityProgramsLoading] =
@@ -49,9 +53,13 @@ const ScholarshipDetail = () => {
 	const [eligibilityProgramsTotalPages, setEligibilityProgramsTotalPages] =
 		useState(1)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+	const [selectedDocuments, setSelectedDocuments] = useState<
+		SelectedDocument[]
+	>([])
 	const [showManageModal, setShowManageModal] = useState(false)
 	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+	const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -79,6 +87,24 @@ const ScholarshipDetail = () => {
 
 	// Notification system
 	const { showSuccess, showError } = useNotification()
+
+	// Constants for pagination
+	const ITEMS_PER_PAGE_PROGRAMS = 6
+
+	// Handle documents selection from DocumentSelector
+	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
+		setSelectedDocuments(documents)
+		// Convert selected documents to uploadedFiles format for compatibility
+		const convertedFiles = documents.map((doc) => ({
+			id: doc.document_id,
+			name: doc.name,
+			url: doc.url,
+			size: doc.size,
+			documentType: doc.documentType,
+			source: doc.source,
+		}))
+		setUploadedFiles(convertedFiles)
+	}
 
 	const [eligibilityFilters, setEligibilityFilters] = useState<
 		Record<string, string[]>
@@ -137,6 +163,11 @@ const ScholarshipDetail = () => {
 			}
 		}
 
+		fetchScholarshipDetail()
+	}, [params.id])
+
+	// Separate useEffect for breadcrumb to avoid triggering scholarship fetch
+	useEffect(() => {
 		const updateBreadcrumb = () => {
 			const fromTab = searchParams.get('from') || 'scholarships'
 
@@ -176,84 +207,62 @@ const ScholarshipDetail = () => {
 			setBreadcrumbItems(items)
 		}
 
-		fetchScholarshipDetail()
 		updateBreadcrumb()
-	}, [params.id, searchParams, currentScholarship?.title])
+	}, [searchParams, currentScholarship?.title])
 
 	// Fetch eligibility programs when scholarship data is available
 	useEffect(() => {
-		const fetchEligibilityPrograms = async () => {
-			if (!currentScholarship) {
-				// eslint-disable-next-line no-console
-				console.log('No current scholarship data available')
+		const loadEligibilityPrograms = async () => {
+			if (!currentScholarship?.id) {
 				return
 			}
 
-			// eslint-disable-next-line no-console
-			console.log(
-				'Fetching eligibility programs for scholarship:',
-				currentScholarship.id
-			)
-			// eslint-disable-next-line no-console
-			console.log('Current filters:', eligibilityFilters)
+			// Debug log để track khi nào fetch được trigger
+			if (process.env.NODE_ENV === 'development') {
+				// eslint-disable-next-line no-console
+				console.log('🔄 Loading eligibility programs triggered:', {
+					scholarshipId: currentScholarship.id,
+					page: eligibilityProgramsPage,
+					filters: eligibilityFilters,
+					loading,
+				})
+			}
 
 			setEligibilityProgramsLoading(true)
 			try {
-				const params = new URLSearchParams()
+				// Parse fee range if available
+				let minFee: number | undefined
+				let maxFee: number | undefined
+				if (
+					eligibilityFilters.feeRange &&
+					eligibilityFilters.feeRange.length > 0
+				) {
+					const feeRangeStr = eligibilityFilters.feeRange[0]
+					const [min, max] = feeRangeStr.split('-').map(Number)
+					minFee = min
+					maxFee = max
+				}
 
-				// Apply eligibility filters only
-				Object.entries(eligibilityFilters).forEach(([key, values]) => {
-					if (values && values.length > 0) {
-						if (key === 'feeRange') {
-							// Parse feeRange as minFee and maxFee
-							const range = values[0]
-							if (range && range !== '0-1000000') {
-								const [min, max] = range.split('-').map(Number)
-								if (!isNaN(min) && !isNaN(max)) {
-									params.append('minFee', min.toString())
-									params.append('maxFee', max.toString())
-									// eslint-disable-next-line no-console
-									console.log(`Added fee range: minFee=${min}, maxFee=${max}`)
-								}
-							}
-						} else {
-							params.append(key, values.join(','))
-							// eslint-disable-next-line no-console
-							console.log(`Added filter: ${key} = ${values.join(',')}`)
-						}
-					}
+				const response = await ExploreApiService.getPrograms({
+					page: eligibilityProgramsPage,
+					limit: ITEMS_PER_PAGE_PROGRAMS,
+					sortBy: 'most-popular',
+					discipline: eligibilityFilters.discipline,
+					country: eligibilityFilters.country,
+					attendance: eligibilityFilters.attendance,
+					degreeLevel: eligibilityFilters.degreeLevel,
+					duration: eligibilityFilters.duration,
+					minFee,
+					maxFee,
 				})
 
-				// Don't auto-apply scholarship data as filters - let user choose manually
-				// This prevents overly restrictive filtering that returns no results
-
-				// Add pagination with 6 items per page
-				params.append('page', eligibilityProgramsPage.toString())
-				params.append('limit', eligibilityProgramsPerPage.toString())
-
-				// eslint-disable-next-line no-console
-				console.log('API URL:', `/api/explore/programs?${params.toString()}`)
-
-				const response = await fetch(
-					`/api/explore/programs?${params.toString()}`
-				)
-				if (!response.ok) {
-					throw new Error('Failed to fetch eligibility programs')
-				}
-				const data = await response.json()
-
-				// eslint-disable-next-line no-console
-				console.log('API Response:', data)
-				if (data.data && data.data.length >= 0) {
-					setEligibilityPrograms(data.data)
-					setEligibilityProgramsTotalPages(data.meta?.totalPages || 1)
-				} else {
-					setEligibilityPrograms([])
-					setEligibilityProgramsTotalPages(1)
-				}
+				setEligibilityPrograms(response.data)
+				setEligibilityProgramsTotalPages(response.meta.totalPages)
 			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error('Error fetching eligibility programs:', err)
+				if (process.env.NODE_ENV === 'development') {
+					// eslint-disable-next-line no-console
+					console.error('Error fetching eligibility programs:', err)
+				}
 				setEligibilityPrograms([])
 				setEligibilityProgramsTotalPages(1)
 			} finally {
@@ -261,12 +270,36 @@ const ScholarshipDetail = () => {
 			}
 		}
 
-		fetchEligibilityPrograms()
+		// Only load when scholarship is available and not in main loading state
+		if (currentScholarship?.id && !loading) {
+			loadEligibilityPrograms()
+		}
 	}, [
-		currentScholarship,
+		currentScholarship?.id,
 		eligibilityProgramsPage,
-		eligibilityProgramsPerPage,
 		eligibilityFilters,
+		loading,
+	])
+
+	// Debug effect to track loading states
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'development') {
+			console.log('🐛 Debug - Loading states:', {
+				loading,
+				eligibilityProgramsLoading,
+				currentScholarshipId: currentScholarship?.id,
+				paramsId: params.id,
+				eligibilityFilters,
+				eligibilityProgramsPage,
+			})
+		}
+	}, [
+		loading,
+		eligibilityProgramsLoading,
+		currentScholarship?.id,
+		params.id,
+		eligibilityFilters,
+		eligibilityProgramsPage,
 	])
 
 	// Reset pagination when scholarship changes
@@ -279,15 +312,10 @@ const ScholarshipDetail = () => {
 	// Check for existing application when component loads
 	useEffect(() => {
 		const scholarshipId = currentScholarship?.id || params.id
-		if (scholarshipId && !isCheckingApplication) {
-			// Add a small delay to prevent rapid successive calls
-			const timeoutId = setTimeout(() => {
-				checkExistingApplication(scholarshipId as string)
-			}, 200) // 200ms delay
-
-			return () => clearTimeout(timeoutId)
+		if (scholarshipId && isAuthenticated) {
+			checkExistingApplication(scholarshipId as string)
 		}
-	}, [currentScholarship?.id, params.id]) // Removed isCheckingApplication from deps to prevent loops
+	}, [currentScholarship?.id, params.id, isAuthenticated])
 
 	// Fetch all update requests when application is loaded
 	useEffect(() => {
@@ -366,7 +394,7 @@ const ScholarshipDetail = () => {
 								id: doc.documentId || doc.documentTypeId || Math.random(), // Generate ID if not available
 								name: doc.name,
 								url: doc.url,
-								size: doc.size || 0,
+								size: doc.size,
 								documentType:
 									doc.documentType ||
 									doc.documentTypeId ||
@@ -427,13 +455,8 @@ const ScholarshipDetail = () => {
 		}
 	}
 
-	const handleProgramWishlistToggle = (id: string) => {
-		setProgramWishlist((prev) =>
-			prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-		)
-	}
-
-	const handleScholarshipWishlistToggle = async (id: string) => {
+	// Program handling functions (similar to Explore page)
+	const handleProgramWishlistToggle = async (id: string) => {
 		// Check if user is authenticated before attempting to toggle
 		if (!isAuthenticated) {
 			setShowAuthModal(true)
@@ -442,12 +465,6 @@ const ScholarshipDetail = () => {
 
 		try {
 			await toggleWishlistItem(id)
-			// Update local state to reflect the change
-			setScholarshipWishlist((prev) =>
-				prev.includes(id)
-					? prev.filter((itemId) => itemId !== id)
-					: [...prev, id]
-			)
 		} catch (error) {
 			// Check if error is due to authentication
 			const errorMessage =
@@ -465,13 +482,43 @@ const ScholarshipDetail = () => {
 		}
 	}
 
-	const handleEligibilityFiltersChange = (
-		filters: Record<string, string[]>
-	) => {
-		setEligibilityFilters(filters)
-		// Reset to page 1 when filters change
-		setEligibilityProgramsPage(1)
+	const handleScholarshipWishlistToggle = async (id: string) => {
+		// Check if user is authenticated before attempting to toggle
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			return
+		}
+
+		try {
+			await toggleWishlistItem(id)
+		} catch (error) {
+			// Check if error is due to authentication
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error'
+			if (
+				errorMessage.includes('Authentication required') ||
+				errorMessage.includes('not authenticated') ||
+				errorMessage.includes('401')
+			) {
+				setShowAuthModal(true)
+			} else {
+				// eslint-disable-next-line no-console
+				console.error('Failed to toggle wishlist item:', error)
+			}
+		}
 	}
+
+	// Handle filters change from FilterSidebar (stable callback to avoid re-renders)
+	const handleEligibilityFiltersChange = useCallback(
+		(filters: Record<string, string[]>) => {
+			setEligibilityFilters(filters)
+			// Reset to page 1 when filters change
+			setEligibilityProgramsPage(1)
+		},
+		[]
+	)
+
+	// Remove the duplicate useEffect for page reset to prevent infinite loop
 
 	// Handle sign in navigation
 	const handleSignIn = () => {
@@ -489,6 +536,14 @@ const ScholarshipDetail = () => {
 		event: React.ChangeEvent<HTMLInputElement>,
 		documentType: string
 	) => {
+		// Check authentication first
+		if (!isAuthenticated) {
+			setShowAuthModal(true)
+			// Clear the input to prevent file selection
+			event.target.value = ''
+			return
+		}
+
 		const files = event.target.files
 		if (files && files.length > 0) {
 			try {
@@ -530,12 +585,17 @@ const ScholarshipDetail = () => {
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 	}
 
-	const removeFile = (fileId: number) => {
+	const removeFile = (fileId: number | string) => {
 		setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId))
+		// Also remove from selectedDocuments
+		setSelectedDocuments((prev) =>
+			prev.filter((doc) => doc.document_id !== fileId)
+		)
 	}
 
 	const removeAllFiles = () => {
 		setUploadedFiles([])
+		setSelectedDocuments([])
 		setShowDeleteConfirmModal(false)
 	}
 
@@ -798,7 +858,7 @@ const ScholarshipDetail = () => {
 							)}
 
 						{/* Eligibility Programs Section */}
-						{/* <div>
+						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
 								Eligibility Programmes
 							</h3>
@@ -806,6 +866,54 @@ const ScholarshipDetail = () => {
 								Programmes you may be eligible for based on this
 								scholarship&apos;s requirements.
 							</p>
+
+							{/* Debug Panel */}
+							{process.env.NODE_ENV === 'development' && (
+								<div className="bg-gray-100 p-4 rounded-lg mb-4">
+									<h4 className="font-bold text-sm mb-2">🐛 Debug Info:</h4>
+									<div className="text-xs space-y-1">
+										<p>Main Loading: {loading ? 'Yes' : 'No'}</p>
+										<p>
+											Eligibility Loading:{' '}
+											{eligibilityProgramsLoading ? 'Yes' : 'No'}
+										</p>
+										<p>Scholarship ID: {currentScholarship?.id || 'None'}</p>
+										<p>Programs Found: {eligibilityPrograms.length}</p>
+										<p>Current Page: {eligibilityProgramsPage}</p>
+										<p>Total Pages: {eligibilityProgramsTotalPages}</p>
+										<p>API Endpoint: /api/explore/programs</p>
+										<button
+											onClick={async () => {
+												setEligibilityProgramsLoading(true)
+												try {
+													const filters: ExploreFilters = {
+														page: 1,
+														limit: eligibilityProgramsPerPage,
+													}
+													const response =
+														await ExploreApiService.getPrograms(filters)
+													if (response.data) {
+														setEligibilityPrograms(response.data)
+														setEligibilityProgramsTotalPages(
+															response.meta?.totalPages || 1
+														)
+													}
+													// eslint-disable-next-line no-console
+													console.log('✅ Debug fetch success:', response)
+												} catch (error) {
+													// eslint-disable-next-line no-console
+													console.error('❌ Debug fetch failed:', error)
+												} finally {
+													setEligibilityProgramsLoading(false)
+												}
+											}}
+											className="bg-blue-500 text-white px-2 py-1 rounded text-xs mt-2"
+										>
+											Test Fetch
+										</button>
+									</div>
+								</div>
+							)}
 
 							{eligibilityProgramsLoading ? (
 								<div className="flex justify-center py-8">
@@ -822,7 +930,7 @@ const ScholarshipDetail = () => {
 												onWishlistToggle={() =>
 													handleProgramWishlistToggle(program.id)
 												}
-												isWishlisted={programWishlist.includes(program.id)}
+												isWishlisted={isInWishlist(program.id)}
 												onClick={() => handleProgramClick(program.id)}
 											/>
 										))}
@@ -843,7 +951,7 @@ const ScholarshipDetail = () => {
 									No eligible programmes found for this scholarship.
 								</div>
 							)}
-						</div> */}
+						</div>
 					</div>
 				)
 
@@ -1168,66 +1276,79 @@ const ScholarshipDetail = () => {
 
 					<div className="flex gap-8">
 						{/* Filter Sidebar */}
-						<FilterSidebar
-							activeTab="programmes"
-							onFiltersChange={handleEligibilityFiltersChange}
-						/>
+						<div className="w-80">
+							<FilterSidebar
+								activeTab="programmes"
+								onFiltersChange={handleEligibilityFiltersChange}
+							/>
+						</div>
 
 						{/* Programs Content */}
 						<div className="flex-1">
-							{/* Results Count */}
+							{/* Results Count and Status */}
 							<div className="mb-4">
-								<p className="text-gray-600">
-									Showing {eligibilityPrograms.length} programmes
-									{eligibilityProgramsTotalPages > 1 && (
-										<span>
-											{' '}
-											(Page {eligibilityProgramsPage} of{' '}
-											{eligibilityProgramsTotalPages})
-										</span>
-									)}
-								</p>
+								<div className="text-sm text-gray-600">
+									{eligibilityProgramsLoading
+										? 'Loading eligibility programmes...'
+										: `${eligibilityPrograms.length} results`}
+									{eligibilityProgramsTotalPages > 1 &&
+										!eligibilityProgramsLoading && (
+											<span className="ml-2">
+												(Page {eligibilityProgramsPage} of{' '}
+												{eligibilityProgramsTotalPages})
+											</span>
+										)}
+								</div>
 							</div>
 
 							{eligibilityProgramsLoading ? (
-								<div className="flex justify-center py-8">
-									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+								<div className="flex items-center justify-center py-20 w-full h-full">
+									<div className="flex flex-col items-center gap-3">
+										<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
+										<p className="text-gray-600 text-sm">
+											Loading eligibility programmes...
+										</p>
+									</div>
 								</div>
 							) : (
 								<>
-									{/* Programs Grid */}
-									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-										{eligibilityPrograms.map((program, index) => (
-											<ProgramCard
-												key={program.id}
-												program={program}
-												index={index}
-												isWishlisted={programWishlist.includes(program.id)}
-												onWishlistToggle={handleProgramWishlistToggle}
-												onClick={handleProgramClick}
-											/>
-										))}
-									</div>
+									{eligibilityPrograms.length > 0 ? (
+										<>
+											{/* Programs Grid */}
+											<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+												{eligibilityPrograms.map((program, index) => (
+													<ProgramCard
+														key={program.id}
+														program={program}
+														index={index}
+														isWishlisted={isInWishlist(program.id)}
+														onWishlistToggle={handleProgramWishlistToggle}
+														onClick={handleProgramClick}
+													/>
+												))}
+											</div>
 
-									{/* No Results */}
-									{eligibilityPrograms.length === 0 && (
+											{/* Pagination */}
+											{eligibilityProgramsTotalPages > 1 && (
+												<div className="flex justify-center">
+													<Pagination
+														currentPage={eligibilityProgramsPage}
+														totalPages={eligibilityProgramsTotalPages}
+														onPageChange={setEligibilityProgramsPage}
+													/>
+												</div>
+											)}
+										</>
+									) : (
 										<div className="text-center py-12">
-											<p className="text-gray-500 text-lg mb-2">
+											<div className="text-gray-400 text-6xl mb-4">📚</div>
+											<h3 className="text-lg font-medium text-gray-900 mb-2">
 												No programmes found
-											</p>
-											<p className="text-gray-400 text-sm">
-												Try adjusting your filters
+											</h3>
+											<p className="text-gray-500">
+												Try adjusting your filters to find more programmes
 											</p>
 										</div>
-									)}
-
-									{/* Pagination */}
-									{eligibilityProgramsTotalPages > 1 && (
-										<Pagination
-											currentPage={eligibilityProgramsPage}
-											totalPages={eligibilityProgramsTotalPages}
-											onPageChange={setEligibilityProgramsPage}
-										/>
 									)}
 								</>
 							)}
@@ -1264,27 +1385,149 @@ const ScholarshipDetail = () => {
 								)}
 							</div>
 
-							{/* File Upload Area */}
+							{/* Application Documents Section */}
 							<div className="w-full mb-6">
-								<div className="space-y-2">
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-										<div className="text-4xl mb-4">📁</div>
-										<div className="space-y-2">
-											<input
-												type="file"
-												multiple
-												onChange={(e) => handleFileUpload(e, 'other')}
-												className="hidden"
-												id="file-upload-other"
-											/>
-											<label
-												htmlFor="file-upload-other"
-												className="text-sm text-[#126E64] cursor-pointer hover:underline block"
-											>
-												Click here to upload files
-											</label>
-										</div>
+								<div className="space-y-6">
+									{/* Header */}
+									<div className="text-center">
+										<h3 className="text-xl font-semibold text-gray-900 mb-2">
+											Application Documents
+										</h3>
+										<p className="text-gray-600">
+											Select documents from your profile or upload new files
+										</p>
 									</div>
+
+									{/* Show simple note if no documents selected yet */}
+									{selectedDocuments.length === 0 ? (
+										<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+											<div className="text-6xl mb-4">📁</div>
+											<h4 className="text-lg font-medium text-gray-900 mb-2">
+												No documents ready
+											</h4>
+											<p className="text-gray-600 mb-6">
+												Get started by selecting documents from your profile
+											</p>
+											<Button
+												onClick={() => setShowDocumentSelector(true)}
+												className="bg-[#126E64] hover:bg-teal-700 text-white px-8 py-3"
+											>
+												📄 Select Documents
+											</Button>
+										</div>
+									) : (
+										<>
+											{/* Selected Documents Summary */}
+											<div className="bg-[#e1fdeb] border border-green-200 rounded-xl p-6">
+												<div className="flex items-center gap-4">
+													<div className="w-12 h-12 bg-[#126E64] rounded-full flex items-center justify-center">
+														<Check className="w-6 h-6 text-white" />
+													</div>
+													<div className="flex-1">
+														<h4 className="text-lg font-semibold text-green-800">
+															{selectedDocuments.length} Document
+															{selectedDocuments.length !== 1 ? 's' : ''} Ready
+														</h4>
+														<p className="text-green-600">
+															{(() => {
+																const profileDocs = selectedDocuments.filter(
+																	(d) => d.source === 'existing'
+																).length
+																const uploadedDocs = selectedDocuments.filter(
+																	(d) => d.source === 'new'
+																).length
+
+																if (profileDocs > 0 && uploadedDocs > 0) {
+																	return `${profileDocs} from profile, ${uploadedDocs} uploaded`
+																} else if (profileDocs > 0) {
+																	return `${profileDocs} from profile`
+																} else if (uploadedDocs > 0) {
+																	return `${uploadedDocs} uploaded`
+																} else {
+																	return 'Ready to submit'
+																}
+															})()}
+														</p>
+													</div>
+													<div className="flex gap-3">
+														<Button
+															variant="outline"
+															onClick={() => setShowDocumentSelector(true)}
+															className="text-green-700 border-green-300 bg-white hover:bg-green-50"
+														>
+															Edit Selection
+														</Button>
+													</div>
+												</div>
+											</div>
+
+											{/* Upload Additional Files */}
+											<div className="border-2 border-dashed rounded-xl p-8 text-center">
+												<input
+													type="file"
+													multiple
+													onChange={async (e) => {
+														const files = e.target.files
+														if (files && files.length > 0) {
+															try {
+																const uploadedFileData = await uploadFiles(
+																	Array.from(files)
+																)
+																if (uploadedFileData) {
+																	const newDocuments = uploadedFileData.map(
+																		(file) => ({
+																			document_id: `temp_${Date.now()}_${Math.random()}`,
+																			name: file.name,
+																			url: file.url,
+																			size: file.size,
+																			documentType: 'general',
+																			source: 'new' as const,
+																		})
+																	)
+																	const updatedDocs = [
+																		...selectedDocuments,
+																		...newDocuments,
+																	]
+																	setSelectedDocuments(updatedDocs)
+																	handleDocumentsSelected(updatedDocs)
+																	showSuccess(
+																		'Files Uploaded',
+																		`${uploadedFileData.length} file(s) uploaded successfully`
+																	)
+																}
+															} catch (error) {
+																showError(
+																	'Upload Failed',
+																	'Failed to upload files. Please try again.'
+																)
+															}
+														}
+														e.target.value = ''
+													}}
+													className="hidden"
+													id="file-upload-additional"
+													accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+												/>
+												<label
+													htmlFor="file-upload-additional"
+													className="cursor-pointer block"
+												>
+													<div className="text-5xl mb-4">📁</div>
+													<h4 className="text-lg font-medium text-orange-800 mb-2">
+														Upload Additional Files
+													</h4>
+													<p className="text-orange-700">
+														Click to add more documents from your computer
+													</p>
+													<p className="text-sm text-gray-500 mt-2">
+														PDF, DOC, DOCX, JPG, PNG (max 10MB each)
+													</p>
+												</label>
+											</div>
+
+											{/* Show uploaded additional files if any */}
+										</>
+									)}
 								</div>
 							</div>
 						</>
@@ -1600,8 +1843,18 @@ const ScholarshipDetail = () => {
 						</div>
 					)}
 
+					{/* Show helpful message when no files uploaded */}
+					{!hasApplied && uploadedFiles.length === 0 && (
+						<div className="text-center mb-4">
+							<p className="text-amber-600 text-sm font-medium">
+								📁 Please upload at least one document to submit your
+								application
+							</p>
+						</div>
+					)}
+
 					<div className="flex gap-3 justify-center">
-						{!hasApplied && uploadedFiles.length > 0 && (
+						{!hasApplied && selectedDocuments.length > 0 && (
 							<Button
 								variant="outline"
 								onClick={handleRemoveAllClick}
@@ -1614,12 +1867,31 @@ const ScholarshipDetail = () => {
 							className={
 								hasApplied
 									? 'bg-green-600 hover:bg-green-700 text-white'
-									: 'bg-[#126E64] hover:bg-teal-700 text-white'
+									: uploadedFiles.length === 0 &&
+										  !isApplying &&
+										  !isUploading &&
+										  !isCheckingApplication
+										? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
+										: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
 							disabled={
-								hasApplied || isApplying || isUploading || isCheckingApplication
+								hasApplied ||
+								isApplying ||
+								isUploading ||
+								isCheckingApplication ||
+								uploadedFiles.length === 0
 							}
+							style={{
+								cursor:
+									uploadedFiles.length === 0 &&
+									!hasApplied &&
+									!isApplying &&
+									!isUploading &&
+									!isCheckingApplication
+										? 'not-allowed'
+										: 'pointer',
+							}}
 						>
 							{hasApplied ? (
 								'✓ Application Submitted'
@@ -1638,6 +1910,8 @@ const ScholarshipDetail = () => {
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 									Checking...
 								</div>
+							) : uploadedFiles.length === 0 ? (
+								'Upload Files to Continue'
 							) : (
 								'Submit Application'
 							)}
@@ -1662,9 +1936,7 @@ const ScholarshipDetail = () => {
 										<ScholarshipCard
 											scholarship={scholarship}
 											index={index}
-											isWishlisted={scholarshipWishlist.includes(
-												scholarship.id
-											)}
+											isWishlisted={isInWishlist(scholarship.id)}
 											onWishlistToggle={handleScholarshipWishlistToggle}
 											onClick={handleScholarshipClick}
 										/>
@@ -1846,6 +2118,28 @@ const ScholarshipDetail = () => {
 					}}
 				/>
 			)}
+
+			{/* Document Selector Modal */}
+			<Modal
+				isOpen={showDocumentSelector}
+				onClose={() => setShowDocumentSelector(false)}
+				title="Select Documents for Application"
+				maxWidth="xl"
+			>
+				<div className="max-h-[70vh] overflow-y-auto">
+					<DocumentSelector
+						onDocumentsSelected={handleDocumentsSelected}
+						selectedDocuments={selectedDocuments}
+						requiredDocumentTypes={
+							currentScholarship?.requiredDocuments?.map((doc: any) => ({
+								id: doc.id,
+								name: doc.name,
+								description: doc.description,
+							})) || []
+						}
+					/>
+				</div>
+			</Modal>
 		</div>
 	)
 }

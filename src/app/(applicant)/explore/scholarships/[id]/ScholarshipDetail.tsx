@@ -14,11 +14,10 @@ import {
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { mockScholarships } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart, Trash2, Check } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { applicationService } from '@/services/application/application-service'
@@ -91,6 +90,13 @@ const ScholarshipDetail = () => {
 	// Constants for pagination
 	const ITEMS_PER_PAGE_PROGRAMS = 6
 
+	// Recommended scholarships state
+	const [recommendedScholarships, setRecommendedScholarships] = useState<any[]>(
+		[]
+	)
+	const [isLoadingRecommendations, setIsLoadingRecommendations] =
+		useState(false)
+
 	// Handle documents selection from DocumentSelector
 	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
 		setSelectedDocuments(documents)
@@ -113,6 +119,56 @@ const ScholarshipDetail = () => {
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
+
+	// Fetch recommended scholarships based on current scholarship's characteristics
+	const fetchRecommendedScholarships = async (scholarship: any) => {
+		if (!scholarship) return
+
+		try {
+			setIsLoadingRecommendations(true)
+
+			// Extract scholarship characteristics for matching
+			const discipline =
+				scholarship.discipline ||
+				(scholarship.subdiscipline && scholarship.subdiscipline.length > 0
+					? scholarship.subdiscipline[0]
+					: null)
+			const degreeLevel = scholarship.degreeLevel
+			const country = scholarship.country || scholarship.institution?.country
+
+			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
+			if (discipline && degreeLevel && country) {
+				const response = await ExploreApiService.getScholarships({
+					limit: 9, // Fetch 9 most relevant scholarships
+					page: 1,
+					// Must match ALL criteria
+					discipline: [discipline],
+					degreeLevel: [degreeLevel],
+					country: [country],
+					// sortBy: 'most-popular',
+				})
+
+				if (response.data && response.data.length > 0) {
+					// Filter out the current scholarship from recommendations
+					const filtered = response.data.filter(
+						(s: any) => s.id !== scholarship.id
+					)
+					setRecommendedScholarships(filtered)
+				} else {
+					// No exact matches found, show empty recommendations
+					setRecommendedScholarships([])
+				}
+			} else {
+				// If we don't have all 3 criteria, show no recommendations
+				setRecommendedScholarships([])
+			}
+		} catch (error) {
+			// Silently fail for recommendations, fallback to empty array
+			setRecommendedScholarships([])
+		} finally {
+			setIsLoadingRecommendations(false)
+		}
+	}
 
 	// Dynamic info items based on current scholarship data
 	// const infoItems = [
@@ -326,6 +382,13 @@ const ScholarshipDetail = () => {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [applicationId])
+
+	// Fetch recommended scholarships when currentScholarship is loaded
+	useEffect(() => {
+		if (currentScholarship) {
+			fetchRecommendedScholarships(currentScholarship)
+		}
+	}, [currentScholarship])
 
 	// Fetch all update requests for the application
 	const fetchUpdateRequests = async () => {
@@ -1926,27 +1989,34 @@ const ScholarshipDetail = () => {
 				>
 					<h2 className="text-3xl font-bold mb-6">Recommend for you</h2>
 
-					{mockScholarships.length > 0 ? (
+					{/* Show loading state */}
+					{isLoadingRecommendations ? (
+						<div className="flex justify-center items-center py-12">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+						</div>
+					) : recommendedScholarships.length === 0 ? (
+						<div className="flex justify-center items-center py-12">
+							<p className="text-gray-500">
+								No recommendations available at this time.
+							</p>
+						</div>
+					) : (
 						<div className="relative h-[800px] overflow-y-auto overflow-x-hidden">
-							{/* Navigation Buttons */}
-							{/* Programs Grid */}{' '}
-							{mockScholarships.slice(0, 9).map((scholarship, index) => (
+							{recommendedScholarships.slice(0, 9).map((scholarship, index) => (
 								<div key={scholarship.id} className="">
 									<div className="mb-7">
 										<ScholarshipCard
 											scholarship={scholarship}
 											index={index}
 											isWishlisted={isInWishlist(scholarship.id)}
-											onWishlistToggle={handleScholarshipWishlistToggle}
+											onWishlistToggle={() =>
+												handleScholarshipWishlistToggle(scholarship.id)
+											}
 											onClick={handleScholarshipClick}
 										/>
 									</div>
 								</div>
 							))}
-						</div>
-					) : (
-						<div className="text-center py-8">
-							<p className="text-gray-600">No recommendations available</p>
 						</div>
 					)}
 				</motion.div>

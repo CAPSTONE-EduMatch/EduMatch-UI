@@ -13,7 +13,8 @@ import {
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { mockPrograms } from '@/data/utils'
+import { ExploreApiService } from '@/services/explore/explore-api'
+import { Program } from '@/types/api/explore-api'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
 	ChevronLeft,
@@ -33,7 +34,6 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { useApiWrapper } from '@/services/api/api-wrapper'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
-import { useApplicantDocuments } from '@/hooks/documents/useApplicantDocuments'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
@@ -75,6 +75,11 @@ const ProgramDetail = () => {
 	const [scholarships, setScholarships] = useState<any[]>([])
 	const [isLoadingScholarships, setIsLoadingScholarships] = useState(false)
 	const [scholarshipPagination, setScholarshipPagination] = useState<any>(null)
+
+	// Recommended programs state
+	const [recommendedPrograms, setRecommendedPrograms] = useState<Program[]>([])
+	const [isLoadingRecommendations, setIsLoadingRecommendations] =
+		useState(false)
 
 	// Application state
 	const [hasApplied, setHasApplied] = useState(false)
@@ -141,7 +146,70 @@ const ProgramDetail = () => {
 	]
 
 	const programsPerPage = 3
-	const totalPrograms = mockPrograms.length
+	const totalPrograms = recommendedPrograms.length
+
+	// Fetch recommended programs based on current program's characteristics
+	const fetchRecommendedPrograms = async (program: any) => {
+		if (!program) return
+
+		try {
+			setIsLoadingRecommendations(true)
+
+			// Extract program characteristics for matching
+			const discipline =
+				program.discipline ||
+				(program.subdiscipline && program.subdiscipline.length > 0
+					? program.subdiscipline[0]
+					: null)
+			const degreeLevel = program.degreeLevel || program.program?.degreeLevel
+			const country = program.country || program.institution?.country
+
+			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
+			if (discipline && degreeLevel && country) {
+				const filters = {
+					limit: 9, // Fetch 9 most relevant programs
+					page: 1,
+					// Must match ALL criteria
+					discipline: [discipline],
+					degreeLevel: [degreeLevel],
+					country: [country],
+					sortBy: 'most-popular' as const,
+				}
+
+				const response = await ExploreApiService.getPrograms(filters)
+
+				if (response.data && response.data.length > 0) {
+					// Filter out the current program from recommendations
+					const filtered = response.data.filter(
+						(p: Program) => p.id !== program.id
+					)
+					setRecommendedPrograms(filtered)
+				} else {
+					// No exact matches found, show empty recommendations
+					setRecommendedPrograms([])
+				}
+			} else {
+				// If we don't have all 3 criteria, show fallback popular programs
+				const fallbackResponse = await ExploreApiService.getPrograms({
+					limit: 8,
+					page: 1,
+					sortBy: 'most-popular' as const,
+				})
+
+				if (fallbackResponse.data) {
+					const filtered = fallbackResponse.data.filter(
+						(p: Program) => p.id !== program.id
+					)
+					setRecommendedPrograms(filtered)
+				}
+			}
+		} catch (error) {
+			// Silently fail for recommendations, fallback to empty array
+			setRecommendedPrograms([])
+		} finally {
+			setIsLoadingRecommendations(false)
+		}
+	}
 
 	// Handle scholarship pagination change
 	const handleScholarshipPageChange = (newPage: number) => {
@@ -290,6 +358,13 @@ const ProgramDetail = () => {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [applicationId])
+
+	// Fetch recommended programs when currentProgram is loaded
+	useEffect(() => {
+		if (currentProgram) {
+			fetchRecommendedPrograms(currentProgram)
+		}
+	}, [currentProgram])
 
 	// Fetch all update requests for the application
 	const fetchUpdateRequests = async () => {
@@ -1917,63 +1992,83 @@ const ProgramDetail = () => {
 
 					{/* Carousel */}
 					<div className="relative">
-						{/* Navigation Buttons */}
-						<button
-							onClick={prevSlide}
-							className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-							disabled={carouselIndex === 0}
-						>
-							<ChevronLeft className="w-6 h-6 text-gray-600" />
-						</button>
-
-						<button
-							onClick={nextSlide}
-							className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-							disabled={carouselIndex + programsPerPage >= totalPrograms}
-						>
-							<ChevronRight className="w-6 h-6 text-gray-600" />
-						</button>
-
-						{/* Programs Grid */}
-						<div className="overflow-hidden px-12 py-5">
-							<div
-								className="flex transition-transform duration-300 ease-in-out"
-								style={{
-									transform: `translateX(-${(carouselIndex / programsPerPage) * 100}%)`,
-								}}
-							>
-								{mockPrograms.map((program, index) => (
-									<div key={program.id} className="w-1/3 flex-shrink-0 px-3">
-										<div className="h-[600px]">
-											<ProgramCard
-												program={program}
-												index={index}
-												isWishlisted={isInWishlist(program.id)}
-												onWishlistToggle={() => toggleWishlistItem(program.id)}
-												onClick={handleProgramClick}
-											/>
-										</div>
-									</div>
-								))}
+						{/* Show loading state */}
+						{isLoadingRecommendations ? (
+							<div className="flex justify-center items-center py-12">
+								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
 							</div>
-						</div>
-
-						{/* Dots Indicator */}
-						<div className="flex justify-center mt-6 gap-2">
-							{Array.from({
-								length: Math.ceil(totalPrograms / programsPerPage),
-							}).map((_, index) => (
+						) : recommendedPrograms.length === 0 ? (
+							<div className="flex justify-center items-center py-12">
+								<p className="text-gray-500">
+									No recommendations available at this time.
+								</p>
+							</div>
+						) : (
+							<>
+								{/* Navigation Buttons */}
 								<button
-									key={index}
-									onClick={() => setCarouselIndex(index * programsPerPage)}
-									className={`w-3 h-3 rounded-full transition-colors ${
-										Math.floor(carouselIndex / programsPerPage) === index
-											? 'bg-[#126E64]'
-											: 'bg-gray-300'
-									}`}
-								/>
-							))}
-						</div>
+									onClick={prevSlide}
+									className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
+									disabled={carouselIndex === 0}
+								>
+									<ChevronLeft className="w-6 h-6 text-gray-600" />
+								</button>
+
+								<button
+									onClick={nextSlide}
+									className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
+									disabled={carouselIndex + programsPerPage >= totalPrograms}
+								>
+									<ChevronRight className="w-6 h-6 text-gray-600" />
+								</button>
+
+								{/* Programs Grid */}
+								<div className="overflow-hidden px-12 py-5">
+									<div
+										className="flex transition-transform duration-300 ease-in-out"
+										style={{
+											transform: `translateX(-${(carouselIndex / programsPerPage) * 100}%)`,
+										}}
+									>
+										{recommendedPrograms.map((program, index) => (
+											<div
+												key={program.id}
+												className="w-1/3 flex-shrink-0 px-3"
+											>
+												<div className="h-[700px]">
+													<ProgramCard
+														program={program}
+														index={index}
+														isWishlisted={isInWishlist(program.id)}
+														onWishlistToggle={() =>
+															toggleWishlistItem(program.id)
+														}
+														onClick={handleProgramClick}
+													/>
+												</div>
+											</div>
+										))}
+									</div>
+								</div>
+
+								{/* Dots Indicator */}
+								<div className="flex justify-center mt-6 gap-2">
+									{Array.from({
+										length: Math.ceil(totalPrograms / programsPerPage),
+									}).map((_, index) => (
+										<button
+											key={index}
+											onClick={() => setCarouselIndex(index * programsPerPage)}
+											className={`w-3 h-3 rounded-full transition-colors ${
+												Math.floor(carouselIndex / programsPerPage) === index
+													? 'bg-[#126E64]'
+													: 'bg-gray-300'
+											}`}
+										/>
+									))}
+								</div>
+							</>
+						)}
 					</div>
 				</motion.div>
 			</motion.div>

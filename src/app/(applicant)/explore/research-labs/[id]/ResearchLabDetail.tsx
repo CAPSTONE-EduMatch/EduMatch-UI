@@ -11,7 +11,6 @@ import {
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { mockResearchLabs } from '@/data/utils'
 import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart, Trash2, Check } from 'lucide-react'
@@ -23,6 +22,7 @@ import { applicationService } from '@/services/application/application-service'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
+import { ExploreApiService } from '@/services/explore/explore-api'
 
 const ResearchLabDetail = () => {
 	const router = useRouter()
@@ -42,7 +42,6 @@ const ResearchLabDetail = () => {
 	})
 
 	const [activeTab, setActiveTab] = useState('job-description')
-	const [researchLabWishlist, setResearchLabWishlist] = useState<string[]>([])
 
 	// Fetch research lab detail from API
 	const labId = params.id as string
@@ -71,6 +70,13 @@ const ResearchLabDetail = () => {
 
 	// Notification system
 	const { showSuccess, showError } = useNotification()
+
+	// Recommended research labs state
+	const [recommendedResearchLabs, setRecommendedResearchLabs] = useState<any[]>(
+		[]
+	)
+	const [isLoadingRecommendations, setIsLoadingRecommendations] =
+		useState(false)
 
 	// Handle documents selection from DocumentSelector
 	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
@@ -176,6 +182,61 @@ const ResearchLabDetail = () => {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [applicationId])
+
+	// Fetch recommended research labs when researchLab is loaded
+	useEffect(() => {
+		if (researchLab) {
+			fetchRecommendedResearchLabs(researchLab)
+		}
+	}, [researchLab])
+
+	// Fetch recommended research labs based on current lab's characteristics
+	const fetchRecommendedResearchLabs = async (lab: any) => {
+		if (!lab) return
+
+		try {
+			setIsLoadingRecommendations(true)
+
+			// Extract research lab characteristics for matching
+			const discipline =
+				lab.discipline ||
+				(lab.subdiscipline && lab.subdiscipline.length > 0
+					? lab.subdiscipline[0]
+					: null)
+			const degreeLevel = lab.degreeLevel
+			const country = lab.country || lab.institution?.country
+
+			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
+			if (discipline && degreeLevel && country) {
+				const response = await ExploreApiService.getResearchLabs({
+					limit: 9, // Fetch 9 most relevant research labs
+					page: 1,
+					// Must match ALL criteria
+					discipline: [discipline],
+					degreeLevel: [degreeLevel],
+					country: [country],
+					// sortBy: 'most-popular',
+				})
+
+				if (response.data && response.data.length > 0) {
+					// Filter out the current research lab from recommendations
+					const filtered = response.data.filter((l: any) => l.id !== lab.id)
+					setRecommendedResearchLabs(filtered)
+				} else {
+					// No exact matches found, show empty recommendations
+					setRecommendedResearchLabs([])
+				}
+			} else {
+				// If we don't have all 3 criteria, show no recommendations
+				setRecommendedResearchLabs([])
+			}
+		} catch (error) {
+			// Silently fail for recommendations, fallback to empty array
+			setRecommendedResearchLabs([])
+		} finally {
+			setIsLoadingRecommendations(false)
+		}
+	}
 
 	// Fetch all update requests for the application
 	const fetchUpdateRequests = async () => {
@@ -429,37 +490,6 @@ const ResearchLabDetail = () => {
 
 		updateBreadcrumb()
 	}, [searchParams, researchLab?.title])
-
-	const handleRResearchLabWishlistToggle = async (id: string) => {
-		// Check if user is authenticated before attempting to toggle
-		if (!isAuthenticated) {
-			setShowAuthModal(true)
-			return
-		}
-
-		try {
-			await toggleWishlistItem(id)
-			// Update local state to reflect the change
-			setResearchLabWishlist((prev) =>
-				prev.includes(id)
-					? prev.filter((itemId) => itemId !== id)
-					: [...prev, id]
-			)
-		} catch (error) {
-			// Check if error is due to authentication
-			const errorMessage =
-				error instanceof Error ? error.message : 'Unknown error'
-			if (
-				errorMessage.includes('Authentication required') ||
-				errorMessage.includes('not authenticated') ||
-				errorMessage.includes('401')
-			) {
-				setShowAuthModal(true)
-			} else {
-				console.error('Failed to toggle wishlist item:', error)
-			}
-		}
-	}
 
 	// Handle sign in navigation
 	const handleSignIn = () => {
@@ -899,7 +929,12 @@ const ResearchLabDetail = () => {
 												? params.id
 												: String(params.id))
 										if (labId) {
-											handleRResearchLabWishlistToggle(labId)
+											// Check if user is authenticated before attempting to toggle
+											if (!isAuthenticated) {
+												setShowAuthModal(true)
+												return
+											}
+											toggleWishlistItem(labId)
 										}
 									}}
 									className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
@@ -1715,7 +1750,7 @@ const ResearchLabDetail = () => {
 					</div>
 				</motion.div>
 
-				{/* Recommended Scholarships - Only show when data is loaded */}
+				{/* Recommended Research Labs - Only show when data is loaded */}
 				{!loading && !error && researchLab && (
 					<motion.div
 						initial={{ y: 20, opacity: 0 }}
@@ -1725,27 +1760,32 @@ const ResearchLabDetail = () => {
 					>
 						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
 
-						{mockResearchLabs.length > 0 ? (
+						{/* Show loading state */}
+						{isLoadingRecommendations ? (
+							<div className="flex justify-center items-center py-12">
+								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+							</div>
+						) : recommendedResearchLabs.length === 0 ? (
+							<div className="flex justify-center items-center py-12">
+								<p className="text-gray-500">
+									No recommendations available at this time.
+								</p>
+							</div>
+						) : (
 							<div className="relative h-[900px] overflow-y-auto overflow-x-hidden">
-								{mockResearchLabs.slice(0, 9).map((researchLab, index) => (
-									<div key={researchLab.id} className="">
+								{recommendedResearchLabs.slice(0, 9).map((lab, index) => (
+									<div key={lab.id} className="">
 										<div className="mb-7">
 											<ResearchLabCard
-												lab={researchLab}
+												lab={lab}
 												index={index}
-												isWishlisted={researchLabWishlist.includes(
-													researchLab.id
-												)}
-												onWishlistToggle={handleRResearchLabWishlistToggle}
+												isWishlisted={isInWishlist(lab.id)}
+												onWishlistToggle={() => toggleWishlistItem(lab.id)}
 												onClick={handleResearchLabClick}
 											/>
 										</div>
 									</div>
 								))}
-							</div>
-						) : (
-							<div className="text-center py-8">
-								<p className="text-gray-600">No research labs available</p>
 							</div>
 						)}
 					</motion.div>

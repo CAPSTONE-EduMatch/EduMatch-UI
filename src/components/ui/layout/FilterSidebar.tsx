@@ -69,7 +69,7 @@ export function FilterSidebar({
 			essayRequired: [],
 		},
 		research: {
-			researchField: [],
+			discipline: [], // Changed from researchField to discipline
 			country: [],
 			degreeLevel: [],
 			attendance: [],
@@ -103,7 +103,7 @@ export function FilterSidebar({
 	>({
 		programmes: { selectedDiscipline: '', showSubdisciplines: false },
 		scholarships: { selectedDiscipline: '', showSubdisciplines: false },
-		research: { selectedDiscipline: '', showSubdisciplines: false },
+		research: { selectedDiscipline: '', showSubdisciplines: false }, // Added research tab
 	})
 
 	// Separate search terms for each tab
@@ -121,6 +121,8 @@ export function FilterSidebar({
 			country: '',
 		},
 		research: {
+			discipline: '', // Added discipline search
+			subdiscipline: '', // Added subdiscipline search
 			researchField: '',
 			country: '',
 		},
@@ -198,7 +200,7 @@ export function FilterSidebar({
 				'duration',
 				'degreeLevel',
 				'attendance',
-				'researchField',
+				'researchField', // Keep both for backward compatibility
 				'essayRequired',
 				'contractType',
 				'jobType',
@@ -858,7 +860,7 @@ export function FilterSidebar({
 				setTabFilters((prev) => ({
 					...prev,
 					[activeTab]: {
-						researchField: [],
+						discipline: [], // Changed from researchField to discipline
 						country: [],
 						degreeLevel: [],
 						attendance: [],
@@ -876,6 +878,8 @@ export function FilterSidebar({
 				setTabSearchTerms((prev) => ({
 					...prev,
 					[activeTab]: {
+						discipline: '', // Added discipline search reset
+						subdiscipline: '', // Added subdiscipline search reset
 						researchField: '',
 						country: '',
 					},
@@ -1043,6 +1047,10 @@ export function FilterSidebar({
 
 			case 'research':
 				return {
+					// Use disciplines from API response instead of all disciplines from database
+					// This ensures only disciplines that have research labs are shown
+					disciplines: dynamicFilters.disciplines || [],
+					subdisciplines: getSubdisciplinesFromData(), // Keep from database for full subdiscipline mapping
 					researchFields: dynamicFilters.researchFields || [],
 					countries: dynamicFilters.countries || [],
 					salaryRanges: [
@@ -1056,7 +1064,7 @@ export function FilterSidebar({
 					contractTypes: dynamicFilters.contractTypes || [],
 					jobTypes: dynamicFilters.jobTypes || [],
 					sections: [
-						'researchField',
+						'discipline', // Changed from 'researchField' to 'discipline'
 						'country',
 						'salary',
 						'degreeLevel',
@@ -1122,7 +1130,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<BookOpen className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Discipline</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{activeTab === 'research' ? 'Research field' : 'Discipline'}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1141,8 +1151,8 @@ export function FilterSidebar({
 									exit={{ opacity: 0, height: 0 }}
 									transition={{ duration: 0.3 }}
 								>
-									{!showSubdisciplines ? (
-										// Main disciplines view
+									{!showSubdisciplines && activeTab !== 'research' ? (
+										// Main disciplines view (not shown for research)
 										<div>
 											<div className="relative mb-3">
 												<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1230,21 +1240,27 @@ export function FilterSidebar({
 											</div>
 										</div>
 									) : (
-										// Subdisciplines view
+										// Subdisciplines view (shown directly for research or after discipline selection for other tabs)
 										<div>
-											<div className="flex items-center gap-2 mb-3">
-												<button
-													onClick={handleBackToDisciplines}
-													className="text-[#116E63] hover:text-[#0d5a52] text-sm font-medium"
-												>
-													← Back to disciplines
-												</button>
-											</div>
+											{activeTab !== 'research' && (
+												<div className="flex items-center gap-2 mb-3">
+													<button
+														onClick={handleBackToDisciplines}
+														className="text-[#116E63] hover:text-[#0d5a52] text-sm font-medium"
+													>
+														← Back to disciplines
+													</button>
+												</div>
+											)}
 											<div className="relative mb-3">
 												<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 												<input
 													type="text"
-													placeholder="Search subdiscipline..."
+													placeholder={`Search ${
+														activeTab === 'research'
+															? 'research field'
+															: 'subdiscipline'
+													}...`}
 													value={searchTerms.subdiscipline}
 													onChange={(e) =>
 														setTabSearchTerms((prev) => ({
@@ -1262,36 +1278,78 @@ export function FilterSidebar({
 												</button>
 											</div>
 											<p className="text-sm text-gray-600 mb-3">
-												{selectedDiscipline} subdisciplines
+												{activeTab === 'research'
+													? 'Select research fields'
+													: `${selectedDiscipline} subdisciplines`}
 											</p>
 											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-												{filterOptions(
-													filterConfig.subdisciplines?.[selectedDiscipline] ||
-														[],
-													searchTerms.subdiscipline
-												).map((subdiscipline) => (
-													<motion.label
-														key={subdiscipline}
-														className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
-														whileHover={{ x: 2 }}
-													>
-														<input
-															type="checkbox"
-															checked={
-																selectedFilters.discipline?.includes(
-																	subdiscipline
-																) || false
+												{activeTab === 'research'
+													? // For research tab, show all subdisciplines from all disciplines
+														(() => {
+															const allSubdisciplines: string[] = []
+															if (filterConfig.subdisciplines) {
+																Object.values(
+																	filterConfig.subdisciplines
+																).forEach((subs) => {
+																	allSubdisciplines.push(...subs)
+																})
 															}
-															onChange={() =>
-																handleSubdisciplineSelect(subdiscipline)
-															}
-															className="w-4 h-4 text-[#116E63] focus:ring-teal-500 rounded"
-														/>
-														<span className="text-sm text-gray-700">
-															{subdiscipline}
-														</span>
-													</motion.label>
-												))}
+															return filterOptions(
+																allSubdisciplines,
+																searchTerms.subdiscipline
+															).map((subdiscipline) => (
+																<motion.label
+																	key={subdiscipline}
+																	className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
+																	whileHover={{ x: 2 }}
+																>
+																	<input
+																		type="checkbox"
+																		checked={
+																			selectedFilters.discipline?.includes(
+																				subdiscipline
+																			) || false
+																		}
+																		onChange={() =>
+																			handleSubdisciplineSelect(subdiscipline)
+																		}
+																		className="w-4 h-4 text-[#116E63] focus:ring-teal-500 rounded"
+																	/>
+																	<span className="text-sm text-gray-700">
+																		{subdiscipline}
+																	</span>
+																</motion.label>
+															))
+														})()
+													: // For other tabs, show subdisciplines of selected discipline
+														filterOptions(
+															filterConfig.subdisciplines?.[
+																selectedDiscipline
+															] || [],
+															searchTerms.subdiscipline
+														).map((subdiscipline) => (
+															<motion.label
+																key={subdiscipline}
+																className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
+																whileHover={{ x: 2 }}
+															>
+																<input
+																	type="checkbox"
+																	checked={
+																		selectedFilters.discipline?.includes(
+																			subdiscipline
+																		) || false
+																	}
+																	onChange={() =>
+																		handleSubdisciplineSelect(subdiscipline)
+																	}
+																	className="w-4 h-4 text-[#116E63] focus:ring-teal-500 rounded"
+																/>
+																<span className="text-sm text-gray-700">
+																	{subdiscipline}
+																</span>
+															</motion.label>
+														))}
 											</div>
 											{/* {selectedFilters.discipline &&
 												selectedFilters.discipline.length > 0 && (
@@ -1313,96 +1371,6 @@ export function FilterSidebar({
 												)} */}
 										</div>
 									)}
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</div>
-				)}
-
-				{/* Research Field Section (for research labs) */}
-				{filterConfig.sections.includes('researchField') && (
-					<div className="mb-3">
-						<div
-							className="flex items-center justify-between mb-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
-							onClick={() => toggleSection('researchField')}
-						>
-							<div className="flex items-center gap-2">
-								<BookOpen className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Research field</h4>
-							</div>
-							<motion.div
-								className="p-1"
-								animate={{ rotate: collapsedSections.researchField ? -90 : 0 }}
-								transition={{ duration: 0.2 }}
-							>
-								<ChevronDown className="w-4 h-4 text-[#116E63]" />
-							</motion.div>
-						</div>
-
-						<AnimatePresence>
-							{!collapsedSections.researchField && (
-								<motion.div
-									initial={{ opacity: 0, height: 0 }}
-									animate={{ opacity: 1, height: 'auto' }}
-									exit={{ opacity: 0, height: 0 }}
-									transition={{ duration: 0.3 }}
-								>
-									<div className="relative mb-3">
-										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-										<input
-											type="text"
-											placeholder="Search research field..."
-											value={searchTerms.researchField}
-											onChange={(e) =>
-												setTabSearchTerms((prev) => ({
-													...prev,
-													[activeTab]: {
-														...prev[activeTab],
-														researchField: e.target.value,
-													},
-												}))
-											}
-											className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-										/>
-										<button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#116E63] text-white p-1 rounded">
-											<Search className="w-4 h-4" />
-										</button>
-									</div>
-
-									<div className="max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-2">
-										{isLoadingFilters ? (
-											<div className="flex items-center justify-center py-4">
-												<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
-												<span className="ml-2 text-sm text-gray-600">
-													Loading...
-												</span>
-											</div>
-										) : (
-											filterOptions(
-												filterConfig.researchFields || [],
-												searchTerms.researchField
-											).map((field) => (
-												<motion.label
-													key={field}
-													className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-2"
-													whileHover={{ x: 2 }}
-												>
-													<input
-														type="checkbox"
-														checked={
-															selectedFilters.researchField?.includes(field) ||
-															false
-														}
-														onChange={() =>
-															handleFilterChange('researchField', field)
-														}
-														className="w-4 h-4 text-[#116E63] rounded focus:ring-teal-500"
-													/>
-													<span className="text-sm text-gray-700">{field}</span>
-												</motion.label>
-											))
-										)}
-									</div>
 								</motion.div>
 							)}
 						</AnimatePresence>

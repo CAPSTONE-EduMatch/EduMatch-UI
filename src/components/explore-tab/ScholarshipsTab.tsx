@@ -51,6 +51,7 @@ export function ScholarshipsTab({
 						onClick={handleScholarshipClick}
 						applicationId={(scholarship as any).applicationId}
 						onUpdateRequest={onUpdateRequest}
+						institutionStatus={(scholarship as any).institutionStatus}
 					/>
 				))
 			) : (

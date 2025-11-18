@@ -40,6 +40,8 @@ export interface Application {
 			name: string;
 			logo?: string | null;
 			country?: string;
+			status: boolean;
+			deletedAt: string | null;
 		};
 		program?: {
 			post_id: string;

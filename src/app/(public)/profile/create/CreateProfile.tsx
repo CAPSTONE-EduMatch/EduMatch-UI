@@ -246,7 +246,7 @@ export default function CreateProfile() {
 			if (formData.role === 'applicant') {
 				router.push('/explore')
 			} else if (formData.role === 'institution') {
-				router.push('/profile/view')
+				router.push('/institution/dashboard')
 			} else {
 				router.push('/')
 			}

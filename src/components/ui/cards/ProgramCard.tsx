@@ -6,6 +6,7 @@ import {
 	MapPin,
 	GraduationCap,
 	AlertCircle,
+	X,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
@@ -42,6 +43,9 @@ interface ProgramCardProps {
 	onApply?: (programId: string) => void
 	applicationId?: string
 	onUpdateRequest?: (applicationId: string) => void
+	institutionStatus?: {
+		isActive: boolean
+	}
 }
 
 export function ProgramCard({
@@ -55,10 +59,47 @@ export function ProgramCard({
 	onApply,
 	applicationId,
 	onUpdateRequest,
+	institutionStatus,
 }: ProgramCardProps) {
 	// Format date and calculate days left on the client side
 	const formattedDate = formatDateToDDMMYYYY(program.date)
 	const daysLeft = calculateDaysLeft(program.date)
+
+	// Utility function to get institution status
+	const getInstitutionStatus = (institutionStatus?: { isActive: boolean }) => {
+		if (!institutionStatus) return null
+
+		// Only show "Account Deactivated" badge when isActive is explicitly false
+		if (institutionStatus.isActive === false) {
+			return {
+				type: 'deactivated' as const,
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
+			}
+		}
+
+		return null
+	}
+
+	// Institution status badge component
+	const InstitutionStatusBadge: React.FC<{
+		institutionStatus?: {
+			isActive: boolean
+		}
+	}> = ({ institutionStatus }) => {
+		const status = getInstitutionStatus(institutionStatus)
+
+		if (!status) return null
+
+		return (
+			<div
+				className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}
+			>
+				<X className="w-3 h-3" />
+				{status.label}
+			</div>
+		)
+	}
 
 	return (
 		<motion.div
@@ -156,6 +197,13 @@ export function ProgramCard({
 					</span>
 				</span>
 			</div>
+
+			{/* Institution Status Badge */}
+			{institutionStatus && (
+				<div className="mb-3 flex-shrink-0">
+					<InstitutionStatusBadge institutionStatus={institutionStatus} />
+				</div>
+			)}
 
 			{/* Price */}
 			<div className="text-center mb-6 flex-grow flex items-end justify-center min-h-[60px]">

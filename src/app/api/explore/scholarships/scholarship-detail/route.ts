@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
 						website: true,
 						about: true,
 						type: true,
+						status: true,
+						deleted_at: true,
 					},
 				},
 				scholarshipPost: true,
@@ -148,6 +150,8 @@ export async function GET(request: NextRequest) {
 				website: post.institution?.website,
 				about: post.institution?.about,
 				type: post.institution?.type,
+				status: post.institution?.status,
+				deletedAt: post.institution?.deleted_at?.toISOString() || null,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
 				id: doc.document_id,

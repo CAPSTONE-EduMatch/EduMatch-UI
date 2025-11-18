@@ -13,7 +13,7 @@ import {
 
 import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Trash2, Check } from 'lucide-react'
+import { Heart, Trash2, Check, X } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
@@ -70,6 +70,48 @@ const ResearchLabDetail = () => {
 
 	// Notification system
 	const { showSuccess, showError } = useNotification()
+
+	// Utility function to get institution status
+	const getInstitutionStatus = (institution?: {
+		status: boolean
+		deletedAt?: string | null
+	}) => {
+		if (!institution) return null
+
+		// Only show badge if status is explicitly false (boolean)
+		if (institution.status === false) {
+			return {
+				type: 'deactivated' as const,
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
+			}
+		}
+
+		return null
+	}
+
+	// Institution status badge component
+	const InstitutionStatusBadge: React.FC<{
+		institution?: {
+			status: boolean
+			deletedAt?: string | null
+		}
+	}> = ({ institution }) => {
+		const status = getInstitutionStatus(institution)
+
+		if (!status) return null
+
+		return (
+			<div className="mb-2">
+				<div
+					className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${status.color}`}
+				>
+					<X className="w-4 h-4" />
+					{status.label}
+				</div>
+			</div>
+		)
+	}
 
 	// Recommended research labs state
 	const [recommendedResearchLabs, setRecommendedResearchLabs] = useState<any[]>(
@@ -892,9 +934,12 @@ const ResearchLabDetail = () => {
 							<h1 className="text-3xl font-bold mb-2">
 								{researchLab?.title || "Job's name"}
 							</h1>
-							<p className="text-gray-600 mb-6">
+							<p className="text-gray-600 mb-4">
 								Provided by: {researchLab?.organization || "Lab's name"}
 							</p>
+
+							{/* Institution Status Badge */}
+							<InstitutionStatusBadge institution={researchLab?.institution} />
 
 							<div className="flex items-center gap-3 mb-4">
 								{researchLab?.institution?.website && (

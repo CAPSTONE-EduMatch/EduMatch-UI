@@ -7,6 +7,7 @@ import {
 	Users,
 	Clock,
 	AlertCircle,
+	X,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import {
@@ -39,6 +40,9 @@ interface ResearchLabCardProps {
 	onClick?: (labId: string) => void
 	applicationId?: string
 	onUpdateRequest?: (applicationId: string) => void
+	institutionStatus?: {
+		isActive: boolean
+	}
 }
 
 export function ResearchLabCard({
@@ -52,10 +56,47 @@ export function ResearchLabCard({
 	onClick,
 	applicationId,
 	onUpdateRequest,
+	institutionStatus,
 }: ResearchLabCardProps) {
 	// Format date and calculate days left on the client side
 	const formattedDate = formatDateToDDMMYYYY(lab.date)
 	const daysLeft = calculateDaysLeft(lab.date)
+
+	// Utility function to get institution status
+	const getInstitutionStatus = (institutionStatus?: { isActive: boolean }) => {
+		if (!institutionStatus) return null
+
+		// Only show badge if isActive is explicitly false (boolean)
+		if (institutionStatus.isActive === false) {
+			return {
+				type: 'deactivated' as const,
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
+			}
+		}
+
+		return null
+	}
+
+	// Institution status badge component
+	const InstitutionStatusBadge: React.FC<{
+		institutionStatus?: {
+			isActive: boolean
+		}
+	}> = ({ institutionStatus }) => {
+		const status = getInstitutionStatus(institutionStatus)
+
+		if (!status) return null
+
+		return (
+			<div
+				className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}
+			>
+				<X className="w-3 h-3" />
+				{status.label}
+			</div>
+		)
+	}
 
 	return (
 		<motion.div
@@ -97,6 +138,23 @@ export function ResearchLabCard({
 				className="text-gray-600 mb-4 line-clamp-3 prose prose-content"
 				dangerouslySetInnerHTML={{ __html: lab.description }}
 			/>
+
+			{/* Institution Status Badge */}
+			{institutionStatus && (
+				<div className="mb-3">
+					<InstitutionStatusBadge institutionStatus={institutionStatus} />
+				</div>
+			)}
+
+			{/* Debug: Always show a test badge to verify it renders */}
+			{/* {!institutionStatus && (
+				<div className="mb-3">
+					<div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border bg-blue-100 text-blue-800 border-blue-200">
+						<X className="w-4 h-4" />
+						Debug: No Institution Status
+					</div>
+				</div>
+			)} */}
 
 			{/* Professor */}
 			<div className="flex items-center gap-2 mb-4 text-[#116E63] font-medium">

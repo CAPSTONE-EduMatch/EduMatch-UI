@@ -23,6 +23,7 @@ import {
 	Trash2,
 	Check,
 	File,
+	X,
 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
@@ -116,6 +117,45 @@ const ProgramDetail = () => {
 	const apiWrapper = useApiWrapper()
 	const { isAuthenticated } = useAuthCheck()
 	const [showAuthModal, setShowAuthModal] = useState(false)
+
+	// Utility function to get institution status
+	const getInstitutionStatus = (institution?: {
+		status: boolean
+		deletedAt?: string | null
+	}) => {
+		if (!institution) return null
+
+		if (!institution.status) {
+			return {
+				type: 'deactivated' as const,
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
+			}
+		}
+
+		return null
+	}
+
+	// Institution status badge component
+	const InstitutionStatusBadge: React.FC<{
+		institution?: {
+			status: boolean
+			deletedAt?: string | null
+		}
+	}> = ({ institution }) => {
+		const status = getInstitutionStatus(institution)
+
+		if (!status) return null
+
+		return (
+			<div
+				className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${status.color}`}
+			>
+				<X className="w-4 h-4" />
+				{status.label}
+			</div>
+		)
+	}
 
 	// Dynamic info items based on current program data
 	const infoItems = [
@@ -1172,9 +1212,18 @@ const ProgramDetail = () => {
 						<h1 className="text-3xl font-bold mb-2">
 							{currentProgram?.title || 'Loading...'}
 						</h1>
-						<p className="text-gray-600 mb-6">
+						<p className="text-gray-600 mb-3">
 							{currentProgram?.institution?.name || 'Loading...'}
 						</p>
+
+						{/* Institution Status Badge */}
+						{currentProgram?.institution && (
+							<div className="mb-4">
+								<InstitutionStatusBadge
+									institution={currentProgram.institution}
+								/>
+							</div>
+						)}
 
 						<div className="flex items-center gap-3 mb-4">
 							{currentProgram?.institution?.website && (

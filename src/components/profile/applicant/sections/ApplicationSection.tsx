@@ -13,7 +13,6 @@ import { ApplicationStatus } from '@/types/api/application-api'
 import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
-import { ExploreApiService } from '@/services/explore/explore-api'
 import { ApplicationUpdateResponseModal } from './ApplicationUpdateResponseModal'
 
 interface ApplicationSectionProps {
@@ -39,23 +38,32 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		},
 	})
 
-	// Explore data state with application status and ID
+	// Explore data state with application status, ID, and institution status
 	const [programs, setPrograms] = useState<
 		(Program & {
 			applicationStatus?: ApplicationStatus
 			applicationId?: string
+			institutionStatus?: {
+				isActive: boolean
+			}
 		})[]
 	>([])
 	const [scholarships, setScholarships] = useState<
 		(Scholarship & {
 			applicationStatus?: ApplicationStatus
 			applicationId?: string
+			institutionStatus?: {
+				isActive: boolean
+			}
 		})[]
 	>([])
 	const [researchLabs, setResearchLabs] = useState<
 		(ResearchLab & {
 			applicationStatus?: ApplicationStatus
 			applicationId?: string
+			institutionStatus?: {
+				isActive: boolean
+			}
 		})[]
 	>([])
 	const [loading, setLoading] = useState(false)
@@ -64,7 +72,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		useState<string | null>(null)
 	const [showUpdateModal, setShowUpdateModal] = useState(false)
 
-	// Fetch explore data and filter by applications
+	// Fetch and transform application data
 	const fetchApplicationData = useCallback(async () => {
 		// Don't fetch if still loading applications
 		if (applicationsLoading) {
@@ -84,73 +92,143 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		setError(null)
 
 		try {
-			// Get application post IDs
-			const applicationPostIds = applications.map((app) => app.postId)
+			// Transform application data directly to explore format
+			const programsData: (Program & {
+				applicationStatus?: ApplicationStatus
+				applicationId?: string
+				institutionStatus?: {
+					isActive: boolean
+				}
+			})[] = []
+			const scholarshipsData: (Scholarship & {
+				applicationStatus?: ApplicationStatus
+				applicationId?: string
+				institutionStatus?: {
+					isActive: boolean
+				}
+			})[] = []
+			const researchLabsData: (ResearchLab & {
+				applicationStatus?: ApplicationStatus
+				applicationId?: string
+				institutionStatus?: {
+					isActive: boolean
+				}
+			})[] = []
 
-			// Fetch all explore data
-			const [programsResponse, scholarshipsResponse, researchResponse] =
-				await Promise.all([
-					ExploreApiService.getPrograms({
-						page: 1,
-						limit: 1000, // Fetch large number to get all data
-						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
-					}),
-					ExploreApiService.getScholarships({
-						page: 1,
-						limit: 1000,
-						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
-					}),
-					ExploreApiService.getResearchLabs({
-						page: 1,
-						limit: 1000,
-						sortBy: sortBy === 'newest' ? 'newest' : 'most-popular',
-					}),
-				])
-
-			// Create maps of postId to application status and applicationId
-			const applicationStatusMap = new Map<string, ApplicationStatus>()
-			const applicationIdMap = new Map<string, string>()
 			applications.forEach((app) => {
-				applicationStatusMap.set(app.postId, app.status)
-				applicationIdMap.set(app.postId, app.applicationId)
+				const institutionStatus = {
+					isActive: app.post.institution.status,
+				}
+
+				// Convert application post to explore format based on post type
+				if (app.post.program) {
+					// Program application
+					const program: Program = {
+						id: app.post.id,
+						title: app.post.title,
+						description: app.post.otherInfo || 'No description available',
+						university: app.post.institution.name,
+						logo: app.post.institution.logo || '',
+						field: 'Academic Program', // Default field
+						country: app.post.institution.country || '',
+						price: app.post.program.tuition_fee
+							? `$${app.post.program.tuition_fee}`
+							: 'Not specified',
+						funding: 'Available', // Default
+						attendance: app.post.program.attendance,
+						date: app.post.endDate || app.post.startDate,
+						daysLeft: Math.max(
+							0,
+							Math.ceil(
+								(new Date(app.post.endDate || app.post.startDate).getTime() -
+									new Date().getTime()) /
+									(1000 * 60 * 60 * 24)
+							)
+						),
+						match: '85%', // Default match
+						applicationCount: 0, // Not available in application data
+					}
+
+					programsData.push({
+						...program,
+						applicationStatus: app.status,
+						applicationId: app.applicationId,
+						institutionStatus,
+					})
+				} else if (app.post.scholarship) {
+					// Scholarship application
+					const scholarship: Scholarship = {
+						id: app.post.id,
+						title: app.post.title,
+						description: app.post.scholarship.description,
+						provider: app.post.institution.name,
+						university: app.post.institution.name,
+						essayRequired: app.post.scholarship.essay_required ? 'Yes' : 'No',
+						country: app.post.institution.country || '',
+						amount: app.post.scholarship.grant || 'Not specified',
+						date: app.post.endDate || app.post.startDate,
+						daysLeft: Math.max(
+							0,
+							Math.ceil(
+								(new Date(app.post.endDate || app.post.startDate).getTime() -
+									new Date().getTime()) /
+									(1000 * 60 * 60 * 24)
+							)
+						),
+						match: '85%', // Default match
+						applicationCount: 0, // Not available in application data
+					}
+
+					scholarshipsData.push({
+						...scholarship,
+						applicationStatus: app.status,
+						applicationId: app.applicationId,
+						institutionStatus,
+					})
+				} else if (app.post.job) {
+					// Research lab/job application
+					const researchLab: ResearchLab = {
+						id: app.post.id,
+						title: app.post.title,
+						description: app.post.otherInfo || 'No description available',
+						professor: 'Prof. Researcher', // Default
+						field: 'Research', // Default field
+						country: app.post.institution.country || '',
+						position: app.post.job.job_type,
+						institution: app.post.institution.name,
+						date: app.post.endDate || app.post.startDate,
+						daysLeft: Math.max(
+							0,
+							Math.ceil(
+								(new Date(app.post.endDate || app.post.startDate).getTime() -
+									new Date().getTime()) /
+									(1000 * 60 * 60 * 24)
+							)
+						),
+						match: '85%', // Default match
+						applicationCount: 0, // Not available in application data
+					}
+
+					researchLabsData.push({
+						...researchLab,
+						applicationStatus: app.status,
+						applicationId: app.applicationId,
+						institutionStatus,
+					})
+				}
 			})
 
-			// Filter by application post IDs and add application status and ID
-			const filteredPrograms = programsResponse.data
-				.filter((program) => applicationPostIds.includes(program.id))
-				.map((program) => ({
-					...program,
-					applicationStatus: applicationStatusMap.get(program.id),
-					applicationId: applicationIdMap.get(program.id),
-				}))
-
-			const filteredScholarships = scholarshipsResponse.data
-				.filter((scholarship) => applicationPostIds.includes(scholarship.id))
-				.map((scholarship) => ({
-					...scholarship,
-					applicationStatus: applicationStatusMap.get(scholarship.id),
-					applicationId: applicationIdMap.get(scholarship.id),
-				}))
-
-			const filteredResearchLabs = researchResponse.data
-				.filter((researchLab) => applicationPostIds.includes(researchLab.id))
-				.map((researchLab) => ({
-					...researchLab,
-					applicationStatus: applicationStatusMap.get(researchLab.id),
-					applicationId: applicationIdMap.get(researchLab.id),
-				}))
-
-			setPrograms(filteredPrograms)
-			setScholarships(filteredScholarships)
-			setResearchLabs(filteredResearchLabs)
+			setPrograms(programsData)
+			setScholarships(scholarshipsData)
+			setResearchLabs(researchLabsData)
 		} catch (err) {
 			// eslint-disable-next-line no-console
-			console.error('Error fetching application data:', err)
-			setError('Failed to load application data')
+			console.error('Error processing application data:', err)
+			setError('Failed to process application data')
 		} finally {
 			setLoading(false)
 		}
-	}, [applications, applicationsLoading, sortBy])
+	}, [applications, applicationsLoading])
 
 	// Fetch data when applications or sort changes
 	React.useEffect(() => {
@@ -165,41 +243,120 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	]
 
 	// Application status filter options
-	const filterOptions = [
+	const applicationStatusFilters = [
 		{ id: 'SUBMITTED', label: 'Submitted', icon: BookOpen },
 		{ id: 'REQUIRE_UPDATE', label: 'Update Required', icon: Clock },
 		{ id: 'ACCEPTED', label: 'Accepted', icon: Users },
 		{ id: 'REJECTED', label: 'Rejected', icon: X },
 	]
 
-	// Application functionality for cards
-	const { cancelApplication } = useApplications()
+	// Institution status filter options - removed Account Deactivated filter
+	const institutionStatusFilters: never[] = []
+
+	// All filter options combined
+	const filterOptions = [
+		...applicationStatusFilters,
+		...institutionStatusFilters,
+	]
+
+	// Application functionality for cards - currently not used but may be needed in future
+	// const { cancelApplication } = useApplications()
 
 	// Wishlist functionality for cards
 	const { isInWishlist, toggleWishlistItem } = useWishlist()
 
-	// Get current tab data
+	// Filter function for applications
+	const filterApplications = <
+		T extends {
+			title?: string
+			description?: string
+			university?: string
+			provider?: string
+			institution?: string
+			applicationStatus?: ApplicationStatus
+			institutionStatus?: {
+				isActive: boolean
+			}
+		},
+	>(
+		items: T[]
+	): T[] => {
+		let filteredItems = items
+
+		// Search filter
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase()
+			filteredItems = filteredItems.filter((item) => {
+				const searchableText = [
+					item.title || '',
+					item.description || '',
+					item.university || '',
+					item.provider || '',
+					item.institution || '',
+				]
+					.join(' ')
+					.toLowerCase()
+
+				return searchableText.includes(query)
+			})
+		}
+
+		// Status filters
+		if (selectedFilters.size === 0) {
+			return filteredItems
+		}
+
+		return filteredItems.filter((item) => {
+			// Check application status filters
+			const applicationStatusFilters = [
+				'SUBMITTED',
+				'REQUIRE_UPDATE',
+				'ACCEPTED',
+				'REJECTED',
+			]
+			const selectedAppStatuses = Array.from(selectedFilters).filter((f) =>
+				applicationStatusFilters.includes(f)
+			)
+
+			let matchesAppStatus = true
+
+			// Filter by application status
+			if (selectedAppStatuses.length > 0) {
+				matchesAppStatus = selectedAppStatuses.includes(
+					item.applicationStatus || ''
+				)
+			}
+
+			return matchesAppStatus
+		})
+	}
+
+	// Get current tab data with filtering
 	const getCurrentTabData = () => {
 		switch (activeTab) {
 			case 'programmes':
+				const filteredPrograms = filterApplications(programs)
 				return {
-					data: programs,
-					totalItems: programs.length,
+					data: filteredPrograms,
+					totalItems: filteredPrograms.length,
 				}
 			case 'scholarships':
+				const filteredScholarships = filterApplications(scholarships)
 				return {
-					data: scholarships,
-					totalItems: scholarships.length,
+					data: filteredScholarships,
+					totalItems: filteredScholarships.length,
 				}
 			case 'research':
+				const filteredResearchLabs = filterApplications(researchLabs)
 				return {
-					data: researchLabs,
-					totalItems: researchLabs.length,
+					data: filteredResearchLabs,
+					totalItems: filteredResearchLabs.length,
 				}
 			default:
+				const defaultFilteredPrograms = filterApplications(programs)
 				return {
-					data: programs,
-					totalItems: programs.length,
+					data: defaultFilteredPrograms,
+					totalItems: defaultFilteredPrograms.length,
 				}
 		}
 	}
@@ -237,19 +394,6 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		setSortBy(sort)
 	}, [])
 
-	// Handle cancel application (currently unused but may be needed in future)
-	const handleCancelApplication = useCallback(
-		async (applicationId: string) => {
-			try {
-				await cancelApplication(applicationId)
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.error('Failed to cancel application:', error)
-			}
-		},
-		[cancelApplication]
-	)
-
 	// Handle update request click
 	const handleUpdateRequest = useCallback((applicationId: string) => {
 		setSelectedApplicationForUpdate(applicationId)
@@ -268,59 +412,68 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		await fetchApplicationData()
 		handleCloseModal()
 	}, [fetchApplicationData, handleCloseModal])
-
 	// Render tab content based on active tab
 	const renderTabContent = () => {
+		const currentData = getCurrentTabData()
+
 		switch (activeTab) {
 			case 'programmes':
 				return (
-					<ProgramsTab
-						programs={programs}
-						sortBy={sortBy}
-						isInWishlist={isInWishlist} // Check if each program is wishlisted
-						onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
-						hasApplied={() => true} // All items in applications are applied
-						isApplying={() => false}
-						onApply={() => {}} // No-op for applications
-						onUpdateRequest={handleUpdateRequest} // Handle update requests
-					/>
+					<div className="space-y-4">
+						<ProgramsTab
+							programs={currentData.data as typeof programs}
+							sortBy={sortBy}
+							isInWishlist={isInWishlist} // Check if each program is wishlisted
+							onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+							hasApplied={() => true} // All items in applications are applied
+							isApplying={() => false}
+							onApply={() => {}} // No-op for applications
+							onUpdateRequest={handleUpdateRequest} // Handle update requests
+						/>
+					</div>
 				)
 			case 'scholarships':
 				return (
-					<ScholarshipsTab
-						scholarships={scholarships}
-						isInWishlist={isInWishlist} // Check if each scholarship is wishlisted
-						onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
-						hasApplied={() => true} // All items in applications are applied
-						isApplying={() => false}
-						onApply={() => {}} // No-op for applications
-						onUpdateRequest={handleUpdateRequest} // Handle update requests
-					/>
+					<div className="space-y-4">
+						<ScholarshipsTab
+							scholarships={currentData.data as typeof scholarships}
+							isInWishlist={isInWishlist} // Check if each scholarship is wishlisted
+							onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+							hasApplied={() => true} // All items in applications are applied
+							isApplying={() => false}
+							onApply={() => {}} // No-op for applications
+							onUpdateRequest={handleUpdateRequest} // Handle update requests
+						/>
+					</div>
 				)
 			case 'research':
 				return (
-					<ResearchLabsTab
-						researchLabs={researchLabs}
-						isInWishlist={isInWishlist} // Check if each research lab is wishlisted
-						onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
-						hasApplied={() => true} // All items in applications are applied
-						isApplying={() => false}
-						onApply={() => {}} // No-op for applications
-						onUpdateRequest={handleUpdateRequest} // Handle update requests
-					/>
+					<div className="space-y-4">
+						<ResearchLabsTab
+							researchLabs={currentData.data as typeof researchLabs}
+							isInWishlist={isInWishlist} // Check if each research lab is wishlisted
+							onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+							hasApplied={() => true} // All items in applications are applied
+							isApplying={() => false}
+							onApply={() => {}} // No-op for applications
+							onUpdateRequest={handleUpdateRequest} // Handle update requests
+						/>
+					</div>
 				)
 			default:
 				return (
-					<ProgramsTab
-						programs={programs}
-						sortBy={sortBy}
-						isInWishlist={isInWishlist}
-						onWishlistToggle={toggleWishlistItem}
-						hasApplied={() => true}
-						isApplying={() => false}
-						onApply={() => {}}
-						onUpdateRequest={handleUpdateRequest} // Handle update requests
-					/>
+					<div className="space-y-4">
+						<ProgramsTab
+							programs={currentData.data as typeof programs}
+							sortBy={sortBy}
+							isInWishlist={isInWishlist}
+							onWishlistToggle={toggleWishlistItem}
+							hasApplied={() => true}
+							isApplying={() => false}
+							onApply={() => {}}
+							onUpdateRequest={handleUpdateRequest} // Handle update requests
+						/>
+					</div>
 				)
 		}
 	}

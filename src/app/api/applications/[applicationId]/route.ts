@@ -43,6 +43,8 @@ export async function GET(
 								name: true,
 								logo: true,
 								country: true,
+								status: true,
+								deleted_at: true,
 							},
 						},
 						programPost: true,
@@ -88,6 +90,8 @@ export async function GET(
 					name: application.post.institution.name,
 					logo: application.post.institution.logo,
 					country: application.post.institution.country || undefined,
+					status: application.post.institution.status,
+					deletedAt: application.post.institution.deleted_at,
 				},
 				program: application.post.programPost
 					? {
@@ -184,7 +188,6 @@ export async function GET(
 
 		return NextResponse.json(response);
 	} catch (error) {
-		console.error("❌ API: Error fetching application:", error);
 		return NextResponse.json(
 			{ error: "Failed to fetch application" },
 			{ status: 500 }
@@ -231,6 +234,9 @@ export async function PUT(
 							select: {
 								name: true,
 								logo: true,
+								country: true,
+								status: true,
+								deleted_at: true,
 							},
 						},
 					},
@@ -293,10 +299,6 @@ export async function PUT(
 				);
 			}
 		} catch (notificationError) {
-			console.error(
-				"❌ API: Failed to send notification:",
-				notificationError
-			);
 			// Don't fail the update if notification fails
 		}
 
@@ -327,6 +329,8 @@ export async function PUT(
 					country:
 						updatedApplication.post.institution.country ||
 						undefined,
+					status: updatedApplication.post.institution.status,
+					deletedAt: updatedApplication.post.institution.deleted_at,
 				},
 			},
 		};
@@ -338,7 +342,6 @@ export async function PUT(
 
 		return NextResponse.json(response);
 	} catch (error) {
-		console.error("❌ API: Error updating application:", error);
 		return NextResponse.json(
 			{ error: "Failed to update application" },
 			{ status: 500 }
@@ -406,7 +409,6 @@ export async function DELETE(
 			message: "Application cancelled successfully",
 		});
 	} catch (error) {
-		console.error("❌ API: Error deleting application:", error);
 		return NextResponse.json(
 			{ error: "Failed to delete application" },
 			{ status: 500 }

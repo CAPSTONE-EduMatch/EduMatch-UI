@@ -108,7 +108,8 @@ export class InstitutionProfileService {
 		userId: string
 	): Promise<InstitutionProfile | null> {
 		try {
-			const institution = await prismaClient.institution.findFirst({
+			// First try to get active profile
+			let institution = await prismaClient.institution.findFirst({
 				where: {
 					user_id: userId,
 					status: true, // Only get active profiles
@@ -134,6 +135,46 @@ export class InstitutionProfileService {
 					},
 				},
 			});
+
+			// If no active profile found, try without status filter (for backward compatibility)
+			// This handles cases where profile exists but status is false
+			if (!institution) {
+				institution = await prismaClient.institution.findFirst({
+					where: {
+						user_id: userId,
+						// Don't filter by status - get any profile
+					},
+					include: {
+						user: true,
+						documents: {
+							where: {
+								status: true, // Only get active documents
+							},
+							include: {
+								documentType: true,
+							},
+						},
+						subdisciplines: {
+							include: {
+								subdiscipline: {
+									include: {
+										discipline: true,
+									},
+								},
+							},
+						},
+					},
+				});
+
+				// If found inactive profile, automatically reactivate it
+				if (institution && institution.status === false) {
+					await prismaClient.institution.update({
+						where: { institution_id: institution.institution_id },
+						data: { status: true },
+					});
+					institution.status = true;
+				}
+			}
 
 			return institution;
 		} catch (error) {

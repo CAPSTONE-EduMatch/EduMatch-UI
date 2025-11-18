@@ -56,6 +56,7 @@ export function ResearchLabsTab({
 						onClick={handleLabClick}
 						applicationId={(lab as any).applicationId}
 						onUpdateRequest={onUpdateRequest}
+						institutionStatus={(lab as any).institutionStatus}
 					/>
 				))
 			) : (

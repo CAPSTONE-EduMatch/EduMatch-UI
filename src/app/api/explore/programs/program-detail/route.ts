@@ -158,7 +158,6 @@ export async function GET(request: NextRequest) {
 						id: opportunityPost.institution.institution_id,
 						userId: opportunityPost.institution.user_id,
 						name: opportunityPost.institution.name,
-
 						abbreviation: opportunityPost.institution.abbreviation,
 						logo: opportunityPost.institution.logo,
 						country: opportunityPost.institution.country,
@@ -170,6 +169,10 @@ export async function GET(request: NextRequest) {
 						about: opportunityPost.institution.about,
 						coverImage: opportunityPost.institution.cover_image,
 						type: opportunityPost.institution.type,
+						status: opportunityPost.institution.status,
+						deletedAt:
+							opportunityPost.institution.deleted_at?.toISOString() ||
+							null,
 					}
 				: null,
 

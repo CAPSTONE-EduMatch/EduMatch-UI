@@ -58,6 +58,8 @@ export interface ResearchLabDetail {
 		country: string;
 		website: string;
 		about: string;
+		status: boolean;
+		deletedAt?: string | null;
 	};
 	requiredDocuments: Array<{
 		id: string;

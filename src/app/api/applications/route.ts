@@ -89,6 +89,8 @@ export async function GET(request: NextRequest) {
 									name: true,
 									logo: true,
 									country: true,
+									status: true,
+									deleted_at: true,
 								},
 							},
 							programPost: true,
@@ -133,6 +135,9 @@ export async function GET(request: NextRequest) {
 					name: app.post.institution.name,
 					logo: app.post.institution.logo,
 					country: app.post.institution.country || undefined,
+					status: app.post.institution.status,
+					deletedAt:
+						app.post.institution.deleted_at?.toISOString() || null,
 				},
 				program: app.post.programPost
 					? {
@@ -484,6 +489,8 @@ export async function POST(request: NextRequest) {
 					startDate: new Date().toISOString(), // Default value
 					institution: {
 						name: "Institution Name", // Will be populated in full response
+						status: true, // Default value for new applications
+						deletedAt: null,
 					},
 				},
 			},

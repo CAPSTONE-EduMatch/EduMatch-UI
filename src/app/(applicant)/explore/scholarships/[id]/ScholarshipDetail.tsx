@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/DocumentSelector'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Trash2, Check } from 'lucide-react'
+import { Heart, Trash2, Check, X } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import React, { useEffect, useState, useCallback } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
@@ -86,6 +86,45 @@ const ScholarshipDetail = () => {
 
 	// Notification system
 	const { showSuccess, showError } = useNotification()
+
+	// Utility function to get institution status
+	const getInstitutionStatus = (institution?: {
+		status: boolean
+		deletedAt?: string | null
+	}) => {
+		if (!institution) return null
+
+		if (!institution.status) {
+			return {
+				type: 'deactivated' as const,
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
+			}
+		}
+
+		return null
+	}
+
+	// Institution status badge component
+	const InstitutionStatusBadge: React.FC<{
+		institution?: {
+			status: boolean
+			deletedAt?: string | null
+		}
+	}> = ({ institution }) => {
+		const status = getInstitutionStatus(institution)
+
+		if (!status) return null
+
+		return (
+			<div
+				className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${status.color}`}
+			>
+				<X className="w-4 h-4" />
+				{status.label}
+			</div>
+		)
+	}
 
 	// Constants for pagination
 	const ITEMS_PER_PAGE_PROGRAMS = 6
@@ -1143,9 +1182,18 @@ const ScholarshipDetail = () => {
 							<h1 className="text-3xl font-bold mb-2">
 								{currentScholarship?.title || 'Information Technology'}
 							</h1>
-							<p className="text-gray-600 mb-6">
+							<p className="text-gray-600 mb-3">
 								{currentScholarship?.university || 'Army West University (AWU)'}
 							</p>
+
+							{/* Institution Status Badge */}
+							{currentScholarship?.institution && (
+								<div className="mb-4">
+									<InstitutionStatusBadge
+										institution={currentScholarship.institution}
+									/>
+								</div>
+							)}
 
 							<div className="flex items-center gap-3 mb-4">
 								{currentScholarship?.institution?.website && (

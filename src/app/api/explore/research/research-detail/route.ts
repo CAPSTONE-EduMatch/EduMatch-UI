@@ -57,6 +57,8 @@ export async function GET(request: NextRequest) {
 						country: true,
 						website: true,
 						about: true,
+						status: true,
+						deleted_at: true,
 					},
 				},
 				jobPost: true,
@@ -192,6 +194,8 @@ export async function GET(request: NextRequest) {
 				country: post.institution?.country,
 				website: post.institution?.website,
 				about: post.institution?.about,
+				status: post.institution?.status,
+				deletedAt: post.institution?.deleted_at?.toISOString() || null,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({
 				id: doc.document_id,

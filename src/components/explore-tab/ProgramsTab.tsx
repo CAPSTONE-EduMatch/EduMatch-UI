@@ -60,6 +60,7 @@ export function ProgramsTab({
 						onApply={() => onApply(program.id)}
 						applicationId={(program as any).applicationId}
 						onUpdateRequest={onUpdateRequest}
+						institutionStatus={(program as any).institutionStatus}
 					/>
 				))
 			) : (

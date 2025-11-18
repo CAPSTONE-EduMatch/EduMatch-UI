@@ -83,32 +83,76 @@ const SignIn: React.FC = () => {
 	const [lastForgotPasswordEmail, setLastForgotPasswordEmail] = useState('')
 
 	// Check profile and redirect accordingly
-	const checkProfileAndRedirect = useCallback(async () => {
-		try {
-			const profileResponse = await axios.get('/api/profile')
-			const profile = profileResponse.data?.profile
+	const checkProfileAndRedirect = useCallback(
+		async (retryCount = 0) => {
+			const maxRetries = 2
+			const retryDelay = 500 // 500ms delay between retries
 
-			if (profile) {
-				// User has a profile, redirect based on role
-				if (profile.role === 'institution') {
-					router.push('/profile/view')
-				} else if (profile.role === 'applicant') {
-					router.push('/profile/view')
-				} else {
-					router.push('/explore')
+			try {
+				// Wait a bit for session to be fully established
+				if (retryCount === 0) {
+					await new Promise((resolve) => setTimeout(resolve, 300))
 				}
-			} else {
-				router.push('/profile/create')
+
+				const profileResponse = await axios.get('/api/profile')
+				const profile = profileResponse.data?.profile
+
+				if (profile) {
+					// User has a profile, redirect based on role
+					if (profile.role === 'institution') {
+						router.push('/institution/dashboard')
+					} else if (profile.role === 'applicant') {
+						router.push('/profile/view')
+					} else {
+						router.push('/explore')
+					}
+				} else {
+					// Profile response exists but no profile data
+					router.push('/profile/create')
+				}
+			} catch (error: any) {
+				const status = error?.response?.status
+
+				// If profile doesn't exist (404), redirect to profile creation
+				if (status === 404) {
+					router.push('/profile/create')
+				} else if (status === 500 && retryCount < maxRetries) {
+					// Retry on server errors (might be temporary)
+					// eslint-disable-next-line no-console
+					console.warn(
+						`Profile check failed with 500, retrying... (${retryCount + 1}/${maxRetries})`
+					)
+					await new Promise((resolve) =>
+						setTimeout(resolve, retryDelay * (retryCount + 1))
+					)
+					return checkProfileAndRedirect(retryCount + 1)
+				} else {
+					// For other errors or max retries reached, check if we can get session info
+					// If session exists, assume profile might exist and redirect to explore
+					// Otherwise, redirect to profile creation
+					try {
+						const session = await authClient.getSession()
+						if (session?.data?.user) {
+							// User is authenticated, try to redirect based on what we know
+							// If it's a server error, assume profile might exist
+							if (status === 500) {
+								// For institution users, try profile/view, for others explore
+								router.push('/explore')
+							} else {
+								router.push('/profile/create')
+							}
+						} else {
+							router.push('/profile/create')
+						}
+					} catch (sessionError) {
+						// Can't verify session, redirect to profile creation
+						router.push('/profile/create')
+					}
+				}
 			}
-		} catch (error: any) {
-			// If profile doesn't exist (404), redirect to profile creation
-			if (error?.response?.status === 404) {
-				router.push('/profile/create')
-			} else {
-				router.push('/explore')
-			}
-		}
-	}, [router])
+		},
+		[router]
+	)
 
 	// Trigger animation after component mounts
 	useEffect(() => {
@@ -119,10 +163,15 @@ const SignIn: React.FC = () => {
 	useEffect(() => {
 		const checkExistingAuth = async () => {
 			try {
+				// Wait a bit longer for Google OAuth callback to complete
+				await new Promise((resolve) => setTimeout(resolve, 500))
+
 				const session = await authClient.getSession()
 
 				if (session?.data?.user) {
 					// User is already authenticated, check their profile
+					// Use a longer delay for Google OAuth to ensure session is fully established
+					await new Promise((resolve) => setTimeout(resolve, 800))
 					await checkProfileAndRedirect()
 				} else {
 				}

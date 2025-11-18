@@ -27,16 +27,20 @@ export async function GET() {
 		let profileType = "";
 
 		// Fetch profile based on user role - only one query needed
-		if (userRecord.role_id === "1") {
+		// Handle both string and number comparisons for role_id
+		const roleId = userRecord.role_id?.toString();
+
+		if (roleId === "1") {
 			// Student/Applicant role
 			profile = await ApplicantProfileService.getProfile(userId);
 			profileType = "applicant";
-		} else if (userRecord.role_id === "2") {
+		} else if (roleId === "2") {
 			// Institution role
 			profile = await InstitutionProfileService.getProfile(userId);
 			profileType = "institution";
 		} else {
 			// No role set or invalid role - check if profile exists (fallback)
+			// This handles backward compatibility for users who have profiles but no role_id set
 			const hasApplicantProfile =
 				await ApplicantProfileService.hasProfile(userId);
 			const hasInstitutionProfile =
@@ -45,9 +49,19 @@ export async function GET() {
 			if (hasApplicantProfile) {
 				profile = await ApplicantProfileService.getProfile(userId);
 				profileType = "applicant";
+				// Update role_id for backward compatibility
+				await prismaClient.user.update({
+					where: { id: userId },
+					data: { role_id: "1" },
+				});
 			} else if (hasInstitutionProfile) {
 				profile = await InstitutionProfileService.getProfile(userId);
 				profileType = "institution";
+				// Update role_id for backward compatibility
+				await prismaClient.user.update({
+					where: { id: userId },
+					data: { role_id: "2" },
+				});
 			}
 		}
 
@@ -330,6 +344,23 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Update user's role_id FIRST before creating profile
+		// This ensures role_id is set correctly for profile retrieval
+		let roleId: string;
+		if (formData.role === "applicant") {
+			roleId = "1"; // student role
+		} else if (formData.role === "institution") {
+			roleId = "2"; // institution role
+		} else {
+			throw new Error("Invalid role specified");
+		}
+
+		// Update user's role_id
+		await prismaClient.user.update({
+			where: { id: userId },
+			data: { role_id: roleId },
+		});
+
 		// Use the appropriate profile service based on role
 		let newProfile;
 		if (formData.role === "applicant") {
@@ -416,6 +447,23 @@ export async function PUT(request: NextRequest) {
 			formData.institutionVerificationDocuments =
 				formData.verificationDocuments;
 		}
+
+		// Update user's role_id FIRST before updating profile
+		// This ensures role_id is set correctly for profile retrieval
+		let roleId: string;
+		if (formData.role === "applicant") {
+			roleId = "1"; // student role
+		} else if (formData.role === "institution") {
+			roleId = "2"; // institution role
+		} else {
+			throw new Error("Invalid role specified");
+		}
+
+		// Update user's role_id
+		await prismaClient.user.update({
+			where: { id: userId },
+			data: { role_id: roleId },
+		});
 
 		// Use the appropriate profile service based on role
 		let updatedProfile;

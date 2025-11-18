@@ -25,7 +25,10 @@ export function ProfileWrapper({
 
 	// Check if user has a profile
 	useEffect(() => {
-		const checkProfile = async () => {
+		const checkProfile = async (retryCount = 0) => {
+			const maxRetries = 2
+			const retryDelay = 500
+
 			// Wait for authentication to complete
 			if (authLoading) {
 				return
@@ -37,6 +40,11 @@ export function ProfileWrapper({
 			}
 
 			try {
+				// Wait a bit for session to be fully established on first attempt
+				if (retryCount === 0) {
+					await new Promise((resolve) => setTimeout(resolve, 300))
+				}
+
 				const response = await fetch('/api/profile', {
 					method: 'GET',
 					headers: {
@@ -46,13 +54,43 @@ export function ProfileWrapper({
 				})
 
 				if (response.ok) {
-					setHasProfile(true)
-				} else {
+					const data = await response.json()
+					// Check if profile actually exists in the response
+					if (data?.profile) {
+						setHasProfile(true)
+					} else {
+						setHasProfile(false)
+					}
+				} else if (response.status === 404) {
+					// Profile doesn't exist
 					setHasProfile(false)
+				} else if (response.status === 500 && retryCount < maxRetries) {
+					// Server error, retry
+					// eslint-disable-next-line no-console
+					console.warn(
+						`Profile check failed with 500, retrying... (${retryCount + 1}/${maxRetries})`
+					)
+					await new Promise((resolve) =>
+						setTimeout(resolve, retryDelay * (retryCount + 1))
+					)
+					return checkProfile(retryCount + 1)
+				} else {
+					// Other errors - assume profile might exist to avoid false negatives
+					// Only set to false if it's a clear 404
+					setHasProfile(null) // Set to null to indicate uncertainty
 				}
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('Error checking profile:', error)
-				setHasProfile(false)
+				// On network errors, don't assume no profile - set to null
+				if (retryCount < maxRetries) {
+					await new Promise((resolve) =>
+						setTimeout(resolve, retryDelay * (retryCount + 1))
+					)
+					return checkProfile(retryCount + 1)
+				}
+				// After max retries, set to null (uncertain) rather than false
+				setHasProfile(null)
 			} finally {
 				setIsCheckingProfile(false)
 			}
@@ -62,7 +100,9 @@ export function ProfileWrapper({
 	}, [isAuthenticated, user?.id, authLoading])
 
 	// Show profile creation modal if user doesn't have a profile
-	if (isAuthenticated && hasProfile === false) {
+	// Only show if we're certain the profile doesn't exist (hasProfile === false)
+	// Don't show if hasProfile is null (uncertain) to avoid false positives
+	if (isAuthenticated && hasProfile === false && !isCheckingProfile) {
 		const handleCreateProfile = () => {
 			router.push(redirectTo)
 		}

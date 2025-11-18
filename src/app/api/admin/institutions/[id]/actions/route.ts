@@ -159,6 +159,69 @@ export async function POST(
 				};
 				break;
 
+			case "approve":
+				// Approve the institution
+				result = await prismaClient.institution.update({
+					where: {
+						institution_id: institutionId,
+					},
+					data: {
+						status: true,
+					},
+				});
+
+				break;
+
+			case "deny":
+				// Deny the institution
+				result = await prismaClient.institution.update({
+					where: {
+						institution_id: institutionId,
+					},
+					data: {
+						status: false,
+					},
+				});
+
+				break;
+
+			case "require-info":
+				// Require additional information from the institution
+				const { note } = body;
+
+				if (
+					!note ||
+					typeof note !== "string" ||
+					note.trim().length === 0
+				) {
+					return Response.json(
+						{
+							success: false,
+							error: "Note is required",
+						},
+						{ status: 400 }
+					);
+				}
+
+				// Create a notification for the institution
+				await prismaClient.notification.create({
+					data: {
+						notification_id: `additional-info-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+						user_id: institution.user.id,
+						title: "Additional Information Required",
+						body: `Administrator ${currentUser.id} requires additional information: ${note}`,
+						type: "ADMIN_ADDITIONAL_INFO",
+						send_at: new Date(),
+						create_at: new Date(),
+					},
+				});
+
+				result = {
+					success: true,
+					message: "Additional information request sent successfully",
+				};
+				break;
+
 			default:
 				return Response.json(
 					{

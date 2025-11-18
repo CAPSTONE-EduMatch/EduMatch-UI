@@ -397,13 +397,122 @@ export class AdminUserService {
 			profileImage: dbUser.image || "/profile.svg",
 			program: applicant?.level || "Not specified",
 			gpa: applicant?.gpa ? applicant.gpa.toString() : "Not provided",
-			status: applicant?.graduated ? "Graduated" : "Currently studying",
+			status: dbUser.status ? "Active" : "Inactive",
 			university: applicant?.university || "Not specified",
+			role: dbUser.role || "student",
 			documents: groupedDocuments,
 			banned: dbUser.banned || false,
 			banReason: dbUser.banReason || null,
 			banExpires: dbUser.banExpires || null,
 		};
+	}
+
+	/**
+	 * Activate a user (set status to true)
+	 */
+	static async activateUser(userId: string): Promise<boolean> {
+		try {
+			await prismaClient.user.update({
+				where: { id: userId },
+				data: { status: true },
+			});
+			return true;
+		} catch (error) {
+			if (process.env.NODE_ENV === "development") {
+				// eslint-disable-next-line no-console
+				console.error("Error activating user:", error);
+			}
+			throw new Error("Failed to activate user");
+		}
+	}
+
+	/**
+	 * Deactivate a user (set status to false)
+	 */
+	static async deactivateUser(userId: string): Promise<boolean> {
+		try {
+			await prismaClient.user.update({
+				where: { id: userId },
+				data: { status: false },
+			});
+			return true;
+		} catch (error) {
+			if (process.env.NODE_ENV === "development") {
+				// eslint-disable-next-line no-console
+				console.error("Error deactivating user:", error);
+			}
+			throw new Error("Failed to deactivate user");
+		}
+	}
+
+	/**
+	 * Approve an institution
+	 */
+	static async approveInstitution(userId: string): Promise<boolean> {
+		try {
+			// Update institution status to approved
+			await prismaClient.institution.updateMany({
+				where: { user_id: userId },
+				data: { status: true },
+			});
+			return true;
+		} catch (error) {
+			if (process.env.NODE_ENV === "development") {
+				// eslint-disable-next-line no-console
+				console.error("Error approving institution:", error);
+			}
+			throw new Error("Failed to approve institution");
+		}
+	}
+
+	/**
+	 * Deny an institution
+	 */
+	static async denyInstitution(userId: string): Promise<boolean> {
+		try {
+			// Update institution status to denied
+			await prismaClient.institution.updateMany({
+				where: { user_id: userId },
+				data: { status: false },
+			});
+			return true;
+		} catch (error) {
+			if (process.env.NODE_ENV === "development") {
+				// eslint-disable-next-line no-console
+				console.error("Error denying institution:", error);
+			}
+			throw new Error("Failed to deny institution");
+		}
+	}
+
+	/**
+	 * Log a request for additional information from an institution
+	 */
+	static async logAdditionalInfoRequest(
+		userId: string,
+		note: string,
+		adminId?: string
+	): Promise<boolean> {
+		try {
+			await prismaClient.notification.create({
+				data: {
+					notification_id: `additional-info-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+					user_id: userId,
+					title: "Additional Information Required",
+					body: `Administrator ${adminId || "Unknown"} requires additional information: ${note}`,
+					type: "ADMIN_ADDITIONAL_INFO",
+					send_at: new Date(),
+					create_at: new Date(),
+				},
+			});
+			return true;
+		} catch (error) {
+			if (process.env.NODE_ENV === "development") {
+				// eslint-disable-next-line no-console
+				console.error("Error logging additional info request:", error);
+			}
+			throw new Error("Failed to log additional info request");
+		}
 	}
 
 	/**

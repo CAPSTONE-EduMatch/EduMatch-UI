@@ -30,9 +30,9 @@ const UserManagementTable = memo(function UserManagementTable({
 
 	// Local state for UI
 	const [searchInput, setSearchInput] = useState('')
-	const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>(
-		'all'
-	)
+	const [statusFilter, setStatusFilter] = useState<
+		'all' | 'active' | 'banned' | 'denied'
+	>('all')
 	const [sortBy, setSortBy] = useState<'name' | 'email' | 'createdAt'>(
 		filters.sortBy || 'name'
 	)
@@ -74,7 +74,7 @@ const UserManagementTable = memo(function UserManagementTable({
 	// Handle status filter with new admin API
 	const handleStatusFilter = useCallback(
 		(status: string) => {
-			const validStatus = status as 'all' | 'active' | 'banned'
+			const validStatus = status as 'all' | 'active' | 'banned' | 'denied'
 			setStatusFilter(validStatus)
 			updateFilters({
 				status: validStatus,
@@ -187,10 +187,18 @@ const UserManagementTable = memo(function UserManagementTable({
 				sortDirection={sortDirection}
 				onSortDirectionChange={(direction) => handleSortDirection(direction)}
 				searchPlaceholder="Search by name or email..."
-				statusOptions={[
-					{ value: 'active', label: 'Active' },
-					{ value: 'banned', label: 'Banned' },
-				]}
+				statusOptions={
+					userType === 'institution'
+						? [
+								{ value: 'active', label: 'Active' },
+								{ value: 'banned', label: 'Banned' },
+								{ value: 'denied', label: 'Denied' },
+							]
+						: [
+								{ value: 'active', label: 'Active' },
+								{ value: 'banned', label: 'Banned' },
+							]
+				}
 				sortOptions={[
 					{ value: 'name', label: 'Name' },
 					{ value: 'createdAt', label: 'Created Date' },
@@ -248,12 +256,18 @@ const UserManagementTable = memo(function UserManagementTable({
 											<div className="text-center">
 												<span
 													className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${
-														!user.banned
-															? 'bg-[#126E64] text-white'
-															: 'bg-[#E20000] text-white'
+														user.status === 'banned'
+															? 'bg-[#E20000] text-white'
+															: user.status === 'denied'
+																? 'bg-[#FFA500] text-white'
+																: 'bg-[#126E64] text-white'
 													}`}
 												>
-													{!user.banned ? 'Active' : 'Banned'}
+													{user.status === 'banned'
+														? 'Banned'
+														: user.status === 'denied'
+															? 'Denied'
+															: 'Active'}
 												</span>
 											</div>
 

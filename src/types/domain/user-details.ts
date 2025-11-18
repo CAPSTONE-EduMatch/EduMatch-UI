@@ -25,6 +25,7 @@ export interface UserDetails {
 	gpa: string;
 	status: string;
 	university: string;
+	role?: string;
 	documents: UserDocuments;
 	banned?: boolean;
 	banReason?: string | null;

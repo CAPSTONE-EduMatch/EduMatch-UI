@@ -199,6 +199,35 @@ export default function UserDetailPage() {
 		}
 	}
 
+	const handleChangeStatus = async () => {
+		if (!params?.id || !userData) return
+
+		const newStatus = userData.status === 'Active' ? false : true
+		const action = newStatus ? 'activate' : 'deactivate'
+
+		setActionLoading(true)
+		try {
+			const response = await fetch(`/api/admin/users/${params.id}/actions`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action }),
+			})
+
+			if (response.ok) {
+				alert(`User ${action}d successfully!`)
+				// Reload user data to reflect changes
+				await loadUserData(params.id as string)
+			} else {
+				const errorData = await response.json()
+				alert(`Failed to ${action} user: ${errorData.error || 'Unknown error'}`)
+			}
+		} catch (error) {
+			alert('An error occurred')
+		} finally {
+			setActionLoading(false)
+		}
+	}
+
 	const handleBack = () => {
 		router.back()
 	}
@@ -467,6 +496,21 @@ export default function UserDetailPage() {
 								>
 									<LogOut className="w-4 h-4" />
 									{actionLoading ? 'Processing...' : 'Revoke All Sessions'}
+								</button>
+								<button
+									onClick={handleChangeStatus}
+									disabled={actionLoading}
+									className={`w-full py-2.5 px-4 rounded-[30px] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+										userData?.status === 'Active'
+											? 'bg-[#E20000] text-white hover:bg-[#cc0000]'
+											: 'bg-[#22C55E] text-white hover:bg-[#16A34A]'
+									}`}
+								>
+									{actionLoading
+										? 'Processing...'
+										: userData?.status === 'Active'
+											? 'Deactivate User'
+											: 'Activate User'}
 								</button>
 							</div>
 						</motion.div>

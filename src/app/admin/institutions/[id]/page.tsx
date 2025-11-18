@@ -3,6 +3,7 @@
 import { BanUnbanModal } from '@/components/admin/BanUnbanModal'
 import { InstitutionDocumentSection } from '@/components/admin/InstitutionDocumentComponents'
 import { InstitutionOverviewTab } from '@/components/admin/InstitutionOverviewTab'
+import { RequireAdditionalInfoModal } from '@/components/admin/RequireAdditionalInfoModal'
 import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import {
@@ -11,7 +12,6 @@ import {
 } from '@/types/domain/institution-details'
 import { motion } from 'framer-motion'
 import {
-	ArrowLeft,
 	Building2,
 	Download,
 	Globe,
@@ -83,6 +83,7 @@ export default function InstitutionDetailPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [actionLoading, setActionLoading] = useState(false)
 	const [showBanModal, setShowBanModal] = useState(false)
+	const [showRequireInfoModal, setShowRequireInfoModal] = useState(false)
 	const [activeTab, setActiveTab] = useState('overview')
 	const router = useRouter()
 	const params = useParams()
@@ -210,6 +211,102 @@ export default function InstitutionDetailPage() {
 				alert(
 					`Failed to ${institutionData?.banned ? 'unban' : 'ban'} institution: ${errorData.error || 'Unknown error'}`
 				)
+			}
+		} catch (error) {
+			alert('An error occurred')
+		} finally {
+			setActionLoading(false)
+		}
+	}
+
+	const handleApprove = async () => {
+		if (!params?.id) return
+
+		setActionLoading(true)
+		try {
+			const response = await fetch(
+				`/api/admin/institutions/${params.id}/actions`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ action: 'approve' }),
+				}
+			)
+
+			if (response.ok) {
+				alert('Institution approved successfully!')
+				// Reload institution data to reflect changes
+				await loadInstitutionData(params.id as string)
+			} else {
+				const errorData = await response.json()
+				alert(
+					`Failed to approve institution: ${errorData.error || 'Unknown error'}`
+				)
+			}
+		} catch (error) {
+			alert('An error occurred')
+		} finally {
+			setActionLoading(false)
+		}
+	}
+
+	const handleDeny = async () => {
+		if (!params?.id) return
+
+		setActionLoading(true)
+		try {
+			const response = await fetch(
+				`/api/admin/institutions/${params.id}/actions`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ action: 'deny' }),
+				}
+			)
+
+			if (response.ok) {
+				alert('Institution denied successfully!')
+				// Reload institution data to reflect changes
+				await loadInstitutionData(params.id as string)
+			} else {
+				const errorData = await response.json()
+				alert(
+					`Failed to deny institution: ${errorData.error || 'Unknown error'}`
+				)
+			}
+		} catch (error) {
+			alert('An error occurred')
+		} finally {
+			setActionLoading(false)
+		}
+	}
+
+	const handleRequireInfo = () => {
+		setShowRequireInfoModal(true)
+	}
+
+	const handleRequireInfoConfirm = async (note: string) => {
+		if (!params?.id) return
+
+		setActionLoading(true)
+		try {
+			const response = await fetch(
+				`/api/admin/institutions/${params.id}/actions`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ action: 'require-info', note }),
+				}
+			)
+
+			if (response.ok) {
+				alert('Additional information request sent successfully!')
+				setShowRequireInfoModal(false)
+				// Reload institution data to reflect changes
+				await loadInstitutionData(params.id as string)
+			} else {
+				const errorData = await response.json()
+				alert(`Failed to send request: ${errorData.error || 'Unknown error'}`)
 			}
 		} catch (error) {
 			alert('An error occurred')
@@ -532,6 +629,27 @@ export default function InstitutionDetailPage() {
 									<LogOut className="w-4 h-4" />
 									{actionLoading ? 'Processing...' : 'Revoke All Sessions'}
 								</button>
+								<button
+									onClick={handleApprove}
+									disabled={actionLoading}
+									className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								>
+									{actionLoading ? 'Processing...' : 'Approve Institution'}
+								</button>
+								<button
+									onClick={handleDeny}
+									disabled={actionLoading}
+									className="w-full bg-[#E20000] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#cc0000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								>
+									{actionLoading ? 'Processing...' : 'Deny Institution'}
+								</button>
+								<button
+									onClick={handleRequireInfo}
+									disabled={actionLoading}
+									className="w-full bg-[#F59E0B] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								>
+									{actionLoading ? 'Processing...' : 'Require Additional Info'}
+								</button>
 							</div>
 						</motion.div>
 					</div>
@@ -699,6 +817,20 @@ export default function InstitutionDetailPage() {
 					institutionData?.banExpires
 						? new Date(institutionData.banExpires)
 						: null
+				}
+				isLoading={actionLoading}
+			/>
+
+			{/* Require Additional Info Modal */}
+			<RequireAdditionalInfoModal
+				isOpen={showRequireInfoModal}
+				onClose={() => setShowRequireInfoModal(false)}
+				onConfirm={handleRequireInfoConfirm}
+				userName={institutionData?.name || 'Unknown Institution'}
+				userEmail={
+					institutionData?.email ||
+					institutionData?.userEmail ||
+					'Unknown Email'
 				}
 				isLoading={actionLoading}
 			/>

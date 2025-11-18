@@ -4,7 +4,7 @@ import { prismaClient } from "../../../../../prisma/index";
 
 interface UserFilters {
 	search?: string;
-	status?: "all" | "active" | "banned";
+	status?: "all" | "active" | "banned" | "denied";
 	role?: string;
 	userType?: "applicant" | "institution" | "admin";
 	sortBy?: "name" | "email" | "createdAt";
@@ -25,8 +25,11 @@ export async function GET(request: NextRequest) {
 		const filters: UserFilters = {
 			search: searchParams.get("search") || undefined,
 			status:
-				(searchParams.get("status") as "all" | "active" | "banned") ||
-				"all",
+				(searchParams.get("status") as
+					| "all"
+					| "active"
+					| "banned"
+					| "denied") || "all",
 			role: searchParams.get("role") || undefined,
 			userType:
 				(searchParams.get("userType") as
@@ -65,12 +68,25 @@ export async function GET(request: NextRequest) {
 			];
 		}
 
-		// Filter by status (banned/active)
+		// Filter by status
 		if (filters.status !== "all") {
 			if (filters.status === "banned") {
 				whereClause.banned = true;
 			} else if (filters.status === "active") {
+				// For active status, exclude banned users
+				// For institutions, also require approved status (institution.status = true)
 				whereClause.banned = { not: true };
+				if (filters.userType === "institution") {
+					whereClause.institution = {
+						status: true,
+					};
+				}
+			} else if (filters.status === "denied") {
+				// Denied institutions have institution.status = false
+				whereClause.role = "institution";
+				whereClause.institution = {
+					status: false,
+				};
 			}
 		}
 
@@ -120,6 +136,11 @@ export async function GET(request: NextRequest) {
 					banReason: true,
 					banExpires: true,
 					role: true,
+					institution: {
+						select: {
+							status: true,
+						},
+					},
 				},
 				orderBy,
 				skip,
@@ -131,19 +152,30 @@ export async function GET(request: NextRequest) {
 		]);
 
 		// Transform the data
-		const transformedUsers = users.map((user) => ({
-			id: user.id,
-			name: user.name || "Unknown User",
-			email: user.email || "",
-			image: user.image,
-			banned: user.banned || false,
-			banReason: user.banReason,
-			banExpires: user.banExpires?.toISOString(),
-			role: user.role || "user",
-			createdAt: user.createdAt.toISOString(),
-			status: user.banned ? "banned" : "active",
-			type: user.role === "institution" ? "University" : undefined,
-		}));
+		const transformedUsers = users.map((user) => {
+			let status = "active";
+			if (user.banned) {
+				status = "banned";
+			} else if (user.role === "institution" && user.institution) {
+				// For institutions: approved (status=true) shows as "active", denied (status=false) shows as "denied"
+				status = user.institution.status ? "active" : "denied";
+			}
+
+			return {
+				id: user.id,
+				name: user.name || "Unknown User",
+				email: user.email || "",
+				image: user.image,
+				banned: user.banned || false,
+				banReason: user.banReason,
+				banExpires: user.banExpires?.toISOString(),
+				role: user.role || "user",
+				createdAt: user.createdAt.toISOString(),
+				status: status,
+				type: user.role === "institution" ? "University" : undefined,
+				institutionStatus: user.institution?.status,
+			};
+		});
 
 		const totalPages = Math.ceil(totalCount / filters.limit!);
 

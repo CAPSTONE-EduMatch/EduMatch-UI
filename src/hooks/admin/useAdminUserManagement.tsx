@@ -9,7 +9,7 @@ export interface User {
 	id: string
 	name: string
 	email: string
-	status: 'active' | 'banned'
+	status: 'active' | 'banned' | 'denied'
 	role?: string
 	createdAt: string
 	banned: boolean
@@ -17,11 +17,12 @@ export interface User {
 	banExpires?: string
 	image?: string
 	type?: string
+	institutionStatus?: boolean
 }
 
 export interface UserFilters {
 	search?: string
-	status?: 'all' | 'active' | 'banned'
+	status?: 'all' | 'active' | 'banned' | 'denied'
 	role?: string
 	userType?: 'applicant' | 'institution' | 'admin'
 	sortBy?: 'name' | 'email' | 'createdAt'

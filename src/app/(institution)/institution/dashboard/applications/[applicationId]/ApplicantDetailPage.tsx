@@ -104,11 +104,6 @@ export default function ApplicantDetailPage() {
 		router.refresh()
 	}
 
-	const handleRequireUpdate = () => {
-		// Refresh the page after update request
-		router.refresh()
-	}
-
 	if (error || (!loading && !applicant)) {
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -142,7 +137,6 @@ export default function ApplicantDetailPage() {
 				onBack={handleBack}
 				onApprove={handleApprove}
 				onReject={handleReject}
-				onRequireUpdate={handleRequireUpdate}
 			/>
 		</div>
 	)

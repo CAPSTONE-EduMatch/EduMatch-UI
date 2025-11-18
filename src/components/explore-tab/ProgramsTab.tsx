@@ -31,8 +31,17 @@ export function ProgramsTab({
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
-	const handleProgramClick = (programId: string) => {
-		// Preserve current URL parameters to maintain filter state
+	const handleProgramClick = (programId: string, applicationId?: string) => {
+		// If there's an applicationId, route to explore detail page with applicationId
+		if (applicationId) {
+			const currentParams = new URLSearchParams(searchParams.toString())
+			currentParams.set('applicationId', applicationId)
+			router.push(
+				`/explore/programmes/${programId}?from=programmes&${currentParams.toString()}`
+			)
+			return
+		}
+		// Otherwise, route to explore detail page
 		const currentParams = new URLSearchParams(searchParams.toString())
 		router.push(
 			`/explore/programmes/${programId}?from=programmes&${currentParams.toString()}`
@@ -54,7 +63,9 @@ export function ProgramsTab({
 						index={index}
 						isWishlisted={isInWishlist(program.id)}
 						onWishlistToggle={() => onWishlistToggle(program.id)}
-						onClick={handleProgramClick}
+						onClick={(id) =>
+							handleProgramClick(id, (program as any).applicationId)
+						}
 						hasApplied={hasApplied(program.id)}
 						isApplying={isApplying(program.id)}
 						onApply={() => onApply(program.id)}

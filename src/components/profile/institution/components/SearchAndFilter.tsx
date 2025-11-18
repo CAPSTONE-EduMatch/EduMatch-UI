@@ -45,7 +45,6 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 		{ value: 'submitted', label: 'Submitted' },
 		{ value: 'accepted', label: 'Accepted' },
 		{ value: 'rejected', label: 'Rejected' },
-		{ value: 'require_update', label: 'Require Update' },
 		{ value: 'updated', label: 'Updated' },
 	]
 
@@ -58,7 +57,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 		{ value: 'ARCHIVED', label: 'Archived' },
 		{ value: 'SUBMITTED', label: 'Submitted' },
 		{ value: 'UPDATED', label: 'Updated' },
-		{ value: 'REQUIRE_UPDATE', label: 'Require Update' },
+		{ value: 'PROGRESSING', label: 'Progressing' },
 	]
 
 	const currentStatusOptions =

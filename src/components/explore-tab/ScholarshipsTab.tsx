@@ -7,11 +7,17 @@ import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
+	// eslint-disable-next-line no-unused-vars
 	isInWishlist?: (id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
 	onWishlistToggle?: (id: string) => void
+	// eslint-disable-next-line no-unused-vars
 	hasApplied?: (id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
 	isApplying?: (id: string) => boolean
+	// eslint-disable-next-line no-unused-vars
 	onApply?: (id: string) => void
+	// eslint-disable-next-line no-unused-vars
 	onUpdateRequest?: (applicationId: string) => void
 }
 
@@ -27,8 +33,20 @@ export function ScholarshipsTab({
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
-	const handleScholarshipClick = (scholarshipId: string) => {
-		// Preserve current URL parameters to maintain filter state
+	const handleScholarshipClick = (
+		scholarshipId: string,
+		applicationId?: string
+	) => {
+		// If there's an applicationId, route to explore detail page with applicationId
+		if (applicationId) {
+			const currentParams = new URLSearchParams(searchParams.toString())
+			currentParams.set('applicationId', applicationId)
+			router.push(
+				`/explore/scholarships/${scholarshipId}?from=scholarships&${currentParams.toString()}`
+			)
+			return
+		}
+		// Otherwise, route to explore detail page
 		const currentParams = new URLSearchParams(searchParams.toString())
 		router.push(
 			`/explore/scholarships/${scholarshipId}?from=scholarships&${currentParams.toString()}`
@@ -48,7 +66,9 @@ export function ScholarshipsTab({
 						hasApplied={hasApplied(scholarship.id)}
 						isApplying={isApplying(scholarship.id)}
 						onApply={() => onApply(scholarship.id)}
-						onClick={handleScholarshipClick}
+						onClick={(id) =>
+							handleScholarshipClick(id, (scholarship as any).applicationId)
+						}
 						applicationId={(scholarship as any).applicationId}
 						onUpdateRequest={onUpdateRequest}
 						institutionStatus={(scholarship as any).institutionStatus}

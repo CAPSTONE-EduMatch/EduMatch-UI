@@ -17,6 +17,7 @@ interface ResearchLabsTabProps {
 	isApplying?: (_id: string) => boolean
 	// eslint-disable-next-line no-unused-vars
 	onApply?: (_id: string) => void
+	// eslint-disable-next-line no-unused-vars
 	onUpdateRequest?: (applicationId: string) => void
 }
 
@@ -32,8 +33,17 @@ export function ResearchLabsTab({
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
-	const handleLabClick = (labId: string) => {
-		// Preserve current URL parameters to maintain filter state
+	const handleLabClick = (labId: string, applicationId?: string) => {
+		// If there's an applicationId, route to explore detail page with applicationId
+		if (applicationId) {
+			const currentParams = new URLSearchParams(searchParams.toString())
+			currentParams.set('applicationId', applicationId)
+			router.push(
+				`/explore/research-labs/${labId}?from=research&${currentParams.toString()}`
+			)
+			return
+		}
+		// Otherwise, route to explore detail page
 		const currentParams = new URLSearchParams(searchParams.toString())
 		router.push(
 			`/explore/research-labs/${labId}?from=research&${currentParams.toString()}`
@@ -53,7 +63,7 @@ export function ResearchLabsTab({
 						hasApplied={hasApplied(lab.id)}
 						isApplying={isApplying(lab.id)}
 						onApply={() => onApply(lab.id)}
-						onClick={handleLabClick}
+						onClick={(id) => handleLabClick(id, (lab as any).applicationId)}
 						applicationId={(lab as any).applicationId}
 						onUpdateRequest={onUpdateRequest}
 						institutionStatus={(lab as any).institutionStatus}

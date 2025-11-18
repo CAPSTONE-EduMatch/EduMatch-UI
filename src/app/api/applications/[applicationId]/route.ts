@@ -255,7 +255,7 @@ export async function PUT(
 		const updatedApplication = (await prismaClient.application.update({
 			where: { application_id: params.applicationId },
 			data: {
-				...(body.status && { status: body.status }),
+				...(body.status && { status: body.status as any }),
 			},
 			include: {
 				post: {

@@ -40,7 +40,11 @@ const ProgramDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const params = useParams()
-	const [activeTab, setActiveTab] = useState('overview')
+	// Check if we're viewing an application (from URL query param)
+	const applicationIdFromUrl = searchParams.get('applicationId')
+	const [activeTab, setActiveTab] = useState(
+		applicationIdFromUrl ? 'application' : 'overview'
+	)
 	const [currentPage, setCurrentPage] = useState(1)
 	const [carouselIndex, setCarouselIndex] = useState(0)
 	const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
@@ -89,13 +93,28 @@ const ProgramDetail = () => {
 	const [applicationStatus, setApplicationStatus] = useState<string | null>(
 		null
 	)
-	const [applicationId, setApplicationId] = useState<string | null>(null)
+	const [applicationId, setApplicationId] = useState<string | null>(
+		applicationIdFromUrl
+	)
+	// Store pending application info (not yet loaded)
+	const [pendingApplication, setPendingApplication] = useState<{
+		applicationId: string
+		status: string
+	} | null>(null)
 	const [showUpdateModal, setShowUpdateModal] = useState(false)
 	const [selectedUpdateRequestId, setSelectedUpdateRequestId] = useState<
 		string | null
 	>(null)
 	const [updateRequests, setUpdateRequests] = useState<any[]>([])
 	const [loadingUpdateRequests, setLoadingUpdateRequests] = useState(false)
+	const [isEditMode, setIsEditMode] = useState(false)
+
+	// Applications list for the post
+	const [applications, setApplications] = useState<any[]>([])
+	const [loadingApplications, setLoadingApplications] = useState(false)
+	const [selectedApplication, setSelectedApplication] = useState<any>(null)
+	const [loadingSelectedApplication, setLoadingSelectedApplication] =
+		useState(false)
 
 	// Wishlist functionality
 	const {
@@ -406,6 +425,21 @@ const ProgramDetail = () => {
 		}
 	}, [currentProgram])
 
+	// Fetch applications for this post when application tab is active
+	useEffect(() => {
+		if (activeTab === 'application' && currentProgram?.id) {
+			fetchApplicationsForPost(currentProgram.id)
+		}
+	}, [activeTab, currentProgram?.id])
+
+	// Handle applicationId from URL - update Application Status section
+	useEffect(() => {
+		if (applicationIdFromUrl) {
+			// Fetch the application details when applicationId is in URL
+			fetchSelectedApplication(applicationIdFromUrl)
+		}
+	}, [applicationIdFromUrl])
+
 	// Fetch all update requests for the application
 	const fetchUpdateRequests = async () => {
 		if (!applicationId) return
@@ -434,6 +468,167 @@ const ProgramDetail = () => {
 		} finally {
 			setLoadingUpdateRequests(false)
 		}
+	}
+
+	// Fetch applications for a specific post
+	const fetchApplicationsForPost = async (postId: string) => {
+		setLoadingApplications(true)
+		try {
+			const response = await fetch(`/api/applications/post/${postId}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				credentials: 'include',
+			})
+
+			if (response.ok) {
+				const result = await response.json()
+				if (result.success && result.applications) {
+					setApplications(result.applications)
+				}
+			}
+		} catch (error) {
+			console.error('Failed to fetch applications:', error)
+		} finally {
+			setLoadingApplications(false)
+		}
+	}
+
+	// Fetch selected application details
+	const fetchSelectedApplication = async (appId: string) => {
+		setLoadingSelectedApplication(true)
+		try {
+			const response = await fetch(`/api/applications/${appId}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				credentials: 'include',
+			})
+
+			if (response.ok) {
+				const result = await response.json()
+				if (result.success && result.application) {
+					setSelectedApplication(result.application)
+					setHasApplied(true)
+					setApplicationId(appId)
+					setApplicationStatus(result.application.status)
+					setPendingApplication(null) // Clear pending when application is loaded
+
+					// Convert application documents to uploadedFiles format
+					if (
+						result.application.documents &&
+						result.application.documents.length > 0
+					) {
+						// Filter out update submission documents - only show initial application documents
+						const initialDocuments = result.application.documents.filter(
+							(doc: any) => !doc.isUpdateSubmission && !doc.is_update_submission
+						)
+
+						const convertedFiles = initialDocuments.map(
+							(doc: any, index: number) => ({
+								id:
+									doc.documentId ||
+									doc.document_type_id ||
+									`doc_${appId}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+								name: doc.name,
+								url: doc.url,
+								size: doc.size || 0,
+								documentType: doc.documentType || 'application-document',
+								uploadDate:
+									doc.uploadDate ||
+									result.application.applyAt ||
+									new Date().toISOString(),
+							})
+						)
+						setUploadedFiles(convertedFiles)
+
+						// Don't load into selectedDocuments automatically - user will click Edit button
+						setSelectedDocuments([])
+						setIsEditMode(false)
+					} else {
+						setUploadedFiles([])
+						setSelectedDocuments([])
+					}
+
+					// Scroll to the Application Status section
+					setTimeout(() => {
+						const statusSection = document.getElementById(
+							'application-status-section'
+						)
+						if (statusSection) {
+							statusSection.scrollIntoView({
+								behavior: 'smooth',
+								block: 'start',
+							})
+						}
+					}, 100)
+				}
+			}
+		} catch (error) {
+			console.error('Failed to fetch application details:', error)
+		} finally {
+			setLoadingSelectedApplication(false)
+		}
+	}
+
+	// Handle application row click - update the Application Status section below
+	const handleApplicationClick = (appId: string) => {
+		// Find the application from the list
+		const clickedApp = applications.find((app) => app.applicationId === appId)
+		if (!clickedApp) return
+
+		// Update the Application Status section below
+		setHasApplied(true)
+		setApplicationId(clickedApp.applicationId)
+		setApplicationStatus(clickedApp.status)
+
+		// Update URL with applicationId without scrolling
+		const newUrl = new URL(window.location.href)
+		newUrl.searchParams.set('applicationId', clickedApp.applicationId)
+		// Use replace instead of push to avoid scroll, or use scroll: false
+		router.replace(newUrl.pathname + newUrl.search, { scroll: false })
+
+		// Convert application documents to uploadedFiles format
+		if (clickedApp.documents && clickedApp.documents.length > 0) {
+			// Filter out update submission documents - only show initial application documents
+			const initialDocuments = clickedApp.documents.filter(
+				(doc: any) => !doc.isUpdateSubmission && !doc.is_update_submission
+			)
+
+			const convertedFiles = initialDocuments.map((doc: any) => ({
+				id:
+					doc.documentId ||
+					doc.document_type_id ||
+					`doc_${clickedApp.applicationId}_${Math.random().toString(36).substr(2, 9)}`,
+				name: doc.name,
+				url: doc.url,
+				size: doc.size || 0,
+				documentType: doc.documentType || 'application-document',
+				uploadDate:
+					doc.uploadDate || clickedApp.applyAt || new Date().toISOString(),
+			}))
+			setUploadedFiles(convertedFiles)
+
+			// Don't load into selectedDocuments automatically - user will click Edit button
+			setSelectedDocuments([])
+			setIsEditMode(false)
+		} else {
+			setUploadedFiles([])
+			setSelectedDocuments([])
+		}
+
+		// Scroll to the Application Status section smoothly without jumping
+		// Use requestAnimationFrame to ensure DOM is updated
+		requestAnimationFrame(() => {
+			const statusSection = document.getElementById(
+				'application-status-section'
+			)
+			if (statusSection) {
+				statusSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			}
+		})
 	}
 
 	// Handle documents selection from DocumentSelector
@@ -548,42 +743,86 @@ const ProgramDetail = () => {
 				response.applications &&
 				response.applications.length > 0
 			) {
-				// Check if any application is for this specific post
-				const existingApplication = response.applications.find(
+				// Get all applications for this specific post
+				const postApplications = response.applications.filter(
 					(app) => app.postId === programId
 				)
 
-				if (existingApplication) {
-					setHasApplied(true)
-					setApplicationStatus(existingApplication.status || null)
-					setApplicationId(existingApplication.applicationId || null)
-					// Load submitted documents from the application
-					// Filter out update submission documents - only show initial application documents
-					if (
-						existingApplication.documents &&
-						existingApplication.documents.length > 0
-					) {
-						const submittedFiles = existingApplication.documents
-							.filter(
-								(doc: any) =>
-									!doc.isUpdateSubmission && !doc.is_update_submission
-							)
-							.map((doc: any) => ({
-								id: doc.documentId || doc.documentTypeId || Math.random(), // Generate ID if not available
-								name: doc.name,
-								url: doc.url,
-								size: doc.size || 0,
-								documentType:
-									doc.documentType ||
-									doc.documentTypeId ||
-									'application-document',
-								uploadDate:
-									doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
-							}))
-						setUploadedFiles(submittedFiles)
-					}
+				if (postApplications.length > 0) {
+					// Check if all applications are rejected
+					const allRejected = postApplications.every(
+						(app) => app.status === 'REJECTED'
+					)
 
-					return true
+					if (allRejected) {
+						// If all applications are rejected, allow reapplication
+						setHasApplied(false)
+						setApplicationStatus(null)
+						setApplicationId(null)
+						setUploadedFiles([])
+						setPendingApplication(null)
+						return false // Return false to allow new application
+					} else {
+						// Find the most recent non-rejected application
+						const existingApplication =
+							postApplications.find((app) => app.status !== 'REJECTED') ||
+							postApplications[0] // Fallback to most recent if all are rejected (shouldn't happen)
+
+						if (existingApplication) {
+							// If applicationId is in URL, load it immediately
+							if (applicationIdFromUrl === existingApplication.applicationId) {
+								setHasApplied(true)
+								setApplicationStatus(existingApplication.status || null)
+								setApplicationId(existingApplication.applicationId || null)
+								// Load submitted documents from the application
+								// Filter out update submission documents - only show initial application documents
+								if (
+									existingApplication.documents &&
+									existingApplication.documents.length > 0
+								) {
+									const submittedFiles = existingApplication.documents
+										.filter(
+											(doc: any) =>
+												!doc.isUpdateSubmission && !doc.is_update_submission
+										)
+										.map((doc: any, index: number) => ({
+											id:
+												doc.documentId ||
+												doc.documentTypeId ||
+												`doc_${existingApplication.applicationId}_${index}_${Math.random().toString(36).substr(2, 9)}`, // Generate ID if not available
+											name: doc.name,
+											url: doc.url,
+											size: doc.size || 0,
+											documentType:
+												doc.documentType ||
+												doc.documentTypeId ||
+												'application-document',
+											uploadDate:
+												doc.uploadDate ||
+												doc.applyAt ||
+												new Date().toISOString(), // Use upload date or application date
+										}))
+									setUploadedFiles(submittedFiles)
+									// Don't automatically load into selectedDocuments - user will click Edit button
+									setSelectedDocuments([])
+									setIsEditMode(false)
+								}
+								setPendingApplication(null)
+								return true
+							} else {
+								// Store as pending - don't load automatically
+								setPendingApplication({
+									applicationId: existingApplication.applicationId,
+									status: existingApplication.status || 'SUBMITTED',
+								})
+								setHasApplied(false)
+								setApplicationStatus(null)
+								setApplicationId(null)
+								setUploadedFiles([])
+								return false
+							}
+						}
+					}
 				}
 			}
 			return false
@@ -609,8 +848,66 @@ const ProgramDetail = () => {
 			return
 		}
 
-		// Check if already applied
-		if (hasApplied) {
+		// If status is SUBMITTED, update documents instead of creating new application
+		if (hasApplied && applicationStatus === 'SUBMITTED' && applicationId) {
+			try {
+				setIsApplying(true)
+
+				// Prepare documents for update API
+				const documentsToUpdate = selectedDocuments.map((doc) => ({
+					documentId: doc.document_id, // Include documentId for existing documents
+					url: doc.url,
+					name: doc.name,
+					size: doc.size,
+					documentTypeId: doc.documentType,
+					documentType: doc.documentType,
+				}))
+
+				const response = await applicationService.updateApplicationDocuments(
+					applicationId,
+					documentsToUpdate
+				)
+
+				if (response.success) {
+					showSuccess(
+						'Documents Updated!',
+						'Your application documents have been updated successfully.'
+					)
+					// Exit edit mode and refresh the application to get updated documents
+					setIsEditMode(false)
+					setSelectedDocuments([])
+					await checkExistingApplication(programId)
+				} else {
+					showError(
+						'Update Failed',
+						response.message || 'Failed to update documents. Please try again.',
+						{
+							onRetry: handleApply,
+							showRetry: true,
+							retryText: 'Retry',
+						}
+					)
+				}
+			} catch (error: any) {
+				showError(
+					'Update Error',
+					error.message || 'An unexpected error occurred. Please try again.',
+					{
+						onRetry: handleApply,
+						showRetry: true,
+						retryText: 'Retry',
+					}
+				)
+			} finally {
+				setIsApplying(false)
+			}
+			return
+		}
+
+		// Check if already applied (but allow if all previous applications are rejected)
+		// This check is handled in checkExistingApplication which sets hasApplied to false
+		// if all applications are rejected
+		if (hasApplied && applicationStatus !== 'REJECTED') {
 			showError(
 				'Already Applied',
 				'You have already applied to this program. You cannot submit multiple applications.',
@@ -634,8 +931,17 @@ const ProgramDetail = () => {
 				})),
 			})
 
-			if (response.success) {
+			if (response.success && response.application) {
 				setHasApplied(true)
+				setApplicationId(response.application.applicationId)
+				// Redirect to the same page but with applicationId
+				const newUrl = new URL(window.location.href)
+				newUrl.searchParams.set(
+					'applicationId',
+					response.application.applicationId
+				)
+				router.push(newUrl.pathname + newUrl.search)
+				setActiveTab('application')
 				showSuccess(
 					'Application Submitted!',
 					'Your application has been submitted successfully. You will receive updates via email.'
@@ -785,6 +1091,7 @@ const ProgramDetail = () => {
 		{ id: 'fee', label: 'Fee and funding' },
 		{ id: 'scholarship', label: 'Scholarship' },
 		{ id: 'other', label: 'Other information' },
+		{ id: 'application', label: 'My Applications' },
 	]
 
 	const renderTabContent = () => {
@@ -1181,6 +1488,90 @@ const ProgramDetail = () => {
 					</div>
 				)
 
+			case 'application':
+				// Show applications list - clicking will update the Application Status section below
+				return (
+					<div className="space-y-6">
+						<h2 className="text-2xl font-bold text-gray-900">
+							My Applications
+						</h2>
+
+						{loadingApplications ? (
+							<div className="text-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
+								<p className="mt-2 text-gray-600">Loading applications...</p>
+							</div>
+						) : applications.length > 0 ? (
+							<div className="bg-white rounded-lg shadow border overflow-hidden">
+								<table className="min-w-full divide-y divide-gray-200">
+									<thead className="bg-gray-50">
+										<tr>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Application Date
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Status
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Reapply Count
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Documents
+											</th>
+										</tr>
+									</thead>
+									<tbody className="bg-white divide-y divide-gray-200">
+										{applications.map((app) => (
+											<tr
+												key={app.applicationId}
+												onClick={() =>
+													handleApplicationClick(app.applicationId)
+												}
+												className="hover:bg-gray-50 cursor-pointer transition-colors"
+											>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+													{new Date(app.applyAt).toLocaleDateString()}
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap">
+													<span
+														className={`px-3 py-1 rounded-full text-xs font-medium ${
+															app.status === 'ACCEPTED'
+																? 'bg-green-100 text-green-800'
+																: app.status === 'REJECTED'
+																	? 'bg-red-100 text-red-800'
+																	: app.status === 'PROGRESSING'
+																		? 'bg-blue-100 text-blue-800'
+																		: 'bg-yellow-100 text-yellow-800'
+														}`}
+													>
+														{app.status}
+													</span>
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+													{app.reapplyCount || 0}
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+													{app.documents?.length || 0} document(s)
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						) : (
+							<div className="text-center py-12 bg-white rounded-lg shadow border">
+								<File className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+								<p className="text-gray-600">
+									No applications found for this program
+								</p>
+								<p className="text-sm text-gray-500 mt-2">
+									Submit an application to get started
+								</p>
+							</div>
+						)}
+					</div>
+				)
+
 			default:
 				return null
 		}
@@ -1394,43 +1785,122 @@ const ProgramDetail = () => {
 					</motion.div>
 				</div>
 				<motion.div
+					id="application-status-section"
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<div className="flex items-center justify-between mb-6">
-						<h2 className="text-3xl font-bold">
-							{hasApplied ? 'Application Status' : 'Apply here !'}
-						</h2>
-						{hasApplied && applicationStatus && (
-							<span
-								className={`px-4 py-2 rounded-full text-sm font-medium ${
-									applicationStatus === 'SUBMITTED' ||
-									applicationStatus === 'PENDING'
-										? 'bg-yellow-100 text-yellow-800'
-										: applicationStatus === 'REQUIRE_UPDATE'
-											? 'bg-orange-100 text-orange-800'
-											: applicationStatus === 'UPDATED'
-												? 'bg-blue-100 text-blue-800'
-												: applicationStatus === 'ACCEPTED'
-													? 'bg-green-100 text-green-800'
-													: applicationStatus === 'REJECTED'
-														? 'bg-red-100 text-red-800'
-														: 'bg-gray-100 text-gray-800'
-								}`}
-							>
-								{applicationStatus === 'PENDING'
-									? 'SUBMITTED'
-									: applicationStatus === 'REVIEWED'
-										? 'REQUIRE_UPDATE'
-										: applicationStatus}
-							</span>
-						)}
-					</div>
+					{/* Show pending application banner */}
+					{pendingApplication && !hasApplied && (
+						<div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-3">
+									<div className="text-2xl">📋</div>
+									<div>
+										<h3 className="text-lg font-semibold text-blue-900">
+											You have an in-progress application
+										</h3>
+										<p className="text-sm text-blue-700 mt-1">
+											Status: {pendingApplication.status}
+										</p>
+									</div>
+								</div>
+								<Button
+									onClick={() => {
+										// Update URL with applicationId
+										const newUrl = new URL(window.location.href)
+										newUrl.searchParams.set(
+											'applicationId',
+											pendingApplication.applicationId
+										)
+										router.push(newUrl.pathname + newUrl.search)
+										setActiveTab('application')
+									}}
+									className="bg-blue-600 hover:bg-blue-700 text-white"
+								>
+									Click to View
+								</Button>
+							</div>
+						</div>
+					)}
 
-					{!hasApplied && (
+					{!(pendingApplication && !hasApplied) && (
+						<div className="flex items-center justify-between mb-6">
+							<h2 className="text-3xl font-bold">
+								{hasApplied
+									? 'Application Status'
+									: pendingApplication
+										? 'Application Status'
+										: 'Apply here !'}
+							</h2>
+							{(hasApplied || pendingApplication) &&
+								(applicationStatus || pendingApplication?.status) && (
+									<span
+										className={`px-4 py-2 rounded-full text-sm font-medium ${
+											(applicationStatus || pendingApplication?.status) ===
+												'SUBMITTED' ||
+											(applicationStatus || pendingApplication?.status) ===
+												'PENDING'
+												? 'bg-yellow-100 text-yellow-800'
+												: (applicationStatus || pendingApplication?.status) ===
+													  'REQUIRE_UPDATE'
+													? 'bg-orange-100 text-orange-800'
+													: (applicationStatus ||
+																pendingApplication?.status) === 'UPDATED'
+														? 'bg-blue-100 text-blue-800'
+														: (applicationStatus ||
+																	pendingApplication?.status) === 'ACCEPTED'
+															? 'bg-green-100 text-green-800'
+															: (applicationStatus ||
+																		pendingApplication?.status) === 'REJECTED'
+																? 'bg-red-100 text-red-800'
+																: (applicationStatus ||
+																			pendingApplication?.status) ===
+																	  'PROGRESSING'
+																	? 'bg-blue-100 text-blue-800'
+																	: 'bg-gray-100 text-gray-800'
+										}`}
+									>
+										{(applicationStatus || pendingApplication?.status) ===
+										'PENDING'
+											? 'SUBMITTED'
+											: (applicationStatus || pendingApplication?.status) ===
+												  'REVIEWED'
+												? 'REQUIRE_UPDATE'
+												: applicationStatus || pendingApplication?.status}
+									</span>
+								)}
+						</div>
+					)}
+
+					{((!hasApplied && !pendingApplication) ||
+						(hasApplied &&
+							applicationStatus === 'SUBMITTED' &&
+							isEditMode)) && (
 						<>
+							{hasApplied &&
+								applicationStatus === 'SUBMITTED' &&
+								isEditMode && (
+									<div className="mb-4 flex items-center justify-between">
+										<h3 className="text-lg font-semibold text-gray-900">
+											Edit Application Documents
+										</h3>
+										<Button
+											variant="outline"
+											onClick={() => {
+												setIsEditMode(false)
+												setSelectedDocuments([])
+												// Reload documents from uploadedFiles to reset any changes
+												// This ensures we're back to the original state
+											}}
+											className="text-gray-600 border-gray-300 hover:bg-gray-50"
+											size="sm"
+										>
+											Cancel Edit
+										</Button>
+									</div>
+								)}
 							<div className="text-gray-600 mb-6">
 								{currentProgram?.documents &&
 								currentProgram.documents.length > 0 ? (
@@ -1641,46 +2111,48 @@ const ProgramDetail = () => {
 					)}
 
 					{/* File Management */}
-					{!hasApplied && (uploadedFiles.length > 0 || isUploading) && (
-						<div className="bg-gray-50 rounded-lg p-4 mb-6">
-							<div className="flex items-center justify-between mb-4">
-								<span className="font-medium">
-									{isUploading
-										? 'Uploading files...'
-										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
-								</span>
-								{uploadedFiles.length > 0 && (
-									<Button
-										variant="outline"
-										onClick={handleOpenModal}
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										Manage Files
-									</Button>
+					{!hasApplied &&
+						!pendingApplication &&
+						(uploadedFiles.length > 0 || isUploading) && (
+							<div className="bg-gray-50 rounded-lg p-4 mb-6">
+								<div className="flex items-center justify-between mb-4">
+									<span className="font-medium">
+										{isUploading
+											? 'Uploading files...'
+											: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
+									</span>
+									{uploadedFiles.length > 0 && (
+										<Button
+											variant="outline"
+											onClick={handleOpenModal}
+											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										>
+											Manage Files
+										</Button>
+									)}
+								</div>
+
+								{/* Upload Progress */}
+								{isUploading && uploadProgress.length > 0 && (
+									<div className="space-y-2 mb-4">
+										{uploadProgress.map((progress) => (
+											<div key={progress.fileIndex} className="space-y-1">
+												<div className="flex justify-between text-sm">
+													<span>File {progress.fileIndex + 1}</span>
+													<span>{progress.progress}%</span>
+												</div>
+												<div className="w-full bg-gray-200 rounded-full h-2">
+													<div
+														className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+														style={{ width: `${progress.progress}%` }}
+													></div>
+												</div>
+											</div>
+										))}
+									</div>
 								)}
 							</div>
-
-							{/* Upload Progress */}
-							{isUploading && uploadProgress.length > 0 && (
-								<div className="space-y-2 mb-4">
-									{uploadProgress.map((progress) => (
-										<div key={progress.fileIndex} className="space-y-1">
-											<div className="flex justify-between text-sm">
-												<span>File {progress.fileIndex + 1}</span>
-												<span>{progress.progress}%</span>
-											</div>
-											<div className="w-full bg-gray-200 rounded-full h-2">
-												<div
-													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
-													style={{ width: `${progress.progress}%` }}
-												></div>
-											</div>
-										</div>
-									))}
-								</div>
-							)}
-						</div>
-					)}
+						)}
 
 					{/* Display update requests as individual alert boxes */}
 					{hasApplied &&
@@ -1852,24 +2324,78 @@ const ProgramDetail = () => {
 											{applicationStatus === 'ACCEPTED'
 												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
 												: applicationStatus === 'REJECTED'
-													? 'We regret to inform you that your application was not selected this time.'
+													? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
 													: applicationStatus === 'UPDATED'
 														? 'Your application has been updated. The institution will review your changes.'
 														: 'Your application has been submitted. You will receive updates via email.'}
 										</p>
+										{applicationStatus === 'REJECTED' && (
+											<div className="mt-4">
+												<Button
+													onClick={() => {
+														// Reset to allow new application
+														setHasApplied(false)
+														setApplicationStatus(null)
+														setApplicationId(null)
+														setUploadedFiles([])
+														setSelectedDocuments([])
+														// Scroll to the apply section
+														setTimeout(() => {
+															const applySection = document.getElementById(
+																'application-status-section'
+															)
+															if (applySection) {
+																applySection.scrollIntoView({
+																	behavior: 'smooth',
+																	block: 'start',
+																})
+															}
+														}, 100)
+													}}
+													className="bg-[#126E64] hover:bg-teal-700 text-white"
+												>
+													Reapply Now
+												</Button>
+											</div>
+										)}
 									</div>
 								</div>
 							</div>
 						)}
 
-					{/* Show uploaded files in read-only mode when applied */}
-					{hasApplied && uploadedFiles.length > 0 && (
+					{/* Show uploaded files in read-only mode when applied and not in edit mode */}
+					{hasApplied && uploadedFiles.length > 0 && !isEditMode && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
 									Initial Application Documents ({uploadedFiles.length} file
 									{uploadedFiles.length !== 1 ? 's' : ''})
 								</span>
+								{applicationStatus === 'SUBMITTED' && (
+									<Button
+										variant="outline"
+										onClick={() => {
+											// Load documents into selectedDocuments for editing
+											const selectedDocs = uploadedFiles.map((file) => ({
+												document_id:
+													file.id ||
+													`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+												name: file.name,
+												url: file.url,
+												size: file.size || 0,
+												documentType:
+													file.documentType || 'application-document',
+												source: 'existing' as const,
+											}))
+											setSelectedDocuments(selectedDocs)
+											setIsEditMode(true)
+										}}
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										size="sm"
+									>
+										Edit Documents
+									</Button>
+								)}
 							</div>
 							<div className="text-gray-600 mb-6">
 								{currentProgram?.documents &&
@@ -1948,88 +2474,105 @@ const ProgramDetail = () => {
 						</div>
 					)}
 
-					{!hasApplied && uploadedFiles.length === 0 && (
-						<div className="text-center mb-6">
-							<div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-								<div className="flex items-center justify-center gap-2 text-amber-700">
-									<span className="text-lg">⚠️</span>
-									<p className="font-medium">
-										Please select at least one document to submit your
-										application
+					{((!hasApplied && !pendingApplication) ||
+						(hasApplied && applicationStatus === 'SUBMITTED' && isEditMode)) &&
+						uploadedFiles.length === 0 && (
+							<div className="text-center mb-6">
+								<div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+									<div className="flex items-center justify-center gap-2 text-amber-700">
+										<span className="text-lg">⚠️</span>
+										<p className="font-medium">
+											Please select at least one document to submit your
+											application
+										</p>
+									</div>
+									<p className="text-sm text-amber-600 mt-2">
+										Use the &quot;Select Documents&quot; button above to choose
+										files from your profile or upload new ones
 									</p>
 								</div>
-								<p className="text-sm text-amber-600 mt-2">
-									Use the &quot;Select Documents&quot; button above to choose
-									files from your profile or upload new ones
-								</p>
 							</div>
+						)}
+
+					{!pendingApplication && (
+						<div className="flex gap-3 justify-center">
+							{((!hasApplied && selectedDocuments.length > 0) ||
+								(hasApplied &&
+									applicationStatus === 'SUBMITTED' &&
+									isEditMode &&
+									selectedDocuments.length > 0)) && (
+								<Button
+									variant="outline"
+									onClick={handleRemoveAllClick}
+									className="text-red-500 border-red-500 hover:bg-red-50"
+								>
+									Remove all
+								</Button>
+							)}
+							<Button
+								className={
+									hasApplied
+										? 'bg-green-600 hover:bg-green-700 text-white'
+										: uploadedFiles.length === 0 &&
+											  !isApplying &&
+											  !isUploading &&
+											  !isCheckingApplication
+											? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
+											: 'bg-[#126E64] hover:bg-teal-700 text-white'
+								}
+								onClick={handleApply}
+								disabled={
+									(hasApplied && applicationStatus !== 'SUBMITTED') ||
+									isApplying ||
+									isUploading ||
+									isCheckingApplication ||
+									uploadedFiles.length === 0
+								}
+								style={{
+									cursor:
+										uploadedFiles.length === 0 &&
+										!hasApplied &&
+										!isApplying &&
+										!isUploading &&
+										!isCheckingApplication
+											? 'not-allowed'
+											: 'pointer',
+								}}
+							>
+								{hasApplied && applicationStatus !== 'SUBMITTED' ? (
+									'✓ Application Submitted'
+								) : hasApplied && applicationStatus === 'SUBMITTED' ? (
+									isApplying ? (
+										<div className="flex items-center gap-2">
+											<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+											Updating...
+										</div>
+									) : (
+										'Update Documents'
+									)
+								) : isApplying ? (
+									<div className="flex items-center gap-2">
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+										Submitting...
+									</div>
+								) : isUploading ? (
+									<div className="flex items-center gap-2">
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+										Uploading Files...
+									</div>
+								) : isCheckingApplication ? (
+									<div className="flex items-center gap-2">
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+										Checking...
+									</div>
+								) : uploadedFiles.length === 0 ? (
+									'Upload Files to Continue'
+								) : (
+									'Submit Application'
+								)}
+							</Button>
 						</div>
 					)}
-
-					<div className="flex gap-3 justify-center">
-						{!hasApplied && selectedDocuments.length > 0 && (
-							<Button
-								variant="outline"
-								onClick={handleRemoveAllClick}
-								className="text-red-500 border-red-500 hover:bg-red-50"
-							>
-								Remove all
-							</Button>
-						)}
-						<Button
-							className={
-								hasApplied
-									? 'bg-green-600 hover:bg-green-700 text-white'
-									: uploadedFiles.length === 0 &&
-										  !isApplying &&
-										  !isUploading &&
-										  !isCheckingApplication
-										? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
-										: 'bg-[#126E64] hover:bg-teal-700 text-white'
-							}
-							onClick={handleApply}
-							disabled={
-								hasApplied ||
-								isApplying ||
-								isUploading ||
-								isCheckingApplication ||
-								uploadedFiles.length === 0
-							}
-							style={{
-								cursor:
-									uploadedFiles.length === 0 &&
-									!hasApplied &&
-									!isApplying &&
-									!isUploading &&
-									!isCheckingApplication
-										? 'not-allowed'
-										: 'pointer',
-							}}
-						>
-							{hasApplied ? (
-								'✓ Application Submitted'
-							) : isApplying ? (
-								<div className="flex items-center gap-2">
-									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Submitting...
-								</div>
-							) : isUploading ? (
-								<div className="flex items-center gap-2">
-									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Uploading Files...
-								</div>
-							) : isCheckingApplication ? (
-								<div className="flex items-center gap-2">
-									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Checking...
-								</div>
-							) : uploadedFiles.length === 0 ? (
-								'Upload Files to Continue'
-							) : (
-								'Submit Application'
-							)}
-						</Button>
-					</div>
 				</motion.div>
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}

@@ -11,7 +11,6 @@ import {
 	DocumentPanel,
 	TwoPanelLayout,
 } from '@/components/profile/shared'
-import { UpdateApplicationModal } from './UpdateApplicationModal'
 import type { Applicant } from './ApplicantsTable'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import JSZip from 'jszip'
@@ -21,7 +20,6 @@ interface ApplicantDetailViewProps {
 	onBack: () => void
 	onApprove: (applicant: Applicant) => void
 	onReject: (applicant: Applicant) => void
-	onRequireUpdate: (applicant: Applicant) => void
 }
 
 interface Document {
@@ -121,7 +119,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	onBack,
 	onApprove,
 	onReject,
-	onRequireUpdate,
 }) => {
 	const router = useRouter()
 
@@ -151,7 +148,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	const [requirementsSubTab, setRequirementsSubTab] = useState<
 		'application' | 'updates'
 	>('application')
-	const [showUpdateModal, setShowUpdateModal] = useState(false)
 	const [applicationDetails, setApplicationDetails] =
 		useState<ApplicationDetails | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -698,64 +694,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			)
 		} finally {
 			setProcessingStatus(null)
-		}
-	}
-
-	// Handle update request (with message)
-	const handleUpdateRequest = async (message: string) => {
-		if (!applicationDetails?.application?.applicationId) return
-
-		try {
-			const response = await fetch(
-				`/api/applications/institution/${applicationDetails.application.applicationId}`,
-				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					credentials: 'include',
-					body: JSON.stringify({
-						status: 'REQUIRE_UPDATE',
-						message,
-					}),
-				}
-			)
-
-			if (!response.ok) {
-				const errorData = await response.json()
-				throw new Error(errorData.error || 'Failed to send update request')
-			}
-
-			const result = await response.json()
-			if (result.success) {
-				// Refresh application details
-				const refreshResponse = await fetch(
-					`/api/applications/institution/${applicationDetails.application.applicationId}`,
-					{
-						method: 'GET',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						credentials: 'include',
-					}
-				)
-
-				if (refreshResponse.ok) {
-					const refreshResult = await refreshResponse.json()
-					if (refreshResult.success) {
-						setApplicationDetails(refreshResult.data)
-					}
-				}
-
-				// Call parent callback if provided
-				if (onRequireUpdate) {
-					onRequireUpdate(applicant)
-				}
-			}
-		} catch (err) {
-			// eslint-disable-next-line no-console
-			console.error('Error sending update request:', err)
-			throw err // Re-throw to be handled by modal
 		}
 	}
 
@@ -1692,7 +1630,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 									'ACCEPTED' &&
 									applicationDetails?.application?.status?.toUpperCase() !==
 										'REJECTED' && (
-										<div className="grid grid-cols-3 gap-2">
+										<div className="grid grid-cols-2 gap-2">
 											<Button
 												onClick={handleApprove}
 												disabled={processingStatus !== null}
@@ -1725,16 +1663,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 													'Reject'
 												)}
 											</Button>
-
-											<Button
-												onClick={() => setShowUpdateModal(true)}
-												disabled={processingStatus !== null}
-												variant="outline"
-												className="border-blue-500 text-blue-500 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-												size="sm"
-											>
-												Update
-											</Button>
 										</div>
 									)}
 							</div>
@@ -1750,14 +1678,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 						}
 					/>
 				}
-			/>
-
-			{/* Update Application Modal */}
-			<UpdateApplicationModal
-				isOpen={showUpdateModal}
-				onClose={() => setShowUpdateModal(false)}
-				onSubmit={handleUpdateRequest}
-				applicantName={applicantName}
 			/>
 		</div>
 	)

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 						statsData.find((s) => s.status === "SUBMITTED")?._count
 							.application_id || 0,
 					reviewed:
-						statsData.find((s) => s.status === "REQUIRE_UPDATE")
+						statsData.find((s) => s.status === "PROGRESSING")
 							?._count.application_id || 0,
 					accepted:
 						statsData.find((s) => s.status === "ACCEPTED")?._count
@@ -276,19 +276,42 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Check if user already applied to this post
+		// Check if user already applied to this post (get most recent)
 		const existingApplication = await prismaClient.application.findFirst({
 			where: {
 				applicant_id: applicant.applicant_id,
 				post_id: body.postId,
 			},
+			orderBy: {
+				apply_at: "desc", // Get the most recent application
+			},
 		});
 
+		// Determine reapply_count
+		let reapplyCount = 0;
 		if (existingApplication) {
-			return NextResponse.json(
-				{ error: "You have already applied to this post" },
-				{ status: 409 }
-			);
+			// If application exists, check if reapply is allowed
+			if (
+				existingApplication.status === "REJECTED" &&
+				existingApplication.reapply_count < 3
+			) {
+				// Allow reapply: increment the count
+				reapplyCount = existingApplication.reapply_count + 1;
+			} else if (existingApplication.status !== "REJECTED") {
+				// If status is not REJECTED, cannot reapply
+				return NextResponse.json(
+					{ error: "You have already applied to this post" },
+					{ status: 409 }
+				);
+			} else {
+				// REJECTED but reapply_count >= 3
+				return NextResponse.json(
+					{
+						error: "You have reached the maximum number of reapplication attempts (3)",
+					},
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Get applicant profile data for snapshot
@@ -355,6 +378,7 @@ export async function POST(request: NextRequest) {
 				post_id: body.postId,
 				apply_at: new Date(),
 				status: "SUBMITTED",
+				reapply_count: reapplyCount,
 			},
 		});
 

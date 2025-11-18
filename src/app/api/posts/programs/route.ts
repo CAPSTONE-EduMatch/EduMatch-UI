@@ -76,6 +76,24 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Check if a published post with the same title already exists
+		const existingPost = await prismaClient.opportunityPost.findFirst({
+			where: {
+				institution_id: institution.institution_id,
+				title: body.programTitle,
+				status: "PUBLISHED",
+			},
+		});
+
+		if (existingPost) {
+			return NextResponse.json(
+				{
+					error: `A published post with the title "${body.programTitle}" already exists. Please use a different title.`,
+				},
+				{ status: 409 } // 409 Conflict
+			);
+		}
+
 		// Parse dates with validation
 		const startDate = new Date(body.startDate);
 		const applicationDeadline = new Date(body.applicationDeadline);
@@ -435,6 +453,91 @@ export async function PUT(request: NextRequest) {
 		return NextResponse.json(
 			{
 				error: "Failed to update program post",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
+	}
+}
+
+export async function DELETE(request: NextRequest) {
+	try {
+		const { searchParams } = new URL(request.url);
+		const postId = searchParams.get("postId");
+
+		if (!postId) {
+			return NextResponse.json(
+				{ error: "Post ID is required" },
+				{ status: 400 }
+			);
+		}
+
+		// Get user from session
+		const { user } = await requireAuth();
+
+		// Get institution for the user
+		const institution = await prismaClient.institution.findUnique({
+			where: { user_id: user.id },
+		});
+
+		if (!institution) {
+			return NextResponse.json(
+				{ error: "Institution not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Check if post exists and belongs to this institution
+		const post = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: postId },
+			include: {
+				programPost: true,
+			},
+		});
+
+		if (!post) {
+			return NextResponse.json(
+				{ error: "Post not found" },
+				{ status: 404 }
+			);
+		}
+
+		if (post.institution_id !== institution.institution_id) {
+			return NextResponse.json(
+				{ error: "Unauthorized to delete this post" },
+				{ status: 403 }
+			);
+		}
+
+		// Only allow deletion of DRAFT posts
+		if (post.status !== "DRAFT") {
+			return NextResponse.json(
+				{
+					error: "Only draft posts can be deleted",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Soft delete: Set status to DELETED
+		await prismaClient.opportunityPost.update({
+			where: { post_id: postId },
+			data: {
+				status: "DELETED",
+				update_at: new Date(),
+			},
+		});
+
+		return NextResponse.json({
+			success: true,
+			message: "Post deleted successfully",
+		});
+	} catch (error) {
+		console.error("Error deleting program post:", error);
+		return NextResponse.json(
+			{
+				error: "Failed to delete post",
 				details:
 					error instanceof Error ? error.message : "Unknown error",
 			},

@@ -323,42 +323,66 @@ const ResearchLabDetail = () => {
 				response.applications &&
 				response.applications.length > 0
 			) {
-				// Check if any application is for this specific post
-				const existingApplication = response.applications.find(
+				// Get all applications for this specific post
+				const postApplications = response.applications.filter(
 					(app) => app.postId === researchLabId
 				)
 
-				if (existingApplication) {
-					setHasApplied(true)
-					setApplicationStatus(existingApplication.status || null)
-					setApplicationId(existingApplication.applicationId || null)
-					// Load submitted documents from the application
-					// Filter out update submission documents - only show initial application documents
-					if (
-						existingApplication.documents &&
-						existingApplication.documents.length > 0
-					) {
-						const submittedFiles = existingApplication.documents
-							.filter(
-								(doc: any) =>
-									!doc.isUpdateSubmission && !doc.is_update_submission
-							)
-							.map((doc: any) => ({
-								id: doc.documentId || doc.documentTypeId || Math.random(), // Generate ID if not available
-								name: doc.name,
-								url: doc.url,
-								size: doc.size || 0,
-								documentType:
-									doc.documentType ||
-									doc.documentTypeId ||
-									'application-document',
-								uploadDate:
-									doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
-							}))
-						setUploadedFiles(submittedFiles)
-					}
+				if (postApplications.length > 0) {
+					// Check if all applications are rejected
+					const allRejected = postApplications.every(
+						(app) => app.status === 'REJECTED'
+					)
 
-					return true
+					if (allRejected) {
+						// If all applications are rejected, allow reapplication
+						setHasApplied(false)
+						setApplicationStatus(null)
+						setApplicationId(null)
+						setUploadedFiles([])
+						return false // Return false to allow new application
+					} else {
+						// Find the most recent non-rejected application
+						const existingApplication =
+							postApplications.find((app) => app.status !== 'REJECTED') ||
+							postApplications[0] // Fallback to most recent if all are rejected (shouldn't happen)
+
+						if (existingApplication) {
+							setHasApplied(true)
+							setApplicationStatus(existingApplication.status || null)
+							setApplicationId(existingApplication.applicationId || null)
+							// Load submitted documents from the application
+							// Filter out update submission documents - only show initial application documents
+							if (
+								existingApplication.documents &&
+								existingApplication.documents.length > 0
+							) {
+								const submittedFiles = existingApplication.documents
+									.filter(
+										(doc: any) =>
+											!doc.isUpdateSubmission && !doc.is_update_submission
+									)
+									.map((doc: any, index: number) => ({
+										id:
+											doc.documentId ||
+											doc.documentTypeId ||
+											`doc_${existingApplication.applicationId}_${index}_${Math.random().toString(36).substr(2, 9)}`, // Generate ID if not available
+										name: doc.name,
+										url: doc.url,
+										size: doc.size || 0,
+										documentType:
+											doc.documentType ||
+											doc.documentTypeId ||
+											'application-document',
+										uploadDate:
+											doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
+									}))
+								setUploadedFiles(submittedFiles)
+							}
+
+							return true
+						}
+					}
 				}
 			}
 			return false
@@ -422,8 +446,10 @@ const ResearchLabDetail = () => {
 			return
 		}
 
-		// Check if already applied
-		if (hasApplied) {
+		// Check if already applied (but allow if all previous applications are rejected)
+		// This check is handled in checkExistingApplication which sets hasApplied to false
+		// if all applications are rejected
+		if (hasApplied && applicationStatus !== 'REJECTED') {
 			showError(
 				'Already Applied',
 				'You have already applied to this research lab. You cannot submit multiple applications.',
@@ -1170,6 +1196,7 @@ const ResearchLabDetail = () => {
 				{/* Apply Content - Always show */}
 				{/* -----------------------------------------------Apply Content---------------------------------------------- */}
 				<motion.div
+					id="application-status-section"
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
@@ -1624,11 +1651,40 @@ const ResearchLabDetail = () => {
 											{applicationStatus === 'ACCEPTED'
 												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
 												: applicationStatus === 'REJECTED'
-													? 'We regret to inform you that your application was not selected this time.'
+													? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
 													: applicationStatus === 'UPDATED'
 														? 'Your application has been updated. The institution will review your changes.'
 														: 'Your application has been submitted. You will receive updates via email.'}
 										</p>
+										{applicationStatus === 'REJECTED' && (
+											<div className="mt-4">
+												<Button
+													onClick={() => {
+														// Reset to allow new application
+														setHasApplied(false)
+														setApplicationStatus(null)
+														setApplicationId(null)
+														setUploadedFiles([])
+														setSelectedDocuments([])
+														// Scroll to the apply section
+														setTimeout(() => {
+															const applySection = document.getElementById(
+																'application-status-section'
+															)
+															if (applySection) {
+																applySection.scrollIntoView({
+																	behavior: 'smooth',
+																	block: 'start',
+																})
+															}
+														}, 100)
+													}}
+													className="bg-[#126E64] hover:bg-teal-700 text-white"
+												>
+													Reapply Now
+												</Button>
+											</div>
+										)}
 									</div>
 								</div>
 							</div>

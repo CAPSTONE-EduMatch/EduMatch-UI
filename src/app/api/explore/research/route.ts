@@ -63,7 +63,9 @@ export async function GET(request: NextRequest) {
 
 		// Build base where clause for filtering - only posts with JobPost records (research positions)
 		const baseWhereClause: any = {
-			status: "PUBLISHED", // Only show published posts
+			status: {
+				in: ["PUBLISHED"], // Only show published posts, explicitly exclude DELETED
+			},
 			post_id: {
 				in: await prismaClient.jobPost
 					.findMany({ select: { post_id: true } })

@@ -75,7 +75,9 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause for filtering
 		const whereClause: any = {
-			status: "PUBLISHED", // Only show published posts
+			status: {
+				in: ["PUBLISHED"], // Only show published posts, explicitly exclude DELETED
+			},
 			programPost: {
 				isNot: null, // Only get posts that have associated program data
 			},

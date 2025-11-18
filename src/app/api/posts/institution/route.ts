@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
 		// Build where clause for filtering
 		const whereClause: any = {
 			institution_id: institution.institution_id,
+			// Exclude DELETED posts by default
+			status: { not: "DELETED" },
 		};
 
 		// Add status filter - handle multiple statuses
@@ -58,6 +60,14 @@ export async function GET(request: NextRequest) {
 			} else if (statusArray.length > 1) {
 				// Multiple statuses - use 'in' operator
 				whereClause.status = { in: statusArray };
+			}
+			// If user explicitly requests DELETED, allow it by removing the default filter
+			if (statusArray.includes("DELETED")) {
+				delete whereClause.status;
+				whereClause.status =
+					statusArray.length === 1
+						? statusArray[0]
+						: { in: statusArray };
 			}
 		}
 

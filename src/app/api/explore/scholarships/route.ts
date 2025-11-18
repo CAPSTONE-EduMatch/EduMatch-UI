@@ -67,7 +67,9 @@ export async function GET(request: NextRequest) {
 
 		// Build where clause for filtering - only posts with ScholarshipPost records
 		const whereClause: any = {
-			status: "PUBLISHED", // Only show published posts
+			status: {
+				in: ["PUBLISHED"], // Only show published posts, explicitly exclude DELETED
+			},
 			post_id: {
 				in: await prismaClient.scholarshipPost
 					.findMany({ select: { post_id: true } })

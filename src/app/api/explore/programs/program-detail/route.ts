@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 				(app) => app.status === "SUBMITTED"
 			).length,
 			reviewed: opportunityPost.applications.filter(
-				(app) => app.status === "REQUIRE_UPDATE"
+				(app) => app.status === "PROGRESSING"
 			).length,
 			accepted: opportunityPost.applications.filter(
 				(app) => app.status === "ACCEPTED"

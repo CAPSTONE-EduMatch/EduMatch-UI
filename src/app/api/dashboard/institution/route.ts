@@ -92,10 +92,11 @@ export async function GET(request: NextRequest) {
 				startDate = new Date(now.setHours(0, 0, 0, 0));
 		}
 
-		// Get all posts for this institution
+		// Get all posts for this institution (excluding DELETED)
 		const allPosts = await prismaClient.opportunityPost.findMany({
 			where: {
 				institution_id: institution.institution_id,
+				status: { not: "DELETED" },
 			},
 			include: {
 				applications: {
@@ -124,10 +125,7 @@ export async function GET(request: NextRequest) {
 			(app) => app.status === "SUBMITTED"
 		).length;
 		const underReviewApplications = filteredApplications.filter(
-			(app) =>
-				app.status === "SUBMITTED" ||
-				app.status === "UPDATED" ||
-				app.status === "REQUIRE_UPDATE"
+			(app) => app.status === "SUBMITTED" || app.status === "PROGRESSING"
 		).length;
 		const acceptedApplications = filteredApplications.filter(
 			(app) => app.status === "ACCEPTED"
@@ -188,8 +186,7 @@ export async function GET(request: NextRequest) {
 				const underReview = hourApps.filter(
 					(app) =>
 						app.status === "SUBMITTED" ||
-						app.status === "UPDATED" ||
-						app.status === "REQUIRE_UPDATE"
+						app.status === "PROGRESSING"
 				).length;
 				const rejected = hourApps.filter(
 					(app) => app.status === "REJECTED"
@@ -224,8 +221,7 @@ export async function GET(request: NextRequest) {
 				const underReview = monthApps.filter(
 					(app) =>
 						app.status === "SUBMITTED" ||
-						app.status === "UPDATED" ||
-						app.status === "REQUIRE_UPDATE"
+						app.status === "PROGRESSING"
 				).length;
 				const rejected = monthApps.filter(
 					(app) => app.status === "REJECTED"
@@ -278,8 +274,7 @@ export async function GET(request: NextRequest) {
 				const underReview = dayApps.filter(
 					(app) =>
 						app.status === "SUBMITTED" ||
-						app.status === "UPDATED" ||
-						app.status === "REQUIRE_UPDATE"
+						app.status === "PROGRESSING"
 				).length;
 				const rejected = dayApps.filter(
 					(app) => app.status === "REJECTED"
@@ -368,8 +363,7 @@ export async function GET(request: NextRequest) {
 				dayData.underReview = dayApps.filter(
 					(app) =>
 						app.status === "SUBMITTED" ||
-						app.status === "UPDATED" ||
-						app.status === "REQUIRE_UPDATE"
+						app.status === "PROGRESSING"
 				).length;
 				dayData.rejected = dayApps.filter(
 					(app) => app.status === "REJECTED"

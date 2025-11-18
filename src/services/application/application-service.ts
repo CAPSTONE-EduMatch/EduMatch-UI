@@ -134,6 +134,27 @@ class ApplicationService {
 
 		return this.request<ApplicationListResponse>(endpoint);
 	}
+
+	// Update application documents (for applicants when status is SUBMITTED)
+	async updateApplicationDocuments(
+		applicationId: string,
+		documents: Array<{
+			documentId?: string;
+			url: string;
+			name: string;
+			size: number;
+			documentTypeId?: string;
+			documentType?: string;
+		}>
+	): Promise<{ success: boolean; message: string }> {
+		return this.request<{ success: boolean; message: string }>(
+			`/${applicationId}/documents`,
+			{
+				method: "PUT",
+				body: JSON.stringify({ documents }),
+			}
+		);
+	}
 }
 
 // Export singleton instance

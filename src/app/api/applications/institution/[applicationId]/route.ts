@@ -108,6 +108,19 @@ export async function GET(
 			);
 		}
 
+		// Change status to PROGRESSING when institution views application details
+		// Only if current status is SUBMITTED
+		if (application.status === "SUBMITTED") {
+			await prismaClient.application.update({
+				where: { application_id: params.applicationId },
+				data: {
+					status: "PROGRESSING",
+				},
+			});
+			// Update the application object for response
+			application.status = "PROGRESSING";
+		}
+
 		// Fetch ALL documents from snapshot (profile snapshot preserves state at application time)
 		let snapshotDocuments: any[] = [];
 		const snapshot = application.ApplicationProfileSnapshot;
@@ -695,20 +708,11 @@ export async function PUT(
 		const body = await request.json();
 		const { status, message } = body;
 
-		// Validate status
-		if (
-			!status ||
-			![
-				"SUBMITTED",
-				"REQUIRE_UPDATE",
-				"ACCEPTED",
-				"REJECTED",
-				"UPDATED",
-			].includes(status)
-		) {
+		// Validate status - only allow ACCEPTED or REJECTED
+		if (!status || !["ACCEPTED", "REJECTED"].includes(status)) {
 			return NextResponse.json(
 				{
-					error: "Invalid status. Must be one of: SUBMITTED, REQUIRE_UPDATE, ACCEPTED, REJECTED, UPDATED",
+					error: "Invalid status. Must be one of: ACCEPTED, REJECTED",
 				},
 				{ status: 400 }
 			);
@@ -758,34 +762,6 @@ export async function PUT(
 			},
 		});
 
-		// If status is REQUIRE_UPDATE, create an ApplicationUpdateRequest record
-		if (status === "REQUIRE_UPDATE" && message && message.trim()) {
-			try {
-				// Extract requested documents from message (if mentioned) or leave empty
-				// Frontend can send requestedDocuments array if needed
-				const { requestedDocuments } = body;
-
-				await prismaClient.applicationUpdateRequest.create({
-					data: {
-						update_request_id: randomUUID(),
-						application_id: params.applicationId,
-						requested_by_user_id: user.id,
-						request_message: message.trim(),
-						requested_documents: requestedDocuments || [],
-						status: "PENDING",
-						created_at: new Date(),
-					},
-				});
-			} catch (updateRequestError) {
-				// eslint-disable-next-line no-console
-				console.error(
-					"❌ API: Failed to create update request:",
-					updateRequestError
-				);
-				// Don't fail the status update if update request creation fails
-			}
-		}
-
 		// Send notification to applicant about status change
 		try {
 			const { NotificationUtils } = await import(
@@ -800,65 +776,8 @@ export async function PUT(
 					application.post.title,
 					oldStatus,
 					status,
-					institution.name,
-					message && status === "REQUIRE_UPDATE"
-						? message.trim()
-						: undefined
+					institution.name
 				);
-
-				// If there's a message (for REQUIRE_UPDATE status), send it via Box messaging
-				if (message && message.trim() && status === "REQUIRE_UPDATE") {
-					try {
-						// Get or create a Box between institution and applicant
-						let box = await prismaClient.box.findFirst({
-							where: {
-								OR: [
-									{
-										user_one_id: user.id,
-										user_two_id:
-											application.applicant.user.id,
-									},
-									{
-										user_one_id:
-											application.applicant.user.id,
-										user_two_id: user.id,
-									},
-								],
-							},
-						});
-
-						// Create box if it doesn't exist
-						if (!box) {
-							box = await prismaClient.box.create({
-								data: {
-									box_id: randomUUID(),
-									user_one_id: user.id,
-									user_two_id: application.applicant.user.id,
-									created_at: new Date(),
-									updated_at: new Date(),
-								},
-							});
-						}
-
-						// Create message
-						await prismaClient.message.create({
-							data: {
-								message_id: randomUUID(),
-								box_id: box.box_id,
-								sender_id: user.id,
-								body: message.trim(),
-								send_at: new Date(),
-							},
-						});
-					} catch (messageError) {
-						// eslint-disable-next-line no-console
-						console.error(
-							"❌ API: Failed to send message:",
-							messageError
-						);
-						// Don't fail the update if message sending fails
-					}
-				}
 			}
 		} catch (notificationError) {
 			// eslint-disable-next-line no-console

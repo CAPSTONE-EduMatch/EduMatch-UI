@@ -1,12 +1,12 @@
 'use client'
 
-import { LucideIcon, LogOut } from 'lucide-react'
-import Image from 'next/image'
-import React, { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSubscription } from '@/hooks/subscription/useSubscription'
-import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { authClient } from '@/config/auth-client'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
+import { LogOut, LucideIcon } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import React, { useEffect } from 'react'
 
 export type ProfileSection = string
 
@@ -57,12 +57,37 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 	enableNavigationProtection = true,
 }) => {
 	// Get subscription information
-	const { currentPlan } = useSubscription()
+	const { subscriptions, currentPlan } = useSubscription()
 	const router = useRouter()
 	const { refreshAuth } = useAuthCheck()
 
+	// Check if user has an active institution subscription
+	const hasActiveInstitutionSubscription = subscriptions.some(
+		(sub) =>
+			sub.status === 'active' &&
+			(sub.plan === 'institution_monthly' || sub.plan === 'institution_yearly')
+	)
+
 	// Get plan display information
-	const getPlanInfo = (plan: string) => {
+	const getPlanInfo = (plan: string, isInstitution: boolean) => {
+		if (isInstitution) {
+			if (hasActiveInstitutionSubscription) {
+				const activeSub = subscriptions.find(
+					(sub) =>
+						sub.status === 'active' &&
+						(sub.plan === 'institution_monthly' ||
+							sub.plan === 'institution_yearly')
+				)
+				if (activeSub?.plan === 'institution_yearly') {
+					return { label: 'Institution Yearly', color: 'bg-green-500' }
+				} else if (activeSub?.plan === 'institution_monthly') {
+					return { label: 'Institution Monthly', color: 'bg-blue-500' }
+				}
+			}
+			return { label: 'No Subscription', color: 'bg-gray-500' }
+		}
+
+		// Applicant plans
 		switch (plan) {
 			case 'standard':
 				return { label: 'Standard', color: 'bg-blue-500' }
@@ -73,7 +98,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 		}
 	}
 
-	const planInfo = getPlanInfo(currentPlan || 'free')
+	const isInstitution = profile?.role === 'institution'
+	const planInfo = getPlanInfo(currentPlan || 'free', isInstitution)
 
 	// Handle logout
 	const handleLogout = async () => {

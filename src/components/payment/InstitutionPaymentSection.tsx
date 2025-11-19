@@ -4,7 +4,7 @@ import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
-import { Button } from '../ui'
+import { Button, Modal } from '../ui'
 
 interface InstitutionPaymentSectionProps {
 	onStartPlan?: () => void
@@ -16,13 +16,32 @@ export const InstitutionPaymentSection: React.FC<
 	InstitutionPaymentSectionProps
 > = ({ onStartPlan }) => {
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly')
-	const { upgradeSubscription, loading, isAuthenticated } = useSubscription()
+	const {
+		upgradeSubscription,
+		cancelSubscription,
+		subscriptions,
+		currentPlan,
+		loading,
+		isAuthenticated,
+	} = useSubscription()
 	const [upgrading, setUpgrading] = useState(false)
+	const [cancelling, setCancelling] = useState(false)
+	const [showCancelModal, setShowCancelModal] = useState(false)
 	const router = useRouter()
 
 	const institutionPlanId =
 		billingCycle === 'yearly' ? 'institution_yearly' : 'institution_monthly'
 	const price = billingCycle === 'yearly' ? '99' : '12'
+
+	// Check if user has any active institution subscription (monthly or yearly)
+	const hasActiveInstitutionSubscription = subscriptions.some(
+		(sub) =>
+			sub.status === 'active' &&
+			(sub.plan === 'institution_monthly' || sub.plan === 'institution_yearly')
+	)
+
+	// If user has any institution subscription, both cards should show "Current Plan"
+	const isCurrentPlan = hasActiveInstitutionSubscription
 
 	const features = [
 		{
@@ -74,6 +93,11 @@ export const InstitutionPaymentSection: React.FC<
 			return
 		}
 
+		// If user already has this plan, do nothing
+		if (isCurrentPlan) {
+			return
+		}
+
 		if (onStartPlan) {
 			onStartPlan()
 		}
@@ -89,6 +113,70 @@ export const InstitutionPaymentSection: React.FC<
 			}
 		} finally {
 			setUpgrading(false)
+		}
+	}
+
+	const handleCancelSubscription = async () => {
+		if (!isAuthenticated) return
+
+		// Find the active institution subscription
+		const activeSubscription = subscriptions.find(
+			(sub) =>
+				sub.status === 'active' &&
+				(sub.plan === 'institution_monthly' ||
+					sub.plan === 'institution_yearly')
+		)
+
+		if (!activeSubscription) return
+
+		try {
+			setCancelling(true)
+			await cancelSubscription(activeSubscription.id)
+			setShowCancelModal(false)
+		} catch (err) {
+			// Error is handled by the hook
+			if (process.env.NODE_ENV === 'development') {
+				// eslint-disable-next-line no-console
+				console.error('Cancel failed:', err)
+			}
+		} finally {
+			setCancelling(false)
+		}
+	}
+
+	const getButtonState = () => {
+		// If user is not authenticated, show signup text
+		if (!isAuthenticated) {
+			return {
+				text: 'Sign Up to Continue',
+				disabled: false,
+				showCancelButton: false,
+			}
+		}
+
+		// If this is the current plan, show current plan
+		if (isCurrentPlan) {
+			return {
+				text: 'Current Plan',
+				disabled: true,
+				showCancelButton: true,
+			}
+		}
+
+		// If upgrading, show processing
+		if (upgrading) {
+			return {
+				text: 'Processing...',
+				disabled: true,
+				showCancelButton: false,
+			}
+		}
+
+		// Default upgrade text
+		return {
+			text: 'Start Institution Plan',
+			disabled: loading,
+			showCancelButton: false,
 		}
 	}
 
@@ -168,7 +256,14 @@ export const InstitutionPaymentSection: React.FC<
 								Recommended
 							</span>
 						</div>
-
+						{/* Current Plan Badge */}
+						{isCurrentPlan && (
+							<div className="absolute -top-3 right-4">
+								<span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+									Active
+								</span>
+							</div>
+						)}{' '}
 						{/* Plan Header */}
 						<div className="mb-8">
 							<h3 className="text-2xl lg:text-3xl font-bold text-black mb-4">
@@ -187,7 +282,6 @@ export const InstitutionPaymentSection: React.FC<
 								connect with applicants, and manage the entire selection process
 							</p>
 						</div>
-
 						{/* Features */}
 						<div className="mb-8">
 							<h4 className="text-lg font-medium text-[#232323] mb-6">
@@ -220,22 +314,110 @@ export const InstitutionPaymentSection: React.FC<
 								))}
 							</ul>
 						</div>
-
 						{/* Button */}
-						<Button
-							className="w-full py-3 px-6 rounded-[30px] font-semibold bg-[#116E63] text-white hover:bg-[#0f5c54] transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-							onClick={handleStartPlan}
-							disabled={upgrading || loading}
-						>
-							{upgrading
-								? 'Processing...'
-								: !isAuthenticated
-									? 'Sign Up to Continue'
-									: 'Start Institution Plan'}
-						</Button>
+						{(() => {
+							const buttonState = getButtonState()
+							return (
+								<>
+									<button
+										className={`w-full py-3 px-6 rounded-[30px] font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+											isCurrentPlan
+												? 'bg-green-100 text-green-700 cursor-not-allowed'
+												: 'bg-[#116E63] text-white hover:bg-[#0f5c54]'
+										}`}
+										onClick={handleStartPlan}
+										disabled={buttonState.disabled}
+									>
+										{buttonState.text}
+									</button>
+
+									{/* Cancel Button - Only show for current plan */}
+									{buttonState.showCancelButton && (
+										<button
+											className={`w-full mt-3 py-2.5 px-6 rounded-[30px] font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+												cancelling
+													? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+													: 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+											}`}
+											onClick={() => setShowCancelModal(true)}
+											disabled={cancelling}
+										>
+											{cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+										</button>
+									)}
+								</>
+							)
+						})()}
 					</motion.div>
 				</div>
 			</div>
+
+			{/* Cancel Confirmation Modal */}
+			<Modal
+				isOpen={showCancelModal}
+				onClose={() => setShowCancelModal(false)}
+				title="Cancel Subscription"
+				maxWidth="md"
+			>
+				<div className="text-center">
+					<div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+						<svg
+							className="h-6 w-6 text-red-600"
+							fill="none"
+							viewBox="0 0 24 24"
+							strokeWidth="1.5"
+							stroke="currentColor"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+							/>
+						</svg>
+					</div>
+					<div className="text-sm text-gray-600 mb-6 space-y-2">
+						<p className="font-semibold text-gray-800 text-lg mb-3">
+							Are you sure you want to cancel your subscription?
+						</p>
+						<p>
+							You currently have an active{' '}
+							<span className="font-semibold capitalize">
+								{currentPlan?.replace('_', ' ')}
+							</span>{' '}
+							subscription.
+						</p>
+						<p>
+							You&apos;ll retain access to your current plan until the end of
+							your billing period.
+						</p>
+						<p className="text-xs text-gray-500 mt-3">
+							This action cannot be undone. You&apos;ll need to resubscribe to
+							regain access to institution features.
+						</p>
+					</div>
+				</div>
+
+				<div className="flex flex-col gap-3">
+					<Button
+						onClick={() => setShowCancelModal(false)}
+						variant="secondary"
+						fullWidth
+					>
+						Keep My Subscription
+					</Button>
+					<Button
+						onClick={handleCancelSubscription}
+						disabled={cancelling}
+						isLoading={cancelling}
+						loadingText="Canceling..."
+						variant="primary"
+						fullWidth
+						className="!bg-red-600 hover:!bg-red-700"
+					>
+						Cancel Subscription
+					</Button>
+				</div>
+			</Modal>
 		</section>
 	)
 }

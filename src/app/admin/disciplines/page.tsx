@@ -1,9 +1,10 @@
 'use client'
 
 import { AdminTable } from '@/components/admin/AdminTable'
+import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
-import { ChevronRight, Plus, Search, Users } from 'lucide-react'
+import { ChevronRight, Plus, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -82,9 +83,8 @@ export default function AdminDisciplinesPage() {
 	const router = useRouter()
 	const [searchQuery, setSearchQuery] = useState('')
 	const [currentPage, setCurrentPage] = useState(1)
-	const [statusFilter, setStatusFilter] = useState<
-		'all' | 'Active' | 'Inactive'
-	>('all')
+	const [statusFilter, setStatusFilter] = useState<string[]>([])
+	const [sortBy, setSortBy] = useState('newest')
 	const [selectedSubdiscipline, setSelectedSubdiscipline] =
 		useState<Subdiscipline | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
@@ -105,12 +105,32 @@ export default function AdminDisciplinesPage() {
 				.includes(searchQuery.toLowerCase()) ||
 			subdiscipline.discipline.toLowerCase().includes(searchQuery.toLowerCase())
 		const matchesStatus =
-			statusFilter === 'all' || subdiscipline.status === statusFilter
+			statusFilter.length === 0 || statusFilter.includes(subdiscipline.status)
 		return matchesSearch && matchesStatus
 	})
 
-	const totalPages = Math.ceil(filteredSubdisciplines.length / 10)
-	const paginatedSubdisciplines = filteredSubdisciplines.slice(
+	// Sort subdisciplines
+	const sortedSubdisciplines = [...filteredSubdisciplines].sort((a, b) => {
+		switch (sortBy) {
+			case 'newest':
+				return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+			case 'oldest':
+				return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+			case 'name-asc':
+				return a.subdisciplineName.localeCompare(b.subdisciplineName)
+			case 'name-desc':
+				return b.subdisciplineName.localeCompare(a.subdisciplineName)
+			case 'discipline-asc':
+				return a.discipline.localeCompare(b.discipline)
+			case 'discipline-desc':
+				return b.discipline.localeCompare(a.discipline)
+			default:
+				return 0
+		}
+	})
+
+	const totalPages = Math.ceil(sortedSubdisciplines.length / 10)
+	const paginatedSubdisciplines = sortedSubdisciplines.slice(
 		(currentPage - 1) * 10,
 		currentPage * 10
 	)
@@ -124,13 +144,9 @@ export default function AdminDisciplinesPage() {
 	}
 
 	const handleSaveChanges = () => {
-		// TODO: Implement save logic
-		console.log('Saving changes:', {
-			id: selectedSubdiscipline?.id,
-			subdisciplineName: editedName,
-			discipline: editedDiscipline,
-			status: editedStatus,
-		})
+		// TODO: Implement save logic for updating subdiscipline
+		// API call would go here to update the subdiscipline with:
+		// { id: selectedSubdiscipline?.id, subdisciplineName: editedName, discipline: editedDiscipline, status: editedStatus }
 		setIsModalOpen(false)
 	}
 
@@ -280,33 +296,31 @@ export default function AdminDisciplinesPage() {
 
 			{/* Main Content */}
 			<div className="px-8">
-				{/* Search, Filters, and Add Button */}
-				<div className="mb-6 flex items-center gap-4">
-					<div className="flex-1 relative">
-						<input
-							type="text"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							placeholder="Search by subdiscipline or discipline..."
-							className="w-full px-6 py-3 pr-16 rounded-full border-2 border-[#126E64] text-base outline-none focus:ring-2 focus:ring-[#126E64]/30"
-						/>
-						<div className="absolute right-0 top-0 bottom-0 bg-[#126E64] rounded-r-full px-5 flex items-center">
-							<Search className="w-5 h-5 text-white" />
-						</div>
-					</div>
-					<div className="bg-white border-2 border-gray-300 rounded-full px-5 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
-						<select
-							value={statusFilter}
-							onChange={(e) =>
-								setStatusFilter(e.target.value as 'all' | 'Active' | 'Inactive')
-							}
-							className="bg-transparent text-gray-700 font-medium focus:outline-none text-sm min-w-[90px]"
-						>
-							<option value="all">All Status</option>
-							<option value="Active">Active</option>
-							<option value="Inactive">Inactive</option>
-						</select>
-					</div>
+				{/* Search and Filters */}
+				<SearchAndFilter
+					searchQuery={searchQuery}
+					onSearchChange={setSearchQuery}
+					statusFilter={statusFilter}
+					onStatusFilterChange={setStatusFilter}
+					sortBy={sortBy}
+					onSortChange={setSortBy}
+					statusOptions={[
+						{ value: 'Active', label: 'Active' },
+						{ value: 'Inactive', label: 'Inactive' },
+					]}
+					sortOptions={[
+						{ value: 'newest', label: 'Newest First' },
+						{ value: 'oldest', label: 'Oldest First' },
+						{ value: 'name-asc', label: 'Name A-Z' },
+						{ value: 'name-desc', label: 'Name Z-A' },
+						{ value: 'discipline-asc', label: 'Discipline A-Z' },
+						{ value: 'discipline-desc', label: 'Discipline Z-A' },
+					]}
+					searchPlaceholder="Search by subdiscipline or discipline..."
+				/>
+
+				{/* Add New Button */}
+				<div className="mb-6 flex justify-end">
 					<button
 						onClick={() => router.push('/admin/disciplines/create')}
 						className="bg-[#126E64] hover:bg-[#0f5850] text-white rounded-full px-6 py-3 flex items-center gap-2 text-base font-semibold transition-colors shadow-sm"
@@ -314,11 +328,11 @@ export default function AdminDisciplinesPage() {
 						<Plus className="w-5 h-5" />
 						Add New
 					</button>
-				</div>{' '}
+				</div>
 				{/* Subdisciplines Table */}
 				<div>
 					<h2 className="text-2xl font-bold text-black mb-6">
-						Subdisciplines ({filteredSubdisciplines.length} total)
+						Subdisciplines ({sortedSubdisciplines.length} total)
 					</h2>
 
 					<AdminTable
@@ -326,7 +340,7 @@ export default function AdminDisciplinesPage() {
 						columns={columns}
 						currentPage={currentPage}
 						totalPages={totalPages}
-						totalItems={filteredSubdisciplines.length}
+						totalItems={sortedSubdisciplines.length}
 						itemsPerPage={10}
 						onPageChange={setCurrentPage}
 						emptyMessage="No subdisciplines found matching your criteria."

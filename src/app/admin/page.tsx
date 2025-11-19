@@ -1,17 +1,69 @@
 'use client'
 
+import { SplineArea } from '@/components/charts/SplineArea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
+import { Tooltip } from '@/components/ui/feedback/tooltip'
 import { motion } from 'framer-motion'
 import {
 	Building2,
 	Calendar,
 	GraduationCap,
-	HelpCircle,
+	Info,
 	TrendingUp,
 	Users,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+
 import { useEffect, useState } from 'react'
+
+interface DashboardStats {
+	totalUsers: number
+	applicants: {
+		total: number
+		activated: number
+		deactivated: number
+	}
+	institutions: {
+		total: number
+		activated: number
+		deactivated: number
+		pending: number
+	}
+	applications: {
+		total: number
+		new: number
+		underReview: number
+		accepted: number
+		rejected: number
+	}
+	posts: {
+		total: number
+		published: number
+		draft: number
+		closed: number
+	}
+	revenue: {
+		total: number
+		monthly: number
+		transactions: number
+		subscriptions: number
+	}
+}
+
+interface ChartDataPoint {
+	date: string
+	applications: number
+	users: number
+	revenue: number
+}
+
+type Period = '7d' | '30d' | '90d' | '1y'
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+	{ value: '7d', label: 'Last 7 Days' },
+	{ value: '30d', label: 'Last 30 Days' },
+	{ value: '90d', label: 'Last 90 Days' },
+	{ value: '1y', label: 'Last Year' },
+]
 
 // Pie Chart Component for User Statistics
 const SimpleDonutChart = ({
@@ -89,140 +141,153 @@ const StatCard = ({
 	icon: Icon,
 	bgColor = 'bg-white',
 	iconBgColor = 'bg-[#126E64]',
-	children,
+	subtitle,
+	tooltip,
 }: {
 	title: string
 	value: string | number
 	icon: any
 	bgColor?: string
 	iconBgColor?: string
-	children?: React.ReactNode
+	subtitle?: string
+	tooltip?: string
 }) => (
-	<Card className={`${bgColor} border shadow-sm`}>
+	<Card
+		className={`${bgColor} border shadow-sm hover:shadow-md transition-shadow`}
+	>
 		<CardContent className="p-6">
 			<div className="flex items-center justify-between mb-4">
 				<div className={`p-3 rounded-full ${iconBgColor}`}>
 					<Icon className="w-6 h-6 text-white" />
 				</div>
-				<HelpCircle className="w-5 h-5 text-gray-400" />
+				{tooltip && (
+					<Tooltip
+						content={tooltip}
+						maxWidth={280}
+						offsetX={24}
+						contentClassName="text-sm"
+					>
+						<Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+					</Tooltip>
+				)}
 			</div>
 			<div className="space-y-2">
 				<p className="text-sm font-medium text-gray-600">{title}</p>
 				<p className="text-2xl font-bold text-gray-900">{value}</p>
-				{children}
+				{subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
 			</div>
 		</CardContent>
 	</Card>
 )
 
-// Simple Line Chart for Profit
-const SimpleLineChart = ({
-	data,
-	height = 200,
-	color = '#126E64',
-}: {
-	data: Array<{ month: string; value: number }>
-	height?: number
-	color?: string
-}) => {
-	const maxValue = Math.max(...data.map((d) => d.value))
-	const width = 600
-	const padding = 40
-
-	const points = data
-		.map((item, index) => {
-			const x = padding + (index * (width - 2 * padding)) / (data.length - 1)
-			const y =
-				height - padding - (item.value / maxValue) * (height - 2 * padding)
-			return `${x},${y}`
-		})
-		.join(' ')
-
-	return (
-		<div className="w-full">
-			<svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-				{/* Grid lines */}
-				{[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
-					const y = height - padding - ratio * (height - 2 * padding)
-					return (
-						<line
-							key={index}
-							x1={padding}
-							y1={y}
-							x2={width - padding}
-							y2={y}
-							stroke="#E5E7EB"
-							strokeWidth="1"
-						/>
-					)
-				})}
-
-				{/* Data line */}
-				<polyline points={points} fill="none" stroke={color} strokeWidth="3" />
-
-				{/* Data points */}
-				{data.map((item, index) => {
-					const x =
-						padding + (index * (width - 2 * padding)) / (data.length - 1)
-					const y =
-						height - padding - (item.value / maxValue) * (height - 2 * padding)
-					return <circle key={index} cx={x} cy={y} r="4" fill={color} />
-				})}
-			</svg>
-
-			{/* Month labels */}
-			<div className="flex justify-between mt-2 px-10 text-xs text-gray-500">
-				{data.map((item, index) => (
-					<span key={index}>{item.month}</span>
-				))}
-			</div>
-		</div>
-	)
-}
-
 export default function AdminDashboard() {
 	const [isClient, setIsClient] = useState(false)
-	const router = useRouter()
+	const [selectedPeriod, setSelectedPeriod] = useState<Period>('30d')
+	const [stats, setStats] = useState<DashboardStats | null>(null)
+	const [chartData, setChartData] = useState<ChartDataPoint[]>([])
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	// Fetch dashboard stats
+	const fetchDashboardStats = async (period: Period) => {
+		try {
+			setLoading(true)
+			setError(null)
+
+			const response = await fetch(
+				`/api/admin/dashboard-stats?period=${period}`
+			)
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch dashboard statistics')
+			}
+
+			const result = await response.json()
+
+			if (result.success) {
+				setStats(result.data.stats)
+				setChartData(result.data.chartData)
+			} else {
+				throw new Error(result.error || 'Failed to fetch dashboard statistics')
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'An error occurred')
+		} finally {
+			setLoading(false)
+		}
+	}
 
 	useEffect(() => {
 		setIsClient(true)
 	}, [])
 
-	// Mock data - in real app, this would come from API
-	const applicantData = [
-		{ value: 600, label: 'Activated' },
-		{ value: 400, label: 'Deactivated' },
-	]
+	useEffect(() => {
+		if (isClient) {
+			fetchDashboardStats(selectedPeriod)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isClient, selectedPeriod])
 
-	const institutionData = [
-		{ value: 400, label: 'Activated' },
-		{ value: 300, label: 'Deactivated' },
-		{ value: 300, label: 'Pending' },
-	]
-
-	const profitData = [
-		{ month: 'JAN', value: 800 },
-		{ month: 'FEB', value: 600 },
-		{ month: 'MAR', value: 900 },
-		{ month: 'APR', value: 700 },
-		{ month: 'MAY', value: 1000 },
-		{ month: 'JUN', value: 850 },
-		{ month: 'JUL', value: 950 },
-		{ month: 'AUG', value: 750 },
-		{ month: 'SEP', value: 800 },
-		{ month: 'OCT', value: 900 },
-		{ month: 'NOV', value: 1100 },
-		{ month: 'DEC', value: 1200 },
-	]
-
-	// Show loading while checking client hydration
-	if (!isClient) {
+	// Show loading while checking client hydration or fetching data
+	if (!isClient || loading) {
 		return (
 			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
 			</div>
 		)
 	}
+
+	// Show error state
+	if (error || !stats) {
+		return (
+			<div className="min-h-screen bg-[#F5F7FB]">
+				<div className="flex-1">
+					<div className="bg-white shadow-sm px-8 py-6">
+						<h1 className="text-3xl font-bold text-[#126E64]">Administrator</h1>
+					</div>
+					<div className="p-8 flex items-center justify-center">
+						<div className="text-center">
+							<p className="text-red-600 mb-4">
+								{error || 'Failed to load dashboard statistics'}
+							</p>
+							<button
+								onClick={() => fetchDashboardStats(selectedPeriod)}
+								className="px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors"
+							>
+								Retry
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Prepare chart data for SplineArea
+	const chartSeries = [
+		{
+			name: 'Applications',
+			data: chartData.map((item) => item.applications),
+		},
+		{
+			name: 'New Users',
+			data: chartData.map((item) => item.users),
+		},
+	]
+
+	const chartCategories = chartData.map((item) => item.date)
+
+	// Prepare donut chart data
+	const applicantData = [
+		{ value: stats.applicants.activated, label: 'Activated' },
+		{ value: stats.applicants.deactivated, label: 'Deactivated' },
+	]
+
+	const institutionData = [
+		{ value: stats.institutions.activated, label: 'Activated' },
+		{ value: stats.institutions.deactivated, label: 'Deactivated' },
+		{ value: stats.institutions.pending, label: 'Pending' },
+	]
 
 	return (
 		<div className="min-h-screen bg-[#F5F7FB]">
@@ -257,7 +322,9 @@ export default function AdminDashboard() {
 							{/* Total Users */}
 							<StatCard
 								title="Total Users"
-								value="100"
+								value={(
+									stats.applicants.total + stats.institutions.total
+								).toLocaleString()}
 								icon={Users}
 								iconBgColor="bg-[#126E64]"
 							/>
@@ -270,7 +337,9 @@ export default function AdminDashboard() {
 											<p className="text-sm font-medium text-gray-600 mb-2">
 												Applicants
 											</p>
-											<p className="text-2xl font-bold text-gray-900">1000</p>
+											<p className="text-2xl font-bold text-gray-900">
+												{stats.applicants.total.toLocaleString()}
+											</p>
 										</div>
 										<div className="p-3 bg-orange-500 rounded-full">
 											<GraduationCap className="w-6 h-6 text-white" />
@@ -291,7 +360,9 @@ export default function AdminDashboard() {
 											<p className="text-sm font-medium text-gray-600 mb-2">
 												Institutions
 											</p>
-											<p className="text-2xl font-bold text-gray-900">1000</p>
+											<p className="text-2xl font-bold text-gray-900">
+												{stats.institutions.total.toLocaleString()}
+											</p>
 										</div>
 										<div className="p-3 bg-blue-500 rounded-full">
 											<Building2 className="w-6 h-6 text-white" />
@@ -309,19 +380,19 @@ export default function AdminDashboard() {
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							<StatCard
 								title="New application(s)"
-								value="200"
+								value={stats.applications.new.toLocaleString()}
 								icon={TrendingUp}
 								iconBgColor="bg-green-500"
 							/>
 							<StatCard
 								title="Under review application(s)"
-								value="200"
+								value={stats.applications.underReview.toLocaleString()}
 								icon={Calendar}
 								iconBgColor="bg-yellow-500"
 							/>
 							<StatCard
 								title="Accepted application(s)"
-								value="200"
+								value={stats.applications.accepted.toLocaleString()}
 								icon={TrendingUp}
 								iconBgColor="bg-blue-500"
 							/>
@@ -329,24 +400,39 @@ export default function AdminDashboard() {
 
 						{/* Analytics Section */}
 						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-							{/* Profit Chart */}
+							{/* Application Trends Chart */}
 							<div className="lg:col-span-2">
 								<Card className="bg-white border shadow-sm">
 									<CardHeader>
 										<div className="flex items-center justify-between">
 											<CardTitle className="text-lg font-semibold">
-												Profit
+												Application & User Trends
 											</CardTitle>
+											{/* Period Filter */}
 											<div className="flex items-center gap-2">
-												<span className="text-sm text-gray-600">USD</span>
-												<button className="bg-[#126E64] text-white px-4 py-2 rounded-full text-sm">
-													Today
-												</button>
+												<span className="text-sm text-gray-600">Period:</span>
+												<select
+													value={selectedPeriod}
+													onChange={(e) =>
+														setSelectedPeriod(e.target.value as Period)
+													}
+													className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
+												>
+													{PERIOD_OPTIONS.map((option) => (
+														<option key={option.value} value={option.value}>
+															{option.label}
+														</option>
+													))}
+												</select>
 											</div>
 										</div>
 									</CardHeader>
 									<CardContent>
-										<SimpleLineChart data={profitData} />
+										<SplineArea
+											series={chartSeries}
+											categories={chartCategories}
+											height={350}
+										/>
 									</CardContent>
 								</Card>
 							</div>
@@ -354,34 +440,39 @@ export default function AdminDashboard() {
 							{/* Right Side Stats */}
 							<div className="space-y-6">
 								<StatCard
-									title="Total Profit"
-									value="200"
+									title="Published Posts"
+									value={stats.posts.published.toLocaleString()}
 									icon={TrendingUp}
 									iconBgColor="bg-[#126E64]"
 								/>
 								<StatCard
-									title="Total transactions"
-									value="200"
+									title="Draft Posts"
+									value={stats.posts.draft.toLocaleString()}
 									icon={TrendingUp}
-									iconBgColor="bg-[#126E64]"
+									iconBgColor="bg-yellow-500"
 								/>
 								<StatCard
-									title="Total user subscribed"
-									value="200"
+									title="Rejected Applications"
+									value={stats.applications.rejected.toLocaleString()}
 									icon={Users}
-									iconBgColor="bg-[#126E64]"
+									iconBgColor="bg-red-500"
 								/>
 								<StatCard
-									title="Conversion rate"
-									value="200"
+									title="Conversion Rate"
+									value={
+										stats.applications.total > 0
+											? `${((stats.applications.accepted / stats.applications.total) * 100).toFixed(1)}%`
+											: '0%'
+									}
 									icon={TrendingUp}
 									iconBgColor="bg-[#126E64]"
+									subtitle={`${stats.applications.accepted} of ${stats.applications.total} accepted`}
 								/>
 							</div>
 						</div>
 
 						{/* Bottom Section - User Management Link */}
-						<div className="flex justify-center mt-8">
+						{/* <div className="flex justify-center mt-8">
 							<motion.button
 								whileHover={{ scale: 1.02 }}
 								whileTap={{ scale: 0.98 }}
@@ -398,7 +489,7 @@ export default function AdminDashboard() {
 							>
 								Payment Management
 							</motion.button>
-						</div>
+						</div> */}
 					</motion.div>
 				</div>
 			</div>

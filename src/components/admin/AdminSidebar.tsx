@@ -5,7 +5,7 @@ import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import {
 	Building2,
 	CreditCard,
-	GraduationCap,
+	// GraduationCap,
 	KeyRound,
 	Users,
 } from 'lucide-react'
@@ -14,13 +14,13 @@ import { useRouter } from 'next/navigation'
 
 const sidebarItems = [
 	{ id: 'dashboard', icon: Users, label: 'Dashboard' },
-	{ id: 'certifications', icon: GraduationCap, label: 'Certifications' },
+	// { id: 'certifications', icon: GraduationCap, label: 'Certifications' },
 	{ id: 'posts', icon: Building2, label: 'Posts' },
 	{ id: 'disciplines', icon: Building2, label: 'Disciplines' },
 	{ id: 'user', icon: Users, label: 'User' },
 	{ id: 'payment', icon: CreditCard, label: 'Payment' },
 	{ id: 'plan', icon: Building2, label: 'Plan' },
-	{ id: 'transaction', icon: Building2, label: 'Transaction' },
+	// { id: 'transaction', icon: Building2, label: 'Transaction' },
 	{ id: 'supports', icon: Building2, label: 'Supports' },
 	{ id: 'track-user-log', icon: Building2, label: 'Track user log' },
 	{ id: 'change-password', icon: KeyRound, label: 'Change Password' },

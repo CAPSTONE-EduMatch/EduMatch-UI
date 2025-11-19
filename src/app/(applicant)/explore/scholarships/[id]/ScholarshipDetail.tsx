@@ -1222,18 +1222,25 @@ const ScholarshipDetail = () => {
 							)}
 
 							<div className="flex items-center gap-3 mb-4">
-								{currentScholarship?.institution?.website && (
-									<Button
-										className=""
-										onClick={() =>
-											window.open(
-												currentScholarship.institution.website,
-												'_blank'
-											)
-										}
-									>
-										Visit website
-									</Button>
+								{currentScholarship.institution && (
+									<div className="mt-4">
+										<Button
+											onClick={() => {
+												const institutionId =
+													currentScholarship.institution.id ||
+													currentScholarship.institution.userId
+												if (institutionId) {
+													router.push(`/institution-detail/${institutionId}`)
+												} else {
+													// eslint-disable-next-line no-console
+													console.warn('No institution ID available')
+												}
+											}}
+											className="bg-[#126E64] hover:bg-[#0d5952] text-white"
+										>
+											View Institution Detail
+										</Button>
+									</div>
 								)}
 								{currentScholarship?.institution?.userId && (
 									<Button

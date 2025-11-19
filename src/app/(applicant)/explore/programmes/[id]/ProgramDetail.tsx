@@ -77,6 +77,7 @@ const ProgramDetail = () => {
 		Array<{ label: string; href?: string }>
 	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
 	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 	const [scholarships, setScholarships] = useState<any[]>([])
 	const [isLoadingScholarships, setIsLoadingScholarships] = useState(false)
 	const [scholarshipPagination, setScholarshipPagination] = useState<any>(null)
@@ -282,6 +283,7 @@ const ProgramDetail = () => {
 	const fetchProgramDetail = async (programId: string) => {
 		try {
 			setIsLoadingProgram(true)
+			setError(null)
 			const response = await fetch(
 				`/api/explore/programs/program-detail?id=${programId}`
 			)
@@ -296,11 +298,15 @@ const ProgramDetail = () => {
 				setCurrentProgram(programData)
 				return programData
 			} else {
-				showError('Error', 'Failed to load program details')
+				const errorMessage = data.message || 'Failed to load program details'
+				setError(errorMessage)
+				showError('Error', errorMessage)
 				return null
 			}
 		} catch (error) {
-			showError('Error', 'Failed to load program details')
+			const errorMessage = 'Failed to load program details'
+			setError(errorMessage)
+			showError('Error', errorMessage)
 			return null
 		} finally {
 			setIsLoadingProgram(false)
@@ -1576,7 +1582,32 @@ const ProgramDetail = () => {
 				return null
 		}
 	}
+	if (isLoadingProgram) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+					<p className="mt-4 text-gray-600">Loading scholarship details...</p>
+				</div>
+			</div>
+		)
+	}
 
+	if (error) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-red-600 text-lg">Error: {error}</p>
+					<button
+						onClick={() => window.location.reload()}
+						className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+					>
+						Retry
+					</button>
+				</div>
+			</div>
+		)
+	}
 	return (
 		<div className="min-h-screen  bg-background">
 			{/* --------------------------------------------------------------------------------------------- */}
@@ -1617,14 +1648,22 @@ const ProgramDetail = () => {
 						)}
 
 						<div className="flex items-center gap-3 mb-4">
-							{currentProgram?.institution?.website && (
+							{currentProgram?.institution && (
 								<Button
-									onClick={() =>
-										window.open(currentProgram.institution.website, '_blank')
-									}
+									onClick={() => {
+										const institutionId =
+											currentProgram.institution.id ||
+											currentProgram.institution.userId
+										if (institutionId) {
+											router.push(`/institution-detail/${institutionId}`)
+										} else {
+											// eslint-disable-next-line no-console
+											console.warn('No institution ID available')
+										}
+									}}
 									className=""
 								>
-									Visit website
+									Institution Detail
 								</Button>
 							)}
 							{currentProgram?.institution?.userId && (

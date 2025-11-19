@@ -14,7 +14,7 @@ interface Post {
 	status: PostStatus
 	postedBy: string
 	postedDate: Date
-	type: 'Program' | 'Scholarship' | 'Job' | 'Research Lab'
+	type: 'Program' | 'Scholarship' | 'Job'
 }
 
 const getStatusColor = (status: PostStatus) => {
@@ -128,7 +128,9 @@ export default function AdminPostsPage() {
 		{
 			header: 'Type',
 			accessor: ((post: Post) => (
-				<div className="text-gray-700 text-sm text-center">{post.type}</div>
+				<div className="text-gray-700 text-sm text-center">
+					{post.type === 'Job' ? 'Research Lab' : post.type}
+				</div>
 			)) as (_post: Post) => React.ReactNode,
 			className: '100px',
 		},

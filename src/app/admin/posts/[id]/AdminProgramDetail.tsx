@@ -1192,9 +1192,9 @@ const AdminProgramDetail = () => {
 						initial={{ y: 20, opacity: 0 }}
 						animate={{ y: 0, opacity: 1 }}
 						transition={{ delay: 0.2 }}
-						className="absolute bottom-0 right-4 translate-y-1/3 bg-white rounded-2xl shadow-xl p-8 max-w-lg flex flex-col justify-center items-center"
+						className="absolute bottom-0 right-2 sm:right-4 translate-y-1/3 bg-white rounded-2xl shadow-xl p-4 sm:p-8 max-w-xs sm:max-w-lg flex flex-col justify-center items-center"
 					>
-						<h1 className="text-3xl font-bold mb-2">
+						<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">
 							{currentProgram?.title || 'Loading...'}
 						</h1>
 						<p className="text-gray-600 mb-6">
@@ -1273,7 +1273,7 @@ const AdminProgramDetail = () => {
 			</motion.div>
 			{/* --------------------------------------------------------------------------------------------- */}
 			<motion.div
-				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-10"
+				className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 flex flex-col gap-6 sm:gap-10"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
@@ -1285,14 +1285,18 @@ const AdminProgramDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="bg-white py-6 shadow-xl border "
+					className="bg-white py-4 sm:py-6 shadow-xl border rounded-lg"
 				>
-					<div className="container mx-auto px-4">
-						<div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+					<div className="px-4 sm:px-6">
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
 							{infoItems.map((item, index) => (
-								<div key={index} className="text-center md:text-left">
-									<p className="text-sm text-gray-500 mb-1">{item.label}</p>
-									<p className="font-semibold text-gray-900">{item.value}</p>
+								<div key={index} className="text-center sm:text-left">
+									<p className="text-xs sm:text-sm text-gray-500 mb-1">
+										{item.label}
+									</p>
+									<p className="text-sm sm:text-base font-semibold text-gray-900 break-words">
+										{item.value}
+									</p>
 								</div>
 							))}
 						</div>
@@ -1304,11 +1308,11 @@ const AdminProgramDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className=" p-8  bg-white py-6 shadow-xl border"
+					className="p-4 sm:p-8 bg-white py-4 sm:py-6 shadow-xl border rounded-lg"
 				>
-					<h2 className="text-3xl font-bold mb-6">About</h2>
+					<h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">About</h2>
 
-					<div className="prose max-w-none text-gray-700 space-y-4">
+					<div className="prose max-w-none text-gray-700 space-y-4 text-sm sm:text-base">
 						{currentProgram?.institution.about ? (
 							<div
 								className="prose prose-content max-w-none"
@@ -1323,7 +1327,7 @@ const AdminProgramDetail = () => {
 				</motion.div>
 				{/* -----------------------------------------------Overview Content---------------------------------------------- */}
 
-				<div className="grid grid-cols-1 lg:grid-cols-4 gap-8 p-8  bg-white py-6 shadow-xl border">
+				<div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8 p-4 sm:p-8 bg-white py-4 sm:py-6 shadow-xl border rounded-lg">
 					{/* Left Sidebar Menu */}
 					<motion.aside
 						initial={{ x: -20, opacity: 0 }}
@@ -1331,12 +1335,12 @@ const AdminProgramDetail = () => {
 						transition={{ delay: 0.4 }}
 						className="lg:col-span-1"
 					>
-						<div className="space-y-2 border-r h-full border-gray-200 pr-4">
+						<div className="space-y-2 lg:border-r h-full lg:border-gray-200 lg:pr-4">
 							{menuItems.map((item) => (
 								<button
 									key={item.id}
 									onClick={() => setActiveTab(item.id)}
-									className={`w-full text-left px-6 py-3 rounded-full transition-all ${
+									className={`w-full text-left px-3 sm:px-6 py-2 sm:py-3 rounded-full transition-all text-sm sm:text-base ${
 										activeTab === item.id
 											? 'bg-teal-100 text-teal-700 font-semibold'
 											: 'text-gray-700 hover:bg-gray-100 font-medium'
@@ -1353,7 +1357,7 @@ const AdminProgramDetail = () => {
 						initial={{ x: 20, opacity: 0 }}
 						animate={{ x: 0, opacity: 1 }}
 						transition={{ delay: 0.5 }}
-						className="lg:col-span-3"
+						className="lg:col-span-3 min-w-0"
 					>
 						<AnimatePresence mode="wait">
 							<motion.div
@@ -1373,10 +1377,10 @@ const AdminProgramDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className=" p-8  bg-white py-6 shadow-xl border"
+					className="p-4 sm:p-8 bg-white py-4 sm:py-6 shadow-xl border rounded-lg"
 				>
-					<div className="flex items-center justify-between mb-6">
-						<h2 className="text-3xl font-bold">
+					<div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+						<h2 className="text-2xl sm:text-3xl font-bold">
 							{hasApplied ? 'Application Status' : 'Apply here !'}
 						</h2>
 						{hasApplied && applicationStatus && (
@@ -1429,8 +1433,8 @@ const AdminProgramDetail = () => {
 							{/* File Upload Area */}
 							<div className="w-full mb-6">
 								<div className="space-y-2">
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-										<div className="text-4xl mb-4">📁</div>
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 text-center hover:border-gray-400 transition-colors">
+										<div className="text-3xl sm:text-4xl mb-3 sm:mb-4">📁</div>
 										<div className="space-y-2">
 											<input
 												type="file"
@@ -1808,9 +1812,11 @@ const AdminProgramDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className=" p-8  bg-white py-6 shadow-xl border"
+					className="p-4 sm:p-8 bg-white py-4 sm:py-6 shadow-xl border rounded-lg"
 				>
-					<h2 className="text-3xl font-bold mb-6">Recommend for you</h2>
+					<h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">
+						Recommend for you
+					</h2>
 
 					{/* Carousel */}
 					<div className="relative">
@@ -1880,17 +1886,17 @@ const AdminProgramDetail = () => {
 				initial={{ y: 20, opacity: 0 }}
 				animate={{ y: 0, opacity: 1 }}
 				transition={{ delay: 0.4, duration: 0.5 }}
-				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8"
+				className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8"
 			>
-				<div className="bg-white rounded-2xl shadow-xl p-8">
-					<h3 className="text-2xl font-bold text-gray-900 mb-6">
+				<div className="bg-white rounded-2xl shadow-xl p-4 sm:p-8">
+					<h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
 						Admin Actions
 					</h3>
-					<div className="flex gap-4 justify-center">
+					<div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
 						{/* Reject Button */}
 						<Button
 							onClick={() => setShowRejectModal(true)}
-							className="px-8 py-3 bg-white !text-red-600 border-2 border-red-600 rounded-full hover:bg-red-50 hover:!text-red-700 transition-all font-semibold text-base min-w-[180px]"
+							className="px-4 sm:px-8 py-2 sm:py-3 bg-white !text-red-600 border-2 border-red-600 rounded-full hover:bg-red-50 hover:!text-red-700 transition-all font-semibold text-sm sm:text-base w-full sm:min-w-[180px]"
 						>
 							<span className="text-red-600">Reject</span>
 						</Button>
@@ -1898,15 +1904,17 @@ const AdminProgramDetail = () => {
 						{/* Additional Requirements Button */}
 						<Button
 							onClick={() => setShowRequirementsModal(true)}
-							className="px-8 py-3 bg-white !text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 hover:!text-blue-700 transition-all font-semibold text-base min-w-[180px]"
+							className="px-4 sm:px-8 py-2 sm:py-3 bg-white !text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 hover:!text-blue-700 transition-all font-semibold text-sm sm:text-base w-full sm:min-w-[180px]"
 						>
-							<span className="text-blue-600">Additional Requirements</span>
+							<span className="text-blue-600 text-center">
+								Additional Requirements
+							</span>
 						</Button>
 
 						{/* Publish Button */}
 						<Button
 							onClick={handlePublish}
-							className="px-8 py-3 bg-[#126E64] !text-white rounded-full hover:bg-[#0f5850] hover:!text-white transition-all font-semibold text-base min-w-[180px]"
+							className="px-4 sm:px-8 py-2 sm:py-3 bg-[#126E64] !text-white rounded-full hover:bg-[#0f5850] hover:!text-white transition-all font-semibold text-sm sm:text-base w-full sm:min-w-[180px]"
 						>
 							<span className="text-white">Publish</span>
 						</Button>
@@ -1917,7 +1925,7 @@ const AdminProgramDetail = () => {
 			{/* Manage Files Side Panel */}
 			{showManageModal && (
 				<div
-					className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
+					className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
 						isClosing ? 'translate-x-full' : 'translate-x-0'
 					}`}
 					style={{
@@ -1927,9 +1935,11 @@ const AdminProgramDetail = () => {
 								: 'none',
 					}}
 				>
-					<div className="p-6 border-b">
+					<div className="p-4 sm:p-6 border-b">
 						<div className="flex items-center justify-between">
-							<h2 className="text-xl font-semibold">Manage Documents</h2>
+							<h2 className="text-lg sm:text-xl font-semibold">
+								Manage Documents
+							</h2>
 							<Button
 								variant="outline"
 								onClick={handleCloseModal}
@@ -1940,7 +1950,7 @@ const AdminProgramDetail = () => {
 						</div>
 					</div>
 
-					<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+					<div className="p-4 sm:p-6 overflow-y-auto h-[calc(100vh-80px)]">
 						<div className="space-y-8">
 							{/* Uploaded Files Section - Grouped by Document Type */}
 							{uploadedFiles.length > 0 && (

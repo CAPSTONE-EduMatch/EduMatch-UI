@@ -100,7 +100,8 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 										? null
 										: {
 												value: typeFilter,
-												label: typeFilter,
+												label:
+													typeFilter === 'Job' ? 'Research Lab' : typeFilter,
 											}
 								}
 								onChange={(selected) =>

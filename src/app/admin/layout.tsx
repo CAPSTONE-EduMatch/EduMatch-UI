@@ -16,6 +16,7 @@ export default function AdminLayout({
 	const getActiveSection = () => {
 		if (pathname?.includes('/admin/disciplines')) return 'disciplines'
 		if (pathname?.includes('/admin/users')) return 'user'
+		if (pathname?.includes('/admin/payments/plans')) return 'plan'
 		if (pathname?.includes('/admin/payments')) return 'payment'
 		if (pathname?.includes('/admin/institutions')) return 'institution'
 		if (pathname?.includes('/admin/certifications')) return 'certifications'

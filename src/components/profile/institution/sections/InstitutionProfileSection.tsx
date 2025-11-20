@@ -1,11 +1,16 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
+import { Avatar, AvatarFallback } from '@/components/ui'
+import { ProtectedAvatarImage } from '@/components/ui/ProtectedAvatarImage'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 import { PhoneInput } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { Upload, Building2, Download } from 'lucide-react'
@@ -484,7 +489,7 @@ export const InstitutionProfileSection: React.FC<
 	const handlePreviewDocument = (doc: any) => {
 		try {
 			if (doc.url && doc.url !== '#' && doc.url !== '') {
-				window.open(doc.url, '_blank')
+				openSessionProtectedFile(doc.url)
 			} else {
 				setErrorMessage('Document not available for preview')
 				setShowErrorModal(true)
@@ -498,55 +503,19 @@ export const InstitutionProfileSection: React.FC<
 	const handleDownloadDocument = async (doc: any) => {
 		try {
 			if (doc.url && doc.url !== '#' && doc.url !== '') {
-				// Try to fetch the file first to ensure it's accessible
-				const response = await fetch(doc.url, {
-					method: 'GET',
-					mode: 'cors',
-				})
-
-				if (response.ok) {
-					// Get the blob from the response
-					const blob = await response.blob()
-
-					// Create a blob URL
-					const blobUrl = window.URL.createObjectURL(blob)
-
-					// Create a temporary anchor element to trigger download
-					const link = document.createElement('a')
-					link.href = blobUrl
-					link.download = doc.name || doc.originalName || 'document'
-					link.style.display = 'none'
-					document.body.appendChild(link)
-					link.click()
-					document.body.removeChild(link)
-
-					// Clean up the blob URL
-					window.URL.revokeObjectURL(blobUrl)
-				} else {
-					// If fetch fails, try the direct download method
-					const link = document.createElement('a')
-					link.href = doc.url
-					link.download = doc.name || doc.originalName || 'document'
-					link.target = '_blank'
-					link.style.display = 'none'
-					document.body.appendChild(link)
-					link.click()
-					document.body.removeChild(link)
-				}
+				await downloadSessionProtectedFile(
+					doc.url,
+					doc.name || doc.originalName || 'document'
+				)
 			} else {
 				setErrorMessage('Document URL is not available')
 				setShowErrorModal(true)
 			}
 		} catch (error) {
-			// Fallback: try to open in new tab
-			try {
-				window.open(doc.url, '_blank')
-			} catch (fallbackError) {
-				setErrorMessage(
-					`Failed to download document. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-				)
-				setShowErrorModal(true)
-			}
+			setErrorMessage(
+				`Failed to download document. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+			)
+			setShowErrorModal(true)
 		}
 	}
 
@@ -574,7 +543,12 @@ export const InstitutionProfileSection: React.FC<
 									<div className="flex items-center gap-4">
 										<div className="relative">
 											<Avatar className="w-16 h-16">
-												<AvatarImage src={editedProfile?.profilePhoto} />
+												<ProtectedAvatarImage
+													src={editedProfile?.profilePhoto}
+													alt="Institution logo"
+													expiresIn={7200}
+													autoRefresh={true}
+												/>
 												<AvatarFallback className="bg-blue-500 text-white">
 													<Building2 className="w-8 h-8" />
 												</AvatarFallback>
@@ -1210,12 +1184,14 @@ export const InstitutionProfileSection: React.FC<
 														{editedProfile?.institutionCoverImage ? (
 															<div className="space-y-6">
 																<div className="relative">
-																	<Image
+																	<ProtectedImage
 																		src={editedProfile.institutionCoverImage}
 																		alt="Institution Cover"
 																		width={800}
 																		height={320}
 																		className="w-full h-80 object-cover rounded-xl border-2 border-gray-200 shadow-lg"
+																		expiresIn={7200}
+																		autoRefresh={true}
 																	/>
 																</div>
 															</div>

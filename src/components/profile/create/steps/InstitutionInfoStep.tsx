@@ -9,7 +9,8 @@ import { CustomSelect } from '@/components/ui'
 import { PhoneInput } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
+import { Avatar, AvatarFallback } from '@/components/ui'
+import { ProtectedAvatarImage } from '@/components/ui/ProtectedAvatarImage'
 import { Upload, Building2, Info } from 'lucide-react'
 import { Tooltip } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
@@ -270,9 +271,11 @@ export function InstitutionInfoStep({
 			<div className="flex items-center gap-4">
 				<div className="relative">
 					<Avatar className="w-20 h-20">
-						<AvatarImage
+						<ProtectedAvatarImage
 							src={formData.institutionLogo}
 							alt="Institution logo"
+							expiresIn={7200}
+							autoRefresh={true}
 						/>
 						<AvatarFallback className="bg-gray-200 text-gray-600">
 							<Building2 className="w-8 h-8" />

@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
+import { Avatar, AvatarFallback } from '@/components/ui'
+import { ProtectedAvatarImage } from '@/components/ui/ProtectedAvatarImage'
 import { PhoneInput } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { DateInput } from '@/components/ui'
@@ -302,7 +303,12 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						<div className="flex items-center gap-4">
 							<div className="relative">
 								<Avatar className="w-20 h-20">
-									<AvatarImage src={editedProfile?.profilePhoto} />
+									<ProtectedAvatarImage
+										src={editedProfile?.profilePhoto}
+										alt="Profile photo"
+										expiresIn={7200}
+										autoRefresh={true}
+									/>
 									<AvatarFallback className="bg-orange-500 text-white">
 										<User className="w-8 h-8" />
 									</AvatarFallback>

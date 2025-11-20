@@ -44,6 +44,8 @@ async function uploadLargeFile(
 		Bucket: BUCKET_NAME,
 		Key: fileName,
 		ContentType: contentType,
+		// Make object private - prevents direct public access
+		ACL: "private",
 	});
 
 	const { UploadId } = await s3Client.send(createCommand);
@@ -155,18 +157,24 @@ export async function POST(request: NextRequest) {
 				Key: fileName,
 				Body: buffer,
 				ContentType: file.type,
+				// Make object private - prevents direct public access
+				// Direct S3 URLs will return 403 Forbidden without pre-signed URL
+				ACL: "private",
 			});
 
 			await s3Client.send(command);
 		}
 
-		// Generate the public URL
+		// Return S3 URL format (for reference only - NOT directly accessible)
+		// This URL will return 403 Forbidden if accessed directly
+		// MUST use /api/files/protected-image?url=<this-url> to get a pre-signed URL
+		// Pre-signed URLs expire after the specified duration
 		const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${fileName}`;
 
 		// Return file metadata (NO database save)
 		return NextResponse.json({
 			success: true,
-			url: fileUrl,
+			url: fileUrl, // S3 key format - use protected-image API to get access URL
 			fileName: fileName,
 			originalName: file.name,
 			fileSize: file.size,

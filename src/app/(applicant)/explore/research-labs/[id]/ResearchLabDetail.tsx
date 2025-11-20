@@ -23,6 +23,10 @@ import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 import { ExploreApiService } from '@/services/explore/explore-api'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 
 const ResearchLabDetail = () => {
 	const router = useRouter()
@@ -2441,8 +2445,7 @@ const ResearchLabDetail = () => {
 												variant="outline"
 												size="sm"
 												onClick={() => {
-													// Open S3 file URL in new tab
-													window.open(file.url, '_blank')
+													openSessionProtectedFile(file.url)
 												}}
 												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 											>
@@ -2451,14 +2454,11 @@ const ResearchLabDetail = () => {
 											<Button
 												variant="outline"
 												size="sm"
-												onClick={() => {
-													// Download the file
-													const link = document.createElement('a')
-													link.href = file.url
-													link.download = file.name
-													document.body.appendChild(link)
-													link.click()
-													document.body.removeChild(link)
+												onClick={async () => {
+													await downloadSessionProtectedFile(
+														file.url,
+														file.name
+													)
 												}}
 												className="text-blue-600 border-blue-600 hover:bg-blue-50"
 											>

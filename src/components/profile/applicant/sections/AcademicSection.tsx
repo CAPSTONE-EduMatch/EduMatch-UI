@@ -12,6 +12,7 @@ import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
+import { openSessionProtectedFile } from '@/utils/files/getSessionProtectedFileUrl'
 
 interface AcademicSectionProps {
 	profile: any
@@ -1052,7 +1053,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										</div>
 										<div className="flex items-center gap-2">
 											<button
-												onClick={() => window.open(file.url, '_blank')}
+												onClick={() => {
+													openSessionProtectedFile(file.url)
+												}}
 												className="text-primary hover:text-primary/80 text-sm font-medium"
 											>
 												View
@@ -1138,7 +1141,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									</div>
 									<div className="flex items-center gap-2">
 										<button
-											onClick={() => window.open(file.url, '_blank')}
+											onClick={() => {
+												openSessionProtectedFile(file.url)
+											}}
 											className="text-primary hover:text-primary/80 text-sm font-medium"
 										>
 											View
@@ -1219,7 +1224,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									</div>
 									<div className="flex items-center gap-2">
 										<button
-											onClick={() => window.open(file.url, '_blank')}
+											onClick={() => {
+												openSessionProtectedFile(file.url)
+											}}
 											className="text-primary hover:text-primary/80 text-sm font-medium"
 										>
 											View
@@ -1303,7 +1310,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									</div>
 									<div className="flex items-center gap-2">
 										<button
-											onClick={() => window.open(file.url, '_blank')}
+											onClick={() => {
+												openSessionProtectedFile(file.url)
+											}}
 											className="text-primary hover:text-primary/80 text-sm font-medium"
 										>
 											View
@@ -1490,9 +1499,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 															</div>
 															<div className="flex items-center gap-1">
 																<button
-																	onClick={() =>
-																		window.open(file.url, '_blank')
-																	}
+																	onClick={() => {
+																		openSessionProtectedFile(file.url)
+																	}}
 																	className="text-primary hover:text-primary/80 text-xs font-medium"
 																>
 																	View

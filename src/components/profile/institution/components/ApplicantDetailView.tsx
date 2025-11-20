@@ -14,6 +14,10 @@ import {
 import type { Applicant } from './ApplicantsTable'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import JSZip from 'jszip'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 
 interface ApplicantDetailViewProps {
 	applicant: Applicant
@@ -531,41 +535,20 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	const handlePreviewFile = (document: Document) => {
 		if (document.url) {
-			window.open(document.url, '_blank')
+			openSessionProtectedFile(document.url)
 		}
 	}
 
 	const handleDownloadFile = async (doc: Document) => {
-		// Download file directly
 		if (!doc.url) {
 			console.error('Document URL is missing')
 			return
 		}
 		try {
-			// Fetch the file as a blob to ensure proper download
-			const response = await fetch(doc.url)
-			const blob = await response.blob()
-			const blobUrl = window.URL.createObjectURL(blob)
-
-			const link = document.createElement('a')
-			link.href = blobUrl
-			link.download = doc.name
-			document.body.appendChild(link)
-			link.click()
-			document.body.removeChild(link)
-
-			// Clean up the blob URL
-			window.URL.revokeObjectURL(blobUrl)
+			await downloadSessionProtectedFile(doc.url, doc.name)
 		} catch (error) {
 			console.error('Failed to download file:', error)
-			// Fallback: try direct download
-			const link = document.createElement('a')
-			link.href = doc.url
-			link.download = doc.name
-			link.target = '_blank'
-			document.body.appendChild(link)
-			link.click()
-			document.body.removeChild(link)
+			alert('Failed to download file. Please try again.')
 		}
 	}
 
@@ -1455,7 +1438,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																	<div className="flex items-center gap-2">
 																		<button
 																			onClick={() => {
-																				window.open(doc.url, '_blank')
+																				openSessionProtectedFile(doc.url)
 																			}}
 																			className="text-primary hover:text-primary/80 text-sm font-medium"
 																		>

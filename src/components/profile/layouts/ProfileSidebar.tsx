@@ -4,9 +4,9 @@ import { authClient } from '@/config/auth-client'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { LogOut, LucideIcon } from 'lucide-react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { useEffect } from 'react'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
 export type ProfileSection = string
 
@@ -188,12 +188,24 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 				<div className="p-6 border-b border-white/20">
 					<div className="text-center">
 						{profile?.profilePhoto ? (
-							<Image
+							<ProtectedImage
 								src={profile.profilePhoto}
 								alt="Profile"
 								width={64}
 								height={64}
 								className="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-white"
+								expiresIn={7200}
+								autoRefresh={true}
+								placeholder={
+									<div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-white bg-white/20">
+										{roleIcon}
+									</div>
+								}
+								errorFallback={
+									<div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-white bg-white/20">
+										{roleIcon}
+									</div>
+								}
 							/>
 						) : (
 							<div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-white bg-white/20">

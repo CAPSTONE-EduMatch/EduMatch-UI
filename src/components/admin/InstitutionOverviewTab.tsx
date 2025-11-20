@@ -2,7 +2,7 @@
 
 import type { InstitutionDetails } from '@/types/domain/institution-details'
 import { Building2 } from 'lucide-react'
-import Image from 'next/image'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
 interface InstitutionOverviewTabProps {
 	institutionData: InstitutionDetails
@@ -91,11 +91,13 @@ export function InstitutionOverviewTab({
 					<div className="border border-gray-300 rounded-[12px] p-4 bg-white">
 						{institutionData.coverImage ? (
 							<div className="w-full h-48 relative rounded-lg overflow-hidden">
-								<Image
+								<ProtectedImage
 									src={institutionData.coverImage}
 									alt="Institution Cover"
 									fill
 									className="object-cover"
+									expiresIn={7200}
+									autoRefresh={true}
 								/>
 							</div>
 						) : (

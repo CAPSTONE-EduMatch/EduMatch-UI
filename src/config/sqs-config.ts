@@ -55,6 +55,7 @@ export enum NotificationType {
 	WISHLIST_DEADLINE = "WISHLIST_DEADLINE",
 	PASSWORD_CHANGED = "PASSWORD_CHANGED",
 	ACCOUNT_DELETED = "ACCOUNT_DELETED",
+	SUPPORT_REPLY = "SUPPORT_REPLY",
 }
 
 // Base notification message structure
@@ -206,6 +207,20 @@ export interface AccountDeletedMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface SupportReplyMessage extends BaseNotificationMessage {
+	type: NotificationType.SUPPORT_REPLY;
+	metadata: {
+		supportId: string;
+		firstName: string;
+		lastName: string;
+		originalSubject: string;
+		originalMessage: string;
+		replyMessage: string;
+		repliedBy: string;
+		repliedAt: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
@@ -220,7 +235,8 @@ export type NotificationMessage =
 	| SessionRevokedMessage
 	| WishlistDeadlineMessage
 	| PasswordChangedMessage
-	| AccountDeletedMessage;
+	| AccountDeletedMessage
+	| SupportReplyMessage;
 
 // SQS Service class
 export class SQSService {

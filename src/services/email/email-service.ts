@@ -11,6 +11,7 @@ import {
 	ProfileCreatedMessage,
 	SessionRevokedMessage,
 	SubscriptionExpiringMessage,
+	SupportReplyMessage,
 	UserBannedMessage,
 	WelcomeMessage,
 	WishlistDeadlineMessage,
@@ -19,20 +20,20 @@ import { isNotificationEnabled } from "@/utils/notifications/notification-settin
 import nodemailer from "nodemailer";
 import {
 	CompanyEmailOptions,
-	renderCompanyEmail,
-	generateWelcomeEmailTemplate,
-	generateProfileCreatedEmailTemplate,
-	generatePaymentDeadlineEmailTemplate,
-	generateWishlistDeadlineEmailTemplate,
-	generateApplicationStatusEmailTemplate,
-	generateDocumentUpdatedEmailTemplate,
-	generatePaymentSuccessEmailTemplate,
-	generatePaymentFailedEmailTemplate,
-	generateSubscriptionExpiringEmailTemplate,
-	generateBanEmailTemplate,
-	generateRevokeSessionEmailTemplate,
-	generatePasswordChangedEmailTemplate,
 	generateAccountDeletedEmailTemplate,
+	generateApplicationStatusEmailTemplate,
+	generateBanEmailTemplate,
+	generateDocumentUpdatedEmailTemplate,
+	generatePasswordChangedEmailTemplate,
+	generatePaymentDeadlineEmailTemplate,
+	generatePaymentFailedEmailTemplate,
+	generatePaymentSuccessEmailTemplate,
+	generateProfileCreatedEmailTemplate,
+	generateRevokeSessionEmailTemplate,
+	generateSubscriptionExpiringEmailTemplate,
+	generateWelcomeEmailTemplate,
+	generateWishlistDeadlineEmailTemplate,
+	renderCompanyEmail,
 } from "./email-template";
 
 // Email service configuration
@@ -267,6 +268,87 @@ export class EmailTemplates {
 			metadata.deletionTime
 		);
 	}
+
+	/**
+	 * Generate support reply email template
+	 * Used for: When admin replies to customer support request
+	 */
+	static generateSupportReplyEmail(message: SupportReplyMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+
+		const subject = `Support Reply - ${metadata.originalSubject}`;
+
+		const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Reply</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background-color: #126E64; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; margin: -20px -20px 20px -20px; }
+        .content { padding: 20px 0; }
+        .original-request { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #126E64; }
+        .reply-section { background-color: #e6f7ff; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #1890ff; }
+        .footer { background-color: #f8f9fa; padding: 15px; text-align: center; border-radius: 5px; margin-top: 20px; }
+        .button { display: inline-block; background-color: #126E64; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .reference { font-size: 12px; color: #666; margin-top: 15px; }
+        .signature { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Support Reply from EduMatch</h1>
+            <p>We have responded to your support request</p>
+        </div>
+        
+        <div class="content">
+            <p>Hello ${metadata.firstName} ${metadata.lastName},</p>
+            
+            <p>Thank you for contacting EduMatch support. We have reviewed your request and here is our response:</p>
+            
+            <div class="original-request">
+                <h3>📋 Your Original Request:</h3>
+                <p><strong>Subject:</strong> ${metadata.originalSubject}</p>
+                <p><strong>Your Message:</strong></p>
+                <p>${metadata.originalMessage.replace(/\n/g, "<br>")}</p>
+            </div>
+            
+            <div class="reply-section">
+                <h3>💬 Our Response:</h3>
+                <p>${metadata.replyMessage.replace(/\n/g, "<br>")}</p>
+            </div>
+            
+            <p>If you have any additional questions or need further assistance, please don't hesitate to contact us again.</p>
+            
+            <div class="footer">
+                <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support" class="button">
+                    Contact Support Again
+                </a>
+                
+                <div class="reference">
+                    <p><strong>Reference ID:</strong> ${metadata.supportId}</p>
+                    <p><strong>Replied on:</strong> ${new Date(metadata.repliedAt).toLocaleString()}</p>
+                </div>
+            </div>
+            
+            <div class="signature">
+                <p>Best regards,<br>
+                The EduMatch Support Team</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+		return { subject, html };
+	}
 }
 
 // Email service class
@@ -313,6 +395,10 @@ export class EmailService {
 					console.log(
 						`🔔 Wishlist notification enabled check: ${shouldSendEmail} for user ${message.userId}`
 					);
+					break;
+				case NotificationType.SUPPORT_REPLY:
+					// Support replies are always sent (important for customer service)
+					shouldSendEmail = true;
 					break;
 				// Other notification types (WELCOME, PROFILE_CREATED, etc.) are always sent
 				default:
@@ -396,6 +482,11 @@ export class EmailService {
 				case NotificationType.ACCOUNT_DELETED:
 					emailContent = EmailTemplates.generateAccountDeletedEmail(
 						message as AccountDeletedMessage
+					);
+					break;
+				case NotificationType.SUPPORT_REPLY:
+					emailContent = EmailTemplates.generateSupportReplyEmail(
+						message as SupportReplyMessage
 					);
 					break;
 				default:

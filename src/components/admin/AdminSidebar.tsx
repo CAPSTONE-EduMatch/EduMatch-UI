@@ -77,6 +77,12 @@ export function AdminSidebar({
 			case 'institution':
 				router.push('/admin/institutions')
 				break
+			case 'supports':
+				router.push('/admin/support')
+				break
+			case 'track-user-log':
+				router.push('/admin/track-user-log')
+				break
 			case 'change-password':
 				router.push('/admin/settings')
 				break

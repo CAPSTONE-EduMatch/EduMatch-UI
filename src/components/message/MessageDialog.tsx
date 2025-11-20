@@ -17,6 +17,11 @@ import {
 import { useAppSyncMessaging } from '@/hooks/messaging/useAppSyncMessaging'
 import { FileUpload } from './FileUpload'
 import { formatFileSize } from '@/utils/file/file-utils'
+import { ProtectedImg } from '@/components/ui/ProtectedImage'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 
 interface Message {
 	id: string
@@ -1151,19 +1156,22 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 													<div className="mb-2">
 														{message.mimeType?.startsWith('image/') ? (
 															<div className="relative group">
-																<a
-																	href={message.fileUrl}
-																	target="_blank"
-																	rel="noopener noreferrer"
-																	className="block hover:opacity-90 transition-opacity"
+																<div
+																	className="block hover:opacity-90 transition-opacity cursor-pointer"
 																	title="Click to view full size"
+																	onClick={() => {
+																		if (!message.fileUrl) return
+																		openSessionProtectedFile(message.fileUrl)
+																	}}
 																>
-																	<img
+																	<ProtectedImg
 																		src={message.fileUrl}
 																		alt={message.fileName}
-																		className="max-w-xs max-h-64 rounded-lg cursor-pointer object-cover"
+																		className="max-w-xs max-h-64 rounded-lg object-cover"
+																		expiresIn={7200}
+																		autoRefresh={true}
 																	/>
-																</a>
+																</div>
 																<button
 																	onClick={async () => {
 																		if (!message.fileUrl) return
@@ -1235,7 +1243,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 														) : (
 															<div className="relative group">
 																<button
-																	onClick={() => {
+																	onClick={async () => {
 																		if (!message.fileUrl) return
 
 																		// For PDFs and images, open in new tab for preview
@@ -1246,19 +1254,14 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 																			message.mimeType?.startsWith('text/')
 
 																		if (isPreviewable) {
-																			// Open in new tab for preview
-																			window.open(message.fileUrl, '_blank')
+																			// Open in new tab for preview (requires session)
+																			openSessionProtectedFile(message.fileUrl)
 																		} else {
-																			// Download for other file types
-																			const link = document.createElement('a')
-																			link.href = message.fileUrl
-																			link.download =
+																			// Download for other file types (requires session)
+																			await downloadSessionProtectedFile(
+																				message.fileUrl,
 																				message.fileName || 'download'
-																			link.target = '_blank'
-																			link.style.display = 'none'
-																			document.body.appendChild(link)
-																			link.click()
-																			document.body.removeChild(link)
+																			)
 																		}
 																	}}
 																	className={`flex items-center justify-between p-3 rounded-lg hover:opacity-80 transition-all duration-200 cursor-pointer w-full text-left ${

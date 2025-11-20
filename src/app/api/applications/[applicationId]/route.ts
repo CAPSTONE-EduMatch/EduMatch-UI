@@ -53,6 +53,7 @@ export async function GET(
 					},
 				},
 				details: true,
+				ApplicationProfileSnapshot: true,
 			},
 		})) as any;
 
@@ -63,6 +64,99 @@ export async function GET(
 			);
 		}
 
+		// Fetch profile snapshot documents
+		let snapshotDocuments: any[] = [];
+		const snapshot = application.ApplicationProfileSnapshot;
+		if (snapshot && snapshot.document_ids) {
+			// Handle document_ids - could be array or comma-separated string
+			let documentIds: string[] = [];
+			const docIds: any = snapshot.document_ids;
+			if (Array.isArray(docIds)) {
+				documentIds = docIds.filter(
+					(id: any) => id && typeof id === "string"
+				);
+			} else if (typeof docIds === "string") {
+				// Parse comma-separated string (remove curly braces if present)
+				const idsString = (docIds as string).replace(/[{}]/g, "");
+				documentIds = idsString
+					.split(",")
+					.map((id: string) => id.trim())
+					.filter((id: string) => id);
+			}
+
+			if (documentIds.length > 0) {
+				// Fetch all documents from snapshot by ID from ApplicantDocument table
+				// IMPORTANT: Do NOT filter by status or deleted_at - snapshot preserves state at application time
+				// Even if documents are soft-deleted, they should still appear in the snapshot
+				const snapshotDocs =
+					await prismaClient.applicantDocument.findMany({
+						where: {
+							document_id: {
+								in: documentIds,
+							},
+							// No status or deleted_at filter - snapshot documents should display even if deleted
+						},
+						include: {
+							documentType: true,
+						},
+					});
+
+				// Map found documents
+				snapshotDocuments = snapshotDocs.map((doc: any) => ({
+					documentId: doc.document_id,
+					documentTypeId: doc.document_type_id,
+					name: doc.name,
+					url: doc.url,
+					size: doc.size,
+					documentType:
+						doc.documentType?.name || doc.document_type_id,
+					isFromSnapshot: true, // Flag to identify snapshot documents
+				}));
+
+				// Log if some snapshot documents were not found (for debugging)
+				if (
+					snapshotDocs.length < documentIds.length &&
+					process.env.NODE_ENV === "development"
+				) {
+					// eslint-disable-next-line no-console
+					console.log(
+						`Warning: ${documentIds.length - snapshotDocs.length} snapshot document(s) not found in ApplicantDocument table`
+					);
+				}
+			}
+		}
+
+		// Get ApplicationDetail documents (uploaded files)
+		const applicationDetailDocuments = application.details
+			.filter((detail: any) => !detail.is_update_submission)
+			.map((detail: any) => ({
+				documentId: detail.document_id,
+				documentTypeId: detail.document_type,
+				name: detail.name,
+				url: detail.url,
+				size: detail.size,
+				documentType: detail.document_type,
+				isFromSnapshot: false, // Flag to identify ApplicationDetail documents
+			}));
+
+		// Combine both types of documents
+		// Include all ApplicationDetail documents
+		// Include snapshot documents that are NOT already in ApplicationDetail (by URL)
+		const applicationDetailUrls = new Set(
+			applicationDetailDocuments.map((doc: any) => doc.url)
+		);
+
+		// Filter snapshot documents to only include those not already in ApplicationDetail
+		const uniqueSnapshotDocuments = snapshotDocuments.filter(
+			(doc) => !applicationDetailUrls.has(doc.url)
+		);
+
+		// Combine: all ApplicationDetail documents + unique snapshot documents
+		const allDocuments = [
+			...applicationDetailDocuments,
+			...uniqueSnapshotDocuments,
+		];
+
 		// Transform application
 		const transformedApplication = {
 			applicationId: application.application_id,
@@ -70,15 +164,7 @@ export async function GET(
 			postId: application.post_id,
 			status: application.status,
 			applyAt: application.apply_at.toISOString(),
-			documents: application.details
-				.filter((detail: any) => !detail.is_update_submission)
-				.map((detail: any) => ({
-					documentTypeId: detail.document_type,
-					name: detail.name,
-					url: detail.url,
-					size: detail.size,
-					documentType: detail.document_type,
-				})),
+			documents: allDocuments,
 			post: {
 				id: application.post.post_id,
 				title: application.post.title,

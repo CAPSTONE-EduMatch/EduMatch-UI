@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
+import { Avatar, AvatarFallback } from '@/components/ui'
+import { ProtectedAvatarImage } from '@/components/ui/ProtectedAvatarImage'
 import { PhoneInput } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { DateInput } from '@/components/ui'
@@ -246,7 +247,12 @@ export function BasicInfoStep({
 				<div className="flex items-center gap-4">
 					<div className="relative">
 						<Avatar className="w-20 h-20">
-							<AvatarImage src={formData.profilePhoto} alt="Profile photo" />
+							<ProtectedAvatarImage
+								src={formData.profilePhoto}
+								alt="Profile photo"
+								expiresIn={7200}
+								autoRefresh={true}
+							/>
 							<AvatarFallback className="bg-gray-200 text-gray-600">
 								<User className="w-8 h-8" />
 							</AvatarFallback>

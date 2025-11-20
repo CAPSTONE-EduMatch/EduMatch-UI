@@ -418,11 +418,18 @@ export async function POST(request: NextRequest) {
 							(interest) =>
 								interest.subdiscipline.subdiscipline_id
 						) || [],
-					// Document IDs - capture all profile document IDs at time of snapshot
+					// Document IDs - use selected document IDs if provided, otherwise use all profile documents
 					document_ids:
-						applicantProfile.documents?.map(
-							(doc) => doc.document_id
-						) || [],
+						body.selectedProfileDocumentIds &&
+						body.selectedProfileDocumentIds.length > 0
+							? body.selectedProfileDocumentIds.filter((docId) =>
+									applicantProfile.documents?.some(
+										(doc) => doc.document_id === docId
+									)
+								) // Only include IDs that exist in the profile
+							: applicantProfile.documents?.map(
+									(doc) => doc.document_id
+								) || [],
 				},
 			});
 

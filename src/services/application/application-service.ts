@@ -145,13 +145,17 @@ class ApplicationService {
 			size: number;
 			documentTypeId?: string;
 			documentType?: string;
-		}>
+		}>,
+		selectedProfileDocumentIds?: string[]
 	): Promise<{ success: boolean; message: string }> {
 		return this.request<{ success: boolean; message: string }>(
 			`/${applicationId}/documents`,
 			{
 				method: "PUT",
-				body: JSON.stringify({ documents }),
+				body: JSON.stringify({
+					documents,
+					selectedProfileDocumentIds,
+				}),
 			}
 		);
 	}

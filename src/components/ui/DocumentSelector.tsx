@@ -112,17 +112,6 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 				<p className="text-gray-600">
 					Choose from your existing documents to include in your application
 				</p>
-
-				{/* Selection Counter */}
-				{selectedDocuments.length > 0 && (
-					<div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full">
-						<Check className="w-4 h-4" />
-						<span className="font-medium">
-							{selectedDocuments.length} document
-							{selectedDocuments.length !== 1 ? 's' : ''} selected
-						</span>
-					</div>
-				)}
 			</div>
 
 			{/* Single Column Layout - Profile Documents Only */}
@@ -144,7 +133,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 					</div>
 				) : (
 					<div className="space-y-6">
-						{/* Selected Documents */}
+						{/* Selected Documents
 						{selectedDocuments.filter((doc) => doc.source === 'existing')
 							.length > 0 && (
 							<div className="bg-green-50 border border-green-200 rounded-lg p-6">
@@ -206,7 +195,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 										))}
 								</div>
 							</div>
-						)}
+						)} */}
 
 						{/* Available Documents */}
 						<div className="space-y-6">
@@ -284,39 +273,6 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 					</div>
 				)}
 			</div>
-
-			{/* Summary Section */}
-			{selectedDocuments.length > 0 && (
-				<div className="bg-gradient-to-r from-green-50 to-teal-50 border border-green-200 rounded-lg p-6">
-					<div className="flex items-center justify-center gap-4">
-						<div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
-							<Check className="w-6 h-6 text-white" />
-						</div>
-						<div className="text-center">
-							<h3 className="text-xl font-bold text-green-800">
-								{selectedDocuments.length} Document
-								{selectedDocuments.length !== 1 ? 's' : ''} Ready
-							</h3>
-							<p className="text-green-600">
-								Your documents are ready for application submission
-							</p>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* Empty Selection State */}
-			{selectedDocuments.length === 0 && documents.length > 0 && (
-				<div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-					<File className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-					<h3 className="text-lg font-medium text-gray-900 mb-2">
-						No Documents Selected
-					</h3>
-					<p className="text-gray-500">
-						Click on any document above to select it for your application
-					</p>
-				</div>
-			)}
 		</div>
 	)
 }

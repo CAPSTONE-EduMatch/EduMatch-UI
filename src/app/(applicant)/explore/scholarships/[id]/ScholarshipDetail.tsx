@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/DocumentSelector'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Trash2, Check, X } from 'lucide-react'
+import { Heart, Check, X, File } from 'lucide-react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { applicationService } from '@/services/application/application-service'
@@ -26,6 +26,10 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 import { ExploreApiService } from '@/services/explore/explore-api'
 import type { ExploreFilters } from '@/types/api/explore-api'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 
 const ScholarshipDetail = () => {
 	const router = useRouter()
@@ -33,6 +37,9 @@ const ScholarshipDetail = () => {
 	const params = useParams()
 	const { isAuthenticated } = useAuthCheck()
 	const [showAuthModal, setShowAuthModal] = useState(false)
+
+	// Check if we're viewing an application (from URL query param)
+	const applicationIdFromUrl = searchParams.get('applicationId')
 
 	// Wishlist functionality
 	const { isInWishlist, toggleWishlistItem } = useWishlist({
@@ -44,7 +51,9 @@ const ScholarshipDetail = () => {
 		},
 	})
 
-	const [activeTab, setActiveTab] = useState('detail')
+	const [activeTab, setActiveTab] = useState(
+		applicationIdFromUrl ? 'application' : 'detail'
+	)
 	const [eligibilityProgramsPage, setEligibilityProgramsPage] = useState(1)
 	const [eligibilityPrograms, setEligibilityPrograms] = useState<any[]>([])
 	const [eligibilityProgramsLoading, setEligibilityProgramsLoading] =
@@ -55,8 +64,6 @@ const ScholarshipDetail = () => {
 	const [selectedDocuments, setSelectedDocuments] = useState<
 		SelectedDocument[]
 	>([])
-	const [showManageModal, setShowManageModal] = useState(false)
-	const [isClosing, setIsClosing] = useState(false)
 	const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
 	const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
@@ -82,7 +89,26 @@ const ScholarshipDetail = () => {
 		string | null
 	>(null)
 	const [updateRequests, setUpdateRequests] = useState<any[]>([])
-	const [loadingUpdateRequests, setLoadingUpdateRequests] = useState(false)
+	const [isEditMode, setIsEditMode] = useState(false)
+	const [showCancelEditModal, setShowCancelEditModal] = useState(false)
+	const [originalUploadedFiles, setOriginalUploadedFiles] = useState<any[]>([])
+	const [pendingApplication, setPendingApplication] = useState<{
+		applicationId: string
+		status: string
+	} | null>(null)
+
+	// Applications list for the post
+	const [applications, setApplications] = useState<any[]>([])
+	const [loadingApplications, setLoadingApplications] = useState(false)
+	const [lastFetchedPostId, setLastFetchedPostId] = useState<string | null>(
+		null
+	)
+	const [isAutoLoadingApplication, setIsAutoLoadingApplication] =
+		useState(false)
+	const [selectedApplication, setSelectedApplication] = useState<any>(null)
+	const [loadingSelectedApplication, setLoadingSelectedApplication] =
+		useState(false)
+	const isHandlingClickRef = useRef(false)
 
 	// Notification system
 	const { showSuccess, showError } = useNotification()
@@ -138,17 +164,46 @@ const ScholarshipDetail = () => {
 
 	// Handle documents selection from DocumentSelector
 	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
-		setSelectedDocuments(documents)
-		// Convert selected documents to uploadedFiles format for compatibility
-		const convertedFiles = documents.map((doc) => ({
+		// DocumentSelector passes all selectedDocuments, but we only want profile documents from it
+		// Filter to only get profile documents (source === 'existing') from the modal
+		const profileDocumentsFromModal = documents.filter(
+			(doc) => doc.source === 'existing'
+		)
+		// Preserve any uploaded documents (source === 'new') that were already selected
+		const existingUploadedDocs = selectedDocuments.filter(
+			(doc) => doc.source === 'new'
+		)
+		// Merge profile documents from modal with existing uploaded documents
+		// Deduplicate by URL to avoid duplicates (same file might have different IDs)
+		const allDocumentsMap = new Map<string, SelectedDocument>()
+
+		// Add existing uploaded documents first
+		existingUploadedDocs.forEach((doc) => {
+			allDocumentsMap.set(doc.url, doc)
+		})
+
+		// Add profile documents from modal (use URL as key to prevent duplicates)
+		profileDocumentsFromModal.forEach((doc) => {
+			allDocumentsMap.set(doc.url, doc)
+		})
+
+		const allDocuments = Array.from(allDocumentsMap.values())
+		setSelectedDocuments(allDocuments)
+		// Convert all selected documents to uploadedFiles format for compatibility
+		const convertedFiles = allDocuments.map((doc) => ({
 			id: doc.document_id,
 			name: doc.name,
 			url: doc.url,
 			size: doc.size,
 			documentType: doc.documentType,
 			source: doc.source,
+			applicationDocumentId: (doc as any).applicationDocumentId, // Preserve ApplicationDetail document_id if exists
 		}))
-		setUploadedFiles(convertedFiles)
+		// Deduplicate by URL to prevent glitches
+		const uniqueFiles = Array.from(
+			new Map(convertedFiles.map((file) => [file.url, file])).values()
+		)
+		setUploadedFiles(uniqueFiles)
 	}
 
 	const [eligibilityFilters, setEligibilityFilters] = useState<
@@ -311,18 +366,6 @@ const ScholarshipDetail = () => {
 			if (!currentScholarship?.id) {
 				return
 			}
-
-			// Debug log để track khi nào fetch được trigger
-			if (process.env.NODE_ENV === 'development') {
-				// eslint-disable-next-line no-console
-				console.log('🔄 Loading eligibility programs triggered:', {
-					scholarshipId: currentScholarship.id,
-					page: eligibilityProgramsPage,
-					filters: eligibilityFilters,
-					loading,
-				})
-			}
-
 			setEligibilityProgramsLoading(true)
 			try {
 				// Parse fee range if available
@@ -356,7 +399,7 @@ const ScholarshipDetail = () => {
 			} catch (err) {
 				if (process.env.NODE_ENV === 'development') {
 					// eslint-disable-next-line no-console
-					console.error('Error fetching eligibility programs:', err)
+					// Error handled by UI state
 				}
 				setEligibilityPrograms([])
 				setEligibilityProgramsTotalPages(1)
@@ -376,27 +419,6 @@ const ScholarshipDetail = () => {
 		loading,
 	])
 
-	// Debug effect to track loading states
-	useEffect(() => {
-		if (process.env.NODE_ENV === 'development') {
-			console.log('🐛 Debug - Loading states:', {
-				loading,
-				eligibilityProgramsLoading,
-				currentScholarshipId: currentScholarship?.id,
-				paramsId: params.id,
-				eligibilityFilters,
-				eligibilityProgramsPage,
-			})
-		}
-	}, [
-		loading,
-		eligibilityProgramsLoading,
-		currentScholarship?.id,
-		params.id,
-		eligibilityFilters,
-		eligibilityProgramsPage,
-	])
-
 	// Reset pagination when scholarship changes
 	useEffect(() => {
 		if (currentScholarship?.id) {
@@ -404,13 +426,157 @@ const ScholarshipDetail = () => {
 		}
 	}, [currentScholarship?.id])
 
-	// Check for existing application when component loads
+	// Fetch selected application details
+	const fetchSelectedApplication = useCallback(
+		async (appId: string, showLoading: boolean = true) => {
+			if (showLoading) {
+				setIsCheckingApplication(true)
+			}
+			try {
+				const response = await fetch(`/api/applications/${appId}`, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				})
+
+				if (response.ok) {
+					const result = await response.json()
+					if (result.success && result.application) {
+						setHasApplied(true)
+						setApplicationId(appId)
+						setApplicationStatus(result.application.status)
+						setPendingApplication(null) // Clear pending when application is loaded
+
+						// Convert application documents to uploadedFiles format
+						if (
+							result.application.documents &&
+							result.application.documents.length > 0
+						) {
+							// Filter out update submission documents - only show initial application documents
+							const initialDocuments = result.application.documents.filter(
+								(doc: any) =>
+									!doc.isUpdateSubmission && !doc.is_update_submission
+							)
+
+							const convertedFiles = initialDocuments.map(
+								(doc: any, index: number) => ({
+									id:
+										doc.documentId ||
+										doc.document_type_id ||
+										`doc_${appId}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+									name: doc.name,
+									url: doc.url,
+									size: doc.size || 0,
+									documentType: doc.documentType || 'application-document',
+									uploadDate:
+										doc.uploadDate ||
+										result.application.applyAt ||
+										new Date().toISOString(),
+									applicationDocumentId: doc.documentId, // Preserve ApplicationDetail document_id for updates
+									source: doc.isFromSnapshot
+										? ('existing' as const)
+										: ('new' as const), // Set source based on isFromSnapshot flag from API
+								})
+							)
+							// Deduplicate by URL to prevent glitches
+							const uniqueFiles = Array.from(
+								new Map(
+									convertedFiles.map((file: any) => [file.url, file])
+								).values()
+							)
+							setUploadedFiles(uniqueFiles)
+
+							// Don't load into selectedDocuments automatically - user will click Edit button
+							setSelectedDocuments([])
+							setIsEditMode(false)
+						} else {
+							setUploadedFiles([])
+							setSelectedDocuments([])
+						}
+
+						// Scroll to the Application Status section
+						setTimeout(() => {
+							const statusSection = document.getElementById(
+								'application-status-section'
+							)
+							if (statusSection) {
+								statusSection.scrollIntoView({
+									behavior: 'smooth',
+									block: 'start',
+								})
+							}
+						}, 100)
+					}
+				}
+			} catch (error) {
+				// Error handled by UI state
+			} finally {
+				if (showLoading) {
+					setIsCheckingApplication(false)
+				}
+			}
+		},
+		[]
+	)
+
+	// Fetch applications for a specific post
+	const fetchApplicationsForPost = useCallback(
+		async (postId: string) => {
+			// Only show loading if we don't have applications for this post yet
+			if (lastFetchedPostId !== postId) {
+				setLoadingApplications(true)
+			}
+			try {
+				const response = await fetch(`/api/applications/post/${postId}`, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				})
+
+				if (response.ok) {
+					const result = await response.json()
+					if (result.success && result.applications) {
+						setApplications(result.applications)
+						setLastFetchedPostId(postId) // Remember we fetched for this post
+					}
+				}
+			} catch (error) {
+				// Error handled by UI state
+			} finally {
+				setLoadingApplications(false)
+			}
+		},
+		[lastFetchedPostId]
+	)
+
+	// Fetch applications for this post when application tab is active
 	useEffect(() => {
-		const scholarshipId = currentScholarship?.id || params.id
-		if (scholarshipId && isAuthenticated) {
-			checkExistingApplication(scholarshipId as string)
+		if (
+			activeTab === 'application' &&
+			currentScholarship?.id &&
+			lastFetchedPostId !== currentScholarship.id &&
+			!isAutoLoadingApplication
+		) {
+			fetchApplicationsForPost(currentScholarship.id)
 		}
-	}, [currentScholarship?.id, params.id, isAuthenticated])
+	}, [
+		activeTab,
+		currentScholarship?.id,
+		lastFetchedPostId,
+		isAutoLoadingApplication,
+		fetchApplicationsForPost,
+	])
+
+	// Handle applicationIdFromUrl - fetch application if present in URL
+	useEffect(() => {
+		if (applicationIdFromUrl && !isHandlingClickRef.current) {
+			fetchSelectedApplication(applicationIdFromUrl, false)
+		}
+	}, [applicationIdFromUrl, fetchSelectedApplication])
 
 	// Fetch all update requests when application is loaded
 	useEffect(() => {
@@ -433,7 +599,6 @@ const ScholarshipDetail = () => {
 	const fetchUpdateRequests = async () => {
 		if (!applicationId) return
 
-		setLoadingUpdateRequests(true)
 		try {
 			const response = await fetch(
 				`/api/applications/${applicationId}/update-request`,
@@ -453,95 +618,189 @@ const ScholarshipDetail = () => {
 				}
 			}
 		} catch (error) {
-			console.error('Failed to fetch update requests:', error)
+			// Error handled by UI state
 		} finally {
-			setLoadingUpdateRequests(false)
+			// Update requests loading handled
 		}
 	}
 
 	// Check if user has already applied to this post
-	const checkExistingApplication = async (scholarshipId: string) => {
-		try {
-			setIsCheckingApplication(true)
-			const response = await applicationService.getApplications({
-				page: 1,
-				limit: 100, // Get more applications to search through
-			})
-			if (
-				response.success &&
-				response.applications &&
-				response.applications.length > 0
-			) {
-				// Get all applications for this specific post
-				const postApplications = response.applications.filter(
-					(app) => app.postId === scholarshipId
-				)
-
-				if (postApplications.length > 0) {
-					// Check if all applications are rejected
-					const allRejected = postApplications.every(
-						(app) => app.status === 'REJECTED'
+	const checkExistingApplication = useCallback(
+		async (scholarshipId: string) => {
+			try {
+				setIsCheckingApplication(true)
+				const response = await applicationService.getApplications({
+					page: 1,
+					limit: 100, // Get more applications to search through
+				})
+				if (
+					response.success &&
+					response.applications &&
+					response.applications.length > 0
+				) {
+					// Get all applications for this specific post
+					const postApplications = response.applications.filter(
+						(app) => app.postId === scholarshipId
 					)
 
-					if (allRejected) {
-						// If all applications are rejected, allow reapplication
-						setHasApplied(false)
-						setApplicationStatus(null)
-						setApplicationId(null)
-						setUploadedFiles([])
-						return false // Return false to allow new application
-					} else {
-						// Find the most recent non-rejected application
-						const existingApplication =
-							postApplications.find((app) => app.status !== 'REJECTED') ||
-							postApplications[0] // Fallback to most recent if all are rejected (shouldn't happen)
+					if (postApplications.length > 0) {
+						// Check if all applications are rejected
+						const allRejected = postApplications.every(
+							(app) => app.status === 'REJECTED'
+						)
 
-						if (existingApplication) {
-							setHasApplied(true)
-							setApplicationStatus(existingApplication.status || null)
-							setApplicationId(existingApplication.applicationId || null)
-							// Load submitted documents from the application
-							// Filter out update submission documents - only show initial application documents
-							if (
-								existingApplication.documents &&
-								existingApplication.documents.length > 0
-							) {
-								const submittedFiles = existingApplication.documents
-									.filter(
-										(doc: any) =>
-											!doc.isUpdateSubmission && !doc.is_update_submission
-									)
-									.map((doc: any, index: number) => ({
-										id:
-											doc.documentId ||
-											doc.documentTypeId ||
-											`doc_${existingApplication.applicationId}_${index}_${Math.random().toString(36).substr(2, 9)}`, // Generate ID if not available
-										name: doc.name,
-										url: doc.url,
-										size: doc.size || 0,
-										documentType:
-											doc.documentType ||
-											doc.documentTypeId ||
-											'application-document',
-										uploadDate:
-											doc.uploadDate || doc.applyAt || new Date().toISOString(), // Use upload date or application date
-									}))
-								setUploadedFiles(submittedFiles)
+						if (allRejected) {
+							// If all applications are rejected, allow reapplication
+							setHasApplied(false)
+							setApplicationStatus(null)
+							setApplicationId(null)
+							setUploadedFiles([])
+							return false // Return false to allow new application
+						} else {
+							// Find the most recent non-rejected application
+							const existingApplication =
+								postApplications.find((app) => app.status !== 'REJECTED') ||
+								postApplications[0] // Fallback to most recent if all are rejected (shouldn't happen)
+
+							if (existingApplication) {
+								// Automatically load the application if found
+								// Update URL with applicationId
+								setIsAutoLoadingApplication(true)
+								const newUrl = new URL(window.location.href)
+								newUrl.searchParams.set(
+									'applicationId',
+									existingApplication.applicationId
+								)
+								router.replace(newUrl.pathname + newUrl.search, {
+									scroll: false,
+								})
+								// Load the application details
+								await fetchSelectedApplication(
+									existingApplication.applicationId,
+									false
+								)
+								setActiveTab('application')
+								// Fetch applications for post after a short delay to avoid showing spinner immediately
+								setTimeout(() => {
+									fetchApplicationsForPost(scholarshipId as string)
+									setIsAutoLoadingApplication(false)
+								}, 100)
+								return true
 							}
-
-							return true
 						}
 					}
 				}
+				return false
+			} catch (error) {
+				// Error handled by UI state
+				return false
+			} finally {
+				setIsCheckingApplication(false)
 			}
-			return false
-		} catch (error) {
-			console.error('Failed to check existing application:', error)
-			return false
-		} finally {
-			setIsCheckingApplication(false)
+		},
+		[fetchSelectedApplication, router, fetchApplicationsForPost]
+	)
+
+	// Handle application click from My Applications tab
+	const handleApplicationClick = useCallback(
+		async (appId: string) => {
+			// Find the application from the list
+			const clickedApp = applications.find((app) => app.applicationId === appId)
+			if (!clickedApp) return
+
+			// Set flag to prevent useEffect from fetching
+			isHandlingClickRef.current = true
+
+			// Switch to application tab first
+			setActiveTab('application')
+
+			// Update the Application Status section below using data we already have
+			setHasApplied(true)
+			setApplicationId(clickedApp.applicationId)
+			setApplicationStatus(clickedApp.status)
+
+			// Update URL with applicationId without scrolling
+			const newUrl = new URL(window.location.href)
+			newUrl.searchParams.set('applicationId', clickedApp.applicationId)
+			// Use replace instead of push to avoid scroll
+			router.replace(newUrl.pathname + newUrl.search, { scroll: false })
+
+			// Convert application documents to uploadedFiles format
+			if (clickedApp.documents && clickedApp.documents.length > 0) {
+				// Filter out update submission documents - only show initial application documents
+				const initialDocuments = clickedApp.documents.filter(
+					(doc: any) => !doc.isUpdateSubmission && !doc.is_update_submission
+				)
+
+				const convertedFiles = initialDocuments.map((doc: any) => ({
+					id:
+						doc.documentId ||
+						doc.document_type_id ||
+						`doc_${clickedApp.applicationId}_${Math.random().toString(36).substr(2, 9)}`,
+					name: doc.name,
+					url: doc.url,
+					size: doc.size || 0,
+					documentType: doc.documentType || 'application-document',
+					uploadDate:
+						doc.uploadDate || clickedApp.applyAt || new Date().toISOString(),
+					applicationDocumentId: doc.documentId, // Preserve ApplicationDetail document_id for updates
+					source: doc.isFromSnapshot ? ('existing' as const) : ('new' as const), // Set source based on isFromSnapshot flag from API
+				}))
+				// Deduplicate by URL to prevent glitches
+				const uniqueFiles = Array.from(
+					new Map(convertedFiles.map((file: any) => [file.url, file])).values()
+				)
+				setUploadedFiles(uniqueFiles)
+
+				// Don't load into selectedDocuments automatically - user will click Edit button
+				setSelectedDocuments([])
+				setIsEditMode(false)
+			} else {
+				setUploadedFiles([])
+				setSelectedDocuments([])
+			}
+
+			// Fetch full application details in the background without showing loading
+			await fetchSelectedApplication(clickedApp.applicationId, false)
+
+			// Reset flag after a short delay
+			setTimeout(() => {
+				isHandlingClickRef.current = false
+			}, 100)
+		},
+		[applications, fetchSelectedApplication, router]
+	)
+
+	// Check for existing application when component loads
+	useEffect(() => {
+		const scholarshipId = currentScholarship?.id || params.id
+		// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
+		if (
+			scholarshipId &&
+			isAuthenticated &&
+			!isCheckingApplication &&
+			!applicationIdFromUrl
+		) {
+			checkExistingApplication(scholarshipId as string)
 		}
-	}
+	}, [
+		currentScholarship?.id,
+		params.id,
+		isAuthenticated,
+		checkExistingApplication,
+		applicationIdFromUrl,
+		isCheckingApplication,
+	])
+
+	// Fetch all update requests when application is loaded
+	useEffect(() => {
+		if (applicationId) {
+			fetchUpdateRequests()
+		} else {
+			setUpdateRequests([])
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [applicationId])
 
 	// Helper function to determine document type based on file name
 	const getDocumentType = (fileName: string): string => {
@@ -603,7 +862,7 @@ const ScholarshipDetail = () => {
 				setShowAuthModal(true)
 			} else {
 				// eslint-disable-next-line no-console
-				console.error('Failed to toggle wishlist item:', error)
+				// Error handled by UI state
 			}
 		}
 	}
@@ -629,7 +888,7 @@ const ScholarshipDetail = () => {
 				setShowAuthModal(true)
 			} else {
 				// eslint-disable-next-line no-console
-				console.error('Failed to toggle wishlist item:', error)
+				// Error handled by UI state
 			}
 		}
 	}
@@ -658,65 +917,21 @@ const ScholarshipDetail = () => {
 		router.push('/signup')
 	}
 
-	const handleFileUpload = async (
-		event: React.ChangeEvent<HTMLInputElement>,
-		documentType: string
-	) => {
-		// Check authentication first
-		if (!isAuthenticated) {
-			setShowAuthModal(true)
-			// Clear the input to prevent file selection
-			event.target.value = ''
-			return
-		}
-
-		const files = event.target.files
-		if (files && files.length > 0) {
-			try {
-				// Upload files to S3
-				const uploadedFileData = await uploadFiles(Array.from(files))
-
-				// Add uploaded files to state with document type
-				if (uploadedFileData) {
-					const filesWithType = uploadedFileData.map((file) => ({
-						...file,
-						documentType: documentType,
-					}))
-					setUploadedFiles((prev) => [...prev, ...filesWithType])
-				}
-				showSuccess(
-					'Files Uploaded Successfully',
-					`${uploadedFileData?.length || 0} file(s) have been uploaded successfully.`
-				)
-			} catch (error) {
-				console.error('❌ Failed to upload files to S3:', error)
-				showError(
-					'Upload Failed',
-					'Failed to upload files. Please try again.',
-					{
-						onRetry: () => handleFileUpload(event, documentType),
-						showRetry: true,
-						retryText: 'Retry Upload',
-					}
-				)
-			}
-		}
-	}
-
-	const formatFileSize = (bytes: number) => {
-		if (bytes === 0) return '0 Bytes'
-		const k = 1024
-		const sizes = ['Bytes', 'KB', 'MB', 'GB']
-		const i = Math.floor(Math.log(bytes) / Math.log(k))
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-	}
-
 	const removeFile = (fileId: number | string) => {
 		setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId))
 		// Also remove from selectedDocuments
 		setSelectedDocuments((prev) =>
 			prev.filter((doc) => doc.document_id !== fileId)
 		)
+	}
+
+	const handleCancelEdit = () => {
+		// Reset to original state
+		setUploadedFiles([...originalUploadedFiles])
+		setSelectedDocuments([])
+		setIsEditMode(false)
+		setShowCancelEditModal(false)
+		setOriginalUploadedFiles([])
 	}
 
 	const removeAllFiles = () => {
@@ -727,19 +942,6 @@ const ScholarshipDetail = () => {
 
 	const handleRemoveAllClick = () => {
 		setShowDeleteConfirmModal(true)
-	}
-
-	const handleCloseModal = () => {
-		setIsClosing(true)
-		setTimeout(() => {
-			setShowManageModal(false)
-			setIsClosing(false)
-		}, 300)
-	}
-
-	const handleOpenModal = () => {
-		setShowManageModal(true)
-		setIsClosing(false)
 	}
 
 	const handleProgramClick = (programId: string) => {
@@ -822,8 +1024,6 @@ const ScholarshipDetail = () => {
 				)
 			}
 		} catch (error: any) {
-			console.error('Failed to submit application:', error)
-
 			// Handle specific "already applied" error
 			if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
@@ -854,6 +1054,7 @@ const ScholarshipDetail = () => {
 		{ id: 'detail', label: 'Detail' },
 		{ id: 'eligibility', label: 'Eligibility' },
 		{ id: 'other', label: 'Other information' },
+		{ id: 'application', label: 'My Applications' },
 	]
 
 	const renderTabContent = () => {
@@ -1026,11 +1227,7 @@ const ScholarshipDetail = () => {
 															response.meta?.totalPages || 1
 														)
 													}
-													// eslint-disable-next-line no-console
-													console.log('✅ Debug fetch success:', response)
 												} catch (error) {
-													// eslint-disable-next-line no-console
-													console.error('❌ Debug fetch failed:', error)
 												} finally {
 													setEligibilityProgramsLoading(false)
 												}
@@ -1145,6 +1342,101 @@ const ScholarshipDetail = () => {
 					</div>
 				)
 
+			case 'application':
+				// Show applications list - clicking will update the Application Status section below
+				return (
+					<div className="space-y-6">
+						<h2 className="text-2xl font-bold text-gray-900">
+							My Applications
+						</h2>
+
+						{loadingApplications &&
+						lastFetchedPostId !== currentScholarship?.id ? (
+							<div className="bg-white rounded-lg shadow border overflow-hidden">
+								{/* Skeleton loader for table */}
+								<div className="animate-pulse">
+									<div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+										<div className="h-4 bg-gray-200 rounded w-1/4"></div>
+									</div>
+									{[1, 2, 3].map((i) => (
+										<div key={i} className="px-6 py-4 border-b border-gray-200">
+											<div className="flex items-center justify-between">
+												<div className="flex-1 space-y-2">
+													<div className="h-4 bg-gray-200 rounded w-1/3"></div>
+													<div className="h-3 bg-gray-100 rounded w-1/4"></div>
+												</div>
+												<div className="h-6 bg-gray-200 rounded-full w-20"></div>
+												<div className="h-4 bg-gray-200 rounded w-16"></div>
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						) : applications.length > 0 ? (
+							<div className="bg-white rounded-lg shadow border overflow-hidden">
+								<table className="min-w-full divide-y divide-gray-200">
+									<thead className="bg-gray-50">
+										<tr>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Application Date
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Status
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Documents
+											</th>
+										</tr>
+									</thead>
+									<tbody className="bg-white divide-y divide-gray-200">
+										{applications.map((app) => (
+											<tr
+												key={app.applicationId}
+												onClick={() =>
+													handleApplicationClick(app.applicationId)
+												}
+												className="hover:bg-gray-50 cursor-pointer transition-colors"
+											>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+													{new Date(app.applyAt).toLocaleDateString()}
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap">
+													<span
+														className={`px-3 py-1 rounded-full text-xs font-medium ${
+															app.status === 'ACCEPTED'
+																? 'bg-green-100 text-green-800'
+																: app.status === 'REJECTED'
+																	? 'bg-red-100 text-red-800'
+																	: app.status === 'PROGRESSING'
+																		? 'bg-blue-100 text-blue-800'
+																		: 'bg-yellow-100 text-yellow-800'
+														}`}
+													>
+														{app.status}
+													</span>
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+													{app.documents?.length || 0} document(s)
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						) : (
+							<div className="text-center py-12 bg-white rounded-lg shadow border">
+								<File className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+								<p className="text-gray-600">
+									No applications found for this scholarship
+								</p>
+								<p className="text-sm text-gray-500 mt-2">
+									Submit an application to get started
+								</p>
+							</div>
+						)}
+					</div>
+				)
+
 			default:
 				return null
 		}
@@ -1232,8 +1524,7 @@ const ScholarshipDetail = () => {
 												if (institutionId) {
 													router.push(`/institution-detail/${institutionId}`)
 												} else {
-													// eslint-disable-next-line no-console
-													console.warn('No institution ID available')
+													// No institution ID available
 												}
 											}}
 											className="bg-[#126E64] hover:bg-[#0d5952] text-white"
@@ -1537,105 +1828,121 @@ const ScholarshipDetail = () => {
 						)}
 					</div>
 
-					{!hasApplied && (
-						<>
-							<div className="text-gray-600 mb-6">
-								{currentScholarship?.requiredDocuments &&
-								currentScholarship.requiredDocuments.length > 0 ? (
-									<div className="space-y-3">
-										{currentScholarship.requiredDocuments.map((doc: any) => (
-											<p key={doc.id}>
-												<span className="font-medium">{doc.name}:</span>{' '}
-												{doc.description}
-											</p>
-										))}
+					{/* Congratulations message for approved applications */}
+					{hasApplied && applicationStatus === 'ACCEPTED' && (
+						<div className="bg-green-50 border-2 border-green-200 rounded-xl p-8 mb-6">
+							<div className="flex items-start gap-4">
+								<div className="flex-shrink-0">
+									<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+										<Check className="w-8 h-8 text-green-600" />
 									</div>
-								) : (
-									<p>
-										Not have any specific document requirement. You can upload
-										any
+								</div>
+								<div className="flex-1">
+									<h3 className="text-2xl font-bold text-green-800 mb-2">
+										🎉 Congratulations!
+									</h3>
+									<p className="text-lg text-green-700 mb-4">
+										Your application has been approved! The institution will
+										contact you with further details about the next steps.
 									</p>
-								)}
-							</div>
-
-							{/* Application Documents Section */}
-							<div className="w-full mb-6">
-								<div className="space-y-6">
-									{/* Header */}
-									<div className="text-center">
-										<h3 className="text-xl font-semibold text-gray-900 mb-2">
-											Application Documents
-										</h3>
-										<p className="text-gray-600">
-											Select documents from your profile or upload new files
+									<div className="bg-white rounded-lg p-4 border border-green-200">
+										<p className="text-sm text-green-600 font-medium">
+											Application Status:{' '}
+											<span className="text-green-800">ACCEPTED</span>
 										</p>
 									</div>
+								</div>
+							</div>
+						</div>
+					)}
 
-									{/* Show simple note if no documents selected yet */}
-									{selectedDocuments.length === 0 ? (
-										<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
-											<div className="text-6xl mb-4">📁</div>
-											<h4 className="text-lg font-medium text-gray-900 mb-2">
-												No documents ready
-											</h4>
-											<p className="text-gray-600 mb-6">
-												Get started by selecting documents from your profile
-											</p>
+					{((!hasApplied && !pendingApplication) ||
+						(hasApplied && applicationStatus === 'SUBMITTED' && isEditMode)) &&
+						applicationStatus !== 'ACCEPTED' && (
+							<>
+								{hasApplied &&
+									applicationStatus === 'SUBMITTED' &&
+									isEditMode && (
+										<div className="mb-4 flex items-center justify-between">
+											<h3 className="text-lg font-semibold text-gray-900">
+												Edit Application Documents
+											</h3>
 											<Button
-												onClick={() => setShowDocumentSelector(true)}
-												className="bg-[#126E64] hover:bg-teal-700 text-white px-8 py-3"
+												variant="outline"
+												onClick={() => {
+													// Check if there are unsaved changes
+													const hasChanges =
+														uploadedFiles.length !==
+															originalUploadedFiles.length ||
+														uploadedFiles.some(
+															(file, index) =>
+																!originalUploadedFiles[index] ||
+																file.id !== originalUploadedFiles[index].id ||
+																file.url !== originalUploadedFiles[index].url
+														)
+
+													if (hasChanges) {
+														setShowCancelEditModal(true)
+													} else {
+														handleCancelEdit()
+													}
+												}}
+												className="text-gray-600 border-gray-300 hover:bg-gray-50"
+												size="sm"
 											>
-												📄 Select Documents
+												Cancel Edit
 											</Button>
 										</div>
+									)}
+								<div className="text-gray-600 mb-6">
+									{currentScholarship?.requiredDocuments &&
+									currentScholarship.requiredDocuments.length > 0 ? (
+										<div className="space-y-3">
+											{currentScholarship.requiredDocuments.map((doc: any) => (
+												<p key={doc.id}>
+													<span className="font-medium">{doc.name}:</span>{' '}
+													{doc.description}
+												</p>
+											))}
+										</div>
 									) : (
-										<>
-											{/* Selected Documents Summary */}
-											<div className="bg-[#e1fdeb] border border-green-200 rounded-xl p-6">
-												<div className="flex items-center gap-4">
-													<div className="w-12 h-12 bg-[#126E64] rounded-full flex items-center justify-center">
-														<Check className="w-6 h-6 text-white" />
-													</div>
-													<div className="flex-1">
-														<h4 className="text-lg font-semibold text-green-800">
-															{selectedDocuments.length} Document
-															{selectedDocuments.length !== 1 ? 's' : ''} Ready
-														</h4>
-														<p className="text-green-600">
-															{(() => {
-																const profileDocs = selectedDocuments.filter(
-																	(d) => d.source === 'existing'
-																).length
-																const uploadedDocs = selectedDocuments.filter(
-																	(d) => d.source === 'new'
-																).length
+										<p>
+											Not have any specific document requirement. You can upload
+											any
+										</p>
+									)}
+								</div>
 
-																if (profileDocs > 0 && uploadedDocs > 0) {
-																	return `${profileDocs} from profile, ${uploadedDocs} uploaded`
-																} else if (profileDocs > 0) {
-																	return `${profileDocs} from profile`
-																} else if (uploadedDocs > 0) {
-																	return `${uploadedDocs} uploaded`
-																} else {
-																	return 'Ready to submit'
-																}
-															})()}
-														</p>
-													</div>
-													<div className="flex gap-3">
-														<Button
-															variant="outline"
-															onClick={() => setShowDocumentSelector(true)}
-															className="text-green-700 border-green-300 bg-white hover:bg-green-50"
-														>
-															Edit Selection
-														</Button>
-													</div>
-												</div>
+								{/* Application Documents Section */}
+								<div className="w-full mb-6">
+									<div className="space-y-6 pt-7">
+										{/* Always show Select from Profile and Upload Files options */}
+										<div className="space-y-4">
+											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
+											<div className="text-center">
+												<Button
+													onClick={() => setShowDocumentSelector(true)}
+													variant="outline"
+													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
+												>
+													📄 Select from Profile
+												</Button>
+												<p className="text-sm text-gray-500 mt-2">
+													Choose documents from your profile for the snapshot
+												</p>
 											</div>
 
-											{/* Upload Additional Files */}
-											<div className="border-2 border-dashed rounded-xl p-8 text-center">
+											{/* Divider with OR */}
+											<div className="flex items-center gap-4">
+												<div className="flex-1 border-t border-gray-300"></div>
+												<span className="text-sm font-medium text-gray-500">
+													OR
+												</span>
+												<div className="flex-1 border-t border-gray-300"></div>
+											</div>
+
+											{/* Upload Files Section - Direct upload, no modal */}
+											<div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50">
 												<input
 													type="file"
 													multiple
@@ -1657,12 +1964,43 @@ const ScholarshipDetail = () => {
 																			source: 'new' as const,
 																		})
 																	)
-																	const updatedDocs = [
-																		...selectedDocuments,
-																		...newDocuments,
-																	]
+																	// Merge with existing documents, deduplicate by URL
+																	const docsMap = new Map<string, any>()
+																	// Add existing documents first
+																	selectedDocuments.forEach((doc) => {
+																		docsMap.set(doc.url, doc)
+																	})
+																	// Add new documents (will overwrite if same URL, but shouldn't happen)
+																	newDocuments.forEach((doc) => {
+																		docsMap.set(doc.url, doc)
+																	})
+																	const updatedDocs = Array.from(
+																		docsMap.values()
+																	)
 																	setSelectedDocuments(updatedDocs)
-																	handleDocumentsSelected(updatedDocs)
+																	// Update uploadedFiles directly without opening modal
+																	const convertedFiles = updatedDocs.map(
+																		(doc) => ({
+																			id: doc.document_id,
+																			name: doc.name,
+																			url: doc.url,
+																			size: doc.size,
+																			documentType: doc.documentType,
+																			source: doc.source,
+																			applicationDocumentId: (doc as any)
+																				.applicationDocumentId, // Preserve ApplicationDetail document_id if exists
+																		})
+																	)
+																	// Deduplicate by URL to prevent glitches
+																	const uniqueFiles = Array.from(
+																		new Map(
+																			convertedFiles.map((file) => [
+																				file.url,
+																				file,
+																			])
+																		).values()
+																	)
+																	setUploadedFiles(uniqueFiles)
 																	showSuccess(
 																		'Files Uploaded',
 																		`${uploadedFileData.length} file(s) uploaded successfully`
@@ -1678,75 +2016,127 @@ const ScholarshipDetail = () => {
 														e.target.value = ''
 													}}
 													className="hidden"
-													id="file-upload-additional"
+													id="file-upload-main"
 													accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
 												/>
 												<label
-													htmlFor="file-upload-additional"
+													htmlFor="file-upload-main"
 													className="cursor-pointer block"
 												>
 													<div className="text-5xl mb-4">📁</div>
-													<h4 className="text-lg font-medium text-orange-800 mb-2">
-														Upload Additional Files
+													<h4 className="text-lg font-medium text-gray-900 mb-2">
+														Upload Files
 													</h4>
-													<p className="text-orange-700">
-														Click to add more documents from your computer
+													<p className="text-gray-600 mb-2">
+														Click to upload documents from your computer
 													</p>
-													<p className="text-sm text-gray-500 mt-2">
+													<p className="text-sm text-gray-500">
 														PDF, DOC, DOCX, JPG, PNG (max 10MB each)
 													</p>
 												</label>
 											</div>
-
-											{/* Show uploaded additional files if any */}
-										</>
-									)}
+										</div>
+									</div>
 								</div>
-							</div>
-						</>
-					)}
 
-					{/* File Management */}
-					{!hasApplied && (uploadedFiles.length > 0 || isUploading) && (
-						<div className="bg-gray-50 rounded-lg p-4 mb-6">
-							<div className="flex items-center justify-between mb-4">
-								<span className="font-medium">
-									{isUploading
-										? 'Uploading files...'
-										: `Manage files: ${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''}`}
-								</span>
-								{uploadedFiles.length > 0 && (
-									<Button
-										variant="outline"
-										onClick={handleOpenModal}
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										Manage Files
-									</Button>
-								)}
-							</div>
-
-							{/* Upload Progress */}
-							{isUploading && uploadProgress.length > 0 && (
-								<div className="space-y-2 mb-4">
-									{uploadProgress.map((progress) => (
-										<div key={progress.fileIndex} className="space-y-1">
-											<div className="flex justify-between text-sm">
-												<span>File {progress.fileIndex + 1}</span>
-												<span>{progress.progress}%</span>
+								{/* Display uploaded files directly - same as submitted status view */}
+								{((!hasApplied && !pendingApplication) ||
+									(hasApplied &&
+										applicationStatus === 'SUBMITTED' &&
+										isEditMode)) &&
+									uploadedFiles.length > 0 && (
+										<div className="mt-6">
+											<div className="mb-4">
+												<h4 className="text-lg font-semibold text-gray-900">
+													Application Documents ({uploadedFiles.length} file
+													{uploadedFiles.length !== 1 ? 's' : ''})
+												</h4>
 											</div>
-											<div className="w-full bg-gray-200 rounded-full h-2">
-												<div
-													className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
-													style={{ width: `${progress.progress}%` }}
-												></div>
+											<div className="space-y-3">
+												{uploadedFiles.map((file) => (
+													<div
+														key={file.id}
+														className="flex items-center gap-3 p-3 bg-white rounded-lg border"
+													>
+														<div className="text-2xl">📄</div>
+														<div className="flex-1 min-w-0">
+															<div className="flex items-center gap-2 mb-1">
+																<p className="text-sm font-medium text-gray-900 truncate">
+																	{file.name}
+																</p>
+																{file.source && (
+																	<span
+																		className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+																			file.source === 'existing'
+																				? 'bg-blue-100 text-blue-700'
+																				: 'bg-green-100 text-green-700'
+																		}`}
+																	>
+																		{file.source === 'existing'
+																			? 'From Profile'
+																			: 'Uploaded'}
+																	</span>
+																)}
+															</div>
+															<div className="flex items-center gap-2 text-xs text-gray-500">
+																<span>
+																	{file.size
+																		? `${(file.size / 1024).toFixed(1)} KB`
+																		: '0 KB'}
+																</span>
+															</div>
+														</div>
+														<div className="flex gap-2">
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() => {
+																	// Open S3 file URL in new tab
+																	window.open(file.url, '_blank')
+																}}
+																className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+															>
+																View
+															</Button>
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() => removeFile(file.id)}
+																className="text-red-500 border-red-500 hover:bg-red-50"
+															>
+																Remove
+															</Button>
+														</div>
+													</div>
+												))}
 											</div>
 										</div>
-									))}
-								</div>
-							)}
-						</div>
-					)}
+									)}
+
+								{/* Upload Progress */}
+								{isUploading && uploadProgress.length > 0 && (
+									<div className="mt-6 space-y-2">
+										<p className="text-sm font-medium text-gray-700">
+											Uploading files...
+										</p>
+										{uploadProgress.map((progress) => (
+											<div key={progress.fileIndex} className="space-y-1">
+												<div className="flex justify-between text-sm">
+													<span>File {progress.fileIndex + 1}</span>
+													<span>{progress.progress}%</span>
+												</div>
+												<div className="w-full bg-gray-200 rounded-full h-2">
+													<div
+														className="bg-[#126E64] h-2 rounded-full transition-all duration-300"
+														style={{ width: `${progress.progress}%` }}
+													></div>
+												</div>
+											</div>
+										))}
+									</div>
+								)}
+							</>
+						)}
 
 					{/* Display update requests as individual alert boxes */}
 					{hasApplied &&
@@ -1957,14 +2347,138 @@ const ScholarshipDetail = () => {
 							</div>
 						)}
 
-					{/* Show uploaded files in read-only mode when applied */}
-					{hasApplied && uploadedFiles.length > 0 && (
+					{/* Show uploaded files in read-only mode when applied and not in edit mode */}
+					{hasApplied && uploadedFiles.length > 0 && !isEditMode && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
-									Initial Application Documents ({uploadedFiles.length} file
+									Application Documents ({uploadedFiles.length} file
 									{uploadedFiles.length !== 1 ? 's' : ''})
 								</span>
+								{applicationStatus === 'SUBMITTED' && (
+									<Button
+										variant="outline"
+										onClick={async () => {
+											// Fetch profile documents to match against application documents
+											try {
+												const profileResponse = await fetch(
+													'/api/applicant/documents',
+													{
+														method: 'GET',
+														headers: {
+															'Content-Type': 'application/json',
+														},
+														credentials: 'include',
+													}
+												)
+												const profileData = await profileResponse.json()
+												const profileDocuments =
+													profileData.success && profileData.documents
+														? profileData.documents
+														: []
+
+												// Match application documents to profile documents by URL
+												// Preserve the original source from the API (isFromSnapshot flag)
+												// Only use profile matching to get document_id for profile documents
+												const selectedDocs = uploadedFiles.map((file) => {
+													// Check if this file URL matches any profile document
+													const matchingProfileDoc = profileDocuments.find(
+														(profileDoc: any) => profileDoc.url === file.url
+													)
+
+													// Preserve the original source from API (file.source)
+													// This was set based on isFromSnapshot flag when documents were loaded
+													// Don't re-determine source by matching - use the original source
+													const source =
+														file.source ||
+														(matchingProfileDoc
+															? ('existing' as const)
+															: ('new' as const))
+
+													return {
+														document_id:
+															matchingProfileDoc?.document_id ||
+															file.id ||
+															`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+														name: file.name,
+														url: file.url,
+														size: file.size || 0,
+														documentType:
+															file.documentType || 'application-document',
+														source: source, // Use preserved source from API
+														applicationDocumentId:
+															file.applicationDocumentId || file.id, // Preserve ApplicationDetail document_id
+													}
+												})
+												setSelectedDocuments(selectedDocs)
+												// Store original files for comparison when canceling
+												setOriginalUploadedFiles([...uploadedFiles])
+												// Update uploadedFiles - preserve original source from API
+												// Don't re-determine source, just ensure it's set
+												const updatedFiles = uploadedFiles.map((file) => {
+													// Preserve the original source that was set by the API
+													// The source should already be set from fetchSelectedApplication
+													// Only use fallback if source is somehow missing
+													if (!file.source) {
+														const matchingProfileDoc = profileDocuments.find(
+															(profileDoc: any) => profileDoc.url === file.url
+														)
+														return {
+															...file,
+															source: matchingProfileDoc
+																? ('existing' as const)
+																: ('new' as const),
+														}
+													}
+													return file
+												})
+												// Deduplicate by URL to prevent glitches
+												const uniqueUpdatedFiles = Array.from(
+													new Map(
+														updatedFiles.map((file) => [file.url, file])
+													).values()
+												)
+												setUploadedFiles(uniqueUpdatedFiles)
+												setIsEditMode(true)
+											} catch (error) {
+												// Fallback: treat all as existing if fetch fails
+												const selectedDocs = uploadedFiles.map((file) => ({
+													document_id:
+														file.id ||
+														`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+													name: file.name,
+													url: file.url,
+													size: file.size || 0,
+													documentType:
+														file.documentType || 'application-document',
+													source: 'existing' as const,
+													applicationDocumentId:
+														file.applicationDocumentId || file.id, // Preserve ApplicationDetail document_id
+												}))
+												setSelectedDocuments(selectedDocs)
+												// Store original files for comparison when canceling
+												setOriginalUploadedFiles([...uploadedFiles])
+												// Update uploadedFiles with source information so tags are visible
+												const updatedFiles = uploadedFiles.map((file) => ({
+													...file,
+													source: 'existing' as const,
+												}))
+												// Deduplicate by URL to prevent glitches
+												const uniqueUpdatedFiles = Array.from(
+													new Map(
+														updatedFiles.map((file) => [file.url, file])
+													).values()
+												)
+												setUploadedFiles(uniqueUpdatedFiles)
+												setIsEditMode(true)
+											}
+										}}
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										size="sm"
+									>
+										Edit Documents
+									</Button>
+								)}
 							</div>
 							<div className="text-gray-600 mb-6">
 								{currentScholarship?.requiredDocuments &&
@@ -1994,9 +2508,24 @@ const ScholarshipDetail = () => {
 									>
 										<div className="text-2xl">📄</div>
 										<div className="flex-1 min-w-0">
-											<p className="text-sm font-medium text-gray-900 truncate">
-												{file.name}
-											</p>
+											<div className="flex items-center gap-2 mb-1">
+												<p className="text-sm font-medium text-gray-900 truncate">
+													{file.name}
+												</p>
+												{file.source && (
+													<span
+														className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+															file.source === 'existing'
+																? 'bg-blue-100 text-blue-700'
+																: 'bg-green-100 text-green-700'
+														}`}
+													>
+														{file.source === 'existing'
+															? 'From Profile'
+															: 'Uploaded'}
+													</span>
+												)}
+											</div>
 											<div className="flex items-center gap-2 text-xs text-gray-500">
 												<span>{(file.size / 1024).toFixed(1)} KB</span>
 												{file.uploadDate && (
@@ -2015,8 +2544,7 @@ const ScholarshipDetail = () => {
 												variant="outline"
 												size="sm"
 												onClick={() => {
-													// Open S3 file URL in new tab
-													window.open(file.url, '_blank')
+													openSessionProtectedFile(file.url)
 												}}
 												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 											>
@@ -2025,14 +2553,11 @@ const ScholarshipDetail = () => {
 											<Button
 												variant="outline"
 												size="sm"
-												onClick={() => {
-													// Download the file
-													const link = document.createElement('a')
-													link.href = file.url
-													link.download = file.name
-													document.body.appendChild(link)
-													link.click()
-													document.body.removeChild(link)
+												onClick={async () => {
+													await downloadSessionProtectedFile(
+														file.url,
+														file.name
+													)
 												}}
 												className="text-blue-600 border-blue-600 hover:bg-blue-50"
 											>
@@ -2055,7 +2580,7 @@ const ScholarshipDetail = () => {
 						</div>
 					)}
 
-					<div className="flex gap-3 justify-center">
+					<div className="flex gap-3 justify-center pt-10">
 						{!hasApplied && selectedDocuments.length > 0 && (
 							<Button
 								variant="outline"
@@ -2161,100 +2686,6 @@ const ScholarshipDetail = () => {
 				</motion.div>
 			</motion.div>
 
-			{/* Manage Files Side Panel */}
-			{showManageModal && (
-				<div
-					className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
-						isClosing ? 'translate-x-full' : 'translate-x-0'
-					}`}
-					style={{
-						animation:
-							showManageModal && !isClosing
-								? 'slideInFromRight 0.3s ease-out'
-								: 'none',
-					}}
-				>
-					<div className="p-6 border-b">
-						<div className="flex items-center justify-between">
-							<h2 className="text-xl font-semibold">Manage Documents</h2>
-							<Button
-								variant="outline"
-								onClick={handleCloseModal}
-								className="rounded-full"
-							>
-								✕
-							</Button>
-						</div>
-					</div>
-
-					<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
-						<div className="space-y-8">
-							{/* Uploaded Files Section */}
-							{uploadedFiles.length > 0 && (
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-foreground border-b pb-2">
-										Uploaded Files ({uploadedFiles.length})
-									</h3>
-									<div className="space-y-3">
-										{uploadedFiles.map((file) => (
-											<div
-												key={file.id}
-												className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
-											>
-												<div className="flex items-center gap-3">
-													<span className="text-2xl">📄</span>
-													<div>
-														<p className="font-medium text-sm">
-															{file.name || 'Document'}
-														</p>
-														<p className="text-sm text-muted-foreground">
-															{formatFileSize(file.size || 0)}
-															{file.fileType ? ` • ${file.fileType}` : ''}
-														</p>
-													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													{file.url ? (
-														<>
-															<button
-																onClick={() => {
-																	// Open S3 file URL in new tab
-																	window.open(file.url, '_blank')
-																}}
-																className="text-primary hover:text-primary/80 text-sm font-medium"
-															>
-																View
-															</button>
-														</>
-													) : null}
-													<button
-														onClick={() => removeFile(file.id)}
-														className="text-gray-400 hover:text-red-600 p-1"
-														title="Delete document"
-													>
-														<Trash2 className="h-4 w-4" />
-													</button>
-												</div>
-											</div>
-										))}
-									</div>
-								</div>
-							)}
-
-							{/* Empty State */}
-							{uploadedFiles.length === 0 && (
-								<div className="text-center py-8">
-									<div className="text-4xl mb-4">📁</div>
-									<p className="text-muted-foreground">
-										No documents uploaded yet
-									</p>
-								</div>
-							)}
-						</div>
-					</div>
-				</div>
-			)}
-
 			{/* Delete Confirmation Modal */}
 			<Modal
 				isOpen={showDeleteConfirmModal}
@@ -2347,6 +2778,156 @@ const ScholarshipDetail = () => {
 							})) || []
 						}
 					/>
+				</div>
+
+				{/* Sticky Footer with Actions */}
+				<div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 -mx-6 -mb-6 mt-6">
+					<div className="flex items-center justify-between">
+						{/* Left Side - Summary */}
+						<div className="flex items-center gap-4">
+							{(() => {
+								// Only count profile documents (source === 'existing')
+								const profileDocuments = selectedDocuments.filter(
+									(doc) => doc.source === 'existing'
+								)
+								const profileCount = profileDocuments.length
+								return profileCount > 0 ? (
+									<div className="flex items-center gap-3">
+										<div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+											<Check className="w-5 h-5 text-green-600" />
+										</div>
+										<div>
+											<p className="font-semibold text-gray-900">
+												{profileCount} document
+												{profileCount !== 1 ? 's' : ''} selected from profile
+											</p>
+											<p className="text-sm text-gray-500">Ready to submit</p>
+										</div>
+									</div>
+								) : (
+									<div className="flex items-center gap-3">
+										<div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+											<File className="w-5 h-5 text-gray-400" />
+										</div>
+										<div>
+											<p className="font-medium text-gray-900">
+												No documents selected
+											</p>
+											<p className="text-sm text-gray-500">
+												Choose files to continue
+											</p>
+										</div>
+									</div>
+								)
+							})()}
+						</div>
+
+						{/* Right Side - Action Buttons */}
+						<div className="flex gap-3">
+							<Button
+								variant="outline"
+								onClick={() => {
+									setShowDocumentSelector(false)
+									// Only clear profile documents, keep uploaded ones
+									const uploadedDocs = selectedDocuments.filter(
+										(doc) => doc.source === 'new'
+									)
+									setSelectedDocuments(uploadedDocs)
+									// Update uploadedFiles to only include uploaded documents
+									if (uploadedDocs.length > 0) {
+										const convertedFiles = uploadedDocs.map((doc) => ({
+											id: doc.document_id,
+											name: doc.name,
+											url: doc.url,
+											size: doc.size,
+											documentType: doc.documentType,
+											source: doc.source,
+										}))
+										// Deduplicate by URL to prevent glitches
+										const uniqueFiles = Array.from(
+											new Map(
+												convertedFiles.map((file) => [file.url, file])
+											).values()
+										)
+										setUploadedFiles(uniqueFiles)
+									} else {
+										setUploadedFiles([])
+									}
+								}}
+								className="px-6 py-3 text-gray-600 border-gray-300 hover:bg-gray-50"
+								size="sm"
+							>
+								Cancel
+							</Button>
+							<Button
+								onClick={() => {
+									setShowDocumentSelector(false)
+									const profileDocuments = selectedDocuments.filter(
+										(doc) => doc.source === 'existing'
+									)
+									if (profileDocuments.length > 0) {
+										showSuccess(
+											'Documents Selected!',
+											`${profileDocuments.length} document${
+												profileDocuments.length !== 1 ? 's' : ''
+											} ready for application submission`
+										)
+									}
+								}}
+								disabled={
+									selectedDocuments.filter((doc) => doc.source === 'existing')
+										.length === 0
+								}
+								className={`px-6 py-3 transition-all duration-200 ${
+									selectedDocuments.filter((doc) => doc.source === 'existing')
+										.length === 0
+										? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+										: 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl'
+								}`}
+								size="sm"
+							>
+								{selectedDocuments.filter((doc) => doc.source === 'existing')
+									.length === 0 ? (
+									'Select Documents First'
+								) : (
+									<div className="flex items-center gap-2">
+										<span>Continue</span>
+									</div>
+								)}
+							</Button>
+						</div>
+					</div>
+				</div>
+			</Modal>
+
+			{/* Cancel Edit Confirmation Modal */}
+			<Modal
+				isOpen={showCancelEditModal}
+				onClose={() => setShowCancelEditModal(false)}
+				title="Discard Changes?"
+				maxWidth="sm"
+			>
+				<div className="space-y-6">
+					<p className="text-gray-600">
+						You have unsaved changes. Are you sure you want to cancel editing?
+						All changes will be lost.
+					</p>
+
+					<div className="flex gap-3 justify-end">
+						<Button
+							variant="outline"
+							onClick={() => setShowCancelEditModal(false)}
+							className="text-gray-600 border-gray-300 hover:bg-gray-50"
+						>
+							Keep Editing
+						</Button>
+						<Button
+							onClick={handleCancelEdit}
+							className="bg-red-500 hover:bg-red-600 text-white"
+						>
+							Discard Changes
+						</Button>
+					</div>
 				</div>
 			</Modal>
 		</div>

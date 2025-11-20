@@ -3,6 +3,7 @@
 export interface ApplicationRequest {
 	postId: string;
 	documents?: ApplicationDocument[];
+	selectedProfileDocumentIds?: string[]; // IDs of selected profile documents to include in profilesnapshot
 	coverLetter?: string;
 	additionalInfo?: string;
 }

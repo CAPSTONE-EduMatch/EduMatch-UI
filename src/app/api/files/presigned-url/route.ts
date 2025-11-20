@@ -52,6 +52,9 @@ export async function POST(request: NextRequest) {
 				originalName: fileName,
 				uploadedAt: new Date().toISOString(),
 			},
+			// Make object private - prevents direct public access
+			// Direct S3 URLs will return 403 Forbidden without pre-signed URL
+			ACL: "private",
 		});
 
 		// Generate pre-signed URL (expires in 1 hour)

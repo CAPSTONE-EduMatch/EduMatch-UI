@@ -2,16 +2,121 @@
 
 import { Button, Card, CardContent } from '@/components/ui'
 import { Badge } from '@/components/ui/cards/badge'
+import { Input } from '@/components/ui'
 import { useInvoices } from '@/hooks/subscription/useInvoices'
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import {
+	ChevronLeft,
+	ChevronRight,
+	ExternalLink,
+	Loader2,
+	Search,
+	Filter,
+	ChevronDown,
+	ArrowUpDown,
+	ArrowUp,
+	ArrowDown,
+} from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+
+type SortField = 'date' | 'amount' | 'status' | 'method'
+type SortDirection = 'asc' | 'desc'
 
 export function PaymentHistoryTable() {
 	const [currentPage, setCurrentPage] = useState(1)
+	const [searchTerm, setSearchTerm] = useState('')
+	const [statusFilter, setStatusFilter] = useState<string>('')
+	const [userTypeFilter, setUserTypeFilter] = useState<string>('')
+	const [sortField, setSortField] = useState<SortField>('date')
+	const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+	const [showFilters, setShowFilters] = useState(false)
+
 	const { invoices, loading, error, pagination, refetch } = useInvoices(
 		currentPage,
-		10
+		10,
+		statusFilter || undefined,
+		userTypeFilter || undefined
 	)
+
+	// Handle sorting
+	const handleSort = (field: SortField) => {
+		if (sortField === field) {
+			setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+		} else {
+			setSortField(field)
+			setSortDirection('asc')
+		}
+	}
+
+	// Get sort icon
+	const getSortIcon = (field: SortField) => {
+		if (sortField !== field) {
+			return <ArrowUpDown className="w-4 h-4" />
+		}
+		return sortDirection === 'asc' ? (
+			<ArrowUp className="w-4 h-4" />
+		) : (
+			<ArrowDown className="w-4 h-4" />
+		)
+	}
+
+	// Filter and sort invoices
+	const filteredAndSortedInvoices = useMemo(() => {
+		let filtered = [...invoices]
+
+		// Apply search filter
+		if (searchTerm) {
+			const searchLower = searchTerm.toLowerCase()
+			filtered = filtered.filter(
+				(invoice) =>
+					invoice.stripeInvoiceId.toLowerCase().includes(searchLower) ||
+					invoice.user.email.toLowerCase().includes(searchLower) ||
+					(invoice.receiptNumber &&
+						invoice.receiptNumber.toLowerCase().includes(searchLower)) ||
+					(invoice.user.name &&
+						invoice.user.name.toLowerCase().includes(searchLower))
+			)
+		}
+
+		// Apply sorting
+		filtered.sort((a, b) => {
+			let aValue: string | number
+			let bValue: string | number
+
+			switch (sortField) {
+				case 'date':
+					aValue = new Date(a.paidAt || a.createdAt).getTime()
+					bValue = new Date(b.paidAt || b.createdAt).getTime()
+					break
+				case 'amount':
+					aValue = a.amount
+					bValue = b.amount
+					break
+				case 'status':
+					aValue = a.status
+					bValue = b.status
+					break
+				case 'method':
+					aValue = a.paymentMethod || ''
+					bValue = b.paymentMethod || ''
+					break
+				default:
+					return 0
+			}
+
+			if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+			if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+			return 0
+		})
+
+		return filtered
+	}, [invoices, searchTerm, sortField, sortDirection])
+
+	// Reset page when search term changes
+	useEffect(() => {
+		if (searchTerm) {
+			setCurrentPage(1)
+		}
+	}, [searchTerm])
 
 	// Show loading state
 	if (loading) {
@@ -61,11 +166,106 @@ export function PaymentHistoryTable() {
 						Payment History
 					</h2>
 					<p className="text-gray-600 mb-4">View your past invoices</p>
-					{/* <div className="flex justify-between items-center mb-4">
-						<p className="text-sm text-gray-500">
-							Display {pagination.limit} results of {pagination.total}
-						</p>
-					</div> */}
+				</div>
+
+				{/* Search and Filter Controls */}
+				<div className="mb-6 space-y-4">
+					{/* Search Bar */}
+					<div className="flex items-center gap-4">
+						<div className="relative flex-1">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+							<Input
+								placeholder="Search by invoice ID, email, or receipt number..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64]"
+							/>
+						</div>
+						<Button
+							onClick={() => setShowFilters(!showFilters)}
+							variant="outline"
+							className="flex items-center gap-2"
+						>
+							<Filter className="w-4 h-4" />
+							Filters
+							<ChevronDown
+								className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+							/>
+						</Button>
+					</div>
+
+					{/* Filter Controls */}
+					{showFilters && (
+						<div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg">
+							<div className="flex items-center gap-2">
+								<label className="text-sm font-medium text-gray-700">
+									Status:
+								</label>
+								<select
+									value={statusFilter}
+									onChange={(e) => {
+										setStatusFilter(e.target.value)
+										setCurrentPage(1)
+									}}
+									className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
+								>
+									<option value="">All Statuses</option>
+									<option value="paid">Paid</option>
+									<option value="open">Open</option>
+									<option value="void">Void</option>
+									<option value="draft">Draft</option>
+								</select>
+							</div>
+
+							<div className="flex items-center gap-2">
+								<label className="text-sm font-medium text-gray-700">
+									User Type:
+								</label>
+								<select
+									value={userTypeFilter}
+									onChange={(e) => {
+										setUserTypeFilter(e.target.value)
+										setCurrentPage(1)
+									}}
+									className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
+								>
+									<option value="">All Users</option>
+									<option value="applicant">Applicant</option>
+									<option value="institution">Institution</option>
+								</select>
+							</div>
+
+							{(statusFilter || userTypeFilter) && (
+								<Button
+									onClick={() => {
+										setStatusFilter('')
+										setUserTypeFilter('')
+										setCurrentPage(1)
+									}}
+									variant="outline"
+									size="sm"
+									className="text-gray-600"
+								>
+									Clear Filters
+								</Button>
+							)}
+						</div>
+					)}
+				</div>
+
+				{/* Results Info */}
+				<div className="mb-4 flex justify-between items-center">
+					<p className="text-sm text-gray-500">
+						{searchTerm || statusFilter || userTypeFilter ? (
+							<>
+								Showing {filteredAndSortedInvoices.length} of {pagination.total}{' '}
+								invoices
+								{searchTerm && ` matching "${searchTerm}"`}
+							</>
+						) : (
+							`Showing ${pagination.limit} of ${pagination.total} invoices`
+						)}
+					</p>
 				</div>
 
 				{/* Table Container */}
@@ -73,23 +273,51 @@ export function PaymentHistoryTable() {
 					{/* Table Header */}
 					<div className="bg-[#126E64] rounded-t-[20px] px-6 py-4">
 						<div className="grid grid-cols-6 gap-4 text-white font-semibold">
-							<div>Date</div>
+							<div
+								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
+								onClick={() => handleSort('date')}
+							>
+								Date
+								{getSortIcon('date')}
+							</div>
 							<div>Period</div>
-							<div>Payment Method</div>
-							<div>Amount</div>
-							<div>Status</div>
+							<div
+								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
+								onClick={() => handleSort('method')}
+							>
+								Payment Method
+								{getSortIcon('method')}
+							</div>
+							<div
+								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
+								onClick={() => handleSort('amount')}
+							>
+								Amount
+								{getSortIcon('amount')}
+							</div>
+							<div
+								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
+								onClick={() => handleSort('status')}
+							>
+								Status
+								{getSortIcon('status')}
+							</div>
 							<div>Actions</div>
 						</div>
 					</div>
 
 					{/* Table Body */}
 					<div className="space-y-0">
-						{invoices.length === 0 ? (
+						{filteredAndSortedInvoices.length === 0 ? (
 							<div className="px-6 py-12 text-center">
-								<p className="text-gray-500">No payment history found</p>
+								<p className="text-gray-500">
+									{searchTerm
+										? 'No invoices match your search criteria'
+										: 'No payment history found'}
+								</p>
 							</div>
 						) : (
-							invoices.map((invoice, index) => (
+							filteredAndSortedInvoices.map((invoice, index) => (
 								<div
 									key={invoice.id}
 									className={`px-6 py-4 border-b border-gray-200 last:border-b-0 ${

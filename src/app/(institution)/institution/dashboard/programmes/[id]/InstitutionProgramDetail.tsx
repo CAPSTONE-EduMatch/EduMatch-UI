@@ -233,8 +233,8 @@ const InstitutionProgramDetail = () => {
 	}
 
 	const handleViewApplications = () => {
-		// Navigate to applications section
-		router.push(`/institution/dashboard/applications`)
+		// Navigate to applications section with filter for this post
+		router.push(`/institution/dashboard/applications?postId=${params.id}`)
 	}
 
 	const handleApplicantDetail = (applicant: Applicant) => {

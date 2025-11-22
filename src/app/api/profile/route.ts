@@ -364,9 +364,19 @@ export async function POST(request: NextRequest) {
 		// Use the appropriate profile service based on role
 		let newProfile;
 		if (formData.role === "applicant") {
+			console.log("📝 Creating applicant profile with data:", {
+				firstName: formData.firstName,
+				role: formData.role,
+				fieldOfStudy: formData.fieldOfStudy,
+				// Log other key fields but not sensitive data
+				hasData: !!formData,
+			});
 			newProfile = await ApplicantProfileService.upsertProfile(
 				userId,
 				formData
+			);
+			console.log(
+				"✅ Profile created, embedding should have been processed"
 			);
 		} else if (formData.role === "institution") {
 			newProfile = await InstitutionProfileService.upsertProfile(
@@ -414,8 +424,12 @@ export async function POST(request: NextRequest) {
 			profile: newProfile,
 		});
 	} catch (error) {
+		console.error("❌ Profile creation failed:", error);
 		return NextResponse.json(
-			{ error: "Failed to save profile" },
+			{
+				error: "Failed to save profile",
+				details: error instanceof Error ? error.message : String(error),
+			},
 			{ status: 500 }
 		);
 	}

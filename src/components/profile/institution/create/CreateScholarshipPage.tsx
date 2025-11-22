@@ -152,6 +152,7 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [createdResult, setCreatedResult] = useState<any>(null)
+	const [isSubmitting, setIsSubmitting] = useState(false)
 
 	const handleInputChange = (field: string, value: any) => {
 		setFormData((prev) => ({
@@ -181,6 +182,7 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 	}
 
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
+		setIsSubmitting(true)
 		try {
 			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
 			const convertDateFormat = (dateString: string) => {
@@ -216,6 +218,7 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 			}
 
 			const result = await response.json()
+			// eslint-disable-next-line no-console
 			console.log(
 				isEditMode ? 'Scholarship post updated:' : 'Scholarship post created:',
 				result
@@ -225,6 +228,7 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 			setCreatedResult(result)
 			setShowSuccessModal(true)
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Error creating scholarship post:', error)
 			const errorMsg =
 				error instanceof Error
@@ -232,6 +236,8 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 					: 'Failed to create scholarship post. Please try again.'
 			setErrorMessage(errorMsg)
 			setShowErrorModal(true)
+		} finally {
+			setIsSubmitting(false)
 		}
 	}
 
@@ -585,11 +591,19 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 
 			{/* Action Buttons */}
 			<div className="flex justify-center gap-4">
-				<Button onClick={() => handleSubmit('DRAFT')} variant="outline">
-					Save as Draft
+				<Button
+					onClick={() => handleSubmit('DRAFT')}
+					variant="outline"
+					disabled={isSubmitting}
+				>
+					{isSubmitting ? 'Processing...' : 'Save as Draft'}
 				</Button>
-				<Button onClick={() => handleSubmit('SUBMITTED')} variant="primary">
-					Submit
+				<Button
+					onClick={() => handleSubmit('SUBMITTED')}
+					variant="primary"
+					disabled={isSubmitting}
+				>
+					{isSubmitting ? 'Processing...' : 'Submit'}
 				</Button>
 			</div>
 			{/* Success Modal */}

@@ -3,6 +3,7 @@ import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { v4 as uuidv4 } from "uuid";
+import { EmbeddingService } from "@/services/embedding/embedding-service";
 
 interface CreateScholarshipRequest {
 	// Overview Section
@@ -180,6 +181,37 @@ export async function POST(request: NextRequest) {
 			? body.scholarshipType.join(", ")
 			: body.scholarshipType || "";
 
+		// Generate embedding for the scholarship post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatScholarshipDataForEmbedding(body);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for scholarship text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for scholarship post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for scholarship post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
 		// Create the scholarship post
 		await prismaClient.scholarshipPost.create({
 			data: {
@@ -196,6 +228,7 @@ export async function POST(request: NextRequest) {
 					: null,
 				award_duration: body.awardDetails?.duration || null,
 				renewable: body.awardDetails?.renewable === "Yes" || false,
+				embedding: embeddingData,
 			},
 		});
 
@@ -385,6 +418,37 @@ export async function PUT(request: NextRequest) {
 			? updateData.scholarshipType.join(", ")
 			: updateData.scholarshipType || "";
 
+		// Generate embedding for the scholarship post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatScholarshipDataForEmbedding(updateData);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for updated scholarship text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for updated scholarship post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for updated scholarship post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
 		// Update the scholarship post
 		await prismaClient.scholarshipPost.update({
 			where: { post_id: postId },
@@ -402,6 +466,7 @@ export async function PUT(request: NextRequest) {
 				award_duration: updateData.awardDetails?.duration || null,
 				renewable:
 					updateData.awardDetails?.renewable === "Yes" || false,
+				embedding: embeddingData,
 			},
 		});
 

@@ -614,7 +614,6 @@ export const mockResearchLabs: ResearchLab[] = [
 ];
 
 // Utility functions
-export const getRandomMatch = () => `${Math.floor(Math.random() * 30) + 70}%`;
 export const getRandomDaysLeft = () => Math.floor(Math.random() * 365) + 1;
 export const getRandomAmount = () =>
 	`${Math.floor(Math.random() * 50000) + 10000} USD`;

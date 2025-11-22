@@ -216,7 +216,10 @@ export async function GET(request: NextRequest) {
 					app.degreeLevel
 						.toLowerCase()
 						.includes(search.toLowerCase()) ||
-					app.postTitle.toLowerCase().includes(search.toLowerCase())
+					app.postTitle
+						.toLowerCase()
+						.includes(search.toLowerCase()) ||
+					app.postId.toLowerCase().includes(search.toLowerCase())
 			);
 		}
 

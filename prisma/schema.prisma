@@ -114,6 +114,7 @@ model Applicant {
   has_foreign_language Boolean?
   languages            Json?
   university           String?
+  embedding            Json?
   deleted_at           DateTime?               @db.Timestamptz(6)
   status               Boolean                 @default(true)
   subdiscipline        Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
@@ -236,6 +237,7 @@ model ProgramPost {
   fee_description      String?
   scholarship_info     String?
   language_requirement String?
+  embedding            Json?
   certificates         PostCertificate[]
   post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
   ProgramScholarship   ProgramScholarship[]
@@ -272,6 +274,7 @@ model JobPost {
   research_proposal         String?
   technical_skills          String?
   professor_name            String?
+  embedding                 Json?
   post                      OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("JobPost")
@@ -289,6 +292,7 @@ model ScholarshipPost {
   award_amount         Decimal?             @db.Decimal
   award_duration       String?
   renewable            Boolean?
+  embedding            Json?
   ProgramScholarship   ProgramScholarship[]
   post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
 

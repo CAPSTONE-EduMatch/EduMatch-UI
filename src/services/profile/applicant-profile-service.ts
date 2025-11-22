@@ -1,4 +1,5 @@
 import { prismaClient } from "../../../prisma/index";
+import { EmbeddingService } from "../embedding/embedding-service";
 
 // Applicant-specific form data interface
 export interface ApplicantProfileFormData {
@@ -299,6 +300,46 @@ export class ApplicantProfileService {
 
 			// Handle documents
 			await this.handleDocuments(applicant.applicant_id, formData);
+
+			// Generate and save embedding for the applicant profile
+			try {
+				console.log(
+					"🔄 ApplicantProfileService: Generating embedding for applicant profile..."
+				);
+
+				// Format applicant data for embedding
+				const textForEmbedding =
+					EmbeddingService.formatApplicantDataForEmbedding(formData);
+				console.log(
+					"📝 ApplicantProfileService: Formatted text for embedding:",
+					textForEmbedding.substring(0, 200) + "..."
+				);
+
+				// Generate embedding
+				const embedding =
+					await EmbeddingService.generateEmbedding(textForEmbedding);
+
+				if (embedding && embedding.length > 0) {
+					// Save embedding to database
+					await prismaClient.applicant.update({
+						where: { applicant_id: applicant.applicant_id },
+						data: { embedding: embedding },
+					});
+					console.log(
+						"✅ ApplicantProfileService: Embedding generated and saved successfully"
+					);
+				} else {
+					console.warn(
+						"⚠️ ApplicantProfileService: Failed to generate embedding"
+					);
+				}
+			} catch (embeddingError) {
+				console.error(
+					"❌ ApplicantProfileService: Error generating embedding:",
+					embeddingError
+				);
+				// Don't fail the profile creation if embedding generation fails
+			}
 
 			// Return updated profile
 			const fetchedProfile = await this.getProfile(userId);

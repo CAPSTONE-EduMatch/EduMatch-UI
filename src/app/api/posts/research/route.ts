@@ -3,6 +3,7 @@ import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { v4 as uuidv4 } from "uuid";
+import { EmbeddingService } from "@/services/embedding/embedding-service";
 
 interface CreateResearchLabRequest {
 	// Overview Section
@@ -271,6 +272,37 @@ export async function POST(request: NextRequest) {
 			labCapacity = capacityValue;
 		}
 
+		// Generate embedding for the research lab post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatResearchLabDataForEmbedding(body);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for research lab text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for research lab post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for research lab post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
 		// Create the job post (research position)
 		await prismaClient.jobPost.create({
 			data: {
@@ -305,6 +337,7 @@ export async function POST(request: NextRequest) {
 				research_proposal:
 					body.applicationRequirements.researchProposal,
 				recommendations: body.applicationRequirements.recommendations,
+				embedding: embeddingData,
 			},
 		});
 
@@ -620,6 +653,37 @@ export async function PUT(request: NextRequest) {
 			labCapacity = capacityValue;
 		}
 
+		// Generate embedding for the updated research lab post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatResearchLabDataForEmbedding(updateData);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for updated research lab text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for updated research lab post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for updated research lab post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
 		// Update the job post (research position)
 		await prismaClient.jobPost.update({
 			where: { post_id: postId },
@@ -657,6 +721,7 @@ export async function PUT(request: NextRequest) {
 					updateData.applicationRequirements.researchProposal,
 				recommendations:
 					updateData.applicationRequirements.recommendations,
+				embedding: embeddingData,
 			},
 		});
 

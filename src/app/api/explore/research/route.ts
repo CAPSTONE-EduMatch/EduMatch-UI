@@ -1,6 +1,8 @@
 import { ExploreApiResponse, PaginationMeta } from "@/types/api/explore-api";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Define ResearchLab type locally since it's not exported
 interface ResearchLab {
@@ -27,9 +29,62 @@ function calculateDaysLeft(dateString: string): number {
 	return Math.max(0, diffDays);
 }
 
-// Helper function to calculate match percentage (placeholder logic)
-function calculateMatchPercentage(): string {
-	return `${Math.floor(Math.random() * 30) + 70}%`;
+// Helper function to calculate match percentage based on similarity
+async function calculateMatchPercentages(
+	researchLabs: ResearchLab[],
+	userId?: string
+): Promise<void> {
+	if (!userId) {
+		// No authenticated user, show 0%
+		researchLabs.forEach((lab) => {
+			lab.match = "0%";
+		});
+		return;
+	}
+
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findFirst({
+			where: { user_id: userId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			// No applicant embedding, show 0%
+			researchLabs.forEach((lab) => {
+				lab.match = "0%";
+			});
+			return;
+		}
+
+		// Get embeddings for all job posts (research positions)
+		const postIds = researchLabs.map((lab) => lab.id);
+		const jobPosts = await prismaClient.jobPost.findMany({
+			where: { post_id: { in: postIds } },
+			select: { post_id: true, embedding: true },
+		});
+
+		// Calculate similarity scores
+		const applicantEmbedding = applicant.embedding as number[];
+		const matchScores = SimilarityService.calculateMatchScores(
+			applicantEmbedding,
+			jobPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			}))
+		);
+
+		// Update research lab objects with calculated match scores
+		researchLabs.forEach((lab) => {
+			lab.match = matchScores[lab.id] || "0%";
+		});
+	} catch (error) {
+		console.error("Error calculating match scores:", error);
+		// Fallback to 0% on error
+		researchLabs.forEach((lab) => {
+			lab.match = "0%";
+		});
+	}
 }
 
 export async function GET(request: NextRequest) {
@@ -235,7 +290,7 @@ export async function GET(request: NextRequest) {
 					position: (postJob as any)?.job_type || "Research Position",
 					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
 					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend
-					match: calculateMatchPercentage(),
+					match: "0%", // Will be calculated later based on similarity
 					applicationCount: applicationCount || 0, // Add application count for popularity sorting
 				};
 
@@ -251,6 +306,16 @@ export async function GET(request: NextRequest) {
 				)
 			);
 		}
+
+		// Calculate match scores based on similarity (for all filtered results)
+		let userId: string | undefined;
+		try {
+			const { user } = await requireAuth();
+			userId = user.id;
+		} catch (error) {
+			// User not authenticated, will use default scores
+		}
+		await calculateMatchPercentages(labs, userId);
 
 		// Sort research labs
 		switch (sortBy) {

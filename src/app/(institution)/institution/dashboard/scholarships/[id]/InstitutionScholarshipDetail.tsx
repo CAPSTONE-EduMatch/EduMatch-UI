@@ -229,7 +229,7 @@ const InstitutionScholarshipDetail = () => {
 
 	const handleViewApplications = () => {
 		// Navigate to applications section
-		router.push(`/institution/dashboard/applications`)
+		router.push(`/institution/dashboard/applications?postId=${params.id}`)
 	}
 
 	const handleApplicantDetail = (applicant: Applicant) => {

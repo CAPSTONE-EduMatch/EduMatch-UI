@@ -40,6 +40,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [isSubmitting, setIsSubmitting] = useState(false)
 
 	// Load subdisciplines from database
 	useEffect(() => {
@@ -479,6 +480,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	}
 
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
+		setIsSubmitting(true)
 		try {
 			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
 			const convertDateFormat = (dateString: string) => {
@@ -550,6 +552,8 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 						: 'Failed to create program post. Please try again.'
 			setErrorMessage(errorMsg)
 			setShowErrorModal(true)
+		} finally {
+			setIsSubmitting(false)
 		}
 	}
 
@@ -1234,11 +1238,19 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 			{/* Action Buttons */}
 			<div className="flex justify-center gap-4">
-				<Button onClick={() => handleSubmit('DRAFT')} variant="outline">
-					Save as Draft
+				<Button
+					onClick={() => handleSubmit('DRAFT')}
+					variant="outline"
+					disabled={isSubmitting}
+				>
+					{isSubmitting ? 'Processing...' : 'Save as Draft'}
 				</Button>
-				<Button onClick={() => handleSubmit('SUBMITTED')} variant="primary">
-					Submit
+				<Button
+					onClick={() => handleSubmit('SUBMITTED')}
+					variant="primary"
+					disabled={isSubmitting}
+				>
+					{isSubmitting ? 'Processing...' : 'Submit'}
 				</Button>
 			</div>
 

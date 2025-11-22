@@ -476,7 +476,7 @@ const ResearchLabDetail = () => {
 			if (response.ok) {
 				const data = await response.json()
 				console.log('✅ API Response data:', data)
-				if (data.data) {
+				if (data.success && data.data) {
 					setRecommendedResearchLabs(data.data)
 					console.log('✅ Set recommendations:', data.data.length, 'items')
 				} else {
@@ -1461,12 +1461,7 @@ const ResearchLabDetail = () => {
 								{researchLab?.title || "Job's name"}
 							</h1>
 							<p className="text-gray-600 mb-4">
-								Provided by:{' '}
-								{typeof researchLab?.organization === 'string'
-									? researchLab.organization
-									: (researchLab?.organization as any)?.name ||
-										researchLab?.institution?.name ||
-										"Lab's name"}
+								Provided by: {researchLab?.organization || "Lab's name"}
 							</p>
 
 							{/* Institution Status Badge */}
@@ -2567,10 +2562,10 @@ const ResearchLabDetail = () => {
 						className="p-8 bg-white py-6 shadow-xl border"
 					>
 						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
-						{/* <p className="text-sm text-gray-500 mb-4">
+						<p className="text-sm text-gray-500 mb-4">
 							Debug: Loading={String(isLoadingRecommendations)}, Count=
 							{recommendedResearchLabs.length}
-						</p> */}
+						</p>
 
 						{/* Show loading state */}
 						{isLoadingRecommendations ? (

@@ -200,7 +200,16 @@ export async function GET(request: NextRequest) {
 						)
 					)
 				: null,
-			institution: lab.institution.name,
+			institution: lab.institution
+				? {
+						id: lab.institution.institution_id,
+						name: lab.institution.name,
+						logo: lab.institution.logo,
+						country: lab.institution.country,
+						status: lab.institution.status,
+						deletedAt: lab.institution.deleted_at,
+					}
+				: null,
 			subdiscipline:
 				lab.subdisciplines?.map((sub) => ({
 					id: sub.subdiscipline.subdiscipline_id,

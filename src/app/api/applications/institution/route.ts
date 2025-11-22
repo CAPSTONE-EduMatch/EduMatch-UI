@@ -1,6 +1,99 @@
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
+import { SimilarityService } from "@/services/similarity/similarity-service";
+
+// Helper function to calculate match scores between applicants and posts
+async function calculateApplicationMatchScores(
+	applications: any[]
+): Promise<Map<string, string>> {
+	const matchScores = new Map<string, string>();
+
+	try {
+		// Group applications by post_id to optimize database queries
+		const postApplications = new Map<string, string[]>();
+		applications.forEach((app) => {
+			const postId = app.post.post_id;
+			if (!postApplications.has(postId)) {
+				postApplications.set(postId, []);
+			}
+			postApplications.get(postId)!.push(app.applicant.applicant_id);
+		});
+
+		// For each post, get the post embedding and calculate similarity with all applicants
+		for (const [postId, applicantIds] of Array.from(
+			postApplications.entries()
+		)) {
+			// Get post embedding from the appropriate table
+			const [programPost, scholarshipPost, jobPost] = await Promise.all([
+				prismaClient.programPost.findUnique({
+					where: { post_id: postId },
+					select: { embedding: true },
+				}),
+				prismaClient.scholarshipPost.findUnique({
+					where: { post_id: postId },
+					select: { embedding: true },
+				}),
+				prismaClient.jobPost.findUnique({
+					where: { post_id: postId },
+					select: { embedding: true },
+				}),
+			]);
+
+			const postEmbedding =
+				(programPost?.embedding as number[] | null) ||
+				(scholarshipPost?.embedding as number[] | null) ||
+				(jobPost?.embedding as number[] | null);
+
+			if (!postEmbedding) {
+				// No post embedding available, cannot calculate similarity
+				applicantIds.forEach((applicantId: string) => {
+					matchScores.set(`${applicantId}-${postId}`, "0%");
+				});
+				continue;
+			}
+
+			// Get applicant embeddings
+			const applicants = await prismaClient.applicant.findMany({
+				where: { applicant_id: { in: applicantIds } },
+				select: { applicant_id: true, embedding: true },
+			});
+
+			// Calculate similarities
+			applicants.forEach((applicant) => {
+				if (!applicant.embedding) {
+					matchScores.set(
+						`${applicant.applicant_id}-${postId}`,
+						"0%"
+					);
+					return;
+				}
+
+				const similarity = SimilarityService.calculateCosineSimilarity(
+					applicant.embedding as number[],
+					postEmbedding
+				);
+				const matchPercentage =
+					SimilarityService.similarityToMatchPercentage(similarity);
+				matchScores.set(
+					`${applicant.applicant_id}-${postId}`,
+					matchPercentage
+				);
+			});
+		}
+	} catch (error) {
+		console.error("Error calculating match scores:", error);
+		// Fallback to 0% when calculation fails
+		applications.forEach((app: any) => {
+			matchScores.set(
+				`${app.applicant.applicant_id}-${app.post.post_id}`,
+				"0%"
+			);
+		});
+	}
+
+	return matchScores;
+}
 
 export async function GET(request: NextRequest) {
 	try {
@@ -150,10 +243,17 @@ export async function GET(request: NextRequest) {
 			});
 		}
 
+		// Calculate match scores for all applications
+		const matchScores =
+			await calculateApplicationMatchScores(allApplications);
+
 		// Transform data to match the expected format using snapshot data
 		const transformedApplications = allApplications.map((app: any) => {
 			// Use snapshot data if available, otherwise fallback to live data
 			const snapshot = app.ApplicationProfileSnapshot;
+			const matchScoreKey = `${app.applicant.applicant_id}-${app.post.post_id}`;
+			const matchingScore = matchScores.get(matchScoreKey) || "0%";
+
 			const transformed = {
 				id: app.application_id,
 				postId: app.post.post_id,
@@ -178,7 +278,7 @@ export async function GET(request: NextRequest) {
 							) || "Unknown"
 						: "Unknown"),
 				status: app.status.toLowerCase(),
-				matchingScore: Math.floor(Math.random() * 30) + 70, // Mock matching score
+				matchingScore: parseInt(matchingScore.replace("%", "")), // Convert percentage string to number
 				postTitle: app.post.title,
 				applicantId: app.applicant.applicant_id,
 				userId: app.applicant.user.id, // Include user ID for thread matching

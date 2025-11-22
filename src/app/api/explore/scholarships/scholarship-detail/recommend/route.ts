@@ -1,0 +1,275 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prismaClient } from "../../../../../../../prisma";
+
+export async function GET(request: NextRequest) {
+	try {
+		const { searchParams } = new URL(request.url);
+		const scholarshipId = searchParams.get("scholarshipId");
+
+		if (!scholarshipId) {
+			return NextResponse.json(
+				{ success: false, message: "Scholarship ID is required" },
+				{ status: 400 }
+			);
+		}
+
+		// Get current scholarship details
+		const currentScholarship =
+			await prismaClient.opportunityPost.findUnique({
+				where: { post_id: scholarshipId },
+				include: {
+					subdisciplines: {
+						include: {
+							subdiscipline: {
+								include: {
+									discipline: true,
+								},
+							},
+						},
+					},
+				},
+			});
+
+		if (!currentScholarship) {
+			return NextResponse.json(
+				{ success: false, message: "Scholarship not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Extract criteria for matching
+		const currentDiscipline =
+			currentScholarship.subdisciplines?.[0]?.subdiscipline?.discipline
+				?.name;
+		const currentDegreeLevel = currentScholarship.degree_level;
+
+		// If we don't have any criteria, return empty array
+		if (!currentDiscipline && !currentDegreeLevel) {
+			return NextResponse.json({
+				success: true,
+				data: [],
+				message: "No matching criteria available",
+			});
+		}
+
+		// Build query conditions - match either discipline OR degree level
+		const whereConditions: any = {
+			post_id: { not: scholarshipId }, // Exclude current scholarship
+			status: "PUBLISHED",
+			scholarshipPost: { isNot: null }, // Must have ScholarshipPost relation
+			end_date: { gte: new Date() }, // Only active posts
+		};
+
+		// Create OR condition for discipline OR degree level match
+		const orConditions: any[] = [];
+
+		if (currentDiscipline) {
+			orConditions.push({
+				subdisciplines: {
+					some: {
+						subdiscipline: {
+							discipline: {
+								name: currentDiscipline,
+							},
+						},
+					},
+				},
+			});
+		}
+
+		if (currentDegreeLevel) {
+			orConditions.push({
+				degree_level: currentDegreeLevel,
+			});
+		}
+
+		// Only add OR condition if we have at least one criteria
+		if (orConditions.length > 0) {
+			whereConditions.OR = orConditions;
+		}
+
+		// Fetch recommended scholarships
+		const recommendedScholarships =
+			await prismaClient.opportunityPost.findMany({
+				where: whereConditions,
+				include: {
+					institution: {
+						select: {
+							institution_id: true,
+							name: true,
+							logo: true,
+							country: true,
+							status: true,
+							deleted_at: true,
+						},
+					},
+					scholarshipPost: {
+						select: {
+							description: true,
+							type: true,
+							number: true,
+							grant: true,
+							scholarship_coverage: true,
+							essay_required: true,
+							eligibility: true,
+							award_amount: true,
+							award_duration: true,
+							renewable: true,
+						},
+					},
+					subdisciplines: {
+						include: {
+							subdiscipline: {
+								include: {
+									discipline: {
+										select: {
+											discipline_id: true,
+											name: true,
+										},
+									},
+								},
+							},
+						},
+					},
+					postDocs: {
+						include: {
+							documentType: {
+								select: {
+									document_type_id: true,
+									name: true,
+									description: true,
+								},
+							},
+						},
+					},
+					_count: {
+						select: {
+							applications: true,
+						},
+					},
+				},
+				orderBy: [
+					{ create_at: "desc" }, // Sort by creation date
+				],
+				take: 10, // Take a few extra in case we need to filter out some
+			});
+
+		// Transform the data to match the expected format
+		const transformedScholarships = recommendedScholarships
+			.slice(0, 9)
+			.map((scholarship) => ({
+				id: scholarship.post_id,
+				title: scholarship.title,
+				description: scholarship.description,
+				location: scholarship.location,
+				country: scholarship.institution?.country,
+				degreeLevel: scholarship.degree_level,
+				scholarshipType: scholarship.scholarshipPost?.type,
+				scholarshipCoverage:
+					scholarship.scholarshipPost?.scholarship_coverage,
+				awardAmount: scholarship.scholarshipPost?.award_amount
+					? `$${scholarship.scholarshipPost.award_amount}`
+					: null,
+				awardDuration: scholarship.scholarshipPost?.award_duration,
+				renewable: scholarship.scholarshipPost?.renewable,
+				essayRequired: scholarship.scholarshipPost?.essay_required,
+				eligibility: scholarship.scholarshipPost?.eligibility,
+				grant: scholarship.scholarshipPost?.grant,
+				number: scholarship.scholarshipPost?.number,
+				startDateFormatted: scholarship.start_date
+					? new Date(scholarship.start_date).toLocaleDateString(
+							"en-US",
+							{
+								year: "numeric",
+								month: "short",
+								day: "numeric",
+							}
+						)
+					: null,
+				endDateFormatted: scholarship.end_date
+					? new Date(scholarship.end_date).toLocaleDateString(
+							"en-US",
+							{
+								year: "numeric",
+								month: "short",
+								day: "numeric",
+							}
+						)
+					: null,
+				applicationDeadline: scholarship.end_date
+					? new Date(scholarship.end_date).toLocaleDateString(
+							"en-US",
+							{
+								year: "numeric",
+								month: "short",
+								day: "numeric",
+							}
+						)
+					: null,
+				daysLeft: scholarship.end_date
+					? Math.max(
+							0,
+							Math.ceil(
+								(new Date(scholarship.end_date).getTime() -
+									new Date().getTime()) /
+									(1000 * 60 * 60 * 24)
+							)
+						)
+					: null,
+				institution: scholarship.institution
+					? {
+							id: scholarship.institution.institution_id,
+							name: scholarship.institution.name,
+							logo: scholarship.institution.logo,
+							country: scholarship.institution.country,
+							status: scholarship.institution.status,
+							deletedAt: scholarship.institution.deleted_at,
+						}
+					: null,
+				subdiscipline:
+					scholarship.subdisciplines?.map((sub) => ({
+						id: sub.subdiscipline.subdiscipline_id,
+						name: sub.subdiscipline.name,
+						disciplineName: sub.subdiscipline.discipline?.name,
+						discipline: {
+							id: sub.subdiscipline.discipline?.discipline_id,
+							name: sub.subdiscipline.discipline?.name,
+						},
+					})) || [],
+				documents:
+					scholarship.postDocs?.map((doc) => ({
+						document_type_id: doc.documentType.document_type_id,
+						name: doc.documentType.name,
+						description: doc.documentType.description,
+					})) || [],
+				statistics: {
+					applications: {
+						total: scholarship._count.applications,
+					},
+				},
+			}));
+
+		return NextResponse.json({
+			success: true,
+			data: transformedScholarships,
+			message: `Found ${transformedScholarships.length} recommended scholarships`,
+			criteria: {
+				discipline: currentDiscipline,
+				degreeLevel: currentDegreeLevel,
+				matchType: "OR", // Either discipline OR degree level
+			},
+		});
+	} catch (error) {
+		console.error("Error fetching recommended scholarships:", error);
+		return NextResponse.json(
+			{
+				success: false,
+				message: "Failed to fetch recommended scholarships",
+				error: error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
+	} finally {
+		await prismaClient.$disconnect();
+	}
+}

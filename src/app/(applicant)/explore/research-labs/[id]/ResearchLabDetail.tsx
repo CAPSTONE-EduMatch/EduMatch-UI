@@ -22,7 +22,6 @@ import { applicationService } from '@/services/application/application-service'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
-import { ExploreApiService } from '@/services/explore/explore-api'
 import {
 	openSessionProtectedFile,
 	downloadSessionProtectedFile,
@@ -436,56 +435,65 @@ const ResearchLabDetail = () => {
 
 	// Fetch recommended research labs when researchLab is loaded
 	useEffect(() => {
+		console.log(
+			'🔄 useEffect [researchLab] triggered, researchLab:',
+			researchLab
+		)
 		if (researchLab) {
+			console.log('✅ Calling fetchRecommendedResearchLabs')
 			fetchRecommendedResearchLabs(researchLab)
+		} else {
+			console.log('⚠️ No researchLab data, skipping fetch')
 		}
 	}, [researchLab])
 
-	// Fetch recommended research labs based on current lab's characteristics
+	// Fetch recommended research labs using the new recommend API
 	const fetchRecommendedResearchLabs = async (lab: any) => {
-		if (!lab) return
+		console.log('🔍 fetchRecommendedResearchLabs called with lab:', lab)
+		if (!lab?.id) {
+			console.log('❌ No lab ID found')
+			return
+		}
 
 		try {
 			setIsLoadingRecommendations(true)
+			console.log('🚀 Fetching recommendations for lab ID:', lab.id)
 
-			// Extract research lab characteristics for matching
-			const discipline =
-				lab.discipline ||
-				(lab.subdiscipline && lab.subdiscipline.length > 0
-					? lab.subdiscipline[0]
-					: null)
-			const degreeLevel = lab.degreeLevel
-			const country = lab.country || lab.institution?.country
+			// Use the new recommend API endpoint
+			const response = await fetch(
+				`/api/explore/research/research-detail/recommend?researchLabId=${lab.id}`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				}
+			)
 
-			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
-			if (discipline && degreeLevel && country) {
-				const response = await ExploreApiService.getResearchLabs({
-					limit: 9, // Fetch 9 most relevant research labs
-					page: 1,
-					// Must match ALL criteria
-					discipline: [discipline],
-					degreeLevel: [degreeLevel],
-					country: [country],
-					// sortBy: 'most-popular',
-				})
+			console.log('📡 API Response status:', response.status)
 
-				if (response.data && response.data.length > 0) {
-					// Filter out the current research lab from recommendations
-					const filtered = response.data.filter((l: any) => l.id !== lab.id)
-					setRecommendedResearchLabs(filtered)
+			if (response.ok) {
+				const data = await response.json()
+				console.log('✅ API Response data:', data)
+				if (data.data) {
+					setRecommendedResearchLabs(data.data)
+					console.log('✅ Set recommendations:', data.data.length, 'items')
 				} else {
-					// No exact matches found, show empty recommendations
 					setRecommendedResearchLabs([])
+					console.log('⚠️ No recommendations found')
 				}
 			} else {
-				// If we don't have all 3 criteria, show no recommendations
+				const errorData = await response.text()
+				console.log('❌ API Error:', errorData)
 				setRecommendedResearchLabs([])
 			}
 		} catch (error) {
-			// Silently fail for recommendations, fallback to empty array
+			console.error('❌ fetchRecommendedResearchLabs error:', error)
 			setRecommendedResearchLabs([])
 		} finally {
 			setIsLoadingRecommendations(false)
+			console.log('🏁 Finished loading recommendations')
 		}
 	}
 
@@ -1453,7 +1461,12 @@ const ResearchLabDetail = () => {
 								{researchLab?.title || "Job's name"}
 							</h1>
 							<p className="text-gray-600 mb-4">
-								Provided by: {researchLab?.organization || "Lab's name"}
+								Provided by:{' '}
+								{typeof researchLab?.organization === 'string'
+									? researchLab.organization
+									: (researchLab?.organization as any)?.name ||
+										researchLab?.institution?.name ||
+										"Lab's name"}
 							</p>
 
 							{/* Institution Status Badge */}
@@ -2554,6 +2567,10 @@ const ResearchLabDetail = () => {
 						className="p-8 bg-white py-6 shadow-xl border"
 					>
 						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
+						{/* <p className="text-sm text-gray-500 mb-4">
+							Debug: Loading={String(isLoadingRecommendations)}, Count=
+							{recommendedResearchLabs.length}
+						</p> */}
 
 						{/* Show loading state */}
 						{isLoadingRecommendations ? (

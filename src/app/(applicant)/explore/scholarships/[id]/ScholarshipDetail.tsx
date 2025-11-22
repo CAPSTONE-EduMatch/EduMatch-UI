@@ -221,39 +221,18 @@ const ScholarshipDetail = () => {
 		try {
 			setIsLoadingRecommendations(true)
 
-			// Extract scholarship characteristics for matching
-			const discipline =
-				scholarship.discipline ||
-				(scholarship.subdiscipline && scholarship.subdiscipline.length > 0
-					? scholarship.subdiscipline[0]
-					: null)
-			const degreeLevel = scholarship.degreeLevel
-			const country = scholarship.country || scholarship.institution?.country
+			const response = await fetch(
+				`/api/explore/scholarships/scholarship-detail/recommend?scholarshipId=${scholarship.id}`
+			)
 
-			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
-			if (discipline && degreeLevel && country) {
-				const response = await ExploreApiService.getScholarships({
-					limit: 9, // Fetch 9 most relevant scholarships
-					page: 1,
-					// Must match ALL criteria
-					discipline: [discipline],
-					degreeLevel: [degreeLevel],
-					country: [country],
-					// sortBy: 'most-popular',
-				})
-
-				if (response.data && response.data.length > 0) {
-					// Filter out the current scholarship from recommendations
-					const filtered = response.data.filter(
-						(s: any) => s.id !== scholarship.id
-					)
-					setRecommendedScholarships(filtered)
+			if (response.ok) {
+				const result = await response.json()
+				if (result.success && result.data) {
+					setRecommendedScholarships(result.data)
 				} else {
-					// No exact matches found, show empty recommendations
 					setRecommendedScholarships([])
 				}
 			} else {
-				// If we don't have all 3 criteria, show no recommendations
 				setRecommendedScholarships([])
 			}
 		} catch (error) {
@@ -425,6 +404,13 @@ const ScholarshipDetail = () => {
 			setEligibilityProgramsPage(1)
 		}
 	}, [currentScholarship?.id])
+
+	// Fetch recommended scholarships when currentScholarship is loaded
+	useEffect(() => {
+		if (currentScholarship) {
+			fetchRecommendedScholarships(currentScholarship)
+		}
+	}, [currentScholarship])
 
 	// Fetch selected application details
 	const fetchSelectedApplication = useCallback(
@@ -1700,6 +1686,47 @@ const ScholarshipDetail = () => {
 						</AnimatePresence>
 					</motion.div>
 				</div>
+
+				{/* Recommended Scholarships Section */}
+				{recommendedScholarships.length > 0 && (
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.4 }}
+						className="p-8 bg-white py-6 shadow-xl border"
+					>
+						<h2 className="text-3xl font-bold mb-6">
+							Recommended Scholarships
+						</h2>
+						<p className="text-gray-600 mb-6">
+							Similar scholarships based on discipline or degree level
+						</p>
+
+						{isLoadingRecommendations ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="flex flex-col items-center gap-3">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
+									<p className="text-gray-600 text-sm">
+										Loading recommendations...
+									</p>
+								</div>
+							</div>
+						) : (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+								{recommendedScholarships.map((scholarship, index) => (
+									<ScholarshipCard
+										key={scholarship.id}
+										scholarship={scholarship}
+										index={index}
+										isWishlisted={isInWishlist(scholarship.id)}
+										onWishlistToggle={(id: string) => toggleWishlistItem(id)}
+										onClick={handleScholarshipClick}
+									/>
+								))}
+							</div>
+						)}
+					</motion.div>
+				)}
 
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}

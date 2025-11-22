@@ -13,7 +13,6 @@ import {
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { ExploreApiService } from '@/services/explore/explore-api'
 import { Program } from '@/types/api/explore-api'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Heart, Check, File, X } from 'lucide-react'
@@ -212,63 +211,36 @@ const ProgramDetail = () => {
 	const programsPerPage = 3
 	const totalPrograms = recommendedPrograms.length
 
-	// Fetch recommended programs based on current program's characteristics
+	// Fetch recommended programs using the new recommend API
 	const fetchRecommendedPrograms = async (program: any) => {
-		if (!program) return
+		if (!program?.id) return
 
 		try {
 			setIsLoadingRecommendations(true)
 
-			// Extract program characteristics for matching
-			const discipline =
-				program.discipline ||
-				(program.subdiscipline && program.subdiscipline.length > 0
-					? program.subdiscipline[0]
-					: null)
-			const degreeLevel = program.degreeLevel || program.program?.degreeLevel
-			const country = program.country || program.institution?.country
-
-			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
-			if (discipline && degreeLevel && country) {
-				const filters = {
-					limit: 9, // Fetch 9 most relevant programs
-					page: 1,
-					// Must match ALL criteria
-					discipline: [discipline],
-					degreeLevel: [degreeLevel],
-					country: [country],
-					sortBy: 'most-popular' as const,
+			// Use the new recommend API endpoint
+			const response = await fetch(
+				`/api/explore/programs/program-detail/recommend?programId=${program.id}`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
 				}
+			)
 
-				const response = await ExploreApiService.getPrograms(filters)
-
-				if (response.data && response.data.length > 0) {
-					// Filter out the current program from recommendations
-					const filtered = response.data.filter(
-						(p: Program) => p.id !== program.id
-					)
-					setRecommendedPrograms(filtered)
+			if (response.ok) {
+				const data = await response.json()
+				if (data.success && data.data) {
+					setRecommendedPrograms(data.data)
 				} else {
-					// No exact matches found, show empty recommendations
 					setRecommendedPrograms([])
 				}
 			} else {
-				// If we don't have all 3 criteria, show fallback popular programs
-				const fallbackResponse = await ExploreApiService.getPrograms({
-					limit: 8,
-					page: 1,
-					sortBy: 'most-popular' as const,
-				})
-
-				if (fallbackResponse.data) {
-					const filtered = fallbackResponse.data.filter(
-						(p: Program) => p.id !== program.id
-					)
-					setRecommendedPrograms(filtered)
-				}
+				setRecommendedPrograms([])
 			}
 		} catch (error) {
-			// Silently fail for recommendations, fallback to empty array
 			setRecommendedPrograms([])
 		} finally {
 			setIsLoadingRecommendations(false)
@@ -820,7 +792,10 @@ const ProgramDetail = () => {
 		)
 	}
 
-	const handleProgramClick = (programId: string) => {
+	const handleProgramClick = (program: Program | string) => {
+		// Handle both Program object (from recommendations) and string ID (from other uses)
+		const programId = typeof program === 'string' ? program : program.id
+
 		// Get current tab context from referrer or default to programmes
 		const referrer = document.referrer
 		let fromTab = 'programmes'

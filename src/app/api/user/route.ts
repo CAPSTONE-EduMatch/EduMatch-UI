@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
 				exists: !!user,
 				isEmailVerified: user?.emailVerified,
 				userId: user?.id,
+				status: user?.status,
 			}),
 			{
 				status: 200,

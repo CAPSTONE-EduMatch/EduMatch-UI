@@ -5,13 +5,13 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
-import { authClient } from '@/config/auth-client'
 import {
 	AuthLayout,
 	FormField,
 	GoogleButton,
 	PasswordField,
 } from '@/components/auth'
+import { authClient } from '@/config/auth-client'
 
 const LEFT_IMAGE = '/hero1.png'
 
@@ -299,6 +299,15 @@ const Signup = () => {
 				`/api/user?email=${encodeURIComponent(email)}`
 			)
 
+			// Check if account is deleted (status = false)
+			if (response.data.exists && response.data.status === false) {
+				setErrors({
+					email:
+						'Your account has been deleted. Please create another account.',
+				})
+				return
+			}
+
 			if (response.data.exists && response.data.isEmailVerified) {
 				setErrors({
 					email:
@@ -360,6 +369,14 @@ const Signup = () => {
 			const response = await axios.get(
 				`/api/user?email=${encodeURIComponent(email)}`
 			)
+
+			// Check if account is deleted (status = false) during OTP verification
+			if (response.data.exists && response.data.status === false) {
+				setOTPError(
+					'Your account has been deleted. Please create another account.'
+				)
+				return
+			}
 
 			if (!response.data.exists) {
 				// setErrors({

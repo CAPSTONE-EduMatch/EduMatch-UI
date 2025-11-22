@@ -7,12 +7,12 @@ import {
 	PasswordField,
 } from '@/components/auth'
 import { Input, Modal } from '@/components/ui'
+import { authClient } from '@/config/auth-client'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import React, { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { authClient } from '@/config/auth-client'
+import React, { useCallback, useEffect, useState } from 'react'
 
 const LEFT_IMAGE =
 	'https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg'
@@ -340,14 +340,22 @@ const SignIn: React.FC = () => {
 
 				// First, try to check if user exists and get their verification status
 				let shouldTriggerEmailVerification = false
+				let isAccountDeleted = false
 
 				try {
 					const userCheckResponse = await axios.get(
 						`/api/user?email=${encodeURIComponent(email)}`
 					)
 
-					// If user exists but email is not verified, trigger OTP flow
+					// Check if account is deleted (status = false)
 					if (
+						userCheckResponse.data.exists &&
+						userCheckResponse.data.status === false
+					) {
+						isAccountDeleted = true
+					}
+					// If user exists but email is not verified, trigger OTP flow
+					else if (
 						userCheckResponse.data.exists &&
 						!userCheckResponse.data.isEmailVerified
 					) {
@@ -389,8 +397,20 @@ const SignIn: React.FC = () => {
 					(errorMessage.includes('not found') ||
 						errorMessage.includes('does not exist') ||
 						errorMessage.includes("doesn't exist"))
+				console.log({
+					isEmailVerificationError,
+					isCredentialError,
+					isUserNotFoundError,
+				})
+				console.log('Error message:', errorMessage)
 
-				if (isEmailVerificationError) {
+				if (isAccountDeleted) {
+					// Show error for deleted accounts
+					setErrors({
+						email:
+							'Your account has been deleted. Please create another account.',
+					})
+				} else if (isEmailVerificationError) {
 					try {
 						// Send OTP for email verification
 						await authClient.emailOtp.sendVerificationOtp({

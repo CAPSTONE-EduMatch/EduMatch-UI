@@ -3,6 +3,7 @@ import { prismaClient } from "../../../../../prisma";
 import { PostStatus } from "@prisma/client";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { v4 as uuidv4 } from "uuid";
+import { EmbeddingService } from "@/services/embedding/embedding-service";
 
 interface CreateProgramRequest {
 	// Overview Section
@@ -148,6 +149,37 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
+		// Generate embedding for the program post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatProgramDataForEmbedding(body);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for program text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for program post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for program post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
 		// Create the program post
 		await prismaClient.programPost.create({
 			data: {
@@ -174,6 +206,7 @@ export async function POST(request: NextRequest) {
 					body.languageRequirements.length > 0
 						? body.languageRequirements[0].language
 						: null,
+				embedding: embeddingData,
 			},
 		});
 
@@ -337,6 +370,37 @@ export async function PUT(request: NextRequest) {
 			},
 		});
 
+		// Generate embedding for the updated program post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatProgramDataForEmbedding(updateData);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for updated program text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for updated program post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for updated program post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
 		// Update the program post
 		await prismaClient.programPost.update({
 			where: { post_id: postId },
@@ -362,6 +426,7 @@ export async function PUT(request: NextRequest) {
 					updateData.languageRequirements.length > 0
 						? updateData.languageRequirements[0].language
 						: null,
+				embedding: embeddingData,
 			},
 		});
 

@@ -1,6 +1,8 @@
 import { ExploreApiResponse, PaginationMeta } from "@/types/api/explore-api";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Define Scholarship type locally since it's not exported from explore-api
 interface Scholarship {
@@ -27,9 +29,62 @@ function calculateDaysLeft(dateString: string): number {
 	return Math.max(0, diffDays);
 }
 
-// Helper function to calculate match percentage (placeholder logic)
-function calculateMatchPercentage(): string {
-	return `${Math.floor(Math.random() * 30) + 70}%`;
+// Helper function to calculate match percentage based on similarity
+async function calculateMatchPercentages(
+	scholarships: Scholarship[],
+	userId?: string
+): Promise<void> {
+	if (!userId) {
+		// No authenticated user, show 0%
+		scholarships.forEach((scholarship) => {
+			scholarship.match = "0%";
+		});
+		return;
+	}
+
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findFirst({
+			where: { user_id: userId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			// No applicant embedding, show 0%
+			scholarships.forEach((scholarship) => {
+				scholarship.match = "0%";
+			});
+			return;
+		}
+
+		// Get embeddings for all scholarship posts
+		const postIds = scholarships.map((s) => s.id);
+		const scholarshipPosts = await prismaClient.scholarshipPost.findMany({
+			where: { post_id: { in: postIds } },
+			select: { post_id: true, embedding: true },
+		});
+
+		// Calculate similarity scores
+		const applicantEmbedding = applicant.embedding as number[];
+		const matchScores = SimilarityService.calculateMatchScores(
+			applicantEmbedding,
+			scholarshipPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			}))
+		);
+
+		// Update scholarship objects with calculated match scores
+		scholarships.forEach((scholarship) => {
+			scholarship.match = matchScores[scholarship.id] || "0%";
+		});
+	} catch (error) {
+		console.error("Error calculating match scores:", error);
+		// Fallback to 0% on error
+		scholarships.forEach((scholarship) => {
+			scholarship.match = "0%";
+		});
+	}
 }
 
 // Helper function to format currency with commas
@@ -179,7 +234,7 @@ export async function GET(request: NextRequest) {
 					amount: postScholarship.grant
 						? `$${formatCurrency(postScholarship.grant)}`
 						: "Contact for details",
-					match: calculateMatchPercentage(),
+					match: "0%", // Will be calculated later based on similarity
 					applicationCount, // Add application count for popularity sorting
 				};
 
@@ -295,6 +350,24 @@ export async function GET(request: NextRequest) {
 				});
 				break;
 			// newest and oldest are handled by DB orderBy above
+		}
+
+		// Calculate match scores based on similarity (for all filtered results)
+		let userId: string | undefined;
+		try {
+			const { user } = await requireAuth();
+			userId = user.id;
+		} catch (error) {
+			// User not authenticated, will use default scores
+		}
+		await calculateMatchPercentages(filteredScholarships, userId);
+
+		// Re-sort by match-score if that's the selected sort option
+		// (now that we have real match scores)
+		if (sortBy === "match-score") {
+			filteredScholarships.sort(
+				(a, b) => parseFloat(b.match) - parseFloat(a.match)
+			);
 		}
 
 		// Calculate total count AFTER filtering

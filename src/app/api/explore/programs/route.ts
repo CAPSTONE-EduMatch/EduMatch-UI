@@ -1,6 +1,8 @@
 import { ExploreApiResponse, PaginationMeta } from "@/types/api/explore-api";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Program interface with single string ID
 interface Program {
@@ -29,9 +31,62 @@ function calculateDaysLeft(dateString: string): number {
 	return Math.max(0, diffDays);
 }
 
-// Helper function to calculate match percentage (placeholder logic)
-function calculateMatchPercentage(): string {
-	return `${Math.floor(Math.random() * 30) + 70}%`;
+// Helper function to calculate match percentage based on similarity
+async function calculateMatchPercentages(
+	programs: Program[],
+	userId?: string
+): Promise<void> {
+	if (!userId) {
+		// No authenticated user, show 0%
+		programs.forEach((program) => {
+			program.match = "0%";
+		});
+		return;
+	}
+
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findFirst({
+			where: { user_id: userId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			// No applicant embedding, show 0%
+			programs.forEach((program) => {
+				program.match = "0%";
+			});
+			return;
+		}
+
+		// Get embeddings for all program posts
+		const postIds = programs.map((p) => p.id);
+		const programPosts = await prismaClient.programPost.findMany({
+			where: { post_id: { in: postIds } },
+			select: { post_id: true, embedding: true },
+		});
+
+		// Calculate similarity scores
+		const applicantEmbedding = applicant.embedding as number[];
+		const matchScores = SimilarityService.calculateMatchScores(
+			applicantEmbedding,
+			programPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			}))
+		);
+
+		// Update program objects with calculated match scores
+		programs.forEach((program) => {
+			program.match = matchScores[program.id] || "0%";
+		});
+	} catch (error) {
+		console.error("Error calculating match scores:", error);
+		// Fallback to 0% on error
+		programs.forEach((program) => {
+			program.match = "0%";
+		});
+	}
 }
 
 // Helper function to format currency with commas
@@ -96,7 +151,14 @@ export async function GET(request: NextRequest) {
 			where: whereClause,
 			include: {
 				programPost: true,
-				institution: true, // Include institution data directly
+				institution: {
+					select: {
+						institution_id: true,
+						name: true,
+						country: true,
+						logo: true,
+					},
+				},
 			},
 			orderBy:
 				sortBy === "newest"
@@ -237,7 +299,7 @@ export async function GET(request: NextRequest) {
 					price: postProgram.tuition_fee
 						? `$${formatCurrency(postProgram.tuition_fee)}`
 						: "Contact for pricing",
-					match: calculateMatchPercentage(),
+					match: "0%", // Will be calculated later based on similarity
 					funding:
 						postProgram.scholarship_info || "Contact for details",
 					attendance: postProgram.attendance || "On-campus",
@@ -314,6 +376,16 @@ export async function GET(request: NextRequest) {
 				return true;
 			});
 		}
+
+		// Calculate match scores based on similarity (for all filtered results)
+		let userId: string | undefined;
+		try {
+			const { user } = await requireAuth();
+			userId = user.id;
+		} catch (error) {
+			// User not authenticated, will use default scores
+		}
+		await calculateMatchPercentages(allPrograms, userId);
 
 		// Sort programs
 		switch (sortBy) {

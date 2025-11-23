@@ -3,6 +3,7 @@
 import { PasswordChangeSection } from '@/components/profile/shared/PasswordChangeSection'
 import { Button } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
+import { authClient } from '@/config/auth-client'
 import { ApiService } from '@/services/api/axios-config'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -103,7 +104,14 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 				// Clear auth data and redirect
 				localStorage.clear()
 				sessionStorage.clear()
-				router.push('/')
+				await authClient.signOut({
+					fetchOptions: {
+						onSuccess: () => {
+							router.push('/')
+						},
+					},
+				})
+				// router.push('/')
 			} else {
 				alert(data.message || 'Failed to delete account. Please try again.')
 			}

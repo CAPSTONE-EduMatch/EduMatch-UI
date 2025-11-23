@@ -1,6 +1,7 @@
 'use client'
 
 import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
+import { authClient } from '@/config/auth-client'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import {
 	Building2,
@@ -18,6 +19,7 @@ const sidebarItems = [
 	{ id: 'posts', icon: Building2, label: 'Posts' },
 	{ id: 'disciplines', icon: Building2, label: 'Disciplines' },
 	{ id: 'user', icon: Users, label: 'User' },
+	// { id: 'institution', icon: Building2, label: 'Institution' },
 	{ id: 'payment', icon: CreditCard, label: 'Payment' },
 	{ id: 'plan', icon: Building2, label: 'Plan' },
 	// { id: 'transaction', icon: Building2, label: 'Transaction' },
@@ -88,7 +90,13 @@ export function AdminSidebar({
 				break
 			case 'logout':
 				// Handle logout logic here
-				router.push('/signin')
+				authClient.signOut({
+					fetchOptions: {
+						onSuccess: () => {
+							router.push('/signin')
+						},
+					},
+				})
 				break
 			default:
 				// For other sections, you can add more routes as needed

@@ -1,5 +1,3 @@
-import { prismaClient } from "../../../prisma/index";
-
 // Shared interfaces
 export interface Program {
 	id: number;
@@ -75,6 +73,9 @@ export function generateHashId(str: string): number {
 
 // Data fetching functions
 export async function fetchExploreData(postIds: string[]) {
+	// Dynamic import to avoid bundling pg in client code
+	const { prismaClient } = await import("../../../prisma/index");
+
 	const [
 		postPrograms,
 		postScholarships,

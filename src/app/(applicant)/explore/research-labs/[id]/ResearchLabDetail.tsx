@@ -21,8 +21,6 @@ import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { applicationService } from '@/services/application/application-service'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
-import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
-import { ExploreApiService } from '@/services/explore/explore-api'
 import {
 	openSessionProtectedFile,
 	downloadSessionProtectedFile,
@@ -70,12 +68,6 @@ const ResearchLabDetail = () => {
 		null
 	)
 	const [applicationId, setApplicationId] = useState<string | null>(null)
-	const [showUpdateModal, setShowUpdateModal] = useState(false)
-	const [selectedUpdateRequestId, setSelectedUpdateRequestId] = useState<
-		string | null
-	>(null)
-	const [updateRequests, setUpdateRequests] = useState<any[]>([])
-	const [loadingUpdateRequests, setLoadingUpdateRequests] = useState(false)
 	const [isEditMode, setIsEditMode] = useState(false)
 	const [showCancelEditModal, setShowCancelEditModal] = useState(false)
 	const [originalUploadedFiles, setOriginalUploadedFiles] = useState<any[]>([])
@@ -403,13 +395,6 @@ const ResearchLabDetail = () => {
 		fetchApplicationsForPost,
 	])
 
-	// Handle applicationIdFromUrl - fetch application if present in URL
-	useEffect(() => {
-		if (applicationIdFromUrl && !isHandlingClickRef.current) {
-			fetchSelectedApplication(applicationIdFromUrl, false)
-		}
-	}, [applicationIdFromUrl, fetchSelectedApplication])
-
 	// Check for existing application when component loads
 	useEffect(() => {
 		const researchLabId = researchLab?.id || params.id
@@ -424,79 +409,53 @@ const ResearchLabDetail = () => {
 		}
 	}, [researchLab?.id, params.id, applicationIdFromUrl]) // Added applicationIdFromUrl to prevent duplicate loads
 
-	// Fetch all update requests when application is loaded
+	// Handle applicationId from URL - update Application Status section
 	useEffect(() => {
-		if (applicationId) {
-			fetchUpdateRequests()
-		} else {
-			setUpdateRequests([])
+		if (applicationIdFromUrl) {
+			// Skip if we're handling a click (will be handled by handleApplicationClick)
+			if (isHandlingClickRef.current) {
+				isHandlingClickRef.current = false
+				return
+			}
+			// Only fetch if we don't already have this application loaded
+			// This prevents unnecessary loading when clicking on an application row
+			if (applicationId !== applicationIdFromUrl) {
+				// Fetch the application details when applicationId is in URL
+				fetchSelectedApplication(applicationIdFromUrl, false)
+			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [applicationId])
+	}, [applicationIdFromUrl])
 
 	// Fetch recommended research labs when researchLab is loaded
 	useEffect(() => {
+		console.log(
+			'🔄 useEffect [researchLab] triggered, researchLab:',
+			researchLab
+		)
 		if (researchLab) {
+			console.log('✅ Calling fetchRecommendedResearchLabs')
 			fetchRecommendedResearchLabs(researchLab)
+		} else {
+			console.log('⚠️ No researchLab data, skipping fetch')
 		}
 	}, [researchLab])
 
-	// Fetch recommended research labs based on current lab's characteristics
+	// Fetch recommended research labs using the new recommend API
 	const fetchRecommendedResearchLabs = async (lab: any) => {
-		if (!lab) return
+		console.log('🔍 fetchRecommendedResearchLabs called with lab:', lab)
+		if (!lab?.id) {
+			console.log('❌ No lab ID found')
+			return
+		}
 
 		try {
 			setIsLoadingRecommendations(true)
+			console.log('🚀 Fetching recommendations for lab ID:', lab.id)
 
-			// Extract research lab characteristics for matching
-			const discipline =
-				lab.discipline ||
-				(lab.subdiscipline && lab.subdiscipline.length > 0
-					? lab.subdiscipline[0]
-					: null)
-			const degreeLevel = lab.degreeLevel
-			const country = lab.country || lab.institution?.country
-
-			// **MATCH ALL Logic**: Only proceed if we have ALL 3 criteria
-			if (discipline && degreeLevel && country) {
-				const response = await ExploreApiService.getResearchLabs({
-					limit: 9, // Fetch 9 most relevant research labs
-					page: 1,
-					// Must match ALL criteria
-					discipline: [discipline],
-					degreeLevel: [degreeLevel],
-					country: [country],
-					// sortBy: 'most-popular',
-				})
-
-				if (response.data && response.data.length > 0) {
-					// Filter out the current research lab from recommendations
-					const filtered = response.data.filter((l: any) => l.id !== lab.id)
-					setRecommendedResearchLabs(filtered)
-				} else {
-					// No exact matches found, show empty recommendations
-					setRecommendedResearchLabs([])
-				}
-			} else {
-				// If we don't have all 3 criteria, show no recommendations
-				setRecommendedResearchLabs([])
-			}
-		} catch (error) {
-			// Silently fail for recommendations, fallback to empty array
-			setRecommendedResearchLabs([])
-		} finally {
-			setIsLoadingRecommendations(false)
-		}
-	}
-
-	// Fetch all update requests for the application
-	const fetchUpdateRequests = async () => {
-		if (!applicationId) return
-
-		setLoadingUpdateRequests(true)
-		try {
+			// Use the new recommend API endpoint
 			const response = await fetch(
-				`/api/applications/${applicationId}/update-request`,
+				`/api/explore/research/research-detail/recommend?researchLabId=${lab.id}`,
 				{
 					method: 'GET',
 					headers: {
@@ -506,16 +465,29 @@ const ResearchLabDetail = () => {
 				}
 			)
 
+			console.log('📡 API Response status:', response.status)
+
 			if (response.ok) {
-				const result = await response.json()
-				if (result.success && result.updateRequests) {
-					setUpdateRequests(result.updateRequests)
+				const data = await response.json()
+				console.log('✅ API Response data:', data)
+				if (data.success && data.data) {
+					setRecommendedResearchLabs(data.data)
+					console.log('✅ Set recommendations:', data.data.length, 'items')
+				} else {
+					setRecommendedResearchLabs([])
+					console.log('⚠️ No recommendations found')
 				}
+			} else {
+				const errorData = await response.text()
+				console.log('❌ API Error:', errorData)
+				setRecommendedResearchLabs([])
 			}
 		} catch (error) {
-			// Error handled by UI state
+			console.error('❌ fetchRecommendedResearchLabs error:', error)
+			setRecommendedResearchLabs([])
 		} finally {
-			setLoadingUpdateRequests(false)
+			setIsLoadingRecommendations(false)
+			console.log('🏁 Finished loading recommendations')
 		}
 	}
 
@@ -624,29 +596,80 @@ const ResearchLabDetail = () => {
 							postApplications[0] // Fallback to most recent if all are rejected (shouldn't happen)
 
 						if (existingApplication) {
-							// Automatically load the application if found
-							// Update URL with applicationId
-							setIsAutoLoadingApplication(true)
-							const newUrl = new URL(window.location.href)
-							newUrl.searchParams.set(
-								'applicationId',
-								existingApplication.applicationId
-							)
-							router.replace(newUrl.pathname + newUrl.search, {
-								scroll: false,
-							})
-							// Load the application details
-							await fetchSelectedApplication(
-								existingApplication.applicationId,
-								false
-							)
-							setActiveTab('application')
-							// Fetch applications for post after a short delay to avoid showing spinner immediately
-							setTimeout(() => {
-								fetchApplicationsForPost(researchLabId as string)
-								setIsAutoLoadingApplication(false)
-							}, 100)
-							return true
+							// If applicationId is in URL, load it immediately
+							if (applicationIdFromUrl === existingApplication.applicationId) {
+								setHasApplied(true)
+								setApplicationStatus(existingApplication.status || null)
+								setApplicationId(existingApplication.applicationId || null)
+								// Load submitted documents from the application
+								// Filter out update submission documents - only show initial application documents
+								if (
+									existingApplication.documents &&
+									existingApplication.documents.length > 0
+								) {
+									const submittedFiles = existingApplication.documents
+										.filter(
+											(doc: any) =>
+												!doc.isUpdateSubmission && !doc.is_update_submission
+										)
+										.map((doc: any, index: number) => ({
+											id:
+												doc.documentId ||
+												doc.document_type_id ||
+												`doc_${existingApplication.applicationId}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+											name: doc.name,
+											url: doc.url,
+											size: doc.size || 0,
+											documentType: doc.documentType || 'application-document',
+											uploadDate:
+												doc.uploadDate ||
+												existingApplication.applyAt ||
+												new Date().toISOString(),
+											applicationDocumentId: doc.documentId, // Preserve ApplicationDetail document_id for updates
+											source: doc.isFromSnapshot
+												? ('existing' as const)
+												: ('new' as const), // Set source based on isFromSnapshot flag from API
+										}))
+									// Deduplicate by URL to prevent glitches
+									const uniqueFiles = Array.from(
+										new Map(
+											submittedFiles.map((file) => [file.url, file])
+										).values()
+									)
+									setUploadedFiles(uniqueFiles)
+									// Don't automatically load into selectedDocuments - user will click Edit button
+									setSelectedDocuments([])
+									setIsEditMode(false)
+								}
+								return true
+							} else {
+								// Automatically load the application if found
+								// Update URL with applicationId
+								setIsAutoLoadingApplication(true)
+								const newUrl = new URL(window.location.href)
+								newUrl.searchParams.set(
+									'applicationId',
+									existingApplication.applicationId
+								)
+								router.replace(newUrl.pathname + newUrl.search, {
+									scroll: false,
+								})
+								// Load the application details
+								fetchSelectedApplication(
+									existingApplication.applicationId,
+									false
+								).finally(() => {
+									// After loading, fetch applications list and reset flag
+									setTimeout(() => {
+										setIsAutoLoadingApplication(false)
+										if (researchLab?.id) {
+											fetchApplicationsForPost(researchLab.id)
+										}
+									}, 100)
+								})
+								setActiveTab('application')
+								return true
+							}
 						}
 					}
 				}
@@ -2041,213 +2064,110 @@ const ResearchLabDetail = () => {
 								)}
 							</>
 						)}
-					{/* Display update requests as individual alert boxes */}
-					{hasApplied &&
-						updateRequests.length > 0 &&
-						updateRequests.map((request, index) => (
-							<div
-								key={request.updateRequestId}
-								className={`mb-6 rounded-lg p-6 border ${
-									request.status === 'PENDING'
-										? 'bg-orange-50 border-orange-200'
-										: request.status === 'RESPONDED' ||
-											  request.status === 'REVIEWED'
-											? 'bg-green-50 border-green-200'
-											: 'bg-gray-50 border-gray-200'
-								}`}
-							>
-								<div className="flex items-start gap-3">
-									<div
-										className={`text-2xl ${
-											request.status === 'PENDING'
-												? 'text-orange-600'
-												: request.status === 'RESPONDED' ||
-													  request.status === 'REVIEWED'
-													? 'text-green-600'
-													: 'text-gray-600'
-										}`}
-									>
-										{request.status === 'PENDING'
-											? '⚠'
-											: request.status === 'RESPONDED' ||
-												  request.status === 'REVIEWED'
-												? '✓'
-												: 'ℹ'}
-									</div>
-									<div className="flex-1">
-										<h3
-											className={`text-lg font-semibold ${
-												request.status === 'PENDING'
-													? 'text-orange-800'
-													: request.status === 'RESPONDED' ||
-														  request.status === 'REVIEWED'
-														? 'text-green-800'
-														: 'text-gray-800'
-											}`}
-										>
-											{request.status === 'PENDING'
-												? 'Update Required'
-												: request.status === 'RESPONDED' ||
-													  request.status === 'REVIEWED'
-													? 'Update Submitted Successfully'
-													: 'Update Request'}
-										</h3>
-										<p
-											className={`mt-1 mb-4 ${
-												request.status === 'PENDING'
-													? 'text-orange-700'
-													: request.status === 'RESPONDED' ||
-														  request.status === 'REVIEWED'
-														? 'text-green-700'
-														: 'text-gray-700'
-											}`}
-										>
-											{request.status === 'PENDING'
-												? 'The institution has requested additional information or documents for your application. Please review the request and submit the required updates.'
-												: request.status === 'RESPONDED' ||
-													  request.status === 'REVIEWED'
-													? 'Your update response has been submitted successfully. The institution will review your changes.'
-													: `Update request #${updateRequests.length - index}`}
-										</p>
-										<div className="flex gap-3">
-											{request.status === 'PENDING' && applicationId && (
-												<Button
-													onClick={() => {
-														setSelectedUpdateRequestId(request.updateRequestId)
-														setShowUpdateModal(true)
-													}}
-													className="bg-orange-500 hover:bg-orange-600 text-white"
-												>
-													View Update Request & Submit Response
-												</Button>
-											)}
-											{(request.status === 'RESPONDED' ||
-												request.status === 'REVIEWED') &&
-												applicationId && (
-													<Button
-														onClick={() => {
-															setSelectedUpdateRequestId(
-																request.updateRequestId
-															)
-															setShowUpdateModal(true)
-														}}
-														variant="outline"
-														className="border-green-600 text-green-600 hover:bg-green-50"
-													>
-														View Update Details
-													</Button>
-												)}
-										</div>
-									</div>
-								</div>
-							</div>
-						))}
-					{hasApplied &&
-						updateRequests.length === 0 &&
-						applicationStatus !== 'REQUIRE_UPDATE' && (
-							<div
-								className={`border rounded-lg p-6 mb-6 ${
-									applicationStatus === 'ACCEPTED'
-										? 'bg-green-50 border-green-200'
+					{hasApplied && applicationStatus !== 'REQUIRE_UPDATE' && (
+						<div
+							className={`border rounded-lg p-6 mb-6 ${
+								applicationStatus === 'ACCEPTED'
+									? 'bg-green-50 border-green-200'
+									: applicationStatus === 'REJECTED'
+										? 'bg-red-50 border-red-200'
+										: applicationStatus === 'UPDATED'
+											? 'bg-blue-50 border-blue-200'
+											: 'bg-yellow-50 border-yellow-200'
+							}`}
+						>
+							<div className="flex items-center gap-3">
+								<div
+									className={`text-2xl ${
+										applicationStatus === 'ACCEPTED'
+											? 'text-green-600'
+											: applicationStatus === 'REJECTED'
+												? 'text-red-600'
+												: applicationStatus === 'UPDATED'
+													? 'text-blue-600'
+													: 'text-yellow-600'
+									}`}
+								>
+									{applicationStatus === 'ACCEPTED'
+										? '✓'
 										: applicationStatus === 'REJECTED'
-											? 'bg-red-50 border-red-200'
+											? '✗'
 											: applicationStatus === 'UPDATED'
-												? 'bg-blue-50 border-blue-200'
-												: 'bg-yellow-50 border-yellow-200'
-								}`}
-							>
-								<div className="flex items-center gap-3">
-									<div
-										className={`text-2xl ${
+												? '↻'
+												: '⏳'}
+								</div>
+								<div>
+									<h3
+										className={`text-lg font-semibold ${
 											applicationStatus === 'ACCEPTED'
-												? 'text-green-600'
+												? 'text-green-800'
 												: applicationStatus === 'REJECTED'
-													? 'text-red-600'
+													? 'text-red-800'
 													: applicationStatus === 'UPDATED'
-														? 'text-blue-600'
-														: 'text-yellow-600'
+														? 'text-blue-800'
+														: 'text-yellow-800'
 										}`}
 									>
 										{applicationStatus === 'ACCEPTED'
-											? '✓'
+											? 'Application Accepted!'
 											: applicationStatus === 'REJECTED'
-												? '✗'
+												? 'Application Not Selected'
 												: applicationStatus === 'UPDATED'
-													? '↻'
-													: '⏳'}
-									</div>
-									<div>
-										<h3
-											className={`text-lg font-semibold ${
-												applicationStatus === 'ACCEPTED'
-													? 'text-green-800'
-													: applicationStatus === 'REJECTED'
-														? 'text-red-800'
-														: applicationStatus === 'UPDATED'
-															? 'text-blue-800'
-															: 'text-yellow-800'
-											}`}
-										>
-											{applicationStatus === 'ACCEPTED'
-												? 'Application Accepted!'
+													? 'Application Updated'
+													: 'Application Submitted Successfully!'}
+									</h3>
+									<p
+										className={`mt-1 ${
+											applicationStatus === 'ACCEPTED'
+												? 'text-green-700'
 												: applicationStatus === 'REJECTED'
-													? 'Application Not Selected'
+													? 'text-red-700'
 													: applicationStatus === 'UPDATED'
-														? 'Application Updated'
-														: 'Application Submitted Successfully!'}
-										</h3>
-										<p
-											className={`mt-1 ${
-												applicationStatus === 'ACCEPTED'
-													? 'text-green-700'
-													: applicationStatus === 'REJECTED'
-														? 'text-red-700'
-														: applicationStatus === 'UPDATED'
-															? 'text-blue-700'
-															: 'text-yellow-700'
-											}`}
-										>
-											{applicationStatus === 'ACCEPTED'
-												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
-												: applicationStatus === 'REJECTED'
-													? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
-													: applicationStatus === 'UPDATED'
-														? 'Your application has been updated. The institution will review your changes.'
-														: 'Your application has been submitted. You will receive updates via email.'}
-										</p>
-										{applicationStatus === 'REJECTED' && (
-											<div className="mt-4">
-												<Button
-													onClick={() => {
-														// Reset to allow new application
-														setHasApplied(false)
-														setApplicationStatus(null)
-														setApplicationId(null)
-														setUploadedFiles([])
-														setSelectedDocuments([])
-														// Scroll to the apply section
-														setTimeout(() => {
-															const applySection = document.getElementById(
-																'application-status-section'
-															)
-															if (applySection) {
-																applySection.scrollIntoView({
-																	behavior: 'smooth',
-																	block: 'start',
-																})
-															}
-														}, 100)
-													}}
-													className="bg-[#126E64] hover:bg-teal-700 text-white"
-												>
-													Reapply Now
-												</Button>
-											</div>
-										)}
-									</div>
+														? 'text-blue-700'
+														: 'text-yellow-700'
+										}`}
+									>
+										{applicationStatus === 'ACCEPTED'
+											? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+											: applicationStatus === 'REJECTED'
+												? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
+												: applicationStatus === 'UPDATED'
+													? 'Your application has been updated. The institution will review your changes.'
+													: 'Your application has been submitted. You will receive updates via email.'}
+									</p>
+									{applicationStatus === 'REJECTED' && (
+										<div className="mt-4">
+											<Button
+												onClick={() => {
+													// Reset to allow new application
+													setHasApplied(false)
+													setApplicationStatus(null)
+													setApplicationId(null)
+													setUploadedFiles([])
+													setSelectedDocuments([])
+													// Scroll to the apply section
+													setTimeout(() => {
+														const applySection = document.getElementById(
+															'application-status-section'
+														)
+														if (applySection) {
+															applySection.scrollIntoView({
+																behavior: 'smooth',
+																block: 'start',
+															})
+														}
+													}, 100)
+												}}
+												className="bg-[#126E64] hover:bg-teal-700 text-white"
+											>
+												Reapply Now
+											</Button>
+										</div>
+									)}
 								</div>
 							</div>
-						)}
+						</div>
+					)}
 					{/* Show uploaded files in read-only mode when applied and not in edit mode */}
 					{hasApplied && uploadedFiles.length > 0 && !isEditMode && (
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -2554,6 +2474,10 @@ const ResearchLabDetail = () => {
 						className="p-8 bg-white py-6 shadow-xl border"
 					>
 						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
+						<p className="text-sm text-gray-500 mb-4">
+							Debug: Loading={String(isLoadingRecommendations)}, Count=
+							{recommendedResearchLabs.length}
+						</p>
 
 						{/* Show loading state */}
 						{isLoadingRecommendations ? (
@@ -2661,35 +2585,6 @@ const ResearchLabDetail = () => {
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
 			/>
-
-			{/* Update Response Modal */}
-			{applicationId && (
-				<ApplicationUpdateResponseModal
-					isOpen={showUpdateModal}
-					onClose={() => {
-						setShowUpdateModal(false)
-						setSelectedUpdateRequestId(null)
-					}}
-					applicationId={applicationId}
-					updateRequestId={selectedUpdateRequestId || undefined}
-					onSuccess={async () => {
-						// Refresh application status and update requests after successful update
-						const researchLabId = researchLab?.id || params.id
-						if (researchLabId) {
-							await checkExistingApplication(researchLabId as string)
-						}
-						if (applicationId) {
-							await fetchUpdateRequests()
-						}
-						setShowUpdateModal(false)
-						setSelectedUpdateRequestId(null)
-						showSuccess(
-							'Update Submitted',
-							'Your update response has been submitted successfully. The institution will review your changes.'
-						)
-					}}
-				/>
-			)}
 
 			{/* Document Selector Modal */}
 			<Modal

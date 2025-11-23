@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../prisma";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Helper function to calculate days left from a date string
 function calculateDaysLeft(dateString: Date): number {
@@ -10,9 +12,54 @@ function calculateDaysLeft(dateString: Date): number {
 	return Math.max(0, diffDays);
 }
 
-// Helper function to calculate match percentage (placeholder logic)
-function calculateMatchPercentage(): string {
-	return `${Math.floor(Math.random() * 30) + 70}%`;
+// Helper function to calculate real match percentage based on similarity
+async function calculateMatchPercentage(
+	postId: string,
+	userId?: string
+): Promise<string> {
+	if (!userId) {
+		// No authenticated user, return 0%
+		return "0%";
+	}
+
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findFirst({
+			where: { user_id: userId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			// No applicant embedding, return 0%
+			return "0%";
+		}
+
+		// Get program post embedding
+		const programPost = await prismaClient.programPost.findUnique({
+			where: { post_id: postId },
+			select: { embedding: true },
+		});
+
+		if (!programPost?.embedding) {
+			// No post embedding, return 0%
+			return "0%";
+		}
+
+		// Calculate similarity
+		const similarity = SimilarityService.calculateCosineSimilarity(
+			applicant.embedding as number[],
+			programPost.embedding as number[]
+		);
+
+		return SimilarityService.similarityToMatchPercentage(similarity);
+	} catch (error) {
+		// Log error for debugging but don't throw
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("Error calculating match percentage:", error);
+		}
+		return "0%";
+	}
 }
 
 // Helper function to format date to readable string
@@ -44,6 +91,15 @@ export async function GET(request: NextRequest) {
 				{ message: "Program ID is required" },
 				{ status: 400 }
 			);
+		}
+
+		// Get user from session (if authenticated)
+		let userId: string | undefined;
+		try {
+			const { user } = await requireAuth();
+			userId = user.id;
+		} catch (error) {
+			// User not authenticated, will use default scores
 		}
 
 		// Fetch OpportunityPost with all related data
@@ -111,7 +167,7 @@ export async function GET(request: NextRequest) {
 		const daysLeft = opportunityPost.end_date
 			? calculateDaysLeft(opportunityPost.end_date)
 			: 0;
-		const match = calculateMatchPercentage();
+		const match = await calculateMatchPercentage(postId, userId);
 		const applicationCount = opportunityPost.applications.length;
 		const wishlistCount = opportunityPost.wishlists.length;
 

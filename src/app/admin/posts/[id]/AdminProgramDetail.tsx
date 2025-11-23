@@ -9,6 +9,9 @@ import {
 	ScholarshipCard,
 } from '@/components/ui'
 
+import PostStatusManager, {
+	PostStatus,
+} from '@/components/admin/PostStatusManager'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
 import { useNotification } from '@/contexts/NotificationContext'
 import { mockPrograms } from '@/data/utils'
@@ -17,6 +20,10 @@ import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useApiWrapper } from '@/services/api/api-wrapper'
 import { applicationService } from '@/services/application/application-service'
+import {
+	downloadSessionProtectedFile,
+	openSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 import axios from 'axios'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
@@ -24,10 +31,6 @@ import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import CoverImage from '../../../../../public/EduMatch_Default.png'
-import {
-	openSessionProtectedFile,
-	downloadSessionProtectedFile,
-} from '@/utils/files/getSessionProtectedFileUrl'
 const AdminProgramDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -696,38 +699,7 @@ const AdminProgramDetail = () => {
 		}
 	}
 
-	const handlePublish = async () => {
-		const confirmed = window.confirm(
-			'Are you sure you want to publish this post?'
-		)
-		if (!confirmed) return
-
-		setIsProcessing(true)
-		try {
-			const response = await axios.patch(`/api/admin/posts/${params.id}`, {
-				status: 'PUBLISHED',
-			})
-
-			if (response.data.success) {
-				showSuccess(
-					'Post Published',
-					'The post has been successfully published.'
-				)
-				router.push('/admin/posts')
-			} else {
-				throw new Error('Failed to publish post')
-			}
-		} catch (error) {
-			showError(
-				'Publish Failed',
-				error instanceof Error
-					? error.message
-					: 'Failed to publish the post. Please try again.'
-			)
-		} finally {
-			setIsProcessing(false)
-		}
-	}
+	// Publishing is now handled by PostStatusManager
 
 	// Helper function to determine document type based on file name
 	const getDocumentType = (fileName: string): string => {
@@ -1881,45 +1853,23 @@ const AdminProgramDetail = () => {
 				</motion.div>
 			</motion.div>
 
-			{/* Admin Actions Section */}
+			{/* Post Status Management Section */}
 			<motion.div
 				initial={{ y: 20, opacity: 0 }}
 				animate={{ y: 0, opacity: 1 }}
 				transition={{ delay: 0.4, duration: 0.5 }}
 				className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8"
 			>
-				<div className="bg-white rounded-2xl shadow-xl p-4 sm:p-8">
-					<h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
-						Admin Actions
-					</h3>
-					<div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
-						{/* Reject Button */}
-						<Button
-							onClick={() => setShowRejectModal(true)}
-							className="px-4 sm:px-8 py-2 sm:py-3 bg-white !text-red-600 border-2 border-red-600 rounded-full hover:bg-red-50 hover:!text-red-700 transition-all font-semibold text-sm sm:text-base w-full sm:min-w-[180px]"
-						>
-							<span className="text-red-600">Reject</span>
-						</Button>
-
-						{/* Additional Requirements Button */}
-						<Button
-							onClick={() => setShowRequirementsModal(true)}
-							className="px-4 sm:px-8 py-2 sm:py-3 bg-white !text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 hover:!text-blue-700 transition-all font-semibold text-sm sm:text-base w-full sm:min-w-[180px]"
-						>
-							<span className="text-blue-600 text-center">
-								Additional Requirements
-							</span>
-						</Button>
-
-						{/* Publish Button */}
-						<Button
-							onClick={handlePublish}
-							className="px-4 sm:px-8 py-2 sm:py-3 bg-[#126E64] !text-white rounded-full hover:bg-[#0f5850] hover:!text-white transition-all font-semibold text-sm sm:text-base w-full sm:min-w-[180px]"
-						>
-							<span className="text-white">Publish</span>
-						</Button>
-					</div>
-				</div>
+				<PostStatusManager
+					postId={params.id as string}
+					currentStatus={(currentProgram?.status || 'DRAFT') as PostStatus}
+					postType="Program"
+					onStatusChange={(newStatus) => {
+						setCurrentProgram((prev: any) =>
+							prev ? { ...prev, status: newStatus } : null
+						)
+					}}
+				/>
 			</motion.div>
 
 			{/* Manage Files Side Panel */}

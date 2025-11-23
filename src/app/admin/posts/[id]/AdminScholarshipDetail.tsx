@@ -10,6 +10,9 @@ import {
 	ScholarshipCard,
 } from '@/components/ui'
 
+import PostStatusManager, {
+	PostStatus,
+} from '@/components/admin/PostStatusManager'
 import { mockScholarships } from '@/data/utils'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
@@ -365,33 +368,7 @@ const AdminScholarshipDetail = () => {
 		}
 	}
 
-	const handlePublish = async () => {
-		const confirmed = window.confirm(
-			'Are you sure you want to publish this post?'
-		)
-		if (!confirmed) return
-
-		setIsProcessing(true)
-		try {
-			await axios.patch(`/api/admin/posts/${params.id}`, {
-				status: 'PUBLISHED',
-			})
-
-			// Add success notification
-			alert('Post published successfully')
-			router.push('/admin/posts')
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Error publishing post:', error)
-			alert(
-				error instanceof Error
-					? error.message
-					: 'Failed to publish post. Please try again.'
-			)
-		} finally {
-			setIsProcessing(false)
-		}
-	}
+	// Publishing is now handled by PostStatusManager
 
 	// Handle sign in navigation
 	const handleSignIn = () => {
@@ -1257,43 +1234,24 @@ const AdminScholarshipDetail = () => {
 				</motion.div>
 			</motion.div>
 
-			{/* Admin Actions Section */}
+			{/* Post Status Management Section */}
 			<motion.div
 				initial={{ y: 20, opacity: 0 }}
 				animate={{ y: 0, opacity: 1 }}
 				transition={{ delay: 0.4, duration: 0.5 }}
 				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8"
 			>
-				<div className="bg-white rounded-2xl shadow-xl p-8">
-					<h3 className="text-2xl font-bold text-gray-900 mb-6">
-						Admin Actions
-					</h3>
-					<div className="flex gap-4 justify-center">
-						{/* Reject Button */}
-						<Button
-							onClick={() => setShowRejectModal(true)}
-							className="px-8 py-3 bg-white !text-red-600 border-2 border-red-600 rounded-full hover:bg-red-50 hover:!text-red-700 transition-all font-semibold text-base min-w-[180px]"
-						>
-							<span className="text-red-600">Reject</span>
-						</Button>
-
-						{/* Additional Requirements Button */}
-						<Button
-							onClick={() => setShowRequirementsModal(true)}
-							className="px-8 py-3 bg-white !text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 hover:!text-blue-700 transition-all font-semibold text-base min-w-[180px]"
-						>
-							<span className="text-blue-600">Additional Requirements</span>
-						</Button>
-
-						{/* Publish Button */}
-						<Button
-							onClick={handlePublish}
-							className="px-8 py-3 bg-[#126E64] !text-white rounded-full hover:bg-[#0f5850] hover:!text-white transition-all font-semibold text-base min-w-[180px]"
-						>
-							<span className="text-white">Publish</span>
-						</Button>
-					</div>
-				</div>
+				<PostStatusManager
+					postId={params.id as string}
+					currentStatus={(currentScholarship?.status || 'DRAFT') as PostStatus}
+					postType="Scholarship"
+					onStatusChange={(newStatus) => {
+						// Update local state if needed
+						setCurrentScholarship((prev: any) =>
+							prev ? { ...prev, status: newStatus } : null
+						)
+					}}
+				/>
 			</motion.div>
 
 			{/* Manage Files Side Panel */}

@@ -2,6 +2,7 @@
 
 import { PasswordChangeSection } from '@/components/profile/shared/PasswordChangeSection'
 import { Button } from '@/components/ui'
+import { ApplicationEligibilityBanner } from '@/components/ui/ApplicationEligibilityBanner'
 import Modal from '@/components/ui/modals/Modal'
 import { authClient } from '@/config/auth-client'
 import { ApiService } from '@/services/api/axios-config'
@@ -170,6 +171,24 @@ export const InstitutionSettingsSection: React.FC<
 	return (
 		<div className="min-h-screen bg-gray-50 py-8">
 			<div className=" mx-auto sm:px-6 lg:px-8 space-y-8">
+				{/* Subscription Status Section (for applicants using institution settings) */}
+				{profile?.role === 'applicant' && (
+					<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+						<h2 className="text-2xl font-bold text-gray-900 mb-2">
+							Application Status
+						</h2>
+						<p className="text-gray-600 mb-6">
+							Your current plan and application eligibility status.
+						</p>
+						<ApplicationEligibilityBanner
+							applicantId={profile?.applicant_id || profile?.id}
+							variant="inline"
+							showUpgradeButton={true}
+							onUpgradeClick={() => router.push('/pricing')}
+						/>
+					</div>
+				)}
+
 				{/* Account Information Section */}
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
 					<h2 className="text-2xl font-bold text-gray-900 mb-2">

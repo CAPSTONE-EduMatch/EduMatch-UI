@@ -2,6 +2,11 @@
 export { default as Button } from "./forms/Button";
 export { Label } from "./forms/label";
 
+// Plan-based Components
+export { ApplicationEligibilityBanner } from "./ApplicationEligibilityBanner";
+export { PlanAwareApplicationButton } from "./PlanAwareApplicationButton";
+export { PlanUpgradeModal } from "./PlanUpgradeModal";
+
 // Inputs
 export { default as Input } from "./inputs/Input";
 export { default as OTPInput } from "./inputs/OTPInput";

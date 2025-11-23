@@ -3,7 +3,7 @@ import {
 	getApplicationLimit,
 } from "@/services/authorization";
 import { requireAuth } from "@/utils/auth/auth-utils";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 
 /**
@@ -18,7 +18,7 @@ import { prismaClient } from "../../../../../prisma";
  * - Show upgrade prompts for Free users
  * - Display warning when nearing limit for Standard users
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
 	try {
 		// Check if user is authenticated
 		const { user } = await requireAuth();

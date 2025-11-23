@@ -1,8 +1,8 @@
+import { SimilarityService } from "@/services/similarity/similarity-service";
 import { ExploreApiResponse, PaginationMeta } from "@/types/api/explore-api";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Define ResearchLab type locally since it's not exported
 interface ResearchLab {
@@ -46,13 +46,29 @@ async function calculateMatchPercentages(
 		// Get applicant embedding
 		const applicant = await prismaClient.applicant.findFirst({
 			where: { user_id: userId },
-			select: { embedding: true },
+			select: { applicant_id: true, embedding: true },
 		});
 
 		if (!applicant?.embedding) {
 			// No applicant embedding, show 0%
 			researchLabs.forEach((lab) => {
 				lab.match = "0%";
+			});
+			return;
+		}
+
+		// PLAN-BASED AUTHORIZATION: Check if user can see matching scores
+		const { canSeeMatchingScore } = await import(
+			"@/services/authorization"
+		);
+		const matchingPermission = await canSeeMatchingScore(
+			applicant.applicant_id
+		);
+
+		if (!matchingPermission.authorized) {
+			// User cannot see matching scores, show placeholder
+			researchLabs.forEach((lab) => {
+				lab.match = "—"; // Premium feature indicator
 			});
 			return;
 		}

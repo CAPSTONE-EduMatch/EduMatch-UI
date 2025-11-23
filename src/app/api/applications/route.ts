@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { prismaClient } from "../../../../prisma";
 import {
+	ApplicationListResponse,
 	ApplicationRequest,
 	ApplicationResponse,
-	ApplicationListResponse,
 	ApplicationStatsResponse,
 	ApplicationStatus,
 } from "@/types/api/application-api";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
+import { prismaClient } from "../../../../prisma";
 
 // GET /api/applications - Get user's applications
 export async function GET(request: NextRequest) {
@@ -263,6 +263,30 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// PLAN-BASED AUTHORIZATION: Check if applicant can apply to opportunities
+		const { canApplyToOpportunity } = await import(
+			"@/services/authorization"
+		);
+		const eligibility = await canApplyToOpportunity(applicant.applicant_id);
+
+		if (!eligibility.canApply) {
+			return NextResponse.json(
+				{
+					error:
+						eligibility.reason || "You cannot apply at this time",
+					eligibility: {
+						canApply: false,
+						planName: eligibility.planName,
+						applicationsUsed: eligibility.applicationsUsed,
+						applicationsLimit: eligibility.applicationsLimit,
+						periodEnd: eligibility.periodEnd?.toISOString(),
+						daysUntilReset: eligibility.daysUntilReset,
+					},
+				},
+				{ status: 403 } // 403 Forbidden
+			);
+		}
+
 		// Check if post exists
 		const post = await prismaClient.opportunityPost.findUnique({
 			where: { post_id: body.postId },
@@ -470,6 +494,9 @@ export async function POST(request: NextRequest) {
 				data: applicationDetails,
 			});
 		}
+
+		// Note: Application count is now tracked by counting records in the applications table
+		// within the subscription period, so no manual increment needed
 
 		// Send notification to institution
 		try {

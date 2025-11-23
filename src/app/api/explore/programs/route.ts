@@ -1,8 +1,8 @@
+import { SimilarityService } from "@/services/similarity/similarity-service";
 import { ExploreApiResponse, PaginationMeta } from "@/types/api/explore-api";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Program interface with single string ID
 interface Program {
@@ -48,13 +48,30 @@ async function calculateMatchPercentages(
 		// Get applicant embedding
 		const applicant = await prismaClient.applicant.findFirst({
 			where: { user_id: userId },
-			select: { embedding: true },
+			select: { applicant_id: true, embedding: true },
 		});
 
 		if (!applicant?.embedding) {
 			// No applicant embedding, show 0%
 			programs.forEach((program) => {
 				program.match = "0%";
+			});
+			return;
+		}
+
+		// PLAN-BASED AUTHORIZATION: Check if user can see matching scores
+		// Only Premium plan users can see matching scores
+		const { canSeeMatchingScore } = await import(
+			"@/services/authorization"
+		);
+		const matchingPermission = await canSeeMatchingScore(
+			applicant.applicant_id
+		);
+
+		if (!matchingPermission.authorized) {
+			// User cannot see matching scores, show placeholder or empty
+			programs.forEach((program) => {
+				program.match = "—"; // Use em dash to indicate premium feature
 			});
 			return;
 		}

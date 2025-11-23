@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prismaClient } from "../../../../../prisma";
-import { PostStatus } from "@prisma/client";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { v4 as uuidv4 } from "uuid";
 import { EmbeddingService } from "@/services/embedding/embedding-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { PostStatus } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { prismaClient } from "../../../../../prisma";
 
 interface CreateProgramRequest {
 	// Overview Section
@@ -74,6 +74,22 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json(
 				{ error: "Institution not found" },
 				{ status: 404 }
+			);
+		}
+
+		// PLAN-BASED AUTHORIZATION: Check if institution can create posts
+		// Institutions must have an active subscription to create/publish posts
+		const { canCreatePost } = await import("@/services/authorization");
+		const authorization = await canCreatePost(institution.institution_id);
+
+		if (!authorization.authorized) {
+			return NextResponse.json(
+				{
+					error:
+						authorization.reason ||
+						"You do not have permission to create posts",
+				},
+				{ status: 403 } // 403 Forbidden
 			);
 		}
 

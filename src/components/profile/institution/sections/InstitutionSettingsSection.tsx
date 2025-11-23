@@ -3,6 +3,7 @@
 import { PasswordChangeSection } from '@/components/profile/shared/PasswordChangeSection'
 import { Button } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
+import { authClient } from '@/config/auth-client'
 import { ApiService } from '@/services/api/axios-config'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -28,6 +29,11 @@ export const InstitutionSettingsSection: React.FC<
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [deleteConfirmation, setDeleteConfirmation] = useState('')
 	const [deletingAccount, setDeletingAccount] = useState(false)
+	// eslint-disable-next-line no-unused-vars
+	const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
+	const [checkingSubscription, setCheckingSubscription] = useState(false)
+	// Subscription warning modal state
+	const [showSubscriptionWarning, setShowSubscriptionWarning] = useState(false)
 
 	// Fetch notification settings on mount
 	useEffect(() => {
@@ -78,7 +84,46 @@ export const InstitutionSettingsSection: React.FC<
 		}
 	}
 
-	const handleDeleteAccount = () => {
+	// Check for active subscriptions
+	const checkActiveSubscriptions = async () => {
+		try {
+			setCheckingSubscription(true)
+			const { data } = await authClient.subscription.list()
+
+			if (data && data.length > 0) {
+				// Check if any subscription is active
+				const activeSubscriptions = data.filter(
+					(sub: any) =>
+						sub.status === 'active' ||
+						sub.status === 'trialing' ||
+						sub.status === 'past_due'
+				)
+				setHasActiveSubscription(activeSubscriptions.length > 0)
+				return activeSubscriptions.length > 0
+			}
+
+			setHasActiveSubscription(false)
+			return false
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Failed to check subscriptions:', error)
+			// On error, assume no active subscription to not block the user
+			setHasActiveSubscription(false)
+			return false
+		} finally {
+			setCheckingSubscription(false)
+		}
+	}
+
+	const handleDeleteAccount = async () => {
+		// Check for active subscriptions first
+		const hasActive = await checkActiveSubscriptions()
+
+		if (hasActive) {
+			setShowSubscriptionWarning(true)
+			return
+		}
+
 		setIsDeleteModalOpen(true)
 	}
 
@@ -103,7 +148,13 @@ export const InstitutionSettingsSection: React.FC<
 				// Clear auth data and redirect
 				localStorage.clear()
 				sessionStorage.clear()
-				router.push('/')
+				await authClient.signOut({
+					fetchOptions: {
+						onSuccess: () => {
+							router.push('/')
+						},
+					},
+				})
 			} else {
 				alert(data.message || 'Failed to deactivate account. Please try again.')
 			}
@@ -289,10 +340,18 @@ export const InstitutionSettingsSection: React.FC<
 					{/* Delete Button */}
 					<Button
 						onClick={handleDeleteAccount}
-						className=" border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600 px-6 py-2 rounded-lg font-medium transition-colors duration-200"
+						disabled={checkingSubscription}
+						className=" border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600 px-6 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 						variant="outline"
 					>
-						Delete your account
+						{checkingSubscription ? (
+							<div className="flex items-center gap-2">
+								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+								Checking subscriptions...
+							</div>
+						) : (
+							'Delete your account'
+						)}
 					</Button>
 				</div>
 			</div>
@@ -390,6 +449,80 @@ export const InstitutionSettingsSection: React.FC<
 								) : (
 									'Deactivate Account'
 								)}
+							</Button>
+						</div>
+					</div>
+				</Modal>
+			)}
+
+			{/* Subscription Warning Modal */}
+			{showSubscriptionWarning && (
+				<Modal
+					isOpen={showSubscriptionWarning}
+					onClose={() => setShowSubscriptionWarning(false)}
+					title="Active Subscription Found"
+				>
+					<div className="space-y-6">
+						{/* Warning Icon */}
+						<div className="flex justify-center">
+							<div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+								<svg
+									className="w-8 h-8 text-yellow-600"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth="2"
+										d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+									/>
+								</svg>
+							</div>
+						</div>
+
+						{/* Warning Message */}
+						<div className="text-center">
+							<h3 className="text-lg font-semibold text-gray-900 mb-2">
+								Cannot Deactivate Account
+							</h3>
+							<p className="text-gray-600 mb-4">
+								You have active subscriptions that need to be canceled before
+								you can deactivate your account.
+							</p>
+							<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+								<p className="text-sm text-yellow-800">
+									<strong>What you need to do:</strong>
+								</p>
+								<ul className="text-sm text-yellow-700 list-disc list-inside mt-2 space-y-1">
+									<li>
+										Go to your profile payment page to manage subscriptions
+									</li>
+									<li>Cancel all active subscriptions</li>
+									<li>Return to this page to deactivate your account</li>
+								</ul>
+							</div>
+						</div>
+
+						{/* Action Buttons */}
+						<div className="flex gap-4 pt-4">
+							<Button
+								type="button"
+								onClick={() => setShowSubscriptionWarning(false)}
+								variant="outline"
+								className="flex-1 py-3"
+							>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								onClick={() => {
+									window.location.href = '/institution/dashboard/payment'
+								}}
+								className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-700 text-white"
+							>
+								Go to Payment Page
 							</Button>
 						</div>
 					</div>

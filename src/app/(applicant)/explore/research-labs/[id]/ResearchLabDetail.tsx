@@ -2,29 +2,30 @@
 import {
 	Breadcrumb,
 	Button,
+	ErrorModal,
 	Modal,
 	ResearchLabCard,
-	ErrorModal,
 } from '@/components/ui'
 import {
 	DocumentSelector,
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Trash2, Check, X, File } from 'lucide-react'
-import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { useWishlist } from '@/hooks/wishlist/useWishlist'
-import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
-import { applicationService } from '@/services/application/application-service'
-import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
+import { useFileUpload } from '@/hooks/files/useFileUpload'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { applicationService } from '@/services/application/application-service'
+import { ApplicationLimitError } from '@/types/api/application-errors'
 import {
-	openSessionProtectedFile,
 	downloadSessionProtectedFile,
+	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Check, File, Heart, X } from 'lucide-react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 const ResearchLabDetail = () => {
 	const router = useRouter()
@@ -891,8 +892,18 @@ const ResearchLabDetail = () => {
 				)
 			}
 		} catch (error: any) {
-			// Handle specific "already applied" error
-			if (error.message && error.message.includes('already applied')) {
+			// Handle application limit error with user-friendly message
+			if (error instanceof ApplicationLimitError) {
+				showError('Application Limit Reached', error.getUserFriendlyMessage(), {
+					showRetry: false,
+					showUpgradeButton: true,
+					upgradeButtonText: 'Upgrade Plan',
+					onUpgradeClick: () => {
+						router.push('/pricing')
+					},
+				})
+				// Handle specific "already applied" error
+			} else if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
 				showError(
 					'Already Applied',
@@ -904,7 +915,7 @@ const ResearchLabDetail = () => {
 			} else {
 				showError(
 					'Application Error',
-					'An unexpected error occurred. Please try again.',
+					error.message || 'An unexpected error occurred. Please try again.',
 					{
 						onRetry: handleApply,
 						showRetry: true,

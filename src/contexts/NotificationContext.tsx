@@ -20,6 +20,10 @@ export interface NotificationData {
 	onRetry?: () => void
 	showRetry?: boolean
 	retryText?: string
+	// Upgrade button support
+	showUpgradeButton?: boolean
+	upgradeButtonText?: string
+	onUpgradeClick?: () => void
 }
 
 interface NotificationContextType {
@@ -146,6 +150,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 							showRetry={notification.showRetry}
 							onRetry={notification.onRetry}
 							retryText={notification.retryText}
+							// Upgrade button mapping -> use second button slot in ErrorModal
+							showSecondButton={notification.showUpgradeButton}
+							secondButtonText={notification.upgradeButtonText}
+							onSecondButtonClick={notification.onUpgradeClick}
 						/>
 					)
 				} else if (notification.type === 'success') {

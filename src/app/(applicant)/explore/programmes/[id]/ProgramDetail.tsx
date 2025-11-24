@@ -2,35 +2,36 @@
 import {
 	Breadcrumb,
 	Button,
+	ErrorModal,
 	Modal,
 	Pagination,
 	ProgramCard,
 	ScholarshipCard,
-	ErrorModal,
 } from '@/components/ui'
 import {
 	DocumentSelector,
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { Program } from '@/types/api/explore-api'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Heart, Check, File, X } from 'lucide-react'
-import Image from 'next/image'
-import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { applicationService } from '@/services/application/application-service'
-import { useWishlist } from '@/hooks/wishlist/useWishlist'
-import { useFileUpload } from '@/hooks/files/useFileUpload'
-import { useNotification } from '@/contexts/NotificationContext'
-import { useApiWrapper } from '@/services/api/api-wrapper'
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
+import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
-import CoverImage from '../../../../../../public/EduMatch_Default.png'
+import { useFileUpload } from '@/hooks/files/useFileUpload'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useApiWrapper } from '@/services/api/api-wrapper'
+import { applicationService } from '@/services/application/application-service'
+import { ApplicationLimitError } from '@/types/api/application-errors'
+import { Program } from '@/types/api/explore-api'
 import {
-	openSessionProtectedFile,
 	downloadSessionProtectedFile,
+	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Check, ChevronLeft, ChevronRight, File, Heart, X } from 'lucide-react'
+import Image from 'next/image'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -1127,8 +1128,18 @@ const ProgramDetail = () => {
 				)
 			}
 		} catch (error: any) {
-			// Handle specific "already applied" error
-			if (error.message && error.message.includes('already applied')) {
+			// Handle application limit error
+			if (error instanceof ApplicationLimitError) {
+				showError('Application Limit Reached', error.getUserFriendlyMessage(), {
+					showRetry: false,
+					showUpgradeButton: true,
+					upgradeButtonText: 'Upgrade Plan',
+					onUpgradeClick: () => {
+						router.push('/pricing')
+					},
+				})
+				// Handle specific "already applied" error
+			} else if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
 				showError(
 					'Already Applied',
@@ -1140,7 +1151,7 @@ const ProgramDetail = () => {
 			} else {
 				showError(
 					'Application Error',
-					'An unexpected error occurred. Please try again.',
+					error.message || 'An unexpected error occurred. Please try again.',
 					{
 						onRetry: handleApply,
 						showRetry: true,

@@ -2,33 +2,33 @@
 import {
 	Breadcrumb,
 	Button,
+	ErrorModal,
 	FilterSidebar,
 	Modal,
 	Pagination,
 	ProgramCard,
-	ScholarshipCard,
-	ErrorModal,
 } from '@/components/ui'
 import {
 	DocumentSelector,
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
-import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Check, X, File } from 'lucide-react'
-import { useRouter, useSearchParams, useParams } from 'next/navigation'
-import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { useWishlist } from '@/hooks/wishlist/useWishlist'
-import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
-import { applicationService } from '@/services/application/application-service'
-import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useNotification } from '@/contexts/NotificationContext'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useFileUpload } from '@/hooks/files/useFileUpload'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { applicationService } from '@/services/application/application-service'
 import { ExploreApiService } from '@/services/explore/explore-api'
+import { ApplicationLimitError } from '@/types/api/application-errors'
 import type { ExploreFilters } from '@/types/api/explore-api'
 import {
-	openSessionProtectedFile,
 	downloadSessionProtectedFile,
+	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Check, File, Heart, X } from 'lucide-react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 const ScholarshipDetail = () => {
 	const router = useRouter()
@@ -1026,8 +1026,18 @@ const ScholarshipDetail = () => {
 				)
 			}
 		} catch (error: any) {
-			// Handle specific "already applied" error
-			if (error.message && error.message.includes('already applied')) {
+			// Handle application limit error with user-friendly message
+			if (error instanceof ApplicationLimitError) {
+				showError('Application Limit Reached', error.getUserFriendlyMessage(), {
+					showRetry: false,
+					showUpgradeButton: true,
+					upgradeButtonText: 'Upgrade Plan',
+					onUpgradeClick: () => {
+						router.push('/pricing')
+					},
+				})
+				// Handle specific "already applied" error
+			} else if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
 				showError(
 					'Already Applied',
@@ -1039,7 +1049,7 @@ const ScholarshipDetail = () => {
 			} else {
 				showError(
 					'Application Error',
-					'An unexpected error occurred. Please try again.',
+					error.message || 'An unexpected error occurred. Please try again.',
 					{
 						onRetry: handleApply,
 						showRetry: true,

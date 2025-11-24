@@ -2,28 +2,30 @@
 import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
+import type { SortOption } from '@/components/ui'
 import {
-	Button,
 	Breadcrumb,
+	Button,
+	// AIAssistantCard,
+	ErrorModal,
 	FilterSidebar,
 	Pagination,
 	SortDropdown,
+	SubscriptionProgressWidget,
 	TabSelector,
-	// AIAssistantCard,
-	ErrorModal,
 } from '@/components/ui'
-import { Search } from 'lucide-react'
-import type { SortOption } from '@/components/ui'
-import { ExploreApiService } from '@/services/explore/explore-api'
-import { useTranslations } from 'next-intl'
-import { TabType } from '@/types/domain/explore'
-import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
-import { motion } from 'framer-motion'
-import Image from 'next/image'
-import { useEffect, useState, useRef, useCallback } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useUserProfile } from '@/hooks/profile/useUserProfile'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { ExploreApiService } from '@/services/explore/explore-api'
+import { Program, ResearchLab, Scholarship } from '@/types/api/explore-api'
+import { TabType } from '@/types/domain/explore'
+import { motion } from 'framer-motion'
+import { Search } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import Image from 'next/image'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import student from '../../../../public/student.png'
 
 const categories = [
@@ -41,6 +43,7 @@ const Explore = () => {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const { isAuthenticated } = useAuthCheck()
+	const { profile: userProfile } = useUserProfile()
 	const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: 'Explore' }]
 
 	const contentRef = useRef<HTMLDivElement>(null)
@@ -688,6 +691,15 @@ const Explore = () => {
 			>
 				<div className="mb-6">
 					<Breadcrumb items={breadcrumbItems} />
+					{isAuthenticated && userProfile?.role === 'applicant' && (
+						<div className="my-6">
+							<SubscriptionProgressWidget
+								applicantId={userProfile.id}
+								variant="compact"
+								className="max-w-4xl mx-auto"
+							/>
+						</div>
+					)}
 					<motion.h2
 						className="text-2xl font-bold text-gray-900 mb-4 text-center"
 						initial={{ opacity: 0 }}

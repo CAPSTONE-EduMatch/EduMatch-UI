@@ -95,8 +95,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
 					{showSecondButton && (
 						<Button
 							onClick={handleSecondButtonClick}
-							variant="outline"
-							className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 mt-3"
+							className="w-full bg-[#126E64] hover:bg-teal-700 text-white mt-3"
 						>
 							{secondButtonText}
 						</Button>

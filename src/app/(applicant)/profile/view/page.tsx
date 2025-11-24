@@ -1,29 +1,29 @@
 'use client'
 
-import { Card, CardContent } from '@/components/ui'
-import { Button } from '@/components/ui'
-import { ApiService, cacheUtils } from '@/services/api/axios-config'
-import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { Button, Card, CardContent } from '@/components/ui'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { ApiService, cacheUtils } from '@/services/api/axios-config'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 // Import applicant layout and section components
+import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
+import { ApplicationSection } from '@/components/profile/applicant/sections/ApplicationSection'
+import { ProfileInfoSection } from '@/components/profile/applicant/sections/ProfileInfoSection'
+import { SettingsSection } from '@/components/profile/applicant/sections/SettingsSection'
+import { WishlistSection } from '@/components/profile/applicant/sections/WishlistSection'
 import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
 } from '@/components/profile/layouts/ApplicantProfileLayout'
-import { ProfileInfoSection } from '@/components/profile/applicant/sections/ProfileInfoSection'
-import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
-import { WishlistSection } from '@/components/profile/applicant/sections/WishlistSection'
-import { ApplicationSection } from '@/components/profile/applicant/sections/ApplicationSection'
-import { SettingsSection } from '@/components/profile/applicant/sections/SettingsSection'
 
 // Payment components
 import { BillingPortalCard } from '@/components/payment/BillingPortalCard'
 import { SubscriptionFeaturesCard } from '@/components/payment/SubscriptionFeaturesCard'
 import { SubscriptionInfoCard } from '@/components/payment/SubscriptionInfoCard'
+import { SubscriptionProgressWidget } from '@/components/ui'
 
 interface ProfileData {
 	id: string
@@ -378,6 +378,11 @@ function ApplicantProfileView({
 								Manage your subscription plan and billing through Stripe
 							</p>
 						</div>
+						<SubscriptionProgressWidget
+							applicantId={profile.id}
+							variant="detailed"
+							className="mb-8"
+						/>
 						<SubscriptionInfoCard />
 						<SubscriptionFeaturesCard />
 						<BillingPortalCard />

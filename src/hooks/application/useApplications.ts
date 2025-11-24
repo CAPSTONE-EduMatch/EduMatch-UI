@@ -1,11 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
 import { applicationService } from "@/services/application/application-service";
-import {
-	Application,
-	ApplicationListResponse,
-	ApplicationStatsResponse,
-	ApplicationStatus,
-} from "@/types/api/application-api";
+import { Application, ApplicationStatus } from "@/types/api/application-api";
+import { ApplicationLimitError } from "@/types/api/application-errors";
+import { useCallback, useEffect, useState } from "react";
 
 interface ApplicationQueryParams {
 	page?: number;
@@ -153,10 +149,15 @@ export const useApplications = (
 				await fetchApplications(); // Refresh the list
 				await fetchStats(); // Refresh stats
 			} catch (err) {
-				const errorMessage =
-					err instanceof Error
-						? err.message
-						: "Failed to submit application";
+				let errorMessage = "Failed to submit application";
+
+				// Handle application limit error with user-friendly message
+				if (err instanceof ApplicationLimitError) {
+					errorMessage = err.getUserFriendlyMessage();
+				} else if (err instanceof Error) {
+					errorMessage = err.message;
+				}
+
 				setError(errorMessage);
 				throw err;
 			}

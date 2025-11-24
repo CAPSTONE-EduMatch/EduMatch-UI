@@ -1,20 +1,19 @@
 'use client'
 
-import React from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/cards/badge'
 import Button from '@/components/ui/forms/Button'
 import { Progress } from '@/components/ui/progress'
-import {
-	CheckCircle,
-	XCircle,
-	Clock,
-	Zap,
-	Crown,
-	AlertTriangle,
-	RefreshCw,
-} from 'lucide-react'
 import { useApplicationEligibility } from '@/hooks/application/useApplicationEligibility'
+import {
+	AlertTriangle,
+	CheckCircle,
+	Crown,
+	RefreshCw,
+	XCircle,
+	Zap,
+} from 'lucide-react'
+import React from 'react'
 
 interface ApplicationEligibilityBannerProps {
 	applicantId?: string
@@ -94,6 +93,50 @@ export function ApplicationEligibilityBanner({
 		return (applicationsUsed / applicationsLimit) * 100
 	}
 
+	// Enhanced contextual messages
+	const getContextualMessage = () => {
+		if (applicationsLimit === null) {
+			return 'Unlimited applications available'
+		}
+
+		const isNearLimit = applicationsUsed >= applicationsLimit - 1
+		const isAtLimit = applicationsUsed >= applicationsLimit
+
+		if (isAtLimit) {
+			return `You've reached your limit of ${applicationsLimit} applications. ${daysUntilReset ? `Resets in ${daysUntilReset} days` : 'Upgrade for unlimited applications'}`
+		}
+
+		if (isNearLimit) {
+			return `You've used ${applicationsUsed}/${applicationsLimit} applications. Only ${applicationsRemaining} remaining${daysUntilReset ? ` - resets in ${daysUntilReset} days` : ''}`
+		}
+
+		if (applicationsUsed === 0) {
+			return `You have ${applicationsLimit} applications available this period`
+		}
+
+		return `You've used ${applicationsUsed}/${applicationsLimit} applications. ${applicationsRemaining} remaining${daysUntilReset ? ` - resets in ${daysUntilReset} days` : ''}`
+	}
+
+	const getMessageIcon = () => {
+		if (applicationsLimit === null)
+			return (
+				<CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+			)
+
+		const isAtLimit = applicationsUsed >= applicationsLimit
+		const isNearLimit = applicationsUsed >= applicationsLimit - 1
+
+		if (isAtLimit)
+			return <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+		if (isNearLimit)
+			return (
+				<AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+			)
+		return (
+			<CheckCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+		)
+	}
+
 	const renderContent = () => (
 		<div className="space-y-3">
 			{/* Plan Status Header */}
@@ -145,30 +188,18 @@ export function ApplicationEligibilityBanner({
 				</div>
 			)}
 
-			{/* Status Message */}
-			{reason && (
-				<div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
-					<AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-					<div className="space-y-1">
-						<p className="text-sm font-medium text-foreground">{reason}</p>
-						{applicationsRemaining !== null && applicationsRemaining > 0 && (
-							<p className="text-xs text-muted-foreground">
-								You have {applicationsRemaining} application
-								{applicationsRemaining === 1 ? '' : 's'} remaining.
-							</p>
-						)}
-						{daysUntilReset !== null && daysUntilReset > 0 && (
-							<div className="flex items-center gap-1 text-xs text-muted-foreground">
-								<Clock className="h-3 w-3" />
-								<span>
-									Resets in {daysUntilReset} day
-									{daysUntilReset === 1 ? '' : 's'}
-								</span>
-							</div>
-						)}
-					</div>
+			{/* Enhanced Status Message */}
+			<div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
+				{getMessageIcon()}
+				<div className="space-y-1">
+					<p className="text-sm font-medium text-foreground">
+						{getContextualMessage()}
+					</p>
+					{reason && reason !== getContextualMessage() && (
+						<p className="text-xs text-muted-foreground">{reason}</p>
+					)}
 				</div>
-			)}
+			</div>
 
 			{/* Upgrade CTA */}
 			{!canApply &&

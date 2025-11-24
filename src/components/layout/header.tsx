@@ -1,33 +1,34 @@
 'use client'
 
 import {
-	MessageCircle,
 	Bell,
-	User,
-	Menu,
-	X,
-	LogOut,
-	Check,
-	UserCircle,
 	Book,
-	FileText,
 	Bookmark,
-	Settings,
+	Check,
 	CreditCard,
+	FileText,
+	LogOut,
+	Menu,
+	MessageCircle,
+	Settings,
+	User,
+	UserCircle,
+	X,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import Logo from '../../../public/edumatch_logo.svg'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import Logo from '../../../public/edumatch_logo.svg'
 // import { useTranslate } from '@/hooks/useTranslate'
-import { useTranslations, useLocale } from 'next-intl'
+import { ApplicationLimitIndicator } from '@/components/ui'
 import { authClient } from '@/config/auth-client'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
-import { useNotifications } from '@/hooks/notifications/useNotifications'
 import { useUnreadMessageCount } from '@/hooks/messaging/useUnreadMessageCount'
+import { useNotifications } from '@/hooks/notifications/useNotifications'
 import { useUserProfile } from '@/hooks/profile/useUserProfile'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
+import { useLocale, useTranslations } from 'next-intl'
 
 export function EduMatchHeader() {
 	const router = useRouter()
@@ -444,13 +445,20 @@ export function EduMatchHeader() {
 														'Student'
 													)}
 												</div>
-												{/* Subscription Plan Tag */}
+												{/* Subscription Plan Tag with Progress */}
 												<div className="flex items-center gap-2">
 													<span
 														className={`inline-block ${planInfo.color} text-white px-2 py-1 rounded-full text-xs font-medium`}
 													>
 														{planInfo.label} Plan
 													</span>
+													{userProfile?.role === 'applicant' && (
+														<ApplicationLimitIndicator
+															applicantId={userProfile?.id}
+															variant="badge"
+															className="text-xs"
+														/>
+													)}
 												</div>
 											</div>
 

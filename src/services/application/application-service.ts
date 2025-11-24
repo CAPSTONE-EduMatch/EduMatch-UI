@@ -1,11 +1,16 @@
 import {
+	ApplicationListResponse,
 	ApplicationRequest,
 	ApplicationResponse,
-	ApplicationListResponse,
 	ApplicationStatsResponse,
 	ApplicationUpdateRequest,
 	ApplicationUpdateResponse,
 } from "@/types/api/application-api";
+import {
+	ApplicationEligibilityData,
+	ApplicationError,
+	ApplicationLimitError,
+} from "@/types/api/application-errors";
 
 class ApplicationService {
 	private baseUrl = "/api/applications";
@@ -34,13 +39,39 @@ class ApplicationService {
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || "Request failed");
+				// Handle 403 Forbidden - Application Limit Reached
+				if (response.status === 403 && data.eligibility) {
+					const limitError = new ApplicationLimitError(
+						data.error || "Application limit reached",
+						data.eligibility as ApplicationEligibilityData
+					);
+					throw limitError;
+				}
+
+				// Handle other application errors
+				throw new ApplicationError(
+					data.error || "Request failed",
+					response.status
+				);
 			}
 
 			return data;
 		} catch (error) {
+			// Re-throw custom errors as-is
+			if (
+				error instanceof ApplicationLimitError ||
+				error instanceof ApplicationError
+			) {
+				throw error;
+			}
+
+			// Handle network/other errors
 			console.error(`Application API Error (${endpoint}):`, error);
-			throw error;
+			throw new ApplicationError(
+				error instanceof Error
+					? error.message
+					: "Network error occurred"
+			);
 		}
 	}
 

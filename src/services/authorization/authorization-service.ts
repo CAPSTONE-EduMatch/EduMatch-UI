@@ -105,20 +105,17 @@ export async function canApplyToOpportunity(
 			};
 		}
 
-		// Get applicant's subscription plan
-		const applicantSub = await prismaClient.applicantSubscription.findFirst(
-			{
-				where: {
-					applicant_id: applicantId,
-					status: "ACTIVE",
-				},
-				include: { plan: true },
-				orderBy: { subscribe_at: "desc" },
-			}
-		);
+		// Get user's Better Auth subscription
+		const subscription = await prismaClient.subscription.findFirst({
+			where: {
+				referenceId: applicant.user_id,
+				status: "active",
+			},
+			orderBy: { createdAt: "desc" },
+		});
 
 		// Default to Free plan if no subscription
-		const planName = applicantSub?.plan.name || "Free";
+		const planName = subscription?.plan || "Free";
 		const planType = getPlanType(planName) as ApplicantPlan;
 		const features = APPLICANT_PLAN_FEATURES[planType];
 
@@ -250,18 +247,29 @@ export async function canSeeMatchingScore(
 	applicantId: string
 ): Promise<AuthorizationResult> {
 	try {
-		const applicantSub = await prismaClient.applicantSubscription.findFirst(
-			{
-				where: {
-					applicant_id: applicantId,
-					status: "ACTIVE",
-				},
-				include: { plan: true },
-				orderBy: { subscribe_at: "desc" },
-			}
-		);
+		// Get applicant with user info to access subscription
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { applicant_id: applicantId },
+			include: { user: true },
+		});
 
-		const planName = applicantSub?.plan.name || "Free";
+		if (!applicant) {
+			return {
+				authorized: false,
+				reason: "Applicant not found",
+			};
+		}
+
+		// Get user's Better Auth subscription
+		const subscription = await prismaClient.subscription.findFirst({
+			where: {
+				referenceId: applicant.user_id,
+				status: "active",
+			},
+			orderBy: { createdAt: "desc" },
+		});
+
+		const planName = subscription?.plan || "Free";
 		const planType = getPlanType(planName) as ApplicantPlan;
 
 		if (planType !== ApplicantPlan.PREMIUM) {

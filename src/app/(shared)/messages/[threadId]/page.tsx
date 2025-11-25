@@ -43,10 +43,9 @@ export default function MessagesThreadPage({
 				pageTitle="Messages"
 				pageDescription="Please sign in to view your messages"
 			>
-				<div className="min-h-screen bg-gray-50 pt-20">
-					<div className="h-[calc(100vh-5rem)]">
-						<MessageDialog threadId={params.threadId} />
-					</div>
+				<EduMatchHeader />
+				<div className="h-screen pt-24">
+					<MessageDialog threadId={params.threadId} />
 				</div>
 			</AuthWrapper>
 		)

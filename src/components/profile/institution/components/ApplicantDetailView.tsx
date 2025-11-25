@@ -46,7 +46,6 @@ interface ApplicationDetails {
 		status: string
 		applyAt: string
 		documents: Document[]
-		updateDocuments?: Document[]
 		post: {
 			id: string
 			title: string
@@ -64,28 +63,6 @@ interface ApplicationDetails {
 			job?: any
 		}
 	}
-	updateRequests?: Array<{
-		updateRequestId: string
-		requestMessage: string
-		requestedDocuments: string[]
-		status: string
-		createdAt: string
-		responseSubmittedAt?: string
-		responseMessage?: string
-		requestedBy: {
-			userId: string
-			name: string
-			email: string
-		}
-		responseDocuments: Array<{
-			documentId: string
-			name: string
-			url: string
-			size: number
-			documentType: string
-			updatedAt?: string
-		}>
-	}>
 	applicant: {
 		applicantId: string
 		userId?: string
@@ -149,9 +126,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	const [activeTab, setActiveTab] = useState<'academic' | 'requirements'>(
 		'academic'
 	)
-	const [requirementsSubTab, setRequirementsSubTab] = useState<
-		'application' | 'updates'
-	>('application')
 	const [applicationDetails, setApplicationDetails] =
 		useState<ApplicationDetails | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -1152,37 +1126,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			label: 'Program requirements',
 			content: (
 				<div className="h-full flex flex-col">
-					{/* Sub-tabs for Requirements */}
-					<div className="border-b border-gray-200 px-4 pt-2">
-						<div className="flex gap-2">
-							<button
-								onClick={() => setRequirementsSubTab('application')}
-								className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-									requirementsSubTab === 'application'
-										? 'border-primary text-primary'
-										: 'border-transparent text-gray-600 hover:text-gray-900'
-								}`}
-							>
-								Application Documents
-							</button>
-							<button
-								onClick={() => setRequirementsSubTab('updates')}
-								className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-									requirementsSubTab === 'updates'
-										? 'border-primary text-primary'
-										: 'border-transparent text-gray-600 hover:text-gray-900'
-								}`}
-							>
-								Update Documents
-								{applicationDetails?.application?.updateDocuments &&
-								applicationDetails.application.updateDocuments.length > 0
-									? ` (${applicationDetails.application.updateDocuments.length})`
-									: ''}
-							</button>
-						</div>
-					</div>
-
-					{/* Content based on sub-tab */}
+					{/* Application Documents */}
 					<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
 						{loading ? (
 							<div className="flex items-center justify-center py-20">
@@ -1200,7 +1144,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 									<p className="text-gray-500 text-xs">{error}</p>
 								</div>
 							</div>
-						) : requirementsSubTab === 'application' ? (
+						) : (
 							<div className="pt-4 space-y-6">
 								{/* Application Documents - Flat List (No Grouping) */}
 								{applicationDetails?.application?.documents &&
@@ -1290,186 +1234,6 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 										<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
 										<p className="text-gray-500">
 											No application documents uploaded
-										</p>
-									</div>
-								)}
-							</div>
-						) : (
-							<div className="pt-4 space-y-6">
-								{/* Update Documents - Grouped by Update Request */}
-								{applicationDetails?.updateRequests &&
-								applicationDetails.updateRequests.length > 0 ? (
-									<div className="space-y-6">
-										{applicationDetails.updateRequests.map((request) => (
-											<div
-												key={request.updateRequestId}
-												className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
-											>
-												{/* Update Request Header */}
-												<div className="mb-4 pb-4 border-b border-gray-200">
-													<div className="flex justify-between items-start mb-2">
-														<h3 className="text-lg font-semibold">
-															Update Request
-														</h3>
-														<span
-															className={`px-2 py-1 rounded text-xs font-medium ${
-																request.status === 'PENDING'
-																	? 'bg-yellow-100 text-yellow-800'
-																	: request.status === 'RESPONDED'
-																		? 'bg-blue-100 text-blue-800'
-																		: request.status === 'REVIEWED'
-																			? 'bg-green-100 text-green-800'
-																			: 'bg-gray-100 text-gray-800'
-															}`}
-														>
-															{request.status}
-														</span>
-													</div>
-													<p className="text-sm text-gray-700 mb-2">
-														<span className="font-medium">Requested on:</span>{' '}
-														{new Date(request.createdAt).toLocaleDateString()}
-													</p>
-													{request.responseSubmittedAt && (
-														<p className="text-sm text-gray-700 mb-2">
-															<span className="font-medium">
-																Response submitted on:
-															</span>{' '}
-															{new Date(
-																request.responseSubmittedAt
-															).toLocaleDateString()}
-														</p>
-													)}
-													{request.requestMessage && (
-														<div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-															<p className="text-sm font-medium text-blue-900 mb-1">
-																Request Message:
-															</p>
-															<p className="text-sm text-blue-800 whitespace-pre-wrap">
-																{request.requestMessage}
-															</p>
-														</div>
-													)}
-													{request.responseMessage && (
-														<div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
-															<p className="text-sm font-medium text-green-900 mb-1">
-																Applicant Response:
-															</p>
-															<p className="text-sm text-green-800 whitespace-pre-wrap">
-																{request.responseMessage}
-															</p>
-														</div>
-													)}
-												</div>
-
-												{/* Response Documents */}
-												{request.responseDocuments &&
-												request.responseDocuments.length > 0 ? (
-													<>
-														<div className="flex justify-between items-center mb-4">
-															<h4 className="text-base font-medium">
-																Submitted Documents (
-																{request.responseDocuments.length})
-															</h4>
-															<button
-																onClick={async () => {
-																	const docsToDownload =
-																		request.responseDocuments.map((doc) => ({
-																			documentId: doc.documentId,
-																			name: doc.name,
-																			url: doc.url,
-																			size: doc.size,
-																			uploadDate:
-																				doc.updatedAt ||
-																				new Date().toISOString(),
-																		}))
-																	setDownloadingZip(
-																		`update-${request.updateRequestId}`
-																	)
-																	try {
-																		const zipName = `${applicantName.replace(/\s+/g, '_')}_Update_${request.updateRequestId.substring(0, 8)}`
-																		await createZipFromDocuments(
-																			docsToDownload,
-																			zipName
-																		)
-																	} catch (error) {
-																		// eslint-disable-next-line no-console
-																		console.error(
-																			'Error creating zip file:',
-																			error
-																		)
-																	} finally {
-																		setDownloadingZip(null)
-																	}
-																}}
-																disabled={
-																	downloadingZip ===
-																	`update-${request.updateRequestId}`
-																}
-																className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-															>
-																{downloadingZip ===
-																	`update-${request.updateRequestId}` && (
-																	<Loader2 className="h-3 w-3 animate-spin" />
-																)}
-																Download all
-															</button>
-														</div>
-
-														<div className="space-y-3 max-h-64 overflow-y-auto">
-															{request.responseDocuments.map((doc) => (
-																<div
-																	key={doc.documentId}
-																	className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-blue-200"
-																>
-																	<div className="flex items-center gap-3">
-																		<span className="text-2xl">📄</span>
-																		<div>
-																			<p className="font-medium text-sm">
-																				{doc.name}
-																			</p>
-																			<p className="text-xs text-muted-foreground">
-																				{formatFileSize(doc.size)} •{' '}
-																				{doc.updatedAt
-																					? formatDate(doc.updatedAt)
-																					: 'Date not available'}
-																			</p>
-																		</div>
-																	</div>
-																	<div className="flex items-center gap-2">
-																		<button
-																			onClick={() => {
-																				openSessionProtectedFile(doc.url)
-																			}}
-																			className="text-primary hover:text-primary/80 text-sm font-medium"
-																		>
-																			View
-																		</button>
-																		<button
-																			onClick={() => handleDownloadFile(doc)}
-																			className="text-gray-400 hover:text-gray-600 p-1"
-																		>
-																			<Download className="h-4 w-4" />
-																		</button>
-																	</div>
-																</div>
-															))}
-														</div>
-													</>
-												) : (
-													<div className="text-center py-4">
-														<p className="text-gray-500 text-sm">
-															No documents submitted yet for this update request
-														</p>
-													</div>
-												)}
-											</div>
-										))}
-									</div>
-								) : (
-									<div className="text-center py-8">
-										<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-										<p className="text-gray-500">
-											No update documents submitted yet
 										</p>
 									</div>
 								)}

@@ -121,14 +121,24 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Check if a published post with the same title already exists
-		const existingPost = await prismaClient.opportunityPost.findFirst({
+		// Check if a published post with the same title already exists (case-insensitive)
+		const allPublishedPosts = await prismaClient.opportunityPost.findMany({
 			where: {
 				institution_id: institution.institution_id,
-				title: body.jobName,
 				status: "PUBLISHED",
 			},
+			select: {
+				title: true,
+			},
 		});
+
+		// Check for case-insensitive match (trim and compare)
+		const normalizedNewTitle = body.jobName.trim();
+		const existingPost = allPublishedPosts.find(
+			(post) =>
+				post.title.trim().toLowerCase() ===
+				normalizedNewTitle.toLowerCase()
+		);
 
 		if (existingPost) {
 			return NextResponse.json(
@@ -530,6 +540,117 @@ export async function PUT(request: NextRequest) {
 				{ error: "Post not found or access denied" },
 				{ status: 404 }
 			);
+		}
+
+		// Check if this is a status-only update
+		const isStatusOnlyUpdate =
+			updateData.status &&
+			!updateData.jobName &&
+			!updateData.startDate &&
+			!updateData.applicationDeadline;
+
+		// Handle status-only update
+		if (isStatusOnlyUpdate) {
+			const validStatuses: PostStatus[] = [
+				"DRAFT",
+				"PUBLISHED",
+				"CLOSED",
+				"ARCHIVED",
+			];
+
+			if (!validStatuses.includes(updateData.status as PostStatus)) {
+				return NextResponse.json(
+					{
+						error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+					},
+					{ status: 400 }
+				);
+			}
+
+			// If changing status to PUBLISHED, check for duplicate published titles
+			if (updateData.status === "PUBLISHED") {
+				const allPublishedPosts =
+					await prismaClient.opportunityPost.findMany({
+						where: {
+							institution_id: institution.institution_id,
+							status: "PUBLISHED",
+							post_id: {
+								not: postId, // Exclude the current post being updated
+							},
+						},
+						select: {
+							title: true,
+						},
+					});
+
+				// Check for case-insensitive match (trim and compare)
+				const normalizedCurrentTitle = existingPost.title.trim();
+				const duplicatePost = allPublishedPosts.find(
+					(post) =>
+						post.title.trim().toLowerCase() ===
+						normalizedCurrentTitle.toLowerCase()
+				);
+
+				if (duplicatePost) {
+					return NextResponse.json(
+						{
+							error: `A published post with the title "${existingPost.title}" already exists. Please use a different title.`,
+						},
+						{ status: 409 } // 409 Conflict
+					);
+				}
+			}
+
+			const updatedPost = await prismaClient.opportunityPost.update({
+				where: { post_id: postId },
+				data: {
+					status: updateData.status as PostStatus,
+					update_at: new Date(),
+				},
+			});
+
+			return NextResponse.json({
+				success: true,
+				post: {
+					id: postId,
+					title: updatedPost.title,
+					status: updatedPost.status,
+				},
+			});
+		}
+
+		// Full update - check for duplicate title if title is being updated
+		if (updateData.jobName) {
+			const allPublishedPosts =
+				await prismaClient.opportunityPost.findMany({
+					where: {
+						institution_id: institution.institution_id,
+						status: "PUBLISHED",
+						post_id: {
+							not: postId, // Exclude the current post being updated
+						},
+					},
+					select: {
+						title: true,
+					},
+				});
+
+			// Check for case-insensitive match (trim and compare)
+			const normalizedNewTitle = updateData.jobName.trim();
+			const duplicatePost = allPublishedPosts.find(
+				(post) =>
+					post.title.trim().toLowerCase() ===
+					normalizedNewTitle.toLowerCase()
+			);
+
+			if (duplicatePost) {
+				return NextResponse.json(
+					{
+						error: `A published post with the title "${updateData.jobName}" already exists. Please use a different title.`,
+					},
+					{ status: 409 } // 409 Conflict
+				);
+			}
 		}
 
 		// Parse dates with validation

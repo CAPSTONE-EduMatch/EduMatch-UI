@@ -8,7 +8,6 @@ import {
 	Send,
 	Check,
 	CheckCheck,
-	RefreshCw,
 	User,
 	Mail,
 	GraduationCap,
@@ -17,7 +16,8 @@ import {
 import { useAppSyncMessaging } from '@/hooks/messaging/useAppSyncMessaging'
 import { FileUpload } from './FileUpload'
 import { formatFileSize } from '@/utils/file/file-utils'
-import { ProtectedImg } from '@/components/ui/ProtectedImage'
+import { MessageAvatar } from './MessageAvatar'
+import { MessageImage } from './MessageImage'
 import {
 	openSessionProtectedFile,
 	downloadSessionProtectedFile,
@@ -79,12 +79,29 @@ interface MessageDialogProps {
 	threadId?: string
 }
 
-export function MessageDialog({ threadId }: MessageDialogProps = {}) {
+export function MessageDialog({
+	threadId: threadIdProp,
+}: MessageDialogProps = {}) {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const [user, setUser] = useState<any>(null)
 	const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
 	const [selectedUser, setSelectedUser] = useState<User | null>(null)
+	const [isLoadingThread, setIsLoadingThread] = useState(false)
+	const [threadIdFromUrl, setThreadIdFromUrl] = useState<string | null>(null)
+
+	// Extract threadId from URL path if not passed as prop
+	useEffect(() => {
+		if (!threadIdProp && typeof window !== 'undefined') {
+			const pathname = window.location.pathname
+			const match = pathname.match(/\/messages\/([^/]+)/)
+			if (match) {
+				setThreadIdFromUrl(match[1])
+			}
+		}
+	}, [threadIdProp])
+
+	const threadId = threadIdProp || threadIdFromUrl
 	const [users, setUsers] = useState<User[]>([])
 	const [usersLoaded, setUsersLoaded] = useState(false)
 	const [refreshingUsers, setRefreshingUsers] = useState(false)
@@ -123,15 +140,47 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 		}
 	}, [appSyncUser])
 
-	// Handle threadId prop - navigate to specific thread
+	// Handle threadId - navigate to specific thread
 	useEffect(() => {
 		const handleThreadSelection = async () => {
-			if (threadId && appSyncThreads.length > 0) {
-				const thread = appSyncThreads.find((t: any) => t.id === threadId)
+			if (!threadId || !user?.id) return
+
+			// Don't reload if we already have the correct thread selected
+			if (selectedThread?.id === threadId && selectedUser) {
+				return
+			}
+
+			setIsLoadingThread(true)
+
+			try {
+				// First, try to find thread in appSyncThreads
+				let thread = appSyncThreads.find((t: any) => t.id === threadId)
+
+				// If thread not found in appSyncThreads, try to fetch it directly from API
+				if (!thread) {
+					try {
+						const response = await fetch(`/api/threads`)
+						if (response.ok) {
+							const data = await response.json()
+							if (data.success && data.threads) {
+								const foundThread = data.threads.find(
+									(t: any) => t.id === threadId
+								)
+								if (foundThread) {
+									thread = foundThread
+								}
+							}
+						}
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error('Failed to fetch thread:', error)
+					}
+				}
+
 				if (thread) {
 					// Find the other participant
 					const otherParticipantId =
-						thread.user1Id === user?.id ? thread.user2Id : thread.user1Id
+						thread.user1Id === user.id ? thread.user2Id : thread.user1Id
 
 					// Fetch user data individually
 					const otherUser = await fetchUserData(otherParticipantId)
@@ -142,9 +191,9 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 							title: otherUser.name,
 							participants: [
 								{
-									id: user?.id || '',
-									name: user?.name || '',
-									image: user?.image,
+									id: user.id,
+									name: user.name || '',
+									image: user.image,
 								},
 								{
 									id: otherUser.id,
@@ -166,17 +215,30 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 							status: otherUser.status,
 						})
 
-						setIsInitialLoad(true) // Mark as initial load for new thread
-						setShouldAutoScroll(true) // Reset auto-scroll flag
+						setIsInitialLoad(true)
+						setShouldAutoScroll(true)
 						selectThread(thread.id)
-						loadMessages(thread.id)
+						await loadMessages(thread.id)
 					}
 				}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Error loading thread:', error)
+			} finally {
+				setIsLoadingThread(false)
 			}
 		}
 
 		handleThreadSelection()
-	}, [threadId, appSyncThreads, user?.id, selectThread, loadMessages])
+	}, [
+		threadId,
+		appSyncThreads,
+		user?.id,
+		selectThread,
+		loadMessages,
+		selectedThread?.id,
+		selectedUser,
+	])
 
 	// Handle contact parameter from URL with loading states
 	useEffect(() => {
@@ -969,17 +1031,15 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 									}`}
 								>
 									<div className="flex items-center space-x-3">
-										<div className="relative">
-											<img
-												src={
-													thread.participants.find((p) => p.id !== user?.id)
-														?.image ||
-													'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
-												}
-												alt={thread.title}
-												className="w-12 h-12 rounded-full object-cover"
-											/>
-											{(() => {
+										<MessageAvatar
+											src={
+												thread.participants.find((p) => p.id !== user?.id)
+													?.image
+											}
+											alt={thread.title}
+											size="lg"
+											showOnlineStatus={true}
+											isOnline={(() => {
 												const otherParticipant = thread.participants.find(
 													(p) => p.id !== user?.id
 												)
@@ -987,10 +1047,8 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 													(u) => u.id === otherParticipant?.id
 												)
 												return userWithStatus?.status === 'online'
-											})() && (
-												<span className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white rounded-full w-4 h-4"></span>
-											)}
-										</div>
+											})()}
+										/>
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center justify-between">
 												<h3 className="text-sm font-medium text-gray-900 truncate">
@@ -1036,13 +1094,15 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 
 			{/* Main Chat Area */}
 			<div className="flex-1 flex flex-col">
-				{isCheckingThread && !selectedUser ? (
+				{(isCheckingThread || isLoadingThread) && !selectedUser && threadId ? (
 					/* Loading State - only show when not already in a thread */
 					<div className="flex-1 flex items-center justify-center">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
 							<p className="text-gray-600">
-								Checking for existing conversation...
+								{isLoadingThread
+									? 'Loading conversation...'
+									: 'Checking for existing conversation...'}
 							</p>
 						</div>
 					</div>
@@ -1052,19 +1112,13 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 						<div className="p-4 border-b border-gray-200 bg-white">
 							<div className="flex items-center justify-between">
 								<div className="flex items-center space-x-3">
-									<div className="relative">
-										<img
-											src={
-												selectedUser.image ||
-												'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
-											}
-											alt={selectedUser.name}
-											className="w-10 h-10 rounded-full object-cover"
-										/>
-										{selectedUser.status === 'online' && (
-											<span className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white rounded-full w-3 h-3"></span>
-										)}
-									</div>
+									<MessageAvatar
+										src={selectedUser.image}
+										alt={selectedUser.name}
+										size="md"
+										showOnlineStatus={true}
+										isOnline={selectedUser.status === 'online'}
+									/>
 									<div>
 										<h2 className="text-lg font-semibold text-gray-900">
 											{selectedUser.name}
@@ -1074,7 +1128,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 										</p>
 									</div>
 								</div>
-								<button
+								{/* <button
 									onClick={async () => {
 										if (selectedThread) {
 											await loadMessages(selectedThread.id)
@@ -1086,7 +1140,7 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 									title="Refresh messages"
 								>
 									<RefreshCw className="w-5 h-5" />
-								</button>
+								</button> */}
 							</div>
 						</div>
 
@@ -1116,34 +1170,18 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 													: 'flex-row'
 											}`}
 										>
-											<img
+											<MessageAvatar
 												src={
-													// Use current user data instead of cached message data
-													(() => {
-														const currentImage =
-															message.senderId === user?.id
-																? user?.image
-																: selectedUser?.image
-
-														// Return image if available, otherwise use fallback
-														return (
-															currentImage ||
-															'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
-														)
-													})()
+													message.senderId === user?.id
+														? user?.image
+														: selectedUser?.image
 												}
 												alt={
-													// Use current user data instead of cached message data
 													message.senderId === user?.id
-														? user?.name
+														? user?.name || 'You'
 														: selectedUser?.name || 'User'
 												}
-												className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-												onError={(e) => {
-													// Set fallback avatar when image fails to load
-													e.currentTarget.src =
-														'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo='
-												}}
+												size="sm"
 											/>
 											<div
 												className={`rounded-lg px-3 py-2 ${
@@ -1155,91 +1193,23 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 												{message.fileUrl && (
 													<div className="mb-2">
 														{message.mimeType?.startsWith('image/') ? (
-															<div className="relative group">
-																<div
-																	className="block hover:opacity-90 transition-opacity cursor-pointer"
-																	title="Click to view full size"
-																	onClick={() => {
-																		if (!message.fileUrl) return
-																		openSessionProtectedFile(message.fileUrl)
-																	}}
-																>
-																	<ProtectedImg
-																		src={message.fileUrl}
-																		alt={message.fileName}
-																		className="max-w-xs max-h-64 rounded-lg object-cover"
-																		expiresIn={7200}
-																		autoRefresh={true}
-																	/>
-																</div>
-																<button
-																	onClick={async () => {
-																		if (!message.fileUrl) return
-																		try {
-																			// Try to fetch the file first to ensure it's accessible
-																			const response = await fetch(
-																				message.fileUrl,
-																				{
-																					method: 'GET',
-																					mode: 'cors',
-																				}
-																			)
-
-																			if (response.ok) {
-																				// Get the blob from the response
-																				const blob = await response.blob()
-
-																				// Create a blob URL
-																				const blobUrl =
-																					window.URL.createObjectURL(blob)
-
-																				// Create a temporary anchor element to trigger download
-																				const link = document.createElement('a')
-																				link.href = blobUrl
-																				link.download =
-																					message.fileName || 'download'
-																				link.style.display = 'none'
-																				document.body.appendChild(link)
-																				link.click()
-																				document.body.removeChild(link)
-
-																				// Clean up the blob URL
-																				window.URL.revokeObjectURL(blobUrl)
-																			} else {
-																				// If fetch fails, try the direct download method
-																				const link = document.createElement('a')
-																				link.href = message.fileUrl
-																				link.download =
-																					message.fileName || 'download'
-																				link.target = '_blank'
-																				link.style.display = 'none'
-																				document.body.appendChild(link)
-																				link.click()
-																				document.body.removeChild(link)
-																			}
-																		} catch (error) {
-																			// Fallback: try to open in new tab
-																			window.open(message.fileUrl, '_blank')
-																		}
-																	}}
-																	className="absolute top-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-opacity-90"
-																	title="Download image"
-																>
-																	<svg
-																		className="w-4 h-4"
-																		fill="none"
-																		stroke="currentColor"
-																		viewBox="0 0 24 24"
-																	>
-																		<path
-																			strokeLinecap="round"
-																			strokeLinejoin="round"
-																			strokeWidth={2}
-																			d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-																		/>
-																	</svg>
-																</button>
-															</div>
+															<MessageImage
+																src={message.fileUrl}
+																alt={message.fileName}
+																fileName={message.fileName}
+																onDownload={async () => {
+																	if (!message.fileUrl) return
+																	try {
+																		await downloadSessionProtectedFile(
+																			message.fileUrl,
+																			message.fileName || 'download'
+																		)
+																	} catch (error) {
+																		// eslint-disable-next-line no-console
+																		console.error('Download failed:', error)
+																	}
+																}}
+															/>
 														) : (
 															<div className="relative group">
 																<button
@@ -1468,12 +1438,29 @@ export function MessageDialog({ threadId }: MessageDialogProps = {}) {
 							<div className="space-y-4 mb-6">
 								{/* Profile Section */}
 								<div className="flex items-center space-x-4">
-									<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+									<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
 										{contactApplicant.image ? (
 											<img
 												src={contactApplicant.image}
 												alt={contactApplicant.name}
 												className="w-16 h-16 rounded-full object-cover"
+												loading="lazy"
+												onError={(e) => {
+													// Hide image on error, show User icon instead
+													const target = e.currentTarget
+													target.style.display = 'none'
+													const parent = target.parentElement
+													if (
+														parent &&
+														!parent.querySelector('.user-icon-fallback')
+													) {
+														const icon = document.createElement('div')
+														icon.className = 'user-icon-fallback'
+														icon.innerHTML =
+															'<svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>'
+														parent.appendChild(icon)
+													}
+												}}
 											/>
 										) : (
 											<User className="w-8 h-8 text-gray-400" />

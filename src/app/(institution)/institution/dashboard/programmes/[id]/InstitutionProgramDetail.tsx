@@ -144,6 +144,7 @@ const InstitutionProgramDetail = () => {
 					Math.floor(Math.random() * 30) + 70,
 				userId: app.userId || app.user_id,
 				gpa: app.snapshotData?.gpa || app.gpa || undefined,
+				postType: app.postType || 'Program', // Preserve postType from API
 			}
 		})
 	}
@@ -284,20 +285,24 @@ const InstitutionProgramDetail = () => {
 				}),
 			})
 
-			if (!response.ok) {
-				throw new Error('Failed to close program')
-			}
-
 			const result = await response.json()
 
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to close program')
+			}
+
 			if (result.success) {
+				showSuccess('Success', 'Program closed successfully')
 				// Refresh program data
 				await fetchProgramDetail(params.id as string)
 			} else {
 				showError('Error', result.error || 'Failed to close program')
 			}
 		} catch (error) {
-			showError('Error', 'Failed to close program')
+			showError(
+				'Error',
+				error instanceof Error ? error.message : 'Failed to close program'
+			)
 		}
 	}
 
@@ -678,7 +683,6 @@ const InstitutionProgramDetail = () => {
 										variant="outline"
 										className="text-red-600 border-red-600 hover:bg-red-50"
 									>
-										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
 									</Button>
 								</>

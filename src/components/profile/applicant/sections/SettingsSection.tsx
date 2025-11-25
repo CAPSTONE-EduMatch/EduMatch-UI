@@ -5,6 +5,7 @@ import { Button } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
 import { authClient } from '@/config/auth-client'
 import { ApiService } from '@/services/api/axios-config'
+import { clearSessionCache } from '@/services/messaging/appsync-client'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -145,17 +146,26 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 			const data = await response.json()
 
 			if (response.ok && data.success) {
-				// Clear auth data and redirect
-				localStorage.clear()
-				sessionStorage.clear()
-				await authClient.signOut({
-					fetchOptions: {
-						onSuccess: () => {
-							router.push('/')
-						},
-					},
-				})
-				// router.push('/')
+				// Logout user after account deletion (same as logout button)
+				try {
+					// Clear AppSync session cache
+					clearSessionCache()
+
+					// Clear Better Auth session
+					await authClient.signOut()
+
+					// Clear browser storage
+					localStorage.clear()
+					sessionStorage.clear()
+
+					// Force full page reload to signin page (like logout does)
+					window.location.href = '/signin'
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.error('Failed to logout after account deletion:', error)
+					// Still redirect even if logout fails
+					window.location.href = '/signin'
+				}
 			} else {
 				alert(data.message || 'Failed to delete account. Please try again.')
 			}

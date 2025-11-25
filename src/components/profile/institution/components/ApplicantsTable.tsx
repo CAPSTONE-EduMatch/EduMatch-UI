@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 
 export interface Applicant {
 	id: string
@@ -13,6 +14,7 @@ export interface Applicant {
 	matchingScore: number
 	userId: string // User ID for thread matching
 	gpa?: number | string // GPA for suggested applicants
+	postType?: 'Program' | 'Scholarship' | 'Research Lab' // Post type for navigation
 }
 
 interface ApplicantsTableProps {
@@ -26,6 +28,21 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 	onMoreDetail,
 	hidePostId = false,
 }) => {
+	const router = useRouter()
+
+	const handlePostIdClick = (postId: string, postType?: string) => {
+		// Navigate to the appropriate detail page based on post type
+		if (postType === 'Program') {
+			router.push(`/institution/dashboard/programmes/${postId}`)
+		} else if (postType === 'Scholarship') {
+			router.push(`/institution/dashboard/scholarships/${postId}`)
+		} else if (postType === 'Research Lab') {
+			router.push(`/institution/dashboard/reseach-labs/${postId}`)
+		} else {
+			// Default to program if type is not specified
+			router.push(`/institution/dashboard/programmes/${postId}`)
+		}
+	}
 	const getStatusColor = (status: string) => {
 		// Normalize status to lowercase for comparison
 		const normalizedStatus = status.toLowerCase()
@@ -113,7 +130,7 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 									<div className="text-left">
 										<button
 											onClick={() => {
-												// TODO: Navigate to post details
+												handlePostIdClick(applicant.postId, applicant.postType)
 											}}
 											className="text-[#126E64] hover:text-[#126E64] text-sm underline hover:no-underline transition-all duration-200 font-medium group relative"
 											title={applicant.postId}

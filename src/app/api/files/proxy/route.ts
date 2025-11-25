@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { prismaClient } from "../../../../../prisma/index";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -99,17 +100,53 @@ export async function GET(request: NextRequest) {
 
 			// Allow access if:
 			// 1. User owns the file, OR
-			// 2. User is admin/institution (can access applicant files)
+			// 2. User is admin/institution (can access applicant files), OR
+			// 3. Users are messaging each other (for message files/documents)
 			if (fileOwnerId !== user.id) {
 				const isAuthorizedRole =
 					user.role === "admin" ||
 					user.role === "institution" ||
 					user.role === "moderator";
 
+				let hasMessagingRelationship = false;
 				if (!isAuthorizedRole) {
+					// Check if users have a messaging relationship (Box exists)
+					// Allow access to any file if users are messaging each other
+					try {
+						const box = await prismaClient.box.findFirst({
+							where: {
+								OR: [
+									{
+										user_one_id: user.id,
+										user_two_id: fileOwnerId,
+									},
+									{
+										user_one_id: fileOwnerId,
+										user_two_id: user.id,
+									},
+								],
+							},
+							select: {
+								box_id: true,
+							},
+						});
+
+						hasMessagingRelationship = !!box;
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error(
+							"Error checking messaging relationship:",
+							error
+						);
+						// Fail closed for messaging check errors
+						hasMessagingRelationship = false;
+					}
+				}
+
+				if (!isAuthorizedRole && !hasMessagingRelationship) {
 					// eslint-disable-next-line no-console
 					console.warn(
-						`🚫 Unauthorized file access: User ${user.id} tried to access ${s3Key}`
+						`🚫 Unauthorized file access: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
 					);
 					return NextResponse.json(
 						{

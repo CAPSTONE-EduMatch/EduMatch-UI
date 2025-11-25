@@ -21,6 +21,9 @@ export async function DELETE() {
 			},
 		});
 
+		// Invalidate all sessions for the user
+		await prismaClient.session.deleteMany({ where: { userId } });
+
 		// Send account deletion notification email
 		try {
 			await SQSService.sendEmailMessage({

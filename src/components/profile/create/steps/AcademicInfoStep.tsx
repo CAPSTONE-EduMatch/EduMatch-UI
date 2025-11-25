@@ -511,9 +511,22 @@ export function AcademicInfoStep({
 											}
 											onChange={(option) => {
 												const newLanguages = [...formData.languages]
-												newLanguages[index] = {
-													...newLanguages[index],
-													language: option?.value || '',
+												const newLanguage = option?.value || ''
+												const currentLanguage = lang.language || ''
+												// Reset certificate and score only when language actually changes
+												if (newLanguage !== currentLanguage) {
+													newLanguages[index] = {
+														...newLanguages[index],
+														language: newLanguage,
+														certificate: '', // Reset certificate when language changes
+														score: '', // Reset score when language changes
+													}
+												} else {
+													// Just update the language if it's the same
+													newLanguages[index] = {
+														...newLanguages[index],
+														language: newLanguage,
+													}
 												}
 												onInputChange('languages', newLanguages)
 											}}
@@ -582,6 +595,7 @@ export function AcademicInfoStep({
 											Certificate
 										</Label>
 										<CustomSelect
+											key={`certificate-${index}-${lang.language}`}
 											value={
 												lang.certificate
 													? { value: lang.certificate, label: lang.certificate }
@@ -614,8 +628,9 @@ export function AcademicInfoStep({
 											Score
 										</Label>
 										<Input
+											key={`score-${index}-${lang.language}`}
 											placeholder="Score"
-											value={lang.score}
+											value={lang.score || ''}
 											onChange={(e) => {
 												const newLanguages = [...formData.languages]
 												newLanguages[index] = {

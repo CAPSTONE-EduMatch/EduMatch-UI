@@ -429,6 +429,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 							isApplying={() => false}
 							onApply={() => {}} // No-op for applications
 							onUpdateRequest={handleUpdateRequest} // Handle update requests
+							fromApplicationSection={true} // Indicate we're coming from application section
 						/>
 					</div>
 				)
@@ -443,6 +444,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 							isApplying={() => false}
 							onApply={() => {}} // No-op for applications
 							onUpdateRequest={handleUpdateRequest} // Handle update requests
+							fromApplicationSection={true} // Indicate we're coming from application section
 						/>
 					</div>
 				)
@@ -457,6 +459,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 							isApplying={() => false}
 							onApply={() => {}} // No-op for applications
 							onUpdateRequest={handleUpdateRequest} // Handle update requests
+							fromApplicationSection={true} // Indicate we're coming from application section
 						/>
 					</div>
 				)
@@ -472,6 +475,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 							isApplying={() => false}
 							onApply={() => {}}
 							onUpdateRequest={handleUpdateRequest} // Handle update requests
+							fromApplicationSection={true} // Indicate we're coming from application section
 						/>
 					</div>
 				)

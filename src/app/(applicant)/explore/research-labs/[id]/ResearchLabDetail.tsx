@@ -36,6 +36,10 @@ const ResearchLabDetail = () => {
 
 	// Check if we're viewing an application (from URL query param)
 	const applicationIdFromUrl = searchParams.get('applicationId')
+	const fromParam = searchParams.get('from')
+	// Don't auto-load application tab if coming from application section
+	const shouldAutoLoadApplicationTab =
+		applicationIdFromUrl && fromParam !== 'application'
 
 	// Wishlist functionality
 	const { isInWishlist, toggleWishlistItem } = useWishlist({
@@ -48,7 +52,7 @@ const ResearchLabDetail = () => {
 	})
 
 	const [activeTab, setActiveTab] = useState(
-		applicationIdFromUrl ? 'application' : 'job-description'
+		shouldAutoLoadApplicationTab ? 'application' : 'job-description'
 	)
 
 	// Fetch research lab detail from API
@@ -321,18 +325,31 @@ const ResearchLabDetail = () => {
 							setSelectedDocuments([])
 						}
 
-						// Scroll to the Application Status section
-						setTimeout(() => {
-							const statusSection = document.getElementById(
-								'application-status-section'
-							)
-							if (statusSection) {
-								statusSection.scrollIntoView({
-									behavior: 'smooth',
-									block: 'start',
-								})
+						// Scroll to the Application Status section with retry logic for timeout issues
+						const scrollToStatusSection = (maxRetries = 5, delay = 300) => {
+							let retries = 0
+							const attemptScroll = () => {
+								const statusSection = document.getElementById(
+									'application-status-section'
+								)
+								if (statusSection) {
+									// Use requestAnimationFrame to ensure DOM is ready
+									requestAnimationFrame(() => {
+										statusSection.scrollIntoView({
+											behavior: 'smooth',
+											block: 'start',
+										})
+									})
+								} else if (retries < maxRetries) {
+									// Retry if element not found yet
+									retries++
+									setTimeout(attemptScroll, delay)
+								}
 							}
-						}, 100)
+							// Initial delay to allow page to render
+							setTimeout(attemptScroll, delay)
+						}
+						scrollToStatusSection()
 					}
 				}
 			} catch (error) {
@@ -418,15 +435,54 @@ const ResearchLabDetail = () => {
 				isHandlingClickRef.current = false
 				return
 			}
-			// Only fetch if we don't already have this application loaded
-			// This prevents unnecessary loading when clicking on an application row
-			if (applicationId !== applicationIdFromUrl) {
-				// Fetch the application details when applicationId is in URL
-				fetchSelectedApplication(applicationIdFromUrl, false)
+			// Fetch if we don't have this application loaded OR if we have the ID but not the data
+			// This handles both navigation and page reload scenarios
+			// On page reload, applicationId might be set from URL but data hasn't been fetched yet
+			const needsFetch =
+				applicationId !== applicationIdFromUrl ||
+				(applicationId === applicationIdFromUrl && !hasApplied)
+
+			if (needsFetch) {
+				// If coming from application section, switch to application tab and fetch applications list
+				if (fromParam === 'application' && researchLab?.id) {
+					setActiveTab('application')
+					// Fetch applications list for the "My Applications" tab
+					if (lastFetchedPostId !== researchLab.id) {
+						fetchApplicationsForPost(researchLab.id)
+					}
+					// Add extra delay when coming from application section to handle timeout issues
+					// Wait longer to ensure page is fully loaded and tab is switched
+					setTimeout(() => {
+						fetchSelectedApplication(applicationIdFromUrl, false).then(() => {
+							// Additional scroll attempt after fetch completes
+							setTimeout(() => {
+								const statusSection = document.getElementById(
+									'application-status-section'
+								)
+								if (statusSection) {
+									requestAnimationFrame(() => {
+										statusSection.scrollIntoView({
+											behavior: 'smooth',
+											block: 'start',
+										})
+									})
+								}
+							}, 500)
+						})
+					}, 500)
+				} else {
+					// Fetch the application details when applicationId is in URL
+					// If researchLab is not loaded yet, wait a bit for it to load
+					// This handles page reload scenarios where research lab data might not be ready
+					const delay = researchLab?.id ? 0 : 300
+					setTimeout(() => {
+						fetchSelectedApplication(applicationIdFromUrl, false)
+					}, delay)
+				}
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [applicationIdFromUrl])
+	}, [applicationIdFromUrl, fromParam, researchLab?.id, hasApplied])
 
 	// Fetch recommended research labs when researchLab is loaded
 	useEffect(() => {
@@ -2146,35 +2202,40 @@ const ResearchLabDetail = () => {
 													? 'Your application has been updated. The institution will review your changes.'
 													: 'Your application has been submitted. You will receive updates via email.'}
 									</p>
-									{applicationStatus === 'REJECTED' && (
-										<div className="mt-4">
-											<Button
-												onClick={() => {
-													// Reset to allow new application
-													setHasApplied(false)
-													setApplicationStatus(null)
-													setApplicationId(null)
-													setUploadedFiles([])
-													setSelectedDocuments([])
-													// Scroll to the apply section
-													setTimeout(() => {
-														const applySection = document.getElementById(
-															'application-status-section'
-														)
-														if (applySection) {
-															applySection.scrollIntoView({
-																behavior: 'smooth',
-																block: 'start',
-															})
-														}
-													}, 100)
-												}}
-												className="bg-[#126E64] hover:bg-teal-700 text-white"
-											>
-												Reapply Now
-											</Button>
-										</div>
-									)}
+									{applicationStatus === 'REJECTED' &&
+										// Only show reapply button if all applications for this post are REJECTED
+										// Check if applications list has been fetched for this post
+										lastFetchedPostId === researchLab?.id &&
+										applications.length > 0 &&
+										applications.every((app) => app.status === 'REJECTED') && (
+											<div className="mt-4">
+												<Button
+													onClick={() => {
+														// Reset to allow new application
+														setHasApplied(false)
+														setApplicationStatus(null)
+														setApplicationId(null)
+														setUploadedFiles([])
+														setSelectedDocuments([])
+														// Scroll to the apply section
+														setTimeout(() => {
+															const applySection = document.getElementById(
+																'application-status-section'
+															)
+															if (applySection) {
+																applySection.scrollIntoView({
+																	behavior: 'smooth',
+																	block: 'start',
+																})
+															}
+														}, 100)
+													}}
+													className="bg-[#126E64] hover:bg-teal-700 text-white"
+												>
+													Reapply Now
+												</Button>
+											</div>
+										)}
 								</div>
 							</div>
 						</div>

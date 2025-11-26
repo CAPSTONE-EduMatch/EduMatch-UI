@@ -38,8 +38,12 @@ const ProgramDetail = () => {
 	const params = useParams()
 	// Check if we're viewing an application (from URL query param)
 	const applicationIdFromUrl = searchParams.get('applicationId')
+	const fromParam = searchParams.get('from')
+	// Don't auto-load application tab if coming from application section
+	const shouldAutoLoadApplicationTab =
+		applicationIdFromUrl && fromParam !== 'application'
 	const [activeTab, setActiveTab] = useState(
-		applicationIdFromUrl ? 'application' : 'overview'
+		shouldAutoLoadApplicationTab ? 'application' : 'overview'
 	)
 	const [currentPage, setCurrentPage] = useState(1)
 	const [carouselIndex, setCarouselIndex] = useState(0)
@@ -446,15 +450,53 @@ const ProgramDetail = () => {
 				isHandlingClickRef.current = false
 				return
 			}
-			// Only fetch if we don't already have this application loaded
-			// This prevents unnecessary loading when clicking on an application row
-			if (applicationId !== applicationIdFromUrl) {
-				// Fetch the application details when applicationId is in URL
-				fetchSelectedApplication(applicationIdFromUrl)
+			// Fetch if we don't have this application loaded OR if we have the ID but not the data
+			// This handles both navigation and page reload scenarios
+			const needsFetch =
+				applicationId !== applicationIdFromUrl ||
+				(applicationId === applicationIdFromUrl && !hasApplied)
+
+			if (needsFetch) {
+				// If coming from application section, switch to application tab and fetch applications list
+				if (fromParam === 'application' && currentProgram?.id) {
+					setActiveTab('application')
+					// Fetch applications list for the "My Applications" tab
+					if (lastFetchedPostId !== currentProgram.id) {
+						fetchApplicationsForPost(currentProgram.id)
+					}
+					// Add extra delay when coming from application section to handle timeout issues
+					// Wait longer to ensure page is fully loaded and tab is switched
+					setTimeout(() => {
+						fetchSelectedApplication(applicationIdFromUrl).then(() => {
+							// Additional scroll attempt after fetch completes
+							setTimeout(() => {
+								const statusSection = document.getElementById(
+									'application-status-section'
+								)
+								if (statusSection) {
+									requestAnimationFrame(() => {
+										statusSection.scrollIntoView({
+											behavior: 'smooth',
+											block: 'start',
+										})
+									})
+								}
+							}, 500)
+						})
+					}, 500)
+				} else {
+					// Fetch the application details when applicationId is in URL
+					// If currentProgram is not loaded yet, wait a bit for it to load
+					// This handles page reload scenarios where program data might not be ready
+					const delay = currentProgram?.id ? 0 : 300
+					setTimeout(() => {
+						fetchSelectedApplication(applicationIdFromUrl)
+					}, delay)
+				}
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [applicationIdFromUrl])
+	}, [applicationIdFromUrl, fromParam, currentProgram?.id, hasApplied])
 
 	// Fetch all update requests for the application
 	const fetchUpdateRequests = async () => {
@@ -608,18 +650,31 @@ const ProgramDetail = () => {
 						setSelectedDocuments([])
 					}
 
-					// Scroll to the Application Status section
-					setTimeout(() => {
-						const statusSection = document.getElementById(
-							'application-status-section'
-						)
-						if (statusSection) {
-							statusSection.scrollIntoView({
-								behavior: 'smooth',
-								block: 'start',
-							})
+					// Scroll to the Application Status section with retry logic for timeout issues
+					const scrollToStatusSection = (maxRetries = 5, delay = 300) => {
+						let retries = 0
+						const attemptScroll = () => {
+							const statusSection = document.getElementById(
+								'application-status-section'
+							)
+							if (statusSection) {
+								// Use requestAnimationFrame to ensure DOM is ready
+								requestAnimationFrame(() => {
+									statusSection.scrollIntoView({
+										behavior: 'smooth',
+										block: 'start',
+									})
+								})
+							} else if (retries < maxRetries) {
+								// Retry if element not found yet
+								retries++
+								setTimeout(attemptScroll, delay)
+							}
 						}
-					}, 100)
+						// Initial delay to allow page to render
+						setTimeout(attemptScroll, delay)
+					}
+					scrollToStatusSection()
 				}
 			}
 		} catch (error) {
@@ -2071,6 +2126,122 @@ const ProgramDetail = () => {
 							</div>
 						</div>
 					)}
+
+					{/* Application Status Message */}
+					{hasApplied &&
+						applicationStatus &&
+						applicationStatus !== 'ACCEPTED' &&
+						!isEditMode && (
+							<div
+								className={`mb-6 rounded-lg p-6 border ${
+									applicationStatus === 'REJECTED'
+										? 'bg-red-50 border-red-200'
+										: applicationStatus === 'UPDATED'
+											? 'bg-blue-50 border-blue-200'
+											: applicationStatus === 'REQUIRE_UPDATE'
+												? 'bg-orange-50 border-orange-200'
+												: 'bg-yellow-50 border-yellow-200'
+								}`}
+							>
+								<div className="flex items-start gap-3">
+									<div
+										className={`text-2xl ${
+											applicationStatus === 'REJECTED'
+												? 'text-red-600'
+												: applicationStatus === 'UPDATED'
+													? 'text-blue-600'
+													: applicationStatus === 'REQUIRE_UPDATE'
+														? 'text-orange-600'
+														: 'text-yellow-600'
+										}`}
+									>
+										{applicationStatus === 'REJECTED'
+											? '❌'
+											: applicationStatus === 'UPDATED'
+												? '✓'
+												: applicationStatus === 'REQUIRE_UPDATE'
+													? '⚠'
+													: 'ℹ'}
+									</div>
+									<div className="flex-1">
+										<h3
+											className={`text-lg font-semibold ${
+												applicationStatus === 'REJECTED'
+													? 'text-red-800'
+													: applicationStatus === 'UPDATED'
+														? 'text-blue-800'
+														: applicationStatus === 'REQUIRE_UPDATE'
+															? 'text-orange-800'
+															: 'text-yellow-800'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? 'Application Accepted!'
+												: applicationStatus === 'REJECTED'
+													? 'Application Not Selected'
+													: applicationStatus === 'UPDATED'
+														? 'Application Updated'
+														: 'Application Submitted Successfully!'}
+										</h3>
+										<p
+											className={`mt-1 ${
+												applicationStatus === 'REJECTED'
+													? 'text-red-700'
+													: applicationStatus === 'UPDATED'
+														? 'text-blue-700'
+														: applicationStatus === 'REQUIRE_UPDATE'
+															? 'text-orange-700'
+															: 'text-yellow-700'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+												: applicationStatus === 'REJECTED'
+													? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
+													: applicationStatus === 'UPDATED'
+														? 'Your application has been updated. The institution will review your changes.'
+														: 'Your application has been submitted. You will receive updates via email.'}
+										</p>
+										{applicationStatus === 'REJECTED' &&
+											// Only show reapply button if all applications for this post are REJECTED
+											// Check if applications list has been fetched for this post
+											lastFetchedPostId === currentProgram?.id &&
+											applications.length > 0 &&
+											applications.every(
+												(app) => app.status === 'REJECTED'
+											) && (
+												<div className="mt-4">
+													<Button
+														onClick={() => {
+															// Reset to allow new application
+															setHasApplied(false)
+															setApplicationStatus(null)
+															setApplicationId(null)
+															setUploadedFiles([])
+															setSelectedDocuments([])
+															// Scroll to the apply section
+															setTimeout(() => {
+																const applySection = document.getElementById(
+																	'application-status-section'
+																)
+																if (applySection) {
+																	applySection.scrollIntoView({
+																		behavior: 'smooth',
+																		block: 'start',
+																	})
+																}
+															}, 100)
+														}}
+														className="bg-[#126E64] hover:bg-teal-700 text-white"
+													>
+														Reapply Now
+													</Button>
+												</div>
+											)}
+									</div>
+								</div>
+							</div>
+						)}
 
 					{((!hasApplied && !pendingApplication) ||
 						(hasApplied && applicationStatus === 'SUBMITTED' && isEditMode)) &&

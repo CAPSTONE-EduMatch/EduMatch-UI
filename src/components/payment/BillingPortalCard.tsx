@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui'
 import { useUserInvoices } from '@/hooks/subscription/useUserInvoices'
 import { CreditCard, Download, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import { formatUTCDate } from '@/utils/date'
 
 export function BillingPortalCard() {
 	const [currentPage, setCurrentPage] = useState(1)
@@ -14,7 +15,8 @@ export function BillingPortalCard() {
 
 	const formatDate = (dateString: string | null) => {
 		if (!dateString) return 'N/A'
-		return new Date(dateString).toLocaleDateString('en-US', {
+		// Use timezone-aware formatting with custom format
+		return formatUTCDate(dateString, {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',

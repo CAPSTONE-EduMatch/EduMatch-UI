@@ -22,6 +22,7 @@ import {
 	downloadSessionProtectedFile,
 	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
+import { formatUTCDateToLocal } from '@/utils/date'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, File, Heart, X } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
@@ -1449,7 +1450,7 @@ const ResearchLabDetail = () => {
 												className="hover:bg-gray-50 cursor-pointer transition-colors"
 											>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-													{new Date(app.applyAt).toLocaleDateString()}
+													{formatUTCDateToLocal(app.applyAt)}
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap">
 													<span
@@ -2425,8 +2426,7 @@ const ResearchLabDetail = () => {
 													<>
 														<span>•</span>
 														<span>
-															Uploaded:{' '}
-															{new Date(file.uploadDate).toLocaleDateString()}
+															Uploaded: {formatUTCDateToLocal(file.uploadDate)}
 														</span>
 													</>
 												)}

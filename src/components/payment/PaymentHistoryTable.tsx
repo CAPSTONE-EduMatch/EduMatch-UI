@@ -3,6 +3,7 @@
 import { Button, Card, CardContent, Input } from '@/components/ui'
 import { Badge } from '@/components/ui/cards/badge'
 import { useInvoices } from '@/hooks/subscription/useInvoices'
+import { formatUTCDateToLocal, formatUTCDate } from '@/utils/date'
 import {
 	ArrowDown,
 	ArrowUp,
@@ -327,14 +328,14 @@ export function PaymentHistoryTable() {
 										{/* Date */}
 										<div className="text-sm font-medium text-gray-900">
 											{invoice.paidAt
-												? new Date(invoice.paidAt).toLocaleDateString()
+												? formatUTCDateToLocal(invoice.paidAt)
 												: 'N/A'}
 										</div>
 
 										{/* Description/Period */}
 										<div className="text-sm text-gray-900">
 											{invoice.periodStart && invoice.periodEnd
-												? `${new Date(invoice.periodStart).toLocaleDateString()} - ${new Date(invoice.periodEnd).toLocaleDateString()}`
+												? `${formatUTCDateToLocal(invoice.periodStart)} - ${formatUTCDateToLocal(invoice.periodEnd)}`
 												: `Invoice ${invoice.stripeInvoiceId}`}
 										</div>
 

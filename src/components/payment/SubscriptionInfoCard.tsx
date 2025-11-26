@@ -5,6 +5,7 @@ import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { Calendar, Star, User, Wallet } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
+import { formatUTCDate } from '@/utils/date'
 
 export function SubscriptionInfoCard() {
 	const { subscriptions, currentPlan, isAuthenticated } = useSubscription()
@@ -42,11 +43,11 @@ export function SubscriptionInfoCard() {
 
 	const planDetails = getPlanDetails(currentPlan || 'free')
 
-	// Format date
+	// Format date - timezone-aware
 	const formatDate = (date: Date | string) => {
 		if (!date) return 'Not available'
-		const d = new Date(date)
-		return d.toLocaleDateString('en-US', {
+		// Use timezone-aware formatting with custom format
+		return formatUTCDate(date, {
 			year: 'numeric',
 			month: 'long',
 			day: 'numeric',

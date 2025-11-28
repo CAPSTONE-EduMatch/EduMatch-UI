@@ -1,9 +1,11 @@
 'use client'
 
 import { Button, Modal } from '@/components/ui'
+import { usePricing } from '@/hooks/pricing/usePricing'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { PricingCardsError, PricingCardsSkeleton } from './PricingCardsSkeleton'
 
 export function PricingCards() {
 	const {
@@ -12,10 +14,14 @@ export function PricingCards() {
 		upgradeSubscription,
 		cancelSubscription,
 		subscriptions,
-		// fetchSubscriptions,
 		loading,
 		isAuthenticated,
 	} = useSubscription()
+	const {
+		plans: dbPlans,
+		loading: plansLoading,
+		error: plansError,
+	} = usePricing()
 	const router = useRouter()
 	const [upgrading, setUpgrading] = useState<string | null>(null)
 	const [cancelling, setCancelling] = useState<string | null>(null)
@@ -23,99 +29,66 @@ export function PricingCards() {
 	const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
 	const [showCancelModal, setShowCancelModal] = useState(false)
 
-	// Plan hierarchy for downgrade checking
-	const PLAN_HIERARCHY = {
-		free: 0,
-		standard: 1,
-		premium: 2,
-	} as const
-
-	// Helper function to check if a plan is lower than current plan (downgrade)
-	const isDowngrade = (planId: string): boolean => {
-		if (!isAuthenticated) return false
-		const currentLevel =
-			PLAN_HIERARCHY[currentPlan as keyof typeof PLAN_HIERARCHY] || 0
-		const targetLevel = PLAN_HIERARCHY[planId as keyof typeof PLAN_HIERARCHY]
-		return targetLevel !== undefined && targetLevel < currentLevel
+	// Show loading skeleton while fetching plans
+	if (plansLoading) {
+		return <PricingCardsSkeleton />
 	}
 
-	const plans = [
-		{
-			name: 'Free Plan',
-			planId: 'free',
-			price: 0,
-			period: 'MONTHLY',
-			description: 'Ideal for applicants ready to apply and track progress.',
-			features: [
-				'Account registration & OTP verification',
-				'Create & update personal profile (GPA, skills, research topic, etc.)',
-				'Basic scholarship, program & research group search',
-				'View scholarship details & requirements',
-				'Receive deadline reminders for saved scholarships/programs',
-				'Send messages to scholarship staff / professors',
-			],
-			buttonText: 'Get Started Free',
-			popular: false,
-			limits: {
-				applications: 3,
-				scholarships: 10,
-				programs: 5,
-			},
-		},
-		{
-			name: 'Standard Membership',
-			planId: 'standard',
-			price: 99,
-			period: 'MONTHLY',
-			description: 'Perfect for active scholarship hunters and applicants.',
-			features: [
-				'All Free Plan features',
-				'Advanced scholarship matching algorithms',
-				'Priority application tracking',
-				'Extended program database access',
-				'Email notifications & reminders',
-				'Direct messaging with admissions staff',
-				'Application deadline calendar sync',
-				'Basic analytics dashboard',
-			],
-			buttonText: 'Upgrade to Standard',
-			popular: true,
-			limits: {
-				applications: 10,
-				scholarships: 50,
-				programs: 30,
-			},
-		},
-		{
-			name: 'Premium Membership',
-			planId: 'premium',
-			price: 199,
-			period: 'MONTHLY',
-			description: 'Ultimate package for serious academic pursuers.',
-			features: [
-				'All Standard Plan features',
-				'AI-powered essay review & suggestions',
-				'One-on-one consultation calls',
-				'Custom scholarship recommendations',
-				'Application document templates',
-				'Interview preparation resources',
-				'Exclusive webinars & workshops',
-				'Priority customer support',
-			],
-			buttonText: 'Upgrade to Premium',
-			popular: false,
-			limits: {
-				applications: 25,
-				scholarships: 100,
-				programs: 75,
-			},
-		},
-	]
+	// Show error state if fetching plans failed
+	if (plansError) {
+		return <PricingCardsError error={plansError} />
+	}
+
+	// Helper function to map plan name to database plan by matching name
+	const getPlanByName = (planName: string) => {
+		const nameMap: Record<string, string> = {
+			free: 'Free Plan',
+			standard: 'Standard Plan',
+			premium: 'Premium Plan',
+		}
+		const searchName = nameMap[planName.toLowerCase()] || planName
+		return dbPlans.find((p) => p.name === searchName)
+	}
+
+	// Helper to get plan name key for canUpgradeTo (converts hierarchy to plan name)
+	const getPlanNameKey = (hierarchy: number): string => {
+		const hierarchyMap: Record<number, string> = {
+			0: 'free',
+			1: 'standard',
+			2: 'premium',
+		}
+		return hierarchyMap[hierarchy] || 'free'
+	}
+
+	// Helper function to check if a plan is lower than current plan (downgrade)
+	const isDowngrade = (planHierarchy: number): boolean => {
+		if (!isAuthenticated) return false
+		const currentPlanData = getPlanByName(currentPlan || 'free')
+		if (!currentPlanData) return false
+		return planHierarchy < currentPlanData.hierarchy
+	}
+
+	// Map database plans to component structure
+	const plans = dbPlans.map((plan) => ({
+		name: plan.name,
+		planId: plan.plan_id,
+		planNameKey: getPlanNameKey(plan.hierarchy), // For canUpgradeTo
+		price: plan.month_price / 100, // Convert cents to dollars
+		period: 'MONTHLY',
+		description: plan.description || '',
+		features: plan.features,
+		buttonText:
+			plan.hierarchy === 0
+				? 'Get Started Free'
+				: `Upgrade to ${plan.name.replace(' Plan', '')}`,
+		popular: plan.popular || false,
+		hierarchy: plan.hierarchy,
+	}))
 	// useEffect(() => {
 	// 	fetchSubscriptions()
 	// }, [])
 
-	const handleUpgrade = async (planId: string) => {
+	const handleUpgrade = async (planId: string, planHierarchy: number) => {
 		// If user is not authenticated, redirect to signup
 		if (!isAuthenticated) {
 			router.push('/signup')
@@ -124,6 +97,14 @@ export function PricingCards() {
 
 		if (planId === 'free') {
 			// Free plan doesn't require upgrade for authenticated users
+			return
+		}
+
+		// Check if this is a downgrade
+		if (isDowngrade(planHierarchy)) {
+			// Show subscription modal to guide user to cancel first
+			setPendingPlanId(planId)
+			setShowSubscriptionModal(true)
 			return
 		}
 
@@ -229,10 +210,12 @@ export function PricingCards() {
 	}
 
 	const getButtonState = (plan: any) => {
-		const isCurrentPlan = currentPlan === plan.planId
-		const canUpgrade = canUpgradeTo(plan.planId)
+		// Check if this is the current plan by comparing hierarchy
+		const currentPlanData = getPlanByName(currentPlan || 'free')
+		const isCurrentPlan = currentPlanData?.hierarchy === plan.hierarchy
+		const canUpgrade = canUpgradeTo(plan.planNameKey)
 		const isUpgrading = upgrading === plan.planId
-		const isLowerPlan = isDowngrade(plan.planId)
+		const isLowerPlan = isDowngrade(plan.hierarchy)
 
 		// If user is not authenticated, show "Get Started" for all plans
 		if (!isAuthenticated) {
@@ -263,7 +246,7 @@ export function PricingCards() {
 			}
 		}
 
-		if (plan.planId === 'free' && !isLowerPlan) {
+		if (plan.hierarchy === 0 && !isLowerPlan) {
 			return {
 				text: 'Get Started Free',
 				disabled: false,
@@ -302,6 +285,8 @@ export function PricingCards() {
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
 					{plans.map((plan, index) => {
 						const buttonState = getButtonState(plan)
+						const currentPlanData = getPlanByName(currentPlan || 'free')
+						const isCurrentPlan = currentPlanData?.hierarchy === plan.hierarchy
 
 						return (
 							<div
@@ -325,7 +310,7 @@ export function PricingCards() {
 								)}
 
 								{/* Current Plan Badge */}
-								{currentPlan === plan.planId && (
+								{isCurrentPlan && (
 									<div className="absolute -top-3 right-4">
 										<span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
 											Active
@@ -347,30 +332,6 @@ export function PricingCards() {
 										</span>
 									</div>
 									<p className="text-[#A2A2A2] text-base">{plan.description}</p>
-
-									{/* Plan Limits */}
-									{plan.limits && (
-										<div className="mt-4 text-sm text-gray-600">
-											<div className="flex justify-between">
-												<span>Applications:</span>
-												<span className="font-semibold">
-													{plan.limits.applications}
-												</span>
-											</div>
-											<div className="flex justify-between">
-												<span>Scholarships:</span>
-												<span className="font-semibold">
-													{plan.limits.scholarships}
-												</span>
-											</div>
-											<div className="flex justify-between">
-												<span>Programs:</span>
-												<span className="font-semibold">
-													{plan.limits.programs}
-												</span>
-											</div>
-										</div>
-									)}
 								</div>
 
 								{/* Features */}
@@ -403,13 +364,13 @@ export function PricingCards() {
 									className={`w-full py-3 px-6 rounded-[30px] font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg opacity-0 animate-fadeInUp ${buttonState.className}`}
 									style={{ animationDelay: `${index * 200 + 600}ms` }}
 									disabled={buttonState.disabled}
-									onClick={() => handleUpgrade(plan.planId)}
+									onClick={() => handleUpgrade(plan.planId, plan.hierarchy)}
 								>
 									{buttonState.text}
 								</button>
 
 								{/* Cancel Button - Only show for current paid plans */}
-								{currentPlan === plan.planId && plan.planId !== 'free' && (
+								{isCurrentPlan && plan.hierarchy > 0 && (
 									<button
 										className={`w-full mt-3 py-2.5 px-6 rounded-[30px] font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg opacity-0 animate-fadeInUp ${
 											cancelling

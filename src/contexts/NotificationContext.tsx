@@ -1,14 +1,13 @@
 'use client'
 
+import { ErrorModal, SuccessModal } from '@/components/ui'
 import React, {
 	createContext,
+	ReactNode,
+	useCallback,
 	useContext,
 	useState,
-	useCallback,
-	ReactNode,
 } from 'react'
-import { ErrorModal } from '@/components/ui'
-import { SuccessModal } from '@/components/ui'
 
 export interface NotificationData {
 	id: string

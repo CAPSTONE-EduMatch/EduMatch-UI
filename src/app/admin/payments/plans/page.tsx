@@ -4,27 +4,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import Button from '@/components/ui/forms/Button'
 import { Label } from '@/components/ui/forms/label'
 import Input from '@/components/ui/inputs/Input'
+import { PLAN_TYPE, useAdminPlans, type Plan } from '@/hooks/admin'
 import { motion } from 'framer-motion'
-import { Building2, DollarSign, Edit, Package, Save, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-
-interface Plan {
-	plan_id: string
-	name: string
-	description: string | null
-	priceId: string
-	month_price: number | null
-	year_price: number | null
-	status: boolean
-	type: number
-	hierarchy: number
-	features: string[]
-}
+import {
+	Building2,
+	DollarSign,
+	Edit,
+	Package,
+	Save,
+	User,
+	X,
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 interface EditingPlan {
 	plan_id: string
-	month_price: number | null
-	year_price: number | null
+	month_price: number // in dollars for display
+	year_price: number | null // in dollars for display
 	priceId: string
 }
 
@@ -36,6 +33,8 @@ const PlanCard = ({
 	onSave,
 	onCancel,
 	onChange,
+	isSaving,
+	centsToDollars,
 }: {
 	plan: Plan
 	isEditing: boolean
@@ -44,9 +43,19 @@ const PlanCard = ({
 	onSave: (_planId: string) => void
 	onCancel: () => void
 	onChange: (_field: keyof EditingPlan, _value: string | number) => void
+	isSaving: boolean
+	centsToDollars: (cents: number) => number
 }) => {
-	const planTypeLabel = plan.type === 0 ? 'Applicant' : 'Institution'
+	const planTypeLabel =
+		plan.type === PLAN_TYPE.APPLICANT ? 'Applicant' : 'Institution'
 	const statusLabel = plan.status ? 'Active' : 'Inactive'
+	const isInstitutionPlan = plan.type === PLAN_TYPE.INSTITUTION
+
+	// Convert cents to dollars for display
+	const monthPriceDisplay = centsToDollars(plan.month_price)
+	const yearPriceDisplay = plan.year_price
+		? centsToDollars(plan.year_price)
+		: null
 
 	return (
 		<motion.div
@@ -68,7 +77,7 @@ const PlanCard = ({
 								<div className="flex items-center gap-2">
 									<span
 										className={`px-2 py-1 text-xs font-medium rounded-full ${
-											plan.type === 0
+											plan.type === PLAN_TYPE.APPLICANT
 												? 'bg-blue-50 text-blue-700 border border-blue-200'
 												: 'bg-purple-50 text-purple-700 border border-purple-200'
 										}`}
@@ -93,15 +102,17 @@ const PlanCard = ({
 									<Button
 										onClick={() => onSave(plan.plan_id)}
 										size="sm"
-										className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm border-0 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
+										disabled={isSaving}
+										className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm border-0 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md disabled:opacity-50"
 									>
 										<Save className="w-4 h-4 mr-2" />
-										Save Changes
+										{isSaving ? 'Saving...' : 'Save Changes'}
 									</Button>
 									<Button
 										onClick={onCancel}
 										variant="outline"
 										size="sm"
+										disabled={isSaving}
 										className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-4 py-2 rounded-lg font-medium transition-all duration-200"
 									>
 										<X className="w-4 h-4 mr-2" />
@@ -134,7 +145,9 @@ const PlanCard = ({
 						)}
 
 						{/* Pricing Section */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div
+							className={`grid grid-cols-1 ${isInstitutionPlan ? 'md:grid-cols-2' : ''} gap-6`}
+						>
 							<div className="space-y-3">
 								<Label className="text-sm font-semibold text-gray-800 flex items-center gap-2">
 									<DollarSign className="w-4 h-4 text-[#126E64]" />
@@ -143,17 +156,19 @@ const PlanCard = ({
 								{isEditing ? (
 									<Input
 										type="number"
+										step="0.01"
+										min="0"
 										value={editData?.month_price ?? ''}
 										onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
 											onChange('month_price', Number(e.target.value))
 										}
-										placeholder="Enter monthly price"
+										placeholder="Enter monthly price (in dollars)"
 										className="w-full border-gray-300 focus:border-[#126E64] focus:ring-[#126E64] rounded-lg"
 									/>
 								) : (
 									<div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
 										<span className="text-2xl font-bold text-green-700">
-											${plan.month_price ?? 'N/A'}
+											${monthPriceDisplay.toFixed(2)}
 										</span>
 										<span className="text-xs text-green-600 font-medium bg-green-100 px-2 py-1 rounded-full">
 											/month
@@ -162,32 +177,37 @@ const PlanCard = ({
 								)}
 							</div>
 
-							<div className="space-y-3">
-								<Label className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-									<DollarSign className="w-4 h-4 text-[#126E64]" />
-									Yearly Price
-								</Label>
-								{isEditing ? (
-									<Input
-										type="number"
-										value={editData?.year_price ?? ''}
-										onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-											onChange('year_price', Number(e.target.value))
-										}
-										placeholder="Enter yearly price"
-										className="w-full border-gray-300 focus:border-[#126E64] focus:ring-[#126E64] rounded-lg"
-									/>
-								) : (
-									<div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-										<span className="text-2xl font-bold text-blue-700">
-											${plan.year_price ?? 'N/A'}
-										</span>
-										<span className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-1 rounded-full">
-											/year
-										</span>
-									</div>
-								)}
-							</div>
+							{/* Yearly Price - Only for Institution Plans */}
+							{isInstitutionPlan && (
+								<div className="space-y-3">
+									<Label className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+										<DollarSign className="w-4 h-4 text-[#126E64]" />
+										Yearly Price
+									</Label>
+									{isEditing ? (
+										<Input
+											type="number"
+											step="0.01"
+											min="0"
+											value={editData?.year_price ?? ''}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+												onChange('year_price', Number(e.target.value))
+											}
+											placeholder="Enter yearly price (in dollars)"
+											className="w-full border-gray-300 focus:border-[#126E64] focus:ring-[#126E64] rounded-lg"
+										/>
+									) : (
+										<div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+											<span className="text-2xl font-bold text-blue-700">
+												${yearPriceDisplay?.toFixed(2) ?? 'N/A'}
+											</span>
+											<span className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-1 rounded-full">
+												/year
+											</span>
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 
 						{/* Price ID Section */}
@@ -208,7 +228,7 @@ const PlanCard = ({
 							) : (
 								<div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
 									<code className="text-sm text-gray-800 font-medium bg-white px-2 py-1 rounded border">
-										{plan.priceId}
+										{plan.priceId || 'Not set'}
 									</code>
 								</div>
 							)}
@@ -241,50 +261,28 @@ const PlanCard = ({
 }
 
 export default function PlansPage() {
-	const [plans, setPlans] = useState<Plan[]>([])
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
+	const {
+		applicantPlans,
+		institutionPlans,
+		isLoading,
+		error,
+		isUpdating,
+		updatePlan,
+		refetch,
+		centsToDollars,
+		dollarsToCents,
+	} = useAdminPlans()
+
 	const [editingPlan, setEditingPlan] = useState<string | null>(null)
 	const [editData, setEditData] = useState<EditingPlan | null>(null)
-
-	useEffect(() => {
-		fetchPlans()
-	}, [])
-
-	const fetchPlans = async () => {
-		try {
-			setLoading(true)
-			setError(null)
-
-			const response = await fetch('/api/admin/plans')
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}))
-
-				throw new Error(
-					errorData.error || `HTTP ${response.status}: Failed to fetch plans`
-				)
-			}
-
-			const data = await response.json()
-
-			setPlans(data.plans || [])
-		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : 'Failed to load plans'
-			setError(errorMessage)
-		} finally {
-			setLoading(false)
-		}
-	}
 
 	const handleEdit = (plan: Plan) => {
 		setEditingPlan(plan.plan_id)
 		setEditData({
 			plan_id: plan.plan_id,
-			month_price: plan.month_price,
-			year_price: plan.year_price,
-			priceId: plan.priceId,
+			month_price: centsToDollars(plan.month_price),
+			year_price: plan.year_price ? centsToDollars(plan.year_price) : null,
+			priceId: plan.priceId || '',
 		})
 	}
 
@@ -292,37 +290,23 @@ export default function PlansPage() {
 		if (!editData) return
 
 		try {
-			const response = await fetch('/api/admin/plans', {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(editData),
+			// Convert dollars to cents for storage
+			await updatePlan({
+				plan_id: planId,
+				month_price: dollarsToCents(editData.month_price),
+				year_price: editData.year_price
+					? dollarsToCents(editData.year_price)
+					: undefined,
+				priceId: editData.priceId || undefined,
 			})
 
-			if (!response.ok) {
-				throw new Error('Failed to update plan')
-			}
-
-			// Update local state
-			setPlans((prevPlans) =>
-				prevPlans.map((plan) =>
-					plan.plan_id === planId
-						? {
-								...plan,
-								month_price: editData.month_price,
-								year_price: editData.year_price,
-								priceId: editData.priceId,
-							}
-						: plan
-				)
-			)
-
+			toast.success('Plan updated successfully')
 			setEditingPlan(null)
 			setEditData(null)
-		} catch (error) {
-			setError('Failed to update plan')
-		} finally {
+		} catch (err) {
+			const errorMessage =
+				err instanceof Error ? err.message : 'Failed to update plan'
+			toast.error(errorMessage)
 		}
 	}
 
@@ -340,11 +324,14 @@ export default function PlansPage() {
 		})
 	}
 
-	if (loading) {
+	if (isLoading) {
 		return (
 			<div className="p-8">
 				<div className="flex items-center justify-center h-64">
-					<div className="text-gray-600">Loading plans...</div>
+					<div className="animate-pulse flex flex-col items-center gap-4">
+						<div className="h-8 w-8 border-4 border-[#126E64] border-t-transparent rounded-full animate-spin"></div>
+						<div className="text-gray-600">Loading plans...</div>
+					</div>
 				</div>
 			</div>
 		)
@@ -380,9 +367,9 @@ export default function PlansPage() {
 					animate={{ opacity: 1, y: 0 }}
 					className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
 				>
-					<p className="text-red-600 text-sm mb-3">{error}</p>
+					<p className="text-red-600 text-sm mb-3">{error.message}</p>
 					<Button
-						onClick={fetchPlans}
+						onClick={() => refetch()}
 						className="text-sm bg-red-600 hover:bg-red-700"
 					>
 						Retry
@@ -390,35 +377,91 @@ export default function PlansPage() {
 				</motion.div>
 			)}
 
-			{/* Plans Grid */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				{plans.map((plan) => (
-					<PlanCard
-						key={plan.plan_id}
-						plan={plan}
-						isEditing={editingPlan === plan.plan_id}
-						editData={editData}
-						onEdit={handleEdit}
-						onSave={handleSave}
-						onCancel={handleCancel}
-						onChange={handleChange}
-					/>
-				))}
-			</div>
-
-			{plans.length === 0 && !loading && (
-				<div className="text-center py-12">
-					<div className="max-w-md mx-auto">
-						<Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-						<h3 className="text-lg font-medium text-gray-900 mb-2">
-							No plans found
-						</h3>
-						<p className="text-gray-500">
-							No subscription plans are configured yet.
-						</p>
+			{/* Applicant Plans Section */}
+			{applicantPlans.length > 0 && (
+				<section className="mb-12">
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						className="flex items-center gap-3 mb-6"
+					>
+						<User className="w-5 h-5 text-blue-600" />
+						<h2 className="text-xl font-semibold text-gray-900">
+							Applicant Plans
+						</h2>
+						<span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+							{applicantPlans.length} plans
+						</span>
+					</motion.div>
+					<div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+						{applicantPlans.map((plan) => (
+							<PlanCard
+								key={plan.plan_id}
+								plan={plan}
+								isEditing={editingPlan === plan.plan_id}
+								editData={editData}
+								onEdit={handleEdit}
+								onSave={handleSave}
+								onCancel={handleCancel}
+								onChange={handleChange}
+								isSaving={isUpdating}
+								centsToDollars={centsToDollars}
+							/>
+						))}
 					</div>
-				</div>
+				</section>
 			)}
+
+			{/* Institution Plans Section */}
+			{institutionPlans.length > 0 && (
+				<section className="mb-8">
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						className="flex items-center gap-3 mb-6"
+					>
+						<Building2 className="w-5 h-5 text-purple-600" />
+						<h2 className="text-xl font-semibold text-gray-900">
+							Institution Plans
+						</h2>
+						<span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+							{institutionPlans.length} plans
+						</span>
+					</motion.div>
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						{institutionPlans.map((plan) => (
+							<PlanCard
+								key={plan.plan_id}
+								plan={plan}
+								isEditing={editingPlan === plan.plan_id}
+								editData={editData}
+								onEdit={handleEdit}
+								onSave={handleSave}
+								onCancel={handleCancel}
+								onChange={handleChange}
+								isSaving={isUpdating}
+								centsToDollars={centsToDollars}
+							/>
+						))}
+					</div>
+				</section>
+			)}
+
+			{applicantPlans.length === 0 &&
+				institutionPlans.length === 0 &&
+				!isLoading && (
+					<div className="text-center py-12">
+						<div className="max-w-md mx-auto">
+							<Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+							<h3 className="text-lg font-medium text-gray-900 mb-2">
+								No plans found
+							</h3>
+							<p className="text-gray-500">
+								No subscription plans are configured yet.
+							</p>
+						</div>
+					</div>
+				)}
 		</div>
 	)
 }

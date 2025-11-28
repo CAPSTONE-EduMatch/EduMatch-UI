@@ -45,42 +45,34 @@ export const InstitutionPaymentSection: React.FC<
 
 	const features = [
 		{
-			title: 'Organizational Profile Management',
 			description:
 				'Create and manage comprehensive institutional profiles with branding and details.',
 		},
 		{
-			title: 'Opportunity Posting',
 			description:
 				'Post detailed opportunities with descriptions, eligibility criteria, and deadlines.',
 		},
 		{
-			title: 'Custom Applicant Filters',
 			description:
 				'Create and manage comprehensive institutional profiles with branding and details.',
 		},
 		{
-			title: 'AI-Generated Shortlists',
 			description:
 				'Access intelligent matching algorithms to find the best candidates.',
 		},
 		{
-			title: 'Applicant Profile Access',
 			description:
 				'View detailed applicant profiles with matching scores and analytics.',
 		},
 		{
-			title: 'Interview Management',
 			description:
 				'Invite applicants for interviews and update selection results seamlessly.',
 		},
 		{
-			title: 'Integrated Communication',
 			description:
 				'Communicate with applicants via built-in chat and email systems.',
 		},
 		{
-			title: 'Analytics Dashboard',
 			description:
 				'Monitor engagement statistics, views, and applications through web dashboards.',
 		},
@@ -303,10 +295,7 @@ export const InstitutionPaymentSection: React.FC<
 											<div className="w-2 h-2 bg-black rounded-full"></div>
 										</div>
 										<div className="flex-1">
-											<span className="text-sm font-medium text-black leading-relaxed block mb-1">
-												{feature.title}
-											</span>
-											<span className="text-xs text-[#A2A2A2] leading-relaxed">
+											<span className="text-sm text-sm font-medium text-black leading-relaxed">
 												{feature.description}
 											</span>
 										</div>

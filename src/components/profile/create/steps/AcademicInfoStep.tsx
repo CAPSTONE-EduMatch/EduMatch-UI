@@ -1,15 +1,19 @@
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
-import { FileUploadManager } from '@/components/ui'
+import { FileUploadManagerWithOCR } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
+import { Tooltip } from '@/components/ui/feedback/tooltip'
+import { FileValidationResult } from '@/services/ai/file-validation-service'
+import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
 import { FileItem } from '@/utils/file/file-utils'
 import { ProfileFormData } from '@/services/profile/profile-service'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { ApiService } from '@/services/api/axios-config'
+import { Info } from 'lucide-react'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData
@@ -34,10 +38,7 @@ interface AcademicInfoStepProps {
 export function AcademicInfoStep({
 	formData,
 	onInputChange,
-	onInputChangeEvent,
 	onSelectChange,
-	onCheckboxChange,
-	onFilesUploaded,
 	onBack,
 	onNext,
 	onShowManageModal,
@@ -50,6 +51,17 @@ export function AcademicInfoStep({
 		Array<{ value: string; label: string; discipline: string }>
 	>([])
 
+	// State for validation notifications
+	interface ValidationNotification {
+		id: string
+		validation: FileValidationResult
+		fileName: string
+		expectedFileType: string
+	}
+	const [validationNotifications, setValidationNotifications] = useState<
+		ValidationNotification[]
+	>([])
+
 	// Load subdisciplines from database
 	useEffect(() => {
 		const loadSubdisciplines = async () => {
@@ -59,7 +71,7 @@ export function AcademicInfoStep({
 					setSubdisciplines(response.subdisciplines)
 				}
 			} catch (error) {
-				console.error('Failed to load subdisciplines:', error)
+				// Failed to load subdisciplines
 			}
 		}
 		loadSubdisciplines()
@@ -72,6 +84,7 @@ export function AcademicInfoStep({
 				{ title: '', discipline: '', files: [] },
 			])
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Add default language certification when foreign language is set to "yes"
@@ -82,6 +95,7 @@ export function AcademicInfoStep({
 		) {
 			onInputChange('languages', [{ language: '', certificate: '', score: '' }])
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [formData.hasForeignLanguage])
 
 	// Clear languages when user selects "no"
@@ -89,8 +103,12 @@ export function AcademicInfoStep({
 		if (formData.hasForeignLanguage === 'no' && formData.languages?.length) {
 			onInputChange('languages', [] as any)
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [formData.hasForeignLanguage])
 	const handleCategoryFilesUploaded = (category: string, files: FileItem[]) => {
+		// eslint-disable-next-line no-console
+		console.log('handleCategoryFilesUploaded called:', category, files)
+
 		try {
 			// Get existing files for this category
 			const existingFiles =
@@ -102,6 +120,8 @@ export function AcademicInfoStep({
 			// Store merged file metadata in form state
 			onInputChange(category as keyof ProfileFormData, mergedFiles as any)
 		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error in handleCategoryFilesUploaded:', error)
 			setErrorMessage('Failed to process uploaded files. Please try again.')
 			setShowErrorModal(true)
 		}
@@ -239,6 +259,226 @@ export function AcademicInfoStep({
 
 		return allFiles
 	}
+
+	// Function to handle validation completion from new flow
+	const handleValidationComplete = (
+		fileId: string,
+		validation: FileValidationResult
+	) => {
+		// Show validation notification if file is invalid or needs reupload
+		if (!validation.isValid || validation.action === 'reupload') {
+			// Get file info to determine category and name
+			let fileName = `File ${fileId.slice(-8)}`
+			let category = 'unknown'
+
+			// Find file info from form data
+			const allFiles = getAllFiles()
+			const file = allFiles.find((f) => f.id === fileId)
+			if (file) {
+				fileName = file.name || file.originalName || fileName
+				// Determine category based on file location in form data
+				if (formData.cvFiles?.some((f) => f.id === fileId)) {
+					category = 'cv-resume'
+				} else if (formData.languageCertFiles?.some((f) => f.id === fileId)) {
+					category = 'language-certificates'
+				} else if (formData.degreeFiles?.some((f) => f.id === fileId)) {
+					category = 'degree-certificates'
+				} else if (formData.transcriptFiles?.some((f) => f.id === fileId)) {
+					category = 'transcripts'
+				} else {
+					// Check research papers
+					formData.researchPapers?.forEach((p, index) => {
+						if (p.files?.some((f) => f.id === fileId)) {
+							category = `research-paper-${index}`
+						}
+					})
+				}
+			}
+
+			// eslint-disable-next-line no-console
+			console.log(
+				'Adding validation notification for:',
+				fileName,
+				'category:',
+				category
+			)
+
+			const notification: ValidationNotification = {
+				id: `${fileId}-${Date.now()}`,
+				validation,
+				fileName,
+				expectedFileType: category,
+			}
+
+			setValidationNotifications((prev) => {
+				// Remove any existing notification for this file and add new one
+				const filtered = prev.filter((n) => !n.id.startsWith(fileId))
+				return [...filtered, notification]
+			})
+
+			// Auto-dismiss notification after 10 seconds for low confidence valid files
+			if (validation.isValid && validation.confidence < 0.7) {
+				setTimeout(() => {
+					setValidationNotifications((prev) =>
+						prev.filter((n) => n.id !== notification.id)
+					)
+				}, 10000)
+			}
+		}
+	}
+
+	// Function to handle OCR completion - only for autofill
+	const handleOCRComplete = async (fileId: string, extractedText: string) => {
+		// Get file info from form data to determine category
+		let category = 'unknown'
+		let file
+
+		// Check CV files
+		file = formData.cvFiles?.find((f) => f.id === fileId)
+		if (file) category = 'cv-resume'
+
+		// Check language cert files
+		if (!file) {
+			file = formData.languageCertFiles?.find((f) => f.id === fileId)
+			if (file) category = 'language-certificates'
+		}
+
+		// Check degree files
+		if (!file) {
+			file = formData.degreeFiles?.find((f) => f.id === fileId)
+			if (file) category = 'degree-certificates'
+		}
+
+		// Check transcript files
+		if (!file) {
+			file = formData.transcriptFiles?.find((f) => f.id === fileId)
+			if (file) category = 'transcripts'
+		}
+
+		// Autofill based on category
+		if (category === 'cv-resume') {
+			autofillFromCV(extractedText)
+		} else if (category === 'language-certificates') {
+			autofillLanguageInfo(extractedText)
+		} else if (category === 'degree-certificates') {
+			autofillDegreeInfo(extractedText)
+		} else if (category === 'transcripts') {
+			autofillTranscriptInfo(extractedText)
+		}
+	}
+
+	// Function to dismiss validation notification
+	const dismissValidationNotification = (notificationId: string) => {
+		setValidationNotifications((prev) =>
+			prev.filter((n) => n.id !== notificationId)
+		)
+	}
+
+	// Auto-fill from CV
+	const autofillFromCV = (text: string) => {
+		const universityPatterns = [
+			/university of ([^\n,]+)/i,
+			/([^\n,]+) university/i,
+			/([^\n,]+) college/i,
+		]
+
+		for (const pattern of universityPatterns) {
+			const match = text.match(pattern)
+			if (match && match[1] && !formData.university) {
+				onInputChange('university', match[1].trim())
+				break
+			}
+		}
+	}
+
+	// Auto-fill language information
+	const autofillLanguageInfo = (text: string) => {
+		const ieltsMatch = text.match(/ielts[:\s]*(\d+\.?\d*)/i)
+		const toeflMatch = text.match(/toefl[:\s]*(\d+)/i)
+		const toeicMatch = text.match(/toeic[:\s]*(\d+)/i)
+
+		if (formData.languages && formData.languages.length > 0) {
+			const updatedLanguages = [...formData.languages]
+			if (ieltsMatch && !updatedLanguages[0].score) {
+				updatedLanguages[0].score = ieltsMatch[1]
+				if (!updatedLanguages[0].certificate) {
+					updatedLanguages[0].certificate = 'IELTS'
+				}
+				if (!updatedLanguages[0].language) {
+					updatedLanguages[0].language = 'English'
+				}
+				onInputChange('languages', updatedLanguages)
+			} else if (toeflMatch && !updatedLanguages[0].score) {
+				updatedLanguages[0].score = toeflMatch[1]
+				if (!updatedLanguages[0].certificate) {
+					updatedLanguages[0].certificate = 'TOEFL'
+				}
+				if (!updatedLanguages[0].language) {
+					updatedLanguages[0].language = 'English'
+				}
+				onInputChange('languages', updatedLanguages)
+			} else if (toeicMatch && !updatedLanguages[0].score) {
+				updatedLanguages[0].score = toeicMatch[1]
+				if (!updatedLanguages[0].certificate) {
+					updatedLanguages[0].certificate = 'TOEIC'
+				}
+				if (!updatedLanguages[0].language) {
+					updatedLanguages[0].language = 'English'
+				}
+				onInputChange('languages', updatedLanguages)
+			}
+		}
+	}
+
+	// Auto-fill degree information
+	const autofillDegreeInfo = (text: string) => {
+		const lowerText = text.toLowerCase()
+
+		if (!formData.degree) {
+			if (lowerText.includes('bachelor') || lowerText.includes('b.')) {
+				onInputChange('degree', "Bachelor's")
+			} else if (lowerText.includes('master') || lowerText.includes('m.')) {
+				onInputChange('degree', "Master's")
+			} else if (lowerText.includes('phd') || lowerText.includes('doctor')) {
+				onInputChange('degree', 'PhD')
+			}
+		}
+
+		const universityPatterns = [
+			/university of ([^\n,]+)/i,
+			/([^\n,]+) university/i,
+			/([^\n,]+) college/i,
+		]
+
+		for (const pattern of universityPatterns) {
+			const match = text.match(pattern)
+			if (match && match[1] && !formData.university) {
+				onInputChange('university', match[1].trim())
+				break
+			}
+		}
+	}
+
+	// Auto-fill transcript information
+	const autofillTranscriptInfo = (text: string) => {
+		const gpaPatterns = [
+			/gpa[:\s]*(\d+\.?\d*)/i,
+			/grade point average[:\s]*(\d+\.?\d*)/i,
+			/cumulative[:\s]*(\d+\.?\d*)/i,
+		]
+
+		for (const pattern of gpaPatterns) {
+			const match = text.match(pattern)
+			if (match && match[1] && !formData.gpa) {
+				const gpaValue = parseFloat(match[1])
+				if (gpaValue >= 0 && gpaValue <= 4.0) {
+					onInputChange('gpa', match[1])
+					break
+				}
+			}
+		}
+	}
+
 	return (
 		<div className="space-y-6 relative">
 			<div className="text-center">
@@ -249,6 +489,21 @@ export function AcademicInfoStep({
 					Tell us about your educational background and academic achievements.
 				</p>
 			</div>
+
+			{/* Validation Notifications */}
+			{validationNotifications.length > 0 && (
+				<div className="space-y-3">
+					{validationNotifications.map((notification) => (
+						<FileValidationNotification
+							key={notification.id}
+							validation={notification.validation}
+							fileName={notification.fileName}
+							expectedFileType={notification.expectedFileType}
+							onDismiss={() => dismissValidationNotification(notification.id)}
+						/>
+					))}
+				</div>
+			)}
 
 			<div className="space-y-8">
 				{/* Graduated Section */}
@@ -680,10 +935,19 @@ export function AcademicInfoStep({
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					{/* CV/Resume Upload */}
 					<div className="space-y-3">
-						<Label className="text-sm font-medium text-foreground">
-							CV / Resume
-						</Label>
-						<FileUploadManager
+						<div className="flex items-center gap-1">
+							<Label className="text-sm font-medium text-foreground">
+								CV / Resume
+							</Label>
+							<Tooltip
+								content="Upload your CV/Resume in PDF, DOC, or DOCX format (max 10MB). Required: Personal information (name, contact details), work experience or education background, skills/competencies. Must be clearly structured as a CV/Resume, not an essay or article."
+								maxWidth={320}
+								align="left"
+							>
+								<Info className="h-4 w-4" />
+							</Tooltip>
+						</div>
+						<FileUploadManagerWithOCR
 							onFilesUploaded={(files) =>
 								handleCategoryFilesUploaded('cvFiles', files)
 							}
@@ -694,7 +958,12 @@ export function AcademicInfoStep({
 								'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 							]}
 							maxSize={10}
-							showPreview={false}
+							showPreview={true}
+							enableOCR={true}
+							onOCRComplete={(fileId, extractedText) => {
+								handleOCRComplete(fileId, extractedText)
+							}}
+							onValidationComplete={handleValidationComplete}
 						/>
 						{formData.cvFiles && formData.cvFiles.length > 0 && (
 							<div className="text-xs text-green-600">
@@ -705,10 +974,19 @@ export function AcademicInfoStep({
 
 					{/* Foreign Language Certificate Upload */}
 					<div className="space-y-3">
-						<Label className="text-sm font-medium text-foreground">
-							Foreign Language Certificate
-						</Label>
-						<FileUploadManager
+						<div className="flex items-center gap-1">
+							<Label className="text-sm font-medium text-foreground ">
+								Foreign Language Certificate
+							</Label>
+							<Tooltip
+								content="Upload language proficiency certificates in PDF, JPG, or PNG format (max 10MB). Required: Test name (IELTS, TOEFL, TOEIC, HSK, JLPT, etc.), test scores, test date, candidate name, official certification. Must be an official certificate."
+								maxWidth={5700}
+								align="left"
+							>
+								<Info className="h-4 w-4" />
+							</Tooltip>
+						</div>
+						<FileUploadManagerWithOCR
 							onFilesUploaded={(files) =>
 								handleCategoryFilesUploaded('languageCertFiles', files)
 							}
@@ -720,7 +998,12 @@ export function AcademicInfoStep({
 								'image/jpg',
 							]}
 							maxSize={10}
-							showPreview={false}
+							showPreview={true}
+							enableOCR={true}
+							onOCRComplete={(fileId, extractedText) => {
+								handleOCRComplete(fileId, extractedText)
+							}}
+							onValidationComplete={handleValidationComplete}
 						/>
 						{formData.languageCertFiles &&
 							formData.languageCertFiles.length > 0 && (
@@ -732,10 +1015,19 @@ export function AcademicInfoStep({
 
 					{/* Degree Upload */}
 					<div className="space-y-3">
-						<Label className="text-sm font-medium text-foreground">
-							Degree Certificate
-						</Label>
-						<FileUploadManager
+						<div className="flex items-center gap-1">
+							<Label className="text-sm font-medium text-foreground">
+								Degree Certificate
+							</Label>
+							<Tooltip
+								content="Upload degree/diploma certificates in PDF, JPG, or PNG format (max 10MB). Required: Degree type (Bachelor's, Master's, PhD), field of study, institution name, graduation date, student name, official status (seal/signature/stamp). Must be a certificate, not transcript."
+								maxWidth={370}
+								align="left"
+							>
+								<Info className="h-4 w-4" />
+							</Tooltip>
+						</div>
+						<FileUploadManagerWithOCR
 							onFilesUploaded={(files) =>
 								handleCategoryFilesUploaded('degreeFiles', files)
 							}
@@ -747,7 +1039,12 @@ export function AcademicInfoStep({
 								'image/jpg',
 							]}
 							maxSize={10}
-							showPreview={false}
+							showPreview={true}
+							enableOCR={true}
+							onOCRComplete={(fileId, extractedText) => {
+								handleOCRComplete(fileId, extractedText)
+							}}
+							onValidationComplete={handleValidationComplete}
 						/>
 						{formData.degreeFiles && formData.degreeFiles.length > 0 && (
 							<div className="text-xs text-green-600">
@@ -758,10 +1055,19 @@ export function AcademicInfoStep({
 
 					{/* Transcript Upload */}
 					<div className="space-y-3">
-						<Label className="text-sm font-medium text-foreground">
-							Academic Transcript
-						</Label>
-						<FileUploadManager
+						<div className="flex items-center gap-1">
+							<Label className="text-sm font-medium text-foreground">
+								Academic Transcript
+							</Label>
+							<Tooltip
+								content="Upload academic transcripts in PDF, JPG, or PNG format (max 10MB). Required: List of courses/subjects, grades for each course, academic periods/terms, overall GPA (if applicable), student name and ID, institution name. Must show detailed course and grade information."
+								maxWidth={370}
+								align="left"
+							>
+								<Info className="h-4 w-4" />
+							</Tooltip>
+						</div>
+						<FileUploadManagerWithOCR
 							onFilesUploaded={(files) =>
 								handleCategoryFilesUploaded('transcriptFiles', files)
 							}
@@ -773,7 +1079,12 @@ export function AcademicInfoStep({
 								'image/jpg',
 							]}
 							maxSize={10}
-							showPreview={false}
+							showPreview={true}
+							enableOCR={true}
+							onOCRComplete={(fileId, extractedText) => {
+								handleOCRComplete(fileId, extractedText)
+							}}
+							onValidationComplete={handleValidationComplete}
 						/>
 						{formData.transcriptFiles &&
 							formData.transcriptFiles.length > 0 && (
@@ -851,10 +1162,19 @@ export function AcademicInfoStep({
 
 							{/* Right side - File Upload */}
 							<div className="space-y-3">
-								<Label className="text-sm font-medium text-foreground">
-									Research Paper Files
-								</Label>
-								<FileUploadManager
+								<div className="flex items-center gap-1">
+									<Label className="text-sm font-medium text-foreground">
+										Research Paper Files
+									</Label>
+									<Tooltip
+										content="Upload formal academic research papers in PDF format (max 10MB per file). Required: Clear title, author name(s) and affiliation, abstract, structured sections (Introduction, Methods, Results, Conclusion), references with citations, academic writing style. Must be formal research papers, not blog posts or essays."
+										maxWidth={370}
+										align="left"
+									>
+										<Info className="h-4 w-4" />
+									</Tooltip>
+								</div>
+								<FileUploadManagerWithOCR
 									onFilesUploaded={(files) => {
 										try {
 											// Get current paper info for context
@@ -895,13 +1215,14 @@ export function AcademicInfoStep({
 										}
 									}}
 									category={`research-paper-${index}`}
-									acceptedTypes={[
-										'application/pdf',
-										'application/msword',
-										'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-									]}
+									acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
 									maxSize={10}
-									showPreview={false}
+									showPreview={true}
+									enableOCR={true}
+									onOCRComplete={(fileId, extractedText) => {
+										handleOCRComplete(fileId, extractedText)
+									}}
+									onValidationComplete={handleValidationComplete}
 								/>
 								{paper.files && paper.files.length > 0 && (
 									<div className="text-xs text-green-600">

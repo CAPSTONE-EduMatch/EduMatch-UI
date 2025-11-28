@@ -125,7 +125,7 @@ export function ProgramCard({
 						alt={program.university}
 						width={140}
 						height={140}
-						className="rounded-lg"
+						className="rounded-lg h-[124px] w-[124px]"
 					/>
 				</div>
 

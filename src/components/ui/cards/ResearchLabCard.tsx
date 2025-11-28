@@ -1,20 +1,11 @@
 'use client'
 
-import {
-	Heart,
-	Building,
-	MapPin,
-	Users,
-	Clock,
-	AlertCircle,
-	X,
-} from 'lucide-react'
+import { Heart, Building, MapPin, Users, Clock, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import {
 	formatDateToDDMMYYYY,
 	calculateDaysLeft,
 } from '@/utils/date/date-utils'
-import { Button } from '@/components/ui'
 
 interface ResearchLabCardProps {
 	lab: {
@@ -219,45 +210,19 @@ export function ResearchLabCard({
 					<div className="mt-3 flex flex-col items-center gap-2">
 						<span
 							className={`px-4 py-2 rounded-full text-sm font-medium ${
-								lab.applicationStatus === 'SUBMITTED' ||
-								lab.applicationStatus === 'PENDING'
+								lab.applicationStatus === 'SUBMITTED'
 									? 'bg-yellow-100 text-yellow-800'
-									: lab.applicationStatus === 'REQUIRE_UPDATE'
-										? 'bg-orange-100 text-orange-800'
-										: lab.applicationStatus === 'UPDATED'
-											? 'bg-blue-100 text-blue-800'
-											: lab.applicationStatus === 'ACCEPTED'
-												? 'bg-green-100 text-green-800'
-												: lab.applicationStatus === 'REJECTED'
-													? 'bg-red-100 text-red-800'
-													: 'bg-gray-100 text-gray-800'
+									: lab.applicationStatus === 'PROGRESSING'
+										? 'bg-blue-100 text-blue-800'
+										: lab.applicationStatus === 'ACCEPTED'
+											? 'bg-green-100 text-green-800'
+											: lab.applicationStatus === 'REJECTED'
+												? 'bg-red-100 text-red-800'
+												: 'bg-gray-100 text-gray-800'
 							}`}
 						>
-							<span className="inline-flex items-center gap-1">
-								📋{' '}
-								{lab.applicationStatus === 'PENDING'
-									? 'SUBMITTED'
-									: lab.applicationStatus === 'REVIEWED'
-										? 'REQUIRE_UPDATE'
-										: lab.applicationStatus}
-							</span>
+							{lab.applicationStatus}
 						</span>
-						{lab.applicationStatus === 'REQUIRE_UPDATE' &&
-							applicationId &&
-							onUpdateRequest && (
-								<Button
-									onClick={(e) => {
-										e.preventDefault()
-										e.stopPropagation()
-										onUpdateRequest(applicationId)
-									}}
-									className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-1.5"
-									size="sm"
-								>
-									<AlertCircle className="h-4 w-4 mr-1.5" />
-									Update Required - Respond Now
-								</Button>
-							)}
 					</div>
 				)}
 			</div>

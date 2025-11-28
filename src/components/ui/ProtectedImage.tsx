@@ -127,12 +127,17 @@ interface ProtectedImgProps
 	 * @default false
 	 */
 	autoRefresh?: boolean
+	/**
+	 * Fallback to show when loading, error, or no URL
+	 */
+	fallback?: React.ReactNode
 }
 
 export const ProtectedImg: React.FC<ProtectedImgProps> = ({
 	src,
 	expiresIn = 3600,
 	autoRefresh = false,
+	fallback,
 	...imgProps
 }) => {
 	const { url, loading, error } = useProtectedImage(src, {
@@ -140,9 +145,56 @@ export const ProtectedImg: React.FC<ProtectedImgProps> = ({
 		autoRefresh,
 	})
 
-	if (loading || error || !url) {
-		return null // Or render a placeholder
+	const defaultFallback = (
+		<div
+			className={`${imgProps.className || ''} bg-gray-200 flex items-center justify-center`}
+			style={{
+				backgroundImage: `url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTIgMTJDMTQuMjA5MSAxMiAxNiAxMC4yMDkxIDE2IDhDMTYgNS43OTA5IDE0LjIwOTEgNCAxMiA0QzkuNzkwODYgNCA4IDUuNzkwOSA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDE0IDcgMTUuMzMgNyAxOEgxN0MxNyAxNS4zMyAxNC42NyAxNCAxMiAxNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo=")`,
+				backgroundSize: 'cover',
+				backgroundPosition: 'center',
+			}}
+		/>
+	)
+
+	if (loading) {
+		return (
+			<>
+				{fallback || (
+					<div
+						className={`${imgProps.className || ''} bg-gray-200 animate-pulse flex items-center justify-center`}
+					>
+						{imgProps.className?.includes('rounded-full') ? (
+							<div className="w-full h-full bg-gray-300 rounded-full" />
+						) : (
+							<div className="w-full h-full bg-gray-300" />
+						)}
+					</div>
+				)}
+			</>
+		)
 	}
 
-	return <img {...imgProps} src={url} alt={imgProps.alt || ''} />
+	if (error || !url) {
+		return <>{fallback || defaultFallback}</>
+	}
+
+	return (
+		<img
+			{...imgProps}
+			src={url}
+			alt={imgProps.alt || ''}
+			onError={(e) => {
+				// Fallback to default on image load error
+				const target = e.currentTarget
+				if (target.src !== defaultFallback.props.style?.backgroundImage) {
+					target.style.display = 'none'
+					const fallbackDiv = target.nextElementSibling as HTMLElement
+					if (fallbackDiv) {
+						fallbackDiv.style.display = 'block'
+					}
+				}
+			}}
+			loading="lazy"
+		/>
+	)
 }

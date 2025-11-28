@@ -1,6 +1,13 @@
+import {
+	formatUTCDateToLocal,
+	getDateInTimezone,
+	getUserTimezone,
+} from "./timezone-utils";
+
 /**
  * Formats a date string from database format (YYYY-MM-DD) to display format (DD/MM/YYYY)
- * @param dateString - Date string in YYYY-MM-DD format
+ * Now timezone-aware: converts UTC dates to user's local timezone
+ * @param dateString - Date string in YYYY-MM-DD or ISO format (UTC)
  * @returns Formatted date string in DD/MM/YYYY format or original string if invalid
  */
 export const formatDateForDisplay = (dateString: string): string => {
@@ -11,17 +18,28 @@ export const formatDateForDisplay = (dateString: string): string => {
 		return dateString;
 	}
 
-	// Parse YYYY-MM-DD format
-	const date = new Date(dateString);
-	if (isNaN(date.getTime())) {
-		return dateString; // Return original if invalid
+	try {
+		// Parse date (assumes UTC from database)
+		const date = new Date(dateString);
+		if (isNaN(date.getTime())) {
+			return dateString; // Return original if invalid
+		}
+
+		// Use timezone-aware formatting
+		return formatUTCDateToLocal(date);
+	} catch (error) {
+		// Fallback to original behavior if timezone utils not available
+		const date = new Date(dateString);
+		if (isNaN(date.getTime())) {
+			return dateString;
+		}
+
+		const day = date.getDate().toString().padStart(2, "0");
+		const month = (date.getMonth() + 1).toString().padStart(2, "0");
+		const year = date.getFullYear();
+
+		return `${day}/${month}/${year}`;
 	}
-
-	const day = date.getDate().toString().padStart(2, "0");
-	const month = (date.getMonth() + 1).toString().padStart(2, "0");
-	const year = date.getFullYear();
-
-	return `${day}/${month}/${year}`;
 };
 
 /**
@@ -55,41 +73,103 @@ export const formatDateForDatabase = (dateString: string): string => {
 
 /**
  * Calculates the number of days remaining from today to a target date
- * @param dateString - Date string in YYYY-MM-DD format
+ * Now timezone-aware: uses user's local timezone for accurate day calculation
+ * @param dateString - Date string in YYYY-MM-DD or ISO format (UTC)
  * @returns Number of days left (0 if date has passed or is invalid)
  */
 export const calculateDaysLeft = (dateString: string): number => {
 	if (!dateString) return 0;
 
-	const targetDate = new Date(dateString);
-	const today = new Date();
+	try {
+		// Parse UTC date from database
+		const utcDate = new Date(dateString);
+		if (isNaN(utcDate.getTime())) {
+			return 0;
+		}
 
-	// Reset time to start of day for accurate day calculation
-	today.setHours(0, 0, 0, 0);
-	targetDate.setHours(0, 0, 0, 0);
+		// Get date components in user's local timezone for accurate day calculation
+		const timezone = getUserTimezone();
+		const targetDateComponents = getDateInTimezone(utcDate, timezone);
+		const todayComponents = getDateInTimezone(new Date(), timezone);
 
-	const diffTime = targetDate.getTime() - today.getTime();
-	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+		// Create date objects for comparison (using local timezone components)
+		// These represent the same moment but allow us to compare days correctly
+		const targetDate = new Date(
+			targetDateComponents.year,
+			targetDateComponents.month - 1,
+			targetDateComponents.day,
+			0,
+			0,
+			0
+		);
+		const today = new Date(
+			todayComponents.year,
+			todayComponents.month - 1,
+			todayComponents.day,
+			0,
+			0,
+			0
+		);
 
-	return Math.max(0, diffDays);
+		const diffTime = targetDate.getTime() - today.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		return Math.max(0, diffDays);
+	} catch (error) {
+		// Fallback to original behavior
+		const targetDate = new Date(dateString);
+		const today = new Date();
+
+		if (isNaN(targetDate.getTime())) {
+			return 0;
+		}
+
+		today.setHours(0, 0, 0, 0);
+		targetDate.setHours(0, 0, 0, 0);
+
+		const diffTime = targetDate.getTime() - today.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		return Math.max(0, diffDays);
+	}
 };
 
 /**
  * Formats a date string to dd-MM-yyyy format
- * @param dateString - Date string in YYYY-MM-DD format
+ * Now timezone-aware: converts UTC dates to user's local timezone
+ * @param dateString - Date string in YYYY-MM-DD or ISO format (UTC)
  * @returns Formatted date string in dd-MM-yyyy format or original string if invalid
  */
 export const formatDateToDDMMYYYY = (dateString: string): string => {
 	if (!dateString) return "Not provided";
 
-	const date = new Date(dateString);
-	if (isNaN(date.getTime())) {
-		return dateString; // Return original if invalid
+	try {
+		// Parse date (assumes UTC from database)
+		const date = new Date(dateString);
+		if (isNaN(date.getTime())) {
+			return dateString; // Return original if invalid
+		}
+
+		// Use timezone-aware formatting - get date components in user's timezone
+		const timezone = getUserTimezone();
+		const dateComponents = getDateInTimezone(date, timezone);
+
+		const day = dateComponents.day.toString().padStart(2, "0");
+		const month = dateComponents.month.toString().padStart(2, "0");
+		const year = dateComponents.year;
+
+		return `${day}-${month}-${year}`;
+	} catch (error) {
+		// Fallback to original behavior if timezone utils fail
+		const date = new Date(dateString);
+		if (isNaN(date.getTime())) {
+			return dateString;
+		}
+
+		const day = date.getDate().toString().padStart(2, "0");
+		const month = (date.getMonth() + 1).toString().padStart(2, "0");
+		const year = date.getFullYear();
+
+		return `${day}-${month}-${year}`;
 	}
-
-	const day = date.getDate().toString().padStart(2, "0");
-	const month = (date.getMonth() + 1).toString().padStart(2, "0");
-	const year = date.getFullYear();
-
-	return `${day}-${month}-${year}`;
 };

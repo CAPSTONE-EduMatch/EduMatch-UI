@@ -7,6 +7,7 @@ import { Button } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
 import { authClient } from '@/config/auth-client'
 import { NotificationType, SQSService } from '@/config/sqs-config'
+import { clearSessionCache } from '@/services/messaging/appsync-client'
 import { Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -181,17 +182,25 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 						console.error('Failed to send password change email:', emailError)
 					}
 
-					// Logout user after password change
+					// Logout user after password change (same as logout button)
 					try {
+						// Clear AppSync session cache
+						clearSessionCache()
+
+						// Clear Better Auth session
 						await authClient.signOut()
+
+						// Clear browser storage
 						localStorage.clear()
 						sessionStorage.clear()
-						router.push('/')
+
+						// Force full page reload to signin page (like logout does)
+						window.location.href = '/signin'
 					} catch (error) {
 						// eslint-disable-next-line no-console
 						console.error('Failed to logout after password change:', error)
 						// Still redirect even if logout fails
-						router.push('/')
+						window.location.href = '/signin'
 					}
 				}, 2000)
 			}

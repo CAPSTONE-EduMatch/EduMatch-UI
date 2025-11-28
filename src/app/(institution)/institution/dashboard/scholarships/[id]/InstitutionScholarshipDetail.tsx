@@ -139,6 +139,7 @@ const InstitutionScholarshipDetail = () => {
 					Math.floor(Math.random() * 30) + 70,
 				userId: app.userId || app.user_id,
 				gpa: app.snapshotData?.gpa || app.gpa || undefined,
+				postType: app.postType || 'Scholarship', // Preserve postType from API
 			}
 		})
 	}
@@ -534,7 +535,6 @@ const InstitutionScholarshipDetail = () => {
 										variant="outline"
 										className="text-red-600 border-red-600 hover:bg-red-50"
 									>
-										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
 									</Button>
 								</>

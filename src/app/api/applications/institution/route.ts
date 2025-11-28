@@ -254,32 +254,47 @@ export async function GET(request: NextRequest) {
 			const matchScoreKey = `${app.applicant.applicant_id}-${app.post.post_id}`;
 			const matchingScore = matchScores.get(matchScoreKey) || "0%";
 
+			// Determine post type
+			let postType: "Program" | "Scholarship" | "Research Lab" =
+				"Program";
+			if (app.post.programPost) {
+				postType = "Program";
+			} else if (app.post.scholarshipPost) {
+				postType = "Scholarship";
+			} else if (app.post.jobPost) {
+				postType = "Research Lab";
+			}
+
+			// Construct name from snapshot ONLY (no fallback to live data)
+			const constructName = () => {
+				// Construct from snapshot firstName and lastName ONLY
+				const firstName = snapshot?.first_name;
+				const lastName = snapshot?.last_name;
+				return (
+					`${firstName || ""} ${lastName || ""}`.trim() || "Unknown"
+				);
+			};
+
 			const transformed = {
 				id: app.application_id,
 				postId: app.post.post_id,
-				// Use snapshot data for consistent profile information
-				name:
-					snapshot?.user_name || app.applicant.user.name || "Unknown",
-				email: snapshot?.user_email || app.applicant.user.email,
-				image: snapshot?.user_image || app.applicant.user.image,
+				// Use constructed name from snapshot ONLY
+				name: constructName(),
+				email: snapshot?.user_email || null,
+				image: snapshot?.user_image || null,
 				appliedDate: formatDate(app.apply_at),
-				degreeLevel:
-					app.post.degree_level ||
-					app.post.scholarshipPost?.type ||
-					app.post.jobPost?.job_type ||
-					"Unknown",
-				// Get subdiscipline from academic info (not interests)
-				// Priority: 1. Applicant's current subdiscipline, 2. Snapshot's subdiscipline_id (academic), 3. Unknown
-				subDiscipline:
-					app.applicant.subdiscipline?.name ||
-					(snapshot?.subdiscipline_id
-						? snapshotSubdisciplinesMap.get(
-								snapshot.subdiscipline_id
-							) || "Unknown"
-						: "Unknown"),
+				// Use degree level from snapshot ONLY (snapshot.level field)
+				degreeLevel: snapshot?.level || "Unknown",
+				// Get subdiscipline from snapshot ONLY (no fallback to live applicant data)
+				subDiscipline: snapshot?.subdiscipline_id
+					? snapshotSubdisciplinesMap.get(
+							snapshot.subdiscipline_id
+						) || "Unknown"
+					: "Unknown",
 				status: app.status.toLowerCase(),
 				matchingScore: parseInt(matchingScore.replace("%", "")), // Convert percentage string to number
 				postTitle: app.post.title,
+				postType: postType, // Include post type for navigation
 				applicantId: app.applicant.applicant_id,
 				userId: app.applicant.user.id, // Include user ID for thread matching
 				// Additional snapshot data for detailed view

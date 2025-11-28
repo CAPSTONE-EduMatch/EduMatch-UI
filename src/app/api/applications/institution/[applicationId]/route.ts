@@ -304,12 +304,10 @@ export async function GET(
 			}
 		}
 
-		// Fetch academic subdiscipline from snapshot if needed
+		// Fetch academic subdiscipline from snapshot ONLY (not from live applicant data)
+		// Always use snapshot data to preserve state at application time
 		let snapshotSubdiscipline = null;
-		if (
-			!application.applicant.subdiscipline &&
-			application.ApplicationProfileSnapshot?.subdiscipline_id
-		) {
+		if (application.ApplicationProfileSnapshot?.subdiscipline_id) {
 			snapshotSubdiscipline = await prismaClient.subdiscipline.findUnique(
 				{
 					where: {
@@ -476,95 +474,67 @@ export async function GET(
 			applicant: {
 				applicantId: application.applicant.applicant_id,
 				userId: application.applicant.user.id, // Include userId for messaging
-				// Use snapshot data if available, otherwise fallback to live data
+				// ONLY use snapshot data - do NOT fallback to live data
+				// This preserves the state at the time of application
 				firstName:
-					application.ApplicationProfileSnapshot?.first_name ||
-					application.applicant.first_name,
+					application.ApplicationProfileSnapshot?.first_name || null,
 				lastName:
-					application.ApplicationProfileSnapshot?.last_name ||
-					application.applicant.last_name,
+					application.ApplicationProfileSnapshot?.last_name || null,
 				name: (() => {
-					// First try snapshot user_name or user.name
+					// First try snapshot user_name
 					if (application.ApplicationProfileSnapshot?.user_name) {
 						return application.ApplicationProfileSnapshot.user_name;
 					}
-					if (application.applicant.user.name) {
-						return application.applicant.user.name;
-					}
-					// Construct from firstName and lastName (using snapshot or live data)
+					// Construct from snapshot firstName and lastName only
 					const firstName =
-						application.ApplicationProfileSnapshot?.first_name ||
-						application.applicant.first_name;
+						application.ApplicationProfileSnapshot?.first_name;
 					const lastName =
-						application.ApplicationProfileSnapshot?.last_name ||
-						application.applicant.last_name;
+						application.ApplicationProfileSnapshot?.last_name;
 					return (
 						`${firstName || ""} ${lastName || ""}`.trim() ||
 						"Unknown"
 					);
 				})(),
 				email:
-					application.ApplicationProfileSnapshot?.user_email ||
-					application.applicant.user.email,
+					application.ApplicationProfileSnapshot?.user_email || null,
 				image:
-					application.ApplicationProfileSnapshot?.user_image ||
-					application.applicant.user.image,
+					application.ApplicationProfileSnapshot?.user_image || null,
 				birthday:
 					application.ApplicationProfileSnapshot?.birthday
 						?.toISOString()
-						.split("T")[0] ||
-					application.applicant.birthday?.toISOString().split("T")[0],
+						.split("T")[0] || null,
 				gender:
 					application.ApplicationProfileSnapshot?.gender === true
 						? "Male"
 						: application.ApplicationProfileSnapshot?.gender ===
 							  false
 							? "Female"
-							: application.applicant.gender === true
-								? "Male"
-								: application.applicant.gender === false
-									? "Female"
-									: "Not specified",
+							: "Not specified",
 				nationality:
-					application.ApplicationProfileSnapshot?.nationality ||
-					application.applicant.nationality,
+					application.ApplicationProfileSnapshot?.nationality || null,
 				phoneNumber:
 					application.ApplicationProfileSnapshot?.phone_number ||
-					application.applicant.phone_number,
+					null,
 				countryCode:
 					application.ApplicationProfileSnapshot?.country_code ||
-					application.applicant.country_code,
+					null,
 				graduated:
-					application.ApplicationProfileSnapshot?.graduated ??
-					application.applicant.graduated,
-				level:
-					application.ApplicationProfileSnapshot?.level ||
-					application.applicant.level,
-				// Get subdiscipline from academic info (not interests)
-				// Priority: 1. Applicant's current subdiscipline, 2. Snapshot's subdiscipline_id (academic)
-				subdiscipline: application.applicant.subdiscipline
+					application.ApplicationProfileSnapshot?.graduated ?? null,
+				level: application.ApplicationProfileSnapshot?.level || null,
+				// Get subdiscipline from snapshot ONLY (not live data)
+				// Use snapshot's subdiscipline_id (academic) from snapshot
+				subdiscipline: snapshotSubdiscipline
 					? [
 							{
-								id: application.applicant.subdiscipline
-									.subdiscipline_id,
-								name: application.applicant.subdiscipline.name,
+								id: snapshotSubdiscipline.subdiscipline_id,
+								name: snapshotSubdiscipline.name,
 								disciplineName:
-									application.applicant.subdiscipline
-										.discipline?.name || "Unknown",
+									snapshotSubdiscipline.discipline?.name ||
+									"Unknown",
 							},
 						]
-					: snapshotSubdiscipline
-						? [
-								{
-									id: snapshotSubdiscipline.subdiscipline_id,
-									name: snapshotSubdiscipline.name,
-									disciplineName:
-										snapshotSubdiscipline.discipline
-											?.name || "Unknown",
-								},
-							]
-						: [],
-				// Extract unique discipline names from subdisciplines
+					: [],
+				// Extract unique discipline names from snapshot subdisciplines ONLY
 				disciplines:
 					application.ApplicationProfileSnapshot?.subdiscipline_ids &&
 					application.ApplicationProfileSnapshot.subdiscipline_ids
@@ -604,28 +574,18 @@ export async function GET(
 									)
 								)
 							)
-						: application.applicant.subdiscipline?.discipline?.name
-							? [
-									application.applicant.subdiscipline
-										.discipline.name,
-								]
-							: [],
-				gpa:
-					application.ApplicationProfileSnapshot?.gpa ||
-					application.applicant.gpa,
+						: [],
+				gpa: application.ApplicationProfileSnapshot?.gpa || null,
 				university:
-					application.ApplicationProfileSnapshot?.university ||
-					application.applicant.university,
+					application.ApplicationProfileSnapshot?.university || null,
 				countryOfStudy:
 					application.ApplicationProfileSnapshot?.country_of_study ||
-					application.applicant.country_of_study,
+					null,
 				hasForeignLanguage:
 					application.ApplicationProfileSnapshot
-						?.has_foreign_language ??
-					application.applicant.has_foreign_language,
+						?.has_foreign_language ?? null,
 				languages:
-					application.ApplicationProfileSnapshot?.languages ||
-					application.applicant.languages,
+					application.ApplicationProfileSnapshot?.languages || null,
 				// Additional snapshot data
 				favoriteCountries:
 					application.ApplicationProfileSnapshot

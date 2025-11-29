@@ -21,13 +21,13 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 
 	// Hide header and footer on create profile pages and institution dashboard
 	const hideLayout =
-		pathname.startsWith('/profile/create') ||
+		// pathname.startsWith('/profile/create') ||
 		pathname.startsWith('/institution/')
 
 	// Hide header for institution role on profile view pages, institution dashboard, and messages
 	// Show header for applicants on messages page
 	const hideHeader =
-		pathname.startsWith('/profile/create') ||
+		// pathname.startsWith('/profile/create') ||
 		pathname.startsWith('/institution/') ||
 		(pathname.startsWith('/profile/view') &&
 			(profile?.role === 'institution' || profileLoading)) ||

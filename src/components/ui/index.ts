@@ -1,5 +1,6 @@
 // Forms
 export { default as Button } from "./forms/Button";
+export { FileValidationDisplay } from "../validation/FileValidationDisplay";
 export { Label } from "./forms/label";
 
 // Plan-based Components
@@ -67,9 +68,14 @@ export { TabSelector } from "./navigation/TabSelector";
 export { default as FileUploadManager } from "./layout/file-upload-manager";
 export { FilterSidebar } from "./layout/FilterSidebar";
 export { Folder } from "./layout/folder";
+export { default as FileUploadManagerWithOCR } from "./layout/file-upload-manager-with-ocr";
 export { ImageManager } from "./layout/image-manager";
 
 // Feedback
 export { default as LoadingSpinner } from "./feedback/LoadingSpinner";
 export { default as ResendCodeButton } from "./feedback/ResendCodeButton";
 export { Tooltip } from "./feedback/tooltip";
+
+// OCR
+export { default as OCRResultsDisplayArea } from "../ocr/OCRResultsDisplayArea";
+export type { OCRResult } from "../ocr/OCRResultsDisplayArea";

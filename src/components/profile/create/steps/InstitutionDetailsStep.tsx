@@ -4,9 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { ProfileFormData } from '@/services/profile/profile-service'
 import { Label } from '@/components/ui'
 import { Button } from '@/components/ui'
-import { FileUploadManager } from '@/components/ui'
+import { FileUploadManager, FileUploadManagerWithOCR } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
+import { Tooltip } from '@/components/ui/feedback/tooltip'
 import { ApiService } from '@/services/api/axios-config'
+import { FileValidationResult } from '@/services/ai/file-validation-service'
+import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
+import { Info } from 'lucide-react'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData
@@ -33,6 +37,19 @@ export function InstitutionDetailsStep({
 	>([])
 	const [isLoadingDisciplines, setIsLoadingDisciplines] = useState(true)
 	const [disciplinesError, setDisciplinesError] = useState<string | null>(null)
+
+	// Note: OCR results are no longer displayed to user
+
+	// Validation notifications state
+	interface ValidationNotification {
+		id: string
+		validation: FileValidationResult
+		fileName: string
+		expectedFileType: string
+	}
+	const [validationNotifications, setValidationNotifications] = useState<
+		ValidationNotification[]
+	>([])
 
 	// Load disciplines from database
 	useEffect(() => {
@@ -73,6 +90,56 @@ export function InstitutionDetailsStep({
 		return formData.institutionVerificationDocuments || []
 	}
 
+	// Function to handle OCR completion for institution verification
+	const handleOCRComplete = async (fileId: string, extractedText: string) => {
+		// OCR completed - extracted text saved internally
+		// No UI display needed
+		// Validation will be handled by `handleValidationComplete` callback
+	}
+
+	// Function to dismiss validation notification
+	const dismissValidationNotification = (notificationId: string) => {
+		setValidationNotifications((prev) =>
+			prev.filter((n) => n.id !== notificationId)
+		)
+	}
+
+	// Function to handle validation completion from FileUploadManagerWithOCR
+	const handleValidationComplete = (
+		fileId: string,
+		validation: FileValidationResult
+	) => {
+		// Show validation notification if file is invalid or needs reupload
+		if (
+			!validation.isValid ||
+			validation.action === 'reupload' ||
+			validation.confidence < 0.7
+		) {
+			const notification: ValidationNotification = {
+				id: `${fileId}-${Date.now()}`,
+				validation,
+				fileName:
+					(formData.institutionVerificationDocuments || []).find(
+						(f: any) => f.id === fileId
+					)?.name || `File ${fileId.slice(-8)}`,
+				expectedFileType: 'institution-verification',
+			}
+
+			setValidationNotifications((prev) => {
+				const filtered = prev.filter((n) => !n.id.startsWith(fileId))
+				return [...filtered, notification]
+			})
+
+			if (validation.isValid && validation.confidence < 0.7) {
+				setTimeout(() => {
+					setValidationNotifications((prev) =>
+						prev.filter((n) => n.id !== notification.id)
+					)
+				}, 10000)
+			}
+		}
+	}
+
 	return (
 		<div className="space-y-8">
 			{/* Header */}
@@ -84,6 +151,21 @@ export function InstitutionDetailsStep({
 					Select disciplines and upload verification documents
 				</p>
 			</div>
+
+			{/* Validation Notifications */}
+			{validationNotifications.length > 0 && (
+				<div className="space-y-3">
+					{validationNotifications.map((notification) => (
+						<FileValidationNotification
+							key={notification.id}
+							validation={notification.validation}
+							fileName={notification.fileName}
+							expectedFileType={notification.expectedFileType}
+							onDismiss={() => dismissValidationNotification(notification.id)}
+						/>
+					))}
+				</div>
+			)}
 
 			{/* Disciplines Selection - For Universities and Research Labs */}
 			{((typeof formData.institutionType === 'string' &&
@@ -220,10 +302,19 @@ export function InstitutionDetailsStep({
 
 			{/* Verification Documents Upload */}
 			<div className="space-y-4">
-				<Label className="text-sm font-medium text-foreground">
-					Verification Documents <span className="text-red-500">*</span>
-				</Label>
-				<FileUploadManager
+				<div className="flex items-center gap-1">
+					<Label className="text-sm font-medium text-foreground">
+						Verification Documents <span className="text-red-500">*</span>
+					</Label>
+					<Tooltip
+						content="Upload institution verification documents in PDF, DOC, DOCX, JPG, or PNG format (max 10MB per file). Required: Institution name and official details, registration numbers or accreditation information, official letterhead/logo/seal/certification marks, statement of legal status/authorization/recognition, contact information. Must be formal verification documents, not brochures."
+						maxWidth={350}
+						align="left"
+					>
+						<Info className="h-4 w-4" />
+					</Tooltip>
+				</div>
+				<FileUploadManagerWithOCR
 					onFilesUploaded={(files) =>
 						handleCategoryFilesUploaded(
 							'institutionVerificationDocuments',
@@ -243,6 +334,9 @@ export function InstitutionDetailsStep({
 					maxSize={10}
 					showPreview={false}
 					className="w-full"
+					enableOCR={true}
+					onOCRComplete={handleOCRComplete}
+					onValidationComplete={handleValidationComplete}
 				/>
 				{formData.institutionVerificationDocuments &&
 					formData.institutionVerificationDocuments.length > 0 && (

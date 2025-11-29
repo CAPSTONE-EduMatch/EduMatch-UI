@@ -14,6 +14,91 @@ import Stripe from "stripe";
 import { prismaClient } from "../../prisma";
 dotenv.config();
 
+// Error codes for account status issues
+export const AUTH_ERROR_CODES = {
+	ACCOUNT_DEACTIVATED: "ACCOUNT_DEACTIVATED",
+	ACCOUNT_BANNED: "ACCOUNT_BANNED",
+	ACCOUNT_BANNED_TEMPORARY: "ACCOUNT_BANNED_TEMPORARY",
+} as const;
+
+/**
+ * Check if an account is deactivated or banned
+ * @param email - User's email address
+ * @returns Object with isBlocked status and appropriate error message
+ */
+async function checkAccountStatus(email: string): Promise<{
+	isBlocked: boolean;
+	errorCode?: string;
+	errorMessage?: string;
+}> {
+	const user = await prismaClient.user.findUnique({
+		where: { email },
+		select: {
+			id: true,
+			status: true,
+			banned: true,
+			banExpires: true,
+			banReason: true,
+		},
+	});
+
+	if (!user) {
+		// User doesn't exist - let the normal flow handle this
+		return { isBlocked: false };
+	}
+
+	// Check if account is deactivated (soft deleted)
+	if (user.status === false) {
+		console.warn(
+			`[Auth] Blocked password reset attempt for deactivated account: ${email}`
+		);
+		return {
+			isBlocked: true,
+			errorCode: AUTH_ERROR_CODES.ACCOUNT_DEACTIVATED,
+			errorMessage:
+				"Your account has been deactivated. Please contact support if you wish to reactivate your account.",
+		};
+	}
+
+	// Check if account is banned
+	if (user.banned === true) {
+		// Check if it's a temporary ban that hasn't expired
+		if (user.banExpires && new Date(user.banExpires) > new Date()) {
+			const banExpiryDate = new Date(user.banExpires).toLocaleDateString(
+				"en-US",
+				{
+					year: "numeric",
+					month: "long",
+					day: "numeric",
+				}
+			);
+			console.warn(
+				`[Auth] Blocked password reset attempt for temporarily banned account: ${email} (expires: ${banExpiryDate})`
+			);
+			return {
+				isBlocked: true,
+				errorCode: AUTH_ERROR_CODES.ACCOUNT_BANNED_TEMPORARY,
+				errorMessage: `Your account has been banned until ${banExpiryDate}. ${user.banReason ? `Reason: ${user.banReason}` : "Please contact support for more information."}`,
+			};
+		} else if (user.banExpires && new Date(user.banExpires) <= new Date()) {
+			// Ban has expired, allow the action (ban should be cleared separately)
+			return { isBlocked: false };
+		} else {
+			// Permanent ban (no expiry date)
+			console.warn(
+				`[Auth] Blocked password reset attempt for permanently banned account: ${email}`
+			);
+			return {
+				isBlocked: true,
+				errorCode: AUTH_ERROR_CODES.ACCOUNT_BANNED,
+				errorMessage: `Your account has been permanently banned. ${user.banReason ? `Reason: ${user.banReason}` : "Please contact support for more information."}`,
+			};
+		}
+	}
+
+	return { isBlocked: false };
+}
+
 // Validate required environment variables
 function validateEnvironment() {
 	const required = [
@@ -95,6 +180,12 @@ export const auth = betterAuth({
 				otp: string;
 				type: string;
 			}) {
+				// Check if account is deactivated or banned before sending OTP
+				const accountStatus = await checkAccountStatus(email);
+				if (accountStatus.isBlocked) {
+					throw new Error(accountStatus.errorMessage);
+				}
+
 				// Determine OTP type based on the type parameter
 				let otpType: OTPType = "email-verification"; // default
 				if (type === "sign-up") {
@@ -507,10 +598,16 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				before: async (session) => {
-					// Check if user is deactivated (status = false)
+					// Check if user is deactivated (status = false) or banned
 					const user = await prismaClient.user.findUnique({
 						where: { id: session.userId },
-						select: { status: true, email: true },
+						select: {
+							status: true,
+							email: true,
+							banned: true,
+							banExpires: true,
+							banReason: true,
+						},
 					});
 
 					if (!user) {
@@ -521,6 +618,37 @@ export const auth = betterAuth({
 						throw new Error(
 							"Your account has been deactivated. Please contact support to reactivate your account."
 						);
+					}
+
+					// Check if user is banned
+					if (user.banned === true) {
+						// Check if it's a temporary ban that hasn't expired
+						if (
+							user.banExpires &&
+							new Date(user.banExpires) > new Date()
+						) {
+							const banExpiryDate = new Date(
+								user.banExpires
+							).toLocaleDateString("en-US", {
+								year: "numeric",
+								month: "long",
+								day: "numeric",
+							});
+							throw new Error(
+								`Your account has been banned until ${banExpiryDate}. ${user.banReason ? `Reason: ${user.banReason}` : "Please contact support for more information."}`
+							);
+						} else if (
+							!user.banExpires ||
+							new Date(user.banExpires) <= new Date()
+						) {
+							// Permanent ban or expired ban that wasn't cleared
+							if (!user.banExpires) {
+								throw new Error(
+									`Your account has been permanently banned. ${user.banReason ? `Reason: ${user.banReason}` : "Please contact support for more information."}`
+								);
+							}
+							// Ban has expired - allow login (ban should be cleared separately)
+						}
 					}
 				},
 			},
@@ -625,6 +753,12 @@ export const auth = betterAuth({
 			url: string;
 			token: string;
 		}) => {
+			// Check if account is deactivated or banned before sending password reset
+			const accountStatus = await checkAccountStatus(user.email);
+			if (accountStatus.isBlocked) {
+				throw new Error(accountStatus.errorMessage);
+			}
+
 			// Check rate limiting for forgot password requests
 			const rateLimitResult = await checkOTPRateLimitByType(
 				user.email,

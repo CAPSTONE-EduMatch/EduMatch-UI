@@ -119,5 +119,14 @@
 	"empty": {
 		"title": "No programs found",
 		"hint": "Try adjusting your filters or search criteria"
+	},
+
+	"auth": {
+		"errors": {
+			"accountDeactivated": "Your account has been deactivated. Please contact support if you wish to reactivate your account.",
+			"accountBanned": "Your account has been permanently banned. Please contact support for more information.",
+			"accountBannedUntil": "Your account has been banned until {date}. Please try again after this date or contact support.",
+			"accountBannedWithReason": "Your account has been banned. Reason: {reason}"
+		}
 	}
 }

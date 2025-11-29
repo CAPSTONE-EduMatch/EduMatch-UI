@@ -518,6 +518,25 @@ const SignIn: React.FC = () => {
 						forgotEmail:
 							'⏰ Too many password reset attempts. Please wait 24 hours before trying again.',
 					}))
+				} else if (
+					errorMessage.includes('deactivated') ||
+					errorMessage.includes('has been deactivated')
+				) {
+					// Handle deactivated account error
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail:
+							'🚫 Your account has been deactivated. Please contact support if you wish to reactivate your account.',
+					}))
+				} else if (
+					errorMessage.includes('banned') ||
+					errorMessage.includes('has been banned')
+				) {
+					// Handle banned account error (includes temporary and permanent bans)
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail: `🚫 ${errorMessage}`,
+					}))
 				} else {
 					setErrors((prev) => ({
 						...prev,

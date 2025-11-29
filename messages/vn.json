@@ -112,5 +112,14 @@
 	"empty": {
 		"title": "Không tìm thấy chương trình",
 		"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
+	},
+
+	"auth": {
+		"errors": {
+			"accountDeactivated": "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn muốn kích hoạt lại tài khoản.",
+			"accountBanned": "Tài khoản của bạn đã bị cấm vĩnh viễn. Vui lòng liên hệ bộ phận hỗ trợ để biết thêm thông tin.",
+			"accountBannedUntil": "Tài khoản của bạn đã bị cấm đến ngày {date}. Vui lòng thử lại sau ngày này hoặc liên hệ bộ phận hỗ trợ.",
+			"accountBannedWithReason": "Tài khoản của bạn đã bị cấm. Lý do: {reason}"
+		}
 	}
 }

@@ -17,6 +17,7 @@ import {
 import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
+import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { applicationService } from '@/services/application/application-service'
 import { ExploreApiService } from '@/services/explore/explore-api'
@@ -40,8 +41,8 @@ const ScholarshipDetail = () => {
 	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Check if we're viewing an application (from URL query param)
-	const applicationIdFromUrl = searchParams.get('applicationId')
-	const fromParam = searchParams.get('from')
+	const applicationIdFromUrl = searchParams?.get('applicationId')
+	const fromParam = searchParams?.get('from')
 	// Don't auto-load application tab if coming from application section
 	const shouldAutoLoadApplicationTab =
 		applicationIdFromUrl && fromParam !== 'application'
@@ -272,7 +273,7 @@ const ScholarshipDetail = () => {
 			setLoading(true)
 			setError(null)
 			try {
-				const scholarshipId = params.id as string
+				const scholarshipId = params?.id as string
 				const response = await fetch(
 					`/api/explore/scholarships/scholarship-detail?id=${scholarshipId}`
 				)
@@ -293,15 +294,15 @@ const ScholarshipDetail = () => {
 		}
 
 		fetchScholarshipDetail()
-	}, [params.id])
+	}, [params?.id])
 
 	// Separate useEffect for breadcrumb to avoid triggering scholarship fetch
 	useEffect(() => {
 		const updateBreadcrumb = () => {
-			const fromTab = searchParams.get('from') || 'scholarships'
+			const fromTab = searchParams?.get('from') || 'scholarships'
 
 			// Preserve all original URL parameters except 'from'
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
@@ -1006,7 +1007,7 @@ const ScholarshipDetail = () => {
 
 	const handleProgramClick = (programId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -1018,7 +1019,7 @@ const ScholarshipDetail = () => {
 
 	const handleScholarshipClick = (scholarshipId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -1031,7 +1032,7 @@ const ScholarshipDetail = () => {
 	// Handle application submission
 	const handleApply = async () => {
 		// Use scholarship ID from URL params as fallback
-		const scholarshipId = currentScholarship?.id || params.id
+		const scholarshipId = currentScholarship?.id || params?.id
 		if (!scholarshipId) {
 			return
 		}
@@ -1619,7 +1620,7 @@ const ScholarshipDetail = () => {
 									onClick={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
-										const scholarshipId = currentScholarship?.id || params.id
+										const scholarshipId = currentScholarship?.id || params?.id
 										if (scholarshipId) {
 											handleScholarshipWishlistToggle(scholarshipId as string)
 										}
@@ -1630,7 +1631,7 @@ const ScholarshipDetail = () => {
 								>
 									<Heart
 										className={`w-6 h-6 transition-all duration-200 ${
-											isInWishlist(currentScholarship?.id || params.id)
+											isInWishlist(currentScholarship?.id || params?.id)
 												? 'fill-red-500 text-red-500'
 												: 'text-gray-400 hover:text-red-500'
 										}`}
@@ -2011,98 +2012,74 @@ const ScholarshipDetail = () => {
 											</div>
 
 											{/* Upload Files Section - Direct upload, no modal */}
-											<div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50">
-												<input
-													type="file"
-													multiple
-													onChange={async (e) => {
-														const files = e.target.files
-														if (files && files.length > 0) {
-															try {
-																const uploadedFileData = await uploadFiles(
-																	Array.from(files)
-																)
-																if (uploadedFileData) {
-																	const newDocuments = uploadedFileData.map(
-																		(file) => ({
-																			document_id: `temp_${Date.now()}_${Math.random()}`,
-																			name: file.name,
-																			url: file.url,
-																			size: file.size,
-																			documentType: 'general',
-																			source: 'new' as const,
-																		})
-																	)
-																	// Merge with existing documents, deduplicate by URL
-																	const docsMap = new Map<string, any>()
-																	// Add existing documents first
-																	selectedDocuments.forEach((doc) => {
-																		docsMap.set(doc.url, doc)
-																	})
-																	// Add new documents (will overwrite if same URL, but shouldn't happen)
-																	newDocuments.forEach((doc) => {
-																		docsMap.set(doc.url, doc)
-																	})
-																	const updatedDocs = Array.from(
-																		docsMap.values()
-																	)
-																	setSelectedDocuments(updatedDocs)
-																	// Update uploadedFiles directly without opening modal
-																	const convertedFiles = updatedDocs.map(
-																		(doc) => ({
-																			id: doc.document_id,
-																			name: doc.name,
-																			url: doc.url,
-																			size: doc.size,
-																			documentType: doc.documentType,
-																			source: doc.source,
-																			applicationDocumentId: (doc as any)
-																				.applicationDocumentId, // Preserve ApplicationDetail document_id if exists
-																		})
-																	)
-																	// Deduplicate by URL to prevent glitches
-																	const uniqueFiles = Array.from(
-																		new Map(
-																			convertedFiles.map((file) => [
-																				file.url,
-																				file,
-																			])
-																		).values()
-																	)
-																	setUploadedFiles(uniqueFiles)
-																	showSuccess(
-																		'Files Uploaded',
-																		`${uploadedFileData.length} file(s) uploaded successfully`
-																	)
-																}
-															} catch (error) {
-																showError(
-																	'Upload Failed',
-																	'Failed to upload files. Please try again.'
-																)
-															}
-														}
-														e.target.value = ''
+											<div className="">
+												<FileUploadManagerWithOCR
+													category="application-documents"
+													onFilesUploaded={(uploadedFileData: any[]) => {
+														if (
+															!uploadedFileData ||
+															uploadedFileData.length === 0
+														)
+															return
+
+														const newDocuments = uploadedFileData.map(
+															(file) => ({
+																document_id: `temp_${Date.now()}_${Math.random()}`,
+																name: file.name,
+																url: file.url,
+																size: file.size,
+																documentType: 'general',
+																source: 'new' as const,
+															})
+														)
+
+														// Merge with existing documents, deduplicate by URL
+														const docsMap = new Map<string, any>()
+														selectedDocuments.forEach((doc) => {
+															docsMap.set(doc.url, doc)
+														})
+														newDocuments.forEach((doc) => {
+															docsMap.set(doc.url, doc)
+														})
+														const updatedDocs = Array.from(docsMap.values())
+														setSelectedDocuments(updatedDocs)
+
+														// Convert to uploadedFiles format and dedupe
+														const convertedFiles = updatedDocs.map((doc) => ({
+															id: doc.document_id,
+															name: doc.name,
+															url: doc.url,
+															size: doc.size,
+															documentType: doc.documentType,
+															source: doc.source,
+															applicationDocumentId: (doc as any)
+																.applicationDocumentId,
+														}))
+														const uniqueFiles = Array.from(
+															new Map(
+																convertedFiles.map((file) => [file.url, file])
+															).values()
+														)
+														setUploadedFiles(uniqueFiles)
+
+														showSuccess(
+															'Files Uploaded',
+															`${uploadedFileData.length} file(s) uploaded successfully`
+														)
 													}}
-													className="hidden"
-													id="file-upload-main"
-													accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+													onValidationComplete={(
+														tempId: string,
+														validation: any
+													) => {
+														if (validation && validation.isValid === false) {
+															showError(
+																'Validation Failed',
+																validation.message ||
+																	'File failed validation. Please redact sensitive information and try again.'
+															)
+														}
+													}}
 												/>
-												<label
-													htmlFor="file-upload-main"
-													className="cursor-pointer block"
-												>
-													<div className="text-5xl mb-4">📁</div>
-													<h4 className="text-lg font-medium text-gray-900 mb-2">
-														Upload Files
-													</h4>
-													<p className="text-gray-600 mb-2">
-														Click to upload documents from your computer
-													</p>
-													<p className="text-sm text-gray-500">
-														PDF, DOC, DOCX, JPG, PNG (max 10MB each)
-													</p>
-												</label>
 											</div>
 										</div>
 									</div>

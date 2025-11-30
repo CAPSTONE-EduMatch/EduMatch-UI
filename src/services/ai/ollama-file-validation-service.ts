@@ -44,6 +44,15 @@ export class OllamaFileValidationService {
 		extractedText: string
 	): string {
 		const fileTypeInstructions = {
+			"application-documents": `You are a STRICT application document validator. Analyze the provided text and determine whether the document is appropriate for inclusion in an application (supporting documents such as CVs, transcripts, certificates, letters) and DOES NOT contain sensitive personal data.
+
+A valid application document for public upload should:
+- Contain only information necessary for assessment (e.g., name, education, qualifications) and NOT include highly sensitive personal data such as full national ID numbers, passport numbers, full credit card numbers, bank account numbers, private medical records, or other personally identifying data.
+- Be relevant to the application (e.g., CV, transcript, certificate, recommendation letter) and contain content that matches the expected document type.
+
+Be conservative:
+- If the document contains or appears to contain any sensitive personal data (IDs, passport numbers, SSNs, full card numbers, bank account details, un-redacted medical information), you MUST treat it as INVALID and set "isValid": false and "action": "reupload".
+- If you are NOT clearly sure that the document is appropriate for an application or it contains extraneous or sensitive content, treat it as INVALID.`,
 			"cv-resume": `You are a STRICT CV/Resume validation expert. Analyze the provided text and determine if it's a real CV/Resume document for a person applying for jobs.
 
 A valid CV/Resume should contain, at minimum:

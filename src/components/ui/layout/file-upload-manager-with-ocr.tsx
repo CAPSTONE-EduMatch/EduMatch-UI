@@ -540,10 +540,23 @@ export function FileUploadManagerWithOCR({
 				className={cn(
 					'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
 					dragActive
-						? 'border-primary bg-primary/5'
-						: 'border-border hover:border-primary/50',
+						? 'border-primary bg-primary/5 cursor-pointer'
+						: 'border-border hover:border-primary/50 cursor-pointer',
 					isUploading && 'opacity-50 pointer-events-none'
 				)}
+				role="button"
+				tabIndex={0}
+				aria-disabled={isUploading}
+				onClick={() => {
+					if (!isUploading) fileInputRef.current?.click()
+				}}
+				onKeyDown={(e: React.KeyboardEvent) => {
+					if (isUploading) return
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault()
+						fileInputRef.current?.click()
+					}
+				}}
 				onDragEnter={handleDrag}
 				onDragLeave={handleDrag}
 				onDragOver={handleDrag}

@@ -526,7 +526,7 @@ const SignIn: React.FC = () => {
 					setErrors((prev) => ({
 						...prev,
 						forgotEmail:
-							'🚫 Your account has been deactivated. Please contact support if you wish to reactivate your account.',
+							'Your account has been deactivated. Please contact support if you wish to reactivate your account.',
 					}))
 				} else if (
 					errorMessage.includes('banned') ||
@@ -535,7 +535,7 @@ const SignIn: React.FC = () => {
 					// Handle banned account error (includes temporary and permanent bans)
 					setErrors((prev) => ({
 						...prev,
-						forgotEmail: `🚫 ${errorMessage}`,
+						forgotEmail: `${errorMessage}`,
 					}))
 				} else {
 					setErrors((prev) => ({

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 
 const s3Client = new S3Client({
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
 				if (!isAuthorizedRole && !hasMessagingRelationship) {
 					// eslint-disable-next-line no-console
 					console.warn(
-						`🚫 Unauthorized file access: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
+						`Unauthorized file access: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
 					);
 					return NextResponse.json(
 						{

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import {
-	S3Client,
 	GetObjectCommand,
 	HeadObjectCommand,
+	S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { requireAuth } from "@/utils/auth/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
 			// Log unauthorized access attempt
 			// eslint-disable-next-line no-console
 			console.warn(
-				`🚫 Unauthorized file access attempt: User ${user.id} tried to access ${s3Key}`
+				`Unauthorized file access attempt: User ${user.id} tried to access ${s3Key}`
 			);
 
 			return NextResponse.json(

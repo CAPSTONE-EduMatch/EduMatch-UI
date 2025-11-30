@@ -13,10 +13,12 @@ import {
 } from '@/utils/files/getSessionProtectedFileUrl'
 import { PhoneInput } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
-import { Upload, Building2, Download } from 'lucide-react'
+import { Upload, Building2, Download, Trash2, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
+import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
+import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { ApiService, apiClient } from '@/services/api/axios-config'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 
@@ -198,7 +200,43 @@ export const InstitutionProfileSection: React.FC<
 				}
 			}
 
-			// Import ApiService dynamically
+			// Persist any uploaded verification documents that haven't been saved to DB yet
+			try {
+				const unsavedDocs = verificationDocuments.filter((doc) => {
+					// Files uploaded via the upload manager use temporary ids like `temp-...`.
+					// If id is missing or starts with 'temp-' we consider it unsaved.
+					return (
+						!doc.id ||
+						(typeof doc.id === 'string' && doc.id.startsWith('temp-'))
+					)
+				})
+
+				if (unsavedDocs.length > 0) {
+					const docsToSave = unsavedDocs.map((d) => ({
+						name: d.name || d.originalName || 'document',
+						fileName: d.fileName,
+						fileSize: d.fileSize || d.size,
+						url: d.url,
+						fileType: d.fileType,
+						category: d.category || 'verification',
+					}))
+
+					// Save to DB using the same endpoint used by the explicit upload flow
+					await apiClient.post('/api/institution/documents', {
+						documents: docsToSave,
+					})
+
+					// Refresh verification documents from server so state contains saved records
+					await loadVerificationDocuments()
+				}
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.error(
+					'Failed to persist verification documents before profile save:',
+					e
+				)
+			}
+
 			const { ApiService } = await import('@/services/api/axios-config')
 
 			// Prepare the profile data for saving
@@ -517,6 +555,11 @@ export const InstitutionProfileSection: React.FC<
 			)
 			setShowErrorModal(true)
 		}
+	}
+
+	const handleRemoveVerificationDocument = (index: number) => {
+		const updatedDocs = verificationDocuments.filter((_, i) => i !== index)
+		setVerificationDocuments(updatedDocs)
 	}
 
 	return (
@@ -1247,29 +1290,68 @@ export const InstitutionProfileSection: React.FC<
 
 										{activeTab === 'verification' && (
 											<div className="h-full flex flex-col">
-												{/* Upload Button - Fixed at top */}
-												<div className="flex justify-between items-center mb-4 flex-shrink-0 px-4 pt-4">
-													<h3 className="font-semibold text-gray-900">
-														Verification Documents
-													</h3>
-													<Button
-														onClick={handleVerificationUploadClick}
-														disabled={isUploadingDocument}
-														size="sm"
-														className="flex items-center gap-2"
-													>
-														<Upload className="w-4 h-4" />
-														{isUploadingDocument
-															? 'Uploading...'
-															: 'Upload Documents'}
-													</Button>
-												</div>
+												{/* Upload Section with OCR - Only show when editing */}
+												{isEditing && (
+													<div className="flex-shrink-0 px-4 pt-4 mb-4">
+														<h3 className="font-semibold text-gray-900 mb-4">
+															Verification Documents
+														</h3>
+														<FileUploadManagerWithOCR
+															onFilesUploaded={(files: any[]) => {
+																const updatedDocs = [
+																	...verificationDocuments,
+																	...files,
+																]
+																setVerificationDocuments(updatedDocs)
+															}}
+															category="institution-verification"
+															acceptedTypes={[
+																'application/pdf',
+																'application/msword',
+																'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+																'image/jpeg',
+																'image/png',
+															]}
+															maxSize={10}
+															maxFiles={10}
+															showPreview={false}
+															enableOCR={true}
+															onOCRComplete={(
+																fileId: string,
+																extractedText: string
+															) => {
+																// Auto-fill institution verification data if available
+																console.log(
+																	'Institution verification OCR:',
+																	extractedText
+																)
+															}}
+															onValidationComplete={(
+																fileId: string,
+																validation: FileValidationResult
+															) => {
+																// Handle validation results
+																console.log(
+																	'Institution verification validation:',
+																	validation
+																)
+															}}
+														/>
+													</div>
+												)}
 
 												{/* Documents List - Scrollable */}
-												<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
+												<div
+													className={`flex-1 overflow-y-auto px-4 pb-4 min-h-0 ${!isEditing ? 'pt-4' : ''}`}
+												>
+													{!isEditing && (
+														<h3 className="font-semibold text-gray-900 mb-4">
+															Verification Documents
+														</h3>
+													)}
 													{verificationDocuments.length > 0 ? (
 														<div className="space-y-3">
-															{verificationDocuments.map((doc) => (
+															{verificationDocuments.map((doc, index) => (
 																<div
 																	key={doc.id}
 																	className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
@@ -1307,6 +1389,20 @@ export const InstitutionProfileSection: React.FC<
 																		>
 																			<Download className="h-4 w-4" />
 																		</button>
+																		{isEditing && (
+																			<button
+																				onClick={() =>
+																					handleRemoveVerificationDocument(
+																						index
+																					)
+																				}
+																				className="text-red-400 hover:text-red-600 p-1"
+																				title="Delete document"
+																			>
+																				{/* <Trash2 className="h-4 w-4" /> */}
+																				<X className="h-3 w-3" />
+																			</button>
+																		)}
 																	</div>
 																</div>
 															))}
@@ -1317,6 +1413,12 @@ export const InstitutionProfileSection: React.FC<
 															<p className="text-gray-500 mb-4">
 																No verification documents uploaded yet
 															</p>
+															{isEditing && (
+																<p className="text-sm text-gray-400">
+																	Use the upload section above to add
+																	verification documents
+																</p>
+															)}
 														</div>
 													)}
 												</div>

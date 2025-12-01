@@ -3,6 +3,10 @@
 import { InstitutionDocument } from '@/types/domain/institution-details'
 import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 
 interface InstitutionDocumentSectionProps {
 	title: string
@@ -17,26 +21,43 @@ export function InstitutionDocumentSection({
 }: InstitutionDocumentSectionProps) {
 	const [downloading, setDownloading] = useState<string | null>(null)
 
-	const handleDownload = async (documentId: string, fileName: string) => {
-		setDownloading(documentId)
+	const handlePreviewDocument = (file: InstitutionDocument) => {
 		try {
-			const response = await fetch(
-				`/api/admin/institutions/${institutionId}/documents/${documentId}`
-			)
-
-			if (response.ok) {
-				const blob = await response.blob()
-				const url = window.URL.createObjectURL(blob)
-				const a = document.createElement('a')
-				a.style.display = 'none'
-				a.href = url
-				a.download = fileName
-				document.body.appendChild(a)
-				a.click()
-				window.URL.revokeObjectURL(url)
-				document.body.removeChild(a)
+			if (file.url && file.url !== '#' && file.url !== '') {
+				openSessionProtectedFile(file.url)
 			} else {
-				alert('Failed to download document')
+				alert('Document not available for preview')
+			}
+		} catch (error) {
+			alert('Failed to preview document. Please try again.')
+		}
+	}
+
+	const handleDownloadDocument = async (file: InstitutionDocument) => {
+		setDownloading(file.documentId)
+		try {
+			if (file.url && file.url !== '#' && file.url !== '') {
+				await downloadSessionProtectedFile(file.url, file.name || 'document')
+			} else {
+				// Fallback to API download if URL is not available
+				const response = await fetch(
+					`/api/admin/institutions/${institutionId}/documents/${file.documentId}`
+				)
+
+				if (response.ok) {
+					const blob = await response.blob()
+					const url = window.URL.createObjectURL(blob)
+					const a = document.createElement('a')
+					a.style.display = 'none'
+					a.href = url
+					a.download = file.name
+					document.body.appendChild(a)
+					a.click()
+					window.URL.revokeObjectURL(url)
+					document.body.removeChild(a)
+				} else {
+					alert('Failed to download document')
+				}
 			}
 		} catch (error) {
 			alert('Error downloading document')
@@ -72,33 +93,40 @@ export function InstitutionDocumentSection({
 					{files.map((file) => (
 						<div
 							key={file.documentId}
-							className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+							className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
 						>
-							<div className="flex items-center gap-3 flex-1 min-w-0">
-								<FileText className="w-5 h-5 text-gray-600 flex-shrink-0" />
-								<div className="flex-1 min-w-0">
-									<div className="font-medium text-sm text-black truncate">
-										{file.name}
-									</div>
-									<div className="text-xs text-gray-500">
-										{formatFileSize(file.size)} • Uploaded{' '}
-										{new Date(file.uploadDate).toLocaleDateString()}
-									</div>
+							<div className="flex items-center gap-3">
+								<span className="text-2xl">📄</span>
+								<div>
+									<p className="font-medium text-sm">
+										{file.name || 'Document'}
+									</p>
+									<p className="text-sm text-muted-foreground">
+										{formatFileSize(file.size)}
+										{file.documentType ? ` • ${file.documentType}` : ''}
+									</p>
 								</div>
 							</div>
-
-							<button
-								onClick={() => handleDownload(file.documentId, file.name)}
-								disabled={downloading === file.documentId}
-								className="ml-3 p-2 text-[#126E64] hover:bg-[#126E64] hover:text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-								title="Download document"
-							>
-								{downloading === file.documentId ? (
-									<div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-								) : (
-									<Download className="w-4 h-4" />
-								)}
-							</button>
+							<div className="flex items-center gap-2">
+								<button
+									onClick={() => handlePreviewDocument(file)}
+									className="text-primary hover:text-primary/80 text-sm font-medium"
+								>
+									View
+								</button>
+								<button
+									onClick={() => handleDownloadDocument(file)}
+									disabled={downloading === file.documentId}
+									className="text-gray-400 hover:text-gray-600 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
+									title="Download document"
+								>
+									{downloading === file.documentId ? (
+										<div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+									) : (
+										<Download className="h-4 w-4" />
+									)}
+								</button>
+							</div>
 						</div>
 					))}
 				</div>

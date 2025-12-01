@@ -1,4 +1,5 @@
 import { AdminUserService } from "@/services/admin/admin-user-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -142,8 +143,11 @@ export async function POST(
 				);
 			}
 
+			// Get current admin user ID
+			const { user: currentAdmin } = await requireAuth();
+
 			// Approve the institution
-			await AdminUserService.approveInstitution(userId);
+			await AdminUserService.approveInstitution(userId, currentAdmin.id);
 
 			return NextResponse.json({
 				success: true,
@@ -169,8 +173,17 @@ export async function POST(
 				);
 			}
 
+			// Get current admin user ID and rejection reason
+			const { user: currentAdmin } = await requireAuth();
+			const body = await request.json();
+			const { rejectionReason } = body;
+
 			// Deny the institution
-			await AdminUserService.denyInstitution(userId);
+			await AdminUserService.denyInstitution(
+				userId,
+				rejectionReason,
+				currentAdmin.id
+			);
 
 			return NextResponse.json({
 				success: true,

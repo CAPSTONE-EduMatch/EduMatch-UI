@@ -39,9 +39,17 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 	const [showDropdown, setShowDropdown] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 
-	// Check if profile is university type
-	const isUniversity =
-		profile?.institutionType === 'university' || profile?.type === 'university'
+	// Get institution type
+	const institutionType = profile?.institutionType || profile?.type || ''
+
+	// Determine which post types can be created based on institution type
+	const canCreateProgram = institutionType === 'university'
+	const canCreateScholarship = institutionType === 'scholarship-provider'
+	const canCreateResearchLab = institutionType === 'research-lab'
+
+	// Check if any post creation is allowed
+	const canCreateAnyPost =
+		canCreateProgram || canCreateScholarship || canCreateResearchLab
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
@@ -139,52 +147,93 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 						/>
 					</div>
 
-					{isUniversity && (
+					{canCreateAnyPost && (
 						<div className="relative" ref={dropdownRef}>
-							<Button
-								onClick={() => setShowDropdown(!showDropdown)}
-								className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 relative"
-							>
-								<Plus className="w-4 h-4" />
-								Add new post
-								<ChevronDown className="w-4 h-4" />
-							</Button>
+							{/* If only one option, show direct button; otherwise show dropdown */}
+							{canCreateProgram &&
+							!canCreateScholarship &&
+							!canCreateResearchLab ? (
+								<Button
+									onClick={() => onAddNew('Program')}
+									className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+								>
+									<Plus className="w-4 h-4" />
+									Add Program
+								</Button>
+							) : canCreateScholarship &&
+							  !canCreateProgram &&
+							  !canCreateResearchLab ? (
+								<Button
+									onClick={() => onAddNew('Scholarship')}
+									className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+								>
+									<Plus className="w-4 h-4" />
+									Add Scholarship
+								</Button>
+							) : canCreateResearchLab &&
+							  !canCreateProgram &&
+							  !canCreateScholarship ? (
+								<Button
+									onClick={() => onAddNew('Research Lab')}
+									className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+								>
+									<Plus className="w-4 h-4" />
+									Add Research Lab
+								</Button>
+							) : (
+								<>
+									<Button
+										onClick={() => setShowDropdown(!showDropdown)}
+										className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 relative"
+									>
+										<Plus className="w-4 h-4" />
+										Add new post
+										<ChevronDown className="w-4 h-4" />
+									</Button>
 
-							{showDropdown && (
-								<div className="absolute right-0 top-full w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-									<div className="py-2">
-										<button
-											onClick={() => {
-												onAddNew('Program')
-												setShowDropdown(false)
-											}}
-											className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-										>
-											<Plus className="w-4 h-4" />
-											Add Program
-										</button>
-										<button
-											onClick={() => {
-												onAddNew('Scholarship')
-												setShowDropdown(false)
-											}}
-											className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-										>
-											<Plus className="w-4 h-4" />
-											Add Scholarship
-										</button>
-										<button
-											onClick={() => {
-												onAddNew('Research Lab')
-												setShowDropdown(false)
-											}}
-											className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-										>
-											<Plus className="w-4 h-4" />
-											Add Research Lab
-										</button>
-									</div>
-								</div>
+									{showDropdown && (
+										<div className="absolute right-0 top-full w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+											<div className="py-2">
+												{canCreateProgram && (
+													<button
+														onClick={() => {
+															onAddNew('Program')
+															setShowDropdown(false)
+														}}
+														className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+													>
+														<Plus className="w-4 h-4" />
+														Add Program
+													</button>
+												)}
+												{canCreateScholarship && (
+													<button
+														onClick={() => {
+															onAddNew('Scholarship')
+															setShowDropdown(false)
+														}}
+														className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+													>
+														<Plus className="w-4 h-4" />
+														Add Scholarship
+													</button>
+												)}
+												{canCreateResearchLab && (
+													<button
+														onClick={() => {
+															onAddNew('Research Lab')
+															setShowDropdown(false)
+														}}
+														className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+													>
+														<Plus className="w-4 h-4" />
+														Add Research Lab
+													</button>
+												)}
+											</div>
+										</div>
+									)}
+								</>
 							)}
 						</div>
 					)}

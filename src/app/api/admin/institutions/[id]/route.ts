@@ -9,11 +9,11 @@ export async function GET(
 ) {
 	try {
 		// Authenticate user and check admin permissions
-		const { user: currentUser } = await requireAuth();
+		await requireAuth();
 
-		const institutionId = params.id;
+		const id = params.id;
 
-		if (!institutionId) {
+		if (!id) {
 			return Response.json(
 				{
 					success: false,
@@ -23,11 +23,20 @@ export async function GET(
 			);
 		}
 
+		// Determine if the ID is an institution_id or user_id
+		// institution_id format: "institution_${userId}"
+		// If it doesn't start with "institution_", treat it as user_id
+		let whereClause: any;
+		if (id.startsWith("institution_")) {
+			whereClause = { institution_id: id };
+		} else {
+			// It's a user_id, find by user_id
+			whereClause = { user_id: id };
+		}
+
 		// Fetch institution with all related data
-		const institution = await prismaClient.institution.findUnique({
-			where: {
-				institution_id: institutionId,
-			},
+		const institution = await prismaClient.institution.findFirst({
+			where: whereClause,
 			include: {
 				user: {
 					select: {
@@ -40,9 +49,13 @@ export async function GET(
 						banExpires: true,
 						createdAt: true,
 						updatedAt: true,
+						image: true,
 					},
 				},
 				documents: {
+					where: {
+						status: true, // Only fetch active documents, matching institution profile behavior
+					},
 					include: {
 						documentType: {
 							select: {
@@ -118,30 +131,28 @@ export async function GET(
 			"Tax Document",
 			"Representative Document",
 			"Other",
+			"Institution Verification", // Include verification documents
 		];
 
 		documentCategories.forEach((category) => {
 			documentsByType[category] = [];
 		});
 
-		// Group documents by their type
+		// Group documents by their type and transform to match InstitutionDocument interface
 		institution.documents.forEach((doc) => {
 			const typeName = doc.documentType.name;
 			if (!documentsByType[typeName]) {
 				documentsByType[typeName] = [];
 			}
 
+			// Transform to match InstitutionDocument interface
 			documentsByType[typeName].push({
-				id: doc.document_id,
+				documentId: doc.document_id,
 				name: doc.name,
 				url: doc.url,
 				size: doc.size,
-				uploadedAt: doc.upload_at.toISOString(),
-				type: {
-					id: doc.documentType.document_type_id,
-					name: doc.documentType.name,
-					description: doc.documentType.description,
-				},
+				uploadDate: doc.upload_at.toISOString(),
+				documentType: doc.documentType.name, // String instead of nested object
 			});
 		});
 
@@ -155,10 +166,22 @@ export async function GET(
 			},
 		}));
 
-		// Determine status
-		let status: "Active" | "Inactive" | "Suspended" = "Active";
+		// Determine status based on verification_status first, then user status
+		let status:
+			| "Active"
+			| "Inactive"
+			| "Suspended"
+			| "Pending"
+			| "Rejected" = "Active";
 		if (institution.user.banned) {
 			status = "Suspended";
+		} else if (institution.verification_status === "PENDING") {
+			status = "Pending";
+		} else if (institution.verification_status === "REJECTED") {
+			status = "Rejected";
+		} else if (institution.verification_status === "APPROVED") {
+			// Approved institutions show as "Active" if user status is true
+			status = institution.user.status ? "Active" : "Inactive";
 		} else if (!institution.user.status) {
 			status = "Inactive";
 		}
@@ -191,7 +214,7 @@ export async function GET(
 			userId: institution.user.id,
 			userEmail: institution.user.email,
 			userName: institution.user.name,
-			userImage: null, // Add if available in user model
+			userImage: institution.user.image,
 
 			// Status information
 			status,
@@ -200,6 +223,13 @@ export async function GET(
 			banExpires: institution.user.banExpires?.toISOString(),
 			createdAt: institution.user.createdAt.toISOString(),
 			lastActive: institution.user.updatedAt?.toISOString(),
+
+			// Verification information
+			verification_status: institution.verification_status || "PENDING",
+			submitted_at: institution.submitted_at?.toISOString() || null,
+			verified_at: institution.verified_at?.toISOString() || null,
+			verified_by: institution.verified_by || null,
+			rejection_reason: institution.rejection_reason || null,
 
 			// Documents grouped by category
 			documents: {
@@ -210,6 +240,8 @@ export async function GET(
 				representativeDocuments:
 					documentsByType["Representative Document"] || [],
 				otherDocuments: documentsByType["Other"] || [],
+				verificationDocuments:
+					documentsByType["Institution Verification"] || [],
 			},
 
 			// Academic information

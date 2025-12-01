@@ -30,9 +30,7 @@ const UserManagementTable = memo(function UserManagementTable({
 
 	// Local state for UI
 	const [searchInput, setSearchInput] = useState('')
-	const [statusFilter, setStatusFilter] = useState<
-		'all' | 'active' | 'banned' | 'denied'
-	>('all')
+	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<'name' | 'email' | 'createdAt'>(
 		filters.sortBy || 'name'
 	)
@@ -42,8 +40,19 @@ const UserManagementTable = memo(function UserManagementTable({
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
 	// Set userType filter when component mounts or userType changes
+	// Also reset search and other filters when switching tabs
 	useEffect(() => {
-		updateFilters({ userType })
+		// Clear any pending debounced search
+		if (searchTimeoutRef.current) {
+			clearTimeout(searchTimeoutRef.current)
+			searchTimeoutRef.current = null
+		}
+
+		// Reset search input when switching tabs
+		setSearchInput('')
+		setStatusFilter([])
+		// Update filters with new userType and reset search
+		updateFilters({ userType, search: '', status: 'all', page: 1 })
 	}, [userType, updateFilters])
 
 	// Debounced search to prevent excessive API calls
@@ -71,13 +80,14 @@ const UserManagementTable = memo(function UserManagementTable({
 		}
 	}, [])
 
-	// Handle status filter with new admin API
+	// Handle status filter with new admin API - supports multiple statuses
 	const handleStatusFilter = useCallback(
-		(status: string) => {
-			const validStatus = status as 'all' | 'active' | 'banned' | 'denied'
-			setStatusFilter(validStatus)
+		(statusArray: string[]) => {
+			setStatusFilter(statusArray)
+			// Convert array to comma-separated string or "all" if empty
+			const statusValue = statusArray.length > 0 ? statusArray.join(',') : 'all'
 			updateFilters({
-				status: validStatus,
+				status: statusValue,
 			})
 		},
 		[updateFilters]
@@ -145,28 +155,12 @@ const UserManagementTable = memo(function UserManagementTable({
 	const totalPages = pagination?.totalPages || 1
 	const itemsPerPage = filters.limit || 10
 
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="text-base text-gray-600">Loading users...</div>
-			</div>
-		)
-	}
-
-	if (error) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="text-base text-red-600">Error: {error}</div>
-			</div>
-		)
-	}
-
 	return (
 		<div className="space-y-8">
 			{/* Header */}
 			<div className="flex justify-between items-center mb-4">
 				<h2 className="text-2xl font-bold text-black capitalize">
-					{userType}s ({total} total)
+					{userType}s {!loading && `(${total} total)`}
 				</h2>
 			</div>
 
@@ -177,11 +171,8 @@ const UserManagementTable = memo(function UserManagementTable({
 					setSearchInput(query)
 					debouncedSearch(query)
 				}}
-				statusFilter={statusFilter === 'all' ? [] : [statusFilter]}
-				onStatusFilterChange={(statusArray: string[]) => {
-					const newStatus = statusArray.length === 0 ? 'all' : statusArray[0]
-					handleStatusFilter(newStatus)
-				}}
+				statusFilter={statusFilter}
+				onStatusFilterChange={handleStatusFilter}
 				sortBy={sortBy}
 				onSortChange={(sort) => handleSort(sort)}
 				sortDirection={sortDirection}
@@ -191,6 +182,7 @@ const UserManagementTable = memo(function UserManagementTable({
 					userType === 'institution'
 						? [
 								{ value: 'active', label: 'Active' },
+								{ value: 'pending', label: 'Pending' },
 								{ value: 'banned', label: 'Banned' },
 								{ value: 'denied', label: 'Denied' },
 							]
@@ -209,17 +201,52 @@ const UserManagementTable = memo(function UserManagementTable({
 			{/* Table with horizontal scroll */}
 			<Card className="bg-white rounded-[24px] shadow-xl overflow-hidden border-0">
 				<CardContent className="p-0">
-					<div className="overflow-x-auto">
-						<div className="w-full min-w-full">
-							<div className="bg-[#126E64] text-white grid grid-cols-6 px-8 py-5 text-center font-bold text-base">
-								<div className="text-left">Name</div>
-								<div>Email</div>
-								<div>Status</div>
-								<div>Role</div>
-								<div>Created</div>
-								<div className="pl-8">Actions</div>
-							</div>
+					{/* Small Progress Bar at Top of Table */}
+					{loading && (
+						<div className="w-full bg-gray-200 h-1 overflow-hidden">
+							<div
+								className="bg-primary h-1"
+								style={{
+									width: '100%',
+									background:
+										'linear-gradient(90deg, #126E64 0%, #0D504A 50%, #126E64 100%)',
+									backgroundSize: '200% 100%',
+									animation: 'shimmer 1.5s ease-in-out infinite',
+								}}
+							/>
+							<style jsx>{`
+								@keyframes shimmer {
+									0% {
+										background-position: -200% 0;
+									}
+									100% {
+										background-position: 200% 0;
+									}
+								}
+							`}</style>
+						</div>
+					)}
+					<div className="w-full">
+						<div className="bg-[#126E64] text-white grid grid-cols-6 px-8 py-5 text-center font-bold text-base">
+							<div className="text-left">Name</div>
+							<div>Email</div>
+							<div>Status</div>
+							<div>Role</div>
+							<div>Created</div>
+							<div className="pl-8">Actions</div>
+						</div>
 
+						{loading ? (
+							<div className="text-center py-12 text-gray-500">
+								Loading {userType}s...
+							</div>
+						) : error ? (
+							<div className="text-center py-12">
+								<div className="text-red-500 text-4xl mb-2">⚠️</div>
+								<p className="text-red-600 mb-1">Error loading {userType}s</p>
+								<p className="text-sm text-gray-600">{error}</p>
+							</div>
+						) : (
 							<div className="divide-y divide-gray-100">
 								{users.map((user, index) => {
 									const isEven = index % 2 === 0
@@ -260,14 +287,18 @@ const UserManagementTable = memo(function UserManagementTable({
 															? 'bg-[#E20000] text-white'
 															: user.status === 'denied'
 																? 'bg-[#FFA500] text-white'
-																: 'bg-[#126E64] text-white'
+																: user.status === 'pending'
+																	? 'bg-[#FFC107] text-white'
+																	: 'bg-[#126E64] text-white'
 													}`}
 												>
 													{user.status === 'banned'
 														? 'Banned'
 														: user.status === 'denied'
 															? 'Denied'
-															: 'Active'}
+															: user.status === 'pending'
+																? 'Pending'
+																: 'Active'}
 												</span>
 											</div>
 
@@ -294,73 +325,75 @@ const UserManagementTable = memo(function UserManagementTable({
 									)
 								})}
 							</div>
+						)}
 
-							{users.length === 0 && (
-								<div className="text-center py-12 text-gray-500">
-									No users found matching your criteria.
-								</div>
-							)}
-						</div>
+						{!loading && !error && users.length === 0 && (
+							<div className="text-center py-12 text-gray-500">
+								No users found matching your criteria.
+							</div>
+						)}
 					</div>
 				</CardContent>
 			</Card>
 
 			{/* Pagination */}
-			<div className="flex justify-between items-center mt-6">
-				<div className="text-gray-600 text-xs font-medium">
-					Display {Math.min(itemsPerPage, users.length)} results of{' '}
-					<span className="font-semibold text-gray-800">{total}</span>
+			{!loading && (
+				<div className="flex justify-between items-center mt-6">
+					<div className="text-gray-600 text-xs font-medium">
+						Display {Math.min(itemsPerPage, users.length)} results of{' '}
+						<span className="font-semibold text-gray-800">{total}</span>
+					</div>
+
+					<div className="flex items-center gap-1">
+						<button
+							onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+							disabled={currentPage === 1}
+							className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
+						>
+							‹
+						</button>
+
+						{[...Array(Math.min(6, totalPages))].map((_, i) => {
+							const pageNum = i + 1
+							return (
+								<button
+									key={pageNum}
+									onClick={() => handlePageChange(pageNum)}
+									className={`w-8 h-8 rounded-full text-xs font-semibold transition-all ${
+										currentPage === pageNum
+											? 'bg-[#126E64] text-white shadow-md'
+											: 'text-gray-700 hover:bg-gray-100 hover:text-[#126E64]'
+									}`}
+								>
+									{pageNum}
+								</button>
+							)
+						})}
+
+						{totalPages > 6 && (
+							<>
+								<span className="text-gray-400 mx-1 text-xs">...</span>
+								<button
+									onClick={() => handlePageChange(totalPages)}
+									className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
+								>
+									{totalPages}
+								</button>
+							</>
+						)}
+
+						<button
+							onClick={() =>
+								handlePageChange(Math.min(totalPages, currentPage + 1))
+							}
+							disabled={currentPage === totalPages}
+							className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
+						>
+							›
+						</button>
+					</div>
 				</div>
-
-				<div className="flex items-center gap-1">
-					<button
-						onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-						disabled={currentPage === 1}
-						className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
-					>
-						‹
-					</button>
-
-					{[...Array(Math.min(6, totalPages))].map((_, i) => {
-						const pageNum = i + 1
-						return (
-							<button
-								key={pageNum}
-								onClick={() => handlePageChange(pageNum)}
-								className={`w-8 h-8 rounded-full text-xs font-semibold transition-all ${
-									currentPage === pageNum
-										? 'bg-[#126E64] text-white shadow-md'
-										: 'text-gray-700 hover:bg-gray-100 hover:text-[#126E64]'
-								}`}
-							>
-								{pageNum}
-							</button>
-						)
-					})}
-
-					{totalPages > 6 && (
-						<>
-							<span className="text-gray-400 mx-1 text-xs">...</span>
-							<button
-								onClick={() => handlePageChange(totalPages)}
-								className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
-							>
-								{totalPages}
-							</button>
-						</>
-					)}
-
-					<button
-						onClick={() =>
-							handlePageChange(Math.min(totalPages, currentPage + 1))
-						}
-						disabled={currentPage === totalPages}
-						className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
-					>
-						›
-					</button>
-				</div>
-			</div>
+			)}
 		</div>
 	)
 })

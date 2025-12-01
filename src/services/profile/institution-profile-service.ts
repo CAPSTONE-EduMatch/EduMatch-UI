@@ -242,6 +242,16 @@ export class InstitutionProfileService {
 				"✅ InstitutionProfileService: All required fields validated"
 			);
 
+			// Check if institution already exists
+			const existingInstitution =
+				await prismaClient.institution.findUnique({
+					where: { user_id: userId },
+				});
+
+			const isNewInstitution = !existingInstitution;
+			const shouldResetVerification =
+				existingInstitution?.verification_status === "REJECTED";
+
 			// Create or update institution
 			const institution = await prismaClient.institution.upsert({
 				where: { user_id: userId },
@@ -273,6 +283,14 @@ export class InstitutionProfileService {
 					logo: getStringValue(formData.institutionLogo) || null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
+					// If resubmitting after rejection, reset verification status
+					...(shouldResetVerification && {
+						verification_status: "PENDING",
+						submitted_at: new Date(),
+						rejection_reason: null,
+						verified_at: null,
+						verified_by: null,
+					}),
 				},
 				create: {
 					institution_id: `institution_${userId}`,
@@ -304,6 +322,9 @@ export class InstitutionProfileService {
 					logo: getStringValue(formData.institutionLogo) || null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
+					// Set verification status to PENDING for new institutions
+					verification_status: "PENDING",
+					submitted_at: new Date(),
 				},
 			});
 

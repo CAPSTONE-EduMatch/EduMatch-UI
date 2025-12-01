@@ -448,12 +448,20 @@ export class AdminUserService {
 	/**
 	 * Approve an institution
 	 */
-	static async approveInstitution(userId: string): Promise<boolean> {
+	static async approveInstitution(
+		userId: string,
+		adminUserId?: string
+	): Promise<boolean> {
 		try {
-			// Update institution status to approved
+			// Update institution verification status to approved
 			await prismaClient.institution.updateMany({
 				where: { user_id: userId },
-				data: { status: true },
+				data: {
+					verification_status: "APPROVED",
+					verified_at: new Date(),
+					verified_by: adminUserId || null,
+					status: true, // Also set general status to active
+				},
 			});
 			return true;
 		} catch (error) {
@@ -468,12 +476,22 @@ export class AdminUserService {
 	/**
 	 * Deny an institution
 	 */
-	static async denyInstitution(userId: string): Promise<boolean> {
+	static async denyInstitution(
+		userId: string,
+		rejectionReason?: string,
+		adminUserId?: string
+	): Promise<boolean> {
 		try {
-			// Update institution status to denied
+			// Update institution verification status to rejected
 			await prismaClient.institution.updateMany({
 				where: { user_id: userId },
-				data: { status: false },
+				data: {
+					verification_status: "REJECTED",
+					rejection_reason: rejectionReason || null,
+					verified_at: new Date(),
+					verified_by: adminUserId || null,
+					status: false, // Also set general status to inactive
+				},
 			});
 			return true;
 		} catch (error) {

@@ -11,9 +11,9 @@ export async function POST(
 		// Authenticate user and check admin permissions
 		const { user: currentUser } = await requireAuth();
 
-		const institutionId = params.id;
+		const id = params.id;
 
-		if (!institutionId) {
+		if (!id) {
 			return Response.json(
 				{
 					success: false,
@@ -37,11 +37,20 @@ export async function POST(
 			);
 		}
 
+		// Determine if the ID is an institution_id or user_id
+		// institution_id format: "institution_${userId}"
+		// If it doesn't start with "institution_", treat it as user_id
+		let whereClause: any;
+		if (id.startsWith("institution_")) {
+			whereClause = { institution_id: id };
+		} else {
+			// It's a user_id, find by user_id
+			whereClause = { user_id: id };
+		}
+
 		// Find the institution and its user
-		const institution = await prismaClient.institution.findUnique({
-			where: {
-				institution_id: institutionId,
-			},
+		const institution = await prismaClient.institution.findFirst({
+			where: whereClause,
 			include: {
 				user: {
 					select: {
@@ -163,10 +172,26 @@ export async function POST(
 				// Approve the institution
 				result = await prismaClient.institution.update({
 					where: {
-						institution_id: institutionId,
+						institution_id: institution.institution_id,
 					},
 					data: {
-						status: true,
+						verification_status: "APPROVED",
+						verified_at: new Date(),
+						verified_by: currentUser.id,
+						status: true, // Also set general status to active
+					},
+				});
+
+				// Create notification for the institution
+				await prismaClient.notification.create({
+					data: {
+						notification_id: `institution-approved-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+						user_id: institution.user.id,
+						title: "Institution Profile Approved",
+						body: "Your institution profile has been approved. You now have full access to the dashboard.",
+						type: "INSTITUTION_APPROVED",
+						send_at: new Date(),
+						create_at: new Date(),
 					},
 				});
 
@@ -174,12 +199,32 @@ export async function POST(
 
 			case "deny":
 				// Deny the institution
+				const { rejectionReason } = body;
 				result = await prismaClient.institution.update({
 					where: {
-						institution_id: institutionId,
+						institution_id: institution.institution_id,
 					},
 					data: {
-						status: false,
+						verification_status: "REJECTED",
+						rejection_reason: rejectionReason || null,
+						verified_at: new Date(),
+						verified_by: currentUser.id,
+						status: false, // Also set general status to inactive
+					},
+				});
+
+				// Create notification for the institution
+				await prismaClient.notification.create({
+					data: {
+						notification_id: `institution-rejected-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+						user_id: institution.user.id,
+						title: "Institution Profile Rejected",
+						body: rejectionReason
+							? `Your institution profile has been rejected. Reason: ${rejectionReason}`
+							: "Your institution profile has been rejected. Please review your submission and try again.",
+						type: "INSTITUTION_REJECTED",
+						send_at: new Date(),
+						create_at: new Date(),
 					},
 				});
 

@@ -3,6 +3,7 @@
 import { InstitutionProfileLayout } from '@/components/profile/layouts/InstitutionProfileLayout'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
+import { VerificationWaitingScreen } from '@/components/profile/institution/components/VerificationWaitingScreen'
 import { useCallback, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import type { InstitutionProfileSection } from '@/components/profile/layouts/InstitutionProfileLayout'
@@ -122,6 +123,33 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 				</div>
 			</div>
 		)
+	}
+
+	// Check verification status - show waiting screen if PENDING or REJECTED
+	if (profile && profile.role === 'institution') {
+		const verificationStatus = profile.verification_status || 'PENDING'
+
+		// Allow access to profile page even if pending/rejected so they can update
+		const isProfilePage = pathname.startsWith('/institution/dashboard/profile')
+
+		if (
+			(verificationStatus === 'PENDING' || verificationStatus === 'REJECTED') &&
+			!isProfilePage
+		) {
+			return (
+				<InstitutionProfileLayout
+					activeSection={activeSection}
+					onSectionChange={handleSectionChange}
+					profile={profile}
+				>
+					<VerificationWaitingScreen
+						verificationStatus={verificationStatus}
+						submittedAt={profile.submitted_at}
+						rejectionReason={profile.rejection_reason}
+					/>
+				</InstitutionProfileLayout>
+			)
+		}
 	}
 
 	return (

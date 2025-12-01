@@ -37,6 +37,12 @@ export const DateInput: React.FC<DateInputProps> = ({
 	const parseDDMMYYYYToDate = (dateString: string) => {
 		if (!dateString) return null
 
+		// If already in YYYY-MM-DD format, parse it directly
+		if (dateString.includes('-') && !dateString.includes('/')) {
+			const date = new Date(dateString)
+			return isValid(date) ? date : null
+		}
+
 		// Try to parse dd/mm/yyyy format
 		const parsed = parse(dateString, 'dd/MM/yyyy', new Date())
 		return isValid(parsed) ? parsed : null
@@ -200,8 +206,30 @@ export const DateInput: React.FC<DateInputProps> = ({
 		setBirthdayError('')
 	}
 
+	// Convert YYYY-MM-DD format to DD/MM/YYYY for display
+	const getDisplayValue = (dateString: string): string => {
+		if (!dateString) return ''
+
+		// If already in DD/MM/YYYY format, return as is
+		if (dateString.includes('/')) {
+			return dateString
+		}
+
+		// If in YYYY-MM-DD format, convert to DD/MM/YYYY
+		if (dateString.includes('-') && !dateString.includes('/')) {
+			const parts = dateString.split('-')
+			if (parts.length === 3) {
+				const [year, month, day] = parts
+				return `${day}/${month}/${year}`
+			}
+		}
+
+		return dateString
+	}
+
 	const selectedDate = parseDDMMYYYYToDate(value)
 	const displayError = error || birthdayError
+	const displayValue = getDisplayValue(value)
 
 	return (
 		<div className="space-y-2">
@@ -216,7 +244,7 @@ export const DateInput: React.FC<DateInputProps> = ({
 					id={id}
 					type="text"
 					placeholder={placeholder}
-					value={value}
+					value={displayValue}
 					onChange={handleTextInputChange}
 					onClick={handleInputClick}
 					disabled={disabled}

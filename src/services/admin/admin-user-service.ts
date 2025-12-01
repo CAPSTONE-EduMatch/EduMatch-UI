@@ -453,7 +453,7 @@ export class AdminUserService {
 			// Update institution status to approved
 			await prismaClient.institution.updateMany({
 				where: { user_id: userId },
-				data: { status: true },
+				data: { status: "ACTIVE" },
 			});
 			return true;
 		} catch (error) {
@@ -473,7 +473,7 @@ export class AdminUserService {
 			// Update institution status to denied
 			await prismaClient.institution.updateMany({
 				where: { user_id: userId },
-				data: { status: false },
+				data: { status: "DENIED" },
 			});
 			return true;
 		} catch (error) {

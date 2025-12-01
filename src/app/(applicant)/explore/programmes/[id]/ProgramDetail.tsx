@@ -22,11 +22,11 @@ import { useApiWrapper } from '@/services/api/api-wrapper'
 import { applicationService } from '@/services/application/application-service'
 import { ApplicationLimitError } from '@/types/api/application-errors'
 import { Program } from '@/types/api/explore-api'
+import { formatUTCDateToLocal } from '@/utils/date'
 import {
 	downloadSessionProtectedFile,
 	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
-import { formatUTCDateToLocal } from '@/utils/date'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, ChevronLeft, ChevronRight, File, Heart, X } from 'lucide-react'
 import Image from 'next/image'
@@ -149,16 +149,26 @@ const ProgramDetail = () => {
 
 	// Utility function to get institution status
 	const getInstitutionStatus = (institution?: {
-		status: boolean
+		status: string | boolean
 		deletedAt?: string | null
 	}) => {
 		if (!institution) return null
 
-		if (!institution.status) {
+		// Check for non-active status (enum values: PENDING, DENIED, or legacy boolean false)
+		if (institution.status !== 'ACTIVE' && institution.status !== true) {
+			const statusLabel =
+				institution.status === 'PENDING'
+					? 'Pending Approval'
+					: institution.status === 'DENIED'
+						? 'Account Denied'
+						: 'Account Deactivated'
 			return {
 				type: 'deactivated' as const,
-				label: 'Account Deactivated',
-				color: 'bg-orange-100 text-orange-800 border-orange-200',
+				label: statusLabel,
+				color:
+					institution.status === 'PENDING'
+						? 'bg-blue-100 text-blue-800 border-blue-200'
+						: 'bg-orange-100 text-orange-800 border-orange-200',
 			}
 		}
 
@@ -168,7 +178,7 @@ const ProgramDetail = () => {
 	// Institution status badge component
 	const InstitutionStatusBadge: React.FC<{
 		institution?: {
-			status: boolean
+			status: string | boolean
 			deletedAt?: string | null
 		}
 	}> = ({ institution }) => {

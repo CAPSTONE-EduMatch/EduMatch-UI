@@ -1,18 +1,16 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
-import { Button } from '@/components/ui'
-import { SortDropdown } from '@/components/ui'
+import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
+import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
+import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import type { SortOption } from '@/components/ui'
-import { TabSelector } from '@/components/ui'
-import { BookOpen, Clock, Users, X, Search } from 'lucide-react'
-import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
+import { Button, SortDropdown, TabSelector } from '@/components/ui'
 import { useApplications } from '@/hooks/application/useApplications'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { ApplicationStatus } from '@/types/api/application-api'
-import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
-import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
-import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
+import { Program, ResearchLab, Scholarship } from '@/types/api/explore-api'
+import { BookOpen, Clock, Search, Users, X } from 'lucide-react'
+import React, { useCallback, useState } from 'react'
 import { ApplicationUpdateResponseModal } from './ApplicationUpdateResponseModal'
 
 interface ApplicationSectionProps {
@@ -116,8 +114,10 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			})[] = []
 
 			applications.forEach((app) => {
+				// Convert institution status enum to isActive boolean
+				// ACTIVE = active (true), PENDING/DENIED = not active (false)
 				const institutionStatus = {
-					isActive: app.post.institution.status,
+					isActive: app.post.institution.status === 'ACTIVE',
 				}
 
 				// Convert application post to explore format based on post type

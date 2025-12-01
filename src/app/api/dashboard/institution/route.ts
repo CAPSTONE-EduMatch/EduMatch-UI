@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 
 // GET /api/dashboard/institution - Get institution dashboard statistics
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 		const institution = await prismaClient.institution.findFirst({
 			where: {
 				user_id: userId,
-				status: true,
+				status: "ACTIVE",
 			},
 		});
 

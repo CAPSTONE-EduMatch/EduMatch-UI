@@ -4,7 +4,7 @@ import { prismaClient } from "../../../../../prisma/index";
 
 interface InstitutionFilters {
 	search?: string;
-	status?: "all" | "active" | "suspended" | "pending" | "banned";
+	status?: "all" | "active" | "pending" | "denied" | "banned";
 	type?: "all" | "University" | "College" | "Institute" | "Academy";
 	country?: string;
 	sortBy?: "name" | "email" | "createdAt" | "totalApplications";
@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
 				(searchParams.get("status") as
 					| "all"
 					| "active"
-					| "suspended"
 					| "pending"
+					| "denied"
 					| "banned") || "all",
 			type:
 				(searchParams.get("type") as
@@ -110,14 +110,19 @@ export async function GET(request: NextRequest) {
 					banned: true,
 				};
 			} else if (filters.status === "active") {
+				whereClause.status = "ACTIVE";
 				whereClause.user = {
 					banned: false,
-					status: true,
 				};
-			} else if (filters.status === "suspended") {
+			} else if (filters.status === "pending") {
+				whereClause.status = "PENDING";
 				whereClause.user = {
 					banned: false,
-					status: false,
+				};
+			} else if (filters.status === "denied") {
+				whereClause.status = "DENIED";
+				whereClause.user = {
+					banned: false,
 				};
 			}
 		}
@@ -192,12 +197,16 @@ export async function GET(request: NextRequest) {
 				0
 			);
 
-			// Determine status
-			let status: "Active" | "Suspended" | "Pending" = "Active";
+			// Determine status based on institution.status enum and user.banned
+			let status: "Active" | "Pending" | "Denied" | "Banned" = "Active";
 			if (institution.user.banned) {
-				status = "Suspended"; // We'll show banned as suspended in the list
-			} else if (!institution.user.status) {
-				status = "Suspended";
+				status = "Banned";
+			} else if (institution.status === "PENDING") {
+				status = "Pending";
+			} else if (institution.status === "DENIED") {
+				status = "Denied";
+			} else if (institution.status === "ACTIVE") {
+				status = "Active";
 			}
 
 			return {

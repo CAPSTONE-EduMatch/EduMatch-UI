@@ -41,7 +41,7 @@ export interface Application {
 			name: string;
 			logo?: string | null;
 			country?: string;
-			status: boolean;
+			status: string | boolean;
 			deletedAt: string | null;
 		};
 		program?: {

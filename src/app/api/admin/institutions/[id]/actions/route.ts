@@ -166,7 +166,7 @@ export async function POST(
 						institution_id: institutionId,
 					},
 					data: {
-						status: true,
+						status: "ACTIVE",
 					},
 				});
 
@@ -179,7 +179,7 @@ export async function POST(
 						institution_id: institutionId,
 					},
 					data: {
-						status: false,
+						status: "DENIED",
 					},
 				});
 

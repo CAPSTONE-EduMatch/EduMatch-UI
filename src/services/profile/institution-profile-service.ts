@@ -112,7 +112,7 @@ export class InstitutionProfileService {
 			let institution = await prismaClient.institution.findFirst({
 				where: {
 					user_id: userId,
-					status: true, // Only get active profiles
+					status: "ACTIVE", // Only get active profiles
 				},
 				include: {
 					user: true,
@@ -167,12 +167,16 @@ export class InstitutionProfileService {
 				});
 
 				// If found inactive profile, automatically reactivate it
-				if (institution && institution.status === false) {
+				if (
+					institution &&
+					(institution.status === "PENDING" ||
+						institution.status === "DENIED")
+				) {
 					await prismaClient.institution.update({
 						where: { institution_id: institution.institution_id },
-						data: { status: true },
+						data: { status: "ACTIVE" },
 					});
-					institution.status = true;
+					institution.status = "ACTIVE" as any;
 				}
 			}
 
@@ -343,7 +347,7 @@ export class InstitutionProfileService {
 									subdiscipline_id:
 										subdiscipline.subdiscipline_id,
 									add_at: new Date(),
-									status: true,
+									status: true, // InstitutionSubdiscipline.status is boolean
 								},
 							});
 							console.log(
@@ -472,7 +476,7 @@ export class InstitutionProfileService {
 			await prismaClient.institution.update({
 				where: { user_id: userId },
 				data: {
-					status: false,
+					status: "DENIED",
 					deleted_at: new Date(),
 				},
 			});

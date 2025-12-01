@@ -31,7 +31,7 @@ const UserManagementTable = memo(function UserManagementTable({
 	// Local state for UI
 	const [searchInput, setSearchInput] = useState('')
 	const [statusFilter, setStatusFilter] = useState<
-		'all' | 'active' | 'banned' | 'denied'
+		'all' | 'active' | 'inactive' | 'banned' | 'pending' | 'denied'
 	>('all')
 	const [sortBy, setSortBy] = useState<'name' | 'email' | 'createdAt'>(
 		filters.sortBy || 'name'
@@ -74,7 +74,13 @@ const UserManagementTable = memo(function UserManagementTable({
 	// Handle status filter with new admin API
 	const handleStatusFilter = useCallback(
 		(status: string) => {
-			const validStatus = status as 'all' | 'active' | 'banned' | 'denied'
+			const validStatus = status as
+				| 'all'
+				| 'active'
+				| 'inactive'
+				| 'banned'
+				| 'pending'
+				| 'denied'
 			setStatusFilter(validStatus)
 			updateFilters({
 				status: validStatus,
@@ -191,11 +197,13 @@ const UserManagementTable = memo(function UserManagementTable({
 					userType === 'institution'
 						? [
 								{ value: 'active', label: 'Active' },
-								{ value: 'banned', label: 'Banned' },
+								{ value: 'pending', label: 'Pending' },
 								{ value: 'denied', label: 'Denied' },
+								{ value: 'banned', label: 'Banned' },
 							]
 						: [
 								{ value: 'active', label: 'Active' },
+								{ value: 'inactive', label: 'Inactive' },
 								{ value: 'banned', label: 'Banned' },
 							]
 				}
@@ -260,14 +268,22 @@ const UserManagementTable = memo(function UserManagementTable({
 															? 'bg-[#E20000] text-white'
 															: user.status === 'denied'
 																? 'bg-[#FFA500] text-white'
-																: 'bg-[#126E64] text-white'
+																: user.status === 'pending'
+																	? 'bg-[#3B82F6] text-white'
+																	: user.status === 'inactive'
+																		? 'bg-[#6B7280] text-white'
+																		: 'bg-[#126E64] text-white'
 													}`}
 												>
 													{user.status === 'banned'
 														? 'Banned'
 														: user.status === 'denied'
 															? 'Denied'
-															: 'Active'}
+															: user.status === 'pending'
+																? 'Pending'
+																: user.status === 'inactive'
+																	? 'Inactive'
+																	: 'Active'}
 												</span>
 											</div>
 

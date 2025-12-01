@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 		const institution = await prismaClient.institution.findFirst({
 			where: {
 				user_id: userId,
-				status: true,
+				status: "ACTIVE",
 			},
 		});
 
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 		const institution = await prismaClient.institution.findFirst({
 			where: {
 				user_id: userId,
-				status: true,
+				status: "ACTIVE",
 			},
 			include: {
 				documents: {

@@ -4,7 +4,7 @@ import { prismaClient } from "../../../../../prisma/index";
 
 interface UserFilters {
 	search?: string;
-	status?: "all" | "active" | "banned" | "denied";
+	status?: "all" | "active" | "inactive" | "banned" | "pending" | "denied";
 	role?: string;
 	userType?: "applicant" | "institution" | "admin";
 	sortBy?: "name" | "email" | "createdAt";
@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
 				(searchParams.get("status") as
 					| "all"
 					| "active"
+					| "inactive"
 					| "banned"
+					| "pending"
 					| "denied") || "all",
 			role: searchParams.get("role") || undefined,
 			userType:
@@ -73,19 +75,30 @@ export async function GET(request: NextRequest) {
 			if (filters.status === "banned") {
 				whereClause.banned = true;
 			} else if (filters.status === "active") {
-				// For active status, exclude banned users
-				// For institutions, also require approved status (institution.status = true)
+				// For active status, exclude banned users and require active status
 				whereClause.banned = { not: true };
+				whereClause.status = true;
 				if (filters.userType === "institution") {
 					whereClause.institution = {
-						status: true,
+						status: "ACTIVE",
 					};
 				}
+			} else if (filters.status === "inactive") {
+				// Inactive users have user.status = false and are not banned (for non-institution users)
+				whereClause.banned = { not: true };
+				whereClause.status = false;
+			} else if (filters.status === "pending") {
+				// Pending institutions have institution.status = PENDING
+				whereClause.role = "institution";
+				whereClause.banned = { not: true };
+				whereClause.institution = {
+					status: "PENDING",
+				};
 			} else if (filters.status === "denied") {
-				// Denied institutions have institution.status = false
+				// Denied institutions have institution.status = DENIED
 				whereClause.role = "institution";
 				whereClause.institution = {
-					status: false,
+					status: "DENIED",
 				};
 			}
 		}
@@ -136,6 +149,7 @@ export async function GET(request: NextRequest) {
 					banReason: true,
 					banExpires: true,
 					role: true,
+					status: true,
 					institution: {
 						select: {
 							status: true,
@@ -157,8 +171,18 @@ export async function GET(request: NextRequest) {
 			if (user.banned) {
 				status = "banned";
 			} else if (user.role === "institution" && user.institution) {
-				// For institutions: approved (status=true) shows as "active", denied (status=false) shows as "denied"
-				status = user.institution.status ? "active" : "denied";
+				// For institutions: map enum status to string
+				const instStatus = user.institution.status;
+				if (instStatus === "ACTIVE") {
+					status = "active";
+				} else if (instStatus === "PENDING") {
+					status = "pending";
+				} else if (instStatus === "DENIED") {
+					status = "denied";
+				}
+			} else if (user.status === false) {
+				// For non-institution users: inactive when user.status is false
+				status = "inactive";
 			}
 
 			return {

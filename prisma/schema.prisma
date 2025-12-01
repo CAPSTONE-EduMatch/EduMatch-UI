@@ -150,7 +150,7 @@ model Institution {
   rep_phone_code      String?
   cover_image         String?
   deleted_at          DateTime?                  @db.Timestamptz(6)
-  status              Boolean                    @default(true)
+  status              InstitutionStatus          @default(PENDING)
   user                User                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents           InstitutionDocument[]
   subdisciplines      InstitutionSubdiscipline[]
@@ -686,7 +686,6 @@ enum PostStatus {
   DRAFT
   PUBLISHED
   CLOSED
-  ARCHIVED
   SUBMITTED
   UPDATED
   REQUIRE_UPDATE
@@ -728,4 +727,10 @@ enum DocumentTypeEnum {
   INSTITUTION_VERIFICATION
   REQUIRED_DOCUMENTS
   OTHER
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  PENDING
+  DENIED
 }

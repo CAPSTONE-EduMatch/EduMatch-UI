@@ -201,10 +201,10 @@ export async function PATCH(
 			"DRAFT",
 			"PUBLISHED",
 			"CLOSED",
-			"ARCHIVED",
 			"SUBMITTED",
 			"UPDATED",
 			"REQUIRE_UPDATE",
+			"DELETED",
 		];
 		if (status && !validStatuses.includes(status)) {
 			return NextResponse.json(

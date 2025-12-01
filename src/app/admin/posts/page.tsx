@@ -23,8 +23,8 @@ const getStatusColor = (status: PostStatus) => {
 			return 'bg-[#126E64] text-white'
 		case 'CLOSED':
 			return 'bg-[#6EB6FF] text-black'
-		case 'ARCHIVED':
-			return 'bg-[#D5D5D5] text-black'
+		case 'DELETED':
+			return 'bg-[#EF4444] text-white'
 		case 'DRAFT':
 			return 'bg-[#F0A227] text-white'
 		case 'SUBMITTED':
@@ -44,8 +44,8 @@ const getStatusLabel = (status: PostStatus) => {
 			return 'Published'
 		case 'CLOSED':
 			return 'Closed'
-		case 'ARCHIVED':
-			return 'Archived'
+		case 'DELETED':
+			return 'Deleted'
 		case 'DRAFT':
 			return 'Draft'
 		case 'SUBMITTED':

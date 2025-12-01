@@ -9,10 +9,10 @@ export type PostStatus =
 	| 'DRAFT'
 	| 'PUBLISHED'
 	| 'CLOSED'
-	| 'ARCHIVED'
 	| 'SUBMITTED'
 	| 'UPDATED'
 	| 'REQUIRE_UPDATE'
+	| 'DELETED'
 
 interface PostStatusManagerProps {
 	postId: string
@@ -49,9 +49,9 @@ const POST_STATUS_OPTIONS = [
 		color: 'bg-[#6EB6FF] text-black',
 	},
 	{
-		value: 'ARCHIVED' as const,
-		label: 'Archived',
-		color: 'bg-[#D5D5D5] text-black',
+		value: 'DELETED' as const,
+		label: 'Deleted',
+		color: 'bg-[#EF4444] text-white',
 	},
 ]
 
@@ -178,8 +178,8 @@ const PostStatusManager = ({
 				return `Are you sure you want to publish this ${postType.toLowerCase()}? It will be visible to all users.`
 			case 'CLOSED':
 				return `This ${postType.toLowerCase()} will be marked as closed/rejected and will not be visible to users.`
-			case 'ARCHIVED':
-				return `This ${postType.toLowerCase()} will be archived and moved to the archived section.`
+			case 'DELETED':
+				return `This ${postType.toLowerCase()} will be soft-deleted. Admins can restore it later by changing status to Draft.`
 			case 'DRAFT':
 				return `This ${postType.toLowerCase()} will be moved back to draft status.`
 			case 'SUBMITTED':

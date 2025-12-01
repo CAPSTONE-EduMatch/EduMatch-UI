@@ -35,7 +35,7 @@ export interface PostStats {
 	published: number
 	closed: number
 	draft: number
-	archived: number
+	deleted: number
 }
 
 interface ApiResponse {
@@ -186,7 +186,7 @@ export const useAdminPostManagement = () => {
 			published: 0,
 			closed: 0,
 			draft: 0,
-			archived: 0,
+			deleted: 0,
 		},
 		pagination: data?.pagination || {
 			currentPage: 1,

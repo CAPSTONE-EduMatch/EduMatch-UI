@@ -1,7 +1,7 @@
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { PostStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
-import { PostStatus } from "@prisma/client";
 
 interface PostFilters {
 	search?: string;
@@ -169,8 +169,8 @@ export async function GET(request: NextRequest) {
 			draft:
 				statusCounts.find((s) => s.status === "DRAFT")?._count.status ||
 				0,
-			archived:
-				statusCounts.find((s) => s.status === "ARCHIVED")?._count
+			deleted:
+				statusCounts.find((s) => s.status === "DELETED")?._count
 					.status || 0,
 		};
 

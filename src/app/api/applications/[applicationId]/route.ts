@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { prismaClient } from "../../../../../prisma";
 import {
 	ApplicationResponse,
 	ApplicationUpdateRequest,
 	ApplicationUpdateResponse,
 } from "@/types/api/application-api";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
+import { prismaClient } from "../../../../../prisma";
 
 // GET /api/applications/[applicationId] - Get specific application
 export async function GET(

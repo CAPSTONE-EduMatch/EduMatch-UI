@@ -1,7 +1,7 @@
+import { SimilarityService } from "@/services/similarity/similarity-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../prisma";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Helper function to calculate days left from a date string
 function calculateDaysLeft(dateString: Date): number {

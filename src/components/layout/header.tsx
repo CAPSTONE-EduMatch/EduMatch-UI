@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Logo from '../../../public/edumatch_logo.svg'
 // import { useTranslate } from '@/hooks/useTranslate'
@@ -33,8 +33,12 @@ import { formatUTCRelativeTime, formatUTCDateToLocal } from '@/utils/date'
 
 export function EduMatchHeader() {
 	const router = useRouter()
+	const pathname = usePathname()
 	const t = useTranslations()
 	const currentLocale = useLocale()
+
+	// Check if we're on a create-profile page
+	const isCreateProfilePage = pathname?.startsWith('/profile/create')
 
 	// Get authentication state
 	const { isAuthenticated, refreshAuth } = useAuthCheck()
@@ -256,106 +260,113 @@ export function EduMatchHeader() {
 
 					{/* Desktop Profile Icons - hidden on mobile */}
 					<div className="hidden md:flex items-center gap-3">
-						{/* Teal Chat Icon */}
-						<div className="relative">
-							<div
-								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-								onClick={() => router.push('/messages')}
-							>
-								<MessageCircle className="w-5 h-5 text-[#126e64]" />
-								{/* Badge for unread messages */}
-								{unreadMessageCount > 0 && (
-									<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-										{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
-									</div>
-								)}
-							</div>
-						</div>
-
-						{/* Orange Bell Icon */}
-						<div className="relative notification-dropdown">
-							<div
-								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-								onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-							>
-								<Bell className="w-5 h-5 text-[#f0a227]" />
-								{/* Badge số thông báo */}
-								{unreadCount > 0 && (
-									<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-										{unreadCount > 99 ? '99+' : unreadCount}
-									</div>
-								)}
-							</div>
-
-							{/* Notification Dropdown */}
-							{isNotificationOpen && (
-								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-[99999]">
-									{/* Header */}
-									<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-										<h3 className="text-sm font-semibold text-gray-700">
-											Notifications
-										</h3>
-										{unreadCount > 0 && (
-											<button
-												onClick={handleMarkAllAsRead}
-												className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-											>
-												<Check className="w-3 h-3" />
-												Mark all read
-											</button>
-										)}
-									</div>
-
-									{/* Notifications List */}
-									<div className="max-h-96 overflow-y-auto">
-										{notifications.length === 0 ? (
-											<div className="px-4 py-8 text-center text-gray-500">
-												<Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-												<p className="text-sm">No notifications yet</p>
+						{/* Chat and Notification Icons - hidden on create-profile pages */}
+						{!isCreateProfilePage && (
+							<>
+								{/* Teal Chat Icon */}
+								<div className="relative">
+									<div
+										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+										onClick={() => router.push('/messages')}
+									>
+										<MessageCircle className="w-5 h-5 text-[#126e64]" />
+										{/* Badge for unread messages */}
+										{unreadMessageCount > 0 && (
+											<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+												{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
 											</div>
-										) : (
-											notifications.map((notification) => (
-												<div
-													key={notification.id}
-													className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer ${
-														!notification.read_at ? 'bg-blue-50' : ''
-													}`}
-													onClick={() =>
-														handleNotificationClick(
-															notification.id,
-															notification.url
-														)
-													}
-												>
-													<div className="flex items-start gap-3">
-														<div
-															className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-																!notification.read_at
-																	? 'bg-[#126e64]'
-																	: 'bg-gray-300'
-															}`}
-														></div>
-														<div className="flex-1">
-															<h4 className="text-sm font-medium text-gray-800 mb-1">
-																{notification.title}
-															</h4>
-															<p className="text-xs text-gray-500 mb-2">
-																{notification.bodyText}
-															</p>
-														</div>
-														<span className="text-xs text-gray-400">
-															{formatNotificationTime(notification.createAt)}
-														</span>
-													</div>
-												</div>
-											))
 										)}
 									</div>
 								</div>
-							)}
-						</div>
 
-						{/* Language Selector */}
+								{/* Orange Bell Icon */}
+								<div className="relative notification-dropdown">
+									<div
+										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+										onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+									>
+										<Bell className="w-5 h-5 text-[#f0a227]" />
+										{/* Badge số thông báo */}
+										{unreadCount > 0 && (
+											<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+												{unreadCount > 99 ? '99+' : unreadCount}
+											</div>
+										)}
+									</div>
+
+									{/* Notification Dropdown */}
+									{isNotificationOpen && (
+										<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-[99999]">
+											{/* Header */}
+											<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+												<h3 className="text-sm font-semibold text-gray-700">
+													Notifications
+												</h3>
+												{unreadCount > 0 && (
+													<button
+														onClick={handleMarkAllAsRead}
+														className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+													>
+														<Check className="w-3 h-3" />
+														Mark all read
+													</button>
+												)}
+											</div>
+
+											{/* Notifications List */}
+											<div className="max-h-96 overflow-y-auto">
+												{notifications.length === 0 ? (
+													<div className="px-4 py-8 text-center text-gray-500">
+														<Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+														<p className="text-sm">No notifications yet</p>
+													</div>
+												) : (
+													notifications.map((notification) => (
+														<div
+															key={notification.id}
+															className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer ${
+																!notification.read_at ? 'bg-blue-50' : ''
+															}`}
+															onClick={() =>
+																handleNotificationClick(
+																	notification.id,
+																	notification.url
+																)
+															}
+														>
+															<div className="flex items-start gap-3">
+																<div
+																	className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+																		!notification.read_at
+																			? 'bg-[#126e64]'
+																			: 'bg-gray-300'
+																	}`}
+																></div>
+																<div className="flex-1">
+																	<h4 className="text-sm font-medium text-gray-800 mb-1">
+																		{notification.title}
+																	</h4>
+																	<p className="text-xs text-gray-500 mb-2">
+																		{notification.bodyText}
+																	</p>
+																</div>
+																<span className="text-xs text-gray-400">
+																	{formatNotificationTime(
+																		notification.createAt
+																	)}
+																</span>
+															</div>
+														</div>
+													))
+												)}
+											</div>
+										</div>
+									)}
+								</div>
+							</>
+						)}
+
+						{/* Language Selector - always visible */}
 						<div className="relative language-selector">
 							<div
 								className="w-10 h-10  rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
@@ -394,226 +405,228 @@ export function EduMatchHeader() {
 							)}
 						</div>
 
-						{/* User Menu Dropdown */}
-						<div className="relative user-menu-dropdown">
-							<div
-								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-								onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-								title={isAuthenticated ? 'User Menu' : 'Login'}
-							>
-								<User className="w-5 h-5 text-[#1e3a8a]" />
-							</div>
+						{/* User Menu Dropdown - hidden on create-profile pages */}
+						{!isCreateProfilePage && (
+							<div className="relative user-menu-dropdown">
+								<div
+									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+									onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+									title={isAuthenticated ? 'User Menu' : 'Login'}
+								>
+									<User className="w-5 h-5 text-[#1e3a8a]" />
+								</div>
 
-							{/* User Dropdown Menu */}
-							{isUserMenuOpen && (
-								<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-0 min-w-[250px] z-[99999]">
-									{isAuthenticated ? (
-										// Logged in - show user profile and menu
-										<>
-											{/* User Info Header */}
-											<div className="px-4 py-4 border-b border-gray-100">
-												<div className="text-lg font-semibold text-gray-800">
-													{profileLoading ? (
-														<div className="animate-pulse bg-gray-200 h-5 w-32 rounded"></div>
-													) : (
-														(() => {
-															return userProfile?.name
-														})()
-													)}
+								{/* User Dropdown Menu */}
+								{isUserMenuOpen && (
+									<div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-0 min-w-[250px] z-[99999]">
+										{isAuthenticated ? (
+											// Logged in - show user profile and menu
+											<>
+												{/* User Info Header */}
+												<div className="px-4 py-4 border-b border-gray-100">
+													<div className="text-lg font-semibold text-gray-800">
+														{profileLoading ? (
+															<div className="animate-pulse bg-gray-200 h-5 w-32 rounded"></div>
+														) : (
+															(() => {
+																return userProfile?.name
+															})()
+														)}
+													</div>
+													<div className="text-sm text-gray-500 mb-2">
+														{profileLoading ? (
+															<div className="animate-pulse bg-gray-200 h-4 w-16 rounded mt-1"></div>
+														) : userProfile?.role === 'institution' ? (
+															'Institution'
+														) : (
+															'Student'
+														)}
+													</div>
+													{/* Subscription Plan Tag with Progress */}
+													<div className="flex items-center gap-2">
+														<span
+															className={`inline-block ${planInfo.color} text-white px-2 py-1 rounded-full text-xs font-medium`}
+														>
+															{planInfo.label} Plan
+														</span>
+														{userProfile?.role === 'applicant' && (
+															<ApplicationLimitIndicator
+																applicantId={userProfile?.id}
+																variant="badge"
+																className="text-xs"
+															/>
+														)}
+													</div>
 												</div>
-												<div className="text-sm text-gray-500 mb-2">
-													{profileLoading ? (
-														<div className="animate-pulse bg-gray-200 h-4 w-16 rounded mt-1"></div>
-													) : userProfile?.role === 'institution' ? (
-														'Institution'
+
+												{/* Menu Items */}
+												<div className="py-2">
+													{userProfile?.role === 'institution' ? (
+														// Institution menu items
+														<>
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=profile')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<UserCircle className="w-4 h-4" />
+																<span className="text-sm">
+																	Institution Profile
+																</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=programs')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<Book className="w-4 h-4" />
+																<span className="text-sm">Programs</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=application')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<FileText className="w-4 h-4" />
+																<span className="text-sm">Applications</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=settings')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<Settings className="w-4 h-4" />
+																<span className="text-sm">Settings</span>
+															</div>
+														</>
 													) : (
-														'Student'
+														// Applicant menu items
+														<>
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=profile')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<UserCircle className="w-4 h-4" />
+																<span className="text-sm">Profile</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=academic')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<Book className="w-4 h-4" />
+																<span className="text-sm">
+																	Academic Information
+																</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=wishlist')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<Bookmark className="w-4 h-4" />
+																<span className="text-sm">Wishlist</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=application')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<FileText className="w-4 h-4" />
+																<span className="text-sm">My Applications</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=payment')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<CreditCard className="w-4 h-4" />
+																<span className="text-sm">Payment</span>
+															</div>
+
+															<div
+																className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
+																onClick={() => {
+																	router.push('/profile/view?tab=settings')
+																	setIsUserMenuOpen(false)
+																}}
+															>
+																<Settings className="w-4 h-4" />
+																<span className="text-sm">Settings</span>
+															</div>
+														</>
 													)}
-												</div>
-												{/* Subscription Plan Tag with Progress */}
-												<div className="flex items-center gap-2">
-													<span
-														className={`inline-block ${planInfo.color} text-white px-2 py-1 rounded-full text-xs font-medium`}
+
+													{/* Separator */}
+													<div className="border-t border-gray-100 my-2"></div>
+
+													<div
+														className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+														onClick={() => {
+															handleLogout()
+															setIsUserMenuOpen(false)
+														}}
 													>
-														{planInfo.label} Plan
-													</span>
-													{userProfile?.role === 'applicant' && (
-														<ApplicationLimitIndicator
-															applicantId={userProfile?.id}
-															variant="badge"
-															className="text-xs"
-														/>
-													)}
+														<LogOut className="w-4 h-4" />
+														<span className="text-sm">Log out</span>
+													</div>
 												</div>
-											</div>
-
-											{/* Menu Items */}
-											<div className="py-2">
-												{userProfile?.role === 'institution' ? (
-													// Institution menu items
-													<>
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=profile')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<UserCircle className="w-4 h-4" />
-															<span className="text-sm">
-																Institution Profile
-															</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=programs')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<Book className="w-4 h-4" />
-															<span className="text-sm">Programs</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=application')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<FileText className="w-4 h-4" />
-															<span className="text-sm">Applications</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=settings')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<Settings className="w-4 h-4" />
-															<span className="text-sm">Settings</span>
-														</div>
-													</>
-												) : (
-													// Applicant menu items
-													<>
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=profile')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<UserCircle className="w-4 h-4" />
-															<span className="text-sm">Profile</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=academic')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<Book className="w-4 h-4" />
-															<span className="text-sm">
-																Academic Information
-															</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=wishlist')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<Bookmark className="w-4 h-4" />
-															<span className="text-sm">Wishlist</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=application')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<FileText className="w-4 h-4" />
-															<span className="text-sm">My Applications</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=payment')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<CreditCard className="w-4 h-4" />
-															<span className="text-sm">Payment</span>
-														</div>
-
-														<div
-															className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-[#126e64]"
-															onClick={() => {
-																router.push('/profile/view?tab=settings')
-																setIsUserMenuOpen(false)
-															}}
-														>
-															<Settings className="w-4 h-4" />
-															<span className="text-sm">Settings</span>
-														</div>
-													</>
-												)}
-
-												{/* Separator */}
-												<div className="border-t border-gray-100 my-2"></div>
-
+											</>
+										) : (
+											// Not logged in - show login/signup options
+											<>
 												<div
-													className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+													className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-blue-600"
 													onClick={() => {
-														handleLogout()
+														router.push('/signin')
 														setIsUserMenuOpen(false)
 													}}
 												>
-													<LogOut className="w-4 h-4" />
-													<span className="text-sm">Log out</span>
+													<User className="w-4 h-4" />
+													<span className="text-sm">Sign In</span>
 												</div>
-											</div>
-										</>
-									) : (
-										// Not logged in - show login/signup options
-										<>
-											<div
-												className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-blue-600"
-												onClick={() => {
-													router.push('/signin')
-													setIsUserMenuOpen(false)
-												}}
-											>
-												<User className="w-4 h-4" />
-												<span className="text-sm">Sign In</span>
-											</div>
-											<div
-												className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-green-600"
-												onClick={() => {
-													router.push('/signup')
-													setIsUserMenuOpen(false)
-												}}
-											>
-												<User className="w-4 h-4" />
-												<span className="text-sm">Sign Up</span>
-											</div>
-										</>
-									)}
-								</div>
-							)}
-						</div>
+												<div
+													className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-green-600"
+													onClick={() => {
+														router.push('/signup')
+														setIsUserMenuOpen(false)
+													}}
+												>
+													<User className="w-4 h-4" />
+													<span className="text-sm">Sign Up</span>
+												</div>
+											</>
+										)}
+									</div>
+								)}
+							</div>
+						)}
 					</div>
 
 					{/* Mobile Menu Button */}
@@ -662,74 +675,76 @@ export function EduMatchHeader() {
 						</nav>
 
 						{/* Mobile Profile Icons */}
-						<div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-							<div className="relative">
-								<div
-									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-									onClick={() => {
-										router.push('/messages')
-										setIsMobileMenuOpen(false)
-									}}
-								>
-									<MessageCircle className="w-5 h-5 text-[#126e64]" />
-									{/* Badge for unread messages */}
-									{unreadMessageCount > 0 && (
-										<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-											{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
-										</div>
-									)}
+						{!isCreateProfilePage && (
+							<div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+								<div className="relative">
+									<div
+										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+										onClick={() => {
+											router.push('/messages')
+											setIsMobileMenuOpen(false)
+										}}
+									>
+										<MessageCircle className="w-5 h-5 text-[#126e64]" />
+										{/* Badge for unread messages */}
+										{unreadMessageCount > 0 && (
+											<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+												{unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+											</div>
+										)}
+									</div>
 								</div>
-							</div>
 
-							{/* Orange Bell Icon */}
-							<div className="relative notification-dropdown">
-								<div
-									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-									onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-								>
-									<Bell className="w-5 h-5 text-[#f0a227]" />
-									{/* Badge số thông báo */}
-									{unreadCount > 0 && (
-										<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-											{unreadCount > 99 ? '99+' : unreadCount}
-										</div>
-									)}
+								{/* Orange Bell Icon */}
+								<div className="relative notification-dropdown">
+									<div
+										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+										onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+									>
+										<Bell className="w-5 h-5 text-[#f0a227]" />
+										{/* Badge số thông báo */}
+										{unreadCount > 0 && (
+											<div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+												{unreadCount > 99 ? '99+' : unreadCount}
+											</div>
+										)}
+									</div>
 								</div>
-							</div>
-							<div
-								className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-								onClick={() => {
-									const newLocale = currentLanguage === 'EN' ? 'vn' : 'en'
-									handleChangeLanguage(newLocale)
-								}}
-								title={`Switch to ${currentLanguage === 'EN' ? 'Vietnamese' : 'English'}`}
-							>
-								<span className="text-lg">
-									{currentLanguage === 'EN' ? '🇺🇸' : '🇻🇳'}
-								</span>
-							</div>
-							{isAuthenticated ? (
-								// Logged in - show logout
-								<div
-									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-									onClick={handleLogout}
-									title="Logout"
-								>
-									<LogOut className="w-5 h-5 text-red-600" />
-								</div>
-							) : (
-								// Not logged in - show login
 								<div
 									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
 									onClick={() => {
-										router.push('/signin')
+										const newLocale = currentLanguage === 'EN' ? 'vn' : 'en'
+										handleChangeLanguage(newLocale)
 									}}
-									title="Sign In"
+									title={`Switch to ${currentLanguage === 'EN' ? 'Vietnamese' : 'English'}`}
 								>
-									<User className="w-5 h-5 text-blue-600" />
+									<span className="text-lg">
+										{currentLanguage === 'EN' ? '🇺🇸' : '🇻🇳'}
+									</span>
 								</div>
-							)}
-						</div>
+								{isAuthenticated ? (
+									// Logged in - show logout
+									<div
+										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+										onClick={handleLogout}
+										title="Logout"
+									>
+										<LogOut className="w-5 h-5 text-red-600" />
+									</div>
+								) : (
+									// Not logged in - show login
+									<div
+										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+										onClick={() => {
+											router.push('/signin')
+										}}
+										title="Sign In"
+									>
+										<User className="w-5 h-5 text-blue-600" />
+									</div>
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>

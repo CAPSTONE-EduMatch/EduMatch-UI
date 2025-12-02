@@ -295,6 +295,7 @@ export async function canCreatePost(
 	institutionId: string
 ): Promise<AuthorizationResult> {
 	try {
+		// First, check the InstitutionSubscription table
 		const institutionSub =
 			await prismaClient.institutionSubscription.findFirst({
 				where: {
@@ -305,14 +306,82 @@ export async function canCreatePost(
 				orderBy: { subscribe_at: "desc" },
 			});
 
-		if (!institutionSub) {
-			return {
-				authorized: false,
-				reason: "Institution must have an active subscription to create posts.",
-			};
+		if (institutionSub) {
+			return { authorized: true };
 		}
 
-		return { authorized: true };
+		// Fallback: Check the Better Auth Subscription table directly
+		// This handles cases where InstitutionSubscription might not be synced
+		const institution = await prismaClient.institution.findUnique({
+			where: { institution_id: institutionId },
+			select: { user_id: true },
+		});
+
+		if (institution) {
+			const betterAuthSubscription =
+				await prismaClient.subscription.findFirst({
+					where: {
+						referenceId: institution.user_id,
+						status: "active",
+						plan: {
+							in: ["institution_monthly", "institution_yearly"],
+						},
+					},
+					orderBy: { createdAt: "desc" },
+				});
+
+			if (betterAuthSubscription) {
+				// Auto-sync: Create or update InstitutionSubscription record
+				const existingInstitutionSub =
+					await prismaClient.institutionSubscription.findFirst({
+						where: {
+							institution_id: institutionId,
+						},
+						orderBy: { subscribe_at: "desc" },
+					});
+
+				// Get the institution plan from the Plan table
+				const institutionPlan = await prismaClient.plan.findFirst({
+					where: {
+						name: { contains: "Institution", mode: "insensitive" },
+					},
+				});
+
+				if (institutionPlan) {
+					if (existingInstitutionSub) {
+						// Update existing record to ACTIVE
+						await prismaClient.institutionSubscription.update({
+							where: {
+								subscription_id:
+									existingInstitutionSub.subscription_id,
+							},
+							data: {
+								status: "ACTIVE",
+								better_auth_sub_id: betterAuthSubscription.id,
+							},
+						});
+					} else {
+						// Create new InstitutionSubscription record
+						await prismaClient.institutionSubscription.create({
+							data: {
+								subscription_id: crypto.randomUUID(),
+								institution_id: institutionId,
+								plan_id: institutionPlan.plan_id,
+								status: "ACTIVE",
+								better_auth_sub_id: betterAuthSubscription.id,
+							},
+						});
+					}
+				}
+
+				return { authorized: true };
+			}
+		}
+
+		return {
+			authorized: false,
+			reason: "Institution must have an active subscription to create posts.",
+		};
 	} catch (error) {
 		return {
 			authorized: false,

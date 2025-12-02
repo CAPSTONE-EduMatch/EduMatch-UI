@@ -91,7 +91,8 @@ export function useAdminPlans() {
 	} = useQuery<Plan[], Error>({
 		queryKey: ["admin", "plans"],
 		queryFn: fetchPlans,
-		staleTime: 5 * 60 * 1000, // 5 minutes
+		staleTime: 0, // Always consider data stale for admin pages
+		refetchOnMount: "always", // Always refetch when component mounts
 	});
 
 	// Mutation for updating plan

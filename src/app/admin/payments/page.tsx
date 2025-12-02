@@ -4,6 +4,7 @@ import { SplineArea } from '@/components/charts/SplineArea'
 import { PaymentHistoryTable } from '@/components/payment/PaymentHistoryTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
+import { useAdminPaymentStats, type Period } from '@/hooks/admin'
 import { motion } from 'framer-motion'
 import {
 	CheckCircle,
@@ -16,25 +17,6 @@ import {
 	XCircle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-
-interface PaymentStats {
-	totalRevenue: number
-	monthlyRevenue: number
-	totalTransactions: number
-	successfulTransactions: number
-	pendingTransactions: number
-	failedTransactions: number
-	totalSubscriptions: number
-	activeSubscriptions: number
-}
-
-interface ChartDataPoint {
-	month: string
-	revenue: number
-	transactions: number
-}
-
-type Period = 'all' | '7d' | '1m' | '3m' | '6m'
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
 	{ value: 'all', label: 'All Time' },
@@ -100,51 +82,25 @@ const PaymentStatCard = ({
 export default function PaymentsPage() {
 	const [isClient, setIsClient] = useState(false)
 	const [selectedPeriod, setSelectedPeriod] = useState<Period>('all')
-	const [stats, setStats] = useState<PaymentStats | null>(null)
-	const [chartData, setChartData] = useState<ChartDataPoint[]>([])
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
 	const [exporting, setExporting] = useState<
 		'transactions' | 'statistics' | null
 	>(null)
 
-	// Fetch payment stats
-	const fetchPaymentStats = async (period: Period) => {
-		try {
-			setLoading(true)
-			setError(null)
+	// Use React Query hook for payment stats
+	const {
+		data,
+		isLoading: loading,
+		error: queryError,
+		refetch,
+	} = useAdminPaymentStats(selectedPeriod)
 
-			const response = await fetch(`/api/admin/payment-stats?period=${period}`)
-
-			if (!response.ok) {
-				throw new Error('Failed to fetch payment statistics')
-			}
-
-			const result = await response.json()
-
-			if (result.success) {
-				setStats(result.data.stats)
-				setChartData(result.data.chartData)
-			} else {
-				throw new Error(result.error || 'Failed to fetch payment statistics')
-			}
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'An error occurred')
-		} finally {
-			setLoading(false)
-		}
-	}
+	const stats = data?.stats ?? null
+	const chartData = data?.chartData ?? []
+	const error = queryError?.message ?? null
 
 	useEffect(() => {
 		setIsClient(true)
 	}, [])
-
-	useEffect(() => {
-		if (isClient) {
-			fetchPaymentStats(selectedPeriod)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isClient, selectedPeriod])
 
 	// Export handlers
 	const handleExportTransactions = async () => {
@@ -266,7 +222,7 @@ export default function PaymentsPage() {
 								{error || 'Failed to load payment statistics'}
 							</p>
 							<button
-								onClick={() => fetchPaymentStats(selectedPeriod)}
+								onClick={() => refetch()}
 								className="px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors"
 							>
 								Retry

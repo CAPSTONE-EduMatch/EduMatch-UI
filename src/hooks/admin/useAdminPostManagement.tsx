@@ -137,8 +137,8 @@ export const useAdminPostManagement = () => {
 	} = useQuery({
 		queryKey: ['admin-posts', filters],
 		queryFn: () => fetchPosts(filters),
-		staleTime: 30000, // 30 seconds
-		refetchOnWindowFocus: false,
+		staleTime: 0, // Always consider data stale for admin pages
+		refetchOnMount: 'always', // Always refetch when component mounts
 	})
 
 	// Update post status mutation

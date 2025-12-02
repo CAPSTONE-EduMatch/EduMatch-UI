@@ -145,8 +145,9 @@ export function useAdminUserManagement() {
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: getUsersQueryKey(filters),
 		queryFn: () => fetchUsers(filters),
-		staleTime: 1000 * 60 * 5, // 5 minutes
+		staleTime: 0, // Always consider data stale for admin pages
 		gcTime: 1000 * 60 * 10, // 10 minutes
+		refetchOnMount: 'always', // Always refetch when component mounts
 	})
 
 	// Update filters function

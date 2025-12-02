@@ -88,14 +88,11 @@ export async function GET(request: NextRequest) {
 							verification_status: "APPROVED",
 						};
 					}
-				} else if (status === "denied") {
-					// Denied institutions have institution.status = false or verification_status = REJECTED
+				} else if (status === "rejected") {
+					// Rejected institutions have verification_status = REJECTED
 					whereClause.role = "institution";
 					whereClause.institution = {
-						OR: [
-							{ status: false },
-							{ verification_status: "REJECTED" },
-						],
+						verification_status: "REJECTED",
 					};
 				} else if (status === "pending") {
 					// Pending institutions have verification_status = PENDING
@@ -124,14 +121,11 @@ export async function GET(request: NextRequest) {
 					orConditions.push(activeCondition);
 				}
 
-				if (statusArray.includes("denied")) {
+				if (statusArray.includes("rejected")) {
 					orConditions.push({
 						role: "institution",
 						institution: {
-							OR: [
-								{ status: false },
-								{ verification_status: "REJECTED" },
-							],
+							verification_status: "REJECTED",
 						},
 					});
 				}
@@ -235,7 +229,6 @@ export async function GET(request: NextRequest) {
 					role_id: true,
 					institution: {
 						select: {
-							status: true,
 							verification_status: true,
 							submitted_at: true,
 							verified_at: true,
@@ -275,15 +268,15 @@ export async function GET(request: NextRequest) {
 				} else if (
 					user.institution.verification_status === "REJECTED"
 				) {
-					status = "denied";
+					status = "rejected";
 				} else if (
 					user.institution.verification_status === "APPROVED"
 				) {
-					// Approved institutions show as "active" if status is true
-					status = user.institution.status ? "active" : "denied";
+					// Approved institutions show as "active"
+					status = "active";
 				} else {
-					// Fallback to old logic for backward compatibility
-					status = user.institution.status ? "active" : "denied";
+					// Fallback: treat unknown verification status as pending
+					status = "pending";
 				}
 			} else if (isApplicant) {
 				// Applicants are always "active" unless banned
@@ -310,7 +303,6 @@ export async function GET(request: NextRequest) {
 				createdAt: user.createdAt.toISOString(),
 				status: status,
 				type: isInstitution ? "University" : undefined,
-				institutionStatus: user.institution?.status,
 				verification_status:
 					user.institution?.verification_status || null,
 				submitted_at:

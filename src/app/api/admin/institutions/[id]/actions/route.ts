@@ -178,7 +178,6 @@ export async function POST(
 						verification_status: "APPROVED",
 						verified_at: new Date(),
 						verified_by: currentUser.id,
-						status: true, // Also set general status to active
 					},
 				});
 
@@ -209,7 +208,6 @@ export async function POST(
 						rejection_reason: rejectionReason || null,
 						verified_at: new Date(),
 						verified_by: currentUser.id,
-						status: false, // Also set general status to inactive
 					},
 				});
 

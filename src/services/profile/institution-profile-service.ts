@@ -112,7 +112,7 @@ export class InstitutionProfileService {
 			let institution = await prismaClient.institution.findFirst({
 				where: {
 					user_id: userId,
-					status: "ACTIVE", // Only get active profiles
+					verification_status: "APPROVED", // Only get approved profiles
 				},
 				include: {
 					user: true,
@@ -169,14 +169,14 @@ export class InstitutionProfileService {
 				// If found inactive profile, automatically reactivate it
 				if (
 					institution &&
-					(institution.status === "PENDING" ||
-						institution.status === "DENIED")
+					(institution.verification_status === "PENDING" ||
+						institution.verification_status === "REJECTED")
 				) {
 					await prismaClient.institution.update({
 						where: { institution_id: institution.institution_id },
-						data: { status: "ACTIVE" },
+						data: { verification_status: "APPROVED" },
 					});
-					institution.status = "ACTIVE" as any;
+					institution.verification_status = "APPROVED" as any;
 				}
 			}
 
@@ -497,7 +497,7 @@ export class InstitutionProfileService {
 			await prismaClient.institution.update({
 				where: { user_id: userId },
 				data: {
-					status: "DENIED",
+					verification_status: "REJECTED",
 					deleted_at: new Date(),
 				},
 			});

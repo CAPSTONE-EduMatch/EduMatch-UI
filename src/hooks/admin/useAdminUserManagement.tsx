@@ -9,7 +9,7 @@ export interface User {
 	id: string
 	name: string
 	email: string
-	status: 'active' | 'banned' | 'denied' | 'pending'
+	status: 'active' | 'banned' | 'rejected' | 'pending'
 	role?: string
 	createdAt: string
 	banned: boolean

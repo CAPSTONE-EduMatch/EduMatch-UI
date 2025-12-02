@@ -155,13 +155,13 @@ const ProgramDetail = () => {
 	}) => {
 		if (!institution) return null
 
-		// Check for non-active status (enum values: PENDING, DENIED, or legacy boolean false)
+		// Check for non-active status (enum values: PENDING, REJECTED, or legacy boolean false)
 		if (institution.status !== 'ACTIVE' && institution.status !== true) {
 			const statusLabel =
 				institution.status === 'PENDING'
 					? 'Pending Approval'
-					: institution.status === 'DENIED'
-						? 'Account Denied'
+					: institution.status === 'REJECTED'
+						? 'Account Rejected'
 						: 'Account Deactivated'
 			return {
 				type: 'deactivated' as const,

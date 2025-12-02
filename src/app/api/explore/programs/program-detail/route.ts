@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
 						about: opportunityPost.institution.about,
 						coverImage: opportunityPost.institution.cover_image,
 						type: opportunityPost.institution.type,
-						status: opportunityPost.institution.status,
+						status: opportunityPost.institution.verification_status,
 						deletedAt:
 							opportunityPost.institution.deleted_at?.toISOString() ||
 							null,

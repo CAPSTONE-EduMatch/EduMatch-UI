@@ -32,7 +32,7 @@ export async function GET(
 				about: true,
 				cover_image: true,
 				logo: true,
-				status: true,
+				verification_status: true,
 				deleted_at: true,
 				user: {
 					select: {
@@ -92,7 +92,7 @@ export async function GET(
 			disciplines: disciplines,
 			coverImage: institution.cover_image,
 			logo: institution.logo,
-			status: institution.status,
+			status: institution.verification_status,
 			deletedAt: institution.deleted_at,
 			email: institution.user?.email,
 		};

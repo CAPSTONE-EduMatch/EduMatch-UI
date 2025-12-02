@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 							name: true,
 							logo: true,
 							country: true,
-							status: true,
+							verification_status: true,
 							deleted_at: true,
 						},
 					},
@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
 							name: scholarship.institution.name,
 							logo: scholarship.institution.logo,
 							country: scholarship.institution.country,
-							status: scholarship.institution.status,
+							status: scholarship.institution.verification_status,
 							deletedAt: scholarship.institution.deleted_at,
 						}
 					: null,

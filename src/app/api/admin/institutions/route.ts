@@ -4,7 +4,7 @@ import { prismaClient } from "../../../../../prisma/index";
 
 interface InstitutionFilters {
 	search?: string;
-	status?: "all" | "active" | "pending" | "denied" | "banned";
+	status?: "all" | "active" | "pending" | "rejected" | "banned";
 	type?: "all" | "University" | "College" | "Institute" | "Academy";
 	country?: string;
 	sortBy?: "name" | "email" | "createdAt" | "totalApplications";
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 					| "all"
 					| "active"
 					| "pending"
-					| "denied"
+					| "rejected"
 					| "banned") || "all",
 			type:
 				(searchParams.get("type") as
@@ -110,13 +110,14 @@ export async function GET(request: NextRequest) {
 					banned: true,
 				};
 			} else if (filters.status === "active") {
-				whereClause.status = "ACTIVE";
 				whereClause.user = {
 					banned: false,
 				};
 				// Active institutions must be approved
 				whereClause.verification_status = "APPROVED";
-			} else if (filters.status === "suspended") {
+			} else if (filters.status === "rejected") {
+				// Rejected institutions have verification_status = REJECTED
+				whereClause.verification_status = "REJECTED";
 				whereClause.user = {
 					banned: false,
 				};

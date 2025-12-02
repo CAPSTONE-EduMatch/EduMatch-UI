@@ -43,7 +43,7 @@ export async function GET(
 								name: true,
 								logo: true,
 								country: true,
-								status: true,
+								verification_status: true,
 								deleted_at: true,
 							},
 						},
@@ -176,7 +176,7 @@ export async function GET(
 					name: application.post.institution.name,
 					logo: application.post.institution.logo,
 					country: application.post.institution.country || undefined,
-					status: application.post.institution.status,
+					status: application.post.institution.verification_status,
 					deletedAt: application.post.institution.deleted_at,
 				},
 				program: application.post.programPost
@@ -321,7 +321,7 @@ export async function PUT(
 								name: true,
 								logo: true,
 								country: true,
-								status: true,
+								verification_status: true,
 								deleted_at: true,
 							},
 						},
@@ -351,6 +351,8 @@ export async function PUT(
 								name: true,
 								logo: true,
 								country: true,
+								verification_status: true,
+								deleted_at: true,
 							},
 						},
 					},
@@ -415,7 +417,8 @@ export async function PUT(
 					country:
 						updatedApplication.post.institution.country ||
 						undefined,
-					status: updatedApplication.post.institution.status,
+					status: updatedApplication.post.institution
+						.verification_status,
 					deletedAt: updatedApplication.post.institution.deleted_at,
 				},
 			},

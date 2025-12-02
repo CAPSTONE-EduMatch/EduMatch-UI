@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 		const institution = await prismaClient.institution.findFirst({
 			where: {
 				user_id: userId,
-				status: "ACTIVE",
+				verification_status: "APPROVED",
 			},
 		});
 
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 		const institution = await prismaClient.institution.findFirst({
 			where: {
 				user_id: userId,
-				status: "ACTIVE",
+				verification_status: "APPROVED",
 			},
 			include: {
 				documents: {

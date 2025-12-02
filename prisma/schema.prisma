@@ -129,7 +129,7 @@ model Applicant {
 }
 
 model Institution {
-  institution_id      String                     @id
+  institution_id      String                        @id
   name                String
   abbreviation        String?
   hotline             String
@@ -141,22 +141,22 @@ model Institution {
   rep_email           String
   rep_phone           String
   about               String
-  user_id             String                     @unique
+  user_id             String                        @unique
   email               String?
   logo                String?
   rep_appellation     String?
   website             String?
   hotline_code        String?
-  rep_phone_code       String?
+  rep_phone_code      String?
   cover_image         String?
-  deleted_at          DateTime?                  @db.Timestamptz(6)
-  verification_status InstitutionVerificationStatus @default(PENDING)
-  submitted_at        DateTime?                  @db.Timestamptz(6)
-  verified_at         DateTime?                  @db.Timestamptz(6)
-  verified_by         String?
+  deleted_at          DateTime?                     @db.Timestamptz(6)
+  status              Boolean                       @default(true)
   rejection_reason    String?
-  // status              InstitutionStatus          @default(PENDING)
-  user                User                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  submitted_at        DateTime?                     @db.Timestamptz(6)
+  verification_status InstitutionVerificationStatus @default(PENDING)
+  verified_at         DateTime?                     @db.Timestamptz(6)
+  verified_by         String?
+  user                User                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documents           InstitutionDocument[]
   subdisciplines      InstitutionSubdiscipline[]
   subscriptions       InstitutionSubscription[]
@@ -693,6 +693,7 @@ enum PostStatus {
   DRAFT
   PUBLISHED
   CLOSED
+  ARCHIVED
   SUBMITTED
   UPDATED
   REQUIRE_UPDATE
@@ -740,10 +741,4 @@ enum DocumentTypeEnum {
   INSTITUTION_VERIFICATION
   REQUIRED_DOCUMENTS
   OTHER
-}
-
-enum InstitutionStatus {
-  ACTIVE
-  PENDING
-  DENIED
 }

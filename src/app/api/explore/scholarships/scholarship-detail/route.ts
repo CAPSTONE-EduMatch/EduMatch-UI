@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
 						website: true,
 						about: true,
 						type: true,
-						status: true,
+						verification_status: true,
 						deleted_at: true,
 					},
 				},
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
 				website: post.institution?.website,
 				about: post.institution?.about,
 				type: post.institution?.type,
-				status: post.institution?.status,
+				status: post.institution?.verification_status,
 				deletedAt: post.institution?.deleted_at?.toISOString() || null,
 			},
 			requiredDocuments: post.postDocs.map((doc) => ({

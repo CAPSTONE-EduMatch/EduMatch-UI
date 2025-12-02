@@ -183,6 +183,7 @@ const UserManagementTable = memo(function UserManagementTable({
 						? [
 								{ value: 'active', label: 'Active' },
 								{ value: 'pending', label: 'Pending' },
+								{ value: 'rejected', label: 'Rejected' },
 								{ value: 'banned', label: 'Banned' },
 							]
 						: [
@@ -285,7 +286,7 @@ const UserManagementTable = memo(function UserManagementTable({
 													className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${
 														user.status === 'banned'
 															? 'bg-[#E20000] text-white'
-															: user.status === 'denied'
+															: user.status === 'rejected'
 																? 'bg-[#FFA500] text-white'
 																: user.status === 'pending'
 																	? 'bg-[#FFC107] text-white'
@@ -294,8 +295,8 @@ const UserManagementTable = memo(function UserManagementTable({
 												>
 													{user.status === 'banned'
 														? 'Banned'
-														: user.status === 'denied'
-															? 'Denied'
+														: user.status === 'rejected'
+															? 'Rejected'
 															: user.status === 'pending'
 																? 'Pending'
 																: 'Active'}

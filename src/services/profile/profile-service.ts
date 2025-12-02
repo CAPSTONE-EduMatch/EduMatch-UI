@@ -231,7 +231,7 @@ export class ProfileService {
 			const institution = await prismaClient.institution.findFirst({
 				where: {
 					user_id: userId,
-					status: "ACTIVE", // Only get active profiles
+					verification_status: "APPROVED", // Only get approved profiles
 				},
 				include: {
 					user: true,
@@ -996,7 +996,7 @@ export class ProfileService {
 					await prismaClient.institution.update({
 						where: { user_id: userId },
 						data: {
-							status: "DENIED",
+							verification_status: "REJECTED",
 							deleted_at: new Date(),
 						},
 					});

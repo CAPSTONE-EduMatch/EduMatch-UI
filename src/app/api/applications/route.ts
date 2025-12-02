@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 									name: true,
 									logo: true,
 									country: true,
-									status: true,
+									verification_status: true,
 									deleted_at: true,
 								},
 							},
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 					name: app.post.institution.name,
 					logo: app.post.institution.logo,
 					country: app.post.institution.country || undefined,
-					status: app.post.institution.status,
+					status: app.post.institution.verification_status,
 					deletedAt:
 						app.post.institution.deleted_at?.toISOString() || null,
 				},

@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 						name: true,
 						logo: true,
 						country: true,
-						status: true,
+						verification_status: true,
 						deleted_at: true,
 					},
 				},

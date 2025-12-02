@@ -19,6 +19,7 @@ export function getSessionProtectedFileUrl(
 /**
  * Open a session-protected file in a new tab
  * Requires user to be logged in - won't work in incognito without login
+ * Uses proxy route which requires authentication on every request
  *
  * @param fileUrl - The S3 URL or key of the file
  */
@@ -26,14 +27,15 @@ export function openSessionProtectedFile(
 	fileUrl: string | null | undefined
 ): void {
 	if (!fileUrl) {
+		// eslint-disable-next-line no-console
 		console.error("File URL is required");
 		return;
 	}
 
-	const proxyUrl = getSessionProtectedFileUrl(fileUrl);
-	if (proxyUrl) {
-		window.open(proxyUrl, "_blank");
-	}
+	// Use proxy route with disposition=inline to display file instead of downloading
+	// The proxy route requires authentication, so it won't work in different browsers
+	const proxyUrl = `/api/files/proxy?url=${encodeURIComponent(fileUrl)}&disposition=inline`;
+	window.open(proxyUrl, "_blank");
 }
 
 /**
@@ -53,27 +55,47 @@ export async function downloadSessionProtectedFile(
 	}
 
 	try {
-		const proxyUrl = getSessionProtectedFileUrl(fileUrl);
-		if (!proxyUrl) {
-			throw new Error("Failed to generate proxy URL");
-		}
+		// Use protected-image API to get a pre-signed URL (same as images)
+		// This works better than proxy for downloads and avoids S3 permission issues
+		const protectedUrl = `/api/files/protected-image?url=${encodeURIComponent(fileUrl)}&expiresIn=3600`;
 
-		// Fetch through proxy (requires authentication)
-		const response = await fetch(proxyUrl, {
+		const response = await fetch(protectedUrl, {
 			method: "GET",
 			credentials: "include",
 		});
 
 		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
 			if (response.status === 401) {
 				alert("Please log in to download this file.");
+			} else if (response.status === 403) {
+				alert("You don't have permission to download this file.");
 			} else {
-				throw new Error(`Failed to fetch file: ${response.statusText}`);
+				throw new Error(
+					errorData.error ||
+						`Failed to get download URL: ${response.statusText}`
+				);
 			}
 			return;
 		}
 
-		const blob = await response.blob();
+		const data = await response.json();
+		const presignedUrl = data.url;
+
+		if (!presignedUrl) {
+			throw new Error("Failed to get pre-signed URL");
+		}
+
+		// Fetch the file using the pre-signed URL
+		const fileResponse = await fetch(presignedUrl, {
+			method: "GET",
+		});
+
+		if (!fileResponse.ok) {
+			throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+		}
+
+		const blob = await fileResponse.blob();
 		const blobUrl = window.URL.createObjectURL(blob);
 
 		// Create download link

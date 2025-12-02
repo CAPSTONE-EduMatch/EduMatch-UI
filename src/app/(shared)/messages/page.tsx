@@ -45,18 +45,16 @@ export default function MessagesPage() {
 		)
 	}
 
-	// Loading state
+	// Loading state - show messages dialog even while loading profile
 	if (profileLoading) {
 		return (
 			<AuthWrapper
 				pageTitle="Messages"
 				pageDescription="Please sign in to view your messages"
 			>
-				<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-					<div className="text-center">
-						<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-						<p className="mt-4 text-muted-foreground">Loading messages...</p>
-					</div>
+				<EduMatchHeader />
+				<div className="h-screen pt-24">
+					<MessageDialog />
 				</div>
 			</AuthWrapper>
 		)

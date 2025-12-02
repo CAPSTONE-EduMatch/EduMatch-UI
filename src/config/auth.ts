@@ -655,10 +655,10 @@ export const auth = betterAuth({
 		},
 	},
 	session: {
-		// Optimized cookie caching with shorter maxAge for better security
+		// Optimized cookie caching with longer maxAge to reduce API calls
 		cookieCache: {
 			enabled: true,
-			maxAge: 5 * 60, // 5 minutes - shorter for better security
+			maxAge: 10 * 60, // 10 minutes - increased to reduce API calls
 		},
 		// Extended session lifetime with proper refresh strategy
 		expiresIn: 60 * 60 * 24 * 7, // 7 days
@@ -666,7 +666,7 @@ export const auth = betterAuth({
 		// Disable session refresh for better performance
 		disableSessionRefresh: false,
 		// Fresh session age for sensitive operations
-		freshAge: 60 * 5, // 5 minutes
+		freshAge: 60 * 10, // 10 minutes - increased to reduce calls
 		// Use Redis for session storage to prevent database hits
 		...(redisClient && {
 			store: {

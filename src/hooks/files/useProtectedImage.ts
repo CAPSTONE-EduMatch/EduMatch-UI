@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+	getCachedImageUrl,
+	setCachedImageUrl,
+} from "@/utils/files/image-cache";
 
 interface ProtectedImageOptions {
 	/**
@@ -85,6 +89,18 @@ export function useProtectedImage(
 			return;
 		}
 
+		// Check cache first
+		const cachedUrl = getCachedImageUrl(imageUrl, expiresIn);
+		if (cachedUrl) {
+			setUrl(cachedUrl);
+			// Calculate expiresAt from cache (approximate)
+			const expiresAtTime = Date.now() + expiresIn * 1000;
+			setExpiresAt(new Date(expiresAtTime));
+			setLoading(false);
+			setError(null);
+			return;
+		}
+
 		setLoading(true);
 		setError(null);
 
@@ -111,6 +127,10 @@ export function useProtectedImage(
 			}
 
 			const data = await response.json();
+
+			// Store in cache
+			setCachedImageUrl(imageUrl, data.url, expiresIn);
+
 			setUrl(data.url);
 			setExpiresAt(new Date(data.expiresAt));
 

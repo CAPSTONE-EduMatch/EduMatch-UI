@@ -28,12 +28,19 @@ export interface InstitutionDetails {
 	userImage: string | null;
 
 	// Status information
-	status: "Active" | "Inactive" | "Suspended";
+	status: "Active" | "Inactive" | "Suspended" | "Pending" | "Rejected";
 	banned: boolean;
 	banReason?: string;
 	banExpires?: string;
 	createdAt: string;
 	lastActive?: string;
+
+	// Verification information
+	verification_status?: "PENDING" | "APPROVED" | "REJECTED";
+	submitted_at?: string | null;
+	verified_at?: string | null;
+	verified_by?: string | null;
+	rejection_reason?: string | null;
 
 	// Documents
 	documents: {
@@ -42,6 +49,7 @@ export interface InstitutionDetails {
 		taxDocuments: InstitutionDocument[];
 		representativeDocuments: InstitutionDocument[];
 		otherDocuments: InstitutionDocument[];
+		verificationDocuments: InstitutionDocument[];
 	};
 
 	// Academic information

@@ -9,7 +9,7 @@ export interface User {
 	id: string
 	name: string
 	email: string
-	status: 'active' | 'inactive' | 'banned' | 'pending' | 'denied'
+	status: 'active' | 'banned' | 'denied' | 'pending'
 	role?: string
 	createdAt: string
 	banned: boolean
@@ -17,12 +17,17 @@ export interface User {
 	banExpires?: string
 	image?: string
 	type?: string
-	institutionStatus?: 'ACTIVE' | 'PENDING' | 'DENIED'
+	institutionStatus?: boolean
+	verification_status?: string | null
+	submitted_at?: string | null
+	verified_at?: string | null
+	verified_by?: string | null
+	rejection_reason?: string | null
 }
 
 export interface UserFilters {
 	search?: string
-	status?: 'all' | 'active' | 'inactive' | 'banned' | 'pending' | 'denied'
+	status?: string // Can be "all", single status, or comma-separated multiple statuses
 	role?: string
 	userType?: 'applicant' | 'institution' | 'admin'
 	sortBy?: 'name' | 'email' | 'createdAt'
@@ -48,7 +53,7 @@ interface ApiResponse {
 
 const DEFAULT_FILTERS: UserFilters = {
 	search: '',
-	status: 'all',
+	status: 'all', // Can be "all", single status, or comma-separated multiple statuses
 	sortBy: 'createdAt',
 	sortDirection: 'desc',
 	page: 1,
@@ -62,7 +67,12 @@ const fetchUsers = async (filters: UserFilters): Promise<ApiResponse> => {
 	// Add all filter parameters to the URL
 	Object.entries(filters).forEach(([key, value]) => {
 		if (value !== undefined && value !== null && value !== '') {
-			params.append(key, value.toString())
+			// For status, if it's an array, join with comma; otherwise use as string
+			if (key === 'status' && Array.isArray(value)) {
+				params.append(key, value.length > 0 ? value.join(',') : 'all')
+			} else {
+				params.append(key, value.toString())
+			}
 		}
 	})
 

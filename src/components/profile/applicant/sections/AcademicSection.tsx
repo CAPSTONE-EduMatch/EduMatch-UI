@@ -6,6 +6,7 @@ import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Label } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
+import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { Upload, Edit3, Save, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { SuccessModal } from '@/components/ui'
@@ -13,6 +14,7 @@ import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
 import { openSessionProtectedFile } from '@/utils/files/getSessionProtectedFileUrl'
+import { FileValidationResult } from '@/services/ai/file-validation-service'
 
 interface AcademicSectionProps {
 	profile: any
@@ -1022,26 +1024,37 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			{/* CV / Resume Files */}
 			<Card>
 				<CardContent className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-semibold">CV / Resume</h3>
+					<div className="mb-4">
+						<h3 className="text-lg font-semibold mb-2">CV / Resume</h3>
 						{isEditing && (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									const input = document.createElement('input')
-									input.type = 'file'
-									input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png'
-									input.multiple = true
-									input.onchange = (e) => handleFileSelect(e as any, 'cv')
-									input.click()
+							<FileUploadManagerWithOCR
+								onFilesUploaded={(files: any[]) => {
+									const existingFiles = editedProfile?.cvFiles || []
+									const updatedFiles = [...existingFiles, ...files]
+									handleFieldChange('cvFiles', updatedFiles)
 								}}
-								disabled={isUploading}
-								className="flex items-center gap-2"
-							>
-								<Upload className="h-4 w-4" />
-								{isUploading ? 'Uploading...' : 'Add More'}
-							</Button>
+								category="cv-resume"
+								acceptedTypes={[
+									'application/pdf',
+									'application/msword',
+									'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+								]}
+								maxSize={10}
+								maxFiles={5}
+								showPreview={false}
+								enableOCR={true}
+								onOCRComplete={(fileId: string, extractedText: string) => {
+									// Auto-fill CV data if available
+									// Could implement auto-fill logic here
+								}}
+								onValidationComplete={(
+									fileId: string,
+									validation: FileValidationResult
+								) => {
+									// Handle validation results
+									console.log('CV validation:', validation)
+								}}
+							/>
 						)}
 					</div>
 
@@ -1103,32 +1116,42 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			{/* Foreign Language Certificate Files */}
 			<Card>
 				<CardContent className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-semibold">
+					<div className="mb-4">
+						<h3 className="text-lg font-semibold mb-2">
 							Foreign Language Certificate
 						</h3>
 						{isEditing && (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									const input = document.createElement('input')
-									input.type = 'file'
-									input.accept = '.pdf,.jpg,.jpeg,.png'
-									input.multiple = true
-									input.onchange = (e) =>
-										handleFileSelect(e as any, 'languageCert')
-									input.click()
+							<FileUploadManagerWithOCR
+								onFilesUploaded={(files) => {
+									const existingFiles = editedProfile?.languageCertFiles || []
+									const updatedFiles = [...existingFiles, ...files]
+									handleFieldChange('languageCertFiles', updatedFiles)
 								}}
-								disabled={isUploading}
-								className="flex items-center gap-2"
-							>
-								<Upload className="h-4 w-4" />
-								{isUploading ? 'Uploading...' : 'Add More'}
-							</Button>
+								category="language-certificates"
+								acceptedTypes={[
+									'application/pdf',
+									'image/jpeg',
+									'image/png',
+									'image/jpg',
+								]}
+								maxSize={10}
+								maxFiles={5}
+								showPreview={false}
+								enableOCR={true}
+								onOCRComplete={(fileId: string, extractedText: string) => {
+									// Auto-fill language certificate data
+									// Could implement auto-fill logic here
+								}}
+								onValidationComplete={(
+									fileId: string,
+									validation: FileValidationResult
+								) => {
+									// Handle validation results
+									console.log('Language cert validation:', validation)
+								}}
+							/>
 						)}
 					</div>
-
 					{/* Files List */}
 					<div className="space-y-3 max-h-64 overflow-y-auto">
 						{(isEditing
@@ -1191,29 +1214,37 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			{/* Degree Certificate Files */}
 			<Card>
 				<CardContent className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-semibold">Degree Certificate</h3>
+					<div className="mb-4">
+						<h3 className="text-lg font-semibold mb-2">Degree Certificate</h3>
 						{isEditing && (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									const input = document.createElement('input')
-									input.type = 'file'
-									input.accept = '.pdf,.jpg,.jpeg,.png'
-									input.multiple = true
-									input.onchange = (e) => handleFileSelect(e as any, 'degree')
-									input.click()
+							<FileUploadManagerWithOCR
+								onFilesUploaded={(files) => {
+									const existingFiles = editedProfile?.degreeFiles || []
+									const updatedFiles = [...existingFiles, ...files]
+									handleFieldChange('degreeFiles', updatedFiles)
 								}}
-								disabled={isUploading}
-								className="flex items-center gap-2"
-							>
-								<Upload className="h-4 w-4" />
-								{isUploading ? 'Uploading...' : 'Add More'}
-							</Button>
+								category="degree-certificates"
+								acceptedTypes={[
+									'application/pdf',
+									'image/jpeg',
+									'image/png',
+									'image/jpg',
+								]}
+								maxSize={10}
+								maxFiles={5}
+								showPreview={false}
+								enableOCR={true}
+								onOCRComplete={(fileId, extractedText) => {
+									// Auto-fill degree data
+									// Could implement auto-fill logic here
+								}}
+								onValidationComplete={(fileId, validation) => {
+									// Handle validation results
+									console.log('Degree cert validation:', validation)
+								}}
+							/>
 						)}
 					</div>
-
 					{/* Files List */}
 					<div className="space-y-3 max-h-64 overflow-y-auto">
 						{(isEditing ? editedProfile?.degreeFiles : profile?.degreeFiles)
@@ -1274,30 +1305,40 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			{/* Transcript Files */}
 			<Card>
 				<CardContent className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-semibold">Academic Transcript</h3>
+					<div className="mb-4">
+						<h3 className="text-lg font-semibold mb-2">Academic Transcript</h3>
 						{isEditing && (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									const input = document.createElement('input')
-									input.type = 'file'
-									input.accept = '.pdf,.jpg,.jpeg,.png'
-									input.multiple = true
-									input.onchange = (e) =>
-										handleFileSelect(e as any, 'transcript')
-									input.click()
+							<FileUploadManagerWithOCR
+								onFilesUploaded={(files: any[]) => {
+									const existingFiles = editedProfile?.transcriptFiles || []
+									const updatedFiles = [...existingFiles, ...files]
+									handleFieldChange('transcriptFiles', updatedFiles)
 								}}
-								disabled={isUploading}
-								className="flex items-center gap-2"
-							>
-								<Upload className="h-4 w-4" />
-								{isUploading ? 'Uploading...' : 'Add More'}
-							</Button>
-						)}
+								category="academic-transcripts"
+								acceptedTypes={[
+									'application/pdf',
+									'image/jpeg',
+									'image/png',
+									'image/jpg',
+								]}
+								maxSize={10}
+								maxFiles={5}
+								showPreview={false}
+								enableOCR={true}
+								onOCRComplete={(fileId: string, extractedText: string) => {
+									// Auto-fill transcript data
+									// Could implement auto-fill logic here
+								}}
+								onValidationComplete={(
+									fileId: string,
+									validation: FileValidationResult
+								) => {
+									// Handle validation results
+									console.log('Transcript validation:', validation)
+								}}
+							/>
+						)}{' '}
 					</div>
-
 					{/* Files List */}
 					<div className="space-y-3 max-h-64 overflow-y-auto">
 						{(isEditing
@@ -1470,24 +1511,48 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 												Research Paper Files
 											</Label>
 											{isEditing && (
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => {
-														const input = document.createElement('input')
-														input.type = 'file'
-														input.accept = '.pdf,.doc,.docx'
-														input.multiple = true
-														input.onchange = (e) =>
-															handleFileSelect(e as any, 'researchPaper', index)
-														input.click()
+												<FileUploadManagerWithOCR
+													onFilesUploaded={(files: any[]) => {
+														const newPapers = [
+															...(editedProfile?.researchPapers || []),
+														]
+														newPapers[index] = {
+															...newPapers[index],
+															files: [
+																...(newPapers[index]?.files || []),
+																...files,
+															],
+														}
+														handleFieldChange('researchPapers', newPapers)
 													}}
-													disabled={isUploading}
-													className="flex items-center gap-2"
-												>
-													<Upload className="h-4 w-4" />
-													{isUploading ? 'Uploading...' : 'Upload Files'}
-												</Button>
+													category="research-papers"
+													acceptedTypes={[
+														'application/pdf',
+														'application/msword',
+														'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+													]}
+													maxSize={10}
+													maxFiles={5}
+													showPreview={false}
+													enableOCR={true}
+													onOCRComplete={(
+														fileId: string,
+														extractedText: string
+													) => {
+														// Auto-fill research paper data if available
+														// Could implement auto-fill logic here
+													}}
+													onValidationComplete={(
+														fileId: string,
+														validation: FileValidationResult
+													) => {
+														// Handle validation results
+														console.log(
+															'Research paper validation:',
+															validation
+														)
+													}}
+												/>
 											)}
 
 											{/* Files List for this research paper */}

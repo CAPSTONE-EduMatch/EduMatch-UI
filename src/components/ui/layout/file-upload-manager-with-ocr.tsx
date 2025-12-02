@@ -7,9 +7,9 @@ import { Button } from '@/components/ui'
 import { useOCRData } from '@/components/ocr/OCRButton'
 import { mistralOCRService } from '@/services/ocr/mistral-ocr-service'
 import {
-	FileValidationService,
+	OllamaFileValidationService,
 	FileValidationResult,
-} from '@/services/ai/file-validation-service'
+} from '@/services/ai/ollama-file-validation-service'
 import { cn } from '@/utils/index'
 import {
 	Eye,
@@ -188,7 +188,7 @@ export function FileUploadManagerWithOCR({
 					)
 
 					try {
-						validation = await FileValidationService.validateFile(
+						validation = await OllamaFileValidationService.validateFile(
 							extractedText,
 							category,
 							file.name
@@ -214,7 +214,10 @@ export function FileUploadManagerWithOCR({
 						)
 
 						// Show validation notification if file is invalid or low confidence
-						if (!validation.isValid || validation.confidence < 0.7) {
+						if (
+							validation &&
+							(!validation.isValid || validation.confidence < 0.7)
+						) {
 							const notification = {
 								id: `${tempId}-${Date.now()}`,
 								validation,
@@ -445,11 +448,13 @@ export function FileUploadManagerWithOCR({
 		}
 	}
 
+	// eslint-disable-next-line no-unused-vars
 	const handleFileDelete = (fileId: string) => {
 		setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId))
 		onFileDeleted?.(fileId)
 	}
 
+	// eslint-disable-next-line no-unused-vars
 	const formatFileSize = (bytes: number) => {
 		if (bytes === 0) return '0 Bytes'
 		const k = 1024
@@ -535,10 +540,23 @@ export function FileUploadManagerWithOCR({
 				className={cn(
 					'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
 					dragActive
-						? 'border-primary bg-primary/5'
-						: 'border-border hover:border-primary/50',
+						? 'border-primary bg-primary/5 cursor-pointer'
+						: 'border-border hover:border-primary/50 cursor-pointer',
 					isUploading && 'opacity-50 pointer-events-none'
 				)}
+				role="button"
+				tabIndex={0}
+				aria-disabled={isUploading}
+				onClick={() => {
+					if (!isUploading) fileInputRef.current?.click()
+				}}
+				onKeyDown={(e: React.KeyboardEvent) => {
+					if (isUploading) return
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault()
+						fileInputRef.current?.click()
+					}
+				}}
 				onDragEnter={handleDrag}
 				onDragLeave={handleDrag}
 				onDragOver={handleDrag}

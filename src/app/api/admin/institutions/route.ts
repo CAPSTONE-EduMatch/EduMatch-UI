@@ -114,13 +114,15 @@ export async function GET(request: NextRequest) {
 				whereClause.user = {
 					banned: false,
 				};
-			} else if (filters.status === "pending") {
-				whereClause.status = "PENDING";
+				// Active institutions must be approved
+				whereClause.verification_status = "APPROVED";
+			} else if (filters.status === "suspended") {
 				whereClause.user = {
 					banned: false,
 				};
-			} else if (filters.status === "denied") {
-				whereClause.status = "DENIED";
+			} else if (filters.status === "pending") {
+				// Pending institutions have verification_status = PENDING
+				whereClause.verification_status = "PENDING";
 				whereClause.user = {
 					banned: false,
 				};
@@ -156,7 +158,20 @@ export async function GET(request: NextRequest) {
 		const [institutions, total] = await Promise.all([
 			prismaClient.institution.findMany({
 				where: whereClause,
-				include: {
+				select: {
+					institution_id: true,
+					name: true,
+					abbreviation: true,
+					email: true,
+					country: true,
+					type: true,
+					rep_name: true,
+					rep_email: true,
+					verification_status: true,
+					submitted_at: true,
+					verified_at: true,
+					verified_by: true,
+					rejection_reason: true,
 					user: {
 						select: {
 							id: true,
@@ -197,15 +212,18 @@ export async function GET(request: NextRequest) {
 				0
 			);
 
-			// Determine status based on institution.status enum and user.banned
-			let status: "Active" | "Pending" | "Denied" | "Banned" = "Active";
+			// Determine status based on verification_status first, then user status
+			let status: "Active" | "Suspended" | "Pending" | "Rejected" =
+				"Active";
 			if (institution.user.banned) {
-				status = "Banned";
-			} else if (institution.status === "PENDING") {
+				status = "Suspended"; // We'll show banned as suspended in the list
+			} else if (institution.verification_status === "PENDING") {
 				status = "Pending";
-			} else if (institution.status === "DENIED") {
-				status = "Denied";
-			} else if (institution.status === "ACTIVE") {
+			} else if (institution.verification_status === "REJECTED") {
+				status = "Rejected";
+			} else if (!institution.user.status) {
+				status = "Suspended";
+			} else if (institution.verification_status === "APPROVED") {
 				status = "Active";
 			}
 
@@ -222,6 +240,11 @@ export async function GET(request: NextRequest) {
 				createdAt: institution.user.createdAt.toISOString(),
 				repName: institution.rep_name,
 				repEmail: institution.rep_email,
+				verification_status: institution.verification_status,
+				submitted_at: institution.submitted_at?.toISOString() || null,
+				verified_at: institution.verified_at?.toISOString() || null,
+				verified_by: institution.verified_by || null,
+				rejection_reason: institution.rejection_reason || null,
 			};
 		});
 

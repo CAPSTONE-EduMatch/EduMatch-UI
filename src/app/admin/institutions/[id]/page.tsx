@@ -19,9 +19,13 @@ import {
 	MessageCircle,
 	Phone,
 } from 'lucide-react'
-import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import JSZip from 'jszip'
+import { getSessionProtectedFileUrl } from '@/utils/files/getSessionProtectedFileUrl'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+import SuccessModal from '@/components/ui/modals/SuccessModal'
+import ErrorModal from '@/components/ui/modals/ErrorModal'
 
 // API function to fetch institution details
 const fetchInstitutionDetails = async (
@@ -54,6 +58,11 @@ export default function InstitutionDetailPage() {
 	const [showBanModal, setShowBanModal] = useState(false)
 	const [showRequireInfoModal, setShowRequireInfoModal] = useState(false)
 	const [activeTab, setActiveTab] = useState('overview')
+	const [downloadingZip, setDownloadingZip] = useState(false)
+	const [showSuccessModal, setShowSuccessModal] = useState(false)
+	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [successMessage, setSuccessMessage] = useState('')
+	const [errorMessage, setErrorMessage] = useState('')
 	const router = useRouter()
 	const params = useParams()
 	const { isAdmin, isLoading: adminLoading } = useAdminAuth()
@@ -97,12 +106,15 @@ export default function InstitutionDetailPage() {
 			)
 
 			if (response.ok) {
-				alert('Contact request sent successfully!')
+				setSuccessMessage('Contact request sent successfully!')
+				setShowSuccessModal(true)
 			} else {
-				alert('Failed to send contact request')
+				setErrorMessage('Failed to send contact request')
+				setShowErrorModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setErrorMessage('An error occurred while sending contact request')
+			setShowErrorModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -133,15 +145,18 @@ export default function InstitutionDetailPage() {
 			)
 
 			if (response.ok) {
-				alert('All institution sessions revoked successfully!')
+				setSuccessMessage('All institution sessions revoked successfully!')
+				setShowSuccessModal(true)
 			} else {
 				const errorData = await response.json()
-				alert(
+				setErrorMessage(
 					`Failed to revoke sessions: ${errorData.error || 'Unknown error'}`
 				)
+				setShowErrorModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred while revoking sessions')
+			setErrorMessage('An error occurred while revoking sessions')
+			setShowErrorModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -170,19 +185,22 @@ export default function InstitutionDetailPage() {
 				const message = institutionData?.banned
 					? 'Institution unbanned successfully!'
 					: 'Institution banned successfully!'
-				alert(message)
+				setSuccessMessage(message)
 
 				// Reload institution data to reflect changes
 				await loadInstitutionData(params.id as string)
 				setShowBanModal(false)
+				setShowSuccessModal(true)
 			} else {
 				const errorData = await response.json()
-				alert(
+				setErrorMessage(
 					`Failed to ${institutionData?.banned ? 'unban' : 'ban'} institution: ${errorData.error || 'Unknown error'}`
 				)
+				setShowErrorModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setErrorMessage('An error occurred')
+			setShowErrorModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -202,18 +220,21 @@ export default function InstitutionDetailPage() {
 				}
 			)
 
-			if (response.ok) {
-				alert('Institution approved successfully!')
+			const result = await response.json()
+			if (response.ok && result.success) {
+				setSuccessMessage('Institution approved successfully!')
 				// Reload institution data to reflect changes
 				await loadInstitutionData(params.id as string)
+				setShowSuccessModal(true)
 			} else {
-				const errorData = await response.json()
-				alert(
-					`Failed to approve institution: ${errorData.error || 'Unknown error'}`
+				setErrorMessage(
+					`Failed to approve institution: ${result.error || 'Unknown error'}`
 				)
+				setShowErrorModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setErrorMessage('An error occurred while approving institution')
+			setShowErrorModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -233,18 +254,21 @@ export default function InstitutionDetailPage() {
 				}
 			)
 
-			if (response.ok) {
-				alert('Institution denied successfully!')
+			const result = await response.json()
+			if (response.ok && result.success) {
+				setSuccessMessage('Institution denied successfully!')
 				// Reload institution data to reflect changes
 				await loadInstitutionData(params.id as string)
+				setShowSuccessModal(true)
 			} else {
-				const errorData = await response.json()
-				alert(
-					`Failed to deny institution: ${errorData.error || 'Unknown error'}`
+				setErrorMessage(
+					`Failed to deny institution: ${result.error || 'Unknown error'}`
 				)
+				setShowErrorModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setErrorMessage('An error occurred while denying institution')
+			setShowErrorModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -284,27 +308,100 @@ export default function InstitutionDetailPage() {
 		}
 	}
 
+	const handleDownloadAll = async () => {
+		if (
+			!institutionData?.documents?.verificationDocuments ||
+			institutionData.documents.verificationDocuments.length === 0
+		) {
+			return
+		}
+
+		setDownloadingZip(true)
+		try {
+			const zip = new JSZip()
+			const institutionName = institutionData.name.replace(/\s+/g, '_')
+			const zipName = `${institutionName}_Verification_Documents`
+
+			// Add all verification documents to the zip
+			for (const doc of institutionData.documents.verificationDocuments) {
+				try {
+					// Use the proxy URL to fetch the file (requires authentication)
+					const proxyUrl = getSessionProtectedFileUrl(doc.url)
+					if (!proxyUrl) {
+						console.warn(
+							`Failed to generate proxy URL for document: ${doc.name}`
+						)
+						continue
+					}
+
+					const response = await fetch(proxyUrl, {
+						method: 'GET',
+						credentials: 'include',
+					})
+
+					if (!response.ok) {
+						console.warn(
+							`Failed to fetch document: ${doc.name} - Status: ${response.status}`
+						)
+						continue
+					}
+
+					const blob = await response.blob()
+					const arrayBuffer = await blob.arrayBuffer()
+					zip.file(doc.name, arrayBuffer)
+				} catch (error) {
+					console.warn(`Error adding document ${doc.name} to zip:`, error)
+				}
+			}
+
+			// Generate the zip file
+			const zipBlob = await zip.generateAsync({ type: 'blob' })
+
+			// Create download link
+			const url = window.URL.createObjectURL(zipBlob)
+			const link = document.createElement('a')
+			link.href = url
+			link.download = `${zipName}.zip`
+			document.body.appendChild(link)
+			link.click()
+			document.body.removeChild(link)
+			window.URL.revokeObjectURL(url)
+		} catch (error) {
+			console.error('Error creating zip file:', error)
+			setErrorMessage('Failed to download all documents. Please try again.')
+			setShowErrorModal(true)
+		} finally {
+			setDownloadingZip(false)
+		}
+	}
+
 	const handleBack = () => {
 		router.back()
 	}
 
 	if (!isClient || loading || adminLoading) {
 		return (
-			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
-				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
+			<div className="min-h-[calc(100vh-100px)] flex items-center justify-center p-8">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64] mx-auto mb-4"></div>
+					<p className="text-gray-600">Loading institution details...</p>
+				</div>
 			</div>
 		)
 	}
 
 	if (error || !institutionData) {
 		return (
-			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
+			<div className="min-h-[calc(100vh-100px)] flex items-center justify-center p-8">
 				<div className="text-center">
+					<div className="text-red-500 text-6xl mb-4">⚠️</div>
 					<h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
-					<p className="text-gray-600">{error || 'Institution not found'}</p>
+					<p className="text-gray-600 mb-4">
+						{error || 'Institution not found'}
+					</p>
 					<button
 						onClick={handleBack}
-						className="mt-4 px-4 py-2 bg-[#126E64] text-white rounded hover:bg-[#0f5a52] transition-colors"
+						className="px-4 py-2 bg-[#126E64] text-white rounded hover:bg-[#0f5a52] transition-colors"
 					>
 						Go Back
 					</button>
@@ -328,12 +425,19 @@ export default function InstitutionDetailPage() {
 						<div className="text-center mb-6">
 							<div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
 								{institutionData.logo ? (
-									<Image
+									<ProtectedImage
 										src={institutionData.logo}
 										alt={institutionData.name}
 										width={128}
 										height={128}
 										className="w-full h-full object-cover"
+										expiresIn={7200}
+										autoRefresh={true}
+										errorFallback={
+											<div className="w-full h-full flex items-center justify-center bg-[#126E64]/10">
+												<Building2 className="w-12 h-12 text-[#126E64]" />
+											</div>
+										}
 									/>
 								) : (
 									<div className="w-full h-full flex items-center justify-center bg-[#126E64]/10">
@@ -361,7 +465,11 @@ export default function InstitutionDetailPage() {
 											? 'bg-green-100 text-green-700'
 											: institutionData.status === 'Suspended'
 												? 'bg-red-100 text-red-700'
-												: 'bg-gray-100 text-gray-700'
+												: institutionData.status === 'Pending'
+													? 'bg-yellow-100 text-yellow-700'
+													: institutionData.status === 'Rejected'
+														? 'bg-orange-100 text-orange-700'
+														: 'bg-gray-100 text-gray-700'
 									}`}
 								>
 									{institutionData.status}
@@ -442,41 +550,6 @@ export default function InstitutionDetailPage() {
 									</span>
 								</div>
 							</div>
-
-							{/* Ban Status */}
-							{institutionData.banned && (
-								<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-									<div className="flex items-center gap-2 mb-2">
-										<span className="w-2 h-2 bg-red-500 rounded-full"></span>
-										<span className="text-sm font-semibold text-red-700">
-											Institution is Banned
-										</span>
-									</div>
-									{institutionData.banReason && (
-										<div className="text-xs text-red-600 mb-1">
-											<strong>Reason:</strong> {institutionData.banReason}
-										</div>
-									)}
-									{institutionData.banExpires && (
-										<div className="text-xs text-red-600">
-											<strong>Expires:</strong>{' '}
-											{new Date(institutionData.banExpires).toLocaleDateString(
-												'en-US',
-												{
-													year: 'numeric',
-													month: 'long',
-													day: 'numeric',
-												}
-											)}
-										</div>
-									)}
-									{!institutionData.banExpires && (
-										<div className="text-xs text-red-600">
-											<strong>Status:</strong> Permanent ban
-										</div>
-									)}
-								</div>
-							)}
 						</div>
 
 						{/* Action Buttons */}
@@ -512,20 +585,33 @@ export default function InstitutionDetailPage() {
 								<LogOut className="w-4 h-4" />
 								{actionLoading ? 'Processing...' : 'Revoke All Sessions'}
 							</button>
-							<button
-								onClick={handleApprove}
-								disabled={actionLoading}
-								className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-							>
-								{actionLoading ? 'Processing...' : 'Approve Institution'}
-							</button>
-							<button
-								onClick={handleDeny}
-								disabled={actionLoading}
-								className="w-full bg-[#E20000] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#cc0000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-							>
-								{actionLoading ? 'Processing...' : 'Deny Institution'}
-							</button>
+							{institutionData.verification_status === 'PENDING' && (
+								<>
+									<button
+										onClick={handleApprove}
+										disabled={actionLoading}
+										className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+									>
+										{actionLoading ? 'Processing...' : 'Approve Institution'}
+									</button>
+									<button
+										onClick={handleDeny}
+										disabled={actionLoading}
+										className="w-full bg-[#E20000] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#cc0000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+									>
+										{actionLoading ? 'Processing...' : 'Deny Institution'}
+									</button>
+								</>
+							)}
+							{institutionData.verification_status === 'REJECTED' && (
+								<button
+									onClick={handleApprove}
+									disabled={actionLoading}
+									className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								>
+									{actionLoading ? 'Processing...' : 'Re-approve Institution'}
+								</button>
+							)}
 							<button
 								onClick={handleRequireInfo}
 								disabled={actionLoading}
@@ -598,33 +684,12 @@ export default function InstitutionDetailPage() {
 							{/* Documents Tab */}
 							{activeTab === 'documents' && (
 								<div className="space-y-6">
+									{/* Verification Documents */}
 									<InstitutionDocumentSection
-										title="Accreditation Certificates"
-										files={institutionData.documents.accreditationCertificates}
-										institutionId={params.id as string}
-									/>
-
-									<InstitutionDocumentSection
-										title="Operating Licenses"
-										files={institutionData.documents.operatingLicenses}
-										institutionId={params.id as string}
-									/>
-
-									<InstitutionDocumentSection
-										title="Tax Documents"
-										files={institutionData.documents.taxDocuments}
-										institutionId={params.id as string}
-									/>
-
-									<InstitutionDocumentSection
-										title="Representative Documents"
-										files={institutionData.documents.representativeDocuments}
-										institutionId={params.id as string}
-									/>
-
-									<InstitutionDocumentSection
-										title="Other Documents"
-										files={institutionData.documents.otherDocuments}
+										title="Verification Documents"
+										files={
+											institutionData.documents.verificationDocuments || []
+										}
 										institutionId={params.id as string}
 									/>
 
@@ -632,26 +697,25 @@ export default function InstitutionDetailPage() {
 									<div className="flex justify-center mt-6">
 										{(() => {
 											const hasDocuments =
-												institutionData.documents.accreditationCertificates
-													.length > 0 ||
-												institutionData.documents.operatingLicenses.length >
-													0 ||
-												institutionData.documents.taxDocuments.length > 0 ||
-												institutionData.documents.representativeDocuments
-													.length > 0 ||
-												institutionData.documents.otherDocuments.length > 0
+												(institutionData.documents.verificationDocuments
+													?.length || 0) > 0
 
 											return (
 												<button
-													disabled={!hasDocuments}
+													onClick={handleDownloadAll}
+													disabled={!hasDocuments || downloadingZip}
 													className={`px-6 py-2.5 rounded-[20px] flex items-center gap-2 text-sm font-semibold transition-colors ${
-														!hasDocuments
+														!hasDocuments || downloadingZip
 															? 'bg-gray-300 text-gray-500 cursor-not-allowed'
 															: 'bg-[#126E64] text-white hover:bg-[#0f5a52]'
 													}`}
 												>
-													<Download className="w-4 h-4" />
-													Download all
+													{downloadingZip ? (
+														<div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+													) : (
+														<Download className="w-4 h-4" />
+													)}
+													{downloadingZip ? 'Creating ZIP...' : 'Download all'}
 												</button>
 											)
 										})()}
@@ -713,6 +777,22 @@ export default function InstitutionDetailPage() {
 					'Unknown Email'
 				}
 				isLoading={actionLoading}
+			/>
+
+			{/* Success Modal */}
+			<SuccessModal
+				isOpen={showSuccessModal}
+				onClose={() => setShowSuccessModal(false)}
+				title="Success"
+				message={successMessage}
+			/>
+
+			{/* Error Modal */}
+			<ErrorModal
+				isOpen={showErrorModal}
+				onClose={() => setShowErrorModal(false)}
+				title="Error"
+				message={errorMessage}
 			/>
 		</>
 	)

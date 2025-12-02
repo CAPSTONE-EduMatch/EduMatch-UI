@@ -32,14 +32,15 @@ import { Check, ChevronLeft, ChevronRight, File, Heart, X } from 'lucide-react'
 import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const params = useParams()
 	// Check if we're viewing an application (from URL query param)
-	const applicationIdFromUrl = searchParams.get('applicationId')
-	const fromParam = searchParams.get('from')
+	const applicationIdFromUrl = searchParams?.get('applicationId')
+	const fromParam = searchParams?.get('from')
 	// Don't auto-load application tab if coming from application section
 	const shouldAutoLoadApplicationTab =
 		applicationIdFromUrl && fromParam !== 'application'
@@ -96,7 +97,7 @@ const ProgramDetail = () => {
 		null
 	)
 	const [applicationId, setApplicationId] = useState<string | null>(
-		applicationIdFromUrl
+		applicationIdFromUrl ? applicationIdFromUrl : null
 	)
 	// Store pending application info (not yet loaded)
 	const [pendingApplication, setPendingApplication] = useState<{
@@ -332,13 +333,13 @@ const ProgramDetail = () => {
 	useEffect(() => {
 		const updateBreadcrumb = async () => {
 			// Get program ID from URL params
-			const programId = params.id as string
+			const programId = params?.id as string
 
 			// Skip if we already have this program loaded (only check program ID, not search params)
 			if (currentProgram?.id === programId) {
 				// Only update breadcrumb if needed, don't re-fetch program
-				const fromTab = searchParams.get('from') || 'programmes'
-				const currentParams = new URLSearchParams(searchParams.toString())
+				const fromTab = searchParams?.get('from') || 'programmes'
+				const currentParams = new URLSearchParams(searchParams?.toString())
 				currentParams.delete('from')
 				currentParams.delete('applicationId') // Don't include applicationId in breadcrumb
 				const paramsString = currentParams.toString()
@@ -372,10 +373,10 @@ const ProgramDetail = () => {
 			}
 
 			// Get the 'from' parameter from search params to know which tab we came from
-			const fromTab = searchParams.get('from') || 'programmes'
+			const fromTab = searchParams?.get('from') || 'programmes'
 
 			// Preserve all original URL parameters except 'from'
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
@@ -420,11 +421,11 @@ const ProgramDetail = () => {
 
 		updateBreadcrumb()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.id]) // Only depend on program ID, not searchParams to avoid re-fetching when applicationId is added
+	}, [params?.id]) // Only depend on program ID, not searchParams to avoid re-fetching when applicationId is added
 
 	// Check for existing application when component loads
 	useEffect(() => {
-		const programId = currentProgram?.id || params.id
+		const programId = currentProgram?.id || params?.id
 		// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
 		if (programId && !isCheckingApplication && !applicationIdFromUrl) {
 			// Add a small delay to prevent rapid successive calls
@@ -434,7 +435,7 @@ const ProgramDetail = () => {
 
 			return () => clearTimeout(timeoutId)
 		}
-	}, [currentProgram?.id, params.id, applicationIdFromUrl]) // Added applicationIdFromUrl to prevent duplicate loads
+	}, [currentProgram?.id, params?.id, applicationIdFromUrl]) // Added applicationIdFromUrl to prevent duplicate loads
 
 	// Fetch all update requests when application is loaded
 	useEffect(() => {
@@ -873,7 +874,7 @@ const ProgramDetail = () => {
 		}
 
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -884,7 +885,7 @@ const ProgramDetail = () => {
 
 	const handleScholarshipClick = (scholarshipId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -1032,7 +1033,7 @@ const ProgramDetail = () => {
 		}
 
 		// Use program ID from URL params as fallback
-		const programId = currentProgram?.id || params.id
+		const programId = currentProgram?.id || params?.id
 		if (!programId) {
 			return
 		}
@@ -1232,7 +1233,7 @@ const ProgramDetail = () => {
 
 	// Handle wishlist toggle
 	const handleWishlistToggle = async () => {
-		const programId = currentProgram?.id || params.id
+		const programId = currentProgram?.id || params?.id
 		if (!programId) return
 
 		// Check if user is authenticated before attempting to toggle
@@ -1742,6 +1743,8 @@ const ProgramDetail = () => {
 							My Applications
 						</h2>
 
+						{/* Upload area intentionally left out here; uploader is in "Apply here" section */}
+
 						{loadingApplications && lastFetchedPostId !== currentProgram?.id ? (
 							<div className="bg-white rounded-lg shadow border overflow-hidden">
 								{/* Skeleton loader for table */}
@@ -1941,7 +1944,7 @@ const ProgramDetail = () => {
 							>
 								<Heart
 									className={`w-6 h-6 transition-all duration-200 ${
-										isInWishlist(currentProgram?.id || params.id)
+										isInWishlist(currentProgram?.id || params?.id)
 											? 'fill-red-500 text-red-500'
 											: 'text-gray-400 hover:text-red-500'
 									}`}
@@ -2345,99 +2348,65 @@ const ProgramDetail = () => {
 												<div className="flex-1 border-t border-gray-300"></div>
 											</div>
 
-											{/* Upload Files Section - Direct upload, no modal */}
-											<div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50">
-												<input
-													type="file"
-													multiple
-													onChange={async (e) => {
-														const files = e.target.files
-														if (files && files.length > 0) {
-															try {
-																const uploadedFileData = await uploadFiles(
-																	Array.from(files)
-																)
-																if (uploadedFileData) {
-																	const newDocuments = uploadedFileData.map(
-																		(file) => ({
-																			document_id: `temp_${Date.now()}_${Math.random()}`,
-																			name: file.name,
-																			url: file.url,
-																			size: file.size,
-																			documentType: 'general',
-																			source: 'new' as const,
-																		})
-																	)
-																	// Merge with existing documents, deduplicate by URL
-																	const docsMap = new Map<string, any>()
-																	// Add existing documents first
-																	selectedDocuments.forEach((doc) => {
-																		docsMap.set(doc.url, doc)
-																	})
-																	// Add new documents (will overwrite if same URL, but shouldn't happen)
-																	newDocuments.forEach((doc) => {
-																		docsMap.set(doc.url, doc)
-																	})
-																	const updatedDocs = Array.from(
-																		docsMap.values()
-																	)
-																	setSelectedDocuments(updatedDocs)
-																	// Update uploadedFiles directly without opening modal
-																	const convertedFiles = updatedDocs.map(
-																		(doc) => ({
-																			id: doc.document_id,
-																			name: doc.name,
-																			url: doc.url,
-																			size: doc.size,
-																			documentType: doc.documentType,
-																			source: doc.source,
-																			applicationDocumentId: (doc as any)
-																				.applicationDocumentId, // Preserve ApplicationDetail document_id if exists
-																		})
-																	)
-																	// Deduplicate by URL to prevent glitches
-																	const uniqueFiles = Array.from(
-																		new Map(
-																			convertedFiles.map((file) => [
-																				file.url,
-																				file,
-																			])
-																		).values()
-																	)
-																	setUploadedFiles(uniqueFiles)
-																	showSuccess(
-																		'Files Uploaded',
-																		`${uploadedFileData.length} file(s) uploaded successfully`
-																	)
-																}
-															} catch (error) {
-																showError(
-																	'Upload Failed',
-																	'Failed to upload files. Please try again.'
-																)
-															}
-														}
-														e.target.value = ''
+											{/* Upload Files Section - replaced with OCR + AI validation uploader */}
+											<div className="">
+												<FileUploadManagerWithOCR
+													category="application-documents"
+													enableOCR={true}
+													onFilesUploaded={async (files) => {
+														// Map uploaded files to application document shape (temp ids)
+														const newDocuments = files.map((file) => ({
+															document_id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+															name: file.name,
+															url: file.url,
+															size: file.size,
+															documentType: 'general',
+															source: 'new' as const,
+														}))
+
+														// Merge with existing selected documents and dedupe by URL
+														const docsMap = new Map<string, any>()
+														selectedDocuments.forEach((doc) =>
+															docsMap.set(doc.url, doc)
+														)
+														newDocuments.forEach((doc) =>
+															docsMap.set(doc.url, doc)
+														)
+														const updatedDocs = Array.from(docsMap.values())
+														setSelectedDocuments(updatedDocs)
+
+														// Update uploadedFiles to reflect merged documents
+														const convertedFiles = updatedDocs.map((doc) => ({
+															id: doc.document_id,
+															name: doc.name,
+															url: doc.url,
+															size: doc.size,
+															documentType: doc.documentType,
+															source: doc.source,
+															applicationDocumentId: (doc as any)
+																.applicationDocumentId,
+														}))
+														const uniqueFiles = Array.from(
+															new Map(
+																convertedFiles.map((file) => [file.url, file])
+															).values()
+														)
+														setUploadedFiles(uniqueFiles)
+
+														showSuccess(
+															'Files Uploaded',
+															`${files.length} file(s) uploaded successfully`
+														)
 													}}
-													className="hidden"
-													id="file-upload-main"
-													accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+													onValidationComplete={(fileId, validation) => {
+														if (!validation.isValid) {
+															showError(
+																'Validation Failed',
+																validation.reasoning || 'File failed validation'
+															)
+														}
+													}}
 												/>
-												<label
-													htmlFor="file-upload-main"
-													className="cursor-pointer block"
-												>
-													<div className="text-5xl mb-4">📁</div>
-													<h4 className="text-lg font-medium text-gray-900 mb-2">
-														Upload Files
-													</h4>
-													<p className="text-gray-600 mb-2">
-														Click to upload documents from your computer
-													</p>
-													<p className="text-sm text-gray-500">
-														PDF, DOC, DOCX, JPG, PNG (max 10MB each)
-													</p>
-												</label>
 											</div>
 										</div>
 									</div>
@@ -3112,7 +3081,7 @@ const ProgramDetail = () => {
 					updateRequestId={selectedUpdateRequestId || undefined}
 					onSuccess={async () => {
 						// Refresh application status and update requests after successful update
-						const programId = currentProgram?.id || params.id
+						const programId = currentProgram?.id || params?.id
 						if (programId) {
 							await checkExistingApplication(programId as string)
 						}

@@ -4,7 +4,7 @@ import { prismaClient } from "../../../../../prisma/index";
 
 interface UserFilters {
 	search?: string;
-	status?: "all" | "active" | "inactive" | "banned" | "pending" | "denied";
+	status?: string; // Can be "all", single status, or comma-separated multiple statuses
 	role?: string;
 	userType?: "applicant" | "institution" | "admin";
 	sortBy?: "name" | "email" | "createdAt";
@@ -24,14 +24,7 @@ export async function GET(request: NextRequest) {
 		// Parse query parameters
 		const filters: UserFilters = {
 			search: searchParams.get("search") || undefined,
-			status:
-				(searchParams.get("status") as
-					| "all"
-					| "active"
-					| "inactive"
-					| "banned"
-					| "pending"
-					| "denied") || "all",
+			status: searchParams.get("status") || "all",
 			role: searchParams.get("role") || undefined,
 			userType:
 				(searchParams.get("userType") as
@@ -70,36 +63,101 @@ export async function GET(request: NextRequest) {
 			];
 		}
 
-		// Filter by status
-		if (filters.status !== "all") {
-			if (filters.status === "banned") {
-				whereClause.banned = true;
-			} else if (filters.status === "active") {
-				// For active status, exclude banned users and require active status
-				whereClause.banned = { not: true };
-				whereClause.status = true;
-				if (filters.userType === "institution") {
+		// Filter by status - handle multiple statuses (comma-separated)
+		if (filters.status && filters.status !== "all") {
+			// Split by comma to handle multiple statuses
+			const statusArray = filters.status
+				.split(",")
+				.map((s) => s.trim())
+				.filter((s) => s);
+
+			if (statusArray.length === 0) {
+				// No valid statuses, skip filter
+			} else if (statusArray.length === 1) {
+				// Single status
+				const status = statusArray[0];
+				if (status === "banned") {
+					whereClause.banned = true;
+				} else if (status === "active") {
+					// For active status, exclude banned users
+					// For institutions, also require approved status (institution.status = true and verification_status = APPROVED)
+					whereClause.banned = { not: true };
+					if (filters.userType === "institution") {
+						whereClause.institution = {
+							status: true,
+							verification_status: "APPROVED",
+						};
+					}
+				} else if (status === "denied") {
+					// Denied institutions have institution.status = false or verification_status = REJECTED
+					whereClause.role = "institution";
 					whereClause.institution = {
-						status: "ACTIVE",
+						OR: [
+							{ status: false },
+							{ verification_status: "REJECTED" },
+						],
+					};
+				} else if (status === "pending") {
+					// Pending institutions have verification_status = PENDING
+					whereClause.role = "institution";
+					whereClause.banned = { not: true };
+					whereClause.institution = {
+						verification_status: "PENDING",
 					};
 				}
-			} else if (filters.status === "inactive") {
-				// Inactive users have user.status = false and are not banned (for non-institution users)
-				whereClause.banned = { not: true };
-				whereClause.status = false;
-			} else if (filters.status === "pending") {
-				// Pending institutions have institution.status = PENDING
-				whereClause.role = "institution";
-				whereClause.banned = { not: true };
-				whereClause.institution = {
-					status: "PENDING",
-				};
-			} else if (filters.status === "denied") {
-				// Denied institutions have institution.status = DENIED
-				whereClause.role = "institution";
-				whereClause.institution = {
-					status: "DENIED",
-				};
+			} else {
+				// Multiple statuses - use OR conditions
+				const orConditions: any[] = [];
+
+				if (statusArray.includes("banned")) {
+					orConditions.push({ banned: true });
+				}
+
+				if (statusArray.includes("active")) {
+					const activeCondition: any = { banned: { not: true } };
+					if (filters.userType === "institution") {
+						activeCondition.institution = {
+							status: true,
+							verification_status: "APPROVED",
+						};
+					}
+					orConditions.push(activeCondition);
+				}
+
+				if (statusArray.includes("denied")) {
+					orConditions.push({
+						role: "institution",
+						institution: {
+							OR: [
+								{ status: false },
+								{ verification_status: "REJECTED" },
+							],
+						},
+					});
+				}
+
+				if (statusArray.includes("pending")) {
+					orConditions.push({
+						role: "institution",
+						banned: { not: true },
+						institution: {
+							verification_status: "PENDING",
+						},
+					});
+				}
+
+				if (orConditions.length > 0) {
+					// If we already have OR conditions from search, combine them
+					if (whereClause.OR) {
+						whereClause.AND = [
+							{ OR: whereClause.OR },
+							{ OR: orConditions },
+						];
+						delete whereClause.OR;
+					} else {
+						whereClause.OR = orConditions;
+					}
+				}
 			}
 		}
 
@@ -111,13 +169,38 @@ export async function GET(request: NextRequest) {
 		// Filter by user type
 		if (filters.userType) {
 			if (filters.userType === "institution") {
-				whereClause.role = "institution";
+				// Find institutions by having an institution record
+				// This is the source of truth - if they have an institution record, they're an institution
+				// If we already have OR conditions (from search), combine with AND
+				if (whereClause.OR) {
+					const existingOR = whereClause.OR;
+					whereClause.AND = [
+						{ OR: existingOR },
+						{ institution: { isNot: null } },
+					];
+					delete whereClause.OR;
+				} else {
+					// No existing OR conditions, just add institution filter
+					whereClause.institution = { isNot: null };
+				}
 			} else if (filters.userType === "admin") {
 				whereClause.role = { in: ["admin", "super_admin"] };
 			} else if (filters.userType === "applicant") {
-				whereClause.role = {
-					notIn: ["institution", "admin", "super_admin"],
-				};
+				// Find applicants by having an applicant record
+				// This is the source of truth - if they have an applicant record, they're an applicant
+				// If we already have OR conditions (from search), combine with AND
+				if (whereClause.OR) {
+					const existingOR = whereClause.OR;
+					whereClause.AND = [
+						{ OR: existingOR },
+						{ applicant: { isNot: null } },
+						{ institution: null }, // Applicants don't have institution records
+					];
+					delete whereClause.OR;
+				} else {
+					whereClause.applicant = { isNot: null };
+					whereClause.institution = null; // Applicants don't have institution records
+				}
 			}
 		}
 
@@ -149,9 +232,20 @@ export async function GET(request: NextRequest) {
 					banReason: true,
 					banExpires: true,
 					role: true,
-					status: true,
+					role_id: true,
 					institution: {
 						select: {
+							status: true,
+							verification_status: true,
+							submitted_at: true,
+							verified_at: true,
+							verified_by: true,
+							rejection_reason: true,
+						},
+					},
+					applicant: {
+						select: {
+							applicant_id: true,
 							status: true,
 						},
 					},
@@ -167,22 +261,41 @@ export async function GET(request: NextRequest) {
 
 		// Transform the data
 		const transformedUsers = users.map((user) => {
+			// Determine user type based on profile records (source of truth)
+			const isInstitution = !!user.institution;
+			const isApplicant = !!user.applicant;
+
 			let status = "active";
 			if (user.banned) {
 				status = "banned";
-			} else if (user.role === "institution" && user.institution) {
-				// For institutions: map enum status to string
-				const instStatus = user.institution.status;
-				if (instStatus === "ACTIVE") {
-					status = "active";
-				} else if (instStatus === "PENDING") {
+			} else if (isInstitution && user.institution) {
+				// For institutions: check verification_status first
+				if (user.institution.verification_status === "PENDING") {
 					status = "pending";
-				} else if (instStatus === "DENIED") {
+				} else if (
+					user.institution.verification_status === "REJECTED"
+				) {
 					status = "denied";
+				} else if (
+					user.institution.verification_status === "APPROVED"
+				) {
+					// Approved institutions show as "active" if status is true
+					status = user.institution.status ? "active" : "denied";
+				} else {
+					// Fallback to old logic for backward compatibility
+					status = user.institution.status ? "active" : "denied";
 				}
-			} else if (user.status === false) {
-				// For non-institution users: inactive when user.status is false
-				status = "inactive";
+			} else if (isApplicant) {
+				// Applicants are always "active" unless banned
+				status = "active";
+			}
+
+			// Determine role for display - use institution record as source of truth
+			let displayRole = user.role || "user";
+			if (isInstitution) {
+				displayRole = "institution";
+			} else if (isApplicant) {
+				displayRole = "user";
 			}
 
 			return {
@@ -193,11 +306,19 @@ export async function GET(request: NextRequest) {
 				banned: user.banned || false,
 				banReason: user.banReason,
 				banExpires: user.banExpires?.toISOString(),
-				role: user.role || "user",
+				role: displayRole,
 				createdAt: user.createdAt.toISOString(),
 				status: status,
-				type: user.role === "institution" ? "University" : undefined,
+				type: isInstitution ? "University" : undefined,
 				institutionStatus: user.institution?.status,
+				verification_status:
+					user.institution?.verification_status || null,
+				submitted_at:
+					user.institution?.submitted_at?.toISOString() || null,
+				verified_at:
+					user.institution?.verified_at?.toISOString() || null,
+				verified_by: user.institution?.verified_by || null,
+				rejection_reason: user.institution?.rejection_reason || null,
 			};
 		});
 

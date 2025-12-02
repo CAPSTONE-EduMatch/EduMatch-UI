@@ -164,7 +164,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 
 					{/* Sort Direction (only for user management) */}
 					{sortDirection !== undefined && onSortDirectionChange && (
-						<div className="w-32">
+						<div className="w-40">
 							<CustomSelect
 								value={{
 									value: sortDirection,
@@ -177,8 +177,8 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 								}
 								placeholder="Order"
 								options={[
-									{ value: 'desc', label: '↓ Desc' },
-									{ value: 'asc', label: '↑ Asc' },
+									{ value: 'desc', label: '↓ Descending' },
+									{ value: 'asc', label: '↑ Ascending' },
 								]}
 								variant="default"
 								isClearable={false}

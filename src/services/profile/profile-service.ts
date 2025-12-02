@@ -478,6 +478,16 @@ export class ProfileService {
 				address: typeof formData.institutionAddress,
 			});
 
+			// Check if institution already exists
+			const existingInstitution =
+				await prismaClient.institution.findUnique({
+					where: { user_id: userId },
+				});
+
+			const isNewInstitution = !existingInstitution;
+			const shouldResetVerification =
+				existingInstitution?.verification_status === "REJECTED";
+
 			// Create or update institution
 			const institution = await prismaClient.institution.upsert({
 				where: { user_id: userId },
@@ -509,6 +519,14 @@ export class ProfileService {
 					logo: getStringValue(formData.institutionLogo) || null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
+					// If resubmitting after rejection, reset verification status
+					...(shouldResetVerification && {
+						verification_status: "PENDING",
+						submitted_at: new Date(),
+						rejection_reason: null,
+						verified_at: null,
+						verified_by: null,
+					}),
 				},
 				create: {
 					institution_id: `institution_${userId}`,
@@ -540,6 +558,9 @@ export class ProfileService {
 					logo: getStringValue(formData.institutionLogo) || null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
+					// Set verification status to PENDING for new institutions
+					verification_status: "PENDING",
+					submitted_at: new Date(),
 				},
 			});
 
@@ -621,24 +642,21 @@ export class ProfileService {
 
 			// Update user's role in the database first
 			let roleId: string;
+			let role: string;
 			if (formData.role === "applicant") {
 				roleId = "1"; // student role
-				console.log(
-					"👤 ProfileService: Updating user role to student (1)..."
-				);
+				role = "user"; // applicant users have role = "user"
 			} else if (formData.role === "institution") {
 				roleId = "2"; // institution role
-				console.log(
-					"🏫 ProfileService: Updating user role to institution (2)..."
-				);
+				role = "institution"; // institution users must have role = "institution"
 			} else {
 				throw new Error("Invalid role specified");
 			}
 
-			// Update user's role_id
+			// Update user's role_id and role
 			await prismaClient.user.update({
 				where: { id: userId },
-				data: { role_id: roleId },
+				data: { role_id: roleId, role: role },
 			});
 			console.log("✅ ProfileService: User role updated successfully");
 

@@ -21,6 +21,28 @@ export async function DELETE() {
 			},
 		});
 
+		// Check if user is an institution and close all their posts
+		const institution = await prismaClient.institution.findUnique({
+			where: { user_id: userId },
+			select: { institution_id: true },
+		});
+
+		if (institution) {
+			// Close all posts belonging to this institution
+			await prismaClient.opportunityPost.updateMany({
+				where: {
+					institution_id: institution.institution_id,
+					status: {
+						not: "CLOSED", // Only update posts that aren't already closed
+					},
+				},
+				data: {
+					status: "CLOSED",
+					update_at: new Date(),
+				},
+			});
+		}
+
 		// Invalidate all sessions for the user
 		await prismaClient.session.deleteMany({ where: { userId } });
 

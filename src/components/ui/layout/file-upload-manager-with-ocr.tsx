@@ -242,31 +242,64 @@ export function FileUploadManagerWithOCR({
 					}
 				}
 
-				// Step 3: Only upload to S3 if validation passes
-				// Block upload if: validation failed OR action is 'reupload'
-				const shouldUpload =
-					!validation ||
-					(validation.isValid && validation.action !== 'reupload')
+				// Step 3: Only upload to S3 if OCR AND validation are completed
+				// Block upload if:
+				// 1. OCR was not performed when it should be (enableOCR=true and supported file type)
+				// 2. Validation was not performed when there's extracted text
+				// 3. Validation failed or action is 'reupload'
+
+				const ocrRequired =
+					enableOCR && mistralOCRService.isSupportedFileType(file)
+				const ocrPerformed = !!extractedText
+				const validationPerformed = !!validation
+
+				let shouldUpload = true
+				let blockReason = ''
+
+				// Block if OCR should have been performed but wasn't
+				if (ocrRequired && !ocrPerformed) {
+					shouldUpload = false
+					blockReason = 'OCR extraction required but not completed'
+				}
+				// Block if validation should have been performed but wasn't
+				else if (extractedText && !validationPerformed) {
+					shouldUpload = false
+					blockReason = 'Content validation required but not completed'
+				}
+				// Block if validation failed or action is 'reupload'
+				else if (
+					validation &&
+					(!validation.isValid || validation.action === 'reupload')
+				) {
+					shouldUpload = false
+					blockReason = 'File validation failed or requires reupload'
+				}
 
 				if (!shouldUpload) {
 					// eslint-disable-next-line no-console
 					console.log(
-						'⛔ Blocking upload for',
+						'Blocking upload for',
 						file.name,
-						'- validation failed or action=reupload:',
+						'- Reason:',
+						blockReason,
 						{
+							ocrRequired,
+							ocrPerformed,
+							validationPerformed,
 							isValid: validation?.isValid,
 							action: validation?.action,
 							confidence: validation?.confidence,
 						}
-					) // Update status to failed
+					)
+
+					// Update status to failed
 					setProcessingFiles((prev) =>
 						prev.map((p) =>
 							p.tempId === tempId
 								? {
 										...p,
 										status: 'failed',
-										error: 'File validation failed',
+										error: blockReason,
 									}
 								: p
 						)
@@ -280,10 +313,18 @@ export function FileUploadManagerWithOCR({
 					}, 8000)
 
 					return
-				} // eslint-disable-next-line no-console
+				}
+
+				// eslint-disable-next-line no-console
 				console.log(
-					'File passed validation, proceeding with upload:',
-					file.name
+					'File passed all checks, proceeding with upload:',
+					file.name,
+					{
+						ocrRequired,
+						ocrPerformed,
+						validationPerformed,
+						isValid: validation?.isValid,
+					}
 				)
 
 				// Update status
@@ -519,7 +560,8 @@ export function FileUploadManagerWithOCR({
 										'Validating content (it will take 15s - 20s)...'}
 									{file.status === 'uploading' && 'Uploading to cloud...'}
 									{file.status === 'completed' && 'Processing complete'}
-									{file.status === 'failed' && `Failed: ${file.error}`}
+									{file.status === 'failed' &&
+										`⚠️ Upload blocked: ${file.error || 'Processing failed'}`}
 								</p>
 								{/* {file.validation && (
 									<div className="mt-1">
@@ -577,10 +619,15 @@ export function FileUploadManagerWithOCR({
 						</p>
 						<p className="text-xs text-muted-foreground">{maxSize}MB each</p>
 						{enableOCR && (
-							<p className="text-xs text-primary flex items-center justify-center gap-1">
-								<Sparkles className="w-3 h-3" />
-								OCR text extraction is available
-							</p>
+							<div className="text-xs text-primary flex flex-col items-center gap-1">
+								<div className="flex items-center gap-1">
+									<Sparkles className="w-3 h-3" />
+									<span>OCR text extraction & validation required</span>
+								</div>
+								<span className="text-xs text-muted-foreground">
+									Files must pass content validation before upload
+								</span>
+							</div>
 						)}
 					</div>
 				) : (

@@ -1415,6 +1415,177 @@ exports.handler = async (event) => {
 			new targets.LambdaFunction(wishlistDeadlineCron)
 		);
 
+		// Create Lambda function for closing expired posts cron job
+		const closeExpiredPostsCron = new lambda.Function(
+			this,
+			"CloseExpiredPostsCron",
+			{
+				runtime: lambda.Runtime.NODEJS_18_X,
+				handler: "index.handler",
+				code: lambda.Code.fromInline(`
+const https = require('https');
+const http = require('http');
+
+exports.handler = async (event) => {
+  console.log('🔄 Starting close expired posts cron job...');
+  console.log('📦 Event received:', JSON.stringify(event, null, 2));
+  
+  const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';
+  const cronSecret = process.env.CRON_SECRET;
+  
+  console.log('📍 API URL:', apiUrl);
+  console.log('🔑 CRON_SECRET set:', !!cronSecret);
+  
+  if (!cronSecret) {
+    console.warn('⚠️ WARNING: CRON_SECRET not set in Lambda environment variables!');
+    console.warn('⚠️ The API endpoint may reject the request if CRON_SECRET is required.');
+  }
+  
+  try {
+    const url = new URL(apiUrl + '/api/cron/close-expired-posts');
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Only add Authorization header if CRON_SECRET is set
+    if (cronSecret) {
+      headers['Authorization'] = \`Bearer \${cronSecret}\`;
+    }
+    
+    const options = {
+      method: 'POST',
+      headers: headers,
+      timeout: 30000, // 30 seconds
+    };
+    
+    const response = await new Promise((resolve, reject) => {
+      const client = url.protocol === 'https:' ? https : http;
+      
+      const req = client.request(url, options, (res) => {
+        let data = '';
+        
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode,
+            headers: res.headers,
+            body: data,
+          });
+        });
+      });
+      
+      req.on('error', (error) => {
+        reject(error);
+      });
+      
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+      
+      req.end();
+    });
+    
+    console.log('📊 Response status:', response.statusCode);
+    console.log('📊 Response headers:', JSON.stringify(response.headers, null, 2));
+    console.log('📊 Response body length:', response.body ? response.body.length : 0);
+    console.log('📊 Response body preview (first 200 chars):', response.body ? response.body.substring(0, 200) : 'empty');
+    
+    // Check if response is HTML (404 or error page) - check before parsing
+    const bodyStr = response.body || '';
+    const trimmedBody = bodyStr.trim();
+    
+    if (trimmedBody && (trimmedBody.startsWith('<!DOCTYPE') || trimmedBody.startsWith('<html') || trimmedBody.startsWith('<!doctype'))) {
+      console.error('❌ API returned HTML instead of JSON - likely 404 or error page');
+      console.error('❌ Response status:', response.statusCode);
+      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));
+      throw new Error(\`API endpoint returned HTML (likely 404). Status: \${response.statusCode}. The route /api/cron/close-expired-posts does not exist or is not deployed. Please deploy your Next.js app to include this route.\`);
+    }
+    
+    // Check if status code indicates error
+    if (response.statusCode >= 400) {
+      console.error('❌ API returned error status:', response.statusCode);
+      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));
+      throw new Error(\`API endpoint returned error status \${response.statusCode}. Response: \${trimmedBody.substring(0, 200)}\`);
+    }
+    
+    let result;
+    try {
+      result = JSON.parse(bodyStr);
+    } catch (parseError) {
+      console.error('❌ Failed to parse response body as JSON');
+      console.error('❌ Response status:', response.statusCode);
+      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));
+      throw new Error(\`Failed to parse API response as JSON: \${parseError.message}. Response might be HTML or invalid JSON. Status: \${response.statusCode}\`);
+    }
+    
+    if (response.statusCode === 200) {
+      console.log('✅ Cron job executed successfully:', JSON.stringify(result, null, 2));
+      
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          message: 'Close expired posts cron job completed',
+          result,
+        }),
+      };
+    } else {
+      console.error('❌ API returned error:', response.statusCode, result);
+      throw new Error(\`API returned \${response.statusCode}: \${JSON.stringify(result)}\`);
+    }
+  } catch (error) {
+    console.error('❌ Error executing cron job:', error);
+    console.error('❌ Error stack:', error.stack);
+    throw error;
+  }
+};
+      `),
+				role: lambdaRole,
+				timeout: cdk.Duration.seconds(300), // 5 minutes
+				memorySize: 256,
+				logGroup: new logs.LogGroup(
+					this,
+					"CloseExpiredPostsCronLogGroup",
+					{
+						retention: logs.RetentionDays.ONE_WEEK,
+					}
+				),
+				environment: {
+					API_BASE_URL:
+						process.env.API_BASE_URL ||
+						"https://dev.d1jaxpbx3axxsh.amplifyapp.com",
+					CRON_SECRET: process.env.CRON_SECRET || "",
+				},
+			}
+		);
+
+		// Create EventBridge rule to trigger cron job daily at midnight UTC
+		const closeExpiredPostsRule = new events.Rule(
+			this,
+			"CloseExpiredPostsRule",
+			{
+				description:
+					"Close expired posts (programs, scholarships, research labs) daily at midnight UTC",
+				schedule: events.Schedule.cron({
+					minute: "0",
+					hour: "0", // Midnight UTC
+					day: "*",
+					month: "*",
+					year: "*",
+				}),
+				enabled: true,
+			}
+		);
+
+		// Add Lambda as target for EventBridge rule
+		closeExpiredPostsRule.addTarget(
+			new targets.LambdaFunction(closeExpiredPostsCron)
+		);
+
 		// Output important values
 		new cdk.CfnOutput(this, "NotificationsQueueUrl", {
 			value: notificationsQueue.queueUrl,
@@ -1474,6 +1645,18 @@ exports.handler = async (event) => {
 			value: wishlistDeadlineRule.ruleArn,
 			description: "EventBridge Rule ARN for Wishlist Deadline Cron",
 			exportName: "EduMatch-WishlistDeadlineRuleArn",
+		});
+
+		new cdk.CfnOutput(this, "CloseExpiredPostsCronArn", {
+			value: closeExpiredPostsCron.functionArn,
+			description: "Close Expired Posts Cron Lambda ARN",
+			exportName: "EduMatch-CloseExpiredPostsCronArn",
+		});
+
+		new cdk.CfnOutput(this, "CloseExpiredPostsRuleArn", {
+			value: closeExpiredPostsRule.ruleArn,
+			description: "EventBridge Rule ARN for Close Expired Posts Cron",
+			exportName: "EduMatch-CloseExpiredPostsRuleArn",
 		});
 	}
 }

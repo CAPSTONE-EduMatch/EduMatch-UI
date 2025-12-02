@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
 	Search,
@@ -100,13 +100,28 @@ export function MessageDialog({
 	const [threadIdFromUrl, setThreadIdFromUrl] = useState<string | null>(null)
 
 	// Extract threadId from URL path if not passed as prop
+	// Also listen to popstate events to handle browser back/forward
 	useEffect(() => {
-		if (!threadIdProp && typeof window !== 'undefined') {
-			const pathname = window.location.pathname
-			const match = pathname.match(/\/messages\/([^/]+)/)
-			if (match) {
-				setThreadIdFromUrl(match[1])
+		const updateThreadIdFromUrl = () => {
+			if (!threadIdProp && typeof window !== 'undefined') {
+				const pathname = window.location.pathname
+				const match = pathname.match(/\/messages\/([^/]+)/)
+				if (match) {
+					setThreadIdFromUrl(match[1])
+				} else {
+					setThreadIdFromUrl(null)
+				}
 			}
+		}
+
+		// Initial update
+		updateThreadIdFromUrl()
+
+		// Listen to popstate for browser back/forward
+		window.addEventListener('popstate', updateThreadIdFromUrl)
+
+		return () => {
+			window.removeEventListener('popstate', updateThreadIdFromUrl)
 		}
 	}, [threadIdProp])
 
@@ -129,6 +144,7 @@ export function MessageDialog({
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
 	const processedContactRef = useRef<string | null>(null) // Track processed contact to prevent re-processing
+	const isManuallySelectingRef = useRef(false) // Track manual thread selection to prevent useEffect conflicts
 
 	// Get user profile and subscription
 	const { profile, isLoading: profileLoading } = useUserProfile()
@@ -168,11 +184,18 @@ export function MessageDialog({
 	}, [appSyncUser])
 
 	// Handle threadId - navigate to specific thread
+	// This effect only runs when threadId changes from URL/prop, not from manual selection
 	useEffect(() => {
 		const handleThreadSelection = async () => {
 			if (!threadId || !user?.id) return
 
-			// Don't reload if we already have the correct thread selected
+			// Skip if we're manually selecting a thread (to prevent conflicts)
+			if (isManuallySelectingRef.current) {
+				return
+			}
+
+			// Don't reload if we already have the correct thread selected and user is set
+			// This prevents unnecessary reloads when manually selecting threads
 			if (selectedThread?.id === threadId && selectedUser) {
 				return
 			}
@@ -276,7 +299,7 @@ export function MessageDialog({
 			if (contactParam !== null && (!contactParam || !contactParam.trim())) {
 				const url = new URL(window.location.href)
 				url.searchParams.delete('contact')
-				window.history.replaceState({}, '', url.toString())
+				router.replace(url.pathname + url.search, { scroll: false })
 				setIsCheckingThread(false)
 				setShowContactPreview(false)
 				setContactApplicant(null)
@@ -395,8 +418,8 @@ export function MessageDialog({
 							// Silently fail
 						})
 
-						// Update URL - this will remove contact param from URL
-						window.history.pushState({}, '', `/messages/${existingThread.id}`)
+						// Update URL using Next.js router for proper navigation
+						router.push(`/messages/${existingThread.id}`, { scroll: false })
 						// Clear processed ref since we've navigated away from contact param
 						processedContactRef.current = null
 						setIsCheckingThread(false)
@@ -428,20 +451,16 @@ export function MessageDialog({
 									// Fallback - start thread directly and update URL
 									const newThread = await startNewThread(userId)
 									if (newThread?.id) {
-										// Update URL without causing a full page reload or adding history entry
-										window.history.replaceState(
-											{},
-											'',
-											`/messages/${newThread.id}`
-										)
+										// Update URL using Next.js router
+										router.replace(`/messages/${newThread.id}`)
 									}
 								}
 							} catch (error) {
 								// Fallback - start thread directly and update URL
 								const newThread = await startNewThread(userId)
 								if (newThread?.id) {
-									// Update URL and add to history for proper back navigation
-									window.history.pushState({}, '', `/messages/${newThread.id}`)
+									// Update URL using Next.js router for proper navigation
+									router.push(`/messages/${newThread.id}`, { scroll: false })
 								}
 							}
 						}
@@ -488,7 +507,9 @@ export function MessageDialog({
 											// Clear the contact parameter from URL
 											const url = new URL(window.location.href)
 											url.searchParams.delete('contact')
-											window.history.replaceState({}, '', url.toString())
+											router.replace(url.pathname + url.search, {
+												scroll: false,
+											})
 										}
 									} catch (fetchError) {
 										// Fallback - start thread directly
@@ -608,8 +629,8 @@ export function MessageDialog({
 				// Create a new thread with the applicant
 				const newThread = await startNewThread(contactApplicant.id)
 				if (newThread?.id) {
-					// Update URL and add to history for proper back navigation
-					window.history.pushState({}, '', `/messages/${newThread.id}`)
+					// Update URL using Next.js router for proper navigation
+					router.push(`/messages/${newThread.id}`, { scroll: false })
 					return
 				}
 			}
@@ -773,122 +794,176 @@ export function MessageDialog({
 	const isOtherUserTyping = false
 
 	// Convert AppSync threads to the expected format and sort by newest message
-	const formattedThreads: Thread[] = Array.isArray(appSyncThreads)
-		? appSyncThreads
-				.map((appSyncThread) => {
-					// In 1-to-1 chat: find the other participant (not the current user)
-					const otherParticipantId =
-						appSyncThread.user1Id === user?.id
-							? appSyncThread.user2Id
-							: appSyncThread.user1Id
-					const otherUser = users.find((u) => u.id === otherParticipantId)
+	// Memoize to prevent unnecessary recalculations when selecting threads
+	const formattedThreads: Thread[] = useMemo(() => {
+		if (!Array.isArray(appSyncThreads)) {
+			return []
+		}
 
-					// Use the new flat structure from AppSync
-					const otherParticipant = {
-						id: otherParticipantId || '',
-						name:
-							otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
-						image: otherUser?.image,
-						status: otherUser?.status || 'offline',
-					}
+		const threads = appSyncThreads
+			.map((appSyncThread) => {
+				// In 1-to-1 chat: find the other participant (not the current user)
+				const otherParticipantId =
+					appSyncThread.user1Id === user?.id
+						? appSyncThread.user2Id
+						: appSyncThread.user1Id
+				const otherUser = users.find((u) => u.id === otherParticipantId)
 
-					// Create a mock lastMessage object from the string
+				// Use the new flat structure from AppSync
+				const otherParticipant = {
+					id: otherParticipantId || '',
+					name: otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
+					image: otherUser?.image,
+					status: otherUser?.status || 'offline',
+				}
 
-					const lastMessage =
-						appSyncThread.lastMessage && appSyncThread.lastMessage.trim()
-							? {
-									id: 'last-message',
-									threadId: appSyncThread.id,
-									senderId:
-										appSyncThread.lastMessageSenderId || otherParticipant.id,
-									content: appSyncThread.lastMessage,
-									sender: {
-										id:
-											appSyncThread.lastMessageSenderId || otherParticipant.id,
-										name:
-											appSyncThread.lastMessageSenderName ||
-											otherParticipant.name,
-										image:
-											appSyncThread.lastMessageSenderImage ||
-											otherParticipant.image,
-									},
-									fileUrl: appSyncThread.lastMessageFileUrl,
-									fileName: appSyncThread.lastMessageFileName,
-									mimeType: appSyncThread.lastMessageMimeType,
-									isRead: true,
-									createdAt: (() => {
-										const dateStr =
-											appSyncThread.lastMessageAt || appSyncThread.updatedAt
-										const date = new Date(dateStr)
-										return isNaN(date.getTime()) ? new Date() : date
-									})(),
-								}
-							: undefined
+				// Create a mock lastMessage object from the string
 
-					return {
-						id: appSyncThread.id,
-						title: otherParticipant.name,
-						lastMessage,
-						participants: [
-							{
-								id: user?.id || '',
-								name: user?.name || '',
-								image: user?.image,
-							},
-							{
-								id: otherParticipant.id,
-								name: otherParticipant.name,
-								image: otherParticipant.image,
-							},
-						],
-						unreadCount: appSyncThread.unreadCount || 0,
-						updatedAt: new Date(appSyncThread.updatedAt),
-					}
-				})
-				.sort((a, b) => {
-					// Sort by lastMessageAt if available, otherwise by updatedAt
-					const aTime = a.lastMessage?.createdAt || a.updatedAt
-					const bTime = b.lastMessage?.createdAt || b.updatedAt
-					return new Date(bTime).getTime() - new Date(aTime).getTime()
-				})
-		: []
+				const lastMessage =
+					appSyncThread.lastMessage && appSyncThread.lastMessage.trim()
+						? {
+								id: 'last-message',
+								threadId: appSyncThread.id,
+								senderId:
+									appSyncThread.lastMessageSenderId || otherParticipant.id,
+								content: appSyncThread.lastMessage,
+								sender: {
+									id: appSyncThread.lastMessageSenderId || otherParticipant.id,
+									name:
+										appSyncThread.lastMessageSenderName ||
+										otherParticipant.name,
+									image:
+										appSyncThread.lastMessageSenderImage ||
+										otherParticipant.image,
+								},
+								fileUrl: appSyncThread.lastMessageFileUrl,
+								fileName: appSyncThread.lastMessageFileName,
+								mimeType: appSyncThread.lastMessageMimeType,
+								isRead: true,
+								createdAt: (() => {
+									const dateStr =
+										appSyncThread.lastMessageAt || appSyncThread.updatedAt
+									const date = new Date(dateStr)
+									return isNaN(date.getTime()) ? new Date() : date
+								})(),
+							}
+						: undefined
 
-	// Handle selecting an existing thread
-	const selectExistingThread = async (thread: Thread) => {
-		// Set the thread locally first
-		setSelectedThread(thread)
-		setIsInitialLoad(true) // Mark as initial load for this thread
-		setShouldAutoScroll(true) // Reset auto-scroll flag
+				return {
+					id: appSyncThread.id,
+					title: otherParticipant.name,
+					lastMessage,
+					participants: [
+						{
+							id: user?.id || '',
+							name: user?.name || '',
+							image: user?.image,
+						},
+						{
+							id: otherParticipant.id,
+							name: otherParticipant.name,
+							image: otherParticipant.image,
+						},
+					],
+					unreadCount: appSyncThread.unreadCount || 0,
+					updatedAt: new Date(appSyncThread.updatedAt),
+				}
+			})
+			.sort((a, b) => {
+				// Sort by lastMessageAt if available, otherwise by updatedAt
+				const aTime = a.lastMessage?.createdAt || a.updatedAt
+				const bTime = b.lastMessage?.createdAt || b.updatedAt
+				return new Date(bTime).getTime() - new Date(aTime).getTime()
+			})
 
-		// Use AppSync to select thread
-		selectThread(thread.id)
+		// Filter threads based on search query
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase().trim()
+			return threads.filter((thread) => {
+				// Search in thread title (other participant's name)
+				const titleMatch = thread.title.toLowerCase().includes(query)
 
-		// Find the other participant (not the current user)
-		const otherParticipant = thread.participants.find((p) => p.id !== user?.id)
-		if (otherParticipant) {
-			// Find the user in the users list to get their current status
-			const userWithStatus = users.find((u) => u.id === otherParticipant.id)
-			setSelectedUser({
-				id: otherParticipant.id,
-				name: otherParticipant.name,
-				email: userWithStatus?.email || '', // Get email from users list
-				image: otherParticipant.image,
-				status: userWithStatus?.status || 'offline', // Get actual status
+				// Search in last message content
+				const messageMatch = thread.lastMessage?.content
+					?.toLowerCase()
+					.includes(query)
+
+				// Search in participant email (if available in users list)
+				const otherParticipant = thread.participants.find(
+					(p) => p.id !== user?.id
+				)
+				const userData = users.find((u) => u.id === otherParticipant?.id)
+				const emailMatch = userData?.email?.toLowerCase().includes(query)
+
+				return titleMatch || messageMatch || emailMatch
 			})
 		}
 
-		// Load messages for this thread
-		await loadMessages(thread.id)
+		return threads
+	}, [appSyncThreads, users, user?.id, user?.name, user?.image, searchQuery])
 
-		// Clear unread count for this thread when selected
-		try {
-			await clearUnreadCount(thread.id)
-		} catch (error) {
-			// Handle error silently
+	// Handle selecting an existing thread
+	const selectExistingThread = async (thread: Thread) => {
+		// Don't do anything if clicking the same thread
+		if (selectedThread?.id === thread.id) {
+			return
 		}
 
-		// Update URL and add to history for proper back navigation
-		window.history.pushState({}, '', `/messages/${thread.id}`)
+		// Mark that we're manually selecting to prevent useEffect from interfering
+		isManuallySelectingRef.current = true
+
+		try {
+			// Find the other participant first (before setting thread)
+			const otherParticipant = thread.participants.find(
+				(p) => p.id !== user?.id
+			)
+
+			// Update URL immediately using history API (no navigation, no flash)
+			if (typeof window !== 'undefined') {
+				window.history.pushState({}, '', `/messages/${thread.id}`)
+			}
+
+			// Update threadIdFromUrl state immediately to keep it in sync
+			setThreadIdFromUrl(thread.id)
+
+			// Set selectedUser immediately to prevent full page loading
+			if (otherParticipant) {
+				// Find the user in the users list to get their current status
+				const userWithStatus = users.find((u) => u.id === otherParticipant.id)
+				setSelectedUser({
+					id: otherParticipant.id,
+					name: otherParticipant.name,
+					email: userWithStatus?.email || '', // Get email from users list
+					image: otherParticipant.image,
+					status: userWithStatus?.status || 'offline', // Get actual status
+				})
+			}
+
+			// IMPORTANT: Clear messages first to prevent showing old thread messages
+			// This ensures a clean transition between threads
+			// The messages will be loaded fresh by loadMessages below
+
+			// Set the thread locally first for immediate UI update
+			setSelectedThread(thread)
+			setIsInitialLoad(true) // Mark as initial load for this thread
+			setShouldAutoScroll(true) // Reset auto-scroll flag
+
+			// Use AppSync to select thread and load messages
+			// This will update the messages state in the hook
+			// We await this to ensure messages are loaded before rendering
+			await selectThread(thread.id)
+			await loadMessages(thread.id)
+
+			// Clear unread count for this thread when selected (non-blocking)
+			clearUnreadCount(thread.id).catch(() => {
+				// Silently handle errors
+			})
+		} finally {
+			// Reset the flag after a short delay to allow URL to update
+			setTimeout(() => {
+				isManuallySelectingRef.current = false
+			}, 100)
+		}
 	}
 
 	// Fetch users once when component mounts and user is available - optimized
@@ -1181,7 +1256,7 @@ export function MessageDialog({
 			{/* Main Chat Area */}
 			<div className="flex-1 flex flex-col">
 				{(isCheckingThread || isLoadingThread) && !selectedUser && threadId ? (
-					/* Loading State - only show when not already in a thread */
+					/* Loading State - only show when not already in a thread and not transitioning */
 					<div className="flex-1 flex items-center justify-center">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -1235,14 +1310,27 @@ export function MessageDialog({
 							ref={messagesContainerRef}
 							className="flex-1 overflow-y-auto p-4 space-y-4"
 						>
-							{Array.isArray(messages) && messages.length === 0 ? (
-								<div className="text-center text-gray-500 py-8">
-									No messages yet. Start the conversation!
-								</div>
-							) : Array.isArray(messages) ? (
-								messages.map((message, index) => {
+							{(() => {
+								// Filter messages to only show messages for the currently selected thread
+								// This prevents showing messages from previous thread during transition
+								const threadMessages = Array.isArray(messages)
+									? messages.filter(
+											(msg) => msg.threadId === selectedThread?.id
+										)
+									: []
+
+								if (threadMessages.length === 0) {
+									return (
+										<div className="text-center text-gray-500 py-8">
+											No messages yet. Start the conversation!
+										</div>
+									)
+								}
+
+								return threadMessages.map((message, index) => {
 									// Get previous message date for date comparison
-									const previousMessage = index > 0 ? messages[index - 1] : null
+									const previousMessage =
+										index > 0 ? threadMessages[index - 1] : null
 									return (
 										<div
 											key={message.id}
@@ -1302,31 +1390,11 @@ export function MessageDialog({
 															) : (
 																<div className="relative group">
 																	<button
-																		onClick={async () => {
+																		onClick={() => {
 																			if (!message.fileUrl) return
-
-																			// For PDFs and images, open in new tab for preview
-																			// For other files, download directly
-																			const isPreviewable =
-																				message.mimeType?.startsWith(
-																					'image/'
-																				) ||
-																				message.mimeType ===
-																					'application/pdf' ||
-																				message.mimeType?.startsWith('text/')
-
-																			if (isPreviewable) {
-																				// Open in new tab for preview (requires session)
-																				openSessionProtectedFile(
-																					message.fileUrl
-																				)
-																			} else {
-																				// Download for other file types (requires session)
-																				await downloadSessionProtectedFile(
-																					message.fileUrl,
-																					message.fileName || 'download'
-																				)
-																			}
+																			// Always open in new tab for preview (for all file types)
+																			// Uses proxy route which requires authentication
+																			openSessionProtectedFile(message.fileUrl)
 																		}}
 																		className={`flex items-center justify-between p-3 rounded-lg hover:opacity-80 transition-all duration-200 cursor-pointer w-full text-left ${
 																			message.senderId === user.id
@@ -1366,52 +1434,17 @@ export function MessageDialog({
 																			if (!message.fileUrl) return
 
 																			try {
-																				// Try to fetch the file first to ensure it's accessible
-																				const response = await fetch(
+																				// Use the download function which handles authentication
+																				await downloadSessionProtectedFile(
 																					message.fileUrl,
-																					{
-																						method: 'GET',
-																						mode: 'cors',
-																					}
+																					message.fileName || 'download'
 																				)
-
-																				if (response.ok) {
-																					// Get the blob from the response
-																					const blob = await response.blob()
-
-																					// Create a blob URL
-																					const blobUrl =
-																						window.URL.createObjectURL(blob)
-
-																					// Create a temporary anchor element to trigger download
-																					const link =
-																						document.createElement('a')
-																					link.href = blobUrl
-																					link.download =
-																						message.fileName || 'download'
-																					link.style.display = 'none'
-																					document.body.appendChild(link)
-																					link.click()
-																					document.body.removeChild(link)
-
-																					// Clean up the blob URL
-																					window.URL.revokeObjectURL(blobUrl)
-																				} else {
-																					// If fetch fails, try the direct download method
-																					const link =
-																						document.createElement('a')
-																					link.href = message.fileUrl
-																					link.download =
-																						message.fileName || 'download'
-																					link.target = '_blank'
-																					link.style.display = 'none'
-																					document.body.appendChild(link)
-																					link.click()
-																					document.body.removeChild(link)
-																				}
 																			} catch (error) {
-																				// Fallback: try to open in new tab
-																				window.open(message.fileUrl, '_blank')
+																				// eslint-disable-next-line no-console
+																				console.error('Download failed:', error)
+																				alert(
+																					'Failed to download file. Please try again.'
+																				)
 																			}
 																		}}
 																		className="absolute top-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-opacity-90"
@@ -1466,7 +1499,7 @@ export function MessageDialog({
 										</div>
 									)
 								})
-							) : null}
+							})()}
 
 							{/* Typing indicator for 1-to-1 chat */}
 							{isOtherUserTyping && selectedUser && (

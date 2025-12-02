@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { ProtectedImg } from '@/components/ui/ProtectedImage'
-import { openSessionProtectedFile } from '@/utils/files/getSessionProtectedFileUrl'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
 import { Download } from 'lucide-react'
 
 interface MessageImageProps {
@@ -34,7 +37,7 @@ export function MessageImage({
 			onDownload()
 		} else if (src) {
 			try {
-				openSessionProtectedFile(src)
+				await downloadSessionProtectedFile(src, fileName || 'image')
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('Failed to download image:', error)

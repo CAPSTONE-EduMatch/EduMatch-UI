@@ -3,6 +3,7 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
+import { checkMessagingRelationshipInAppSync } from "@/utils/files/checkMessagingRelationship";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -91,70 +92,124 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// SECURITY CHECK: Basic ownership validation
-		// Check if file is in user's folder (users/{userId}/...)
+		// SECURITY CHECK: Ownership validation
 		const keyParts = s3Key.split("/");
 		if (keyParts.length >= 2 && keyParts[0] === "users") {
 			const fileOwnerId = keyParts[1];
 
+			// eslint-disable-next-line no-console
+			console.log(
+				`[Protected Image] Access check: User ${user.id} (${user.role}) accessing file ${s3Key} owned by ${fileOwnerId}`
+			);
+
 			// Allow access if:
 			// 1. User owns the file, OR
-			// 2. User is admin/institution (can access applicant files), OR
-			// 3. Users are messaging each other (for any files in user folder)
+			// 2. Users are messaging each other (for any files in user folder), OR
+			// 3. User is admin/institution (can access applicant files) - only if no messaging relationship
 			if (fileOwnerId !== user.id) {
 				const isAuthorizedRole =
 					user.role === "admin" ||
 					user.role === "institution" ||
 					user.role === "moderator";
 
+				// Always check for messaging relationship first (regardless of role)
+				// Check AppSync for thread relationship
 				let hasMessagingRelationship = false;
-				if (!isAuthorizedRole) {
-					// Check if users have a messaging relationship (Box exists)
-					// Allow access to any file if users are messaging each other
-					try {
-						const box = await prismaClient.box.findFirst({
-							where: {
-								OR: [
-									{
-										user_one_id: user.id,
-										user_two_id: fileOwnerId,
-									},
-									{
-										user_one_id: fileOwnerId,
-										user_two_id: user.id,
-									},
-								],
-							},
+				try {
+					hasMessagingRelationship =
+						await checkMessagingRelationshipInAppSync(
+							user.id,
+							fileOwnerId
+						);
+					// eslint-disable-next-line no-console
+					console.log(
+						`[Protected Image] AppSync Thread check: ${hasMessagingRelationship ? "Found" : "Not found"}`
+					);
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.error(
+						"[Protected Image] Error checking AppSync threads:",
+						error
+					);
+					// Fail closed for messaging check errors
+					hasMessagingRelationship = false;
+				}
+
+				// If no messaging relationship, check role-based permissions
+				if (!hasMessagingRelationship) {
+					// For authorized roles, allow access to applicant files
+					// But we need to check if the file owner is an applicant
+					if (isAuthorizedRole) {
+						// Check if file owner is an applicant
+						const fileOwner = await prismaClient.user.findUnique({
+							where: { id: fileOwnerId },
 							select: {
-								box_id: true,
+								role: true,
+								applicant: {
+									select: {
+										applicant_id: true,
+									},
+								},
 							},
 						});
 
-						hasMessagingRelationship = !!box;
-					} catch (error) {
 						// eslint-disable-next-line no-console
-						console.error(
-							"Error checking messaging relationship:",
-							error
+						console.log(
+							`[Protected Image] File owner check: ${fileOwner?.role || "unknown"} - Has applicant: ${!!fileOwner?.applicant}`
 						);
-						// Fail closed for messaging check errors
-						hasMessagingRelationship = false;
+
+						// Only allow if file owner is an applicant (not another institution)
+						if (
+							fileOwner?.role === "applicant" ||
+							fileOwner?.applicant
+						) {
+							// Allow access - institution/admin can access applicant files
+							// eslint-disable-next-line no-console
+							console.log(
+								`[Protected Image] ✅ Allowed: Authorized role accessing applicant file`
+							);
+						} else {
+							// eslint-disable-next-line no-console
+							console.warn(
+								`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId} (${fileOwner?.role}). No messaging relationship and not an applicant file.`
+							);
+							return NextResponse.json(
+								{
+									error: "You don't have permission to access this file",
+								},
+								{ status: 403 }
+							);
+						}
+					} else {
+						// No messaging relationship and not an authorized role - deny access
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
+						);
+						return NextResponse.json(
+							{
+								error: "You don't have permission to access this file",
+							},
+							{ status: 403 }
+						);
 					}
+				} else {
+					// eslint-disable-next-line no-console
+					console.log(
+						`[Protected Image] ✅ Allowed: Messaging relationship exists in AppSync`
+					);
 				}
 
-				if (!isAuthorizedRole && !hasMessagingRelationship) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`Unauthorized file access: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
-					);
-					return NextResponse.json(
-						{
-							error: "You don't have permission to access this file",
-						},
-						{ status: 403 }
-					);
-				}
+				// If hasMessagingRelationship is true, allow access (continue to generate URL)
+			} else {
+				// eslint-disable-next-line no-console
+				console.log(`[Protected Image] ✅ Allowed: User owns the file`);
 			}
+		} else {
+			// eslint-disable-next-line no-console
+			console.log(
+				`[Protected Image] ⚠️ File not in users/ folder, allowing access: ${s3Key}`
+			);
 		}
 
 		// Parse expiration time (default: 1 hour, max: 7 days)

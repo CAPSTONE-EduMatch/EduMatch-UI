@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 		// Authenticate user
 		const { user: currentUser } = await requireAuth();
 
-		// Get all users with their last seen status
+		// Get all users with their last seen status, including applicant and institution data
 		const users = await prismaClient.user.findMany({
 			where: {
 				id: { not: currentUser.id }, // Exclude current user
@@ -52,6 +52,17 @@ export async function GET(request: NextRequest) {
 				email: true,
 				image: true,
 				updatedAt: true, // Use updatedAt as last seen indicator
+				applicant: {
+					select: {
+						first_name: true,
+						last_name: true,
+					},
+				},
+				institution: {
+					select: {
+						name: true,
+					},
+				},
 			},
 			orderBy: {
 				email: "asc", // Order by email since name might be null
@@ -62,17 +73,33 @@ export async function GET(request: NextRequest) {
 		const now = new Date();
 		const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-		const usersWithStatus = users.map((user) => ({
-			id: user.id,
-			name: user.name || "Unknown User",
-			email: user.email || "",
-			image: user.image,
-			status:
-				user.updatedAt && user.updatedAt > fiveMinutesAgo
-					? "online"
-					: "offline",
-			lastSeen: user.updatedAt,
-		}));
+		const usersWithStatus = users.map((user) => {
+			// Determine the correct name based on user type
+			let displayName = "Unknown User";
+			if (user.applicant?.first_name || user.applicant?.last_name) {
+				// For applicants: use first_name + last_name
+				displayName =
+					`${user.applicant.first_name || ""} ${user.applicant.last_name || ""}`.trim();
+			} else if (user.institution?.name) {
+				// For institutions: use institution name
+				displayName = user.institution.name;
+			} else if (user.name) {
+				// Fallback to User.name
+				displayName = user.name;
+			}
+
+			return {
+				id: user.id,
+				name: displayName,
+				email: user.email || "",
+				image: user.image,
+				status:
+					user.updatedAt && user.updatedAt > fiveMinutesAgo
+						? "online"
+						: "offline",
+				lastSeen: user.updatedAt,
+			};
+		});
 
 		return new Response(
 			JSON.stringify({

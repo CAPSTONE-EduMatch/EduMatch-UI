@@ -91,6 +91,8 @@ export const useAppSyncMessaging = () => {
 		try {
 			setLoading(true);
 			setError(null);
+			// Clear messages first to prevent showing old thread messages during transition
+			setMessages([]);
 			const messagesData = await getMessages(threadId);
 			setMessages(messagesData);
 		} catch (err) {

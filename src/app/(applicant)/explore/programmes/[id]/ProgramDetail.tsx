@@ -155,8 +155,16 @@ const ProgramDetail = () => {
 	}) => {
 		if (!institution) return null
 
-		// Check for non-active status (enum values: PENDING, REJECTED, or legacy boolean false)
-		if (institution.status !== 'ACTIVE' && institution.status !== true) {
+		// Check for non-approved status
+		// The API returns verification_status as 'status' field
+		// verification_status can be: PENDING, APPROVED, REJECTED
+		// Also handle legacy boolean status field
+		const isApproved =
+			institution.status === 'APPROVED' ||
+			institution.status === true ||
+			institution.status === 'ACTIVE' // Legacy support
+
+		if (!isApproved) {
 			const statusLabel =
 				institution.status === 'PENDING'
 					? 'Pending Approval'

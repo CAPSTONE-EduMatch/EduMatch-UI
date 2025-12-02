@@ -32,7 +32,8 @@ interface ResearchLabCardProps {
 	applicationId?: string
 	onUpdateRequest?: (applicationId: string) => void
 	institutionStatus?: {
-		isActive: boolean
+		isActive?: boolean
+		status?: string | boolean
 	}
 }
 
@@ -54,10 +55,39 @@ export function ResearchLabCard({
 	const daysLeft = calculateDaysLeft(lab.date)
 
 	// Utility function to get institution status
-	const getInstitutionStatus = (institutionStatus?: { isActive: boolean }) => {
+	const getInstitutionStatus = (institutionStatus?: {
+		isActive?: boolean
+		status?: string | boolean
+	}) => {
 		if (!institutionStatus) return null
 
-		// Only show badge if isActive is explicitly false (boolean)
+		// If raw status is provided, use it (matches detail page logic)
+		if (institutionStatus.status !== undefined) {
+			const isApproved =
+				institutionStatus.status === 'APPROVED' ||
+				institutionStatus.status === true ||
+				institutionStatus.status === 'ACTIVE' // Legacy support
+
+			if (!isApproved) {
+				const statusLabel =
+					institutionStatus.status === 'PENDING'
+						? 'Pending Approval'
+						: institutionStatus.status === 'REJECTED'
+							? 'Account Rejected'
+							: 'Account Deactivated'
+				return {
+					type: 'deactivated' as const,
+					label: statusLabel,
+					color:
+						institutionStatus.status === 'PENDING'
+							? 'bg-blue-100 text-blue-800 border-blue-200'
+							: 'bg-orange-100 text-orange-800 border-orange-200',
+				}
+			}
+			return null
+		}
+
+		// Fallback to isActive boolean (for backward compatibility)
 		if (institutionStatus.isActive === false) {
 			return {
 				type: 'deactivated' as const,
@@ -72,7 +102,8 @@ export function ResearchLabCard({
 	// Institution status badge component
 	const InstitutionStatusBadge: React.FC<{
 		institutionStatus?: {
-			isActive: boolean
+			isActive?: boolean
+			status?: string | boolean
 		}
 	}> = ({ institutionStatus }) => {
 		const status = getInstitutionStatus(institutionStatus)

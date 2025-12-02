@@ -115,9 +115,15 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 
 			applications.forEach((app) => {
 				// Convert institution status enum to isActive boolean
-				// ACTIVE = active (true), PENDING/DENIED = not active (false)
+				// APPROVED = active (true), PENDING/REJECTED = not active (false)
+				// The API returns verification_status as 'status' field
+				// Pass both status and isActive so cards can show detailed badges
 				const institutionStatus = {
-					isActive: app.post.institution.status === 'ACTIVE',
+					status: app.post.institution.status, // Pass raw status for detailed badges
+					isActive:
+						app.post.institution.status === 'APPROVED' ||
+						app.post.institution.status === true ||
+						app.post.institution.status === 'ACTIVE', // Legacy support
 				}
 
 				// Convert application post to explore format based on post type

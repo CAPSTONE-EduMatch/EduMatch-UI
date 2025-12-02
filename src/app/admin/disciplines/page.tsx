@@ -4,71 +4,13 @@ import { AdminTable } from '@/components/admin/AdminTable'
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
-import { ChevronRight, Plus, Users } from 'lucide-react'
+import type { Subdiscipline } from '@/hooks/admin/useAdminDisciplines'
+import { useAdminDisciplines } from '@/hooks/admin/useAdminDisciplines'
+import { ChevronRight, Loader2, Plus, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-interface Subdiscipline {
-	id: string
-	subdisciplineName: string
-	discipline: string
-	status: 'Active' | 'Inactive'
-	createdAt: string
-}
-
-const mockSubdisciplines: Subdiscipline[] = [
-	{
-		id: 'SD001',
-		subdisciplineName: 'Artificial Intelligence',
-		discipline: 'Computer Science',
-		status: 'Active',
-		createdAt: '01/01/2024',
-	},
-	{
-		id: 'SD002',
-		subdisciplineName: 'Machine Learning',
-		discipline: 'Computer Science',
-		status: 'Active',
-		createdAt: '01/02/2024',
-	},
-	{
-		id: 'SD003',
-		subdisciplineName: 'Organic Chemistry',
-		discipline: 'Chemistry',
-		status: 'Active',
-		createdAt: '01/03/2024',
-	},
-	{
-		id: 'SD004',
-		subdisciplineName: 'Quantum Physics',
-		discipline: 'Physics',
-		status: 'Inactive',
-		createdAt: '01/04/2024',
-	},
-	{
-		id: 'SD005',
-		subdisciplineName: 'Microeconomics',
-		discipline: 'Economics',
-		status: 'Active',
-		createdAt: '01/05/2024',
-	},
-	{
-		id: 'SD006',
-		subdisciplineName: 'Molecular Biology',
-		discipline: 'Biology',
-		status: 'Active',
-		createdAt: '01/06/2024',
-	},
-	{
-		id: 'SD007',
-		subdisciplineName: 'Data Structures',
-		discipline: 'Computer Science',
-		status: 'Active',
-		createdAt: '01/07/2024',
-	},
-]
-
-const getStatusColor = (status: Subdiscipline['status']) => {
+const getStatusColor = (status: 'Active' | 'Inactive') => {
 	switch (status) {
 		case 'Active':
 			return 'bg-[#126E64] text-white'
@@ -81,72 +23,68 @@ const getStatusColor = (status: Subdiscipline['status']) => {
 
 export default function AdminDisciplinesPage() {
 	const router = useRouter()
+	const {
+		subdisciplines,
+		disciplines,
+		stats,
+		pagination,
+		isLoading,
+		updateFilters,
+		setPage,
+		updateSubdiscipline,
+		isUpdating,
+	} = useAdminDisciplines()
+
 	const [searchQuery, setSearchQuery] = useState('')
-	const [currentPage, setCurrentPage] = useState(1)
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
-	const [sortBy, setSortBy] = useState('newest')
+	const [sortBy, setSortBy] = useState('name-asc')
 	const [selectedSubdiscipline, setSelectedSubdiscipline] =
 		useState<Subdiscipline | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 
 	// Edit form state
 	const [editedName, setEditedName] = useState('')
-	const [editedDiscipline, setEditedDiscipline] = useState('')
+	const [editedDisciplineId, setEditedDisciplineId] = useState('')
 	const [editedStatus, setEditedStatus] = useState<'Active' | 'Inactive'>(
 		'Active'
 	)
 
-	// Filter subdisciplines based on search and filters
-	const filteredSubdisciplines = mockSubdisciplines.filter((subdiscipline) => {
-		const matchesSearch =
-			searchQuery === '' ||
-			subdiscipline.subdisciplineName
-				.toLowerCase()
-				.includes(searchQuery.toLowerCase()) ||
-			subdiscipline.discipline.toLowerCase().includes(searchQuery.toLowerCase())
-		const matchesStatus =
-			statusFilter.length === 0 || statusFilter.includes(subdiscipline.status)
-		return matchesSearch && matchesStatus
-	})
+	// Update filters when search/status/sort changes
+	useEffect(() => {
+		const statusValue =
+			statusFilter.length === 0
+				? 'all'
+				: statusFilter.length === 1
+					? statusFilter[0].toLowerCase()
+					: 'all'
 
-	// Sort subdisciplines
-	const sortedSubdisciplines = [...filteredSubdisciplines].sort((a, b) => {
-		switch (sortBy) {
-			case 'newest':
-				return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-			case 'oldest':
-				return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-			case 'name-asc':
-				return a.subdisciplineName.localeCompare(b.subdisciplineName)
-			case 'name-desc':
-				return b.subdisciplineName.localeCompare(a.subdisciplineName)
-			case 'discipline-asc':
-				return a.discipline.localeCompare(b.discipline)
-			case 'discipline-desc':
-				return b.discipline.localeCompare(a.discipline)
-			default:
-				return 0
-		}
-	})
+		const sortDirection = sortBy.includes('desc') ? 'desc' : 'asc'
+		const sortField = sortBy.includes('name') ? 'name' : 'name'
 
-	const totalPages = Math.ceil(sortedSubdisciplines.length / 10)
-	const paginatedSubdisciplines = sortedSubdisciplines.slice(
-		(currentPage - 1) * 10,
-		currentPage * 10
-	)
+		updateFilters({
+			search: searchQuery,
+			status: statusValue as 'all' | 'active' | 'inactive',
+			sortBy: sortField,
+			sortDirection,
+		})
+	}, [searchQuery, statusFilter, sortBy, updateFilters])
 
 	const handleViewDetails = (subdiscipline: Subdiscipline) => {
 		setSelectedSubdiscipline(subdiscipline)
 		setEditedName(subdiscipline.subdisciplineName)
-		setEditedDiscipline(subdiscipline.discipline)
+		setEditedDisciplineId(subdiscipline.disciplineId)
 		setEditedStatus(subdiscipline.status)
 		setIsModalOpen(true)
 	}
 
-	const handleSaveChanges = () => {
-		// TODO: Implement save logic for updating subdiscipline
-		// API call would go here to update the subdiscipline with:
-		// { id: selectedSubdiscipline?.id, subdisciplineName: editedName, discipline: editedDiscipline, status: editedStatus }
+	const handleSaveChanges = async () => {
+		if (!selectedSubdiscipline) return
+
+		await updateSubdiscipline(selectedSubdiscipline.id, {
+			name: editedName,
+			status: editedStatus,
+			disciplineId: editedDisciplineId,
+		})
 		setIsModalOpen(false)
 	}
 
@@ -246,7 +184,11 @@ export default function AdminDisciplinesPage() {
 									Total subdisciplines
 								</p>
 								<p className="text-2xl font-semibold text-[#989898]">
-									{mockSubdisciplines.length}
+									{isLoading ? (
+										<Loader2 className="w-5 h-5 animate-spin" />
+									) : (
+										stats.total
+									)}
 								</p>
 							</div>
 						</CardContent>
@@ -263,10 +205,11 @@ export default function AdminDisciplinesPage() {
 									Active subdisciplines
 								</p>
 								<p className="text-2xl font-semibold text-[#989898]">
-									{
-										mockSubdisciplines.filter((s) => s.status === 'Active')
-											.length
-									}
+									{isLoading ? (
+										<Loader2 className="w-5 h-5 animate-spin" />
+									) : (
+										stats.active
+									)}
 								</p>
 							</div>
 						</CardContent>
@@ -283,10 +226,11 @@ export default function AdminDisciplinesPage() {
 									Inactive subdisciplines
 								</p>
 								<p className="text-2xl font-semibold text-[#989898]">
-									{
-										mockSubdisciplines.filter((s) => s.status === 'Inactive')
-											.length
-									}
+									{isLoading ? (
+										<Loader2 className="w-5 h-5 animate-spin" />
+									) : (
+										stats.inactive
+									)}
 								</p>
 							</div>
 						</CardContent>
@@ -332,19 +276,25 @@ export default function AdminDisciplinesPage() {
 				{/* Subdisciplines Table */}
 				<div>
 					<h2 className="text-2xl font-bold text-black mb-6">
-						Subdisciplines ({sortedSubdisciplines.length} total)
+						Subdisciplines ({pagination.totalCount} total)
 					</h2>
 
-					<AdminTable
-						data={paginatedSubdisciplines}
-						columns={columns}
-						currentPage={currentPage}
-						totalPages={totalPages}
-						totalItems={sortedSubdisciplines.length}
-						itemsPerPage={10}
-						onPageChange={setCurrentPage}
-						emptyMessage="No subdisciplines found matching your criteria."
-					/>
+					{isLoading ? (
+						<div className="flex items-center justify-center py-12">
+							<Loader2 className="w-8 h-8 animate-spin text-[#126E64]" />
+						</div>
+					) : (
+						<AdminTable
+							data={subdisciplines}
+							columns={columns}
+							currentPage={pagination.currentPage}
+							totalPages={pagination.totalPages}
+							totalItems={pagination.totalCount}
+							itemsPerPage={pagination.limit}
+							onPageChange={setPage}
+							emptyMessage="No subdisciplines found matching your criteria."
+						/>
+					)}
 				</div>
 			</div>
 
@@ -389,12 +339,17 @@ export default function AdminDisciplinesPage() {
 							Discipline
 						</label>
 						<div className="bg-gray-50 border-2 border-gray-200 rounded-[16px] px-4 py-3 focus-within:border-[#126E64] focus-within:bg-white transition-all">
-							<input
-								type="text"
-								value={editedDiscipline}
-								onChange={(e) => setEditedDiscipline(e.target.value)}
+							<select
+								value={editedDisciplineId}
+								onChange={(e) => setEditedDisciplineId(e.target.value)}
 								className="w-full text-base text-gray-900 outline-none bg-transparent"
-							/>
+							>
+								{disciplines.map((d) => (
+									<option key={d.id} value={d.id}>
+										{d.name}
+									</option>
+								))}
+							</select>
 						</div>
 					</div>
 
@@ -433,13 +388,16 @@ export default function AdminDisciplinesPage() {
 					<div className="flex gap-4 pt-4">
 						<button
 							onClick={handleSaveChanges}
-							className="flex-1 bg-[#126E64] hover:bg-[#0f5850] text-white rounded-[16px] px-6 py-3 text-base font-semibold transition-colors"
+							disabled={isUpdating}
+							className="flex-1 bg-[#126E64] hover:bg-[#0f5850] text-white rounded-[16px] px-6 py-3 text-base font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 						>
+							{isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
 							Save Changes
 						</button>
 						<button
 							onClick={() => setIsModalOpen(false)}
-							className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-[16px] px-6 py-3 text-base font-semibold transition-colors"
+							disabled={isUpdating}
+							className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-[16px] px-6 py-3 text-base font-semibold transition-colors disabled:opacity-50"
 						>
 							Cancel
 						</button>
@@ -449,5 +407,3 @@ export default function AdminDisciplinesPage() {
 		</div>
 	)
 }
-
-// Discipline not done. Need to correct the flow

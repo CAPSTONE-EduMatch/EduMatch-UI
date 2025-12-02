@@ -555,7 +555,10 @@ export async function PUT(request: NextRequest) {
 				"DRAFT",
 				"PUBLISHED",
 				"CLOSED",
-				"ARCHIVED",
+				"SUBMITTED",
+				"UPDATED",
+				"REQUIRE_UPDATE",
+				"DELETED",
 			];
 
 			if (!validStatuses.includes(updateData.status as PostStatus)) {

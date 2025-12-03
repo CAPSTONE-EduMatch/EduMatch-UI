@@ -7,25 +7,6 @@ interface ValidationRequest {
 	stream: boolean;
 }
 
-interface ValidationResponse {
-	model: string;
-	created_at: string;
-	done: boolean;
-	done_reason: string;
-	eval_count: number;
-	eval_duration: number;
-	load_duration: number;
-	message: {
-		role: string;
-		content: string;
-	};
-	usage?: {
-		prompt_tokens: number;
-		completion_tokens: number;
-		total_tokens: number;
-	};
-}
-
 export interface FileValidationResult {
 	isValid: boolean;
 	confidence: number;
@@ -267,6 +248,50 @@ Field requirements:
   - When the document is valid, "suggestions" may be an empty array.
 
 Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any extra text.`,
+
+			"application-documents": `You are a STRICT application document content moderation expert. Analyze the provided text to determine if it's appropriate for an educational application system.
+
+A valid application document should be:
+- Professional and appropriate for academic/educational purposes
+- Free from sensitive, personal, or inappropriate content
+- Contain legitimate information relevant to educational applications
+
+INVALID content includes (but not limited to):
+- Personal sensitive information: Social Security Numbers, detailed financial information, medical records, personal identification numbers
+- Inappropriate content: Offensive language, discriminatory remarks, personal attacks, political propaganda
+- Confidential information: Private communications, internal company documents, legal documents not meant for applications
+- Fake or fraudulent information: Obviously fabricated documents, falsified credentials, misleading information
+- Irrelevant content: Marketing materials, advertisements, random text unrelated to education
+- Harmful content: Instructions for illegal activities, harmful advice, malicious content
+
+Be strict about content safety:
+- If you detect ANY potentially sensitive, inappropriate, or harmful content, you MUST treat it as INVALID
+- If the content seems irrelevant to educational applications, treat it as INVALID
+- If you are unsure about the appropriateness of the content, you MUST treat it as INVALID
+- Only accept documents that are clearly appropriate and relevant for educational applications
+
+Return your response as a single JSON object with this exact structure (example values):
+
+{
+  "isValid": false,
+  "action": "reupload",
+  "confidence": 0.92,
+  "reasoning": "Brief explanation of your decision focusing on content appropriateness",
+  "suggestions": ["Suggestion 1", "Suggestion 2"]
+}
+
+Field requirements:
+- "isValid" MUST be a boolean (true or false).
+- "action" MUST be either "accept" or "reupload".
+  - Use "accept" ONLY if you are clearly confident the document contains appropriate, non-sensitive content suitable for educational applications.
+  - Use "reupload" if the document contains sensitive, inappropriate, or irrelevant content.
+- "confidence" MUST be a number between 0 and 1 (0.0 to 1.0).
+- "reasoning" MUST be a short explanation focusing on content safety and appropriateness (e.g. "contains appropriate educational content" or "contains sensitive personal information").
+- "suggestions" MUST be an array of strings.
+  - When the document is invalid, give clear suggestions for uploading appropriate content (e.g. "Please remove sensitive personal information", "Upload documents relevant to your educational application", "Ensure content is professional and appropriate").
+  - When the document is valid, "suggestions" may be an empty array.
+
+Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any extra text.`,
 		};
 
 		return (
@@ -415,6 +440,7 @@ Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any
 				body: JSON.stringify(request),
 			});
 
+			// eslint-disable-next-line no-console
 			console.log("Response from AI model:", response);
 
 			if (!response.ok) {
@@ -425,6 +451,7 @@ Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any
 			let data: any = null;
 			try {
 				data = await response.json();
+				// eslint-disable-next-line no-console
 				console.log("Data from AI model:", data);
 			} catch (e) {
 				// not JSON, will try to read as text later
@@ -649,6 +676,72 @@ Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any
 				};
 			}
 
+			case "application-documents": {
+				// Check for sensitive content patterns
+				const sensitivePatterns = [
+					/\b\d{3}-\d{2}-\d{4}\b/, // SSN pattern
+					/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, // Credit card pattern
+					/\bconfidential\b/i,
+					/\bprivate\b/i,
+					/\binternal use only\b/i,
+				];
+
+				const inappropriateWords = [
+					"fuck",
+					"shit",
+					"damn",
+					"hate",
+					"kill",
+					"fraud",
+					"fake",
+					"scam",
+				];
+
+				const hasSensitiveContent = sensitivePatterns.some((pattern) =>
+					pattern.test(extractedText)
+				);
+				const hasInappropriateContent = inappropriateWords.some(
+					(word) => lowerText.includes(word.toLowerCase())
+				);
+
+				const educationalKeywords = [
+					"education",
+					"academic",
+					"school",
+					"university",
+					"college",
+					"student",
+					"application",
+					"program",
+					"course",
+					"study",
+				];
+
+				const educationalMatches = educationalKeywords.filter(
+					(keyword) =>
+						lowerText.includes(keyword) ||
+						lowerFileName.includes(keyword)
+				).length;
+
+				if (hasSensitiveContent || hasInappropriateContent) {
+					return {
+						isValid: false,
+						confidence: 0.9,
+						reasoning:
+							"Document contains potentially sensitive or inappropriate content",
+						suggestions: [
+							"Please remove sensitive information and upload appropriate educational documents",
+						],
+					};
+				}
+
+				return {
+					isValid: educationalMatches >= 1,
+					confidence: Math.min(0.8, educationalMatches * 0.3),
+					reasoning: `Found ${educationalMatches} educational keywords. ${educationalMatches >= 1 ? "Appears appropriate for educational applications." : "Content may not be suitable for educational applications."}`,
+				};
+			}
+
 			default:
 				return {
 					isValid: true,
@@ -665,6 +758,7 @@ Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any
 			"degree-certificates": "Degree Certificate",
 			transcripts: "Academic Transcript",
 			"institution-verification": "Institution Verification Document",
+			"application-documents": "Application Document",
 		};
 		return displayNames[fileType] || fileType;
 	}

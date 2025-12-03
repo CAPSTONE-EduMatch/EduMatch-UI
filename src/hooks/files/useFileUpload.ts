@@ -27,14 +27,17 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 			if (files.length === 0) return;
 
 			setIsUploading(true);
-			const progress: UploadProgress[] = files.map((_, index) => ({
+
+			// Initialize progress for all files
+			const initialProgress: UploadProgress[] = files.map((_, index) => ({
 				fileIndex: index,
 				progress: 0,
 				status: "pending",
 			}));
-			setUploadProgress(progress);
+			setUploadProgress(initialProgress);
 
 			try {
+				// Upload all files in parallel
 				const uploadPromises = files.map(async (file, index) => {
 					try {
 						// Update progress to uploading
@@ -66,7 +69,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
 						// Return file metadata for form state (no database save)
 						return {
-							id: `temp-${Date.now()}-${index}`, // Generate temporary ID
+							id: `temp-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9]/g, "_")}-${index}`, // Generate unique ID with filename
 							name: file.name,
 							originalName: file.name,
 							size: file.size,
@@ -81,6 +84,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 								? error.message
 								: "Upload failed";
 
+						// Update progress to error
 						setUploadProgress((prev) =>
 							prev.map((p) =>
 								p.fileIndex === index
@@ -93,14 +97,41 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 							)
 						);
 
+						// Re-throw to be handled by Promise.allSettled
 						throw error;
 					}
 				});
 
-				const uploadedFiles = await Promise.all(uploadPromises);
-				options.onSuccess?.(uploadedFiles);
+				// Wait for all uploads to complete (including failed ones)
+				const uploadResults = await Promise.allSettled(uploadPromises);
 
-				return uploadedFiles;
+				// Extract successful uploads
+				const successfulUploads = uploadResults
+					.filter(
+						(result): result is PromiseFulfilledResult<FileItem> =>
+							result.status === "fulfilled"
+					)
+					.map((result) => result.value);
+
+				// Check if any uploads failed
+				const failedUploads = uploadResults.filter(
+					(result) => result.status === "rejected"
+				);
+
+				if (failedUploads.length > 0) {
+					console.warn(
+						`${failedUploads.length} out of ${files.length} uploads failed`
+					);
+					// Still call onSuccess with successful uploads if any
+					if (successfulUploads.length > 0) {
+						options.onSuccess?.(successfulUploads);
+					}
+				} else {
+					// All uploads succeeded
+					options.onSuccess?.(successfulUploads);
+				}
+
+				return successfulUploads;
 			} catch (error) {
 				const errorMessage =
 					error instanceof Error ? error.message : "Upload failed";
@@ -110,7 +141,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 				setIsUploading(false);
 			}
 		},
-		[options]
+		[options, uploadFile]
 	);
 
 	const resetProgress = useCallback(() => {

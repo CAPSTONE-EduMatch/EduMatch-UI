@@ -13,12 +13,15 @@ import {
 	GraduationCap,
 	FileText,
 	Lock,
+	Building2,
+	MapPin,
 } from 'lucide-react'
 import { useAppSyncMessaging } from '@/hooks/messaging/useAppSyncMessaging'
 import { FileUpload } from './FileUpload'
 import { formatFileSize } from '@/utils/file/file-utils'
 import { MessageAvatar } from './MessageAvatar'
 import { MessageImage } from './MessageImage'
+import { ProtectedImg } from '@/components/ui/ProtectedImage'
 import {
 	openSessionProtectedFile,
 	downloadSessionProtectedFile,
@@ -78,10 +81,15 @@ interface ContactApplicant {
 	name: string
 	email: string
 	image?: string
-	degreeLevel: string
-	subDiscipline: string
+	degreeLevel?: string
+	subDiscipline?: string
 	status: string
-	postTitle: string
+	postTitle?: string
+	// Institution fields
+	institutionType?: string
+	institutionCountry?: string
+	institutionAbbreviation?: string
+	userType?: 'applicant' | 'institution' | 'unknown'
 }
 
 interface MessageDialogProps {
@@ -173,6 +181,8 @@ export function MessageDialog({
 		selectThread,
 		loadMessages,
 		clearUnreadCount,
+		loadThreads,
+		loading: threadsLoading,
 		user: appSyncUser,
 	} = useAppSyncMessaging()
 
@@ -190,6 +200,7 @@ export function MessageDialog({
 			if (!threadId || !user?.id) return
 
 			// Skip if we're manually selecting a thread (to prevent conflicts)
+			// Check this FIRST before doing anything else
 			if (isManuallySelectingRef.current) {
 				return
 			}
@@ -203,7 +214,23 @@ export function MessageDialog({
 			setIsLoadingThread(true)
 
 			try {
+				// If threads haven't loaded yet, wait for them to load first
+				// This is important for page reloads when threads are empty initially
+				if (appSyncThreads.length === 0 && !threadsLoading && loadThreads) {
+					await loadThreads(true) // Force load threads
+					// Wait a moment for threads to update
+					await new Promise((resolve) => setTimeout(resolve, 300))
+				}
+
+				// Wait a bit for threads to load if they're still loading
+				let attempts = 0
+				while (appSyncThreads.length === 0 && threadsLoading && attempts < 15) {
+					await new Promise((resolve) => setTimeout(resolve, 200))
+					attempts++
+				}
+
 				// First, try to find thread in appSyncThreads
+				// Use a more specific search to ensure we get the exact thread
 				let thread = appSyncThreads.find((t: any) => t.id === threadId)
 
 				// If thread not found in appSyncThreads, try to fetch it directly from API
@@ -227,7 +254,8 @@ export function MessageDialog({
 					}
 				}
 
-				if (thread) {
+				// Only proceed if we found the exact thread matching threadId
+				if (thread && thread.id === threadId) {
 					// Find the other participant
 					const otherParticipantId =
 						thread.user1Id === user.id ? thread.user2Id : thread.user1Id
@@ -280,15 +308,10 @@ export function MessageDialog({
 		}
 
 		handleThreadSelection()
-	}, [
-		threadId,
-		appSyncThreads,
-		user?.id,
-		selectThread,
-		loadMessages,
-		selectedThread?.id,
-		selectedUser,
-	])
+		// Include appSyncThreads to find the thread, but use length check to prevent unnecessary re-runs
+		// This ensures threads are loaded before trying to find the thread from URL (important for page reloads)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [threadId, user?.id, appSyncThreads.length, threadsLoading, loadThreads])
 
 	// Handle contact parameter from URL with loading states
 	useEffect(() => {
@@ -440,10 +463,19 @@ export function MessageDialog({
 										name: userData.user.name || 'User',
 										email: userData.user.email || '',
 										image: userData.user.image,
-										degreeLevel: userData.user.degreeLevel || 'Unknown',
-										subDiscipline: userData.user.subDiscipline || 'Unknown',
+										degreeLevel: userData.user.degreeLevel || undefined,
+										subDiscipline: userData.user.subDiscipline || undefined,
 										status: userData.user.status || 'offline',
-										postTitle: 'Application',
+										postTitle:
+											userData.user.userType === 'institution'
+												? undefined
+												: 'Application',
+										institutionType: userData.user.institutionType || undefined,
+										institutionCountry:
+											userData.user.institutionCountry || undefined,
+										institutionAbbreviation:
+											userData.user.institutionAbbreviation || undefined,
+										userType: userData.user.userType || 'unknown',
 									}
 									setContactApplicant(contactData)
 									setShowContactPreview(true)
@@ -493,10 +525,20 @@ export function MessageDialog({
 												name: userData.user.name || 'User',
 												email: userData.user.email || '',
 												image: userData.user.image,
-												degreeLevel: userData.user.degreeLevel || 'Unknown',
-												subDiscipline: userData.user.subDiscipline || 'Unknown',
+												degreeLevel: userData.user.degreeLevel || undefined,
+												subDiscipline: userData.user.subDiscipline || undefined,
 												status: userData.user.status || 'offline',
-												postTitle: 'Application',
+												postTitle:
+													userData.user.userType === 'institution'
+														? undefined
+														: 'Application',
+												institutionType:
+													userData.user.institutionType || undefined,
+												institutionCountry:
+													userData.user.institutionCountry || undefined,
+												institutionAbbreviation:
+													userData.user.institutionAbbreviation || undefined,
+												userType: userData.user.userType || 'unknown',
 											}
 											setContactApplicant(contactData)
 											setShowContactPreview(true)
@@ -910,6 +952,7 @@ export function MessageDialog({
 		}
 
 		// Mark that we're manually selecting to prevent useEffect from interfering
+		// Set this FIRST before any state updates to prevent race conditions
 		isManuallySelectingRef.current = true
 
 		try {
@@ -918,15 +961,8 @@ export function MessageDialog({
 				(p) => p.id !== user?.id
 			)
 
-			// Update URL immediately using history API (no navigation, no flash)
-			if (typeof window !== 'undefined') {
-				window.history.pushState({}, '', `/messages/${thread.id}`)
-			}
-
-			// Update threadIdFromUrl state immediately to keep it in sync
-			setThreadIdFromUrl(thread.id)
-
-			// Set selectedUser immediately to prevent full page loading
+			// Set selectedUser and selectedThread FIRST to prevent useEffect from running
+			// This ensures the component state is updated before URL changes
 			if (otherParticipant) {
 				// Find the user in the users list to get their current status
 				const userWithStatus = users.find((u) => u.id === otherParticipant.id)
@@ -939,14 +975,14 @@ export function MessageDialog({
 				})
 			}
 
-			// IMPORTANT: Clear messages first to prevent showing old thread messages
-			// This ensures a clean transition between threads
-			// The messages will be loaded fresh by loadMessages below
-
 			// Set the thread locally first for immediate UI update
 			setSelectedThread(thread)
 			setIsInitialLoad(true) // Mark as initial load for this thread
 			setShouldAutoScroll(true) // Reset auto-scroll flag
+
+			// Now update threadIdFromUrl - this will trigger useEffect but it will see
+			// selectedThread is already set and return early
+			setThreadIdFromUrl(thread.id)
 
 			// Use AppSync to select thread and load messages
 			// This will update the messages state in the hook
@@ -958,74 +994,63 @@ export function MessageDialog({
 			clearUnreadCount(thread.id).catch(() => {
 				// Silently handle errors
 			})
+
+			// Update URL LAST using history API to avoid full page reload
+			// This prevents the page from rerunning when switching threads
+			// Do this after state is set to prevent useEffect from interfering
+			if (typeof window !== 'undefined') {
+				const newUrl = `/messages/${thread.id}`
+				window.history.pushState({ threadId: thread.id }, '', newUrl)
+			}
 		} finally {
-			// Reset the flag after a short delay to allow URL to update
+			// Reset the flag after a longer delay to prevent useEffect from interfering
+			// This ensures the manual selection completes before useEffect can run
 			setTimeout(() => {
 				isManuallySelectingRef.current = false
-			}, 100)
+			}, 1000) // Increased delay further to prevent race condition
 		}
 	}
 
-	// Fetch users once when component mounts and user is available - optimized
+	// Fetch users when component mounts and poll periodically for real-time online status
 	useEffect(() => {
+		if (!user?.id) return
+
 		const fetchUsers = async () => {
-			if (user?.id && !usersLoaded) {
-				try {
-					const response = await fetch('/api/users/status', {
-						method: 'GET',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-					})
-
-					if (response.ok) {
-						const data = await response.json()
-						if (data.success && data.users) {
-							setUsers(data.users)
-							setUsersLoaded(true)
-							// Store timestamp for cache management
-							localStorage.setItem('usersLastLoad', Date.now().toString())
-						}
-					}
-				} catch (error) {
-					console.error('Failed to fetch users:', error)
-				}
-			}
-		}
-
-		fetchUsers()
-	}, [user?.id, usersLoaded]) // Only depend on user ID and usersLoaded state
-
-	// Update user status as online (only once when user changes) - optimized
-	useEffect(() => {
-		if (user?.id) {
-			// Set user as online
-			fetch('/api/users/status', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({ isOnline: true }),
-			}).catch(() => {
-				// Handle error silently
-			})
-
-			// Refresh user status every 5 minutes (much less frequent)
-			const statusInterval = setInterval(() => {
-				fetch('/api/users/status', {
-					method: 'POST',
+			try {
+				const response = await fetch('/api/users/status', {
+					method: 'GET',
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({ isOnline: true }),
-				}).catch(() => {
-					// Handle error silently
 				})
-			}, 300000) // 5 minutes
 
-			return () => clearInterval(statusInterval)
+				if (response.ok) {
+					const data = await response.json()
+					if (data.success && data.users) {
+						setUsers(data.users)
+						setUsersLoaded(true)
+						// Store timestamp for cache management
+						localStorage.setItem('usersLastLoad', Date.now().toString())
+					}
+				}
+			} catch (error) {
+				console.error('Failed to fetch users:', error)
+			}
 		}
+
+		// Fetch users immediately
+		fetchUsers()
+
+		// Poll for updated user statuses every 30 seconds for real-time updates
+		const usersInterval = setInterval(() => {
+			fetchUsers()
+		}, 30000) // 30 seconds
+
+		return () => clearInterval(usersInterval)
 	}, [user?.id]) // Only depend on user ID
+
+	// Status updates are now handled globally in AuthContext
+	// No need to update status here - it's done app-wide when user is authenticated
 
 	// User data refresh removed - will fetch individual users as needed
 
@@ -1270,26 +1295,34 @@ export function MessageDialog({
 				) : selectedUser ? (
 					<>
 						{/* Chat Header */}
-						<div className="p-4 border-b border-gray-200 bg-white">
-							<div className="flex items-center justify-between">
-								<div className="flex items-center space-x-3">
-									<MessageAvatar
-										src={selectedUser.image}
-										alt={selectedUser.name}
-										size="md"
-										showOnlineStatus={true}
-										isOnline={selectedUser.status === 'online'}
-									/>
-									<div>
-										<h2 className="text-lg font-semibold text-gray-900">
-											{selectedUser.name}
-										</h2>
-										<p className="text-sm text-gray-500">
-											{selectedUser.status === 'online' ? 'Online' : 'Offline'}
-										</p>
-									</div>
-								</div>
-								{/* <button
+						{(() => {
+							// Get the latest status from users array to ensure real-time updates
+							const userWithLatestStatus = users.find(
+								(u) => u.id === selectedUser.id
+							)
+							const currentStatus =
+								userWithLatestStatus?.status || selectedUser.status || 'offline'
+							return (
+								<div className="p-4 border-b border-gray-200 bg-white">
+									<div className="flex items-center justify-between">
+										<div className="flex items-center space-x-3">
+											<MessageAvatar
+												src={selectedUser.image}
+												alt={selectedUser.name}
+												size="md"
+												showOnlineStatus={true}
+												isOnline={currentStatus === 'online'}
+											/>
+											<div>
+												<h2 className="text-lg font-semibold text-gray-900">
+													{selectedUser.name}
+												</h2>
+												<p className="text-sm text-gray-500">
+													{currentStatus === 'online' ? 'Online' : 'Offline'}
+												</p>
+											</div>
+										</div>
+										{/* <button
 									onClick={async () => {
 										if (selectedThread) {
 											await loadMessages(selectedThread.id)
@@ -1302,8 +1335,10 @@ export function MessageDialog({
 								>
 									<RefreshCw className="w-5 h-5" />
 								</button> */}
-							</div>
-						</div>
+									</div>
+								</div>
+							)
+						})()}
 
 						{/* Messages */}
 						<div
@@ -1595,13 +1630,15 @@ export function MessageDialog({
 						</div>
 					</>
 				) : showContactPreview && contactApplicant ? (
-					/* Contact Applicant Preview Section */
+					/* Contact Preview Section - Supports both Applicants and Institutions */
 					<div className="flex-1 flex items-center justify-center p-8">
 						<div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-gray-200 p-6">
 							{/* Header */}
 							<div className="flex items-center justify-between mb-6">
 								<h2 className="text-xl font-semibold text-gray-900">
-									Contact Applicant
+									{contactApplicant.userType === 'institution'
+										? 'Contact Institution'
+										: 'Contact Applicant'}
 								</h2>
 								<button
 									onClick={handleCloseContactPreview}
@@ -1611,34 +1648,28 @@ export function MessageDialog({
 								</button>
 							</div>
 
-							{/* Applicant Details */}
+							{/* Contact Details */}
 							<div className="space-y-4 mb-6">
 								{/* Profile Section */}
 								<div className="flex items-center space-x-4">
 									<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
 										{contactApplicant.image ? (
-											<img
+											<ProtectedImg
 												src={contactApplicant.image}
 												alt={contactApplicant.name}
 												className="w-16 h-16 rounded-full object-cover"
-												loading="lazy"
-												onError={(e) => {
-													// Hide image on error, show User icon instead
-													const target = e.currentTarget
-													target.style.display = 'none'
-													const parent = target.parentElement
-													if (
-														parent &&
-														!parent.querySelector('.user-icon-fallback')
-													) {
-														const icon = document.createElement('div')
-														icon.className = 'user-icon-fallback'
-														icon.innerHTML =
-															'<svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>'
-														parent.appendChild(icon)
-													}
-												}}
+												expiresIn={3600}
+												autoRefresh={false}
+												fallback={
+													contactApplicant.userType === 'institution' ? (
+														<Building2 className="w-8 h-8 text-gray-400" />
+													) : (
+														<User className="w-8 h-8 text-gray-400" />
+													)
+												}
 											/>
+										) : contactApplicant.userType === 'institution' ? (
+											<Building2 className="w-8 h-8 text-gray-400" />
 										) : (
 											<User className="w-8 h-8 text-gray-400" />
 										)}
@@ -1646,6 +1677,11 @@ export function MessageDialog({
 									<div>
 										<h3 className="text-lg font-medium text-gray-900">
 											{contactApplicant.name}
+											{contactApplicant.institutionAbbreviation && (
+												<span className="text-sm text-gray-500 ml-2">
+													({contactApplicant.institutionAbbreviation})
+												</span>
+											)}
 										</h3>
 										<p className="text-sm text-gray-500">
 											{contactApplicant.email}
@@ -1653,21 +1689,49 @@ export function MessageDialog({
 									</div>
 								</div>
 
-								{/* Applicant Details */}
+								{/* Details - Conditionally render based on user type */}
 								<div className="space-y-3">
-									<div className="flex items-center space-x-3">
-										<GraduationCap className="w-5 h-5 text-gray-400" />
-										<span className="text-sm text-gray-600">
-											{contactApplicant.degreeLevel} in{' '}
-											{contactApplicant.subDiscipline}
-										</span>
-									</div>
-									<div className="flex items-center space-x-3">
-										<FileText className="w-5 h-5 text-gray-400" />
-										<span className="text-sm text-gray-600">
-											{contactApplicant.postTitle}
-										</span>
-									</div>
+									{contactApplicant.userType === 'institution' ? (
+										<>
+											{contactApplicant.institutionType && (
+												<div className="flex items-center space-x-3">
+													<Building2 className="w-5 h-5 text-gray-400" />
+													<span className="text-sm text-gray-600">
+														Type: {contactApplicant.institutionType}
+													</span>
+												</div>
+											)}
+											{contactApplicant.institutionCountry && (
+												<div className="flex items-center space-x-3">
+													<MapPin className="w-5 h-5 text-gray-400" />
+													<span className="text-sm text-gray-600">
+														Country: {contactApplicant.institutionCountry}
+													</span>
+												</div>
+											)}
+										</>
+									) : (
+										<>
+											{contactApplicant.degreeLevel &&
+												contactApplicant.subDiscipline && (
+													<div className="flex items-center space-x-3">
+														<GraduationCap className="w-5 h-5 text-gray-400" />
+														<span className="text-sm text-gray-600">
+															{contactApplicant.degreeLevel} in{' '}
+															{contactApplicant.subDiscipline}
+														</span>
+													</div>
+												)}
+											{contactApplicant.postTitle && (
+												<div className="flex items-center space-x-3">
+													<FileText className="w-5 h-5 text-gray-400" />
+													<span className="text-sm text-gray-600">
+														{contactApplicant.postTitle}
+													</span>
+												</div>
+											)}
+										</>
+									)}
 									<div className="flex items-center space-x-3">
 										<Mail className="w-5 h-5 text-gray-400" />
 										<span className="text-sm text-gray-600">

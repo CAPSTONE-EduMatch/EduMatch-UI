@@ -9,10 +9,10 @@ const { POST: _POST, GET: _GET } = toNextJsHandler(auth.handler);
 
 export async function POST(request: NextRequest) {
 	try {
-		// eslint-disable-next-line no-console
-		console.log("Auth API POST request:", request.url);
+		// Removed verbose logging to reduce console spam
 		return await _POST(request);
 	} catch (error) {
+		// Only log errors
 		// eslint-disable-next-line no-console
 		console.error("Auth API POST error:", error);
 		return NextResponse.json(
@@ -27,10 +27,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
 	try {
-		// eslint-disable-next-line no-console
-		console.log("Auth API GET request:", request.url);
+		// Removed verbose logging to reduce console spam
+		// The requests are expected and handled by Better Auth's caching
 		return await _GET(request);
 	} catch (error) {
+		// Only log errors
 		// eslint-disable-next-line no-console
 		console.error("Auth API GET error:", error);
 		return NextResponse.json(

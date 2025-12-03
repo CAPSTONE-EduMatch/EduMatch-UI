@@ -278,7 +278,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 					<div className="mt-auto pt-4 border-t border-white/20">
 						<button
 							onClick={handleLogout}
-							className={`w-full flex items-center gap-3 text-left transition-all duration-200 ${itemPadding} ${itemBorderRadius} ${inactiveItemTextColor}`}
+							className={`w-full flex items-center gap-3 text-left transition-all duration-200 ${itemPadding} ${itemBorderRadius} ${inactiveItemTextColor} hover:bg-white/10 hover:text-white`}
 						>
 							<LogOut className="w-4 h-4" />
 							<span className="font-medium text-sm">Log Out</span>

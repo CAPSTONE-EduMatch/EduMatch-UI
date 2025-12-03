@@ -1,11 +1,12 @@
 'use client'
 
-import { Heart, Building, FileText, MapPin, Clock, X } from 'lucide-react'
-import { motion } from 'framer-motion'
 import {
-	formatDateToDDMMYYYY,
 	calculateDaysLeft,
+	formatDateToDDMMYYYY,
 } from '@/utils/date/date-utils'
+import { motion } from 'framer-motion'
+import { Building, Clock, FileText, Heart, Lock, MapPin, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface ScholarshipCardProps {
 	scholarship: {
@@ -50,6 +51,9 @@ export function ScholarshipCard({
 	onUpdateRequest,
 	institutionStatus,
 }: ScholarshipCardProps) {
+	const router = useRouter()
+	// Check if match score is restricted (shown as "—" for non-Premium users)
+	const isMatchRestricted = scholarship.match === '—'
 	// Format date and calculate days left on the client side
 	const formattedDate = formatDateToDDMMYYYY(scholarship.date)
 	const daysLeft = calculateDaysLeft(scholarship.date)
@@ -201,31 +205,48 @@ export function ScholarshipCard({
 					</div>
 				</div>
 
-				<div className="mt-auto relative w-1/3 h-7 bg-gray-200 rounded-full overflow-hidden">
-					{/* Animated progress */}
-					<motion.div
-						className="h-full bg-[#32CF5C] rounded-full relative"
-						initial={{ width: '0%' }}
-						animate={{ width: scholarship.match }}
-						transition={{
-							duration: 1.2,
-							delay: index * 0.1 + 0.3,
-							ease: [0.4, 0, 0.2, 1],
+				{isMatchRestricted ? (
+					<div
+						className="mt-auto relative w-1/3 h-7 bg-gradient-to-r from-[#126E64]/20 to-[#126E64]/10 rounded-full overflow-hidden cursor-pointer hover:from-[#126E64]/30 hover:to-[#126E64]/20 transition-all"
+						onClick={(e) => {
+							e.stopPropagation()
+							router.push('/pricing')
 						}}
-					/>
-
-					{/* Centered text */}
-					<div className="  absolute inset-0 flex items-center justify-center">
-						<motion.span
-							className="font-semibold text-lg text-white "
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							transition={{ delay: index * 0.1 + 0.8 }}
-						>
-							Match: {scholarship.match}
-						</motion.span>
+					>
+						<div className="absolute inset-0 flex items-center justify-center gap-1">
+							<Lock className="w-3 h-3 text-[#126E64]" />
+							<span className="font-medium text-xs text-[#126E64]">
+								Upgrade
+							</span>
+						</div>
 					</div>
-				</div>
+				) : (
+					<div className="mt-auto relative w-1/3 h-7 bg-gray-200 rounded-full overflow-hidden">
+						{/* Animated progress */}
+						<motion.div
+							className="h-full bg-[#32CF5C] rounded-full relative"
+							initial={{ width: '0%' }}
+							animate={{ width: scholarship.match }}
+							transition={{
+								duration: 1.2,
+								delay: index * 0.1 + 0.3,
+								ease: [0.4, 0, 0.2, 1],
+							}}
+						/>
+
+						{/* Centered text */}
+						<div className="absolute inset-0 flex items-center justify-center">
+							<motion.span
+								className="font-semibold text-lg text-white"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ delay: index * 0.1 + 0.8 }}
+							>
+								Match: {scholarship.match}
+							</motion.span>
+						</div>
+					</div>
+				)}
 
 				{/* Application Status */}
 				{scholarship.applicationStatus && (

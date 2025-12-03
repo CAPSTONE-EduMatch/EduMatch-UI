@@ -1,12 +1,13 @@
 'use client'
 
-import { Heart, Calendar, MapPin, GraduationCap, X } from 'lucide-react'
-import { motion } from 'framer-motion'
-import Image from 'next/image'
 import {
-	formatDateToDDMMYYYY,
 	calculateDaysLeft,
+	formatDateToDDMMYYYY,
 } from '@/utils/date/date-utils'
+import { motion } from 'framer-motion'
+import { Calendar, GraduationCap, Heart, Lock, MapPin, X } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 interface ProgramCardProps {
 	program: {
@@ -54,6 +55,9 @@ export function ProgramCard({
 	onUpdateRequest,
 	institutionStatus,
 }: ProgramCardProps) {
+	const router = useRouter()
+	// Check if match score is restricted (shown as "—" for non-Premium users)
+	const isMatchRestricted = program.match === '—'
 	// Format date and calculate days left on the client side
 	const formattedDate = formatDateToDDMMYYYY(program.date)
 	const daysLeft = calculateDaysLeft(program.date)
@@ -238,31 +242,48 @@ export function ProgramCard({
 				</div>
 			</div>
 			{/* Match */}
-			<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
-				{/* Animated progress */}
-				<motion.div
-					className="h-full bg-[#32CF5C] rounded-full relative"
-					initial={{ width: '0%' }}
-					animate={{ width: program.match }}
-					transition={{
-						duration: 1.2,
-						delay: index * 0.1 + 0.3,
-						ease: [0.4, 0, 0.2, 1],
+			{isMatchRestricted ? (
+				<div
+					className="mt-auto relative w-full h-7 bg-gradient-to-r from-[#126E64]/20 to-[#126E64]/10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer hover:from-[#126E64]/30 hover:to-[#126E64]/20 transition-all"
+					onClick={(e) => {
+						e.stopPropagation()
+						router.push('/pricing')
 					}}
-				/>
-
-				{/* Centered text */}
-				<div className="  absolute inset-0 flex items-center justify-center">
-					<motion.span
-						className="font-semibold text-lg text-white "
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ delay: index * 0.1 + 0.8 }}
-					>
-						Match: {program.match}
-					</motion.span>
+				>
+					<div className="absolute inset-0 flex items-center justify-center gap-2">
+						<Lock className="w-4 h-4 text-[#126E64]" />
+						<span className="font-medium text-sm text-[#126E64]">
+							Upgrade to see Match Score
+						</span>
+					</div>
 				</div>
-			</div>
+			) : (
+				<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
+					{/* Animated progress */}
+					<motion.div
+						className="h-full bg-[#32CF5C] rounded-full relative"
+						initial={{ width: '0%' }}
+						animate={{ width: program.match }}
+						transition={{
+							duration: 1.2,
+							delay: index * 0.1 + 0.3,
+							ease: [0.4, 0, 0.2, 1],
+						}}
+					/>
+
+					{/* Centered text */}
+					<div className="absolute inset-0 flex items-center justify-center">
+						<motion.span
+							className="font-semibold text-lg text-white"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ delay: index * 0.1 + 0.8 }}
+						>
+							Match: {program.match}
+						</motion.span>
+					</div>
+				</div>
+			)}
 
 			{/* Application Status */}
 			{program.applicationStatus && (

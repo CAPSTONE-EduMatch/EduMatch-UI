@@ -37,29 +37,29 @@ async function calculateMatchPercentages(
 	userId?: string
 ): Promise<void> {
 	if (!userId) {
-		// No authenticated user, show 0%
+		// No authenticated user, show restricted indicator
 		programs.forEach((program) => {
-			program.match = "0%";
+			program.match = "—";
 		});
 		return;
 	}
 
 	try {
-		// Get applicant embedding
+		// Get applicant record
 		const applicant = await prismaClient.applicant.findFirst({
 			where: { user_id: userId },
 			select: { applicant_id: true, embedding: true },
 		});
 
-		if (!applicant?.embedding) {
-			// No applicant embedding, show 0%
+		if (!applicant) {
+			// No applicant found, show restricted indicator
 			programs.forEach((program) => {
-				program.match = "0%";
+				program.match = "—";
 			});
 			return;
 		}
 
-		// PLAN-BASED AUTHORIZATION: Check if user can see matching scores
+		// PLAN-BASED AUTHORIZATION: Check if user can see matching scores FIRST
 		// Only Premium plan users can see matching scores
 		const { canSeeMatchingScore } = await import(
 			"@/services/authorization"
@@ -69,9 +69,18 @@ async function calculateMatchPercentages(
 		);
 
 		if (!matchingPermission.authorized) {
-			// User cannot see matching scores, show placeholder or empty
+			// User cannot see matching scores, show restricted indicator
 			programs.forEach((program) => {
 				program.match = "—"; // Use em dash to indicate premium feature
+			});
+			return;
+		}
+
+		// User is authorized (Premium) - now check if they have an embedding
+		if (!applicant.embedding) {
+			// Premium user but no embedding yet, show 0%
+			programs.forEach((program) => {
+				program.match = "0%";
 			});
 			return;
 		}

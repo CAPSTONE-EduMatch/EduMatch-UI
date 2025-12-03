@@ -122,7 +122,7 @@ const InstitutionProgramDetail = () => {
 		return apps.map((app) => {
 			return {
 				id: app.id || app.application_id || '',
-				postId: app.postId || app.post_id || (params.id as string),
+				postId: app.postId || app.post_id || (params?.id as string),
 				name: app.name || 'Unknown',
 				appliedDate:
 					app.appliedDate || app.applied_date || formatDate(new Date()),
@@ -138,10 +138,7 @@ const InstitutionProgramDetail = () => {
 					| 'accepted'
 					| 'rejected'
 					| 'new_request',
-				matchingScore:
-					app.matchingScore ||
-					app.matching_score ||
-					Math.floor(Math.random() * 30) + 70,
+				matchingScore: app.matchingScore,
 				userId: app.userId || app.user_id,
 				gpa: app.snapshotData?.gpa || app.gpa || undefined,
 				postType: app.postType || 'Program', // Preserve postType from API
@@ -196,7 +193,7 @@ const InstitutionProgramDetail = () => {
 	useEffect(() => {
 		const updateBreadcrumb = async () => {
 			// Get program ID from URL params
-			const programId = params.id as string
+			const programId = params?.id as string
 
 			if (!programId) {
 				showError('Error', 'Program ID is required')
@@ -224,18 +221,18 @@ const InstitutionProgramDetail = () => {
 
 		updateBreadcrumb()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.id])
+	}, [params?.id])
 
 	const handleEditProgram = () => {
 		// Navigate to edit program page
 		router.push(
-			`/institution/dashboard/programs?action=edit&type=Program&id=${params.id}`
+			`/institution/dashboard/programs?action=edit&type=Program&id=${params?.id}`
 		)
 	}
 
 	const handleViewApplications = () => {
 		// Navigate to applications section with filter for this post
-		router.push(`/institution/dashboard/applications?postId=${params.id}`)
+		router.push(`/institution/dashboard/applications?postId=${params?.id}`)
 	}
 
 	const handleApplicantDetail = (applicant: Applicant) => {
@@ -246,7 +243,7 @@ const InstitutionProgramDetail = () => {
 	const handleDeleteProgram = async () => {
 		try {
 			setIsDeleting(true)
-			const response = await fetch(`/api/posts/programs?postId=${params.id}`, {
+			const response = await fetch(`/api/posts/programs?postId=${params?.id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -280,7 +277,7 @@ const InstitutionProgramDetail = () => {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					postId: params.id,
+					postId: params?.id,
 					status: 'CLOSED',
 				}),
 			})
@@ -294,7 +291,7 @@ const InstitutionProgramDetail = () => {
 			if (result.success) {
 				showSuccess('Success', 'Program closed successfully')
 				// Refresh program data
-				await fetchProgramDetail(params.id as string)
+				await fetchProgramDetail(params?.id as string)
 			} else {
 				showError('Error', result.error || 'Failed to close program')
 			}

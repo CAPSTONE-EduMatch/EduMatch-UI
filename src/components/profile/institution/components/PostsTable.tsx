@@ -18,11 +18,13 @@ export interface Post {
 interface PostsTableProps {
 	posts: Post[]
 	onMoreDetail: (post: Post) => void
+	onApplicationClick?: (post: Post) => void
 }
 
 export const PostsTable: React.FC<PostsTableProps> = ({
 	posts,
 	onMoreDetail,
+	onApplicationClick,
 }) => {
 	const getStatusColor = (status: string) => {
 		switch (status.toLowerCase()) {
@@ -92,7 +94,10 @@ export const PostsTable: React.FC<PostsTableProps> = ({
 									{/* Applications */}
 									<div className="text-gray-700 text-sm text-center">
 										{(post.applicationCount || post.applications) > 0 ? (
-											<button className="text-[#126E64] hover:text-[#126E64] underline">
+											<button
+												className="text-[#126E64] hover:text-[#126E64] underline"
+												onClick={() => onApplicationClick?.(post)}
+											>
 												{post.applicationCount || post.applications}
 											</button>
 										) : (

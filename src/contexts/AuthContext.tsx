@@ -35,8 +35,8 @@ interface SessionCache {
 }
 
 let globalSessionCache: SessionCache | null = null
-const SESSION_CACHE_DURATION = 2 * 60 * 1000 // 2 minutes - cache session for 2 minutes
-const MIN_CALL_INTERVAL = 5 * 1000 // Minimum 5 seconds between API calls
+const SESSION_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - cache session for 5 minutes to reduce API calls
+const MIN_CALL_INTERVAL = 10 * 1000 // Minimum 10 seconds between API calls
 
 let lastCallTime = 0
 
@@ -214,6 +214,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const handleCloseModal = () => {
 		setShowAuthModal(false)
 	}
+
+	// Global status update - keeps users online regardless of which page they're on
+	useEffect(() => {
+		if (!isAuthenticated || !user?.id) return
+
+		// Function to update status
+		const updateStatus = () => {
+			fetch('/api/users/status', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ isOnline: true }),
+			}).catch(() => {
+				// Handle error silently
+			})
+		}
+
+		// Update immediately when user is authenticated
+		updateStatus()
+
+		// Update status every 2 minutes (shorter than 5-minute threshold to prevent going offline)
+		const statusInterval = setInterval(() => {
+			// Only update if tab is visible (user is likely active)
+			if (document.visibilityState === 'visible') {
+				updateStatus()
+			}
+		}, 120000) // 2 minutes
+
+		// Update status when tab becomes visible (user returns to tab)
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				updateStatus()
+			}
+		}
+
+		// Track user activity (mouse movement, keyboard, clicks, scroll)
+		let activityTimeout: NodeJS.Timeout | null = null
+		const handleActivity = () => {
+			// Clear existing timeout
+			if (activityTimeout) {
+				clearTimeout(activityTimeout)
+			}
+
+			// Update status after 30 seconds of activity (debounce)
+			activityTimeout = setTimeout(() => {
+				if (document.visibilityState === 'visible') {
+					updateStatus()
+				}
+			}, 30000) // 30 seconds
+		}
+
+		// Add event listeners for activity detection
+		window.addEventListener('visibilitychange', handleVisibilityChange)
+		window.addEventListener('mousemove', handleActivity, { passive: true })
+		window.addEventListener('keydown', handleActivity, { passive: true })
+		window.addEventListener('click', handleActivity, { passive: true })
+		window.addEventListener('scroll', handleActivity, { passive: true })
+
+		return () => {
+			clearInterval(statusInterval)
+			window.removeEventListener('visibilitychange', handleVisibilityChange)
+			window.removeEventListener('mousemove', handleActivity)
+			window.removeEventListener('keydown', handleActivity)
+			window.removeEventListener('click', handleActivity)
+			window.removeEventListener('scroll', handleActivity)
+			if (activityTimeout) {
+				clearTimeout(activityTimeout)
+			}
+		}
+	}, [isAuthenticated, user?.id])
 
 	const value: AuthContextType = {
 		isAuthenticated,

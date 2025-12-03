@@ -74,7 +74,7 @@ export function MessageImage({
 					alt={alt || fileName || 'Message image'}
 					className={`${className} max-w-xs max-h-64 rounded-lg object-contain bg-gray-50`}
 					expiresIn={7200}
-					autoRefresh={true}
+					autoRefresh={false}
 					onError={() => setImageError(true)}
 					fallback={
 						<div className="bg-gray-100 rounded-lg flex items-center justify-center p-8 animate-pulse">

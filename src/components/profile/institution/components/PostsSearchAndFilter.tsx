@@ -44,7 +44,9 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 
 	// Determine which post types can be created based on institution type
 	const canCreateProgram = institutionType === 'university'
-	const canCreateScholarship = institutionType === 'scholarship-provider'
+	const canCreateScholarship =
+		institutionType === 'scholarship-provider' ||
+		institutionType === 'university'
 	const canCreateResearchLab = institutionType === 'research-lab'
 
 	// Check if any post creation is allowed

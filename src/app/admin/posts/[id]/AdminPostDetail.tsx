@@ -14,7 +14,7 @@ const AdminPostDetail = () => {
 	// Fetch post type to determine which detail page to show
 	useEffect(() => {
 		const fetchPostType = async () => {
-			if (!params.id) return
+			if (!params?.id) return
 
 			setIsLoading(true)
 			try {
@@ -34,7 +34,7 @@ const AdminPostDetail = () => {
 		}
 
 		fetchPostType()
-	}, [params.id])
+	}, [params?.id])
 
 	if (isLoading) {
 		return (

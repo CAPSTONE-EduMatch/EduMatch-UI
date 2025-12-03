@@ -35,7 +35,7 @@ const institutionNavItems: NavItem[] = [
 	},
 	{
 		id: 'programs' as InstitutionProfileSection,
-		label: 'Programs',
+		label: 'Posts',
 		icon: GraduationCap,
 	},
 	{

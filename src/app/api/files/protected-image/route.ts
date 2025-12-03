@@ -15,6 +15,46 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || "edumatch-file-12";
 
+// In-memory cache for permission checks
+// Key: `${userId}:${s3Key}`, Value: { allowed: boolean, timestamp: number }
+const permissionCache = new Map<
+	string,
+	{ allowed: boolean; timestamp: number }
+>();
+const PERMISSION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Check if permission is cached and still valid
+ */
+function getCachedPermission(userId: string, s3Key: string): boolean | null {
+	const cacheKey = `${userId}:${s3Key}`;
+	const cached = permissionCache.get(cacheKey);
+	if (cached) {
+		const now = Date.now();
+		if (now - cached.timestamp < PERMISSION_CACHE_TTL) {
+			return cached.allowed;
+		}
+		// Cache expired, remove it
+		permissionCache.delete(cacheKey);
+	}
+	return null;
+}
+
+/**
+ * Cache permission result
+ */
+function setCachedPermission(
+	userId: string,
+	s3Key: string,
+	allowed: boolean
+): void {
+	const cacheKey = `${userId}:${s3Key}`;
+	permissionCache.set(cacheKey, {
+		allowed,
+		timestamp: Date.now(),
+	});
+}
+
 /**
  * Extract S3 key from various URL formats
  */
@@ -97,82 +137,126 @@ export async function GET(request: NextRequest) {
 		if (keyParts.length >= 2 && keyParts[0] === "users") {
 			const fileOwnerId = keyParts[1];
 
-			// eslint-disable-next-line no-console
-			console.log(
-				`[Protected Image] Access check: User ${user.id} (${user.role}) accessing file ${s3Key} owned by ${fileOwnerId}`
-			);
-
-			// Allow access if:
-			// 1. User owns the file, OR
-			// 2. Users are messaging each other (for any files in user folder), OR
-			// 3. User is admin/institution (can access applicant files) - only if no messaging relationship
-			if (fileOwnerId !== user.id) {
-				const isAuthorizedRole =
-					user.role === "admin" ||
-					user.role === "institution" ||
-					user.role === "moderator";
-
-				// Always check for messaging relationship first (regardless of role)
-				// Check AppSync for thread relationship
-				let hasMessagingRelationship = false;
-				try {
-					hasMessagingRelationship =
-						await checkMessagingRelationshipInAppSync(
-							user.id,
-							fileOwnerId
-						);
+			// Check cache first
+			const cachedPermission = getCachedPermission(user.id, s3Key);
+			if (cachedPermission !== null) {
+				if (cachedPermission) {
+					// Permission granted, continue to generate URL
 					// eslint-disable-next-line no-console
 					console.log(
-						`[Protected Image] AppSync Thread check: ${hasMessagingRelationship ? "Found" : "Not found"}`
+						`[Protected Image] ✅ Cached permission: User ${user.id} accessing ${s3Key}`
 					);
-				} catch (error) {
+				} else {
+					// Permission denied, return error
 					// eslint-disable-next-line no-console
-					console.error(
-						"[Protected Image] Error checking AppSync threads:",
-						error
+					console.log(
+						`[Protected Image] 🚫 Cached denial: User ${user.id} accessing ${s3Key}`
 					);
-					// Fail closed for messaging check errors
-					hasMessagingRelationship = false;
+					return NextResponse.json(
+						{
+							error: "You don't have permission to access this file",
+						},
+						{ status: 403 }
+					);
 				}
+			} else {
+				// No cache, perform full permission check
+				// eslint-disable-next-line no-console
+				console.log(
+					`[Protected Image] Access check: User ${user.id} (${user.role}) accessing file ${s3Key} owned by ${fileOwnerId}`
+				);
 
-				// If no messaging relationship, check role-based permissions
-				if (!hasMessagingRelationship) {
-					// For authorized roles, allow access to applicant files
-					// But we need to check if the file owner is an applicant
-					if (isAuthorizedRole) {
-						// Check if file owner is an applicant
-						const fileOwner = await prismaClient.user.findUnique({
-							where: { id: fileOwnerId },
-							select: {
-								role: true,
-								applicant: {
-									select: {
-										applicant_id: true,
-									},
-								},
-							},
-						});
+				// Allow access if:
+				// 1. User owns the file, OR
+				// 2. Users are messaging each other (for any files in user folder), OR
+				// 3. User is admin/institution (can access applicant files) - only if no messaging relationship
+				if (fileOwnerId !== user.id) {
+					const isAuthorizedRole =
+						user.role === "admin" ||
+						user.role === "institution" ||
+						user.role === "moderator";
 
+					// Always check for messaging relationship first (regardless of role)
+					// Check AppSync for thread relationship
+					let hasMessagingRelationship = false;
+					try {
+						hasMessagingRelationship =
+							await checkMessagingRelationshipInAppSync(
+								user.id,
+								fileOwnerId
+							);
 						// eslint-disable-next-line no-console
 						console.log(
-							`[Protected Image] File owner check: ${fileOwner?.role || "unknown"} - Has applicant: ${!!fileOwner?.applicant}`
+							`[Protected Image] AppSync Thread check: ${hasMessagingRelationship ? "Found" : "Not found"}`
 						);
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error(
+							"[Protected Image] Error checking AppSync threads:",
+							error
+						);
+						// Fail closed for messaging check errors
+						hasMessagingRelationship = false;
+					}
 
-						// Only allow if file owner is an applicant (not another institution)
-						if (
-							fileOwner?.role === "applicant" ||
-							fileOwner?.applicant
-						) {
-							// Allow access - institution/admin can access applicant files
+					// If no messaging relationship, check role-based permissions
+					if (!hasMessagingRelationship) {
+						// For authorized roles, allow access to applicant files
+						// But we need to check if the file owner is an applicant
+						if (isAuthorizedRole) {
+							// Check if file owner is an applicant
+							const fileOwner =
+								await prismaClient.user.findUnique({
+									where: { id: fileOwnerId },
+									select: {
+										role: true,
+										applicant: {
+											select: {
+												applicant_id: true,
+											},
+										},
+									},
+								});
+
 							// eslint-disable-next-line no-console
 							console.log(
-								`[Protected Image] ✅ Allowed: Authorized role accessing applicant file`
+								`[Protected Image] File owner check: ${fileOwner?.role || "unknown"} - Has applicant: ${!!fileOwner?.applicant}`
 							);
+
+							// Only allow if file owner is an applicant (not another institution)
+							if (
+								fileOwner?.role === "applicant" ||
+								fileOwner?.applicant
+							) {
+								// Allow access - institution/admin can access applicant files
+								// eslint-disable-next-line no-console
+								console.log(
+									`[Protected Image] ✅ Allowed: Authorized role accessing applicant file`
+								);
+								// Cache the permission result (allowed)
+								setCachedPermission(user.id, s3Key, true);
+							} else {
+								// eslint-disable-next-line no-console
+								console.warn(
+									`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId} (${fileOwner?.role}). No messaging relationship and not an applicant file.`
+								);
+								// Cache the denial
+								setCachedPermission(user.id, s3Key, false);
+								return NextResponse.json(
+									{
+										error: "You don't have permission to access this file",
+									},
+									{ status: 403 }
+								);
+							}
 						} else {
+							// No messaging relationship and not an authorized role - deny access
 							// eslint-disable-next-line no-console
 							console.warn(
-								`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId} (${fileOwner?.role}). No messaging relationship and not an applicant file.`
+								`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
 							);
+							// Cache the denial
+							setCachedPermission(user.id, s3Key, false);
 							return NextResponse.json(
 								{
 									error: "You don't have permission to access this file",
@@ -181,29 +265,21 @@ export async function GET(request: NextRequest) {
 							);
 						}
 					} else {
-						// No messaging relationship and not an authorized role - deny access
 						// eslint-disable-next-line no-console
-						console.warn(
-							`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
+						console.log(
+							`[Protected Image] ✅ Allowed: Messaging relationship exists in AppSync`
 						);
-						return NextResponse.json(
-							{
-								error: "You don't have permission to access this file",
-							},
-							{ status: 403 }
-						);
+						// Cache the permission result (allowed)
+						setCachedPermission(user.id, s3Key, true);
 					}
 				} else {
 					// eslint-disable-next-line no-console
 					console.log(
-						`[Protected Image] ✅ Allowed: Messaging relationship exists in AppSync`
+						`[Protected Image] ✅ Allowed: User owns the file`
 					);
+					// Cache the permission result (allowed - user owns file)
+					setCachedPermission(user.id, s3Key, true);
 				}
-
-				// If hasMessagingRelationship is true, allow access (continue to generate URL)
-			} else {
-				// eslint-disable-next-line no-console
-				console.log(`[Protected Image] ✅ Allowed: User owns the file`);
 			}
 		} else {
 			// eslint-disable-next-line no-console

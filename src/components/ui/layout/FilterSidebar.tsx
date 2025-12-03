@@ -188,7 +188,7 @@ export function FilterSidebar({
 	// Helper function to serialize filters to URL with tab prefix
 	const serializeFiltersToURL = useCallback(
 		(filters: Record<string, string[]>, ranges: any) => {
-			const params = new URLSearchParams(searchParams.toString())
+			const params = new URLSearchParams(searchParams?.toString())
 
 			// Add tab to URL
 			params.set('tab', activeTab)
@@ -257,15 +257,15 @@ export function FilterSidebar({
 			'jobType',
 		]
 		filterKeys.forEach((key) => {
-			const value = searchParams.get(`${activeTab}_${key}`)
+			const value = searchParams?.get(`${activeTab}_${key}`)
 			if (value) {
 				filters[key] = value.split(',')
 			}
 		})
 
 		// Parse ranges with tab prefix
-		const feeMin = searchParams.get(`${activeTab}_feeMin`)
-		const feeMax = searchParams.get(`${activeTab}_feeMax`)
+		const feeMin = searchParams?.get(`${activeTab}_feeMin`)
+		const feeMax = searchParams?.get(`${activeTab}_feeMax`)
 		if (feeMin || feeMax) {
 			ranges.fee = {
 				min: feeMin ? parseInt(feeMin) : 0,
@@ -273,8 +273,8 @@ export function FilterSidebar({
 			}
 		}
 
-		const salaryMin = searchParams.get(`${activeTab}_salaryMin`)
-		const salaryMax = searchParams.get(`${activeTab}_salaryMax`)
+		const salaryMin = searchParams?.get(`${activeTab}_salaryMin`)
+		const salaryMax = searchParams?.get(`${activeTab}_salaryMax`)
 		if (salaryMin || salaryMax) {
 			ranges.salary = {
 				min: salaryMin ? parseInt(salaryMin) : 0,
@@ -340,15 +340,15 @@ export function FilterSidebar({
 					'jobType',
 				]
 				filterKeys.forEach((key) => {
-					const value = searchParams.get(`${tab}_${key}`)
+					const value = searchParams?.get(`${tab}_${key}`)
 					if (value) {
 						filters[key] = value.split(',')
 					}
 				})
 
 				// Parse ranges for this tab
-				const feeMin = searchParams.get(`${tab}_feeMin`)
-				const feeMax = searchParams.get(`${tab}_feeMax`)
+				const feeMin = searchParams?.get(`${tab}_feeMin`)
+				const feeMax = searchParams?.get(`${tab}_feeMax`)
 				if (feeMin || feeMax) {
 					ranges.fee = {
 						min: feeMin ? parseInt(feeMin) : 0,
@@ -356,8 +356,8 @@ export function FilterSidebar({
 					}
 				}
 
-				const salaryMin = searchParams.get(`${tab}_salaryMin`)
-				const salaryMax = searchParams.get(`${tab}_salaryMax`)
+				const salaryMin = searchParams?.get(`${tab}_salaryMin`)
+				const salaryMax = searchParams?.get(`${tab}_salaryMax`)
 				if (salaryMin || salaryMax) {
 					ranges.salary = {
 						min: salaryMin ? parseInt(salaryMin) : 0,
@@ -389,7 +389,7 @@ export function FilterSidebar({
 		}
 
 		// Only parse on initial mount (when searchParams is first available)
-		if (searchParams && searchParams.toString()) {
+		if (searchParams && searchParams?.toString()) {
 			parseAllTabFiltersFromURL()
 		} else {
 			// If no search params, mark as initialized with empty filters

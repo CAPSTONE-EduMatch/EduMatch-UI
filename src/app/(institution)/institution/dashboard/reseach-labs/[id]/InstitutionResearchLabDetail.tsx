@@ -113,7 +113,7 @@ const InstitutionResearchLabDetail = () => {
 		return apps.map((app) => {
 			return {
 				id: app.id || app.application_id || '',
-				postId: app.postId || app.post_id || (params.id as string),
+				postId: app.postId || app.post_id || (params?.id as string),
 				name: app.name || 'Unknown',
 				appliedDate:
 					app.appliedDate || app.applied_date || formatDate(new Date()),
@@ -129,10 +129,7 @@ const InstitutionResearchLabDetail = () => {
 					| 'accepted'
 					| 'rejected'
 					| 'new_request',
-				matchingScore:
-					app.matchingScore ||
-					app.matching_score ||
-					Math.floor(Math.random() * 30) + 70,
+				matchingScore: app.matchingScore || app.matching_score || 0,
 				userId: app.userId || app.user_id,
 				gpa: app.snapshotData?.gpa || app.gpa || undefined,
 				postType: app.postType || 'Research Lab', // Preserve postType from API
@@ -187,7 +184,7 @@ const InstitutionResearchLabDetail = () => {
 	useEffect(() => {
 		const updateBreadcrumb = async () => {
 			// Get research lab ID from URL params
-			const researchLabId = params.id as string
+			const researchLabId = params?.id as string
 
 			if (!researchLabId) {
 				showError('Error', 'Research Lab ID is required')
@@ -215,18 +212,18 @@ const InstitutionResearchLabDetail = () => {
 
 		updateBreadcrumb()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.id])
+	}, [params?.id])
 
 	const handleEditResearchLab = () => {
 		// Navigate to edit research lab page
 		router.push(
-			`/institution/dashboard/programs?action=edit&type=Research Lab&id=${params.id}`
+			`/institution/dashboard/programs?action=edit&type=Research Lab&id=${params?.id}`
 		)
 	}
 
 	const handleViewApplications = () => {
 		// Navigate to applications section with filter for this post
-		router.push(`/institution/dashboard/applications?postId=${params.id}`)
+		router.push(`/institution/dashboard/applications?postId=${params?.id}`)
 	}
 
 	const handleApplicantDetail = (applicant: Applicant) => {
@@ -237,7 +234,7 @@ const InstitutionResearchLabDetail = () => {
 	const handleDeleteResearchLab = async () => {
 		try {
 			setIsDeleting(true)
-			const response = await fetch(`/api/posts/research?postId=${params.id}`, {
+			const response = await fetch(`/api/posts/research?postId=${params?.id}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
@@ -271,7 +268,7 @@ const InstitutionResearchLabDetail = () => {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					postId: params.id,
+					postId: params?.id,
 					status: 'CLOSED',
 				}),
 			})
@@ -284,7 +281,7 @@ const InstitutionResearchLabDetail = () => {
 
 			if (result.success) {
 				// Refresh research lab data
-				const researchLabId = params.id as string
+				const researchLabId = params?.id as string
 				await fetchResearchLabDetail(researchLabId)
 			} else {
 				showError('Error', result.error || 'Failed to close research lab')

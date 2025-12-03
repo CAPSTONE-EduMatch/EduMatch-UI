@@ -4,6 +4,12 @@ import {
 	setCachedImageUrl,
 } from "@/utils/files/image-cache";
 
+// Request deduplication: track ongoing requests to prevent duplicate API calls
+const ongoingRequests = new Map<
+	string,
+	Promise<{ url: string; expiresAt: string; expiresIn: number }>
+>();
+
 interface ProtectedImageOptions {
 	/**
 	 * Expiration time in seconds (default: 3600 = 1 hour, max: 604800 = 7 days)
@@ -105,28 +111,56 @@ export function useProtectedImage(
 		setError(null);
 
 		try {
-			// Build query parameters
-			const params = new URLSearchParams({
-				url: imageUrl,
-				expiresIn: expiresIn.toString(),
-			});
+			// Check if there's an ongoing request for this image
+			const requestKey = `${imageUrl}:${expiresIn}`;
+			let requestPromise = ongoingRequests.get(requestKey);
 
-			const response = await fetch(
-				`/api/files/protected-image?${params.toString()}`,
-				{
-					method: "GET",
-					credentials: "include",
-				}
-			);
+			if (!requestPromise) {
+				// Create new request
+				requestPromise = (async () => {
+					// Build query parameters
+					const params = new URLSearchParams({
+						url: imageUrl,
+						expiresIn: expiresIn.toString(),
+					});
 
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(
-					errorData.error || "Failed to fetch protected image URL"
-				);
+					const response = await fetch(
+						`/api/files/protected-image?${params.toString()}`,
+						{
+							method: "GET",
+							credentials: "include",
+						}
+					);
+
+					if (!response.ok) {
+						const errorData = await response
+							.json()
+							.catch(() => ({}));
+						throw new Error(
+							errorData.error ||
+								"Failed to fetch protected image URL"
+						);
+					}
+
+					const data = await response.json();
+					return data;
+				})();
+
+				// Store the promise
+				ongoingRequests.set(requestKey, requestPromise);
+
+				// Clean up after request completes
+				requestPromise
+					.finally(() => {
+						ongoingRequests.delete(requestKey);
+					})
+					.catch(() => {
+						// Error already handled below
+					});
 			}
 
-			const data = await response.json();
+			// Wait for the request (either new or existing)
+			const data = await requestPromise;
 
 			// Store in cache
 			setCachedImageUrl(imageUrl, data.url, expiresIn);

@@ -690,7 +690,7 @@ export default function InstitutionDetailPage() {
 										files={
 											institutionData.documents.verificationDocuments || []
 										}
-										institutionId={params.id as string}
+										institutionId={params?.id as string}
 									/>
 
 									{/* Download All Button */}

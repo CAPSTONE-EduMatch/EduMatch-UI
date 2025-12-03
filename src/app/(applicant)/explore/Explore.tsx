@@ -25,7 +25,7 @@ import { Search } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import student from '../../../../public/student.png'
 
 const categories = [
@@ -40,7 +40,14 @@ const ITEMS_PER_PAGE_RESEARCH = 5
 
 const Explore = () => {
 	const t = useTranslations('')
-	const searchParams = useSearchParams()
+	// `useSearchParams()` can be null in some render paths; default to an empty URLSearchParams
+	const _rawSearchParams = useSearchParams()
+
+	// Memoize to keep stable reference for useEffect dependencies
+	const searchParams = useMemo(
+		() => _rawSearchParams ?? new URLSearchParams(),
+		[_rawSearchParams]
+	)
 	const router = useRouter()
 	const { isAuthenticated } = useAuthCheck()
 	const { profile: userProfile } = useUserProfile()

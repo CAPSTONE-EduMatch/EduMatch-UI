@@ -40,7 +40,7 @@ const AdminResearchLabDetail = () => {
 	const [researchLabWishlist, setResearchLabWishlist] = useState<string[]>([])
 
 	// Fetch research lab detail from admin API
-	const labId = params.id as string
+	const labId = params?.id as string
 	const [researchLab, setResearchLab] = useState<any>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -151,10 +151,10 @@ const AdminResearchLabDetail = () => {
 	// Update breadcrumb when component mounts or research lab data changes
 	useEffect(() => {
 		const updateBreadcrumb = () => {
-			const fromTab = searchParams.get('from') || 'research'
+			const fromTab = searchParams?.get('from') || 'research'
 
 			// Preserve all original URL parameters except 'from'
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
@@ -211,7 +211,7 @@ const AdminResearchLabDetail = () => {
 	useEffect(() => {
 		const updateBreadcrumb = () => {
 			// Get the 'from' parameter from search params to know which tab we came from
-			const fromTab = searchParams.get('from') || 'research'
+			const fromTab = searchParams?.get('from') || 'research'
 
 			const labName = researchLab?.title || 'AI Research Lab'
 
@@ -298,7 +298,7 @@ const AdminResearchLabDetail = () => {
 
 		setIsProcessing(true)
 		try {
-			await axios.patch(`/api/admin/posts/${params.id}`, {
+			await axios.patch(`/api/admin/posts/${params?.id}`, {
 				status: 'CLOSED',
 				rejectReason: rejectReason.trim(),
 			})
@@ -329,7 +329,7 @@ const AdminResearchLabDetail = () => {
 
 		setIsProcessing(true)
 		try {
-			await axios.patch(`/api/admin/posts/${params.id}`, {
+			await axios.patch(`/api/admin/posts/${params?.id}`, {
 				status: 'REQUIRE_UPDATE',
 				additionalRequirements: additionalRequirements.trim(),
 			})
@@ -400,7 +400,7 @@ const AdminResearchLabDetail = () => {
 
 	const handleResearchLabClick = (researchLabId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -716,9 +716,9 @@ const AdminResearchLabDetail = () => {
 										e.stopPropagation()
 										const labId =
 											researchLab?.id ||
-											(typeof params.id === 'string'
-												? params.id
-												: String(params.id))
+											(typeof params?.id === 'string'
+												? params?.id
+												: String(params?.id))
 										if (labId) {
 											handleRResearchLabWishlistToggle(labId)
 										}
@@ -731,9 +731,9 @@ const AdminResearchLabDetail = () => {
 										className={`w-6 h-6 transition-all duration-200 ${
 											isInWishlist(
 												researchLab?.id ||
-													(typeof params.id === 'string'
-														? params.id
-														: String(params.id))
+													(typeof params?.id === 'string'
+														? params?.id
+														: String(params?.id))
 											)
 												? 'fill-red-500 text-red-500'
 												: 'text-gray-400 hover:text-red-500'
@@ -1168,7 +1168,7 @@ const AdminResearchLabDetail = () => {
 				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8"
 			>
 				<PostStatusManager
-					postId={params.id as string}
+					postId={params?.id as string}
 					currentStatus={(researchLab?.status || 'DRAFT') as PostStatus}
 					postType="Research Lab"
 					onStatusChange={(newStatus) => {

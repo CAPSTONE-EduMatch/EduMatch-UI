@@ -82,7 +82,7 @@ export function MessageAvatar({
 						alt={alt}
 						className={`${sizeClass} rounded-full object-cover border-2 border-gray-200 shadow-sm`}
 						expiresIn={7200}
-						autoRefresh={true}
+						autoRefresh={false}
 						fallback={fallbackElement}
 					/>
 				) : (

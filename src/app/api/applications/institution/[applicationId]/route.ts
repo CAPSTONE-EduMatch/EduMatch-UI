@@ -1,7 +1,66 @@
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../prisma";
-import { randomUUID } from "crypto";
+import { SimilarityService } from "@/services/similarity/similarity-service";
+
+// Helper function to calculate match score between applicant and post
+async function calculateApplicationMatchScore(
+	applicantId: string,
+	postId: string
+): Promise<string> {
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { applicant_id: applicantId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			return "0%";
+		}
+
+		// Get post embedding from the appropriate table
+		const [programPost, scholarshipPost, jobPost] = await Promise.all([
+			prismaClient.programPost.findUnique({
+				where: { post_id: postId },
+				select: { embedding: true },
+			}),
+			prismaClient.scholarshipPost.findUnique({
+				where: { post_id: postId },
+				select: { embedding: true },
+			}),
+			prismaClient.jobPost.findUnique({
+				where: { post_id: postId },
+				select: { embedding: true },
+			}),
+		]);
+
+		const postEmbedding =
+			(programPost?.embedding as number[] | null) ||
+			(scholarshipPost?.embedding as number[] | null) ||
+			(jobPost?.embedding as number[] | null);
+
+		if (!postEmbedding) {
+			return "0%";
+		}
+
+		// Calculate similarity
+		const similarity = SimilarityService.calculateCosineSimilarity(
+			applicant.embedding as number[],
+			postEmbedding
+		);
+		const matchPercentage =
+			SimilarityService.similarityToMatchPercentage(similarity);
+
+		return matchPercentage;
+	} catch (error) {
+		if (process.env.NODE_ENV === "development") {
+			// eslint-disable-next-line no-console
+			console.error("Error calculating match score:", error);
+		}
+		return "0%";
+	}
+}
 
 // GET /api/applications/institution/[applicationId] - Get detailed applicant information for institutions
 export async function GET(
@@ -326,6 +385,12 @@ export async function GET(
 			);
 		}
 
+		// Calculate match score between applicant and post
+		const matchScore = await calculateApplicationMatchScore(
+			application.applicant_id,
+			application.post_id
+		);
+
 		// Transform the data for the frontend
 		const transformedData = {
 			application: {
@@ -597,6 +662,8 @@ export async function GET(
 				// Filtered from snapshot documents to match only those in application.details
 				// Shows documents from snapshot (preserves state at application time, even if soft-deleted now)
 				documents: snapshotDocuments,
+				// Match score between applicant and this specific post
+				matchingScore: parseInt(matchScore.replace("%", "")), // Convert percentage string to number
 			},
 		};
 
@@ -666,7 +733,7 @@ export async function PUT(
 		}
 
 		const body = await request.json();
-		const { status, message } = body;
+		const { status } = body;
 
 		// Validate status - only allow ACCEPTED or REJECTED
 		if (!status || !["ACCEPTED", "REJECTED"].includes(status)) {

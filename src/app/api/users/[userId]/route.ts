@@ -39,8 +39,12 @@ export async function GET(
 				institution: {
 					select: {
 						name: true,
+						type: true,
+						country: true,
+						abbreviation: true,
 					},
 				},
+				role_id: true,
 			},
 		});
 
@@ -62,6 +66,10 @@ export async function GET(
 			displayName = user.name;
 		}
 
+		// Determine user type
+		const isInstitution = user.role_id === "2" || user.institution !== null;
+		const isApplicant = user.role_id === "1" || user.applicant !== null;
+
 		// Transform the data to match our interface
 		const transformedUser = {
 			id: user.id,
@@ -72,6 +80,16 @@ export async function GET(
 			// Include applicant data if available
 			degreeLevel: user.applicant?.level || null,
 			subDiscipline: user.applicant?.subdiscipline?.name || null,
+			// Include institution data if available
+			institutionType: user.institution?.type || null,
+			institutionCountry: user.institution?.country || null,
+			institutionAbbreviation: user.institution?.abbreviation || null,
+			// User type indicator
+			userType: isInstitution
+				? "institution"
+				: isApplicant
+					? "applicant"
+					: "unknown",
 		};
 
 		return new Response(

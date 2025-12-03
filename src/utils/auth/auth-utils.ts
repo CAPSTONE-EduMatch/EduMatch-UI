@@ -6,31 +6,83 @@
 import { auth } from "@/config/auth";
 import { headers } from "next/headers";
 
+// In-memory cache for request deduplication (per request lifecycle)
+// This prevents multiple simultaneous calls within the same request
+const requestCache = new Map<
+	string,
+	{
+		promise: Promise<{ session: any; user: any } | null>;
+		timestamp: number;
+	}
+>();
+
+const REQUEST_CACHE_TTL = 1 * 1000; // 1 second - very short for request deduplication
+
 /**
  * Get session with Better Auth's built-in caching
  * This leverages Better Auth's cookie cache and Redis store
+ * Includes request-level deduplication to prevent multiple simultaneous calls
  */
 export async function getSessionWithCache(): Promise<{
 	session: any;
 	user: any;
 } | null> {
 	try {
+		// Create a cache key based on request headers (cookies)
+		// This allows deduplication within the same request
 		const headersList = await headers();
+		const cookieHeader = headersList.get("cookie") || "";
+		const cacheKey = cookieHeader.substring(0, 50); // Use first 50 chars as key
 
-		// Use Better Auth's built-in session management with caching
-		const session = await auth.api.getSession({
-			headers: headersList,
-			// Let Better Auth handle caching automatically
-		});
+		// Check if we have a recent cached promise for this request
+		const cached = requestCache.get(cacheKey);
+		const now = Date.now();
 
-		if (!session?.user) {
-			return null;
+		if (cached && now - cached.timestamp < REQUEST_CACHE_TTL) {
+			return cached.promise;
 		}
 
-		return {
-			session: session,
-			user: session.user,
-		};
+		// Create a new promise for this request
+		const sessionPromise = (async () => {
+			try {
+				// Use Better Auth's built-in session management with caching
+				const session = await auth.api.getSession({
+					headers: headersList,
+					// Let Better Auth handle caching automatically
+				});
+
+				if (!session?.user) {
+					return null;
+				}
+
+				return {
+					session: session,
+					user: session.user,
+				};
+			} catch (error) {
+				// Silently handle auth errors
+				return null;
+			}
+		})();
+
+		// Cache the promise for this request
+		requestCache.set(cacheKey, {
+			promise: sessionPromise,
+			timestamp: now,
+		});
+
+		// Clean up old cache entries periodically
+		if (requestCache.size > 100) {
+			const keysToDelete: string[] = [];
+			requestCache.forEach((value, key) => {
+				if (now - value.timestamp > REQUEST_CACHE_TTL * 2) {
+					keysToDelete.push(key);
+				}
+			});
+			keysToDelete.forEach((key) => requestCache.delete(key));
+		}
+
+		return sessionPromise;
 	} catch (error) {
 		// Silently handle auth errors
 		return null;

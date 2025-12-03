@@ -1,17 +1,83 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
+// Types
+interface UserStatusResponse {
+	id: string;
+	name: string;
+	email?: string; // Only included for users with existing threads
+	image: string | null;
+	status: "online" | "offline";
+	lastSeen: Date | null;
+}
+
+interface StatusUpdateRequest {
+	isOnline?: boolean;
+}
+
+// Configuration
+const ONLINE_STATUS_THRESHOLD_MS =
+	parseInt(process.env.ONLINE_STATUS_THRESHOLD_MINUTES || "5") * 60 * 1000;
+const MAX_USERS_LIMIT = 1000; // Maximum users to return
+const CACHE_MAX_AGE = 30; // Cache for 30 seconds (matches polling interval)
+
+// Simple in-memory rate limiting (for production, use Redis or a proper rate limiter)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 60; // 60 requests per minute
+
+function checkRateLimit(userId: string): boolean {
+	const now = Date.now();
+	const userLimit = rateLimitMap.get(userId);
+
+	if (!userLimit || now > userLimit.resetTime) {
+		rateLimitMap.set(userId, {
+			count: 1,
+			resetTime: now + RATE_LIMIT_WINDOW,
+		});
+		return true;
+	}
+
+	if (userLimit.count >= RATE_LIMIT_MAX_REQUESTS) {
+		return false;
+	}
+
+	userLimit.count++;
+	return true;
+}
+
+// Clean up old rate limit entries periodically
+setInterval(() => {
+	const now = Date.now();
+	const keysToDelete: string[] = [];
+	rateLimitMap.forEach((limit, userId) => {
+		if (now > limit.resetTime) {
+			keysToDelete.push(userId);
+		}
+	});
+	keysToDelete.forEach((userId) => rateLimitMap.delete(userId));
+}, RATE_LIMIT_WINDOW * 2);
+
 // Update user online status
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
 	try {
-		const body = await request.json();
-		const { isOnline } = body;
+		// Parse body (isOnline parameter accepted but not used - status determined by updatedAt)
+		await _request.json();
 
 		// Authenticate user
 		const { user: currentUser } = await requireAuth();
 
+		// Basic rate limiting
+		if (!checkRateLimit(currentUser.id)) {
+			return NextResponse.json(
+				{ error: "Too many requests. Please try again later." },
+				{ status: 429 }
+			);
+		}
+
 		// Update user's last seen timestamp
+		// Note: isOnline parameter is accepted but not used since we determine status from updatedAt
 		await prismaClient.user.update({
 			where: { id: currentUser.id },
 			data: {
@@ -19,48 +85,147 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
-		return new Response(
-			JSON.stringify({
+		return NextResponse.json(
+			{
 				success: true,
 				message: "Status updated",
-			}),
+			},
 			{
 				status: 200,
-				headers: { "Content-Type": "application/json" },
+				headers: {
+					"Content-Type": "application/json",
+				},
 			}
 		);
 	} catch (error) {
 		console.error("Update status error:", error);
-		return new Response("Failed to update status", { status: 500 });
+		return NextResponse.json(
+			{ error: "Failed to update status" },
+			{ status: 500 }
+		);
 	}
 }
 
 // Get user online status
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
 	try {
 		// Authenticate user
 		const { user: currentUser } = await requireAuth();
 
-		// Get all users with their last seen status, including applicant and institution data
+		// Basic rate limiting
+		if (!checkRateLimit(currentUser.id)) {
+			return NextResponse.json(
+				{ error: "Too many requests. Please try again later." },
+				{
+					status: 429,
+					headers: {
+						"Retry-After": "60",
+					},
+				}
+			);
+		}
+
+		// Get users that the current user has threads with from AppSync (for privacy)
+		// This limits results and ensures we only show status for users with existing relationships
+		const relatedUserIds = new Set<string>();
+
+		// Query AppSync threads to get all users the current user has conversations with
+		if (process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
+			try {
+				const { generateClient } = await import("aws-amplify/api");
+				const { Amplify } = await import("aws-amplify");
+
+				// Configure Amplify for server-side use
+				Amplify.configure({
+					API: {
+						GraphQL: {
+							endpoint: process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT,
+							region:
+								process.env.NEXT_PUBLIC_AWS_REGION ||
+								"ap-northeast-1",
+							defaultAuthMode: "apiKey",
+							apiKey: process.env.NEXT_PUBLIC_APPSYNC_API_KEY,
+						},
+					},
+				});
+
+				const GET_THREADS = `
+					query GetThreads($userId: ID) {
+						getThreads(userId: $userId) {
+							id
+							user1Id
+							user2Id
+						}
+					}
+				`;
+
+				const client = generateClient();
+				const result = await client.graphql({
+					query: GET_THREADS,
+					variables: {
+						userId: currentUser.id,
+					},
+				});
+
+				const threads = (result as any).data?.getThreads || [];
+
+				// Extract unique user IDs from AppSync threads
+				threads.forEach((thread: any) => {
+					if (thread.user1Id === currentUser.id && thread.user2Id) {
+						relatedUserIds.add(thread.user2Id);
+					} else if (
+						thread.user2Id === currentUser.id &&
+						thread.user1Id
+					) {
+						relatedUserIds.add(thread.user1Id);
+					}
+				});
+			} catch (error) {
+				console.error("Error fetching AppSync threads:", error);
+				// Continue with empty set if AppSync fails
+			}
+		}
+
+		// If no threads exist, return empty array (privacy: don't expose all users)
+		if (relatedUserIds.size === 0) {
+			return NextResponse.json(
+				{
+					success: true,
+					users: [],
+				},
+				{
+					status: 200,
+					headers: {
+						"Content-Type": "application/json",
+						"Cache-Control": `public, max-age=${CACHE_MAX_AGE}, stale-while-revalidate=60`,
+					},
+				}
+			);
+		}
+
+		// Convert Set to Array and limit results
+		const userIdsArray = Array.from(relatedUserIds).slice(
+			0,
+			MAX_USERS_LIMIT
+		);
+
+		// Get users with their last seen status, including applicant data
+		// We'll fetch institution data separately only for institution users to avoid unnecessary queries
 		const users = await prismaClient.user.findMany({
 			where: {
-				id: { not: currentUser.id }, // Exclude current user
+				id: { in: userIdsArray },
 			},
 			select: {
 				id: true,
 				name: true,
-				email: true,
+				email: true, // Include email for users with existing threads
 				image: true,
 				updatedAt: true, // Use updatedAt as last seen indicator
+				role_id: true, // Include role_id to identify institution users
 				applicant: {
 					select: {
 						first_name: true,
 						last_name: true,
-					},
-				},
-				institution: {
-					select: {
-						name: true,
 					},
 				},
 			},
@@ -69,20 +234,47 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
-		// Determine online status (online if last seen within 5 minutes)
-		const now = new Date();
-		const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+		// Only fetch institution data for users with institution role (role_id = 2)
+		// This prevents querying Institution table for all users when most are applicants
+		const institutionUserIds = users
+			.filter((user) => user.role_id === "2")
+			.map((user) => user.id);
 
-		const usersWithStatus = users.map((user) => {
+		const institutionsMap = new Map<string, string>();
+		if (institutionUserIds.length > 0) {
+			const institutions = await prismaClient.institution.findMany({
+				where: {
+					user_id: { in: institutionUserIds },
+				},
+				select: {
+					user_id: true,
+					name: true,
+				},
+			});
+
+			// Create a map for quick lookup
+			institutions.forEach((inst) => {
+				institutionsMap.set(inst.user_id, inst.name);
+			});
+		}
+
+		// Determine online status (online if last seen within threshold)
+		const now = new Date();
+		const thresholdTime = new Date(
+			now.getTime() - ONLINE_STATUS_THRESHOLD_MS
+		);
+
+		const usersWithStatus: UserStatusResponse[] = users.map((user) => {
 			// Determine the correct name based on user type
 			let displayName = "Unknown User";
 			if (user.applicant?.first_name || user.applicant?.last_name) {
 				// For applicants: use first_name + last_name
 				displayName =
 					`${user.applicant.first_name || ""} ${user.applicant.last_name || ""}`.trim();
-			} else if (user.institution?.name) {
-				// For institutions: use institution name
-				displayName = user.institution.name;
+			} else if (institutionsMap.has(user.id)) {
+				// For institutions: use institution name from our map
+				displayName =
+					institutionsMap.get(user.id) || user.name || "Unknown User";
 			} else if (user.name) {
 				// Fallback to User.name
 				displayName = user.name;
@@ -91,28 +283,34 @@ export async function GET(request: NextRequest) {
 			return {
 				id: user.id,
 				name: displayName,
-				email: user.email || "",
+				email: user.email || undefined, // Only include email for users with threads
 				image: user.image,
 				status:
-					user.updatedAt && user.updatedAt > fiveMinutesAgo
+					user.updatedAt && user.updatedAt > thresholdTime
 						? "online"
 						: "offline",
 				lastSeen: user.updatedAt,
 			};
 		});
 
-		return new Response(
-			JSON.stringify({
+		return NextResponse.json(
+			{
 				success: true,
 				users: usersWithStatus,
-			}),
+			},
 			{
 				status: 200,
-				headers: { "Content-Type": "application/json" },
+				headers: {
+					"Content-Type": "application/json",
+					"Cache-Control": `public, max-age=${CACHE_MAX_AGE}, stale-while-revalidate=60`,
+				},
 			}
 		);
 	} catch (error) {
 		console.error("Get user status error:", error);
-		return new Response("Failed to get user status", { status: 500 });
+		return NextResponse.json(
+			{ error: "Failed to get user status" },
+			{ status: 500 }
+		);
 	}
 }

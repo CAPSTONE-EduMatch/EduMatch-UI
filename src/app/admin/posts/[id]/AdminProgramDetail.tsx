@@ -208,13 +208,13 @@ const AdminProgramDetail = () => {
 	useEffect(() => {
 		const updateBreadcrumb = async () => {
 			// Get program ID from URL params
-			const programId = params.id as string
+			const programId = params?.id as string
 
 			// Get the 'from' parameter from search params to know which tab we came from
-			const fromTab = searchParams.get('from') || 'programmes'
+			const fromTab = searchParams?.get('from') || 'programmes'
 
 			// Preserve all original URL parameters except 'from'
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
@@ -263,11 +263,11 @@ const AdminProgramDetail = () => {
 
 		updateBreadcrumb()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.id, searchParams])
+	}, [params?.id, searchParams])
 
 	// Check for existing application when component loads
 	useEffect(() => {
-		const programId = currentProgram?.id || params.id
+		const programId = currentProgram?.id || params?.id
 		if (programId && !isCheckingApplication) {
 			// Add a small delay to prevent rapid successive calls
 			const timeoutId = setTimeout(() => {
@@ -276,7 +276,7 @@ const AdminProgramDetail = () => {
 
 			return () => clearTimeout(timeoutId)
 		}
-	}, [currentProgram?.id, params.id]) // Removed isCheckingApplication from deps to prevent loops
+	}, [currentProgram?.id, params?.id]) // Removed isCheckingApplication from deps to prevent loops
 
 	// Fetch all update requests when application is loaded
 	useEffect(() => {
@@ -406,7 +406,7 @@ const AdminProgramDetail = () => {
 		}
 
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -417,7 +417,7 @@ const AdminProgramDetail = () => {
 
 	const handleScholarshipClick = (scholarshipId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -489,7 +489,7 @@ const AdminProgramDetail = () => {
 	// Handle application submission
 	const handleApply = async () => {
 		// Use program ID from URL params as fallback
-		const programId = currentProgram?.id || params.id
+		const programId = currentProgram?.id || params?.id
 		if (!programId) {
 			return
 		}
@@ -567,7 +567,7 @@ const AdminProgramDetail = () => {
 
 	// Handle wishlist toggle
 	const handleWishlistToggle = async () => {
-		const programId = currentProgram?.id || params.id
+		const programId = currentProgram?.id || params?.id
 		if (!programId) return
 
 		// Check if user is authenticated before attempting to toggle
@@ -636,7 +636,7 @@ const AdminProgramDetail = () => {
 
 		setIsProcessing(true)
 		try {
-			const response = await axios.patch(`/api/admin/posts/${params.id}`, {
+			const response = await axios.patch(`/api/admin/posts/${params?.id}`, {
 				status: 'CLOSED',
 				rejectReason: rejectReason,
 			})
@@ -671,7 +671,7 @@ const AdminProgramDetail = () => {
 
 		setIsProcessing(true)
 		try {
-			const response = await axios.patch(`/api/admin/posts/${params.id}`, {
+			const response = await axios.patch(`/api/admin/posts/${params?.id}`, {
 				status: 'REQUIRE_UPDATE',
 				additionalRequirements: additionalRequirements,
 			})
@@ -1232,7 +1232,7 @@ const AdminProgramDetail = () => {
 							>
 								<Heart
 									className={`w-6 h-6 transition-all duration-200 ${
-										isInWishlist(currentProgram?.id || params.id)
+										isInWishlist(currentProgram?.id || params?.id)
 											? 'fill-red-500 text-red-500'
 											: 'text-gray-400 hover:text-red-500'
 									}`}
@@ -1861,7 +1861,7 @@ const AdminProgramDetail = () => {
 				className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8"
 			>
 				<PostStatusManager
-					postId={params.id as string}
+					postId={params?.id as string}
 					currentStatus={(currentProgram?.status || 'DRAFT') as PostStatus}
 					postType="Program"
 					onStatusChange={(newStatus) => {
@@ -2010,7 +2010,7 @@ const AdminProgramDetail = () => {
 					updateRequestId={selectedUpdateRequestId || undefined}
 					onSuccess={async () => {
 						// Refresh application status and update requests after successful update
-						const programId = currentProgram?.id || params.id
+						const programId = currentProgram?.id || params?.id
 						if (programId) {
 							await checkExistingApplication(programId as string)
 						}

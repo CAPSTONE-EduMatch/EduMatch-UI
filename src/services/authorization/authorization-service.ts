@@ -289,6 +289,104 @@ export async function canSeeMatchingScore(
 }
 
 /**
+ * Check if an applicant can see personalized recommendations (Standard+ only)
+ */
+export async function canSeeRecommendations(
+	applicantId: string
+): Promise<AuthorizationResult> {
+	try {
+		// Get applicant with user info to access subscription
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { applicant_id: applicantId },
+			include: { user: true },
+		});
+
+		if (!applicant) {
+			return {
+				authorized: false,
+				reason: "Applicant not found",
+			};
+		}
+
+		// Get user's Better Auth subscription
+		const subscription = await prismaClient.subscription.findFirst({
+			where: {
+				referenceId: applicant.user_id,
+				status: "active",
+			},
+			orderBy: { createdAt: "desc" },
+		});
+
+		const planName = subscription?.plan || "Free";
+		const planType = getPlanType(planName) as ApplicantPlan;
+
+		// Free users cannot see personalized recommendations
+		if (planType === ApplicantPlan.FREE) {
+			return {
+				authorized: false,
+				reason: "Upgrade to Standard or Premium to see personalized recommendations.",
+			};
+		}
+
+		return { authorized: true };
+	} catch (error) {
+		return {
+			authorized: false,
+			reason: "Error checking permission",
+		};
+	}
+}
+
+/**
+ * Check if an applicant can have their profile boosted/recommended to institutions (Premium only)
+ * Note: This feature is not yet implemented - placeholder for future use
+ */
+export async function canBoostProfileToInstitutions(
+	applicantId: string
+): Promise<AuthorizationResult> {
+	try {
+		// Get applicant with user info to access subscription
+		const applicant = await prismaClient.applicant.findUnique({
+			where: { applicant_id: applicantId },
+			include: { user: true },
+		});
+
+		if (!applicant) {
+			return {
+				authorized: false,
+				reason: "Applicant not found",
+			};
+		}
+
+		// Get user's Better Auth subscription
+		const subscription = await prismaClient.subscription.findFirst({
+			where: {
+				referenceId: applicant.user_id,
+				status: "active",
+			},
+			orderBy: { createdAt: "desc" },
+		});
+
+		const planName = subscription?.plan || "Free";
+		const planType = getPlanType(planName) as ApplicantPlan;
+
+		if (planType !== ApplicantPlan.PREMIUM) {
+			return {
+				authorized: false,
+				reason: "Only Premium users can have their profile recommended to institutions. Please upgrade to Premium.",
+			};
+		}
+
+		return { authorized: true };
+	} catch (error) {
+		return {
+			authorized: false,
+			reason: "Error checking permission",
+		};
+	}
+}
+
+/**
  * Check if an institution can create posts (requires active subscription)
  */
 export async function canCreatePost(

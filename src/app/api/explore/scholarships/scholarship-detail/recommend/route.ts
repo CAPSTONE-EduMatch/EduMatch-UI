@@ -1,3 +1,4 @@
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../../prisma";
 
@@ -11,6 +12,40 @@ export async function GET(request: NextRequest) {
 				{ success: false, message: "Scholarship ID is required" },
 				{ status: 400 }
 			);
+		}
+
+		// PLAN-BASED AUTHORIZATION: Check if user can see recommendations
+		let canViewRecommendations = false;
+		try {
+			const { user } = await requireAuth();
+
+			const applicant = await prismaClient.applicant.findFirst({
+				where: { user_id: user.id },
+				select: { applicant_id: true },
+			});
+
+			if (applicant) {
+				const { canSeeRecommendations } = await import(
+					"@/services/authorization/authorization-service"
+				);
+				const recommendationPermission = await canSeeRecommendations(
+					applicant.applicant_id
+				);
+				canViewRecommendations = recommendationPermission.authorized;
+			}
+		} catch (error) {
+			// User not authenticated
+		}
+
+		// If user cannot see recommendations (Free plan or not authenticated), return restricted response
+		if (!canViewRecommendations) {
+			return NextResponse.json({
+				success: true,
+				data: [],
+				restricted: true,
+				message:
+					"Upgrade to Standard or Premium to see personalized recommendations.",
+			});
 		}
 
 		// Get current scholarship details

@@ -11,11 +11,11 @@ import {
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
+import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
-import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { applicationService } from '@/services/application/application-service'
 import { ApplicationLimitError } from '@/types/api/application-errors'
@@ -25,7 +25,7 @@ import {
 	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, File, Heart, X } from 'lucide-react'
+import { Check, File, Heart, Lock, X } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -163,6 +163,8 @@ const ResearchLabDetail = () => {
 		[]
 	)
 	const [isLoadingRecommendations, setIsLoadingRecommendations] =
+		useState(false)
+	const [isRecommendationsRestricted, setIsRecommendationsRestricted] =
 		useState(false)
 
 	// Handle documents selection from DocumentSelector
@@ -505,29 +507,18 @@ const ResearchLabDetail = () => {
 
 	// Fetch recommended research labs when researchLab is loaded
 	useEffect(() => {
-		console.log(
-			'🔄 useEffect [researchLab] triggered, researchLab:',
-			researchLab
-		)
 		if (researchLab) {
-			console.log('✅ Calling fetchRecommendedResearchLabs')
 			fetchRecommendedResearchLabs(researchLab)
-		} else {
-			console.log('⚠️ No researchLab data, skipping fetch')
 		}
 	}, [researchLab])
 
 	// Fetch recommended research labs using the new recommend API
 	const fetchRecommendedResearchLabs = async (lab: any) => {
-		console.log('🔍 fetchRecommendedResearchLabs called with lab:', lab)
-		if (!lab?.id) {
-			console.log('❌ No lab ID found')
-			return
-		}
+		if (!lab?.id) return
 
 		try {
 			setIsLoadingRecommendations(true)
-			console.log('🚀 Fetching recommendations for lab ID:', lab.id)
+			setIsRecommendationsRestricted(false)
 
 			// Use the new recommend API endpoint
 			const response = await fetch(
@@ -541,29 +532,26 @@ const ResearchLabDetail = () => {
 				}
 			)
 
-			console.log('📡 API Response status:', response.status)
-
 			if (response.ok) {
 				const data = await response.json()
-				console.log('✅ API Response data:', data)
 				if (data.success && data.data) {
-					setRecommendedResearchLabs(data.data)
-					console.log('✅ Set recommendations:', data.data.length, 'items')
+					// Check if recommendations are restricted by plan
+					if (data.restricted) {
+						setIsRecommendationsRestricted(true)
+						setRecommendedResearchLabs([])
+					} else {
+						setRecommendedResearchLabs(data.data)
+					}
 				} else {
 					setRecommendedResearchLabs([])
-					console.log('⚠️ No recommendations found')
 				}
 			} else {
-				const errorData = await response.text()
-				console.log('❌ API Error:', errorData)
 				setRecommendedResearchLabs([])
 			}
 		} catch (error) {
-			console.error('❌ fetchRecommendedResearchLabs error:', error)
 			setRecommendedResearchLabs([])
 		} finally {
 			setIsLoadingRecommendations(false)
-			console.log('🏁 Finished loading recommendations')
 		}
 	}
 
@@ -2540,15 +2528,32 @@ const ResearchLabDetail = () => {
 						className="p-8 bg-white py-6 shadow-xl border"
 					>
 						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
-						<p className="text-sm text-gray-500 mb-4">
-							Debug: Loading={String(isLoadingRecommendations)}, Count=
-							{recommendedResearchLabs.length}
-						</p>
 
 						{/* Show loading state */}
 						{isLoadingRecommendations ? (
 							<div className="flex justify-center items-center py-12">
 								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+							</div>
+						) : isRecommendationsRestricted ? (
+							<div className="flex flex-col items-center justify-center py-12 px-6">
+								<div className="bg-gradient-to-br from-[#126E64]/10 to-[#126E64]/5 rounded-2xl p-8 text-center max-w-md">
+									<div className="w-16 h-16 bg-[#126E64]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+										<Lock className="w-8 h-8 text-[#126E64]" />
+									</div>
+									<h3 className="text-xl font-semibold text-gray-800 mb-2">
+										Unlock Personalized Recommendations
+									</h3>
+									<p className="text-gray-600 mb-6">
+										Upgrade to Standard or Premium to see research labs tailored
+										to your profile and interests.
+									</p>
+									<Button
+										onClick={() => router.push('/pricing')}
+										className="bg-[#126E64] hover:bg-[#0d5a52] text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+									>
+										View Upgrade Options
+									</Button>
+								</div>
 							</div>
 						) : recommendedResearchLabs.length === 0 ? (
 							<div className="flex justify-center items-center py-12">
@@ -2559,16 +2564,14 @@ const ResearchLabDetail = () => {
 						) : (
 							<div className="relative h-[900px] overflow-y-auto overflow-x-hidden">
 								{recommendedResearchLabs.slice(0, 9).map((lab, index) => (
-									<div key={lab.id} className="">
-										<div className="mb-7">
-											<ResearchLabCard
-												lab={lab}
-												index={index}
-												isWishlisted={isInWishlist(lab.id)}
-												onWishlistToggle={() => toggleWishlistItem(lab.id)}
-												onClick={handleResearchLabClick}
-											/>
-										</div>
+									<div key={lab.id} className="mb-7">
+										<ResearchLabCard
+											lab={lab}
+											index={index}
+											isWishlisted={isInWishlist(lab.id)}
+											onWishlistToggle={() => toggleWishlistItem(lab.id)}
+											onClick={handleResearchLabClick}
+										/>
 									</div>
 								))}
 							</div>

@@ -1,7 +1,7 @@
+import { SimilarityService } from "@/services/similarity/similarity-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../../prisma";
-import { requireAuth } from "@/utils/auth/auth-utils";
-import { SimilarityService } from "@/services/similarity/similarity-service";
 
 // Helper function to calculate days left from a date string
 function calculateDaysLeft(dateString: string): number {
@@ -100,13 +100,44 @@ export async function GET(request: NextRequest) {
 
 		// Get user from session (if authenticated)
 		let userId: string | undefined;
+		let canViewRecommendations = false;
 		try {
 			const { user } = await requireAuth();
 			userId = user.id;
+
+			// PLAN-BASED AUTHORIZATION: Check if user can see recommendations
+			const applicant = await prismaClient.applicant.findFirst({
+				where: { user_id: user.id },
+				select: { applicant_id: true },
+			});
+
+			if (applicant) {
+				const { canSeeRecommendations } = await import(
+					"@/services/authorization/authorization-service"
+				);
+				const recommendationPermission = await canSeeRecommendations(
+					applicant.applicant_id
+				);
+				canViewRecommendations = recommendationPermission.authorized;
+			}
 		} catch (error) {
 			// User not authenticated, will use default scores
 		}
 
+		// If user cannot see recommendations (Free plan or not authenticated), return restricted response
+		if (!canViewRecommendations) {
+			return NextResponse.json({
+				success: true,
+				data: [],
+				restricted: true,
+				message:
+					"Upgrade to Standard or Premium to see personalized recommendations.",
+			});
+		}
+		console.log(
+			"Can view recommendations:  ifnoa   jneafi",
+			canViewRecommendations
+		);
 		// Get the current program details to find its discipline and degree level
 		const currentProgram = await prismaClient.opportunityPost.findUnique({
 			where: { post_id: programId },

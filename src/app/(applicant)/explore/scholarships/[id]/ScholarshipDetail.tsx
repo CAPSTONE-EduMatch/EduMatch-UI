@@ -14,10 +14,10 @@ import {
 	SelectedDocument,
 } from '@/components/ui/DocumentSelector'
 
+import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
-import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { applicationService } from '@/services/application/application-service'
 import { ExploreApiService } from '@/services/explore/explore-api'
@@ -29,7 +29,7 @@ import {
 	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, File, Heart, X } from 'lucide-react'
+import { Check, File, Heart, Lock, X } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -180,6 +180,8 @@ const ScholarshipDetail = () => {
 	)
 	const [isLoadingRecommendations, setIsLoadingRecommendations] =
 		useState(false)
+	const [isRecommendationsRestricted, setIsRecommendationsRestricted] =
+		useState(false)
 
 	// Handle documents selection from DocumentSelector
 	const handleDocumentsSelected = (documents: SelectedDocument[]) => {
@@ -239,15 +241,27 @@ const ScholarshipDetail = () => {
 
 		try {
 			setIsLoadingRecommendations(true)
+			setIsRecommendationsRestricted(false)
 
 			const response = await fetch(
-				`/api/explore/scholarships/scholarship-detail/recommend?scholarshipId=${scholarship.id}`
+				`/api/explore/scholarships/scholarship-detail/recommend?scholarshipId=${scholarship.id}`,
+				{
+					method: 'GET',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+				}
 			)
 
 			if (response.ok) {
 				const result = await response.json()
 				if (result.success && result.data) {
-					setRecommendedScholarships(result.data)
+					// Check if recommendations are restricted by plan
+					if (result.restricted) {
+						setIsRecommendationsRestricted(true)
+						setRecommendedScholarships([])
+					} else {
+						setRecommendedScholarships(result.data)
+					}
 				} else {
 					setRecommendedScholarships([])
 				}
@@ -2609,47 +2623,69 @@ const ScholarshipDetail = () => {
 						</Button>
 					</div>
 				</motion.div>
-				{/*  */}
 				{/* Recommended Scholarships Section */}
-				{recommendedScholarships.length > 0 && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.4 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<h2 className="text-3xl font-bold mb-6">
-							Recommended Scholarships
-						</h2>
-						<p className="text-gray-600 mb-6">
-							Similar scholarships based on discipline or degree level
-						</p>
+				<motion.div
+					initial={{ y: 20, opacity: 0 }}
+					animate={{ y: 0, opacity: 1 }}
+					transition={{ delay: 0.4 }}
+					className="p-8 bg-white py-6 shadow-xl border"
+				>
+					<h2 className="text-3xl font-bold mb-6">Recommended Scholarships</h2>
+					<p className="text-gray-600 mb-6">
+						Similar scholarships based on discipline or degree level
+					</p>
 
-						{isLoadingRecommendations ? (
-							<div className="flex items-center justify-center py-20">
-								<div className="flex flex-col items-center gap-3">
-									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
-									<p className="text-gray-600 text-sm">
-										Loading recommendations...
-									</p>
+					{isLoadingRecommendations ? (
+						<div className="flex items-center justify-center py-20">
+							<div className="flex flex-col items-center gap-3">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
+								<p className="text-gray-600 text-sm">
+									Loading recommendations...
+								</p>
+							</div>
+						</div>
+					) : isRecommendationsRestricted ? (
+						<div className="flex flex-col items-center justify-center py-12 px-6">
+							<div className="bg-gradient-to-br from-[#126E64]/10 to-[#126E64]/5 rounded-2xl p-8 text-center max-w-md">
+								<div className="w-16 h-16 bg-[#126E64]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+									<Lock className="w-8 h-8 text-[#126E64]" />
 								</div>
+								<h3 className="text-xl font-semibold text-gray-800 mb-2">
+									Unlock Personalized Recommendations
+								</h3>
+								<p className="text-gray-600 mb-6">
+									Upgrade to Standard or Premium to see scholarships tailored to
+									your profile and interests.
+								</p>
+								<Button
+									onClick={() => router.push('/pricing')}
+									className="bg-[#126E64] hover:bg-[#0d5a52] text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+								>
+									View Upgrade Options
+								</Button>
 							</div>
-						) : (
-							<div className="grid grid-cols-1 gap-6 h-[900px] overflow-auto overflow-x-hidden">
-								{recommendedScholarships.map((scholarship, index) => (
-									<ScholarshipCard
-										key={scholarship.id}
-										scholarship={scholarship}
-										index={index}
-										isWishlisted={isInWishlist(scholarship.id)}
-										onWishlistToggle={(id: string) => toggleWishlistItem(id)}
-										onClick={handleScholarshipClick}
-									/>
-								))}
-							</div>
-						)}
-					</motion.div>
-				)}
+						</div>
+					) : recommendedScholarships.length === 0 ? (
+						<div className="flex justify-center items-center py-12">
+							<p className="text-gray-500">
+								No recommendations available at this time.
+							</p>
+						</div>
+					) : (
+						<div className="grid grid-cols-1 gap-6 h-[900px] overflow-auto overflow-x-hidden">
+							{recommendedScholarships.map((scholarship, index) => (
+								<ScholarshipCard
+									key={scholarship.id}
+									scholarship={scholarship}
+									index={index}
+									isWishlisted={isInWishlist(scholarship.id)}
+									onWishlistToggle={(id: string) => toggleWishlistItem(id)}
+									onClick={handleScholarshipClick}
+								/>
+							))}
+						</div>
+					)}
+				</motion.div>
 			</motion.div>
 
 			{/* Delete Confirmation Modal */}

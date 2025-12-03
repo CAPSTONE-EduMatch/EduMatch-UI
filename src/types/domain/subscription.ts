@@ -64,6 +64,10 @@ export interface PlanFeatures {
 	// Matching (Applicant-specific)
 	canSeeMatchingScores: boolean;
 
+	// Recommendations (Applicant-specific)
+	canSeeRecommendations: boolean; // Standard+ can see personalized recommendations
+	canBoostProfileToInstitutions: boolean; // Premium only - profile recommended to institutions
+
 	// Posts (Institution-specific)
 	canCreatePosts: boolean;
 	canPublishPosts: boolean;
@@ -84,6 +88,8 @@ export const APPLICANT_PLAN_FEATURES: Record<ApplicantPlan, PlanFeatures> = {
 		maxApplicationsPerPeriod: 0,
 		applicationPeriodDays: null,
 		canSeeMatchingScores: false,
+		canSeeRecommendations: false, // Free users cannot see personalized recommendations
+		canBoostProfileToInstitutions: false,
 		// Institution features (N/A for applicants)
 		canCreatePosts: false,
 		canPublishPosts: false,
@@ -99,6 +105,8 @@ export const APPLICANT_PLAN_FEATURES: Record<ApplicantPlan, PlanFeatures> = {
 		maxApplicationsPerPeriod: 3, // 3 applications per subscription window
 		applicationPeriodDays: 30, // 30-day rolling window from subscription date
 		canSeeMatchingScores: false,
+		canSeeRecommendations: true, // Standard users can see personalized recommendations
+		canBoostProfileToInstitutions: false,
 		// Institution features (N/A for applicants)
 		canCreatePosts: false,
 		canPublishPosts: false,
@@ -114,6 +122,8 @@ export const APPLICANT_PLAN_FEATURES: Record<ApplicantPlan, PlanFeatures> = {
 		maxApplicationsPerPeriod: null, // Unlimited applications
 		applicationPeriodDays: null,
 		canSeeMatchingScores: true, // Premium users can see matching scores
+		canSeeRecommendations: true, // Premium users can see personalized recommendations
+		canBoostProfileToInstitutions: true, // Premium users can have profile recommended to institutions
 		// Institution features (N/A for applicants)
 		canCreatePosts: false,
 		canPublishPosts: false,
@@ -137,6 +147,8 @@ export const INSTITUTION_PLAN_FEATURES: Record<InstitutionPlan, PlanFeatures> =
 			maxApplicationsPerPeriod: null,
 			applicationPeriodDays: null,
 			canSeeMatchingScores: false,
+			canSeeRecommendations: false, // N/A for institutions
+			canBoostProfileToInstitutions: false, // N/A for institutions
 			// Institution-specific features (only with active subscription)
 			canCreatePosts: true,
 			canPublishPosts: true,

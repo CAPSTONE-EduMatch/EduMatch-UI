@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/DocumentSelector'
 
 import { ApplicationUpdateResponseModal } from '@/components/profile/applicant/sections/ApplicationUpdateResponseModal'
+import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
@@ -28,11 +29,18 @@ import {
 	openSessionProtectedFile,
 } from '@/utils/files/getSessionProtectedFileUrl'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, ChevronLeft, ChevronRight, File, Heart, X } from 'lucide-react'
+import {
+	Check,
+	ChevronLeft,
+	ChevronRight,
+	File,
+	Heart,
+	Lock,
+	X,
+} from 'lucide-react'
 import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import FileUploadManagerWithOCR from '@/components/ui/layout/file-upload-manager-with-ocr'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 const ProgramDetail = () => {
 	const router = useRouter()
@@ -87,6 +95,9 @@ const ProgramDetail = () => {
 	// Recommended programs state
 	const [recommendedPrograms, setRecommendedPrograms] = useState<Program[]>([])
 	const [isLoadingRecommendations, setIsLoadingRecommendations] =
+		useState(false)
+	// Recommendations restriction state (for free plan users)
+	const [isRecommendationsRestricted, setIsRecommendationsRestricted] =
 		useState(false)
 
 	// Application state
@@ -242,6 +253,7 @@ const ProgramDetail = () => {
 
 		try {
 			setIsLoadingRecommendations(true)
+			setIsRecommendationsRestricted(false)
 
 			// Use the new recommend API endpoint
 			const response = await fetch(
@@ -257,8 +269,15 @@ const ProgramDetail = () => {
 
 			if (response.ok) {
 				const data = await response.json()
+				console.log('Recommended programs data:', data)
 				if (data.success && data.data) {
-					setRecommendedPrograms(data.data)
+					// Check if recommendations are restricted by plan
+					if (data.restricted) {
+						setIsRecommendationsRestricted(true)
+						setRecommendedPrograms([])
+					} else {
+						setRecommendedPrograms(data.data)
+					}
 				} else {
 					setRecommendedPrograms([])
 				}
@@ -2939,6 +2958,27 @@ const ProgramDetail = () => {
 						{isLoadingRecommendations ? (
 							<div className="flex justify-center items-center py-12">
 								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+							</div>
+						) : isRecommendationsRestricted ? (
+							<div className="flex flex-col items-center justify-center py-12 px-6">
+								<div className="bg-gradient-to-br from-[#126E64]/10 to-[#126E64]/5 rounded-2xl p-8 text-center max-w-md">
+									<div className="w-16 h-16 bg-[#126E64]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+										<Lock className="w-8 h-8 text-[#126E64]" />
+									</div>
+									<h3 className="text-xl font-semibold text-gray-800 mb-2">
+										Unlock Personalized Recommendations
+									</h3>
+									<p className="text-gray-600 mb-6">
+										Upgrade to Standard or Premium to see programs tailored to
+										your profile and interests.
+									</p>
+									<Button
+										onClick={() => router.push('/pricing')}
+										className="bg-[#126E64] hover:bg-[#0d5a52] text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+									>
+										View Upgrade Options
+									</Button>
+								</div>
 							</div>
 						) : recommendedPrograms.length === 0 ? (
 							<div className="flex justify-center items-center py-12">

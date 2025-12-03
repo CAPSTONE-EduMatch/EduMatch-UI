@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/utils/auth/auth-utils";
 import { ApplicantProfileService } from "@/services/profile/applicant-profile-service";
 import { InstitutionProfileService } from "@/services/profile/institution-profile-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../prisma";
 
 export async function GET() {

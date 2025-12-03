@@ -16,7 +16,7 @@ import { CreateResearchLabPage } from '@/components/profile/institution/create/C
 interface ProgramsSectionProps {
 	profile: any
 	onProfileUpdate?: () => Promise<void>
-	onNavigationAttempt?: (_targetSection: string) => boolean
+	onNavigationAttempt?: (targetSection: string) => boolean
 }
 
 export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
@@ -35,13 +35,13 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	>(null)
 
 	// Check if we're in create or edit mode via URL parameter
-	const action = searchParams.get('action')
-	const editId = searchParams.get('id')
+	const action = searchParams?.get('action')
+	const editId = searchParams?.get('id')
 	const isCreateMode = action === 'create'
 	const isEditMode = action === 'edit' && editId
 	const createType =
 		isCreateMode || isEditMode
-			? (searchParams.get('type') as
+			? (searchParams?.get('type') as
 					| 'Program'
 					| 'Scholarship'
 					| 'Research Lab'
@@ -168,8 +168,8 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	useEffect(() => {
 		const handlePopState = () => {
 			// Force re-evaluation of URL parameters when browser navigation occurs
-			const currentAction = searchParams.get('action')
-			const currentType = searchParams.get('type')
+			const currentAction = searchParams?.get('action')
+			const currentType = searchParams?.get('type')
 
 			if (currentAction === 'create' && currentType) {
 				setCreateFormType(
@@ -219,6 +219,11 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		} else if (post.type === 'Research Lab') {
 			router.push(`/institution/dashboard/reseach-labs/${post.id}`)
 		}
+	}
+
+	const handleApplicationClick = (post: Post) => {
+		// Navigate to applications section with filter for this post
+		router.push(`/institution/dashboard/applications?postId=${post.id}`)
 	}
 
 	const handleAddNew = (
@@ -375,7 +380,11 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 						</div>
 					) : (
 						<div className={loading ? 'opacity-60 pointer-events-none' : ''}>
-							<PostsTable posts={posts} onMoreDetail={handleMoreDetail} />
+							<PostsTable
+								posts={posts}
+								onMoreDetail={handleMoreDetail}
+								onApplicationClick={handleApplicationClick}
+							/>
 						</div>
 					)}
 

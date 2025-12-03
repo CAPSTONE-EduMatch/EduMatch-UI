@@ -46,7 +46,7 @@ export const InstitutionApplicationSection: React.FC<
 
 	// Populate search bar when postId comes from URL
 	useEffect(() => {
-		const postIdParam = searchParams.get('postId')
+		const postIdParam = searchParams?.get('postId')
 		// When postId comes from URL, populate search bar and use search query
 		// This allows the API to search for it, and user can see/edit it
 		if (postIdParam && postIdParam !== searchInput) {

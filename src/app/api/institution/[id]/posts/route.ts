@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../prisma";
+import { SimilarityService } from "@/services/similarity/similarity-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 
 interface PostWithDetails {
 	id: string;
@@ -28,9 +30,66 @@ function calculateDaysLeft(dateString: Date): number {
 	return Math.max(0, diffDays);
 }
 
-// Helper function to calculate match percentage (placeholder logic)
-function calculateMatchPercentage(): string {
-	return `${Math.floor(Math.random() * 30) + 70}%`;
+// Helper function to calculate match score between posts and authenticated user's applicant profile
+async function calculateMatchScoresForPosts(
+	posts: any[],
+	applicantEmbedding: number[] | null
+): Promise<Map<string, string>> {
+	const matchScores = new Map<string, string>();
+
+	if (!applicantEmbedding) {
+		// No applicant embedding, return 0% for all posts
+		posts.forEach((post) => {
+			matchScores.set(post.post_id, "0%");
+		});
+		return matchScores;
+	}
+
+	try {
+		for (const post of posts) {
+			// Get post embedding from the appropriate table
+			const [programPost, scholarshipPost, jobPost] = await Promise.all([
+				prismaClient.programPost.findUnique({
+					where: { post_id: post.post_id },
+					select: { embedding: true },
+				}),
+				prismaClient.scholarshipPost.findUnique({
+					where: { post_id: post.post_id },
+					select: { embedding: true },
+				}),
+				prismaClient.jobPost.findUnique({
+					where: { post_id: post.post_id },
+					select: { embedding: true },
+				}),
+			]);
+
+			const postEmbedding =
+				(programPost?.embedding as number[] | null) ||
+				(scholarshipPost?.embedding as number[] | null) ||
+				(jobPost?.embedding as number[] | null);
+
+			if (!postEmbedding) {
+				matchScores.set(post.post_id, "0%");
+				continue;
+			}
+
+			// Calculate similarity
+			const similarity = SimilarityService.calculateCosineSimilarity(
+				applicantEmbedding,
+				postEmbedding
+			);
+			const matchPercentage =
+				SimilarityService.similarityToMatchPercentage(similarity);
+			matchScores.set(post.post_id, matchPercentage);
+		}
+	} catch (error) {
+		// Fallback to 0% when calculation fails
+		posts.forEach((post) => {
+			matchScores.set(post.post_id, "0%");
+		});
+	}
+
+	return matchScores;
 }
 
 // Helper function to format currency with commas
@@ -56,6 +115,21 @@ export async function GET(request: NextRequest) {
 				{ message: "Institution ID is required" },
 				{ status: 400 }
 			);
+		}
+
+		// Try to get authenticated user (optional for this endpoint)
+		let applicantEmbedding: number[] | null = null;
+		try {
+			const { user } = await requireAuth();
+			if (user?.id) {
+				const applicant = await prismaClient.applicant.findUnique({
+					where: { user_id: user.id },
+					select: { embedding: true },
+				});
+				applicantEmbedding = applicant?.embedding as number[] | null;
+			}
+		} catch (authError) {
+			// No authenticated user - continue without match scores
 		}
 
 		// Parse pagination parameters
@@ -123,6 +197,12 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
+		// Calculate match scores for all posts
+		const matchScores = await calculateMatchScoresForPosts(
+			posts,
+			applicantEmbedding
+		);
+
 		// Transform posts to the expected format
 		const transformedPosts: PostWithDetails[] = posts.map((post) => {
 			let postType: "Program" | "Scholarship" | "Research Lab" =
@@ -170,7 +250,7 @@ export async function GET(request: NextRequest) {
 				daysLeft: post.end_date ? calculateDaysLeft(post.end_date) : 0,
 				price: price,
 				type: postType,
-				match: calculateMatchPercentage(),
+				match: matchScores.get(post.post_id) || "0%",
 				funding: funding,
 				attendance: attendance,
 				applicationCount: post.applications?.length || 0,

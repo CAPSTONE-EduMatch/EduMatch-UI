@@ -117,7 +117,7 @@ const InstitutionScholarshipDetail = () => {
 		return apps.map((app) => {
 			return {
 				id: app.id || app.application_id || '',
-				postId: app.postId || app.post_id || (params.id as string),
+				postId: app.postId || app.post_id || (params?.id as string),
 				name: app.name || 'Unknown',
 				appliedDate:
 					app.appliedDate || app.applied_date || formatDate(new Date()),
@@ -133,10 +133,7 @@ const InstitutionScholarshipDetail = () => {
 					| 'accepted'
 					| 'rejected'
 					| 'new_request',
-				matchingScore:
-					app.matchingScore ||
-					app.matching_score ||
-					Math.floor(Math.random() * 30) + 70,
+				matchingScore: app.matchingScore || app.matching_score || 0,
 				userId: app.userId || app.user_id,
 				gpa: app.snapshotData?.gpa || app.gpa || undefined,
 				postType: app.postType || 'Scholarship', // Preserve postType from API
@@ -191,7 +188,7 @@ const InstitutionScholarshipDetail = () => {
 	useEffect(() => {
 		const updateBreadcrumb = async () => {
 			// Get scholarship ID from URL params
-			const scholarshipId = params.id as string
+			const scholarshipId = params?.id as string
 
 			if (!scholarshipId) {
 				showError('Error', 'Scholarship ID is required')
@@ -219,18 +216,18 @@ const InstitutionScholarshipDetail = () => {
 
 		updateBreadcrumb()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.id])
+	}, [params?.id])
 
 	const handleEditScholarship = () => {
 		// Navigate to edit scholarship page
 		router.push(
-			`/institution/dashboard/programs?action=edit&type=Scholarship&id=${params.id}`
+			`/institution/dashboard/programs?action=edit&type=Scholarship&id=${params?.id}`
 		)
 	}
 
 	const handleViewApplications = () => {
 		// Navigate to applications section
-		router.push(`/institution/dashboard/applications?postId=${params.id}`)
+		router.push(`/institution/dashboard/applications?postId=${params?.id}`)
 	}
 
 	const handleApplicantDetail = (applicant: Applicant) => {
@@ -242,7 +239,7 @@ const InstitutionScholarshipDetail = () => {
 		try {
 			setIsDeleting(true)
 			const response = await fetch(
-				`/api/posts/scholarships?postId=${params.id}`,
+				`/api/posts/scholarships?postId=${params?.id}`,
 				{
 					method: 'DELETE',
 					headers: {
@@ -278,7 +275,7 @@ const InstitutionScholarshipDetail = () => {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					postId: params.id,
+					postId: params?.id,
 					status: 'CLOSED',
 				}),
 			})
@@ -291,7 +288,7 @@ const InstitutionScholarshipDetail = () => {
 
 			if (result.success) {
 				// Refresh scholarship data
-				const scholarshipId = params.id as string
+				const scholarshipId = params?.id as string
 				await fetchScholarshipDetail(scholarshipId)
 			} else {
 				showError('Error', result.error || 'Failed to close scholarship')

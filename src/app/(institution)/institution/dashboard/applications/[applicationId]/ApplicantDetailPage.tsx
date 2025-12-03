@@ -8,7 +8,7 @@ import type { Applicant } from '@/components/profile/institution/components'
 export default function ApplicantDetailPage() {
 	const router = useRouter()
 	const params = useParams()
-	const applicationId = params.applicationId as string
+	const applicationId = params?.applicationId as string
 	const [applicant, setApplicant] = useState<Applicant | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -67,7 +67,7 @@ export default function ApplicantDetailPage() {
 							| 'accepted'
 							| 'rejected'
 							| 'new_request',
-						matchingScore: Math.floor(Math.random() * 30) + 70, // Mock score
+						matchingScore: appData.applicant?.matchingScore || 0, // Use calculated match score from API
 						userId: appData.applicant?.userId || '',
 						gpa: appData.applicant?.gpa || undefined,
 					}

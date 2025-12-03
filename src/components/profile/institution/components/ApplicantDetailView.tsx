@@ -655,7 +655,46 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	}
 
 	// Prepare data for shared components using real API data
+	// Helper function to get match score color
+	const getMatchScoreColor = (score: number) => {
+		if (score >= 80) return 'text-green-600 bg-green-50'
+		if (score >= 60) return 'text-yellow-600 bg-yellow-50'
+		return 'text-red-600 bg-red-50'
+	}
+
 	const academicDetails = [
+		// {
+		// 	label: 'Matching Score',
+		// 	value: (() => {
+		// 		const matchingScore =
+		// 			applicationDetails?.applicant?.matchingScore ??
+		// 			applicant.matchingScore ??
+		// 			0
+		// 		return (
+		// 			<div className="flex items-center gap-3">
+		// 				<div className="flex items-center gap-2">
+		// 					<div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+		// 						<div
+		// 							className={`h-full rounded-full transition-all duration-300 ${
+		// 								matchingScore >= 80
+		// 									? 'bg-green-500'
+		// 									: matchingScore >= 60
+		// 										? 'bg-yellow-500'
+		// 										: 'bg-red-500'
+		// 							}`}
+		// 							style={{ width: `${matchingScore}%` }}
+		// 						/>
+		// 					</div>
+		// 					<span
+		// 						className={`text-sm font-semibold px-2 py-1 rounded ${getMatchScoreColor(matchingScore)}`}
+		// 					>
+		// 						{matchingScore}%
+		// 					</span>
+		// 				</div>
+		// 			</div>
+		// 		)
+		// 	})(),
+		// },
 		{
 			label: 'Program',
 			value: (() => {

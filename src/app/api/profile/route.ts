@@ -38,6 +38,18 @@ export async function GET() {
 			// Institution role
 			profile = await InstitutionProfileService.getProfile(userId);
 			profileType = "institution";
+		} else if (roleId === "3" || userRecord.role === "admin") {
+			// Admin role - return user data as profile
+			profileType = "admin";
+			profile = {
+				id: userRecord.id,
+				user: {
+					id: userRecord.id,
+					name: userRecord.name || "",
+					email: userRecord.email,
+					image: userRecord.image || "",
+				},
+			};
 		} else {
 			// No role set or invalid role - check if profile exists (fallback)
 			// This handles backward compatibility for users who have profiles but no role_id set
@@ -295,6 +307,25 @@ export async function GET() {
 					verified_at: profile.verified_at?.toISOString() || null,
 					verified_by: profile.verified_by || null,
 					rejection_reason: profile.rejection_reason || null,
+					user: {
+						id: profile.user.id,
+						name: profile.user.name || "",
+						email: profile.user.email,
+						image: profile.user.image || "",
+					},
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString(),
+				};
+			} else if (profileType === "admin") {
+				// This is an admin profile
+				transformedProfile = {
+					...profile,
+					role: "admin",
+					id: profile.id,
+					firstName: profile.user?.name?.split(" ")[0] || "",
+					lastName:
+						profile.user?.name?.split(" ").slice(1).join(" ") || "",
+					profilePhoto: profile.user?.image || "",
 					user: {
 						id: profile.user.id,
 						name: profile.user.name || "",

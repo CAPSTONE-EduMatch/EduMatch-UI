@@ -102,7 +102,7 @@ const AdminScholarshipDetail = () => {
 			setLoading(true)
 			setError(null)
 			try {
-				const scholarshipId = params.id as string
+				const scholarshipId = params?.id as string
 				const response = await fetch(`/api/admin/posts/${scholarshipId}`)
 				if (!response.ok) {
 					throw new Error('Failed to fetch scholarship details')
@@ -121,10 +121,10 @@ const AdminScholarshipDetail = () => {
 		}
 
 		const updateBreadcrumb = () => {
-			const fromTab = searchParams.get('from') || 'scholarships'
+			const fromTab = searchParams?.get('from') || 'scholarships'
 
 			// Preserve all original URL parameters except 'from'
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.delete('from') // Remove 'from' as it's not needed in explore page
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
@@ -161,7 +161,7 @@ const AdminScholarshipDetail = () => {
 
 		fetchScholarshipDetail()
 		updateBreadcrumb()
-	}, [params.id, searchParams, currentScholarship?.title])
+	}, [params?.id, searchParams, currentScholarship?.title])
 
 	// Fetch eligibility programs when scholarship data is available
 	useEffect(() => {
@@ -314,7 +314,7 @@ const AdminScholarshipDetail = () => {
 
 		setIsProcessing(true)
 		try {
-			await axios.patch(`/api/admin/posts/${params.id}`, {
+			await axios.patch(`/api/admin/posts/${params?.id}`, {
 				status: 'CLOSED',
 				rejectReason: rejectReason.trim(),
 			})
@@ -345,7 +345,7 @@ const AdminScholarshipDetail = () => {
 
 		setIsProcessing(true)
 		try {
-			await axios.patch(`/api/admin/posts/${params.id}`, {
+			await axios.patch(`/api/admin/posts/${params?.id}`, {
 				status: 'REQUIRE_UPDATE',
 				additionalRequirements: additionalRequirements.trim(),
 			})
@@ -435,7 +435,7 @@ const AdminScholarshipDetail = () => {
 
 	const handleProgramClick = (programId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -447,7 +447,7 @@ const AdminScholarshipDetail = () => {
 
 	const handleScholarshipClick = (scholarshipId: string) => {
 		// Preserve current URL parameters to maintain filter state
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
 		const paramsString = currentParams.toString()
 
@@ -805,7 +805,7 @@ const AdminScholarshipDetail = () => {
 									onClick={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
-										const scholarshipId = currentScholarship?.id || params.id
+										const scholarshipId = currentScholarship?.id || params?.id
 										if (scholarshipId) {
 											handleScholarshipWishlistToggle(scholarshipId as string)
 										}
@@ -816,7 +816,7 @@ const AdminScholarshipDetail = () => {
 								>
 									<Heart
 										className={`w-6 h-6 transition-all duration-200 ${
-											isInWishlist(currentScholarship?.id || params.id)
+											isInWishlist(currentScholarship?.id || params?.id)
 												? 'fill-red-500 text-red-500'
 												: 'text-gray-400 hover:text-red-500'
 										}`}
@@ -1242,7 +1242,7 @@ const AdminScholarshipDetail = () => {
 				className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8"
 			>
 				<PostStatusManager
-					postId={params.id as string}
+					postId={params?.id as string}
 					currentStatus={(currentScholarship?.status || 'DRAFT') as PostStatus}
 					postType="Scholarship"
 					onStatusChange={(newStatus) => {

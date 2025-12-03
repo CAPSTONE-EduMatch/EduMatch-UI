@@ -415,31 +415,31 @@ export default function UserDetailPage() {
 						<DocumentSection
 							title="Research paper"
 							files={userData.documents.researchPapers}
-							userId={params.id as string}
+							userId={params?.id as string}
 						/>
 
 						<DocumentSection
 							title="Transcript"
 							files={userData.documents.transcripts}
-							userId={params.id as string}
+							userId={params?.id as string}
 						/>
 
 						<DocumentSection
 							title="Degrees"
 							files={userData.documents.degrees}
-							userId={params.id as string}
+							userId={params?.id as string}
 						/>
 
 						<DocumentSection
 							title="Foreign Language Certificate"
 							files={userData.documents.languageCertificates}
-							userId={params.id as string}
+							userId={params?.id as string}
 						/>
 
 						<DocumentSection
 							title="CV / Resume"
 							files={userData.documents.cvResume}
-							userId={params.id as string}
+							userId={params?.id as string}
 						/>
 
 						{/* Download All Button */}

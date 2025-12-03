@@ -39,7 +39,7 @@ export function ProgramsTab({
 
 		// If there's an applicationId, route to explore detail page with applicationId
 		if (applicationId) {
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.set('applicationId', applicationId)
 			router.push(
 				`/explore/programmes/${programId}?from=${fromParam}&${currentParams.toString()}`
@@ -47,7 +47,7 @@ export function ProgramsTab({
 			return
 		}
 		// Otherwise, route to explore detail page
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		router.push(
 			`/explore/programmes/${programId}?from=${fromParam}&${currentParams.toString()}`
 		)

@@ -293,7 +293,7 @@ export function MessageDialog({
 	// Handle contact parameter from URL with loading states
 	useEffect(() => {
 		const handleContactParam = async () => {
-			const contactParam = searchParams.get('contact')
+			const contactParam = searchParams?.get('contact')
 
 			// If contact parameter is empty or invalid, clean up URL and reset state
 			if (contactParam !== null && (!contactParam || !contactParam.trim())) {
@@ -469,8 +469,8 @@ export function MessageDialog({
 				} else {
 					// Threads not loaded yet, wait for them
 					const timeout = setTimeout(async () => {
-						if (searchParams.get('contact') && appSyncThreads.length === 0) {
-							const contactParam = searchParams.get('contact')
+						if (searchParams?.get('contact') && appSyncThreads.length === 0) {
+							const contactParam = searchParams?.get('contact')
 							if (contactParam) {
 								try {
 									// Try to parse as JSON first (old format)

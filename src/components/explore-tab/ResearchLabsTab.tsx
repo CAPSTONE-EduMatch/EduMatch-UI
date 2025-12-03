@@ -41,7 +41,7 @@ export function ResearchLabsTab({
 
 		// If there's an applicationId, route to explore detail page with applicationId
 		if (applicationId) {
-			const currentParams = new URLSearchParams(searchParams.toString())
+			const currentParams = new URLSearchParams(searchParams?.toString())
 			currentParams.set('applicationId', applicationId)
 			router.push(
 				`/explore/research-labs/${labId}?from=${fromParam}&${currentParams.toString()}`
@@ -49,7 +49,7 @@ export function ResearchLabsTab({
 			return
 		}
 		// Otherwise, route to explore detail page
-		const currentParams = new URLSearchParams(searchParams.toString())
+		const currentParams = new URLSearchParams(searchParams?.toString())
 		router.push(
 			`/explore/research-labs/${labId}?from=${fromParam}&${currentParams.toString()}`
 		)

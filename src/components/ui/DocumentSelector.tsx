@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { useApplicantDocuments } from '@/hooks/documents/useApplicantDocuments'
 import { Check, File } from 'lucide-react'
 
@@ -29,6 +30,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 	selectedDocuments,
 	onDocumentsSelected,
 }) => {
+	const t = useTranslations('document_selector')
 	const { documents, loading, error } = useApplicantDocuments()
 
 	// Group documents by type for better organization
@@ -87,7 +89,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 		return (
 			<div className="flex items-center justify-center py-12">
 				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
-				<span className="ml-3 text-gray-600">Loading documents...</span>
+				<span className="ml-3 text-gray-600">{t('loading')}</span>
 			</div>
 		)
 	}
@@ -95,9 +97,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 	if (error) {
 		return (
 			<div className="text-center py-8">
-				<p className="text-red-600">
-					Error loading documents. Please try again.
-				</p>
+				<p className="text-red-600">{t('error')}</p>
 			</div>
 		)
 	}
@@ -107,11 +107,8 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 			{/* Header */}
 			<div className="text-center space-y-3">
 				<h2 className="text-2xl font-bold text-gray-900">
-					Select Documents from Your Profile
+					{t('header.title')}
 				</h2>
-				<p className="text-gray-600">
-					Choose from your existing documents to include in your application
-				</p>
 			</div>
 
 			{/* Single Column Layout - Profile Documents Only */}
@@ -120,90 +117,21 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 					<div className="text-center py-16 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
 						<File className="mx-auto h-16 w-16 text-gray-400 mb-6" />
 						<h3 className="text-xl font-semibold text-gray-900 mb-3">
-							No Documents Found
+							{t('empty.title')}
 						</h3>
 						<p className="text-gray-500 mb-6 max-w-md mx-auto">
-							You haven&apos;t uploaded any documents to your profile yet.
-							Please go to your profile to upload documents first.
+							{t('empty.message')}
 						</p>
-						<div className="text-sm text-gray-400">
-							💡 Tip: Upload your CV, transcripts, and other documents to your
-							profile for easy selection
-						</div>
 					</div>
 				) : (
 					<div className="space-y-6">
-						{/* Selected Documents
-						{selectedDocuments.filter((doc) => doc.source === 'existing')
-							.length > 0 && (
-							<div className="bg-green-50 border border-green-200 rounded-lg p-6">
-								<h3 className="font-semibold text-green-800 mb-4 flex items-center gap-2">
-									<Check className="w-5 h-5" />
-									Selected Documents (
-									{
-										selectedDocuments.filter((doc) => doc.source === 'existing')
-											.length
-									}
-									)
-								</h3>
-								<div className="grid gap-3">
-									{selectedDocuments
-										.filter((doc) => doc.source === 'existing')
-										.map((doc) => (
-											<div
-												key={doc.document_id}
-												className="flex items-center justify-between bg-white rounded-lg p-4 border border-green-200"
-											>
-												<div className="flex items-center gap-3">
-													<div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-														<File className="w-5 h-5 text-white" />
-													</div>
-													<div>
-														<p className="font-medium text-gray-900">
-															{doc.name}
-														</p>
-														<p className="text-sm text-gray-500">
-															{formatFileSize(doc.size)}
-														</p>
-													</div>
-												</div>
-												<button
-													onClick={() => {
-														const updatedDocs = selectedDocuments.filter(
-															(d) => d.document_id !== doc.document_id
-														)
-														onDocumentsSelected(updatedDocs)
-													}}
-													className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
-													title="Remove from selection"
-												>
-													<svg
-														className="w-5 h-5"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
-													>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth="2"
-															d="M6 18L18 6M6 6l12 12"
-														/>
-													</svg>
-												</button>
-											</div>
-										))}
-								</div>
-							</div>
-						)} */}
-
 						{/* Available Documents */}
 						<div className="space-y-6">
 							<h3 className="text-lg font-semibold text-gray-900 flex items-center gap-3">
 								<div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
 									<File className="w-4 h-4 text-white" />
 								</div>
-								Available Documents ({documents.length})
+								{t('available_documents.title')} ({documents.length})
 							</h3>
 
 							{Object.entries(groupedDocuments).map(([typeId, docs]) => {

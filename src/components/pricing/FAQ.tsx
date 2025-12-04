@@ -2,30 +2,28 @@
 
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 export function FAQ() {
+	const t = useTranslations('pricing.faq')
 	const [openItems, setOpenItems] = useState<number[]>([])
 
 	const faqs = [
 		{
-			question: 'What is included in the Free Plan?',
-			answer:
-				'The Free Plan includes basic account registration, profile creation, scholarship search, and viewing details. Perfect for getting started with EduMatch.',
+			question: t('questions.0.question'),
+			answer: t('questions.0.answer'),
 		},
 		{
-			question: 'Can I upgrade or downgrade my plan anytime?',
-			answer:
-				'Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.',
+			question: t('questions.1.question'),
+			answer: t('questions.1.answer'),
 		},
 		{
-			question: 'What makes the Premium Plan worth it?',
-			answer:
-				'The Premium Plan includes advanced AI matching, unlimited applications, natural language search, and priority customer support for serious scholarship hunters.',
+			question: t('questions.2.question'),
+			answer: t('questions.2.answer'),
 		},
 		{
-			question: 'Do you offer refunds?',
-			answer:
-				'We offer a 30-day money-back guarantee for all paid plans. If you are not satisfied, contact our support team for a full refund.',
+			question: t('questions.3.question'),
+			answer: t('questions.3.answer'),
 		},
 	]
 
@@ -42,16 +40,14 @@ export function FAQ() {
 				<div className="text-center mb-12">
 					<div className="inline-block mb-4">
 						<span className="text-sm font-medium text-[#116E63] bg-[#116E63]/10 px-3 py-1 rounded-full">
-							Common questions
+							{t('badge')}
 						</span>
 					</div>
 					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-6">
-						Frequently asked questions
+						{t('title')}
 					</h2>
 					<p className="text-lg text-black max-w-2xl mx-auto">
-						Lorem Ipsum is simply dummy text of the printing and typesetting
-						industry. Lorem Ipsum has been the industry&apos;s standard dummy
-						text ever since the 1500s
+						{t('description')}
 					</p>
 				</div>
 

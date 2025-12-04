@@ -28,12 +28,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import student from '../../../../public/student.png'
 
-const categories = [
-	{ id: 'programmes', label: 'Programmes' },
-	{ id: 'scholarships', label: 'Scholarships' },
-	{ id: 'research', label: 'Research Labs' },
-]
-
 const ITEMS_PER_PAGE_PROGRAMS = 15
 const ITEMS_PER_PAGE_SCHOLARSHIPS = 5
 const ITEMS_PER_PAGE_RESEARCH = 5
@@ -51,7 +45,18 @@ const Explore = () => {
 	const router = useRouter()
 	const { isAuthenticated } = useAuthCheck()
 	const { profile: userProfile } = useUserProfile()
-	const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: 'Explore' }]
+	// const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: 'Explore' }]
+
+	const categories = [
+		{ id: 'programmes', label: t('tabs.programmes') },
+		{ id: 'scholarships', label: t('tabs.scholarships') },
+		{ id: 'research', label: t('tabs.research_labs') },
+	]
+
+	const breadcrumbItems = [
+		{ label: t('breadcrumb.home'), href: '/' },
+		{ label: t('breadcrumb.explore') },
+	]
 
 	const contentRef = useRef<HTMLDivElement>(null)
 	const [activeTab, setActiveTab] = useState<TabType>('programmes')
@@ -668,7 +673,7 @@ const Explore = () => {
 				<div className="absolute inset-0">
 					<Image
 						src="https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg"
-						alt="University Campus"
+						alt={t('images.university_campus')}
 						fill
 						className="object-cover"
 						priority
@@ -677,12 +682,9 @@ const Explore = () => {
 
 				<div className="absolute bottom-0 left-0 bg-black bg-opacity-40 max-w-3xl h-[185px] p-8">
 					<div className="text-white">
-						<h1 className="text-2xl font-bold mb-2">John Dewey:</h1>
+						<h1 className="text-2xl font-bold mb-2">{t('quote.author')}</h1>
 						<p className="text-sm max-w-xl">
-							Were all instructors to realize that the quality of mental
-							process, not the production of correct answers, is the measure of
-							educative growth something hardly less than a revolution in
-							teaching would be worked
+							&ldquo;{t('quote.JohnDewey')}&rdquo;
 						</p>
 					</div>
 				</div>
@@ -721,7 +723,7 @@ const Explore = () => {
 							value={searchInput}
 							onChange={handleSearchInputChange}
 							onKeyPress={handleSearchKeyPress}
-							placeholder="Search by name of program, scholarship, or research lab"
+							placeholder={t('search.placeholder')}
 							className="w-full px-6 py-3 pr-16 rounded-full border-2 border-[#126E64] text-base outline-none focus:ring-2 focus:ring-[#126E64]/30"
 						/>
 						<button
@@ -749,7 +751,7 @@ const Explore = () => {
 							transition={{ delay: 0.2 }}
 						>
 							<div className="text-sm text-gray-600">
-								{currentTabData.totalItems} results
+								{currentTabData.totalItems} {t('results')}
 							</div>
 							<SortDropdown value={sortBy} onChange={handleSortChange} />
 						</motion.div>
@@ -767,9 +769,9 @@ const Explore = () => {
 										<div className="flex flex-col items-center gap-3">
 											<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
 											<p className="text-gray-600 text-sm">
-												Loading{' '}
-												{activeTab === 'programmes' ? 'programs' : activeTab}
-												...
+												{t(
+													`loading.${activeTab === 'programmes' ? 'programmes' : activeTab}`
+												)}
 											</p>
 										</div>
 									</div>
@@ -870,12 +872,12 @@ const Explore = () => {
 			<ErrorModal
 				isOpen={showAuthModal}
 				onClose={() => setShowAuthModal(false)}
-				title="Authentication Required"
-				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
-				buttonText="Sign In"
+				title={t('auth.required.title')}
+				message={t('auth.required.message')}
+				buttonText={t('buttons.sign_in')}
 				onButtonClick={handleSignIn}
 				showSecondButton={true}
-				secondButtonText="Sign Up"
+				secondButtonText={t('buttons.sign_up')}
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
 			/>

@@ -6,8 +6,10 @@ import {
 	FeatureComparisonError,
 	FeatureComparisonSkeleton,
 } from './FeatureComparisonSkeleton'
+import { useTranslations } from 'next-intl'
 
 export function FeatureComparison() {
+	const t = useTranslations('pricing')
 	const { plans, loading, error } = usePricing()
 
 	// Show loading skeleton while fetching plans
@@ -40,14 +42,13 @@ export function FeatureComparison() {
 						className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-6 opacity-0 animate-fadeInUp"
 						style={{ animationDelay: '200ms' }}
 					>
-						Compare Plans
+						{t('comparison.title')}
 					</h2>
 					<p
 						className="text-lg text-[#676767] max-w-3xl mx-auto opacity-0 animate-fadeInUp"
 						style={{ animationDelay: '400ms' }}
 					>
-						Choose the plan that best fits your scholarship hunting needs and
-						budget.
+						{t('comparison.description')}
 					</p>
 				</div>
 
@@ -62,7 +63,9 @@ export function FeatureComparison() {
 						style={{ gridTemplateColumns: `1fr repeat(${plans.length}, 1fr)` }}
 					>
 						<div className="flex items-end">
-							<span className="text-lg font-semibold text-black">Features</span>
+							<span className="text-lg font-semibold text-black">
+								{t('comparison.features_header')}
+							</span>
 						</div>
 						{planHeaders.map((plan, index) => (
 							<div

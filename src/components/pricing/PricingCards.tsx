@@ -6,8 +6,10 @@ import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { PricingCardsError, PricingCardsSkeleton } from './PricingCardsSkeleton'
+import { useTranslations } from 'next-intl'
 
 export function PricingCards() {
+	const t = useTranslations('pricing')
 	const {
 		currentPlan,
 		canUpgradeTo,
@@ -220,7 +222,7 @@ export function PricingCards() {
 		// If user is not authenticated, show "Get Started" for all plans
 		if (!isAuthenticated) {
 			return {
-				text: 'Get Started',
+				text: t('buttons.get_started'),
 				disabled: false,
 				className: plan.popular
 					? 'bg-[#116E63] text-white hover:bg-[#0f5c54]'
@@ -231,7 +233,7 @@ export function PricingCards() {
 		// Authenticated user logic
 		if (isCurrentPlan) {
 			return {
-				text: 'Current Plan',
+				text: t('buttons.current_plan'),
 				disabled: true,
 				className: 'bg-green-100 text-green-700 cursor-not-allowed',
 			}
@@ -240,7 +242,7 @@ export function PricingCards() {
 		// If this plan is lower than current plan, disable the button
 		if (isLowerPlan) {
 			return {
-				text: 'Lower Plan',
+				text: t('buttons.lower_plan'),
 				disabled: true,
 				className: 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-60',
 			}
@@ -248,7 +250,7 @@ export function PricingCards() {
 
 		if (plan.hierarchy === 0 && !isLowerPlan) {
 			return {
-				text: 'Get Started Free',
+				text: t('buttons.get_started'),
 				disabled: false,
 				className: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
 			}
@@ -256,7 +258,7 @@ export function PricingCards() {
 
 		if (!canUpgrade) {
 			return {
-				text: 'Contact Us',
+				text: t('buttons.contact_us'),
 				disabled: false,
 				className: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
 			}
@@ -264,7 +266,7 @@ export function PricingCards() {
 
 		if (isUpgrading) {
 			return {
-				text: 'Processing...',
+				text: t('buttons.processing'),
 				disabled: true,
 				className: 'bg-gray-300 text-gray-600 cursor-not-allowed',
 			}
@@ -304,7 +306,7 @@ export function PricingCards() {
 								{plan.popular && (
 									<div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
 										<span className="bg-[#116E63] text-white text-sm font-semibold px-4 py-1 rounded-full">
-											Most Popular
+											{t('badges.most_popular')}
 										</span>
 									</div>
 								)}
@@ -313,7 +315,7 @@ export function PricingCards() {
 								{isCurrentPlan && (
 									<div className="absolute -top-3 right-4">
 										<span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-											Active
+											{t('badges.active')}
 										</span>
 									</div>
 								)}
@@ -337,7 +339,7 @@ export function PricingCards() {
 								{/* Features */}
 								<div className="mb-8">
 									<h4 className="text-lg font-medium text-[#232323] mb-6">
-										Includes
+										{t('includes')}
 									</h4>
 									<ul className="space-y-4">
 										{plan.features.map((feature, featureIndex) => (
@@ -381,7 +383,9 @@ export function PricingCards() {
 										disabled={!!cancelling}
 										onClick={() => setShowCancelModal(true)}
 									>
-										{cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+										{cancelling
+											? t('buttons.cancelling')
+											: t('buttons.cancel_subscription')}
 									</button>
 								)}
 							</div>
@@ -396,7 +400,7 @@ export function PricingCards() {
 						setShowSubscriptionModal(false)
 						setPendingPlanId(null)
 					}}
-					title="You Already Have an Active Subscription"
+					title={t('modals.active_subscription.title')}
 					maxWidth="md"
 				>
 					<div className="text-center">
@@ -417,23 +421,19 @@ export function PricingCards() {
 						</div>
 						<div className="text-sm text-gray-600 mb-6 space-y-2">
 							<p>
-								You currently have an active{' '}
-								<span className="font-semibold capitalize">
-									{subscriptions.find((sub) => sub.status === 'active')?.plan ||
-										''}
-								</span>{' '}
-								subscription.
+								{t('modals.active_subscription.current_plan', {
+									plan:
+										subscriptions.find((sub) => sub.status === 'active')
+											?.plan || '',
+								})}
 							</p>
 							<p>
-								To subscribe to the{' '}
-								<span className="font-semibold capitalize">
-									{pendingPlanId || ''}
-								</span>{' '}
-								plan, you need to cancel your current subscription first.
+								{t('modals.active_subscription.need_cancel', {
+									newPlan: pendingPlanId || '',
+								})}
 							</p>
 							<p className="text-xs text-gray-500 mt-3">
-								You&apos;ll retain access to your current plan until the end of
-								your billing period.
+								{t('modals.active_subscription.access_note')}
 							</p>
 						</div>
 					</div>
@@ -447,18 +447,18 @@ export function PricingCards() {
 							variant="secondary"
 							fullWidth
 						>
-							Keep Current Plan
+							{t('buttons.keep_current_plan')}
 						</Button>
 						<Button
 							onClick={handleModalCancel}
 							disabled={cancelling !== null}
 							isLoading={cancelling !== null}
-							loadingText="Canceling..."
+							loadingText={t('modals.active_subscription.canceling')}
 							variant="primary"
 							fullWidth
 							className="!bg-red-600 hover:!bg-red-700"
 						>
-							Cancel Current Plan
+							{t('buttons.cancel_current_plan')}
 						</Button>
 					</div>
 
@@ -477,7 +477,7 @@ export function PricingCards() {
 				<Modal
 					isOpen={showCancelModal}
 					onClose={() => setShowCancelModal(false)}
-					title="Cancel Subscription"
+					title={t('modals.cancel_confirmation.title')}
 					maxWidth="md"
 				>
 					<div className="text-center">
@@ -498,20 +498,16 @@ export function PricingCards() {
 						</div>
 						<div className="text-sm text-gray-600 mb-6 space-y-2">
 							<p className="font-semibold text-gray-800 text-lg mb-3">
-								Are you sure you want to cancel your subscription?
+								{t('modals.cancel_confirmation.confirm_question')}
 							</p>
 							<p>
-								You currently have an active{' '}
-								<span className="font-semibold capitalize">{currentPlan}</span>{' '}
-								subscription.
+								{t('modals.cancel_confirmation.current_plan', {
+									plan: currentPlan || '',
+								})}
 							</p>
-							<p>
-								You&apos;ll retain access to your current plan until the end of
-								your billing period.
-							</p>
+							<p>{t('modals.cancel_confirmation.access_note')}</p>
 							<p className="text-xs text-gray-500 mt-3">
-								This action cannot be undone. You&apos;ll need to resubscribe to
-								regain access.
+								{t('modals.cancel_confirmation.warning')}
 							</p>
 						</div>
 					</div>
@@ -522,18 +518,18 @@ export function PricingCards() {
 							variant="secondary"
 							fullWidth
 						>
-							Keep My Subscription
+							{t('buttons.keep_my_subscription')}
 						</Button>
 						<Button
 							onClick={handleConfirmCancel}
 							disabled={cancelling !== null}
 							isLoading={cancelling !== null}
-							loadingText="Canceling..."
+							loadingText={t('buttons.canceling')}
 							variant="primary"
 							fullWidth
 							className="!bg-red-600 hover:!bg-red-700"
 						>
-							Cancel Subscription
+							{t('buttons.cancel_subscription')}
 						</Button>
 					</div>
 				</Modal>

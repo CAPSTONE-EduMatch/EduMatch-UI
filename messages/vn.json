@@ -4,12 +4,149 @@
 	"program": "Chương trình",
 
 	"breadcrumb": {
-		"explore": "Khám phá"
+		"home": "Trang chủ",
+		"explore": "Khám phá",
+		"program_detail": "Chi tiết chương trình",
+		"programmes": "Chương trình",
+		"scholarships": "Học bổng",
+		"research_labs": "Phòng nghiên cứu"
+	},
+
+	"explore_page": {
+		"quote": {
+			"author": "John Dewey:",
+			"text": "Giáo dục không phải là sự chuẩn bị cho cuộc sống, giáo dục chính là cuộc sống. Đó là quá trình tái kiến tạo kinh nghiệm liên tục, nơi mỗi bài học trở thành nền tảng cho sự trưởng thành mới, và mỗi thách thức là cơ hội để đạt được trí tuệ sâu sắc hơn."
+		},
+		"breadcrumb": {
+			"home": "Trang chủ",
+			"explore": "Khám phá"
+		},
+		"search": {
+			"title": "Tìm kiếm nhu cầu của bạn tại đây",
+			"placeholder": "Tìm kiếm theo tên chương trình, học bổng, hoặc phòng nghiên cứu"
+		},
+		"tabs": {
+			"programmes": "Chương trình",
+			"scholarships": "Học bổng",
+			"research_labs": "Phòng nghiên cứu"
+		},
+		"results": "kết quả",
+		"loading": {
+			"programmes": "Đang tải chương trình...",
+			"scholarships": "Đang tải học bổng...",
+			"research": "Đang tải phòng nghiên cứu..."
+		},
+		"subscription": {
+			"badge": "Gói thành viên",
+			"title": "Tìm lộ trình học tập phù hợp nhất",
+			"description": "Từ tìm kiếm học bổng cơ bản đến ghép đôi bằng AI, hãy chọn gói phù hợp với mục tiêu học thuật của bạn. Nhận gợi ý cá nhân hóa và kết nối với cơ hội trên toàn thế giới.",
+			"cta": "Khám phá thêm",
+			"benefit_1": {
+				"title": "Tiết kiệm thời gian & gọn gàng",
+				"desc": "Dễ dàng tìm và theo dõi học bổng kèm nhắc hạn nộp."
+			},
+			"benefit_2": {
+				"title": "Kết nối trực tiếp",
+				"desc": "Nhắn tin với giáo sư & cán bộ học bổng để tăng cơ hội của bạn."
+			},
+			"benefit_3": {
+				"title": "Ghép phù hợp thông minh",
+				"desc": "Dùng AI để tìm học bổng và nhóm nghiên cứu phù hợp nhất."
+			}
+		},
+		"auth": {
+			"required": {
+				"title": "Yêu cầu xác thực",
+				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
+			}
+		},
+		"buttons": {
+			"sign_in": "Đăng nhập",
+			"sign_up": "Đăng ký",
+			"explore_more": "Khám phá thêm"
+		},
+		"images": {
+			"university_campus": "Khuôn viên trường đại học",
+			"student_illustration": "Hình minh họa sinh viên"
+		},
+		"empty": {
+			"programmes": {
+				"title": "Không tìm thấy chương trình",
+				"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
+			},
+			"scholarships": {
+				"title": "Không tìm thấy học bổng",
+				"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
+			},
+			"research": {
+				"title": "Không tìm thấy phòng nghiên cứu",
+				"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
+			}
+		},
+		"filters": {
+			"title": "Bộ lọc đã chọn",
+			"discipline": {
+				"label": "Lĩnh vực",
+				"research_field": "Lĩnh vực nghiên cứu",
+				"placeholder": "Tìm lĩnh vực...",
+				"select_prompt": "Chọn một lĩnh vực",
+				"loading": "Đang tải lĩnh vực...",
+				"no_results": "Không tìm thấy lĩnh vực",
+				"subdiscipline_placeholder": "Tìm chuyên ngành...",
+				"research_field_placeholder": "Tìm lĩnh vực nghiên cứu...",
+				"select_research_fields": "Chọn lĩnh vực nghiên cứu",
+				"subdisciplines_of": "Các chuyên ngành {discipline}",
+				"back_to_disciplines": "← Quay lại lĩnh vực",
+				"subdisciplines_count": "chuyên ngành",
+				"no_match": "Không có lĩnh vực nào phù hợp với tìm kiếm của bạn",
+				"no_available": "Không có lĩnh vực nào",
+				"check_back": "Vui lòng quay lại sau hoặc liên hệ hỗ trợ"
+			},
+			"country": {
+				"label": "Quốc gia",
+				"placeholder": "Tìm quốc gia...",
+				"loading": "Đang tải..."
+			},
+			"fee": {
+				"label": "Học phí",
+				"range_label": "Khoảng học phí",
+				"min_label": "Tối thiểu ($)",
+				"max_label": "Tối đa ($)"
+			},
+			"salary": {
+				"label": "Lương",
+				"range_label": "Khoảng lương",
+				"min_label": "Tối thiểu ($)",
+				"max_label": "Tối đa ($)"
+			},
+			"duration": {
+				"label": "Thời gian"
+			},
+			"degree_level": {
+				"label": "Cấp độ"
+			},
+			"attendance": {
+				"label": "Hình thức học"
+			},
+			"essay_required": {
+				"label": "Yêu cầu bài luận"
+			},
+			"contract_type": {
+				"label": "Loại hợp đồng"
+			},
+			"job_type": {
+				"label": "Loại công việc"
+			}
+		},
+		"cards": {
+			"days_left": "ngày còn lại",
+			"account_deactivated": "Tài khoản đã bị vô hiệu hóa"
+		}
 	},
 
 	"search": {
 		"title": "Tìm kiếm nhu cầu của bạn tại đây",
-		"placeholder": "Tìm kiếm chương trình, học bổng, phòng nghiên cứu..."
+		"placeholder": "Tìm kiếm theo tên chương trình, học bổng, hoặc phòng nghiên cứu"
 	},
 
 	"tabs": {
@@ -18,14 +155,24 @@
 		"research_labs": "Phòng nghiên cứu"
 	},
 
+	"images": {
+		"university_campus": "Khuôn viên trường đại học",
+		"student_illustration": "Hình minh họa sinh viên"
+	},
+
 	"results": "kết quả",
 
 	"sort": {
 		"most_popular": "Phổ biến nhất",
+		"newest": "Mới nhất",
+		"oldest": "Cũ nhất",
+		"match_score": "Điểm phù hợp",
+		"deadline": "Hạn chót",
 		"latest": "Mới nhất",
 		"deadline_soon": "Sắp đến hạn",
 		"a_to_z": "A → Z",
-		"z_to_a": "Z → A"
+		"z_to_a": "Z → A",
+		"sort_by": "Sắp xếp"
 	},
 
 	"filter": {
@@ -37,14 +184,206 @@
 		"next": "Sau"
 	},
 
+	"loading": {
+		"programmes": "Đang tải chương trình...",
+		"scholarships": "Đang tải học bổng...",
+		"research": "Đang tải phòng nghiên cứu..."
+	},
+
+	"auth": {
+		"required": {
+			"title": "Yêu cầu xác thực",
+			"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
+		},
+		"signup": {
+			"title": "Đăng ký",
+			"subtitle": "Tham gia cộng đồng của chúng tôi và khám phá các cơ hội giáo dục phù hợp với hồ sơ của bạn",
+			"form": {
+				"email": {
+					"label": "Email",
+					"placeholder": "Nhập email của bạn",
+					"help_text": "(hoặc email tổ chức nếu bạn là tổ chức)"
+				},
+				"password": {
+					"label": "Mật khẩu",
+					"placeholder": "Nhập mật khẩu của bạn"
+				},
+				"confirm_password": {
+					"label": "Xác nhận mật khẩu",
+					"placeholder": "Xác nhận mật khẩu của bạn",
+					"help_text": "Nhập lại mật khẩu để xác nhận"
+				},
+				"terms": {
+					"text": "Bằng việc tạo tài khoản, bạn đồng ý với",
+					"terms_of_service": "Điều khoản dịch vụ",
+					"and": "và",
+					"privacy_policy": "Chính sách bảo mật",
+					"our_default": "cũng như",
+					"notification_settings": "Cài đặt thông báo mặc định"
+				}
+			},
+			"buttons": {
+				"submit": "Đăng ký",
+				"submitting": "Đang đăng ký...",
+				"continue_verification": "Tiếp tục xác minh",
+				"google": "Đăng ký với Google",
+				"google_loading": "Đang đăng ký..."
+			},
+			"links": {
+				"have_account": "Đã có tài khoản?",
+				"sign_in": "Đăng nhập"
+			},
+			"otp_modal": {
+				"title": "Xác minh Email của bạn",
+				"description": "Chúng tôi đã gửi mã xác minh 6 chữ số đến {email}. Vui lòng nhập mã bên dưới để xác minh địa chỉ email của bạn.",
+				"code_label": "Mã xác minh",
+				"clear_button": "Xóa tất cả",
+				"verify_button": "Xác minh",
+				"verifying_button": "Đang xác minh...",
+				"cancel_button": "Hủy",
+				"resend_text": "Không nhận được mã?",
+				"resend_button": "Gửi lại mã",
+				"resend_countdown": "Gửi lại mã ({seconds}s)",
+				"sending_button": "Đang gửi..."
+			},
+			"errors": {
+				"email_required": "Vui lòng nhập địa chỉ email hợp lệ",
+				"password_invalid": "Vui lòng nhập mật khẩu hợp lệ",
+				"passwords_no_match": "Mật khẩu không khớp",
+				"account_exists": "Tài khoản với email này đã tồn tại. Vui lòng đăng nhập.",
+				"account_deleted": "Tài khoản của bạn đã bị xóa. Vui lòng tạo tài khoản khác.",
+				"invalid_email_format": "Định dạng email không hợp lệ. Vui lòng kiểm tra lại email của bạn.",
+				"verification_failed": "Xác minh thất bại: {error}",
+				"otp_incomplete": "Vui lòng nhập đầy đủ mã OTP 6 chữ số.",
+				"otp_send_failed": "Không thể gửi mã xác minh: {error}",
+				"unexpected_error": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
+				"user_info_failed": "Không thể lấy thông tin người dùng. Vui lòng thử đăng nhập.",
+				"password_set_failed": "Không thể đặt mật khẩu. Vui lòng thử đăng nhập."
+			},
+			"success": {
+				"account_created": "Tạo tài khoản thành công!"
+			}
+		},
+		"signin": {
+			"title": "Đăng nhập",
+			"subtitle": "Chào mừng trở lại! Đăng nhập vào tài khoản của bạn để tiếp tục hành trình giáo dục",
+			"form": {
+				"email": {
+					"label": "Email",
+					"placeholder": "Nhập email của bạn"
+				},
+				"password": {
+					"label": "Mật khẩu",
+					"placeholder": "Nhập mật khẩu của bạn"
+				},
+				"forgot_password": "Quên mật khẩu?",
+				"remember_me": "Ghi nhớ đăng nhập"
+			},
+			"buttons": {
+				"submit": "Đăng nhập",
+				"submitting": "Đang đăng nhập...",
+				"google": "Đăng nhập với Google",
+				"google_loading": "Đang đăng nhập..."
+			},
+			"links": {
+				"no_account": "Chưa có tài khoản?",
+				"sign_up": "Đăng ký"
+			},
+			"forgot_password_modal": {
+				"title": "Đặt lại mật khẩu",
+				"description": "Nhập địa chỉ email của bạn và chúng tôi sẽ gửi liên kết đặt lại mật khẩu cho bạn.",
+				"email_label": "Địa chỉ Email",
+				"email_placeholder": "Nhập email của bạn",
+				"send_button": "Gửi liên kết đặt lại",
+				"sending_button": "Đang gửi...",
+				"resend_button": "Gửi lại liên kết",
+				"resend_countdown": "Gửi lại liên kết ({seconds}s)",
+				"cancel_button": "Hủy",
+				"back_to_signin": "Quay lại đăng nhập",
+				"success_message": "Liên kết đặt lại mật khẩu đã được gửi đến {email}. Vui lòng kiểm tra hộp thư của bạn.",
+				"check_inbox": "Chúng tôi đã gửi liên kết đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư và làm theo hướng dẫn."
+			},
+			"otp_modal": {
+				"title": "Xác minh Email của bạn",
+				"description": "Chúng tôi đã gửi mã xác minh 6 chữ số đến {email}. Vui lòng nhập mã bên dưới để tiếp tục.",
+				"code_label": "Mã xác minh",
+				"clear_button": "Xóa tất cả",
+				"verify_button": "Xác minh",
+				"verifying_button": "Đang xác minh...",
+				"cancel_button": "Hủy",
+				"resend_text": "Không nhận được mã?",
+				"resend_button": "Gửi lại mã",
+				"resend_countdown": "Gửi lại mã ({seconds}s)",
+				"sending_button": "Đang gửi..."
+			},
+			"errors": {
+				"email_required": "Vui lòng nhập địa chỉ email hợp lệ.",
+				"password_required": "Vui lòng nhập mật khẩu của bạn.",
+				"invalid_credentials": "Email hoặc mật khẩu không hợp lệ. Vui lòng thử lại.",
+				"email_not_verified": "Email của bạn chưa được xác minh. Vui lòng kiểm tra hộp thư để lấy liên kết xác minh.",
+				"account_deleted": "Tài khoản của bạn đã bị xóa. Vui lòng liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.",
+				"user_not_found": "Không tìm thấy tài khoản với địa chỉ email này.",
+				"forgot_password_cooldown": "Vui lòng đợi {seconds} giây trước khi yêu cầu liên kết đặt lại khác.",
+				"otp_incomplete": "Vui lòng nhập đầy đủ mã 6 chữ số",
+				"otp_failed": "Xác minh thất bại. Vui lòng thử lại.",
+				"otp_resend_failed": "Không thể gửi lại mã xác minh",
+				"unexpected_error": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại."
+			}
+		},
+		"forgot_password": {
+			"title": "Đặt lại mật khẩu",
+			"subtitle": "Tạo mật khẩu mới cho tài khoản của bạn.",
+			"form": {
+				"new_password": {
+					"label": "Mật khẩu mới",
+					"placeholder": "Nhập mật khẩu mới của bạn"
+				},
+				"confirm_password": {
+					"label": "Xác nhận mật khẩu mới",
+					"placeholder": "Xác nhận mật khẩu mới của bạn"
+				}
+			},
+			"buttons": {
+				"submit": "Đặt lại mật khẩu",
+				"submitting": "Đang cập nhật mật khẩu...",
+				"back_to_signin": "Quay lại đăng nhập"
+			},
+			"links": {
+				"remember_password": "Nhớ mật khẩu của bạn?"
+			},
+			"errors": {
+				"password_invalid": "Vui lòng nhập mật khẩu mới hợp lệ đáp ứng tất cả tiêu chí.",
+				"confirm_required": "Vui lòng xác nhận mật khẩu mới của bạn.",
+				"passwords_no_match": "Mật khẩu không khớp.",
+				"update_failed": "Không thể cập nhật mật khẩu. Vui lòng thử lại."
+			},
+			"success": {
+				"password_updated": "Cập nhật mật khẩu thành công! Bạn sẽ được chuyển hướng đến trang đăng nhập."
+			}
+		},
+		"common": {
+			"or": "Hoặc",
+			"required": "Bắt buộc",
+			"optional": "Tùy chọn"
+		},
+		"errors": {
+			"accountDeactivated": "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ nếu bạn muốn kích hoạt lại tài khoản.",
+			"accountBanned": "Tài khoản của bạn đã bị cấm vĩnh viễn. Vui lòng liên hệ hỗ trợ để biết thêm thông tin.",
+			"accountBannedUntil": "Tài khoản của bạn đã bị cấm đến {date}. Vui lòng thử lại sau ngày này hoặc liên hệ hỗ trợ.",
+			"accountBannedWithReason": "Tài khoản của bạn đã bị cấm. Lý do: {reason}"
+		}
+	},
+
 	"quote": {
-		"JohnDewey": "Giáo dục không phải là sự chuẩn bị cho cuộc sống, giáo dục chính là cuộc sống. Đó là quá trình tái kiến tạo kinh nghiệm liên tục, nơi mỗi bài học trở thành nền tảng cho sự trưởng thành mới, và mỗi thách thức là cơ hội để đạt được trí tuệ sâu sắc hơn."
+		"JohnDewey": "Giáo dục không phải là sự chuẩn bị cho cuộc sống, giáo dục chính là cuộc sống. Đó là quá trình tái kiến tạo kinh nghiệm liên tục, nơi mỗi bài học trở thành nền tảng cho sự trưởng thành mới, và mỗi thách thức là cơ hội để đạt được trí tuệ sâu sắc hơn.",
+		"author": "John Dewey:"
 	},
 
 	"subscription": {
 		"badge": "Gói thành viên",
 		"title": "Tìm lộ trình học tập phù hợp nhất",
 		"description": "Từ tìm kiếm học bổng cơ bản đến ghép đôi bằng AI, hãy chọn gói phù hợp với mục tiêu học thuật của bạn. Nhận gợi ý cá nhân hóa và kết nối với cơ hội trên toàn thế giới.",
+		"cta": "Khám phá thêm",
 		"benefit_1": {
 			"title": "Tiết kiệm thời gian & gọn gàng",
 			"desc": "Dễ dàng tìm và theo dõi học bổng kèm nhắc hạn nộp."
@@ -56,6 +395,9 @@
 		"benefit_3": {
 			"title": "Ghép phù hợp thông minh",
 			"desc": "Dùng AI để tìm học bổng và nhóm nghiên cứu phù hợp nhất."
+		},
+		"image": {
+			"alt": "Hình minh họa sinh viên"
 		}
 	},
 
@@ -94,7 +436,7 @@
 			"title": "Bài viết mới nhất"
 		},
 		"cta_section": {
-			"title": "Khám phá thêm bài viết",
+			"title": "Khám phá chương trình, nghiên cứu và cơ hội học bổng ngay hôm nay",
 			"description_1": "Tham gia EduMatch ngay để bắt đầu hành trình thành công của bạn.",
 			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn."
 		}
@@ -106,7 +448,8 @@
 		"learn_more": "Tìm hiểu thêm",
 		"sign_in": "Đăng nhập",
 		"sign_up": "Đăng ký",
-		"log_out": "Đăng xuất"
+		"log_out": "Đăng xuất",
+		"retry": "Thử lại"
 	},
 
 	"empty": {
@@ -114,12 +457,754 @@
 		"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
 	},
 
-	"auth": {
-		"errors": {
-			"accountDeactivated": "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn muốn kích hoạt lại tài khoản.",
-			"accountBanned": "Tài khoản của bạn đã bị cấm vĩnh viễn. Vui lòng liên hệ bộ phận hỗ trợ để biết thêm thông tin.",
-			"accountBannedUntil": "Tài khoản của bạn đã bị cấm đến ngày {date}. Vui lòng thử lại sau ngày này hoặc liên hệ bộ phận hỗ trợ.",
-			"accountBannedWithReason": "Tài khoản của bạn đã bị cấm. Lý do: {reason}"
+	"document_selector": {
+		"header": {
+			"title": "Chọn tài liệu",
+			"close": "Đóng"
+		},
+		"empty": {
+			"title": "Không có tài liệu",
+			"message": "Bạn chưa tải lên tài liệu nào. Vui lòng tải tài liệu lên trước để đính kèm vào hồ sơ ứng tuyển."
+		},
+		"available_documents": {
+			"title": "Tài liệu có sẵn",
+			"select": "Chọn"
+		},
+		"loading": "Đang tải tài liệu...",
+		"error": "Không thể tải tài liệu"
+	},
+
+	"research_lab_detail": {
+		"loading": "Đang tải chi tiết phòng nghiên cứu...",
+		"error": "Lỗi",
+		"breadcrumb": {
+			"home": "Trang chủ",
+			"explore": "Khám phá",
+			"research_labs": "Phòng nghiên cứu"
+		},
+		"header": {
+			"share": "Chia sẻ",
+			"copy_link": "Sao chép liên kết",
+			"link_copied": "Đã sao chép liên kết!",
+			"save": "Lưu",
+			"unsave": "Bỏ lưu"
+		},
+		"info": {
+			"location": "Địa điểm",
+			"salary": "Lương",
+			"duration": "Thời gian",
+			"deadline": "Hạn chót nộp hồ sơ",
+			"job_type": "Loại công việc",
+			"contract_type": "Loại hợp đồng",
+			"year": "năm",
+			"years": "năm",
+			"month": "tháng",
+			"months": "tháng"
+		},
+		"tabs": {
+			"job_description": "Mô tả công việc",
+			"offer_information": "Thông tin đề nghị",
+			"job_requirements": "Yêu cầu công việc",
+			"other_information": "Thông tin khác",
+			"application": "Hồ sơ của tôi",
+			"overview": "Tổng quan",
+			"applications": "Hồ sơ ứng tuyển"
+		},
+		"about": {
+			"title": "Giới thiệu",
+			"no_description": "Không có mô tả."
+		},
+		"apply": {
+			"title": "Ứng tuyển tại đây !",
+			"status_title": "Trạng thái ứng tuyển",
+			"edit_documents": "Chỉnh sửa tài liệu ứng tuyển",
+			"cancel_edit": "Hủy chỉnh sửa"
+		},
+		"congratulations": {
+			"title": "🎉 Chúc mừng!",
+			"message": "Hồ sơ của bạn đã được chấp nhận! Cơ sở giáo dục sẽ liên hệ với bạn với các chi tiết về các bước tiếp theo.",
+			"status_label": "Trạng thái ứng tuyển:"
+		},
+		"job_description": {
+			"title": "Mô tả công việc"
+		},
+		"offer_information": {
+			"title": "Thông tin đề nghị"
+		},
+		"job_requirements": {
+			"title": "Yêu cầu công việc"
+		},
+		"applications_list": {
+			"title": "Hồ sơ của bạn",
+			"empty": "Bạn chưa ứng tuyển vào phòng nghiên cứu này.",
+			"view_details": "Xem chi tiết"
+		},
+		"application": {
+			"title": "Hồ sơ ứng tuyển",
+			"back_to_list": "← Quay lại danh sách",
+			"status_badge": {
+				"pending": "Đang chờ",
+				"approved": "Đã duyệt",
+				"rejected": "Bị từ chối"
+			},
+			"status_messages": {
+				"pending": "Hồ sơ của bạn đang được xem xét.",
+				"approved": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận.",
+				"rejected": "Rất tiếc, hồ sơ của bạn chưa thành công lần này."
+			},
+			"cover_letter": {
+				"label": "Thư xin việc",
+				"placeholder": "Cho chúng tôi biết tại sao bạn quan tâm đến vị trí này và điều gì khiến bạn phù hợp...",
+				"required_hint": "(Bắt buộc)"
+			},
+			"documents": {
+				"label": "Tài liệu hỗ trợ",
+				"select_button": "Chọn tài liệu",
+				"selected_count": "Đã chọn {count} tài liệu",
+				"selected_count_plural": "Đã chọn {count} tài liệu"
+			},
+			"submit_button": {
+				"submit": "Nộp hồ sơ",
+				"submitting": "Đang nộp...",
+				"update": "Cập nhật hồ sơ",
+				"updating": "Đang cập nhật..."
+			},
+			"validation": {
+				"cover_letter_required": "Thư xin việc là bắt buộc",
+				"cover_letter_min_length": "Thư xin việc phải có ít nhất 50 ký tự"
+			},
+			"success": {
+				"submitted": "Đã nộp hồ sơ thành công!",
+				"updated": "Đã cập nhật hồ sơ thành công!"
+			},
+			"error": {
+				"submit_failed": "Không thể nộp hồ sơ. Vui lòng thử lại.",
+				"update_failed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
+				"load_failed": "Không thể tải chi tiết hồ sơ."
+			}
+		},
+		"recommendations": {
+			"title": "Bạn có thể thích",
+			"view_all": "Xem tất cả phòng nghiên cứu"
+		},
+		"modals": {
+			"auth_required": {
+				"title": "Yêu cầu xác thực",
+				"message": "Bạn cần đăng nhập để ứng tuyển vào vị trí nghiên cứu này.",
+				"sign_in": "Đăng nhập",
+				"sign_up": "Đăng ký"
+			}
+		},
+		"not_found": "Không tìm thấy phòng nghiên cứu"
+	},
+
+	"program_detail": {
+		"breadcrumb": {
+			"home": "Trang chủ",
+			"explore": "Khám phá",
+			"programmes": "Chương trình"
+		},
+		"wishlist_actions": {
+			"share": "Chia sẻ",
+			"copy_link": "Sao chép liên kết",
+			"link_copied": "Đã sao chép liên kết!",
+			"save": "Lưu",
+			"unsave": "Bỏ lưu"
+		},
+		"info": {
+			"location": "Địa điểm",
+			"fee": "Học phí",
+			"duration": "Thời gian",
+			"deadline": "Hạn chót",
+			"start_date": "Ngày bắt đầu",
+			"degree_level": "Cấp độ",
+			"attendance": "Hình thức học",
+			"contact_institution": "Liên hệ cơ sở",
+			"year": "năm",
+			"years": "năm",
+			"month": "tháng",
+			"months": "tháng"
+		},
+		"tabs": {
+			"overview": "Tổng quan",
+			"structure": "Cấu trúc chương trình",
+			"admission": "Yêu cầu tuyển sinh",
+			"fee": "Học phí và tài trợ",
+			"scholarship": "Học bổng",
+			"other": "Thông tin khác",
+			"application": "Hồ sơ của tôi",
+			"applications": "Hồ sơ ứng tuyển"
+		},
+		"program_description": {
+			"title": "Mô tả chương trình"
+		},
+		"offer_information": {
+			"title": "Thông tin đề nghị"
+		},
+		"program_requirements": {
+			"title": "Yêu cầu chương trình"
+		},
+		"application": {
+			"title": "Hồ sơ ứng tuyển",
+			"back_to_list": "← Quay lại danh sách",
+			"status_badge": {
+				"pending": "Đang chờ",
+				"approved": "Đã duyệt",
+				"rejected": "Bị từ chối"
+			},
+			"status_messages": {
+				"pending": "Hồ sơ của bạn đang được xem xét.",
+				"approved": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận.",
+				"rejected": "Rất tiếc, hồ sơ của bạn chưa thành công lần này."
+			},
+			"cover_letter": {
+				"label": "Thư động lực",
+				"placeholder": "Cho chúng tôi biết tại sao bạn quan tâm đến chương trình này và điều gì khiến bạn phù hợp...",
+				"required_hint": "(Bắt buộc)"
+			},
+			"documents": {
+				"label": "Tài liệu hỗ trợ",
+				"select_button": "Chọn tài liệu",
+				"selected_count": "Đã chọn {count} tài liệu",
+				"selected_count_plural": "Đã chọn {count} tài liệu"
+			},
+			"submit_button": {
+				"submit": "Nộp hồ sơ",
+				"submitting": "Đang nộp...",
+				"update": "Cập nhật hồ sơ",
+				"updating": "Đang cập nhật..."
+			},
+			"validation": {
+				"cover_letter_required": "Thư động lực là bắt buộc",
+				"cover_letter_min_length": "Thư động lực phải có ít nhất 50 ký tự"
+			},
+			"success": {
+				"submitted": "Đã nộp hồ sơ thành công!",
+				"updated": "Đã cập nhật hồ sơ thành công!"
+			},
+			"error": {
+				"submit_failed": "Không thể nộp hồ sơ. Vui lòng thử lại.",
+				"update_failed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
+				"load_failed": "Không thể tải chi tiết hồ sơ."
+			}
+		},
+		"about": {
+			"title": "Giới thiệu",
+			"no_description": "Không có mô tả."
+		},
+		"apply": {
+			"title": "Ứng tuyển tại đây !",
+			"reapply_button": "Nộp lại Hồ sơ",
+			"document_requirement": "Tài Liệu Bắt Buộc",
+			"select_profile_button": "Chọn Tài Liệu từ Hồ Sơ",
+			"select_profile_hint": "Chọn tài liệu bạn đã tải lên hồ sơ của mình",
+			"or_divider": "hoặc",
+			"files_uploaded": "Đã Tải Lên Tệp!",
+			"files_uploaded_message": "Đã tải lên {count} tệp và thêm vào hồ sơ của bạn",
+			"validation_failed": "Xác Thực Thất Bại!",
+			"validation_failed_message": "Một số tệp không đạt yêu cầu. Vui lòng xóa chúng và thử lại.",
+			"documents_label": "Tài liệu:",
+			"from_profile_badge": "Từ Hồ Sơ",
+			"uploaded_badge": "Đã Tải Lên",
+			"view_button": "Xem",
+			"remove_button": "Xóa",
+			"uploading_files": "Đang tải lên tệp...",
+			"remove_all_button": "Xóa tất cả",
+			"update_documents_button": "Cập Nhật Tài Liệu",
+			"updating_button": "Đang cập nhật...",
+			"submit_button": "Nộp Hồ Sơ",
+			"submitting_button": "Đang nộp...",
+			"cancel_edit_button": "Hủy",
+			"save_changes_button": "Lưu Thay Đổi"
+		},
+		"documents_section": {
+			"title": "Tài Liệu Hồ Sơ",
+			"title_with_count": "Tài Liệu Hồ Sơ ({count} tệp{plural})",
+			"edit_button": "Chỉnh Sửa Tài Liệu",
+			"description": "Đây là các tài liệu bạn đã nộp với hồ sơ của mình. Chúng không thể được sửa đổi hoặc xóa.",
+			"uploaded_label": "Đã tải lên:",
+			"download_button": "Tải xuống",
+			"ready_title": "{count} Tài Liệu{plural} Sẵn Sàng",
+			"warning": "Vui lòng chọn ít nhất một tài liệu để nộp hồ sơ"
+		},
+		"congratulations": {
+			"title": "🎉 Chúc mừng!",
+			"message": "Hồ sơ của bạn đã được chấp nhận! Cơ sở giáo dục sẽ liên hệ với bạn với thông tin chi tiết về các bước tiếp theo.",
+			"status_label": "Trạng thái ứng tuyển:"
+		},
+		"application_status": {
+			"accepted": {
+				"title": "Hồ sơ Được Chấp Nhận!",
+				"message": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận. Cơ sở giáo dục sẽ liên hệ với bạn sớm với các bước tiếp theo."
+			},
+			"rejected": {
+				"title": "Hồ sơ Không Được Chọn",
+				"message": "Chúng tôi rất tiếc thông báo rằng hồ sơ của bạn không được chọn lần này. Bạn có thể nộp lại hồ sơ bên dưới nếu muốn."
+			},
+			"updated": {
+				"title": "Hồ sơ Đã Cập Nhật",
+				"message": "Hồ sơ của bạn đã được cập nhật. Cơ sở giáo dục sẽ xem xét các thay đổi của bạn."
+			},
+			"submitted": {
+				"title": "Nộp Hồ sơ Thành Công!",
+				"message": "Hồ sơ của bạn đã được nộp. Bạn sẽ nhận được cập nhật qua email."
+			},
+			"already_applied": {
+				"title": "Đã Ứng Tuyển",
+				"message": "Bạn đã ứng tuyển vào chương trình này. Bạn không thể nộp nhiều hồ sơ."
+			}
+		},
+		"update_requests": {
+			"pending": {
+				"title": "Yêu Cầu Cập Nhật",
+				"message": "Cơ sở giáo dục đã yêu cầu thông tin hoặc tài liệu bổ sung cho hồ sơ của bạn. Vui lòng xem xét yêu cầu và nộp các cập nhật cần thiết.",
+				"button": "Xem Yêu Cầu Cập Nhật & Nộp Phản Hồi"
+			},
+			"responded": {
+				"title": "Nộp Cập Nhật Thành Công",
+				"message": "Phản hồi cập nhật của bạn đã được nộp thành công. Cơ sở giáo dục sẽ xem xét các thay đổi của bạn.",
+				"button": "Xem Chi Tiết Cập Nhật"
+			},
+			"reviewed": {
+				"title": "Nộp Cập Nhật Thành Công",
+				"message": "Phản hồi cập nhật của bạn đã được nộp thành công. Cơ sở giáo dục sẽ xem xét các thay đổi của bạn.",
+				"button": "Xem Chi Tiết Cập Nhật"
+			},
+			"general": "Yêu cầu cập nhật #{number}"
+		},
+		"overview": {
+			"description_label": "Mô tả:",
+			"duration_label": "1. Thời gian:",
+			"start_dates_label": "2. Ngày bắt đầu:",
+			"deadlines_label": "3. Hạn chót ứng tuyển:",
+			"deadlines_before": "trước {date}",
+			"subdiscipline_label": "4. Ngành phụ:",
+			"attendance_label": "5. Hình thức học:",
+			"location_label": "6. Địa điểm:",
+			"degree_level_label": "7. Cấp độ:",
+			"days_left_label": "8. Số ngày còn lại:",
+			"days_unit": "{count} ngày"
+		},
+		"structure": {
+			"subdiscipline_label": "Ngành phụ:",
+			"courses_include": "Các khóa học bao gồm:",
+			"discipline_area": "Lĩnh vực ngành:"
+		},
+		"admission": {
+			"academic_requirements": "Yêu cầu học thuật:",
+			"gpa_label": "GPA: {value}",
+			"gre_label": "GRE: {value}",
+			"gmat_label": "GMAT: {value}",
+			"contact_requirement": "Vui lòng liên hệ cơ sở để biết yêu cầu",
+			"language_requirements": "Yêu cầu ngôn ngữ:",
+			"certificate_format": "{name}: {score}",
+			"required_documents": "Tài liệu yêu cầu:"
+		},
+		"fee": {
+			"tuition_fee": "Học phí:",
+			"tuition_fee_value": "${amount}/năm",
+			"contact_for_fee": "Liên hệ cơ sở để biết thông tin học phí",
+			"fee_description": "Mô tả học phí:"
+		},
+		"scholarship": {
+			"title": "Thông Tin Học Bổng:",
+			"default_message": "Khám phá các học bổng có sẵn do cơ sở này cung cấp có thể giúp tài trợ cho việc học của bạn.",
+			"available_title": "Học Bổng Có Sẵn:",
+			"eligibility_note": "Bạn đủ điều kiện để đăng ký các học bổng này nhưng quá trình lựa chọn vẫn sẽ được áp dụng bởi nhà cung cấp.",
+			"no_scholarships": "Hiện tại không có học bổng nào từ cơ sở này.",
+			"loading": "Đang tải học bổng..."
+		},
+		"other_info": {
+			"title": "Thông Tin Khác:",
+			"contact_title": "Thông Tin Liên Hệ:",
+			"email_label": "Email:",
+			"hotline_label": "Hotline:",
+			"website_label": "Website:",
+			"address_label": "Địa chỉ:"
+		},
+		"applications_list": {
+			"title": "Hồ sơ của tôi",
+			"table_headers": {
+				"date": "Ngày nộp hồ sơ",
+				"status": "Trạng thái",
+				"documents": "Tài liệu"
+			},
+			"documents_count": "{count} tài liệu",
+			"status_badges": {
+				"accepted": "ĐÃ CHẤP NHẬN",
+				"rejected": "BỊ TỪ CHỐI",
+				"progressing": "ĐANG XỬ LÝ",
+				"submitted": "ĐÃ NỘP"
+			},
+			"empty": {
+				"title": "Không tìm thấy hồ sơ nào cho chương trình này",
+				"message": "Nộp hồ sơ để bắt đầu"
+			}
+		},
+		"header": {
+			"institution_detail_button": "Chi Tiết Tổ Chức",
+			"contact_button": "Liên Hệ",
+			"applications_count": "Số lượng hồ sơ: {count}"
+		},
+		"recommendations": {
+			"title": "Đề xuất cho bạn",
+			"no_recommendations": "Hiện tại không có đề xuất nào.",
+			"loading": "Đang tải...",
+			"upgrade": {
+				"title": "Mở Khóa Đề Xuất Cá Nhân Hóa",
+				"message": "Nâng cấp lên Standard hoặc Premium để xem các chương trình phù hợp với hồ sơ và sở thích của bạn.",
+				"button": "Xem Các Tùy Chọn Nâng Cấp"
+			}
+		},
+		"modals": {
+			"delete_confirm": {
+				"title": "Xóa Tất Cả Tệp",
+				"message": "Bạn có muốn xóa tất cả tệp không? Hành động này không thể hoàn tác.",
+				"cancel": "Hủy",
+				"confirm": "Xóa Tất Cả"
+			},
+			"cancel_edit": {
+				"title": "Hủy Thay Đổi?",
+				"message": "Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn hủy chỉnh sửa không? Tất cả thay đổi sẽ bị mất.",
+				"keep": "Tiếp Tục Chỉnh Sửa",
+				"discard": "Hủy Thay Đổi"
+			},
+			"document_selector": {
+				"title": "Chọn Tài Liệu Cho Hồ Sơ",
+				"summary": {
+					"selected": "Đã chọn {count} tài liệu{plural} từ hồ sơ",
+					"ready": "Sẵn sàng nộp",
+					"none_selected": "Chưa chọn tài liệu nào",
+					"choose_files": "Chọn tệp để tiếp tục"
+				},
+				"cancel": "Hủy",
+				"continue": "Tiếp Tục",
+				"select_first": "Chọn Tài Liệu Trước",
+				"success": "Đã Chọn Tài Liệu!",
+				"success_message": "{count} tài liệu{plural} sẵn sàng để nộp hồ sơ"
+			},
+			"auth_required": {
+				"title": "Yêu Cầu Xác Thực",
+				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"sign_in": "Đăng nhập",
+				"sign_up": "Đăng ký"
+			}
+		},
+		"notifications": {
+			"wishlist_added": "Đã Thêm Vào Danh Sách Yêu Thích",
+			"wishlist_added_message": "Chương trình này đã được thêm vào danh sách yêu thích của bạn.",
+			"wishlist_removed": "Đã Xóa Khỏi Danh Sách Yêu Thích",
+			"wishlist_removed_message": "Chương trình này đã được xóa khỏi danh sách yêu thích của bạn.",
+			"wishlist_error": "Lỗi Danh Sách Yêu Thích",
+			"wishlist_error_message": "Không thể cập nhật danh sách yêu thích. Vui lòng thử lại.",
+			"documents_updated": "Đã Cập Nhật Tài Liệu!",
+			"documents_updated_message": "Tài liệu ứng tuyển của bạn đã được cập nhật thành công.",
+			"update_failed": "Cập Nhật Thất Bại",
+			"update_failed_message": "Không thể cập nhật tài liệu. Vui lòng thử lại.",
+			"update_error": "Lỗi Cập Nhật",
+			"update_error_message": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
+			"application_submitted": "Đã Nộp Hồ Sơ!",
+			"application_submitted_message": "Hồ sơ của bạn đã được nộp thành công. Bạn sẽ nhận được cập nhật qua email.",
+			"application_failed": "Nộp Hồ Sơ Thất Bại",
+			"application_failed_message": "Không thể nộp hồ sơ. Vui lòng thử lại.",
+			"application_error": "Lỗi Hồ Sơ",
+			"application_error_message": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
+			"application_limit": "Đã Đạt Giới Hạn Hồ Sơ",
+			"already_applied_title": "Đã Ứng Tuyển",
+			"already_applied_message": "Bạn đã ứng tuyển vào chương trình này. Bạn không thể nộp nhiều hồ sơ.",
+			"update_submitted": "Đã Nộp Cập Nhật",
+			"update_submitted_message": "Phản hồi cập nhật của bạn đã được nộp thành công. Cơ sở giáo dục sẽ xem xét các thay đổi của bạn.",
+			"retry": "Thử Lại",
+			"upgrade_plan": "Nâng Cấp Gói"
+		},
+		"loading": "Đang tải chi tiết chương trình...",
+		"error": "Không thể tải chi tiết chương trình",
+		"not_found": "Không tìm thấy chương trình"
+	},
+
+	"scholarship_detail": {
+		"breadcrumb": {
+			"home": "Trang chủ",
+			"explore": "Khám phá",
+			"scholarships": "Học bổng"
+		},
+		"header": {
+			"share": "Chia sẻ",
+			"copy_link": "Sao chép liên kết",
+			"link_copied": "Đã sao chép liên kết!",
+			"save": "Lưu",
+			"unsave": "Bỏ lưu"
+		},
+		"info": {
+			"location": "Địa điểm",
+			"amount": "Số tiền",
+			"duration": "Thời gian",
+			"deadline": "Hạn chót",
+			"essay_required": "Yêu cầu bài luận",
+			"year": "năm",
+			"years": "năm",
+			"month": "tháng",
+			"months": "tháng",
+			"yes": "Có",
+			"no": "Không"
+		},
+		"tabs": {
+			"detail": "Chi tiết",
+			"eligibility": "Điều kiện",
+			"other": "Thông tin khác",
+			"application": "Hồ sơ của tôi",
+			"overview": "Tổng quan",
+			"applications": "Hồ sơ ứng tuyển"
+		},
+		"scholarship_description": {
+			"title": "Mô tả học bổng"
+		},
+		"offer_information": {
+			"title": "Thông tin đề nghị"
+		},
+		"eligibility_criteria": {
+			"title": "Tiêu chí đủ điều kiện"
+		},
+		"applications_list": {
+			"title": "Hồ sơ của bạn",
+			"empty": "Bạn chưa ứng tuyển vào học bổng này.",
+			"view_details": "Xem chi tiết"
+		},
+		"application": {
+			"title": "Hồ sơ ứng tuyển",
+			"back_to_list": "← Quay lại danh sách",
+			"status_badge": {
+				"pending": "Đang chờ",
+				"approved": "Đã duyệt",
+				"rejected": "Bị từ chối"
+			},
+			"status_messages": {
+				"pending": "Hồ sơ của bạn đang được xem xét.",
+				"approved": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận.",
+				"rejected": "Rất tiếc, hồ sơ của bạn chưa thành công lần này."
+			},
+			"cover_letter": {
+				"label": "Thư xin học bổng",
+				"placeholder": "Cho chúng tôi biết tại sao bạn ứng tuyển học bổng này và nó sẽ giúp bạn đạt được mục tiêu như thế nào...",
+				"required_hint": "(Bắt buộc)"
+			},
+			"documents": {
+				"label": "Tài liệu hỗ trợ",
+				"select_button": "Chọn tài liệu",
+				"selected_count": "Đã chọn {count} tài liệu",
+				"selected_count_plural": "Đã chọn {count} tài liệu"
+			},
+			"submit_button": {
+				"submit": "Nộp hồ sơ",
+				"submitting": "Đang nộp...",
+				"update": "Cập nhật hồ sơ",
+				"updating": "Đang cập nhật..."
+			},
+			"validation": {
+				"cover_letter_required": "Thư xin học bổng là bắt buộc",
+				"cover_letter_min_length": "Thư xin học bổng phải có ít nhất 50 ký tự"
+			},
+			"success": {
+				"submitted": "Đã nộp hồ sơ thành công!",
+				"updated": "Đã cập nhật hồ sơ thành công!"
+			},
+			"error": {
+				"submit_failed": "Không thể nộp hồ sơ. Vui lòng thử lại.",
+				"update_failed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
+				"load_failed": "Không thể tải chi tiết hồ sơ."
+			}
+		},
+		"recommendations": {
+			"title": "Bạn có thể thích",
+			"view_all": "Xem tất cả học bổng"
+		},
+		"modals": {
+			"auth_required": {
+				"title": "Yêu cầu xác thực",
+				"message": "Bạn cần đăng nhập để ứng tuyển học bổng này.",
+				"sign_in": "Đăng nhập",
+				"sign_up": "Đăng ký"
+			}
+		},
+		"loading": "Đang tải chi tiết học bổng...",
+		"error": "Không thể tải chi tiết học bổng",
+		"not_found": "Không tìm thấy học bổng"
+	},
+
+	"pricing": {
+		"hero": {
+			"badge": "Gói dịch vụ",
+			"title": "Chọn gói phù hợp với bạn",
+			"description": "Chọn gói dịch vụ phù hợp với nhu cầu tìm kiếm học bổng của bạn. Từ tìm kiếm cơ bản đến khớp nối AI, chúng tôi đều có."
+		},
+		"plans": {
+			"free": {
+				"name": "Gói Miễn Phí",
+				"price": "0",
+				"period": "tháng",
+				"description": "Lý tưởng cho người nộp đơn sẵn sàng ứng tuyển và theo dõi tiến độ.",
+				"button": "Bắt Đầu Miễn Phí",
+				"features": [
+					"Đăng ký tài khoản & xác thực OTP",
+					"Tạo & cập nhật hồ sơ cá nhân (GPA, kỹ năng, chủ đề nghiên cứu, v.v.)",
+					"Tìm kiếm học bổng, chương trình & nhóm nghiên cứu cơ bản",
+					"Xem chi tiết học bổng & yêu cầu",
+					"Nhận nhắc nhở deadline cho học bổng/chương trình đã lưu",
+					"Gửi tin nhắn cho nhân viên học bổng / giáo sư"
+				],
+				"limits": {
+					"applications": "Đơn ứng tuyển:",
+					"scholarships": "Học bổng:",
+					"programs": "Chương trình:"
+				}
+			},
+			"standard": {
+				"name": "Gói Tiêu Chuẩn",
+				"price": "99",
+				"period": "tháng",
+				"description": "Hoàn hảo cho những người săn học bổng tích cực.",
+				"button": "Nâng Cấp Lên Tiêu Chuẩn",
+				"features": [
+					"Tất cả tính năng Gói Miễn Phí",
+					"Thuật toán khớp học bổng nâng cao",
+					"Theo dõi đơn ứng tuyển ưu tiên",
+					"Truy cập cơ sở dữ liệu chương trình mở rộng",
+					"Thông báo & nhắc nhở qua email",
+					"Nhắn tin trực tiếp với nhân viên tuyển sinh",
+					"Đồng bộ lịch deadline ứng tuyển",
+					"Bảng điều khiển phân tích cơ bản"
+				],
+				"limits": {
+					"applications": "Đơn ứng tuyển:",
+					"scholarships": "Học bổng:",
+					"programs": "Chương trình:"
+				}
+			},
+			"premium": {
+				"name": "Gói Cao Cấp",
+				"price": "199",
+				"period": "tháng",
+				"description": "Gói tối ưu cho những người theo đuổi học thuật nghiêm túc.",
+				"button": "Nâng Cấp Lên Cao Cấp",
+				"features": [
+					"Tất cả tính năng Gói Tiêu Chuẩn",
+					"Đánh giá & đề xuất bài luận bằng AI",
+					"Cuộc gọi tư vấn 1-1",
+					"Đề xuất học bổng tùy chỉnh",
+					"Mẫu tài liệu ứng tuyển",
+					"Tài nguyên chuẩn bị phỏng vấn",
+					"Hội thảo & workshop độc quyền",
+					"Hỗ trợ khách hàng ưu tiên"
+				],
+				"limits": {
+					"applications": "Đơn ứng tuyển:",
+					"scholarships": "Học bổng:",
+					"programs": "Chương trình:"
+				}
+			}
+		},
+		"badges": {
+			"most_popular": "Phổ Biến Nhất",
+			"active": "Đang Dùng"
+		},
+		"buttons": {
+			"get_started": "Bắt Đầu",
+			"current_plan": "Gói Hiện Tại",
+			"lower_plan": "Gói Thấp Hơn",
+			"processing": "Đang xử lý...",
+			"cancel_subscription": "Hủy Đăng Ký",
+			"cancelling": "Đang hủy...",
+			"contact_us": "Liên Hệ Chúng Tôi",
+			"keep_current_plan": "Giữ Gói Hiện Tại",
+			"cancel_current_plan": "Hủy Gói Hiện Tại",
+			"keep_my_subscription": "Giữ Đăng Ký Của Tôi",
+			"upgrade": "Nâng Cấp",
+			"upgrading": "Đang nâng cấp...",
+			"canceling": "Đang hủy...",
+			"loading": "Đang tải...",
+			"sign_in_required": "Đăng nhập để nâng cấp"
+		},
+		"modals": {
+			"active_subscription": {
+				"title": "Bạn Đã Có Gói Đăng Ký Đang Hoạt Động",
+				"current_plan": "Bạn hiện đang có gói đăng ký {plan} đang hoạt động.",
+				"need_cancel": "Để đăng ký gói {newPlan}, bạn cần hủy gói đăng ký hiện tại trước.",
+				"access_note": "Bạn sẽ vẫn có quyền truy cập vào gói hiện tại cho đến hết chu kỳ thanh toán.",
+				"canceling": "Đang hủy..."
+			},
+			"cancel_confirmation": {
+				"title": "Hủy Đăng Ký",
+				"confirm_question": "Bạn có chắc chắn muốn hủy đăng ký không?",
+				"current_plan": "Bạn hiện đang có gói đăng ký {plan} đang hoạt động.",
+				"access_note": "Bạn sẽ vẫn có quyền truy cập vào gói hiện tại cho đến hết chu kỳ thanh toán.",
+				"warning": "Hành động này không thể hoàn tác. Bạn sẽ cần đăng ký lại để lấy lại quyền truy cập."
+			}
+		},
+		"comparison": {
+			"title": "So Sánh Các Gói",
+			"description": "Chọn gói phù hợp nhất với nhu cầu săn học bổng và ngân sách của bạn.",
+			"features_header": "Tính Năng",
+			"features": [
+				"Đăng ký tài khoản & xác thực OTP",
+				"Tạo & cập nhật hồ sơ cá nhân (GPA, kỹ năng, chủ đề nghiên cứu, v.v.)",
+				"Tìm kiếm học bổng, chương trình & nhóm nghiên cứu cơ bản",
+				"Xem chi tiết học bổng & yêu cầu",
+				"Nhận nhắc nhở deadline cho học bổng/chương trình đã lưu",
+				"Gửi tin nhắn cho nhân viên học bổng / giáo sư",
+				"Xem điểm khớp cho học bổng / nhóm nghiên cứu",
+				"Đề xuất cơ bản (dựa trên quy tắc)",
+				"Khớp Nối AI Nâng Cao",
+				"Tìm kiếm học bổng bằng ngôn ngữ tự nhiên",
+				"Đơn ứng tuyển không giới hạn",
+				"Nhắn tin không giới hạn"
+			]
+		},
+		"faq": {
+			"badge": "Câu hỏi thường gặp",
+			"title": "Các câu hỏi thường gặp",
+			"description": "Lorem Ipsum chỉ đơn giản là văn bản giả của ngành in ấn và sắp chữ. Lorem Ipsum đã trở thành văn bản giả tiêu chuẩn của ngành từ những năm 1500",
+			"questions": [
+				{
+					"question": "Gói Miễn Phí bao gồm những gì?",
+					"answer": "Gói Miễn Phí bao gồm đăng ký tài khoản cơ bản, tạo hồ sơ, tìm kiếm học bổng và xem chi tiết. Hoàn hảo để bắt đầu với EduMatch."
+				},
+				{
+					"question": "Tôi có thể nâng cấp hoặc hạ cấp gói bất cứ lúc nào không?",
+					"answer": "Có, bạn có thể nâng cấp hoặc hạ cấp gói bất cứ lúc nào. Thay đổi sẽ được áp dụng trong chu kỳ thanh toán tiếp theo."
+				},
+				{
+					"question": "Điều gì làm cho Gói Cao Cấp đáng giá?",
+					"answer": "Gói Cao Cấp bao gồm khớp nối AI nâng cao, đơn ứng tuyển không giới hạn, tìm kiếm ngôn ngữ tự nhiên và hỗ trợ khách hàng ưu tiên cho những người săn học bổng nghiêm túc."
+				},
+				{
+					"question": "Các bạn có hoàn tiền không?",
+					"answer": "Chúng tôi cung cấp đảm bảo hoàn tiền trong 30 ngày cho tất cả các gói trả phí. Nếu bạn không hài lòng, hãy liên hệ với đội hỗ trợ của chúng tôi để được hoàn tiền đầy đủ."
+				}
+			]
+		},
+		"includes": "Bao gồm"
+	},
+	"file_upload": {
+		"drag_drop": "Kéo và thả tệp vào đây, hoặc",
+		"browse": "chọn tệp",
+		"max_size": "{size}MB mỗi tệp",
+		"processing": {
+			"extracting": "Đang trích xuất văn bản (sẽ mất vài giây)...",
+			"validating": "Đang xác thực nội dung (sẽ mất 15-20 giây)...",
+			"uploading": "Đang tải lên cloud...",
+			"completed": "Hoàn thành xử lý",
+			"failed": "Xử lý thất bại",
+			"blocked": "⚠️ Tải lên bị chặn: {reason}"
+		},
+		"ocr_required": "Yêu cầu trích xuất văn bản OCR & xác thực",
+		"validation_required": "Tệp phải vượt qua xác thực nội dung trước khi tải lên",
+		"uploading_files": "Đang tải lên tệp...",
+		"overall_progress": "Tiến độ tổng thể",
+		"alerts": {
+			"max_files": "Bạn chỉ có thể chọn tối đa {maxFiles} tệp. Chỉ {maxFiles} tệp đầu tiên sẽ được xử lý.",
+			"file_too_large": "Tệp {fileName} quá lớn. Kích thước tối đa là {maxSize}MB.",
+			"invalid_type": "Tệp {fileName} không phải là loại tệp được chấp nhận.",
+			"upload_failed": "Tải lên thất bại: {error}"
 		}
 	}
 }

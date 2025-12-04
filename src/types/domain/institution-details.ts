@@ -28,7 +28,14 @@ export interface InstitutionDetails {
 	userImage: string | null;
 
 	// Status information
-	status: "Active" | "Inactive" | "Suspended" | "Pending" | "Rejected";
+	status:
+		| "Active"
+		| "Inactive"
+		| "Suspended"
+		| "Pending"
+		| "Rejected"
+		| "Require Update"
+		| "Updated";
 	banned: boolean;
 	banReason?: string;
 	banExpires?: string;
@@ -36,7 +43,12 @@ export interface InstitutionDetails {
 	lastActive?: string;
 
 	// Verification information
-	verification_status?: "PENDING" | "APPROVED" | "REJECTED";
+	verification_status?:
+		| "PENDING"
+		| "APPROVED"
+		| "REJECTED"
+		| "REQUIRE_UPDATE"
+		| "UPDATED";
 	submitted_at?: string | null;
 	verified_at?: string | null;
 	verified_by?: string | null;

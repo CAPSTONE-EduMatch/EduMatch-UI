@@ -58,6 +58,16 @@ export interface InstitutionProfile {
 	logo: string | null;
 	cover_image: string | null;
 	user_id: string;
+	verification_status?:
+		| "PENDING"
+		| "APPROVED"
+		| "REJECTED"
+		| "REQUIRE_UPDATE"
+		| "UPDATED";
+	rejection_reason?: string | null;
+	submitted_at?: Date | null;
+	verified_at?: Date | null;
+	verified_by?: string | null;
 	user: {
 		id: string;
 		name: string | null;
@@ -136,13 +146,15 @@ export class InstitutionProfileService {
 				},
 			});
 
-			// If no active profile found, try without status filter (for backward compatibility)
-			// This handles cases where profile exists but status is false
+			// If no active profile found, try without status filter
+			// This allows fetching PENDING and REJECTED profiles
+			// PENDING profiles should remain PENDING until admin approval
+			// REJECTED profiles should remain REJECTED so institutions can see the rejection reason
 			if (!institution) {
 				institution = await prismaClient.institution.findFirst({
 					where: {
 						user_id: userId,
-						// Don't filter by status - get any profile
+						// Don't filter by status - get any profile (including PENDING and REJECTED)
 					},
 					include: {
 						user: true,
@@ -166,18 +178,8 @@ export class InstitutionProfileService {
 					},
 				});
 
-				// If found inactive profile, automatically reactivate it
-				if (
-					institution &&
-					(institution.verification_status === "PENDING" ||
-						institution.verification_status === "REJECTED")
-				) {
-					await prismaClient.institution.update({
-						where: { institution_id: institution.institution_id },
-						data: { verification_status: "APPROVED" },
-					});
-					institution.verification_status = "APPROVED" as any;
-				}
+				// DO NOT auto-approve PENDING profiles - they must go through admin verification
+				// REJECTED profiles are returned as-is so the institution can see the rejection reason
 			}
 
 			return institution;
@@ -252,11 +254,18 @@ export class InstitutionProfileService {
 					where: { user_id: userId },
 				});
 
-			const isNewInstitution = !existingInstitution;
-			const shouldResetVerification =
-				existingInstitution?.verification_status === "REJECTED";
+			// Determine if we should reset verification status
+			// - If REJECTED: reset to PENDING
+			// - If REQUIRE_UPDATE: don't reset - let the profile route handle it (will set to UPDATED)
+			// - If APPROVED: keep as APPROVED (don't change)
+			const currentStatus = existingInstitution?.verification_status as
+				| string
+				| undefined;
+			const shouldResetVerification = currentStatus === "REJECTED";
 
 			// Create or update institution
+			// IMPORTANT: New institutions created through the create profile page
+			// must always have verification_status set to PENDING
 			const institution = await prismaClient.institution.upsert({
 				where: { user_id: userId },
 				update: {
@@ -287,7 +296,7 @@ export class InstitutionProfileService {
 					logo: getStringValue(formData.institutionLogo) || null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
-					// If resubmitting after rejection, reset verification status
+					// If resubmitting after rejection or require_update, reset verification status to PENDING
 					...(shouldResetVerification && {
 						verification_status: "PENDING",
 						submitted_at: new Date(),
@@ -326,7 +335,8 @@ export class InstitutionProfileService {
 					logo: getStringValue(formData.institutionLogo) || null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
-					// Set verification status to PENDING for new institutions
+					// CRITICAL: New institutions must always start with PENDING status
+					// This ensures all new institution profiles go through admin verification
 					verification_status: "PENDING",
 					submitted_at: new Date(),
 				},

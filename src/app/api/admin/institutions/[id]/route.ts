@@ -172,13 +172,21 @@ export async function GET(
 			| "Inactive"
 			| "Suspended"
 			| "Pending"
-			| "Rejected" = "Active";
+			| "Rejected"
+			| "Require Update"
+			| "Updated" = "Active";
 		if (institution.user.banned) {
 			status = "Suspended";
 		} else if (institution.verification_status === "PENDING") {
 			status = "Pending";
 		} else if (institution.verification_status === "REJECTED") {
 			status = "Rejected";
+		} else if (institution.verification_status === "REQUIRE_UPDATE") {
+			// Institutions requiring updates should show as "Require Update"
+			status = "Require Update";
+		} else if ((institution.verification_status as string) === "UPDATED") {
+			// Institutions that have updated their profile need admin review
+			status = "Updated";
 		} else if (institution.verification_status === "APPROVED") {
 			// Approved institutions show as "Active" if user status is true
 			status = institution.user.status ? "Active" : "Inactive";

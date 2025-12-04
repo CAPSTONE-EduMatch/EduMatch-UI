@@ -4,6 +4,7 @@ import { InstitutionProfileLayout } from '@/components/profile/layouts/Instituti
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
 import { VerificationWaitingScreen } from '@/components/profile/institution/components/VerificationWaitingScreen'
+import { InstitutionInfoRequestBanner } from '@/components/profile/institution/components/InstitutionInfoRequestBanner'
 import { useCallback, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import type { InstitutionProfileSection } from '@/components/profile/layouts/InstitutionProfileLayout'
@@ -130,32 +131,34 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 		)
 	}
 
-	// Check verification status - show waiting screen if PENDING or REJECTED
-	// if (profile && profile.role === 'institution') {
-	// 	const verificationStatus = profile.verification_status || 'PENDING'
+	// Check verification status - show waiting screen if PENDING, REJECTED, or REQUIRE_UPDATE
+	if (profile && profile.role === 'institution') {
+		const verificationStatus = profile.verification_status || 'PENDING'
 
-	// 	// Allow access to profile page even if pending/rejected so they can update
-	// 	const isProfilePage = pathname.startsWith('/institution/dashboard/profile')
+		// Allow access to profile page even if pending/rejected/require_update so they can update
+		const isProfilePage = pathname.startsWith('/institution/dashboard/profile')
 
-	// 	if (
-	// 		(verificationStatus === 'PENDING' || verificationStatus === 'REJECTED') &&
-	// 		!isProfilePage
-	// 	) {
-	// 		return (
-	// 			<InstitutionProfileLayout
-	// 				activeSection={activeSection}
-	// 				onSectionChange={handleSectionChange}
-	// 				profile={profile}
-	// 			>
-	// 				<VerificationWaitingScreen
-	// 					verificationStatus={verificationStatus}
-	// 					submittedAt={profile.submitted_at}
-	// 					rejectionReason={profile.rejection_reason}
-	// 				/>
-	// 			</InstitutionProfileLayout>
-	// 		)
-	// 	}
-	// }
+		if (
+			(verificationStatus === 'PENDING' ||
+				verificationStatus === 'REJECTED' ||
+				verificationStatus === 'REQUIRE_UPDATE') &&
+			!isProfilePage
+		) {
+			return (
+				<InstitutionProfileLayout
+					activeSection={activeSection}
+					onSectionChange={handleSectionChange}
+					profile={profile}
+				>
+					<VerificationWaitingScreen
+						verificationStatus={verificationStatus}
+						submittedAt={profile.submitted_at}
+						rejectionReason={profile.rejection_reason}
+					/>
+				</InstitutionProfileLayout>
+			)
+		}
+	}
 
 	return (
 		<InstitutionProfileLayout

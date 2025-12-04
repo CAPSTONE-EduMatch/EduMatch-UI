@@ -17,6 +17,7 @@ import { Upload, Building2, Download, Trash2, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
+import { Modal } from '@/components/ui'
 import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { ApiService, apiClient } from '@/services/api/axios-config'
@@ -25,19 +26,55 @@ import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 interface InstitutionProfileSectionProps {
 	profile?: any
 	onProfileUpdate?: () => Promise<void>
+	onEditingChange?: (isEditing: boolean) => void
 }
 
 export const InstitutionProfileSection: React.FC<
 	InstitutionProfileSectionProps
-> = ({ profile: propProfile, onProfileUpdate }) => {
+> = ({ profile: propProfile, onProfileUpdate, onEditingChange }) => {
 	const [profile, setProfile] = useState<any>(propProfile)
 	const [isEditing, setIsEditing] = useState(false)
+
+	// Notify parent when editing state changes
+	useEffect(() => {
+		if (onEditingChange) {
+			onEditingChange(isEditing)
+		}
+	}, [isEditing, onEditingChange])
 	const [editedProfile, setEditedProfile] = useState(profile)
 	const [isSaving, setIsSaving] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
+	const [showAdminReviewModal, setShowAdminReviewModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [hasPendingInfoRequests, setHasPendingInfoRequests] = useState(false)
+
+	// Check for pending info requests on mount and when profile changes
+	useEffect(() => {
+		const checkPendingRequests = async () => {
+			try {
+				const response = await fetch('/api/institution/info-requests', {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				})
+
+				if (response.ok) {
+					const result = await response.json()
+					if (result.success && result.data) {
+						setHasPendingInfoRequests(result.data.length > 0)
+					}
+				}
+			} catch (error) {
+				// Silently fail - not critical
+			}
+		}
+
+		checkPendingRequests()
+	}, [profile])
 	const [activeTab, setActiveTab] = useState<
 		'overview' | 'verification' | 'cover'
 	>('overview')
@@ -45,6 +82,9 @@ export const InstitutionProfileSection: React.FC<
 	const verificationFileInputRef = useRef<HTMLInputElement>(null)
 	const coverImageInputRef = useRef<HTMLInputElement>(null)
 	const [verificationDocuments, setVerificationDocuments] = useState<any[]>([])
+	const [originalVerificationDocuments, setOriginalVerificationDocuments] =
+		useState<any[]>([])
+	const [deletedDocumentIds, setDeletedDocumentIds] = useState<string[]>([])
 	const [isUploadingDocument, setIsUploadingDocument] = useState(false)
 	const [isUploadingCoverImage, setIsUploadingCoverImage] = useState(false)
 	const [subdisciplines, setSubdisciplines] = useState<
@@ -74,10 +114,12 @@ export const InstitutionProfileSection: React.FC<
 			}))
 
 			setVerificationDocuments(transformedDocs)
+			setOriginalVerificationDocuments(transformedDocs)
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Failed to load verification documents:', error)
 			setVerificationDocuments([])
+			setOriginalVerificationDocuments([])
 		}
 	}, [])
 
@@ -141,6 +183,21 @@ export const InstitutionProfileSection: React.FC<
 	}, [loadDisciplines])
 
 	const handleSave = async () => {
+		// If there are pending info requests, show warning modal first
+		if (hasPendingInfoRequests) {
+			setShowAdminReviewModal(true)
+			return
+		}
+
+		await performSave()
+	}
+
+	const handleConfirmAdminReview = async () => {
+		setShowAdminReviewModal(false)
+		await performSave()
+	}
+
+	const performSave = async () => {
 		setIsSaving(true)
 		try {
 			// Validate phone numbers and country codes before saving
@@ -200,42 +257,9 @@ export const InstitutionProfileSection: React.FC<
 				}
 			}
 
-			// Persist any uploaded verification documents that haven't been saved to DB yet
-			try {
-				const unsavedDocs = verificationDocuments.filter((doc) => {
-					// Files uploaded via the upload manager use temporary ids like `temp-...`.
-					// If id is missing or starts with 'temp-' we consider it unsaved.
-					return (
-						!doc.id ||
-						(typeof doc.id === 'string' && doc.id.startsWith('temp-'))
-					)
-				})
-
-				if (unsavedDocs.length > 0) {
-					const docsToSave = unsavedDocs.map((d) => ({
-						name: d.name || d.originalName || 'document',
-						fileName: d.fileName,
-						fileSize: d.fileSize || d.size,
-						url: d.url,
-						fileType: d.fileType,
-						category: d.category || 'verification',
-					}))
-
-					// Save to DB using the same endpoint used by the explicit upload flow
-					await apiClient.post('/api/institution/documents', {
-						documents: docsToSave,
-					})
-
-					// Refresh verification documents from server so state contains saved records
-					await loadVerificationDocuments()
-				}
-			} catch (e) {
-				// eslint-disable-next-line no-console
-				console.error(
-					'Failed to persist verification documents before profile save:',
-					e
-				)
-			}
+			// NOTE: Documents are NOT auto-saved here
+			// They will only be saved when the profile is confirmed via the Confirm button
+			// This prevents duplicate documents and ensures documents are only saved when user explicitly confirms
 
 			const { ApiService } = await import('@/services/api/axios-config')
 
@@ -270,12 +294,41 @@ export const InstitutionProfileSection: React.FC<
 				aboutInstitution: editedProfile?.aboutInstitution || '',
 				institutionDisciplines: editedProfile?.institutionDisciplines || [],
 				institutionCoverImage: editedProfile?.institutionCoverImage || '',
-				// Include verification documents
-				verificationDocuments: verificationDocuments,
+				// Include verification documents - they will be saved when profile is confirmed
+				// The API will check for duplicates by URL before saving
+				verificationDocuments: verificationDocuments.map((doc) => ({
+					id: doc.id,
+					name: doc.name || doc.originalName,
+					originalName: doc.originalName || doc.name,
+					url: doc.url,
+					size: doc.size || doc.fileSize,
+					fileSize: doc.fileSize || doc.size,
+					fileType: doc.fileType,
+					category: doc.category || 'verification',
+				})),
+			}
+
+			// Delete removed documents from database before saving
+			if (deletedDocumentIds.length > 0) {
+				try {
+					await Promise.all(
+						deletedDocumentIds.map((docId) =>
+							apiClient.delete(`/api/institution/documents?documentId=${docId}`)
+						)
+					)
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.error('Failed to delete some documents:', error)
+					// Continue with save even if some deletions fail
+				}
 			}
 
 			// Call the update profile API
 			await ApiService.updateProfile(profileData)
+
+			// Clear deleted document IDs after successful save
+			setDeletedDocumentIds([])
+			setOriginalVerificationDocuments(verificationDocuments)
 
 			// Refresh profile data
 			try {
@@ -310,6 +363,9 @@ export const InstitutionProfileSection: React.FC<
 	const handleCancel = () => {
 		setEditedProfile(profile)
 		setIsEditing(false)
+		// Restore original verification documents and clear deleted IDs
+		setVerificationDocuments(originalVerificationDocuments)
+		setDeletedDocumentIds([])
 	}
 
 	const handleFieldChange = (field: string, value: string) => {
@@ -370,6 +426,46 @@ export const InstitutionProfileSection: React.FC<
 
 	const handleUploadClick = () => {
 		fileInputRef.current?.click()
+	}
+
+	const handleDeleteLogo = async () => {
+		if (!isEditing) return
+
+		try {
+			// Update the profile to remove logo
+			const profileData = {
+				role: profile.role,
+				profilePhoto: '',
+			}
+			await ApiService.updateProfile(profileData)
+
+			// Update local state
+			handleFieldChange('profilePhoto', '')
+			setShowSuccessModal(true)
+		} catch (error) {
+			setErrorMessage('Failed to delete logo. Please try again.')
+			setShowErrorModal(true)
+		}
+	}
+
+	const handleDeleteCoverImage = async () => {
+		if (!isEditing) return
+
+		try {
+			// Update the profile to remove cover image
+			const profileData = {
+				role: profile.role,
+				institutionCoverImage: '',
+			}
+			await ApiService.updateProfile(profileData)
+
+			// Update local state
+			handleFieldChange('institutionCoverImage', '')
+			setShowSuccessModal(true)
+		} catch (error) {
+			setErrorMessage('Failed to delete cover image. Please try again.')
+			setShowErrorModal(true)
+		}
 	}
 
 	const handleVerificationDocumentUpload = async (
@@ -558,8 +654,21 @@ export const InstitutionProfileSection: React.FC<
 	}
 
 	const handleRemoveVerificationDocument = (index: number) => {
+		const docToDelete = verificationDocuments[index]
+		if (!docToDelete || !docToDelete.id) {
+			return
+		}
+
+		// Remove from local state (will be saved when user clicks Confirm)
 		const updatedDocs = verificationDocuments.filter((_, i) => i !== index)
 		setVerificationDocuments(updatedDocs)
+
+		// Track deleted document ID if it was originally loaded from database
+		if (
+			originalVerificationDocuments.some((doc) => doc.id === docToDelete.id)
+		) {
+			setDeletedDocumentIds((prev) => [...prev, docToDelete.id])
+		}
 	}
 
 	return (
@@ -584,7 +693,7 @@ export const InstitutionProfileSection: React.FC<
 								<div className="space-y-6 flex-1">
 									{/* Institution Header with Logo */}
 									<div className="flex items-center gap-4">
-										<div className="relative">
+										<div className="relative group">
 											<Avatar className="w-16 h-16">
 												<ProtectedAvatarImage
 													src={editedProfile?.profilePhoto}
@@ -597,12 +706,24 @@ export const InstitutionProfileSection: React.FC<
 												</AvatarFallback>
 											</Avatar>
 											{isEditing && (
-												<div
-													className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer"
-													onClick={handleUploadClick}
-												>
-													<Upload className="w-3 h-3 text-primary-foreground" />
-												</div>
+												<>
+													<div
+														className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+														onClick={handleUploadClick}
+														title="Upload logo"
+													>
+														<Upload className="w-3 h-3 text-primary-foreground" />
+													</div>
+													{editedProfile?.profilePhoto && (
+														<button
+															onClick={handleDeleteLogo}
+															className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+															title="Delete logo"
+														>
+															<X className="w-3 h-3 text-white" />
+														</button>
+													)}
+												</>
 											)}
 										</div>
 										<div className="flex-1">
@@ -944,15 +1065,23 @@ export const InstitutionProfileSection: React.FC<
 									{/* Action Buttons */}
 									<div className="flex justify-end pt-4 flex-shrink-0">
 										{!isEditing ? (
-											<Button onClick={() => setIsEditing(true)} size="sm">
-												Edit Profile
-											</Button>
+											// Only show edit button if profile is not approved
+											profile?.verification_status !== 'APPROVED' && (
+												<Button
+													onClick={() => setIsEditing(true)}
+													size="sm"
+													data-edit-profile-button
+												>
+													Edit Profile
+												</Button>
+											)
 										) : (
 											<div className="flex gap-2">
 												<Button
 													variant="outline"
 													onClick={handleCancel}
 													size="sm"
+													data-cancel-profile-button
 												>
 													Cancel
 												</Button>
@@ -960,6 +1089,7 @@ export const InstitutionProfileSection: React.FC<
 													onClick={handleSave}
 													size="sm"
 													disabled={isSaving}
+													data-save-profile-button
 												>
 													{isSaving ? 'Saving...' : 'Confirm'}
 												</Button>
@@ -1226,7 +1356,7 @@ export const InstitutionProfileSection: React.FC<
 														{/* Current Cover Image */}
 														{editedProfile?.institutionCoverImage ? (
 															<div className="space-y-6">
-																<div className="relative">
+																<div className="relative group">
 																	<ProtectedImage
 																		src={editedProfile.institutionCoverImage}
 																		alt="Institution Cover"
@@ -1236,7 +1366,29 @@ export const InstitutionProfileSection: React.FC<
 																		expiresIn={7200}
 																		autoRefresh={true}
 																	/>
+																	{isEditing && (
+																		<button
+																			onClick={handleDeleteCoverImage}
+																			className="absolute top-4 right-4 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 shadow-lg"
+																			title="Delete cover image"
+																		>
+																			<X className="w-4 h-4" />
+																		</button>
+																	)}
 																</div>
+																{isEditing && (
+																	<div className="flex justify-center">
+																		<Button
+																			variant="outline"
+																			size="sm"
+																			onClick={handleDeleteCoverImage}
+																			className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+																		>
+																			<Trash2 className="w-4 h-4" />
+																			Remove Cover Image
+																		</Button>
+																	</div>
+																)}
 															</div>
 														) : (
 															<div className="text-center space-y-6">
@@ -1488,6 +1640,60 @@ export const InstitutionProfileSection: React.FC<
 						message={errorMessage}
 						buttonText="Try Again"
 					/>
+
+					{/* Admin Review Warning Modal */}
+					<Modal
+						isOpen={showAdminReviewModal}
+						onClose={() => setShowAdminReviewModal(false)}
+					>
+						<div className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 relative">
+							<div className="text-center">
+								<div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+									<svg
+										className="h-6 w-6 text-yellow-600"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+										/>
+									</svg>
+								</div>
+
+								<h3 className="text-lg font-semibold text-gray-900 mb-2">
+									Submit Changes for Review
+								</h3>
+								<p className="text-sm text-gray-600 mb-6">
+									Your changes will be submitted to the administrator for
+									review. The profile will be updated once approved.
+								</p>
+
+								<div className="flex gap-3 justify-center">
+									<Button
+										variant="outline"
+										onClick={() => setShowAdminReviewModal(false)}
+										disabled={isSaving}
+										className="min-w-[120px]"
+										size="sm"
+									>
+										Cancel
+									</Button>
+									<Button
+										onClick={handleConfirmAdminReview}
+										disabled={isSaving}
+										className="min-w-[120px] bg-orange-600 hover:bg-orange-700 text-white"
+										size="sm"
+									>
+										{isSaving ? 'Submitting...' : 'Submit'}
+									</Button>
+								</div>
+							</div>
+						</div>
+					</Modal>
 				</>
 			)}
 		</div>

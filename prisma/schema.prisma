@@ -25,6 +25,7 @@ model User {
   banReason        String?
   applicant        Applicant?
   updateRequests   ApplicationUpdateRequest[]
+  institutionInfoRequests InstitutionInfoRequest[]
   boxesAsUserOne   Box[]                      @relation("BoxUserOne")
   boxesAsUserTwo   Box[]                      @relation("BoxUserTwo")
   institution      Institution?
@@ -162,6 +163,7 @@ model Institution {
   subscriptions       InstitutionSubscription[]
   posts               OpportunityPost[]
   supportRequirements SupportRequirement[]
+  infoRequests        InstitutionInfoRequest[]
 
   @@index([verification_status])
   @@index([submitted_at])
@@ -488,6 +490,26 @@ model ApplicationUpdateRequest {
   @@map("ApplicationUpdateRequest")
 }
 
+model InstitutionInfoRequest {
+  info_request_id      String              @id
+  institution_id       String
+  requested_by_user_id String
+  request_message      String
+  requested_fields     String[]            @default([])
+  status               UpdateRequestStatus @default(PENDING)
+  created_at           DateTime            @default(now()) @db.Timestamptz(6)
+  response_submitted_at DateTime?          @db.Timestamptz(6)
+  response_message     String?
+  institution          Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: Cascade)
+  requestedBy          User                @relation(fields: [requested_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([institution_id])
+  @@index([requested_by_user_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("InstitutionInfoRequest")
+}
+
 model NotificationSetting {
   user_id             String   @id
   notify_application  Boolean
@@ -725,6 +747,8 @@ enum InstitutionVerificationStatus {
   PENDING
   APPROVED
   REJECTED
+  REQUIRE_UPDATE
+  UPDATED
 }
 
 enum DocumentTypeEnum {

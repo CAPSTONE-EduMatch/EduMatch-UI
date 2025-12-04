@@ -5,7 +5,7 @@ import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface VerificationWaitingScreenProps {
-	verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
+	verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRE_UPDATE'
 	submittedAt?: string | Date | null
 	rejectionReason?: string | null
 }
@@ -25,6 +25,50 @@ export const VerificationWaitingScreen: React.FC<
 
 	if (verificationStatus === 'APPROVED') {
 		return null // Don't show waiting screen if approved
+	}
+
+	if (verificationStatus === 'REQUIRE_UPDATE') {
+		return (
+			<div className="min-h-[calc(100vh-200px)] bg-gray-50 flex items-center justify-center p-4">
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8 text-center"
+				>
+					<div className="flex justify-center mb-6">
+						<div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
+							<AlertCircle className="w-12 h-12 text-orange-600" />
+						</div>
+					</div>
+					<h1 className="text-3xl font-bold text-gray-900 mb-4">
+						Profile Update Required
+					</h1>
+					<p className="text-lg text-gray-600 mb-6">
+						An administrator has requested additional information for your
+						institution profile.
+					</p>
+					<div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+						<p className="text-sm text-orange-800">
+							<strong>What you need to do:</strong>
+						</p>
+						<ul className="text-sm text-orange-700 mt-2 space-y-1 text-left list-disc list-inside">
+							<li>Review the information request on your profile page</li>
+							<li>Update your profile with the requested information</li>
+							<li>Click &quot;Confirm&quot; to submit your updates</li>
+						</ul>
+					</div>
+					<button
+						onClick={() =>
+							(window.location.href = '/institution/dashboard/profile')
+						}
+						className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+					>
+						Go to Profile
+					</button>
+				</motion.div>
+			</div>
+		)
 	}
 
 	if (verificationStatus === 'REJECTED') {

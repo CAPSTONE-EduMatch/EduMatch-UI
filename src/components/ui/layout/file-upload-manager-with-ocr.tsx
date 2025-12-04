@@ -3,7 +3,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { FileItem } from '@/utils/file/file-utils'
-import { Button } from '@/components/ui'
 import { useOCRData } from '@/components/ocr/OCRButton'
 import { mistralOCRService } from '@/services/ocr/mistral-ocr-service'
 import {
@@ -11,20 +10,14 @@ import {
 	FileValidationResult,
 } from '@/services/ai/ollama-file-validation-service'
 import { cn } from '@/utils/index'
-import {
-	Eye,
-	Trash2,
-	Sparkles,
-	CheckCircle,
-	AlertCircle,
-	Hourglass,
-} from 'lucide-react'
+import { Sparkles, CheckCircle, AlertCircle, Hourglass } from 'lucide-react'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
-import { FileValidationDisplay } from '@/components/validation/FileValidationDisplay'
 
 interface FileUploadManagerWithOCRProps {
 	className?: string
+	// eslint-disable-next-line no-unused-vars
 	onFilesUploaded?: (files: FileItem[]) => void
+	// eslint-disable-next-line no-unused-vars
 	onFileDeleted?: (fileId: string) => void
 	category?: string
 	folderId?: string
@@ -33,9 +26,14 @@ interface FileUploadManagerWithOCRProps {
 	maxSize?: number // in MB
 	showPreview?: boolean
 	enableOCR?: boolean
+	// eslint-disable-next-line no-unused-vars
 	onOCRComplete?: (fileId: string, extractedText: string) => void
+	// eslint-disable-next-line no-unused-vars
+	// eslint-disable-next-line no-unused-vars
 	onValidationComplete?: (
+		// eslint-disable-next-line no-unused-vars
 		fileId: string,
+		// eslint-disable-next-line no-unused-vars
 		validation: FileValidationResult
 	) => void
 }
@@ -58,12 +56,14 @@ export function FileUploadManagerWithOCR({
 	maxFiles = 10,
 	acceptedTypes = ['image/*', 'application/pdf', 'text/*'],
 	maxSize = 10,
-	showPreview = true,
+	// showPreview = true, // Unused for now
 	enableOCR = true,
 	onOCRComplete,
 	onValidationComplete,
 }: FileUploadManagerWithOCRProps) {
 	const [dragActive, setDragActive] = useState(false)
+	// Track uploaded files for OCR callback matching
+	// eslint-disable-next-line no-unused-vars
 	const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([])
 	const [processingFiles, setProcessingFiles] = useState<ProcessingFile[]>([])
 	const [validationNotifications, setValidationNotifications] = useState<
@@ -76,7 +76,7 @@ export function FileUploadManagerWithOCR({
 	>([])
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
-	const { saveExtractedText, getExtractedText, hasExtractedText } = useOCRData()
+	const { saveExtractedText } = useOCRData()
 
 	const { uploadFiles, isUploading, uploadProgress, resetProgress } =
 		useFileUpload({
@@ -109,7 +109,8 @@ export function FileUploadManagerWithOCR({
 	// New function to process file with OCR and validation BEFORE upload
 	const processFileWithOCRAndValidation = useCallback(
 		async (file: File) => {
-			const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+			// Create unique ID with file name and timestamp to avoid conflicts
+			const tempId = `temp_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Math.random().toString(36).substr(2, 9)}`
 
 			// eslint-disable-next-line no-console
 			console.log('processFileWithOCRAndValidation called for:', file.name)
@@ -145,8 +146,11 @@ export function FileUploadManagerWithOCR({
 						} else if (file.type === 'application/pdf') {
 							ocrResult = await mistralOCRService.processPDF(file)
 						}
+						// eslint-disable-next-line no-console
 						console.log('OCR result for', file.name, ':', ocrResult)
+						// eslint-disable-next-line no-console
 						console.log('OCR success', ocrResult?.success)
+						// eslint-disable-next-line no-console
 						console.log('OCR Extract', ocrResult?.extractedText)
 						if (ocrResult?.success && ocrResult.extractedText) {
 							extractedText = ocrResult.extractedText
@@ -347,7 +351,17 @@ export function FileUploadManagerWithOCR({
 				// Find the uploaded file (should be the most recent one)
 				setTimeout(() => {
 					setUploadedFiles((currentFiles) => {
-						const uploadedFile = currentFiles[currentFiles.length - 1]
+						// Find the file that matches our file name and was recently uploaded
+						const uploadedFile = currentFiles
+							.filter(
+								(f) => f.name === file.name || f.originalName === file.name
+							)
+							.sort(
+								(a, b) =>
+									new Date(b.createdAt).getTime() -
+									new Date(a.createdAt).getTime()
+							)[0]
+
 						if (uploadedFile && extractedText) {
 							// eslint-disable-next-line no-console
 							console.log(
@@ -387,13 +401,8 @@ export function FileUploadManagerWithOCR({
 					)
 				)
 
-				// Still try to upload if processing fails
-				try {
-					await uploadFiles([file])
-				} catch (uploadError) {
-					// eslint-disable-next-line no-console
-					console.error('Upload also failed:', uploadError)
-				}
+				// Don't upload if processing fails - maintain data integrity
+				// Only upload if file passes all validation checks
 
 				// Remove from processing after delay
 				setTimeout(() => {
@@ -425,7 +434,17 @@ export function FileUploadManagerWithOCR({
 				)
 			}
 
+			// Check for duplicate files in processing queue
+			const currentProcessingFiles = processingFiles.map((pf) => pf.file.name)
+
 			const validFiles = limitedFiles.filter((file) => {
+				if (currentProcessingFiles.includes(file.name)) {
+					alert(
+						`File ${file.name} is already being processed. Please wait for it to complete.`
+					)
+					return false
+				}
+
 				// Check file size
 				if (file.size > maxSize * 1024 * 1024) {
 					alert(`File ${file.name} is too large. Maximum size is ${maxSize}MB.`)
@@ -449,13 +468,24 @@ export function FileUploadManagerWithOCR({
 			})
 
 			if (validFiles.length > 0) {
-				// Process each file: OCR + validate first, then upload only if valid
-				for (const file of validFiles) {
-					await processFileWithOCRAndValidation(file)
-				}
+				// Process files in parallel for better performance
+				const processingPromises = validFiles.map((file) =>
+					processFileWithOCRAndValidation(file).catch((error) => {
+						// eslint-disable-next-line no-console
+						console.error(`Error processing file ${file.name}:`, error)
+						return null // Continue processing other files
+					})
+				)
+				await Promise.allSettled(processingPromises)
 			}
 		},
-		[maxFiles, maxSize, acceptedTypes, processFileWithOCRAndValidation]
+		[
+			maxFiles,
+			maxSize,
+			acceptedTypes,
+			processFileWithOCRAndValidation,
+			processingFiles,
+		]
 	)
 
 	const handleDrag = useCallback((e: React.DragEvent) => {
@@ -486,6 +516,8 @@ export function FileUploadManagerWithOCR({
 		if (e.target.files) {
 			const files = Array.from(e.target.files)
 			handleFileSelection(files)
+			// Clear the input to allow re-selecting the same file
+			e.target.value = ''
 		}
 	}
 
@@ -560,17 +592,9 @@ export function FileUploadManagerWithOCR({
 										'Validating content (it will take 15s - 20s)...'}
 									{file.status === 'uploading' && 'Uploading to cloud...'}
 									{file.status === 'completed' && 'Processing complete'}
-									{file.status === 'failed' &&
-										`⚠️ Upload blocked: ${file.error || 'Processing failed'}`}
+									{/* {file.status === 'failed' &&
+										`⚠️ Upload blocked: ${file.error || 'Processing failed'}`} */}
 								</p>
-								{/* {file.validation && (
-									<div className="mt-1">
-										<FileValidationDisplay
-											validation={file.validation}
-											fileName={file.file.name}
-										/>
-									</div>
-								)} */}
 							</div>
 						</div>
 					))}

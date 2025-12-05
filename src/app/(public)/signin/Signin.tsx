@@ -12,6 +12,7 @@ import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import React, { useCallback, useEffect, useState } from 'react'
 
 const LEFT_IMAGE =
@@ -50,6 +51,9 @@ const fadeIn = {
 }
 
 const SignIn: React.FC = () => {
+	const t = useTranslations('auth.signin')
+	const tCommon = useTranslations('auth.common')
+
 	const router = useRouter()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
@@ -304,10 +308,10 @@ const SignIn: React.FC = () => {
 	function validate() {
 		const next: { email?: string; password?: string } = {}
 		if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-			next.email = 'Please enter a valid email address.'
+			next.email = t('errors.email_required')
 		}
 		if (!password) {
-			next.password = 'Please enter your password.'
+			next.password = t('errors.password_required')
 		}
 		setErrors(next)
 		return Object.keys(next).length === 0
@@ -409,8 +413,7 @@ const SignIn: React.FC = () => {
 				if (isAccountDeleted) {
 					// Show error for deleted accounts
 					setErrors({
-						email:
-							'Your account has been deleted. Please create another account.',
+						email: t('errors.account_deleted'),
 					})
 				} else if (isEmailVerificationError) {
 					try {
@@ -423,19 +426,19 @@ const SignIn: React.FC = () => {
 						setShowOTPPopup(true)
 					} catch (otpError) {
 						setErrors({
-							email: 'Failed to send verification code. Please try again.',
+							email: t('errors.email_not_verified'),
 						})
 					}
 				} else if (isCredentialError) {
 					// Show password error for credential issues
 					setErrors({
-						email: 'Invalid email or password. Please try again.',
-						password: 'Invalid email or password. Please try again.',
+						email: t('errors.invalid_credentials'),
+						password: t('errors.invalid_credentials'),
 					})
 				} else if (isUserNotFoundError) {
 					// Show email error for user not found
 					setErrors({
-						email: 'No account found with this email address.',
+						email: t('errors.user_not_found'),
 					})
 				} else {
 					// For any other error, try email verification as fallback
@@ -467,7 +470,7 @@ const SignIn: React.FC = () => {
 		if (!forgotEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(forgotEmail)) {
 			setErrors((prev) => ({
 				...prev,
-				forgotEmail: 'Please enter a valid email address.',
+				forgotEmail: t('errors.email_required'),
 			}))
 			return
 		}
@@ -476,7 +479,9 @@ const SignIn: React.FC = () => {
 		if (forgotPasswordCooldown > 0 && lastForgotPasswordEmail === forgotEmail) {
 			setErrors((prev) => ({
 				...prev,
-				forgotEmail: `Please wait ${forgotPasswordCooldown} seconds before requesting another reset link.`,
+				forgotEmail: t('errors.forgot_password_cooldown', {
+					seconds: forgotPasswordCooldown,
+				}),
 			}))
 			return
 		}
@@ -588,7 +593,7 @@ const SignIn: React.FC = () => {
 		if (!forgotEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(forgotEmail)) {
 			setErrors((prev) => ({
 				...prev,
-				forgotEmail: 'Please enter a valid email address.',
+				forgotEmail: t('errors.email_required'),
 			}))
 			return
 		}
@@ -597,7 +602,9 @@ const SignIn: React.FC = () => {
 		if (!canSendForgotPassword && lastForgotPasswordEmail === forgotEmail) {
 			setErrors((prev) => ({
 				...prev,
-				forgotEmail: `Please wait ${forgotPasswordCooldown} seconds before requesting another reset link.`,
+				forgotEmail: t('errors.forgot_password_cooldown', {
+					seconds: forgotPasswordCooldown,
+				}),
 			}))
 			return
 		}
@@ -674,7 +681,7 @@ const SignIn: React.FC = () => {
 	const handleVerifyOTP = async () => {
 		const otpCode = otpDigits.join('')
 		if (otpCode.length !== 6) {
-			setOTPError('Please enter the complete 6-digit code')
+			setOTPError(t('errors.otp_incomplete'))
 			return
 		}
 
@@ -688,7 +695,7 @@ const SignIn: React.FC = () => {
 			})
 
 			if (result.error) {
-				setOTPError(result.error.message || 'Invalid verification code')
+				setOTPError(t('errors.otp_failed'))
 			} else {
 				// Success - close modal and check profile
 				handleCloseOTPModal()
@@ -786,7 +793,7 @@ const SignIn: React.FC = () => {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.7, delay: 0.4 }}
 					>
-						Sign in
+						{t('title')}
 					</motion.h1>
 
 					<motion.p
@@ -795,8 +802,7 @@ const SignIn: React.FC = () => {
 						animate={{ opacity: 1 }}
 						transition={{ duration: 0.7, delay: 0.5 }}
 					>
-						Lorem Ipsum is simply dummy text of the printing and typesetting
-						industry.
+						{t('subtitle')}
 					</motion.p>
 
 					<motion.form
@@ -811,15 +817,15 @@ const SignIn: React.FC = () => {
 							variants={itemVariants}
 						>
 							<label className="col-span-3 text-sm font-medium text-gray-700">
-								Email <span className="text-red-500">*</span>
+								{t('form.email.label')} <span className="text-red-500">*</span>
 							</label>
 							<div className="col-span-9">
 								<Input
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									type="email"
-									placeholder="Enter your mail"
-									aria-label="Email"
+									placeholder={t('form.email.placeholder')}
+									aria-label={t('form.email.label')}
 									variant="signin"
 									error={errors.email}
 								/>
@@ -913,7 +919,7 @@ const SignIn: React.FC = () => {
 								whileHover={{ scale: 1.05 }}
 								whileTap={{ scale: 0.95 }}
 							>
-								Forgot password?
+								{t('form.forgot_password')}
 							</motion.button>
 						</motion.div>
 
@@ -928,7 +934,7 @@ const SignIn: React.FC = () => {
 								}}
 								whileTap={{ scale: 0.98 }}
 							>
-								{isLoading ? 'Signing in...' : 'Sign in'}
+								{isLoading ? t('buttons.submitting') : t('buttons.submit')}
 							</motion.button>
 						</motion.div>
 
@@ -938,8 +944,8 @@ const SignIn: React.FC = () => {
 									action="signin"
 									callbackURL="/signin" // Stay on signin page, we'll handle redirect client-side
 									isLoading={isLoading}
-									text="Sign in with Google"
-									loadingText="Signing in..."
+									text={t('buttons.google')}
+									loadingText={t('buttons.google_loading')}
 								/>
 							</motion.div>
 						</motion.div>
@@ -948,7 +954,7 @@ const SignIn: React.FC = () => {
 							className="text-center text-sm text-gray-500 mt-2"
 							variants={itemVariants}
 						>
-							Don&apos;t have an account?{' '}
+							{t('links.no_account')}{' '}
 							<Link href="/signup">
 								<motion.span
 									className="text-[#126E64] font-medium hover:underline inline-block"
@@ -958,7 +964,7 @@ const SignIn: React.FC = () => {
 										transition: { duration: 0.2 },
 									}}
 								>
-									Sign up
+									{t('links.sign_up')}
 								</motion.span>
 							</Link>
 						</motion.p>
@@ -978,7 +984,7 @@ const SignIn: React.FC = () => {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2 }}
 				>
-					Forgot Password
+					{t('forgot_password_modal.title')}
 				</motion.h2>
 
 				{!resetSent ? (
@@ -988,7 +994,7 @@ const SignIn: React.FC = () => {
 						variants={containerVariants}
 					>
 						<motion.p className="text-gray-600 mb-6" variants={itemVariants}>
-							We will send a reset password link to your email address.
+							{t('forgot_password_modal.description')}
 						</motion.p>
 
 						<motion.form onSubmit={handleForgotPassword} className="space-y-4">
@@ -997,7 +1003,7 @@ const SignIn: React.FC = () => {
 									type="email"
 									value={forgotEmail}
 									onChange={(e) => setForgotEmail(e.target.value)}
-									placeholder="example123@gmail.com"
+									placeholder={t('forgot_password_modal.email_placeholder')}
 									variant="signin"
 									error={errors.forgotEmail}
 									required
@@ -1015,7 +1021,9 @@ const SignIn: React.FC = () => {
 								}}
 								whileTap={{ scale: 0.98 }}
 							>
-								{isLoading ? 'Sending...' : 'Confirm'}
+								{isLoading
+									? t('forgot_password_modal.sending_button')
+									: t('forgot_password_modal.send_button')}
 							</motion.button>
 						</motion.form>
 
@@ -1032,10 +1040,12 @@ const SignIn: React.FC = () => {
 								}
 							>
 								{isLoading
-									? 'Sending...'
+									? t('forgot_password_modal.sending_button')
 									: !canSendForgotPassword
-										? `Resend Reset Link (${forgotPasswordCooldown}s)`
-										: 'Resend Reset Link'}
+										? t('forgot_password_modal.resend_countdown', {
+												seconds: forgotPasswordCooldown,
+											})
+										: t('forgot_password_modal.resend_button')}
 							</motion.button>
 						)}
 					</motion.div>
@@ -1072,8 +1082,9 @@ const SignIn: React.FC = () => {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.3 }}
 						>
-							Password reset link sent to{' '}
-							<span className="font-medium">{forgotEmail}</span>
+							{t('forgot_password_modal.success_message', {
+								email: forgotEmail,
+							})}
 						</motion.p>
 						<motion.button
 							onClick={() => setShowForgotPassword(false)}
@@ -1087,7 +1098,7 @@ const SignIn: React.FC = () => {
 							}}
 							whileTap={{ scale: 0.98 }}
 						>
-							Close
+							{t('forgot_password_modal.cancel_button')}
 						</motion.button>
 
 						{hasSubmittedForgotEmail && (
@@ -1103,10 +1114,12 @@ const SignIn: React.FC = () => {
 								}
 							>
 								{isLoading
-									? 'Sending...'
+									? t('forgot_password_modal.sending_button')
 									: !canSendForgotPassword
-										? `Resend Reset Link (${forgotPasswordCooldown}s)`
-										: 'Resend Reset Link'}
+										? t('forgot_password_modal.resend_countdown', {
+												seconds: forgotPasswordCooldown,
+											})
+										: t('forgot_password_modal.resend_button')}
 							</motion.button>
 						)}
 					</motion.div>
@@ -1133,7 +1146,7 @@ const SignIn: React.FC = () => {
 					>
 						<div className="flex justify-between items-center mb-4">
 							<h2 className="text-xl font-bold text-gray-800">
-								Verify Your Email
+								{t('otp_modal.title')}
 							</h2>
 							<motion.button
 								onClick={handleCloseOTPModal}
@@ -1164,9 +1177,7 @@ const SignIn: React.FC = () => {
 							variants={containerVariants}
 						>
 							<motion.p className="text-gray-600 mb-4" variants={itemVariants}>
-								We&apos;ve sent a 6-digit verification code to{' '}
-								<span className="font-medium">{pendingEmail}</span>. Please
-								enter it below to verify your email address.
+								{t('otp_modal.description', { email: pendingEmail })}
 							</motion.p>
 
 							{OTPError && (
@@ -1182,7 +1193,7 @@ const SignIn: React.FC = () => {
 
 							<motion.div className="mb-4" variants={itemVariants}>
 								<label className="block text-sm font-medium text-gray-700 mb-3">
-									Verification Code
+									{t('otp_modal.code_label')}
 								</label>
 								<div className="flex justify-center space-x-2">
 									{otpDigits.map((digit, index) => (
@@ -1207,7 +1218,7 @@ const SignIn: React.FC = () => {
 											onClick={resetOtpDigits}
 											className="text-sm text-gray-500 hover:text-gray-700 underline"
 										>
-											Clear all
+											{t('otp_modal.clear_button')}
 										</button>
 									</div>
 								)}
@@ -1227,7 +1238,7 @@ const SignIn: React.FC = () => {
 									}}
 									whileTap={{ scale: 0.98 }}
 								>
-									Cancel
+									{t('otp_modal.cancel_button')}
 								</motion.button>
 								<motion.button
 									type="button"
@@ -1240,7 +1251,9 @@ const SignIn: React.FC = () => {
 									}}
 									whileTap={{ scale: 0.98 }}
 								>
-									{isOTPLoading ? 'Verifying...' : 'Verify'}
+									{isOTPLoading
+										? t('otp_modal.verifying_button')
+										: t('otp_modal.verify_button')}
 								</motion.button>
 							</motion.div>
 
@@ -1248,7 +1261,7 @@ const SignIn: React.FC = () => {
 								className="text-sm text-gray-500 mt-4"
 								variants={itemVariants}
 							>
-								Didn&apos;t receive the code?{' '}
+								{t('otp_modal.resend_text')}{' '}
 								<motion.button
 									type="button"
 									onClick={handleResendOTP}
@@ -1260,10 +1273,12 @@ const SignIn: React.FC = () => {
 									whileTap={canResend ? { scale: 0.98 } : {}}
 								>
 									{isOTPLoading
-										? 'Sending...'
+										? t('otp_modal.sending_button')
 										: !canResend
-											? `Resend Code (${resendCountdown}s)`
-											: 'Resend Code'}
+											? t('otp_modal.resend_countdown', {
+													seconds: resendCountdown,
+												})
+											: t('otp_modal.resend_button')}
 								</motion.button>
 							</motion.p>
 						</motion.div>

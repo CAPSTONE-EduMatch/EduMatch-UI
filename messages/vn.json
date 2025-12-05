@@ -477,17 +477,18 @@
 	"research_lab_detail": {
 		"loading": "Đang tải chi tiết phòng nghiên cứu...",
 		"error": "Lỗi",
+		"not_found": "Không tìm thấy phòng nghiên cứu",
 		"breadcrumb": {
 			"home": "Trang chủ",
 			"explore": "Khám phá",
 			"research_labs": "Phòng nghiên cứu"
 		},
 		"header": {
-			"share": "Chia sẻ",
-			"copy_link": "Sao chép liên kết",
-			"link_copied": "Đã sao chép liên kết!",
-			"save": "Lưu",
-			"unsave": "Bỏ lưu"
+			"institution_detail_button": "Xem chi tiết cơ sở giáo dục",
+			"contact_button": "Liên hệ cơ sở giáo dục",
+			"applications_count": "Số lượng hồ sơ: {count}",
+			"provided_by": "Cung cấp bởi: {organization}",
+			"job_name": "Tên công việc"
 		},
 		"info": {
 			"location": "Địa điểm",
@@ -514,88 +515,143 @@
 			"title": "Giới thiệu",
 			"no_description": "Không có mô tả."
 		},
-		"apply": {
-			"title": "Ứng tuyển tại đây !",
-			"status_title": "Trạng thái ứng tuyển",
-			"edit_documents": "Chỉnh sửa tài liệu ứng tuyển",
-			"cancel_edit": "Hủy chỉnh sửa"
-		},
-		"congratulations": {
-			"title": "🎉 Chúc mừng!",
-			"message": "Hồ sơ của bạn đã được chấp nhận! Cơ sở giáo dục sẽ liên hệ với bạn với các chi tiết về các bước tiếp theo.",
-			"status_label": "Trạng thái ứng tuyển:"
-		},
 		"job_description": {
 			"title": "Mô tả công việc"
 		},
 		"offer_information": {
-			"title": "Thông tin đề nghị"
+			"title": "Thông tin đề nghị",
+			"salary": "Lương:",
+			"benefit": "Quyền lợi:",
+			"lab_facilities": "Cơ sở vật chất phòng thí nghiệm:"
 		},
 		"job_requirements": {
-			"title": "Yêu cầu công việc"
+			"title": "Yêu cầu công việc",
+			"research_focus": "Trọng tâm nghiên cứu:",
+			"research_areas": "Lĩnh vực nghiên cứu:",
+			"institution": "Cơ sở giáo dục:"
 		},
-		"applications_list": {
-			"title": "Hồ sơ của bạn",
-			"empty": "Bạn chưa ứng tuyển vào phòng nghiên cứu này.",
-			"view_details": "Xem chi tiết"
-		},
-		"application": {
-			"title": "Hồ sơ ứng tuyển",
-			"back_to_list": "← Quay lại danh sách",
+		"apply": {
+			"title_not_applied": "Ứng tuyển tại đây !",
+			"title_applied": "Trạng thái hồ sơ",
+			"edit_documents_title": "Chỉnh sửa tài liệu hồ sơ",
+			"cancel_edit_button": "Hủy chỉnh sửa",
 			"status_badge": {
-				"pending": "Đang chờ",
-				"approved": "Đã duyệt",
-				"rejected": "Bị từ chối"
+				"submitted": "ĐÃ NỘP",
+				"pending": "ĐÃ NỘP",
+				"require_update": "YÊU CẦU CẬP NHẬT",
+				"updated": "ĐÃ CẬP NHẬT",
+				"accepted": "ĐÃ CHẤP NHẬN",
+				"rejected": "BỊ TỪ CHỐI"
 			},
 			"status_messages": {
-				"pending": "Hồ sơ của bạn đang được xem xét.",
-				"approved": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận.",
-				"rejected": "Rất tiếc, hồ sơ của bạn chưa thành công lần này."
+				"submitted": "Nộp hồ sơ thành công!",
+				"submitted_message": "Hồ sơ của bạn đã được nộp. Bạn sẽ nhận được thông tin cập nhật qua email.",
+				"updated": "Đã cập nhật hồ sơ",
+				"updated_message": "Hồ sơ của bạn đã được cập nhật. Cơ sở giáo dục sẽ xem xét các thay đổi của bạn.",
+				"accepted": "Hồ sơ được chấp nhận!",
+				"accepted_message": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận. Cơ sở giáo dục sẽ sớm liên hệ với bạn về các bước tiếp theo.",
+				"rejected": "Hồ sơ không được chọn",
+				"rejected_message": "Rất tiếc, hồ sơ của bạn không được chọn lần này. Bạn có thể nộp lại nếu muốn gửi hồ sơ mới."
 			},
-			"cover_letter": {
-				"label": "Thư xin việc",
-				"placeholder": "Cho chúng tôi biết tại sao bạn quan tâm đến vị trí này và điều gì khiến bạn phù hợp...",
-				"required_hint": "(Bắt buộc)"
+			"congratulations": {
+				"icon": "🎉",
+				"title": "Chúc mừng!",
+				"message": "Hồ sơ của bạn đã được phê duyệt! Cơ sở giáo dục sẽ liên hệ với bạn để cung cấp thêm thông tin về các bước tiếp theo.",
+				"status_label": "Trạng thái hồ sơ:",
+				"accepted": "ĐÃ CHẤP NHẬN"
 			},
-			"documents": {
-				"label": "Tài liệu hỗ trợ",
-				"select_button": "Chọn tài liệu",
-				"selected_count": "Đã chọn {count} tài liệu",
-				"selected_count_plural": "Đã chọn {count} tài liệu"
+			"document_requirements": {
+				"no_specific": "Không có yêu cầu tài liệu cụ thể. Bạn có thể tải lên bất kỳ tài liệu nào"
 			},
-			"submit_button": {
-				"submit": "Nộp hồ sơ",
-				"submitting": "Đang nộp...",
-				"update": "Cập nhật hồ sơ",
-				"updating": "Đang cập nhật..."
-			},
-			"validation": {
-				"cover_letter_required": "Thư xin việc là bắt buộc",
-				"cover_letter_min_length": "Thư xin việc phải có ít nhất 50 ký tự"
-			},
-			"success": {
-				"submitted": "Đã nộp hồ sơ thành công!",
-				"updated": "Đã cập nhật hồ sơ thành công!"
-			},
-			"error": {
-				"submit_failed": "Không thể nộp hồ sơ. Vui lòng thử lại.",
-				"update_failed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
-				"load_failed": "Không thể tải chi tiết hồ sơ."
-			}
+			"select_profile_button": "📄 Chọn từ hồ sơ",
+			"select_profile_hint": "Chọn tài liệu từ hồ sơ của bạn cho snapshot",
+			"or_divider": "HOẶC",
+			"documents_uploaded": "Tài liệu hồ sơ ({count} tệp{plural})",
+			"from_profile_badge": "Từ hồ sơ",
+			"uploaded_badge": "Đã tải lên",
+			"view_button": "Xem",
+			"remove_button": "Xóa",
+			"download_button": "Tải xuống",
+			"edit_documents_button": "Chỉnh sửa tài liệu",
+			"documents_description": "Đây là các tài liệu bạn đã nộp cùng với hồ sơ. Chúng không thể được chỉnh sửa hoặc xóa.",
+			"uploaded_label": "Đã tải lên:",
+			"remove_all_button": "Xóa tất cả",
+			"submit_button": "Nộp hồ sơ",
+			"submitting_button": "Đang nộp...",
+			"upload_files_button": "Tải tệp lên để tiếp tục",
+			"checking_button": "Đang kiểm tra...",
+			"application_submitted": "✓ Đã nộp hồ sơ",
+			"upload_warning": "📁 Vui lòng tải lên ít nhất một tài liệu để nộp hồ sơ",
+			"reapply_button": "Nộp lại ngay"
 		},
 		"recommendations": {
-			"title": "Bạn có thể thích",
-			"view_all": "Xem tất cả phòng nghiên cứu"
+			"title": "Phòng nghiên cứu liên quan",
+			"loading": "Đang tải đề xuất...",
+			"no_recommendations": "Hiện không có đề xuất nào.",
+			"upgrade": {
+				"icon": "🔒",
+				"title": "Mở khóa đề xuất cá nhân hóa",
+				"message": "Nâng cấp lên Tiêu chuẩn hoặc Cao cấp để xem phòng nghiên cứu phù hợp với hồ sơ và sở thích của bạn.",
+				"button": "Xem các gói nâng cấp"
+			}
+		},
+		"applications_list": {
+			"title": "Hồ sơ của tôi",
+			"table_headers": {
+				"date": "Ngày nộp hồ sơ",
+				"status": "Trạng thái",
+				"documents": "Tài liệu"
+			},
+			"documents_count": "{count} tài liệu",
+			"status_badges": {
+				"accepted": "ĐÃ CHẤP NHẬN",
+				"rejected": "BỊ TỪ CHỐI",
+				"progressing": "ĐANG XỬ LÝ",
+				"submitted": "ĐÃ NỘP"
+			},
+			"empty": {
+				"title": "Không tìm thấy hồ sơ cho phòng nghiên cứu này",
+				"message": "Nộp hồ sơ để bắt đầu"
+			}
 		},
 		"modals": {
+			"delete_confirm": {
+				"title": "Xóa tất cả tệp",
+				"message": "Bạn có muốn xóa tất cả tệp không? Hành động này không thể hoàn tác.",
+				"cancel": "Hủy",
+				"confirm": "Xóa tất cả"
+			},
+			"cancel_edit": {
+				"title": "Hủy thay đổi?",
+				"message": "Bạn có thay đổi chưa được lưu. Bạn có chắc chắn muốn hủy chỉnh sửa không? Tất cả thay đổi sẽ bị mất.",
+				"keep": "Tiếp tục chỉnh sửa",
+				"discard": "Hủy thay đổi"
+			},
+			"document_selector": {
+				"title": "Chọn tài liệu cho hồ sơ",
+				"summary": {
+					"selected": "Đã chọn {count} tài liệu{plural} từ hồ sơ",
+					"ready": "Sẵn sàng nộp",
+					"none_selected": "Chưa chọn tài liệu nào",
+					"choose_files": "Chọn tệp để tiếp tục"
+				},
+				"cancel": "Hủy",
+				"continue": "Tiếp tục",
+				"select_first": "Chọn tài liệu trước",
+				"success": "Đã chọn tài liệu!",
+				"success_message": "{count} tài liệu{plural} sẵn sàng để nộp hồ sơ"
+			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để ứng tuyển vào vị trí nghiên cứu này.",
+				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
 		},
-		"not_found": "Không tìm thấy phòng nghiên cứu"
+		"notifications": {
+			"files_uploaded": "Đã tải tệp lên",
+			"files_uploaded_message": "Đã tải lên {count} tệp thành công"
+		}
 	},
 
 	"program_detail": {
@@ -923,30 +979,28 @@
 	},
 
 	"scholarship_detail": {
+		"loading": "Đang tải chi tiết học bổng...",
+		"error": "Không thể tải chi tiết học bổng",
+		"not_found": "Không tìm thấy học bổng",
 		"breadcrumb": {
 			"home": "Trang chủ",
 			"explore": "Khám phá",
 			"scholarships": "Học bổng"
 		},
 		"header": {
-			"share": "Chia sẻ",
-			"copy_link": "Sao chép liên kết",
-			"link_copied": "Đã sao chép liên kết!",
-			"save": "Lưu",
-			"unsave": "Bỏ lưu"
-		},
-		"info": {
-			"location": "Địa điểm",
-			"amount": "Số tiền",
-			"duration": "Thời gian",
-			"deadline": "Hạn chót",
-			"essay_required": "Yêu cầu bài luận",
-			"year": "năm",
-			"years": "năm",
-			"month": "tháng",
-			"months": "tháng",
-			"yes": "Có",
-			"no": "Không"
+			"default_title": "Công nghệ thông tin",
+			"default_university": "Đại học Army West (AWU)",
+			"institution_detail_button": "Xem chi tiết cơ sở giáo dục",
+			"contact_button": "Liên hệ cơ sở giáo dục",
+			"applications_count": "Số lượng hồ sơ: {count}",
+			"grant": "Học bổng",
+			"country": "Quốc gia",
+			"institution_type": "Loại cơ sở giáo dục",
+			"application_deadline": "Hạn nộp hồ sơ",
+			"na": "N/A",
+			"status_pending": "Đang chờ xác minh",
+			"status_rejected": "Bị từ chối",
+			"status_deactivated": "Bị vô hiệu hóa"
 		},
 		"tabs": {
 			"detail": "Chi tiết",
@@ -956,79 +1010,174 @@
 			"overview": "Tổng quan",
 			"applications": "Hồ sơ ứng tuyển"
 		},
-		"scholarship_description": {
-			"title": "Mô tả học bổng"
+		"about": {
+			"title": "Giới thiệu"
 		},
-		"offer_information": {
-			"title": "Thông tin đề nghị"
+		"detail": {
+			"description_title": "Mô tả",
+			"no_description": "Không có mô tả.",
+			"details_title": "Chi tiết",
+			"amount": "Số tiền",
+			"type": "Loại",
+			"coverage": "Phạm vi hỗ trợ",
+			"essay_required": "Yêu cầu bài luận",
+			"number_available": "Số lượng",
+			"days_left": "Số ngày còn lại",
+			"days_count": "{count} ngày",
+			"match_percentage": "Tỷ lệ phù hợp",
+			"not_available": "N/A"
 		},
-		"eligibility_criteria": {
-			"title": "Tiêu chí đủ điều kiện"
+		"eligibility": {
+			"title": "Điều kiện đủ tiêu chuẩn",
+			"no_requirements": "Không có yêu cầu điều kiện cụ thể nào được liệt kê.",
+			"subdisciplines_label": "Chuyên ngành liên quan:",
+			"documents_label": "Tài liệu yêu cầu:"
 		},
-		"applications_list": {
-			"title": "Hồ sơ của bạn",
-			"empty": "Bạn chưa ứng tuyển vào học bổng này.",
-			"view_details": "Xem chi tiết"
+		"other": {
+			"institution_title": "Thông tin cơ sở giáo dục",
+			"name_label": "Tên:",
+			"abbreviation_label": "Viết tắt:",
+			"country_label": "Quốc gia:",
+			"website_label": "Trang web:"
 		},
-		"application": {
-			"title": "Hồ sơ ứng tuyển",
-			"back_to_list": "← Quay lại danh sách",
-			"status_badge": {
-				"pending": "Đang chờ",
-				"approved": "Đã duyệt",
-				"rejected": "Bị từ chối"
-			},
-			"status_messages": {
-				"pending": "Hồ sơ của bạn đang được xem xét.",
-				"approved": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận.",
-				"rejected": "Rất tiếc, hồ sơ của bạn chưa thành công lần này."
-			},
-			"cover_letter": {
-				"label": "Thư xin học bổng",
-				"placeholder": "Cho chúng tôi biết tại sao bạn ứng tuyển học bổng này và nó sẽ giúp bạn đạt được mục tiêu như thế nào...",
-				"required_hint": "(Bắt buộc)"
-			},
-			"documents": {
-				"label": "Tài liệu hỗ trợ",
-				"select_button": "Chọn tài liệu",
-				"selected_count": "Đã chọn {count} tài liệu",
-				"selected_count_plural": "Đã chọn {count} tài liệu"
-			},
-			"submit_button": {
-				"submit": "Nộp hồ sơ",
-				"submitting": "Đang nộp...",
-				"update": "Cập nhật hồ sơ",
-				"updating": "Đang cập nhật..."
-			},
-			"validation": {
-				"cover_letter_required": "Thư xin học bổng là bắt buộc",
-				"cover_letter_min_length": "Thư xin học bổng phải có ít nhất 50 ký tự"
-			},
-			"success": {
-				"submitted": "Đã nộp hồ sơ thành công!",
-				"updated": "Đã cập nhật hồ sơ thành công!"
-			},
-			"error": {
-				"submit_failed": "Không thể nộp hồ sơ. Vui lòng thử lại.",
-				"update_failed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
-				"load_failed": "Không thể tải chi tiết hồ sơ."
+		"eligibility_programmes": {
+			"title": "Chương trình đủ điều kiện",
+			"description": "Các chương trình bạn có thể đủ điều kiện dựa trên yêu cầu của học bổng này.",
+			"loading": "Đang tải chương trình đủ điều kiện...",
+			"results": "{count} kết quả",
+			"page_info": "(Trang {current} trong {total})",
+			"empty": {
+				"icon": "📚",
+				"title": "Không tìm thấy chương trình",
+				"message": "Thử điều chỉnh bộ lọc để tìm thêm chương trình"
 			}
 		},
+		"apply": {
+			"title_not_applied": "Nộp hồ sơ tại đây !",
+			"title_applied": "Trạng thái hồ sơ",
+			"edit_documents_title": "Chỉnh sửa tài liệu hồ sơ",
+			"cancel_edit_button": "Hủy chỉnh sửa",
+			"status_badge": {
+				"submitted": "ĐÃ NỘP",
+				"pending": "ĐÃ NỘP",
+				"require_update": "YÊU CẦU CẬP NHẬT",
+				"updated": "ĐÃ CẬP NHẬT",
+				"accepted": "ĐÃ CHẤP NHẬN",
+				"rejected": "BỊ TỪ CHỐI"
+			},
+			"status_messages": {
+				"submitted": "Nộp hồ sơ thành công!",
+				"submitted_message": "Hồ sơ của bạn đã được nộp. Bạn sẽ nhận được thông tin cập nhật qua email.",
+				"updated": "Đã cập nhật hồ sơ",
+				"updated_message": "Hồ sơ của bạn đã được cập nhật. Cơ sở giáo dục sẽ xem xét các thay đổi của bạn.",
+				"accepted": "Hồ sơ được chấp nhận!",
+				"accepted_message": "Chúc mừng! Hồ sơ của bạn đã được chấp nhận. Cơ sở giáo dục sẽ sớm liên hệ với bạn về các bước tiếp theo.",
+				"rejected": "Hồ sơ không được chọn",
+				"rejected_message": "Rất tiếc, hồ sơ của bạn không được chọn lần này. Bạn có thể nộp lại nếu muốn gửi hồ sơ mới."
+			},
+			"congratulations": {
+				"icon": "🎉",
+				"title": "Chúc mừng!",
+				"message": "Hồ sơ của bạn đã được phê duyệt! Cơ sở giáo dục sẽ liên hệ với bạn để cung cấp thêm thông tin về các bước tiếp theo.",
+				"status_label": "Trạng thái hồ sơ:",
+				"accepted": "ĐÃ CHẤP NHẬN"
+			},
+			"document_requirements": {
+				"no_specific": "Không có yêu cầu tài liệu cụ thể. Bạn có thể tải lên bất kỳ tài liệu nào"
+			},
+			"select_profile_button": "📄 Chọn từ hồ sơ",
+			"select_profile_hint": "Chọn tài liệu từ hồ sơ của bạn cho snapshot",
+			"or_divider": "HOẶC",
+			"documents_uploaded": "Tài liệu hồ sơ ({count} tệp{plural})",
+			"from_profile_badge": "Từ hồ sơ",
+			"uploaded_badge": "Đã tải lên",
+			"view_button": "Xem",
+			"remove_button": "Xóa",
+			"download_button": "Tải xuống",
+			"edit_documents_button": "Chỉnh sửa tài liệu",
+			"documents_description": "Đây là các tài liệu bạn đã nộp cùng với hồ sơ. Chúng không thể được chỉnh sửa hoặc xóa.",
+			"uploaded_label": "Đã tải lên:",
+			"remove_all_button": "Xóa tất cả",
+			"submit_button": "Nộp hồ sơ",
+			"submitting_button": "Đang nộp...",
+			"upload_files_button": "Tải tệp lên để tiếp tục",
+			"checking_button": "Đang kiểm tra...",
+			"uploading_files_button": "Đang tải tệp lên...",
+			"application_submitted": "✓ Đã nộp hồ sơ",
+			"upload_warning": "📁 Vui lòng tải lên ít nhất một tài liệu để nộp hồ sơ",
+			"uploading_progress": "Đang tải tệp lên...",
+			"file_progress": "Tệp {index}",
+			"reapply_button": "Nộp lại ngay"
+		},
 		"recommendations": {
-			"title": "Bạn có thể thích",
-			"view_all": "Xem tất cả học bổng"
+			"title": "Học bổng được đề xuất",
+			"description": "Học bổng tương tự dựa trên ngành học hoặc cấp độ",
+			"loading": "Đang tải đề xuất...",
+			"no_recommendations": "Hiện không có đề xuất nào.",
+			"upgrade": {
+				"icon": "🔒",
+				"title": "Mở khóa đề xuất cá nhân hóa",
+				"message": "Nâng cấp lên Tiêu chuẩn hoặc Cao cấp để xem học bổng phù hợp với hồ sơ và sở thích của bạn.",
+				"button": "Xem các gói nâng cấp"
+			}
+		},
+		"applications_list": {
+			"title": "Hồ sơ của tôi",
+			"table_headers": {
+				"date": "Ngày nộp hồ sơ",
+				"status": "Trạng thái",
+				"documents": "Tài liệu"
+			},
+			"documents_count": "{count} tài liệu",
+			"status_badges": {
+				"accepted": "ĐÃ CHẤP NHẬN",
+				"rejected": "BỊ TỪ CHỐI",
+				"progressing": "ĐANG XỬ LÝ",
+				"submitted": "ĐÃ NỘP"
+			},
+			"empty": {
+				"title": "Không tìm thấy hồ sơ cho học bổng này",
+				"message": "Nộp hồ sơ để bắt đầu"
+			}
 		},
 		"modals": {
+			"delete_confirm": {
+				"title": "Xóa tất cả tệp",
+				"message": "Bạn có muốn xóa tất cả tệp không? Hành động này không thể hoàn tác.",
+				"cancel": "Hủy",
+				"confirm": "Xóa tất cả"
+			},
+			"cancel_edit": {
+				"title": "Hủy thay đổi?",
+				"message": "Bạn có thay đổi chưa được lưu. Bạn có chắc chắn muốn hủy chỉnh sửa không? Tất cả thay đổi sẽ bị mất.",
+				"keep": "Tiếp tục chỉnh sửa",
+				"discard": "Hủy thay đổi"
+			},
+			"document_selector": {
+				"title": "Chọn tài liệu cho hồ sơ",
+				"summary": {
+					"selected": "Đã chọn {count} tài liệu{plural} từ hồ sơ",
+					"ready": "Sẵn sàng nộp",
+					"none_selected": "Chưa chọn tài liệu nào",
+					"choose_files": "Chọn tệp để tiếp tục"
+				},
+				"cancel": "Hủy",
+				"continue": "Tiếp tục",
+				"select_first": "Chọn tài liệu trước",
+				"success": "Đã chọn tài liệu!",
+				"success_message": "{count} tài liệu{plural} sẵn sàng để nộp hồ sơ"
+			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để ứng tuyển học bổng này.",
+				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
 		},
-		"loading": "Đang tải chi tiết học bổng...",
-		"error": "Không thể tải chi tiết học bổng",
-		"not_found": "Không tìm thấy học bổng"
+		"notifications": {
+			"files_uploaded": "Đã tải tệp lên",
+			"files_uploaded_message": "Đã tải lên {count} tệp thành công"
+		}
 	},
 
 	"pricing": {

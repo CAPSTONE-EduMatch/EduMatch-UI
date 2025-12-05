@@ -5,6 +5,7 @@ import { ProgramCard } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { Program } from '@/types/api/explore-api'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ProgramsTabProps {
 	sortBy?: SortOption
@@ -30,6 +31,7 @@ export function ProgramsTab({
 	onUpdateRequest,
 	fromApplicationSection = false,
 }: ProgramsTabProps) {
+	const t = useTranslations('explore_page')
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
@@ -87,9 +89,11 @@ export function ProgramsTab({
 				})
 			) : (
 				<div className="col-span-full text-center py-12">
-					<div className="text-gray-500 text-lg mb-2">No programs found</div>
+					<div className="text-gray-500 text-lg mb-2">
+						{t('empty.programmes.title')}
+					</div>
 					<div className="text-gray-400 text-sm">
-						Try adjusting your filters or search criteria
+						{t('empty.programmes.hint')}
 					</div>
 				</div>
 			)}

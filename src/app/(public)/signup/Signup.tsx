@@ -3,6 +3,7 @@
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import React, { useEffect, useState } from 'react'
 
 import {
@@ -49,6 +50,9 @@ const fadeIn = {
 }
 
 const Signup = () => {
+	const t = useTranslations('auth.signup')
+	const tCommon = useTranslations('auth.common')
+
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [confirmPassword, setConfirmPassword] = useState('')
@@ -260,15 +264,15 @@ const Signup = () => {
 		// Remove name validation since we don't collect it during signup
 
 		if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-			next.email = 'Please enter a valid email address'
+			next.email = t('errors.email_required')
 		}
 
 		if (!password || !passwordIsValid) {
-			next.password = 'Please enter a valid password'
+			next.password = t('errors.password_invalid')
 		}
 
 		if (password !== confirmPassword) {
-			next.confirmPassword = "Passwords don't match"
+			next.confirmPassword = t('errors.passwords_no_match')
 		}
 
 		setErrors(next)
@@ -302,16 +306,14 @@ const Signup = () => {
 			// Check if account is deleted (status = false)
 			if (response.data.exists && response.data.status === false) {
 				setErrors({
-					email:
-						'Your account has been deleted. Please create another account.',
+					email: t('errors.account_deleted'),
 				})
 				return
 			}
 
 			if (response.data.exists && response.data.isEmailVerified) {
 				setErrors({
-					email:
-						'An account with this email already exists. Please sign in instead.',
+					email: t('errors.account_exists'),
 				})
 				return
 			}
@@ -326,9 +328,9 @@ const Signup = () => {
 
 			if (otpError) {
 				setOTPError(
-					`Failed to send verification code: ${
-						otpError.message || 'Please try again 1 hour later.'
-					}`
+					t('errors.otp_send_failed', {
+						error: otpError.message || 'Please try again 1 hour later.',
+					})
 				)
 			} else {
 				resetOtpDigits()
@@ -347,10 +349,10 @@ const Signup = () => {
 			// Handle both API errors and OTP errors
 			if (axios.isAxiosError(err) && err.response?.status === 400) {
 				setErrors({
-					email: 'Invalid email format. Please check your email and try again.',
+					email: t('errors.invalid_email_format'),
 				})
 			} else {
-				setOTPError('An unexpected error occurred. Please try again.')
+				setOTPError(t('errors.unexpected_error'))
 			}
 		} finally {
 			setIsLoading(false)
@@ -360,7 +362,7 @@ const Signup = () => {
 	const handleVerifyOTPAndAccountCreation = async (otp: string) => {
 		setOTPError('')
 		if (!otp.trim() || otp.length !== 6) {
-			setOTPError('Please enter the 6-digit OTP.')
+			setOTPError(t('errors.otp_incomplete'))
 			return
 		}
 		setIsOTPLoading(true)
@@ -372,9 +374,7 @@ const Signup = () => {
 
 			// Check if account is deleted (status = false) during OTP verification
 			if (response.data.exists && response.data.status === false) {
-				setOTPError(
-					'Your account has been deleted. Please create another account.'
-				)
+				setOTPError(t('errors.account_deleted'))
 				return
 			}
 
@@ -390,7 +390,9 @@ const Signup = () => {
 				})
 				if (signUpError) {
 					setOTPError(
-						`Account creation failed: ${signUpError?.message || 'Unknown error'}`
+						t('errors.verification_failed', {
+							error: signUpError?.message || 'Unknown error',
+						})
 					)
 					return
 				}
@@ -404,7 +406,9 @@ const Signup = () => {
 
 			if (verifyError) {
 				setOTPError(
-					`Verification failed: ${verifyError.message || 'Unknown error'}`
+					t('errors.verification_failed', {
+						error: verifyError.message || 'Unknown error',
+					})
 				)
 				return
 			}
@@ -416,9 +420,7 @@ const Signup = () => {
 				)
 
 				if (!updatedResponse.data.exists || !updatedResponse.data.userId) {
-					setOTPError(
-						'Failed to retrieve user information. Please try signing in.'
-					)
+					setOTPError(t('errors.user_info_failed'))
 					return
 				}
 
@@ -428,7 +430,7 @@ const Signup = () => {
 				})
 
 				if (responseUpdate.status !== 204) {
-					setOTPError('Failed to set password. Please try signing in.')
+					setOTPError(t('errors.password_set_failed'))
 				}
 			}
 
@@ -446,9 +448,7 @@ const Signup = () => {
 				window.location.href = 'signin'
 			}, 1500)
 		} catch (err) {
-			setOTPError(
-				'An unexpected error occurred. Please try again. ' + (err || '')
-			)
+			setOTPError(t('errors.unexpected_error'))
 		} finally {
 			setIsOTPLoading(false)
 		}
@@ -472,7 +472,7 @@ const Signup = () => {
 					animate={{ opacity: 1 }}
 					transition={{ delay: 0.2, duration: 0.7 }}
 				>
-					Sign up
+					{t('title')}
 				</motion.h1>
 				<motion.p
 					className="text-base text-gray-600 mb-10 max-w-lg"
@@ -480,8 +480,7 @@ const Signup = () => {
 					animate={{ opacity: 1 }}
 					transition={{ delay: 0.3, duration: 0.7 }}
 				>
-					Join our community and discover educational opportunities that match
-					your unique profile
+					{t('subtitle')}
 				</motion.p>
 
 				{successMessage && (
@@ -549,15 +548,15 @@ const Signup = () => {
 				>
 					<motion.div variants={itemVariants}>
 						<FormField
-							label="Email"
+							label={t('form.email.label')}
 							name="email"
 							type="email"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
-							placeholder="Enter your email"
+							placeholder={t('form.email.placeholder')}
 							error={errors.email}
 							required
-							helpText="(or institution email if you are institution)"
+							helpText={t('form.email.help_text')}
 						/>
 					</motion.div>
 
@@ -573,15 +572,15 @@ const Signup = () => {
 
 					<motion.div variants={itemVariants}>
 						<PasswordField
-							label="Confirm Password"
+							label={t('form.confirm_password.label')}
 							name="confirmPassword"
 							value={confirmPassword}
 							onChange={(e) => setConfirmPassword(e.target.value)}
-							placeholder="Confirm your password"
+							placeholder={t('form.confirm_password.placeholder')}
 							error={errors.confirmPassword}
 							required
 							showCriteria={false}
-							helpText="Re-enter your password to confirm"
+							helpText={t('form.confirm_password.help_text')}
 						/>
 					</motion.div>
 
@@ -596,26 +595,26 @@ const Signup = () => {
 								className="mt-1 mr-3 h-4 w-4 rounded border-gray-300 text-[#126E64] focus:ring-[#126E64]"
 							/>
 							<span>
-								By creating the account means you agree with our{' '}
+								{t('form.terms.text')}{' '}
 								<a
 									href="#"
 									className="text-[#F0A227] font-medium hover:underline"
 								>
-									Terms of Service
+									{t('form.terms.terms_of_service')}
 								</a>{' '}
-								and{' '}
+								{t('form.terms.and')}{' '}
 								<a
 									href="#"
 									className="text-[#F0A227] font-medium hover:underline"
 								>
-									Privacy Policy
+									{t('form.terms.privacy_policy')}
 								</a>
-								<span> and our default </span>
+								<span> {t('form.terms.our_default')} </span>
 								<a
 									href="#"
 									className="text-[#F0A227] font-medium hover:underline"
 								>
-									Notification Settings
+									{t('form.terms.notification_settings')}
 								</a>
 							</span>
 						</label>
@@ -633,10 +632,10 @@ const Signup = () => {
 							whileTap={{ scale: 0.98 }}
 						>
 							{isLoading
-								? 'Signing you up...'
+								? t('buttons.submitting')
 								: globalOtpCooldown > 0 && lastOtpRequestEmail === email
-									? 'Continue Verification'
-									: 'Sign Up'}
+									? t('buttons.continue_verification')
+									: t('buttons.submit')}
 						</motion.button>
 					</motion.div>
 
@@ -645,8 +644,8 @@ const Signup = () => {
 							action="signup"
 							callbackURL="/"
 							isLoading={isLoading}
-							text="Sign up with Google"
-							loadingText="Signing up..."
+							text={t('buttons.google')}
+							loadingText={t('buttons.google_loading')}
 						/>
 					</motion.div>
 
@@ -654,7 +653,7 @@ const Signup = () => {
 						className="text-center text-sm text-gray-600 mt-6"
 						variants={itemVariants}
 					>
-						Already have an account?{' '}
+						{t('links.have_account')}{' '}
 						<Link
 							href="/signin"
 							className="text-[#126E64] font-medium hover:underline relative"
@@ -667,7 +666,7 @@ const Signup = () => {
 									transition: { duration: 0.2 },
 								}}
 							>
-								Sign in
+								{t('links.sign_in')}
 							</motion.span>
 						</Link>
 					</motion.p>
@@ -694,7 +693,7 @@ const Signup = () => {
 					>
 						<div className="flex justify-between items-center mb-4">
 							<h2 className="text-xl font-bold text-gray-800">
-								Verify Your Email
+								{t('otp_modal.title')}
 							</h2>
 							<motion.button
 								onClick={handleCloseOTPModal}
@@ -725,9 +724,7 @@ const Signup = () => {
 							variants={containerVariants}
 						>
 							<motion.p className="text-gray-600 mb-4" variants={itemVariants}>
-								We&apos;ve sent a 6-digit verification code to{' '}
-								<span className="font-medium">{email}</span>. Please enter it
-								below to verify your email address.
+								{t('otp_modal.description', { email })}
 							</motion.p>
 
 							{OTPError && (
@@ -743,7 +740,7 @@ const Signup = () => {
 
 							<motion.div className="mb-4" variants={itemVariants}>
 								<label className="block text-sm font-medium text-gray-700 mb-3">
-									Verification Code
+									{t('otp_modal.code_label')}
 								</label>
 								<div className="flex justify-center space-x-2">
 									{otpDigits.map((digit, index) => (
@@ -769,7 +766,7 @@ const Signup = () => {
 											onClick={resetOtpDigits}
 											className="text-sm text-gray-500 hover:text-gray-700 underline"
 										>
-											Clear all
+											{t('otp_modal.clear_button')}
 										</button>
 									</div>
 								)}
@@ -789,7 +786,7 @@ const Signup = () => {
 									}}
 									whileTap={{ scale: 0.98 }}
 								>
-									Cancel
+									{t('otp_modal.cancel_button')}
 								</motion.button>
 								<motion.button
 									type="button"
@@ -805,7 +802,9 @@ const Signup = () => {
 									}}
 									whileTap={{ scale: 0.98 }}
 								>
-									{isOTPLoading ? 'Verifying...' : 'Verify'}
+									{isOTPLoading
+										? t('otp_modal.verifying_button')
+										: t('otp_modal.verify_button')}
 								</motion.button>
 							</motion.div>
 
@@ -813,7 +812,7 @@ const Signup = () => {
 								className="text-sm text-gray-500 mt-4"
 								variants={itemVariants}
 							>
-								Didn&apos;t receive the code?{' '}
+								{t('otp_modal.resend_text')}{' '}
 								<motion.button
 									type="button"
 									onClick={handleResendOTP}
@@ -825,10 +824,12 @@ const Signup = () => {
 									whileTap={canResend ? { scale: 0.98 } : {}}
 								>
 									{isOTPLoading
-										? 'Sending...'
+										? t('otp_modal.sending_button')
 										: !canResend
-											? `Resend Code (${resendCountdown}s)`
-											: 'Resend Code'}
+											? t('otp_modal.resend_countdown', {
+													seconds: resendCountdown,
+												})
+											: t('otp_modal.resend_button')}
 								</motion.button>
 							</motion.p>
 						</motion.div>

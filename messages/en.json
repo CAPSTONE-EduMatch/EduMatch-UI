@@ -473,17 +473,18 @@
 	"research_lab_detail": {
 		"loading": "Loading research lab details...",
 		"error": "Error",
+		"not_found": "Research lab not found",
 		"breadcrumb": {
 			"home": "Home",
 			"explore": "Explore",
 			"research_labs": "Research Labs"
 		},
 		"header": {
-			"share": "Share",
-			"copy_link": "Copy link",
-			"link_copied": "Link copied!",
-			"save": "Save",
-			"unsave": "Unsave"
+			"institution_detail_button": "View Institution Detail",
+			"contact_button": "Contact Institution",
+			"applications_count": "Number of applications: {count}",
+			"provided_by": "Provided by: {organization}",
+			"job_name": "Job's name"
 		},
 		"info": {
 			"location": "Location",
@@ -510,88 +511,143 @@
 			"title": "About",
 			"no_description": "No description available."
 		},
-		"apply": {
-			"title": "Apply here !",
-			"status_title": "Application Status",
-			"edit_documents": "Edit Application Documents",
-			"cancel_edit": "Cancel Edit"
-		},
-		"congratulations": {
-			"title": "🎉 Congratulations!",
-			"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
-			"status_label": "Application Status:"
-		},
 		"job_description": {
 			"title": "Job Description"
 		},
 		"offer_information": {
-			"title": "Offer Information"
+			"title": "Offer Information",
+			"salary": "Salary:",
+			"benefit": "Benefit:",
+			"lab_facilities": "Lab Facilities:"
 		},
 		"job_requirements": {
-			"title": "Job Requirements"
+			"title": "Job Requirements",
+			"research_focus": "Research Focus:",
+			"research_areas": "Research Areas:",
+			"institution": "Institution:"
 		},
-		"applications_list": {
-			"title": "Your Applications",
-			"empty": "You haven't applied to this research lab yet.",
-			"view_details": "View Details"
-		},
-		"application": {
-			"title": "Application",
-			"back_to_list": "← Back to applications",
+		"apply": {
+			"title_not_applied": "Apply here !",
+			"title_applied": "Application Status",
+			"edit_documents_title": "Edit Application Documents",
+			"cancel_edit_button": "Cancel Edit",
 			"status_badge": {
-				"pending": "Pending",
-				"approved": "Approved",
-				"rejected": "Rejected"
+				"submitted": "SUBMITTED",
+				"pending": "SUBMITTED",
+				"require_update": "REQUIRE_UPDATE",
+				"updated": "UPDATED",
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED"
 			},
 			"status_messages": {
-				"pending": "Your application is under review.",
-				"approved": "Congratulations! Your application has been approved.",
-				"rejected": "Unfortunately, your application was not successful this time."
+				"submitted": "Application Submitted Successfully!",
+				"submitted_message": "Your application has been submitted. You will receive updates via email.",
+				"updated": "Application Updated",
+				"updated_message": "Your application has been updated. The institution will review your changes.",
+				"accepted": "Application Accepted!",
+				"accepted_message": "Congratulations! Your application has been accepted. The institution will contact you soon with next steps.",
+				"rejected": "Application Not Selected",
+				"rejected_message": "We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application."
 			},
-			"cover_letter": {
-				"label": "Cover Letter",
-				"placeholder": "Tell us why you're interested in this position and what makes you a great fit...",
-				"required_hint": "(Required)"
+			"congratulations": {
+				"icon": "🎉",
+				"title": "Congratulations!",
+				"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
+				"status_label": "Application Status:",
+				"accepted": "ACCEPTED"
 			},
-			"documents": {
-				"label": "Supporting Documents",
-				"select_button": "Select Documents",
-				"selected_count": "{count} document selected",
-				"selected_count_plural": "{count} documents selected"
+			"document_requirements": {
+				"no_specific": "Not have any specific document requirement. You can upload any"
 			},
-			"submit_button": {
-				"submit": "Submit Application",
-				"submitting": "Submitting...",
-				"update": "Update Application",
-				"updating": "Updating..."
-			},
-			"validation": {
-				"cover_letter_required": "Cover letter is required",
-				"cover_letter_min_length": "Cover letter must be at least 50 characters"
-			},
-			"success": {
-				"submitted": "Application submitted successfully!",
-				"updated": "Application updated successfully!"
-			},
-			"error": {
-				"submit_failed": "Failed to submit application. Please try again.",
-				"update_failed": "Failed to update application. Please try again.",
-				"load_failed": "Failed to load application details."
-			}
+			"select_profile_button": "📄 Select from Profile",
+			"select_profile_hint": "Choose documents from your profile for the snapshot",
+			"or_divider": "OR",
+			"documents_uploaded": "Application Documents ({count} file{plural})",
+			"from_profile_badge": "From Profile",
+			"uploaded_badge": "Uploaded",
+			"view_button": "View",
+			"remove_button": "Remove",
+			"download_button": "Download",
+			"edit_documents_button": "Edit Documents",
+			"documents_description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
+			"uploaded_label": "Uploaded:",
+			"remove_all_button": "Remove all",
+			"submit_button": "Submit Application",
+			"submitting_button": "Submitting...",
+			"upload_files_button": "Upload Files to Continue",
+			"checking_button": "Checking...",
+			"application_submitted": "✓ Application Submitted",
+			"upload_warning": "📁 Please upload at least one document to submit your application",
+			"reapply_button": "Reapply Now"
 		},
 		"recommendations": {
-			"title": "You may also like",
-			"view_all": "View all research labs"
-		},
-		"modals": {
-			"auth_required": {
-				"title": "Authentication Required",
-				"message": "You need to sign in to apply for this research position.",
-				"sign_in": "Sign in",
-				"sign_up": "Sign up"
+			"title": "Related Research Labs",
+			"loading": "Loading recommendations...",
+			"no_recommendations": "No recommendations available at this time.",
+			"upgrade": {
+				"icon": "🔒",
+				"title": "Unlock Personalized Recommendations",
+				"message": "Upgrade to Standard or Premium to see research labs tailored to your profile and interests.",
+				"button": "View Upgrade Options"
 			}
 		},
-		"not_found": "Research lab not found"
+		"applications_list": {
+			"title": "My Applications",
+			"table_headers": {
+				"date": "Application Date",
+				"status": "Status",
+				"documents": "Documents"
+			},
+			"documents_count": "{count} document(s)",
+			"status_badges": {
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED",
+				"progressing": "PROGRESSING",
+				"submitted": "SUBMITTED"
+			},
+			"empty": {
+				"title": "No applications found for this research lab",
+				"message": "Submit an application to get started"
+			}
+		},
+		"modals": {
+			"delete_confirm": {
+				"title": "Delete All Files",
+				"message": "Do you want to delete all files? This action cannot be undone.",
+				"cancel": "Cancel",
+				"confirm": "Delete All"
+			},
+			"cancel_edit": {
+				"title": "Discard Changes?",
+				"message": "You have unsaved changes. Are you sure you want to cancel editing? All changes will be lost.",
+				"keep": "Keep Editing",
+				"discard": "Discard Changes"
+			},
+			"document_selector": {
+				"title": "Select Documents for Application",
+				"summary": {
+					"selected": "{count} document{plural} selected from profile",
+					"ready": "Ready to submit",
+					"none_selected": "No documents selected",
+					"choose_files": "Choose files to continue"
+				},
+				"cancel": "Cancel",
+				"continue": "Continue",
+				"select_first": "Select Documents First",
+				"success": "Documents Selected!",
+				"success_message": "{count} document{plural} ready for application submission"
+			},
+			"auth_required": {
+				"title": "Authentication Required",
+				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"sign_in": "Sign In",
+				"sign_up": "Sign Up"
+			}
+		},
+		"notifications": {
+			"files_uploaded": "Files Uploaded",
+			"files_uploaded_message": "{count} file(s) uploaded successfully"
+		}
 	},
 
 	"program_detail": {
@@ -836,30 +892,26 @@
 	},
 
 	"scholarship_detail": {
+		"loading": "Loading scholarship details...",
+		"error": "Failed to load scholarship details",
+		"not_found": "Scholarship not found",
 		"breadcrumb": {
 			"home": "Home",
 			"explore": "Explore",
 			"scholarships": "Scholarships"
 		},
 		"header": {
-			"share": "Share",
-			"copy_link": "Copy link",
-			"link_copied": "Link copied!",
-			"save": "Save",
-			"unsave": "Unsave"
-		},
-		"info": {
-			"location": "Location",
-			"amount": "Amount",
-			"duration": "Duration",
-			"deadline": "Deadline",
-			"essay_required": "Essay Required",
-			"year": "year",
-			"years": "years",
-			"month": "month",
-			"months": "months",
-			"yes": "Yes",
-			"no": "No"
+			"institution_detail_button": "View Institution Detail",
+			"contact_button": "Contact Institution",
+			"applications_count": "Number of applications: {count}",
+			"grant": "Grant",
+			"country": "Country",
+			"institution_type": "Insitutuion Type",
+			"application_deadline": "Application deadline",
+			"na": "N/A",
+			"status_pending": "Pending Verification",
+			"status_rejected": "Rejected",
+			"status_deactivated": "Deactivated"
 		},
 		"tabs": {
 			"detail": "Detail",
@@ -869,134 +921,174 @@
 			"overview": "Overview",
 			"applications": "Applications"
 		},
-		"scholarship_description": {
-			"title": "Scholarship Description"
+		"about": {
+			"title": "About"
 		},
-		"offer_information": {
-			"title": "Offer Information"
+		"detail": {
+			"description_title": "Description",
+			"no_description": "No description available.",
+			"details_title": "Details",
+			"amount": "Amount",
+			"type": "Type",
+			"coverage": "Coverage",
+			"essay_required": "Essay Required",
+			"number_available": "Number Available",
+			"days_left": "Days Left",
+			"days_count": "{count} days",
+			"match_percentage": "Match Percentage",
+			"not_available": "N/A"
 		},
-		"eligibility_criteria": {
-			"title": "Eligibility Criteria"
+		"eligibility": {
+			"title": "Eligibility Requirements",
+			"no_requirements": "No specific eligibility requirements listed.",
+			"subdisciplines_label": "Related Subdisciplines:",
+			"documents_label": "Required Documents:"
 		},
-		"applications_list": {
-			"title": "Your Applications",
-			"empty": "You haven't applied to this scholarship yet.",
-			"view_details": "View Details"
+		"other": {
+			"institution_title": "Institution Information",
+			"name_label": "Name:",
+			"abbreviation_label": "Abbreviation:",
+			"country_label": "Country:",
+			"website_label": "Website:"
 		},
-		"application": {
-			"title": "Application",
-			"back_to_list": "← Back to applications",
-			"status_badge": {
-				"pending": "Pending",
-				"approved": "Approved",
-				"rejected": "Rejected"
-			},
-			"status_messages": {
-				"pending": "Your application is under review.",
-				"approved": "Congratulations! Your application has been approved.",
-				"rejected": "Unfortunately, your application was not successful this time."
-			},
-			"cover_letter": {
-				"label": "Cover Letter",
-				"placeholder": "Tell us why you're applying for this scholarship and how it will help you achieve your goals...",
-				"required_hint": "(Required)"
-			},
-			"documents": {
-				"label": "Supporting Documents",
-				"select_button": "Select Documents",
-				"selected_count": "{count} document selected",
-				"selected_count_plural": "{count} documents selected"
-			},
-			"submit_button": {
-				"submit": "Submit Application",
-				"submitting": "Submitting...",
-				"update": "Update Application",
-				"updating": "Updating..."
-			},
-			"validation": {
-				"cover_letter_required": "Cover letter is required",
-				"cover_letter_min_length": "Cover letter must be at least 50 characters"
-			},
-			"success": {
-				"submitted": "Application submitted successfully!",
-				"updated": "Application updated successfully!"
-			},
-			"error": {
-				"submit_failed": "Failed to submit application. Please try again.",
-				"update_failed": "Failed to update application. Please try again.",
-				"load_failed": "Failed to load application details."
-			}
-		},
-		"recommendations": {
-			"title": "You may also like",
-			"view_all": "View all scholarships"
-		},
-		"update_requests": {
-			"pending": {
-				"title": "Update Required",
-				"message": "The institution has requested additional information or documents for your application. Please review the request and submit the required updates.",
-				"button": "View Update Request & Submit Response"
-			},
-			"responded": {
-				"title": "Update Submitted Successfully",
-				"message": "Your update response has been submitted successfully. The institution will review your changes.",
-				"button": "View Update Details"
-			},
-			"reviewed": {
-				"title": "Update Submitted Successfully",
-				"message": "Your update response has been submitted successfully. The institution will review your changes.",
-				"button": "View Update Details"
-			},
-			"default": {
-				"title": "Update Request",
-				"message_prefix": "Update request #"
+		"eligibility_programmes": {
+			"title": "Eligibility programmes",
+			"description": "Programmes you may be eligible for based on this scholarship's requirements.",
+			"loading": "Loading eligibility programmes...",
+			"results": "{count} results",
+			"page_info": "(Page {current} of {total})",
+			"empty": {
+				"icon": "📚",
+				"title": "No programmes found",
+				"message": "Try adjusting your filters to find more programmes"
 			}
 		},
 		"apply": {
-			"reapply_button": "Reapply",
-			"document_requirement": "Required Document(s)",
-			"select_profile_button": "Select Documents from Profile",
-			"select_profile_hint": "Choose documents you've already uploaded to your profile",
-			"or_divider": "or",
-			"files_uploaded": "Files Uploaded!",
-			"files_uploaded_message": "{count} file(s) uploaded and added to your application",
-			"validation_failed": "Validation Failed!",
-			"validation_failed_message": "Some files failed validation. Please remove them and try again.",
-			"documents_label": "Documents:",
+			"title_not_applied": "Apply here !",
+			"title_applied": "Application Status",
+			"edit_documents_title": "Edit Application Documents",
+			"cancel_edit_button": "Cancel Edit",
+			"status_badge": {
+				"submitted": "SUBMITTED",
+				"pending": "SUBMITTED",
+				"require_update": "REQUIRE_UPDATE",
+				"updated": "UPDATED",
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED"
+			},
+			"status_messages": {
+				"submitted": "Application Submitted Successfully!",
+				"submitted_message": "Your application has been submitted. You will receive updates via email.",
+				"updated": "Application Updated",
+				"updated_message": "Your application has been updated. The institution will review your changes.",
+				"accepted": "Application Accepted!",
+				"accepted_message": "Congratulations! Your application has been accepted. The institution will contact you soon with next steps.",
+				"rejected": "Application Not Selected",
+				"rejected_message": "We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application."
+			},
+			"congratulations": {
+				"icon": "🎉",
+				"title": "Congratulations!",
+				"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
+				"status_label": "Application Status:",
+				"accepted": "ACCEPTED"
+			},
+			"document_requirements": {
+				"no_specific": "Not have any specific document requirement. You can upload any"
+			},
+			"select_profile_button": "📄 Select from Profile",
+			"select_profile_hint": "Choose documents from your profile for the snapshot",
+			"or_divider": "OR",
+			"documents_uploaded": "Application Documents ({count} file{plural})",
 			"from_profile_badge": "From Profile",
 			"uploaded_badge": "Uploaded",
 			"view_button": "View",
 			"remove_button": "Remove",
-			"uploading_files": "Uploading files...",
+			"download_button": "Download",
+			"edit_documents_button": "Edit Documents",
+			"documents_description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
+			"uploaded_label": "Uploaded:",
 			"remove_all_button": "Remove all",
-			"update_documents_button": "Update Documents",
-			"updating_button": "Updating...",
 			"submit_button": "Submit Application",
 			"submitting_button": "Submitting...",
-			"cancel_edit_button": "Cancel",
-			"save_changes_button": "Save Changes"
+			"upload_files_button": "Upload Files to Continue",
+			"checking_button": "Checking...",
+			"uploading_files_button": "Uploading Files...",
+			"application_submitted": "✓ Application Submitted",
+			"upload_warning": "📁 Please upload at least one document to submit your application",
+			"uploading_progress": "Uploading files...",
+			"file_progress": "File {index}",
+			"reapply_button": "Reapply Now"
 		},
-		"documents_section": {
-			"title": "Application Documents",
-			"title_with_count": "Application Documents ({count} file{plural})",
-			"edit_button": "Edit Documents",
-			"description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
-			"uploaded_label": "Uploaded:",
-			"download_button": "Download",
-			"ready_title": "{count} Document{plural} Ready",
-			"warning": "Please select at least one document to submit your application"
-		},
-		"modals": {
-			"auth_required": {
-				"title": "Authentication Required",
-				"message": "You need to sign in to apply for this scholarship.",
-				"sign_in": "Sign in",
-				"sign_up": "Sign up"
+		"recommendations": {
+			"title": "Recommended Scholarships",
+			"description": "Similar scholarships based on discipline or degree level",
+			"loading": "Loading recommendations...",
+			"no_recommendations": "No recommendations available at this time.",
+			"upgrade": {
+				"icon": "🔒",
+				"title": "Unlock Personalized Recommendations",
+				"message": "Upgrade to Standard or Premium to see scholarships tailored to your profile and interests.",
+				"button": "View Upgrade Options"
 			}
 		},
-		"loading": "Loading scholarship details...",
-		"error": "Failed to load scholarship details",
-		"not_found": "Scholarship not found"
+		"applications_list": {
+			"title": "My Applications",
+			"table_headers": {
+				"date": "Application Date",
+				"status": "Status",
+				"documents": "Documents"
+			},
+			"documents_count": "{count} document(s)",
+			"status_badges": {
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED",
+				"progressing": "PROGRESSING",
+				"submitted": "SUBMITTED"
+			},
+			"empty": {
+				"title": "No applications found for this scholarship",
+				"message": "Submit an application to get started"
+			}
+		},
+		"modals": {
+			"delete_confirm": {
+				"title": "Delete All Files",
+				"message": "Do you want to delete all files? This action cannot be undone.",
+				"cancel": "Cancel",
+				"confirm": "Delete All"
+			},
+			"cancel_edit": {
+				"title": "Discard Changes?",
+				"message": "You have unsaved changes. Are you sure you want to cancel editing? All changes will be lost.",
+				"keep": "Keep Editing",
+				"discard": "Discard Changes"
+			},
+			"document_selector": {
+				"title": "Select Documents for Application",
+				"summary": {
+					"selected": "{count} document{plural} selected from profile",
+					"ready": "Ready to submit",
+					"none_selected": "No documents selected",
+					"choose_files": "Choose files to continue"
+				},
+				"cancel": "Cancel",
+				"continue": "Continue",
+				"select_first": "Select Documents First",
+				"success": "Documents Selected!",
+				"success_message": "{count} document{plural} ready for application submission"
+			},
+			"auth_required": {
+				"title": "Authentication Required",
+				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"sign_in": "Sign In",
+				"sign_up": "Sign Up"
+			}
+		},
+		"notifications": {
+			"files_uploaded": "Files Uploaded",
+			"files_uploaded_message": "{count} file(s) uploaded successfully"
+		}
 	},
 
 	"pricing": {

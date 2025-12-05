@@ -112,7 +112,7 @@ export function FileUploadManagerWithOCR({
 	const processFileWithOCRAndValidation = useCallback(
 		async (file: File) => {
 			// Create unique ID with file name and timestamp to avoid conflicts
-			const tempId = `temp_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Math.random().toString(36).substr(2, 9)}`
+			const tempId = crypto.randomUUID()
 
 			// eslint-disable-next-line no-console
 			console.log('processFileWithOCRAndValidation called for:', file.name)

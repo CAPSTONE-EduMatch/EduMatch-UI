@@ -83,12 +83,21 @@ const UserManagementTable = memo(function UserManagementTable({
 	// Handle status filter with new admin API - supports multiple statuses
 	const handleStatusFilter = useCallback(
 		(statusArray: string[]) => {
-			setStatusFilter(statusArray)
-			// Convert array to comma-separated string or "all" if empty
-			const statusValue = statusArray.length > 0 ? statusArray.join(',') : 'all'
-			updateFilters({
-				status: statusValue,
-			})
+			// If "all" is selected, clear all other filters
+			if (statusArray.includes('all')) {
+				setStatusFilter(['all'])
+				updateFilters({
+					status: 'all',
+				})
+			} else {
+				setStatusFilter(statusArray)
+				// Convert array to comma-separated string or "all" if empty
+				const statusValue =
+					statusArray.length > 0 ? statusArray.join(',') : 'all'
+				updateFilters({
+					status: statusValue,
+				})
+			}
 		},
 		[updateFilters]
 	)
@@ -181,12 +190,16 @@ const UserManagementTable = memo(function UserManagementTable({
 				statusOptions={
 					userType === 'institution'
 						? [
+								{ value: 'all', label: 'All Statuses' },
 								{ value: 'active', label: 'Active' },
 								{ value: 'pending', label: 'Pending' },
 								{ value: 'rejected', label: 'Rejected' },
+								{ value: 'require_update', label: 'Require Update' },
+								{ value: 'updated', label: 'Updated' },
 								{ value: 'banned', label: 'Banned' },
 							]
 						: [
+								{ value: 'all', label: 'All Statuses' },
 								{ value: 'active', label: 'Active' },
 								{ value: 'inactive', label: 'Inactive' },
 								{ value: 'banned', label: 'Banned' },
@@ -290,7 +303,11 @@ const UserManagementTable = memo(function UserManagementTable({
 																? 'bg-[#FFA500] text-white'
 																: user.status === 'pending'
 																	? 'bg-[#FFC107] text-white'
-																	: 'bg-[#126E64] text-white'
+																	: user.status === 'require_update'
+																		? 'bg-[#FF9800] text-white'
+																		: user.status === 'updated'
+																			? 'bg-[#2196F3] text-white'
+																			: 'bg-[#126E64] text-white'
 													}`}
 												>
 													{user.status === 'banned'
@@ -299,7 +316,11 @@ const UserManagementTable = memo(function UserManagementTable({
 															? 'Rejected'
 															: user.status === 'pending'
 																? 'Pending'
-																: 'Active'}
+																: user.status === 'require_update'
+																	? 'Require Update'
+																	: user.status === 'updated'
+																		? 'Updated'
+																		: 'Active'}
 												</span>
 											</div>
 

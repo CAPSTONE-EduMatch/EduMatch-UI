@@ -2388,7 +2388,7 @@ const ResearchLabDetail = () => {
 														document_id:
 															matchingProfileDoc?.document_id ||
 															file.id ||
-															`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+															crypto.randomUUID(),
 														name: file.name,
 														url: file.url,
 														size: file.size || 0,
@@ -2432,9 +2432,7 @@ const ResearchLabDetail = () => {
 											} catch (error) {
 												// Fallback: treat all as existing if fetch fails
 												const selectedDocs = uploadedFiles.map((file) => ({
-													document_id:
-														file.id ||
-														`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+													document_id: file.id || crypto.randomUUID(),
 													name: file.name,
 													url: file.url,
 													size: file.size || 0,

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
 	PostsStatisticsCards,
@@ -24,11 +24,13 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 }) => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
+	const [searchInput, setSearchInput] = useState('')
 	const [searchQuery, setSearchQuery] = useState('')
 	const [typeFilter, setTypeFilter] = useState<string[]>([])
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState<string>('newest')
 	const [currentPage, setCurrentPage] = useState(1)
+	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const [showCreateForm, setShowCreateForm] = useState(false)
 	const [createFormType, setCreateFormType] = useState<
 		'Program' | 'Scholarship' | 'Research Lab' | null
@@ -110,6 +112,33 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 			setLoading(false)
 		}
 	}
+
+	// Debounced search handler - waits 1 second after user stops typing
+	useEffect(() => {
+		// Clear existing timeout
+		if (searchTimeoutRef.current) {
+			clearTimeout(searchTimeoutRef.current)
+		}
+
+		// If search input is empty, clear search query immediately
+		if (searchInput.trim() === '') {
+			setSearchQuery('')
+			return
+		}
+
+		// Set new timeout for debounced search (1000ms = 1 second)
+		searchTimeoutRef.current = setTimeout(() => {
+			const trimmedInput = searchInput.trim()
+			setSearchQuery(trimmedInput)
+		}, 1000)
+
+		// Cleanup timeout on unmount or when searchInput changes
+		return () => {
+			if (searchTimeoutRef.current) {
+				clearTimeout(searchTimeoutRef.current)
+			}
+		}
+	}, [searchInput])
 
 	// Fetch posts when filters, search, sort, or page changes
 	useEffect(() => {
@@ -201,7 +230,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 	}
 
 	const handleSearchChange = (query: string) => {
-		setSearchQuery(query)
+		setSearchInput(query)
 		setCurrentPage(1) // Reset to page 1 when search changes
 	}
 
@@ -358,7 +387,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 
 					{/* Search and Filter Bar */}
 					<PostsSearchAndFilter
-						searchQuery={searchQuery}
+						searchQuery={searchInput}
 						onSearchChange={handleSearchChange}
 						typeFilter={typeFilter}
 						onTypeFilterChange={handleTypeFilterChange}

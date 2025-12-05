@@ -78,6 +78,14 @@ export function InstitutionDetailsStep({
 			(formData[category as keyof ProfileFormData] as any[]) || []
 		const updatedFiles = [...existingFiles, ...files]
 		onInputChange(category as keyof ProfileFormData, updatedFiles as any)
+
+		// Clear verification error if verification documents are uploaded
+		if (
+			category === 'institutionVerificationDocuments' &&
+			updatedFiles.length > 0
+		) {
+			setVerificationError(null)
+		}
 	}
 
 	const handleCoverImageUpload = (files: any[]) => {
@@ -88,6 +96,29 @@ export function InstitutionDetailsStep({
 
 	const getAllFiles = () => {
 		return formData.institutionVerificationDocuments || []
+	}
+
+	// State for validation error
+	const [verificationError, setVerificationError] = useState<string | null>(
+		null
+	)
+
+	// Handle next button with validation
+	const handleNext = () => {
+		// Check if verification documents are uploaded
+		if (
+			!formData.institutionVerificationDocuments ||
+			formData.institutionVerificationDocuments.length === 0
+		) {
+			setVerificationError(
+				'Please upload at least one verification document to continue.'
+			)
+			return
+		}
+
+		// Clear error if validation passes
+		setVerificationError(null)
+		onNext()
 	}
 
 	// Function to handle OCR completion for institution verification
@@ -345,6 +376,9 @@ export function InstitutionDetailsStep({
 							uploaded
 						</div>
 					)}
+				{verificationError && (
+					<div className="text-xs text-red-600 mt-2">{verificationError}</div>
+				)}
 			</div>
 
 			{/* Manage Files Button */}
@@ -361,7 +395,7 @@ export function InstitutionDetailsStep({
 				<Button size="sm" variant="outline" onClick={onBack}>
 					Back
 				</Button>
-				<Button size="sm" onClick={onNext}>
+				<Button size="sm" onClick={handleNext}>
 					Next
 				</Button>
 			</div>

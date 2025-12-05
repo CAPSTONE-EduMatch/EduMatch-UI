@@ -49,6 +49,11 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 		institutionType === 'university'
 	const canCreateResearchLab = institutionType === 'research-lab'
 
+	// Determine if type filter should be shown
+	// Only show for universities (they can create both Program and Scholarship)
+	// Hide for scholarship-provider and research-lab (they only create one type)
+	const showTypeFilter = institutionType === 'university'
+
 	// Check if any post creation is allowed
 	const canCreateAnyPost =
 		canCreateProgram || canCreateScholarship || canCreateResearchLab
@@ -76,7 +81,7 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 					<div className="relative">
 						<input
 							type="text"
-							placeholder="Enter name, sub-discipline, degree level you want to find...."
+							placeholder="Search by title or post ID..."
 							value={searchQuery}
 							onChange={(e) => onSearchChange(e.target.value)}
 							className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -88,24 +93,25 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 				</div>
 
 				<div className="flex gap-2">
-					{/* Type Filter Checkbox Select */}
-					<div className="w-48">
-						<CheckboxSelect
-							value={typeFilter.map((type) => ({ value: type, label: type }))}
-							onChange={(selected) =>
-								onTypeFilterChange(selected.map((item: any) => item.value))
-							}
-							placeholder="All Types"
-							options={[
-								{ value: 'Program', label: 'Program' },
-								{ value: 'Scholarship', label: 'Scholarship' },
-								{ value: 'Research Lab', label: 'Research Lab' },
-							]}
-							variant="default"
-							isClearable
-							className="w-full"
-						/>
-					</div>
+					{/* Type Filter Checkbox Select - Only show for universities */}
+					{showTypeFilter && (
+						<div className="w-48">
+							<CheckboxSelect
+								value={typeFilter.map((type) => ({ value: type, label: type }))}
+								onChange={(selected) =>
+									onTypeFilterChange(selected.map((item: any) => item.value))
+								}
+								placeholder="All Types"
+								options={[
+									{ value: 'Program', label: 'Program' },
+									{ value: 'Scholarship', label: 'Scholarship' },
+								]}
+								variant="default"
+								isClearable
+								className="w-full"
+							/>
+						</div>
+					)}
 
 					{/* Status Filter Checkbox Select */}
 					<div className="w-48">

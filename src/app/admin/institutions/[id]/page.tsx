@@ -853,63 +853,49 @@ export default function InstitutionDetailPage() {
 											</p>
 										</div>
 									) : (
-										<div className="space-y-4">
+										<div className="space-y-3">
 											{infoRequests.map((request) => (
 												<div
 													key={request.infoRequestId}
-													className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+													className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
 												>
-													<div className="flex items-start justify-between mb-3">
-														<div className="flex-1">
-															<div className="flex items-center gap-2 mb-2">
-																<span
-																	className={`px-2 py-1 rounded text-xs font-medium ${
-																		request.status === 'PENDING'
-																			? 'bg-yellow-100 text-yellow-800'
-																			: request.status === 'RESPONDED'
-																				? 'bg-blue-100 text-blue-800'
-																				: request.status === 'REVIEWED'
-																					? 'bg-green-100 text-green-800'
-																					: 'bg-gray-100 text-gray-800'
-																	}`}
-																>
-																	{request.status}
-																</span>
-																<span className="text-sm text-gray-500">
-																	Requested by: {request.requestedBy.name}
-																</span>
-															</div>
-															<p className="text-sm text-gray-600 mb-2">
-																{new Date(request.createdAt).toLocaleString()}
-															</p>
+													<div className="flex items-center justify-between mb-2">
+														<div className="flex items-center gap-3">
+															<span
+																className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+																	request.status === 'PENDING'
+																		? 'bg-yellow-100 text-yellow-800'
+																		: request.status === 'RESPONDED'
+																			? 'bg-blue-100 text-blue-800'
+																			: request.status === 'REVIEWED'
+																				? 'bg-green-100 text-green-800'
+																				: 'bg-gray-100 text-gray-800'
+																}`}
+															>
+																{request.status}
+															</span>
+															<span className="text-sm text-gray-500">
+																{new Date(request.createdAt).toLocaleDateString(
+																	'en-US',
+																	{
+																		year: 'numeric',
+																		month: 'short',
+																		day: 'numeric',
+																		hour: '2-digit',
+																		minute: '2-digit',
+																	}
+																)}
+															</span>
 														</div>
+														<span className="text-xs text-gray-400">
+															{request.requestedBy.name}
+														</span>
 													</div>
-													<div className="bg-gray-50 rounded-md p-3 mb-3">
-														<p className="text-sm font-medium text-gray-900 mb-1">
-															Request Message:
-														</p>
+													<div className="bg-gray-50 rounded-md p-3">
 														<p className="text-sm text-gray-700 whitespace-pre-wrap">
 															{request.requestMessage}
 														</p>
 													</div>
-													{request.responseMessage && (
-														<div className="bg-blue-50 rounded-md p-3">
-															<p className="text-sm font-medium text-blue-900 mb-1">
-																Institution Response:
-															</p>
-															<p className="text-sm text-blue-800 whitespace-pre-wrap">
-																{request.responseMessage}
-															</p>
-															{request.responseSubmittedAt && (
-																<p className="text-xs text-blue-600 mt-2">
-																	Responded on:{' '}
-																	{new Date(
-																		request.responseSubmittedAt
-																	).toLocaleString()}
-																</p>
-															)}
-														</div>
-													)}
 												</div>
 											))}
 										</div>

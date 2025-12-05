@@ -1,4 +1,5 @@
 import { prismaClient } from "../../../prisma";
+import { randomUUID } from "crypto";
 
 // Institution-specific form data interface
 export interface InstitutionProfileFormData {
@@ -306,7 +307,7 @@ export class InstitutionProfileService {
 					}),
 				},
 				create: {
-					institution_id: `institution_${userId}`,
+					institution_id: randomUUID(),
 					user_id: userId,
 					name: requiredFields.name,
 					abbreviation:
@@ -453,9 +454,7 @@ export class InstitutionProfileService {
 				// Create document entry
 				await prismaClient.institutionDocument.create({
 					data: {
-						document_id:
-							file.id ||
-							`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						document_id: file.id || randomUUID(),
 						institution_id: institutionId,
 						document_type_id: verificationDocType.document_type_id,
 						name:
@@ -489,7 +488,7 @@ export class InstitutionProfileService {
 		if (!docType) {
 			docType = await prismaClient.documentType.create({
 				data: {
-					document_type_id: `doctype_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_type_id: randomUUID(),
 					name,
 					description: `Document type for ${name}`,
 				},

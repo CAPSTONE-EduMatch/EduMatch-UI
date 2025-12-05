@@ -3,6 +3,7 @@ import { requireAuth } from "@/utils/auth/auth-utils";
 import { PostStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { prismaClient } from "../../../../../prisma";
 
 interface CreateProgramRequest {
@@ -242,7 +243,7 @@ export async function POST(request: NextRequest) {
 				if (langReq.language && langReq.certificate && langReq.score) {
 					await prismaClient.postCertificate.create({
 						data: {
-							certificate_id: `cert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							certificate_id: randomUUID(),
 							post_id: opportunityPost.post_id,
 							name: langReq.certificate,
 							score: langReq.score,
@@ -265,7 +266,7 @@ export async function POST(request: NextRequest) {
 			if (!documentType) {
 				documentType = await prismaClient.documentType.create({
 					data: {
-						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						document_type_id: randomUUID(),
 						name: "Required Documents",
 						description: "Documents required for application",
 					},
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
 
 			await prismaClient.postDocument.create({
 				data: {
-					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_id: randomUUID(),
 					post_id: opportunityPost.post_id,
 					document_type_id: documentType.document_type_id,
 					name: body.fileRequirements.fileName,
@@ -583,7 +584,7 @@ export async function PUT(request: NextRequest) {
 				if (langReq.language && langReq.certificate && langReq.score) {
 					await prismaClient.postCertificate.create({
 						data: {
-							certificate_id: `cert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							certificate_id: randomUUID(),
 							post_id: postId,
 							name: langReq.certificate,
 							score: langReq.score,
@@ -609,7 +610,7 @@ export async function PUT(request: NextRequest) {
 			if (!documentType) {
 				documentType = await prismaClient.documentType.create({
 					data: {
-						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						document_type_id: randomUUID(),
 						name: "Required Documents",
 						description: "Documents required for application",
 					},
@@ -618,7 +619,7 @@ export async function PUT(request: NextRequest) {
 
 			await prismaClient.postDocument.create({
 				data: {
-					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_id: randomUUID(),
 					post_id: postId,
 					document_type_id: documentType.document_type_id,
 					name: updateData.fileRequirements.fileName,

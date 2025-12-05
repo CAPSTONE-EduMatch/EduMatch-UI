@@ -1,6 +1,7 @@
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
+import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 		if (!docType) {
 			docType = await prismaClient.documentType.create({
 				data: {
-					document_type_id: `doctype_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_type_id: randomUUID(),
 					name: "Institution Verification",
 					description: "Document type for Institution Verification",
 				},
@@ -51,9 +52,7 @@ export async function POST(request: NextRequest) {
 		for (const doc of documents) {
 			const savedDoc = await prismaClient.institutionDocument.create({
 				data: {
-					document_id:
-						doc.id ||
-						`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_id: doc.id || randomUUID(),
 					institution_id: institution.institution_id,
 					document_type_id: docType.document_type_id,
 					name:

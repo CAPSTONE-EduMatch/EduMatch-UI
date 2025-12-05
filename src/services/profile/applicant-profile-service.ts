@@ -1,5 +1,6 @@
 import { prismaClient } from "../../../prisma/index";
 import { EmbeddingService } from "../embedding/embedding-service";
+import { randomUUID } from "crypto";
 
 // Applicant-specific form data interface
 export interface ApplicantProfileFormData {
@@ -220,7 +221,7 @@ export class ApplicantProfileService {
 					languages: formData.languages || null,
 				},
 				create: {
-					applicant_id: `applicant_${userId}`,
+					applicant_id: randomUUID(),
 					user_id: userId,
 					first_name: formData.firstName || null,
 					last_name: formData.lastName || null,
@@ -389,7 +390,7 @@ export class ApplicantProfileService {
 				for (const file of formData.cvFiles) {
 					await prismaClient.applicantDocument.create({
 						data: {
-							document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							document_id: randomUUID(),
 							applicant_id: applicantId,
 							document_type_id: cvDocType.document_type_id,
 							name:
@@ -411,7 +412,7 @@ export class ApplicantProfileService {
 				for (const file of formData.languageCertFiles) {
 					await prismaClient.applicantDocument.create({
 						data: {
-							document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							document_id: randomUUID(),
 							applicant_id: applicantId,
 							document_type_id:
 								languageCertDocType.document_type_id,
@@ -433,7 +434,7 @@ export class ApplicantProfileService {
 				for (const file of formData.degreeFiles) {
 					await prismaClient.applicantDocument.create({
 						data: {
-							document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							document_id: randomUUID(),
 							applicant_id: applicantId,
 							document_type_id: degreeDocType.document_type_id,
 							name:
@@ -457,7 +458,7 @@ export class ApplicantProfileService {
 				for (const file of formData.transcriptFiles) {
 					await prismaClient.applicantDocument.create({
 						data: {
-							document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+							document_id: randomUUID(),
 							applicant_id: applicantId,
 							document_type_id:
 								transcriptDocType.document_type_id,
@@ -485,7 +486,7 @@ export class ApplicantProfileService {
 						for (const file of researchPaper.files) {
 							await prismaClient.applicantDocument.create({
 								data: {
-									document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+									document_id: randomUUID(),
 									applicant_id: applicantId,
 									document_type_id:
 										researchPaperDocType.document_type_id,
@@ -523,7 +524,7 @@ export class ApplicantProfileService {
 		if (!docType) {
 			docType = await prismaClient.documentType.create({
 				data: {
-					document_type_id: `doctype_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_type_id: randomUUID(),
 					name,
 					description: `Document type for ${name}`,
 				},

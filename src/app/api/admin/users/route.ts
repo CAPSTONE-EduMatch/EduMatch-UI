@@ -101,6 +101,20 @@ export async function GET(request: NextRequest) {
 					whereClause.institution = {
 						verification_status: "PENDING",
 					};
+				} else if (status === "require_update") {
+					// Require update institutions have verification_status = REQUIRE_UPDATE
+					whereClause.role = "institution";
+					whereClause.banned = { not: true };
+					whereClause.institution = {
+						verification_status: "REQUIRE_UPDATE",
+					};
+				} else if (status === "updated") {
+					// Updated institutions have verification_status = UPDATED
+					whereClause.role = "institution";
+					whereClause.banned = { not: true };
+					whereClause.institution = {
+						verification_status: "UPDATED",
+					};
 				}
 			} else {
 				// Multiple statuses - use OR conditions
@@ -136,6 +150,26 @@ export async function GET(request: NextRequest) {
 						banned: { not: true },
 						institution: {
 							verification_status: "PENDING",
+						},
+					});
+				}
+
+				if (statusArray.includes("require_update")) {
+					orConditions.push({
+						role: "institution",
+						banned: { not: true },
+						institution: {
+							verification_status: "REQUIRE_UPDATE",
+						},
+					});
+				}
+
+				if (statusArray.includes("updated")) {
+					orConditions.push({
+						role: "institution",
+						banned: { not: true },
+						institution: {
+							verification_status: "UPDATED",
 						},
 					});
 				}
@@ -269,6 +303,12 @@ export async function GET(request: NextRequest) {
 					user.institution.verification_status === "REJECTED"
 				) {
 					status = "rejected";
+				} else if (
+					user.institution.verification_status === "REQUIRE_UPDATE"
+				) {
+					status = "require_update";
+				} else if (user.institution.verification_status === "UPDATED") {
+					status = "updated";
 				} else if (
 					user.institution.verification_status === "APPROVED"
 				) {

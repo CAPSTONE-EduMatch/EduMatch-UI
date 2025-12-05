@@ -3,6 +3,7 @@ import { requireAuth } from "@/utils/auth/auth-utils";
 import { PostStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { prismaClient } from "../../../../../prisma";
 
 interface CreateScholarshipRequest {
@@ -268,7 +269,7 @@ export async function POST(request: NextRequest) {
 			if (!documentType) {
 				documentType = await prismaClient.documentType.create({
 					data: {
-						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						document_type_id: randomUUID(),
 						name: "Scholarship Documents",
 						description: null,
 					},
@@ -277,7 +278,7 @@ export async function POST(request: NextRequest) {
 
 			await prismaClient.postDocument.create({
 				data: {
-					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_id: randomUUID(),
 					post_id: opportunityPost.post_id,
 					document_type_id: documentType.document_type_id,
 					name:
@@ -623,7 +624,7 @@ export async function PUT(request: NextRequest) {
 			if (!documentType) {
 				documentType = await prismaClient.documentType.create({
 					data: {
-						document_type_id: `doc_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+						document_type_id: randomUUID(),
 						name: "Scholarship Documents",
 						description: null,
 					},
@@ -632,7 +633,7 @@ export async function PUT(request: NextRequest) {
 
 			await prismaClient.postDocument.create({
 				data: {
-					document_id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					document_id: randomUUID(),
 					post_id: postId,
 					document_type_id: documentType.document_type_id,
 					name:

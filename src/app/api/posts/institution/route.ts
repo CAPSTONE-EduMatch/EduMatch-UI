@@ -219,14 +219,14 @@ export async function GET(request: NextRequest) {
 		// Apply search filter (client-side because it depends on transformed data)
 		let filteredPosts = transformedPosts;
 		if (search) {
+			const searchLower = search.toLowerCase();
 			filteredPosts = transformedPosts.filter(
 				(post) =>
-					post.title.toLowerCase().includes(search.toLowerCase()) ||
-					post.location
-						?.toLowerCase()
-						.includes(search.toLowerCase()) ||
+					post.id.toLowerCase().includes(searchLower) ||
+					post.title.toLowerCase().includes(searchLower) ||
+					post.location?.toLowerCase().includes(searchLower) ||
 					post.subdisciplines.some((sub) =>
-						sub.toLowerCase().includes(search.toLowerCase())
+						sub.toLowerCase().includes(searchLower)
 					)
 			);
 		}

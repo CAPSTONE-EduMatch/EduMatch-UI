@@ -32,8 +32,15 @@ export interface OpportunityPostData {
 	location: string;
 	other_info: string;
 	institution_id: string;
-	status: "DRAFT" | "PUBLISHED" | "CLOSED";
+	status:
+		| "DRAFT"
+		| "PUBLISHED"
+		| "CLOSED"
+		| "SUBMITTED"
+		| "UPDATED"
+		| "REJECTED";
 	degree_level: string;
+	rejection_reason?: string;
 }
 
 export interface ProgramPostData {
@@ -104,6 +111,23 @@ export function generateOpportunityPosts(
 ): OpportunityPostData[] {
 	const posts: OpportunityPostData[] = [];
 
+	// Status distribution for variety: 70% PUBLISHED, 10% SUBMITTED, 10% UPDATED, 5% REJECTED, 5% DRAFT
+	const getRandomStatus = (
+		index: number
+	): { status: OpportunityPostData["status"]; rejection_reason?: string } => {
+		const rand = index % 20;
+		if (rand < 14) return { status: "PUBLISHED" };
+		if (rand < 16) return { status: "SUBMITTED" };
+		if (rand < 18) return { status: "UPDATED" };
+		if (rand < 19)
+			return {
+				status: "REJECTED",
+				rejection_reason:
+					"The post does not meet our quality guidelines. Please review and resubmit with more detailed information.",
+			};
+		return { status: "DRAFT" };
+	};
+
 	for (let i = 1; i <= count; i++) {
 		const field = getRandomElement(researchAreas);
 		const institutionId = getRandomElement(institutionIds);
@@ -124,6 +148,7 @@ export function generateOpportunityPosts(
 		);
 
 		const degreeLevel = getRandomElement(degreeLevels);
+		const { status, rejection_reason } = getRandomStatus(i);
 
 		posts.push({
 			post_id: generateUniqueId("post-opportunity", i, 4),
@@ -134,8 +159,9 @@ export function generateOpportunityPosts(
 			location: `${university}, ${country}`,
 			other_info: `This is a comprehensive ${field} program at ${university}. The program is designed to provide students with cutting-edge knowledge and practical skills in ${field}.`,
 			institution_id: institutionId,
-			status: "PUBLISHED",
+			status,
 			degree_level: degreeLevel,
+			...(rejection_reason && { rejection_reason }),
 		});
 	}
 

@@ -56,6 +56,7 @@ export enum NotificationType {
 	PASSWORD_CHANGED = "PASSWORD_CHANGED",
 	ACCOUNT_DELETED = "ACCOUNT_DELETED",
 	SUPPORT_REPLY = "SUPPORT_REPLY",
+	POST_STATUS_UPDATE = "POST_STATUS_UPDATE",
 }
 
 // Base notification message structure
@@ -221,6 +222,20 @@ export interface SupportReplyMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface PostStatusUpdateMessage extends BaseNotificationMessage {
+	type: NotificationType.POST_STATUS_UPDATE;
+	metadata: {
+		postId: string;
+		postTitle: string;
+		postType: "Program" | "Scholarship" | "Research Lab";
+		institutionName: string;
+		oldStatus: string;
+		newStatus: string;
+		rejectionReason?: string;
+		postUrl: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
@@ -236,7 +251,8 @@ export type NotificationMessage =
 	| WishlistDeadlineMessage
 	| PasswordChangedMessage
 	| AccountDeletedMessage
-	| SupportReplyMessage;
+	| SupportReplyMessage
+	| PostStatusUpdateMessage;
 
 // SQS Service class
 export class SQSService {

@@ -393,7 +393,7 @@ export async function PUT(request: NextRequest) {
 				"CLOSED",
 				"SUBMITTED",
 				"UPDATED",
-				"REQUIRE_UPDATE",
+				"REJECTED",
 				"DELETED",
 			];
 

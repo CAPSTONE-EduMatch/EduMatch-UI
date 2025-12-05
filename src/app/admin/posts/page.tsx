@@ -31,8 +31,8 @@ const getStatusColor = (status: PostStatus) => {
 			return 'bg-[#3B82F6] text-white'
 		case 'UPDATED':
 			return 'bg-[#10B981] text-white'
-		case 'REQUIRE_UPDATE':
-			return 'bg-[#F59E0B] text-white'
+		case 'REJECTED':
+			return 'bg-[#EF4444] text-white'
 		default:
 			return 'bg-gray-200 text-black'
 	}
@@ -52,8 +52,8 @@ const getStatusLabel = (status: PostStatus) => {
 			return 'Submitted'
 		case 'UPDATED':
 			return 'Updated'
-		case 'REQUIRE_UPDATE':
-			return 'Require Update'
+		case 'REJECTED':
+			return 'Rejected'
 		default:
 			return status
 	}

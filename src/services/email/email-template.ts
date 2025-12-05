@@ -799,6 +799,139 @@ export function generateAccountDeletedEmailTemplate(
 	return { subject, html };
 }
 
+/**
+ * Template: Post Status Update Email
+ * Used for: Post status change notification for institutions
+ * Trigger: When admin changes post status (publish, reject, close)
+ */
+export function generatePostStatusUpdateEmailTemplate(
+	postTitle: string,
+	postType: string,
+	institutionName: string,
+	oldStatus: string,
+	newStatus: string,
+	postUrl: string,
+	rejectionReason?: string
+): { subject: string; html: string } {
+	const subject = `${postType} Status Update - ${postTitle}`;
+	const statusColor = getPostStatusColor(newStatus);
+	const statusLabel = getPostStatusLabel(newStatus);
+
+	let statusContent = "";
+	if (newStatus === "PUBLISHED") {
+		statusContent = `
+			<div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">🎉 Your ${postType} has been published!</h3>
+				<p style="margin: 0;">Your ${postType.toLowerCase()} is now visible to all users and can receive applications.</p>
+			</div>
+		`;
+	} else if (newStatus === "REJECTED") {
+		statusContent = `
+			<div style="background: #ffebee; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f44336;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">❌ Your ${postType} has been rejected</h3>
+				<p style="margin: 0 0 12px;">Unfortunately, your ${postType.toLowerCase()} could not be approved at this time.</p>
+				${
+					rejectionReason
+						? `
+					<div style="background: white; padding: 15px; border-radius: 8px; margin: 12px 0; border: 1px solid #e0e0e0;">
+						<p style="margin: 0 0 10px; font-weight: 600; color: #333;">Reason for rejection:</p>
+						<p style="margin: 0; color: #555; white-space: pre-wrap;">${escapeHtml(rejectionReason)}</p>
+					</div>
+				`
+						: ""
+				}
+				<p style="margin: 12px 0 0;">Please review the feedback and make the necessary changes. Once updated, you can resubmit your ${postType.toLowerCase()} for review.</p>
+			</div>
+		`;
+	} else if (newStatus === "CLOSED") {
+		statusContent = `
+			<div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196F3;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">📋 Your ${postType} has been closed</h3>
+				<p style="margin: 0;">Your ${postType.toLowerCase()} is no longer accepting applications. You can still view existing applications.</p>
+			</div>
+		`;
+	} else {
+		statusContent = `
+			<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">📋 Status Updated</h3>
+				<p style="margin: 0;">Your ${postType.toLowerCase()} status has changed to ${statusLabel}.</p>
+			</div>
+		`;
+	}
+
+	const bodyHtml = `
+		<p>Dear <strong>${escapeHtml(institutionName)}</strong>,</p>
+		<p>The status of your ${postType.toLowerCase()} has been updated by our admin team.</p>
+		
+		<div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+			<h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600;">${escapeHtml(postTitle)}</h3>
+			<p style="margin: 4px 0;"><strong>Type:</strong> ${postType}</p>
+			<p style="margin: 4px 0;">
+				<strong>Status:</strong> 
+				<span style="display: inline-block; padding: 4px 12px; border-radius: 12px; background: ${statusColor}; color: white; font-weight: 500;">${statusLabel}</span>
+			</p>
+		</div>
+		
+		${statusContent}
+		
+		<div style="text-align: center; margin: 30px 0;">
+			<a href="${escapeHtml(postUrl)}" style="display: inline-block; padding: 14px 32px; background: #126E64; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">View ${postType}</a>
+		</div>
+		
+		<p>If you have any questions, please don't hesitate to contact our support team.</p>
+	`;
+
+	const html = renderCompanyEmail({
+		title: `${postType} Status Update`,
+		preheader: `Your ${postType.toLowerCase()} "${postTitle}" status has been updated`,
+		bodyHtml,
+		brandingColor: statusColor,
+		footerExtrasHtml: `<p style="color: #6b7280; font-size: 14px; margin: 0;">This notification was sent regarding your post on EduMatch.</p>`,
+	});
+
+	return { subject, html };
+}
+
+// Helper function for post status colors
+function getPostStatusColor(status: string): string {
+	switch (status.toUpperCase()) {
+		case "PUBLISHED":
+			return "#126E64";
+		case "REJECTED":
+			return "#EF4444";
+		case "CLOSED":
+			return "#6EB6FF";
+		case "SUBMITTED":
+			return "#3B82F6";
+		case "UPDATED":
+			return "#10B981";
+		case "DRAFT":
+			return "#F0A227";
+		default:
+			return "#6B7280";
+	}
+}
+
+// Helper function for post status labels
+function getPostStatusLabel(status: string): string {
+	switch (status.toUpperCase()) {
+		case "PUBLISHED":
+			return "Published";
+		case "REJECTED":
+			return "Rejected";
+		case "CLOSED":
+			return "Closed";
+		case "SUBMITTED":
+			return "Submitted";
+		case "UPDATED":
+			return "Updated";
+		case "DRAFT":
+			return "Draft";
+		default:
+			return status;
+	}
+}
+
 // Helper functions for email templates
 function getStatusColor(status: string): string {
 	switch (status.toLowerCase()) {

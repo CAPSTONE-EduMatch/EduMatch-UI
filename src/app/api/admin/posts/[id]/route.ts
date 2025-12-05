@@ -1,6 +1,21 @@
+import {
+	NotificationType,
+	PostStatusUpdateMessage,
+	SQSService,
+} from "@/config/sqs-config";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
 import { prismaClient } from "../../../../../../prisma/index";
+
+// Status transition rules for admin
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+	SUBMITTED: ["PUBLISHED", "REJECTED"],
+	UPDATED: ["PUBLISHED", "REJECTED"],
+	PUBLISHED: ["CLOSED"],
+	REJECTED: ["SUBMITTED", "PUBLISHED"],
+	CLOSED: ["SUBMITTED", "PUBLISHED"],
+};
 
 export async function GET(
 	request: NextRequest,
@@ -26,7 +41,11 @@ export async function GET(
 				post_id: postId,
 			},
 			include: {
-				institution: true,
+				institution: {
+					include: {
+						user: true,
+					},
+				},
 				subdisciplines: {
 					include: {
 						subdiscipline: {
@@ -65,6 +84,7 @@ export async function GET(
 			description: post.description,
 			type: postType,
 			status: post.status,
+			rejectionReason: post.rejection_reason,
 			startDate: post.start_date,
 			endDate: post.end_date,
 			location: post.location,
@@ -195,15 +215,15 @@ export async function PATCH(
 			);
 		}
 
-		const { status } = body;
+		const { status, rejectionReason } = body;
 
 		const validStatuses = [
 			"DRAFT",
 			"PUBLISHED",
 			"CLOSED",
+			"REJECTED",
 			"SUBMITTED",
 			"UPDATED",
-			"REQUIRE_UPDATE",
 			"DELETED",
 		];
 		if (status && !validStatuses.includes(status)) {
@@ -218,21 +238,155 @@ export async function PATCH(
 			);
 		}
 
+		// Get current post to validate status transition and get institution info
+		const currentPost = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: postId },
+			include: {
+				institution: {
+					include: {
+						user: true,
+					},
+				},
+				programPost: true,
+				scholarshipPost: true,
+				jobPost: true,
+			},
+		});
+
+		if (!currentPost) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: "Post not found",
+				},
+				{ status: 404 }
+			);
+		}
+
+		// Validate status transition
+		const currentStatus = currentPost.status;
+		const allowedTransitions =
+			ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+
+		if (status && !allowedTransitions.includes(status)) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: `Cannot change status from ${currentStatus} to ${status}. Allowed transitions: ${allowedTransitions.join(", ") || "none"}`,
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Require rejection reason when status is REJECTED
+		if (status === "REJECTED" && !rejectionReason?.trim()) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: "Rejection reason is required when rejecting a post",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Update post with status and rejection reason
 		const updatedPost = await prismaClient.opportunityPost.update({
 			where: {
 				post_id: postId,
 			},
 			data: {
 				...(status && { status }),
+				// Set rejection reason when REJECTED, clear it when changing from REJECTED to another status
+				rejection_reason:
+					status === "REJECTED"
+						? rejectionReason
+						: currentStatus === "REJECTED"
+							? null
+							: undefined,
 				update_at: new Date(),
 			},
 		});
+
+		// Create notification for institution user
+		if (status && currentPost.institution?.user) {
+			const institutionUser = currentPost.institution.user;
+
+			// Determine post type
+			let postType = "Post";
+			if (currentPost.programPost) postType = "Program";
+			else if (currentPost.scholarshipPost) postType = "Scholarship";
+			else if (currentPost.jobPost) postType = "Research Lab";
+
+			// Get status label
+			const statusLabels: Record<string, string> = {
+				PUBLISHED: "Published",
+				CLOSED: "Closed",
+				REJECTED: "Rejected",
+				SUBMITTED: "Submitted",
+			};
+			const statusLabel = statusLabels[status] || status;
+
+			// Build notification body
+			let notificationBody = `Your ${postType.toLowerCase()} "${currentPost.title}" has been ${statusLabel.toLowerCase()}.`;
+			if (status === "REJECTED" && rejectionReason) {
+				notificationBody += ` Reason: ${rejectionReason}`;
+			}
+
+			await prismaClient.notification.create({
+				data: {
+					notification_id: uuidv4(),
+					user_id: institutionUser.id,
+					type: "POST_STATUS_UPDATE",
+					title: `${postType} ${statusLabel}`,
+					body: notificationBody,
+					url: `/institution/posts/${postId}`,
+					send_at: new Date(),
+					create_at: new Date(),
+				},
+			});
+
+			// Send email notification via SQS
+			try {
+				const baseUrl =
+					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+					"https://edumatch.app";
+				const postUrl = `${baseUrl}/institution/posts/${postId}`;
+
+				const emailMessage: PostStatusUpdateMessage = {
+					id: `post-status-${postId}-${Date.now()}`,
+					type: NotificationType.POST_STATUS_UPDATE,
+					userId: institutionUser.id,
+					userEmail: institutionUser.email,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						postId: postId,
+						postTitle: currentPost.title,
+						postType: postType as
+							| "Program"
+							| "Scholarship"
+							| "Research Lab",
+						institutionName: currentPost.institution.name,
+						oldStatus: currentStatus,
+						newStatus: status,
+						rejectionReason:
+							status === "REJECTED" ? rejectionReason : undefined,
+						postUrl: postUrl,
+					},
+				};
+
+				await SQSService.sendNotification(emailMessage);
+			} catch (emailError) {
+				// Log error but don't fail the request
+				console.error("Failed to send email notification:", emailError);
+			}
+		}
 
 		return NextResponse.json({
 			success: true,
 			data: {
 				id: updatedPost.post_id,
 				status: updatedPost.status,
+				rejectionReason: updatedPost.rejection_reason,
 				updatedAt: updatedPost.update_at,
 			},
 		});

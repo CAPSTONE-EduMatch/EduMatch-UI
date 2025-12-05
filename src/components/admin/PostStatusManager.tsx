@@ -3,15 +3,15 @@
 import { Button, CustomSelect, Modal } from '@/components/ui'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export type PostStatus =
 	| 'DRAFT'
 	| 'PUBLISHED'
 	| 'CLOSED'
+	| 'REJECTED'
 	| 'SUBMITTED'
 	| 'UPDATED'
-	| 'REQUIRE_UPDATE'
 	| 'DELETED'
 
 interface PostStatusManagerProps {
@@ -34,26 +34,48 @@ const POST_STATUS_OPTIONS = [
 		color: 'bg-[#10B981] text-white',
 	},
 	{
-		value: 'REQUIRE_UPDATE' as const,
-		label: 'Require Update',
-		color: 'bg-[#F59E0B] text-white',
-	},
-	{
 		value: 'PUBLISHED' as const,
 		label: 'Published',
 		color: 'bg-[#126E64] text-white',
 	},
 	{
 		value: 'CLOSED' as const,
-		label: 'Closed/Rejected',
+		label: 'Closed',
 		color: 'bg-[#6EB6FF] text-black',
+	},
+	{
+		value: 'REJECTED' as const,
+		label: 'Rejected',
+		color: 'bg-[#EF4444] text-white',
 	},
 	{
 		value: 'DELETED' as const,
 		label: 'Deleted',
-		color: 'bg-[#EF4444] text-white',
+		color: 'bg-[#9CA3AF] text-white',
 	},
 ]
+
+/**
+ * Get allowed status transitions based on current status
+ * Rules:
+ * - SUBMITTED/UPDATED → PUBLISHED, REJECTED
+ * - PUBLISHED → CLOSED
+ * - REJECTED → SUBMITTED, PUBLISHED
+ */
+const getAllowedStatusOptions = (currentStatus: PostStatus): PostStatus[] => {
+	switch (currentStatus) {
+		case 'SUBMITTED':
+		case 'UPDATED':
+			return ['PUBLISHED', 'REJECTED']
+		case 'PUBLISHED':
+			return ['CLOSED']
+		case 'REJECTED':
+		case 'CLOSED':
+			return ['SUBMITTED', 'PUBLISHED']
+		default:
+			return []
+	}
+}
 
 const getStatusColor = (status: PostStatus): string => {
 	const statusOption = POST_STATUS_OPTIONS.find(
@@ -70,28 +92,32 @@ const PostStatusManager = ({
 }: PostStatusManagerProps) => {
 	const [selectedStatus, setSelectedStatus] =
 		useState<PostStatus>(currentStatus)
+
+	// Reset selectedStatus when currentStatus prop changes
+	useEffect(() => {
+		setSelectedStatus(currentStatus)
+	}, [currentStatus])
+
 	const [isUpdating, setIsUpdating] = useState(false)
 	const [showConfirmModal, setShowConfirmModal] = useState(false)
 	const [showInputModal, setShowInputModal] = useState(false)
-	const [additionalInput, setAdditionalInput] = useState('')
-	const [inputType, setInputType] = useState<'reject' | 'requirements'>(
-		'reject'
-	)
+	const [rejectionReason, setRejectionReason] = useState('')
 
 	const { showNotification } = useNotification()
 	const router = useRouter()
 
+	// Get available options based on current status
+	const allowedStatuses = getAllowedStatusOptions(currentStatus)
+	const availableOptions = POST_STATUS_OPTIONS.filter((opt) =>
+		allowedStatuses.includes(opt.value)
+	)
+
 	const handleStatusChange = (newStatus: PostStatus) => {
 		setSelectedStatus(newStatus)
 
-		// Check if this status requires additional input
-		if (newStatus === 'CLOSED') {
-			setInputType('reject')
-			setAdditionalInput('')
-			setShowInputModal(true)
-		} else if (newStatus === 'REQUIRE_UPDATE') {
-			setInputType('requirements')
-			setAdditionalInput('')
+		// Check if this status requires additional input (rejection reason)
+		if (newStatus === 'REJECTED') {
+			setRejectionReason('')
 			setShowInputModal(true)
 		} else {
 			// Show confirmation modal for other status changes
@@ -106,13 +132,11 @@ const PostStatusManager = ({
 		setIsUpdating(true)
 
 		try {
-			const requestBody: any = { status }
+			const requestBody: Record<string, unknown> = { status }
 
-			// Add additional data based on status
-			if (status === 'CLOSED' && additionalData) {
-				requestBody.rejectReason = additionalData
-			} else if (status === 'REQUIRE_UPDATE' && additionalData) {
-				requestBody.additionalRequirements = additionalData
+			// Add rejection reason if status is REJECTED
+			if (status === 'REJECTED' && additionalData) {
+				requestBody.rejectionReason = additionalData
 			}
 
 			const response = await fetch(`/api/admin/posts/${postId}`, {
@@ -158,18 +182,18 @@ const PostStatusManager = ({
 	}
 
 	const handleInputSubmit = () => {
-		if (selectedStatus === 'CLOSED' || selectedStatus === 'REQUIRE_UPDATE') {
-			if (!additionalInput.trim()) {
+		if (selectedStatus === 'REJECTED') {
+			if (!rejectionReason.trim()) {
 				showNotification({
 					type: 'error',
 					title: 'Input Required',
-					message: `Please provide ${inputType === 'reject' ? 'a rejection reason' : 'additional requirements'}.`,
+					message: 'Please provide a rejection reason.',
 				})
 				return
 			}
 		}
 
-		executeStatusUpdate(selectedStatus, additionalInput.trim())
+		executeStatusUpdate(selectedStatus, rejectionReason.trim())
 	}
 
 	const getStatusUpdateMessage = (status: PostStatus): string => {
@@ -177,7 +201,9 @@ const PostStatusManager = ({
 			case 'PUBLISHED':
 				return `Are you sure you want to publish this ${postType.toLowerCase()}? It will be visible to all users.`
 			case 'CLOSED':
-				return `This ${postType.toLowerCase()} will be marked as closed/rejected and will not be visible to users.`
+				return `This ${postType.toLowerCase()} will be marked as closed and will no longer accept applications.`
+			case 'REJECTED':
+				return `This ${postType.toLowerCase()} will be rejected. The institution will be notified with the rejection reason.`
 			case 'DELETED':
 				return `This ${postType.toLowerCase()} will be soft-deleted. Admins can restore it later by changing status to Draft.`
 			case 'DRAFT':
@@ -186,8 +212,6 @@ const PostStatusManager = ({
 				return `This ${postType.toLowerCase()} will be marked as submitted for review.`
 			case 'UPDATED':
 				return `This ${postType.toLowerCase()} will be marked as updated.`
-			case 'REQUIRE_UPDATE':
-				return `This ${postType.toLowerCase()} will require additional updates from the institution.`
 			default:
 				return `Are you sure you want to change the status?`
 		}
@@ -217,24 +241,36 @@ const PostStatusManager = ({
 			</div>
 
 			{/* Status Selection */}
-			<div className="mb-6">
-				<label className="block text-sm font-medium text-gray-700 mb-2">
-					Change Status To
-				</label>
-				<CustomSelect
-					value={POST_STATUS_OPTIONS.find(
-						(opt) => opt.value === selectedStatus
-					)}
-					onChange={(selected) =>
-						selected && handleStatusChange(selected.value as PostStatus)
-					}
-					options={POST_STATUS_OPTIONS}
-					placeholder="Select new status..."
-					className="w-full"
-					isSearchable={true}
-					isClearable={false}
-				/>
-			</div>
+			{availableOptions.length > 0 ? (
+				<div className="mb-6">
+					<label className="block text-sm font-medium text-gray-700 mb-2">
+						Change Status To
+					</label>
+					<CustomSelect
+						value={
+							selectedStatus !== currentStatus
+								? POST_STATUS_OPTIONS.find(
+										(opt) => opt.value === selectedStatus
+									)
+								: null
+						}
+						onChange={(selected) =>
+							selected && handleStatusChange(selected.value as PostStatus)
+						}
+						options={availableOptions}
+						placeholder="Select new status..."
+						className="w-full"
+						isSearchable={false}
+						isClearable={false}
+					/>
+				</div>
+			) : (
+				<div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+					<p className="text-sm text-gray-600">
+						No status changes available for the current status.
+					</p>
+				</div>
+			)}
 
 			{/* Status Preview */}
 			{selectedStatus !== currentStatus && (
@@ -331,75 +367,49 @@ const PostStatusManager = ({
 				</Modal>
 			)}
 
-			{/* Input Modal for Reject/Requirements */}
+			{/* Input Modal for Rejection */}
 			{showInputModal && (
 				<Modal
 					isOpen={showInputModal}
 					onClose={() => setShowInputModal(false)}
-					title={
-						inputType === 'reject'
-							? 'Reject Post'
-							: 'Request Additional Requirements'
-					}
+					title="Reject Post"
 				>
 					<div className="space-y-4">
 						<div className="text-center mb-4">
-							<div
-								className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-									inputType === 'reject' ? 'bg-red-100' : 'bg-orange-100'
-								}`}
-							>
+							<div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100">
 								<svg
-									className={`w-8 h-8 ${inputType === 'reject' ? 'text-red-600' : 'text-orange-600'}`}
+									className="w-8 h-8 text-red-600"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
 								>
-									{inputType === 'reject' ? (
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth="2"
-											d="M6 18L18 6M6 6l12 12"
-										/>
-									) : (
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth="2"
-											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-										/>
-									)}
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth="2"
+										d="M6 18L18 6M6 6l12 12"
+									/>
 								</svg>
 							</div>
 							<h3 className="text-lg font-semibold text-gray-900 mb-2">
-								{inputType === 'reject'
-									? `Reject ${postType}`
-									: `Request Updates for ${postType}`}
+								Reject {postType}
 							</h3>
 							<p className="text-gray-600">
-								{inputType === 'reject'
-									? 'Please provide a reason for rejecting this post.'
-									: 'Please specify what additional requirements or updates are needed.'}
+								Please provide a reason for rejecting this post. The institution
+								will be notified.
 							</p>
 						</div>
 
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								{inputType === 'reject'
-									? 'Rejection Reason *'
-									: 'Additional Requirements *'}
+								Rejection Reason *
 							</label>
 							<textarea
-								value={additionalInput}
+								value={rejectionReason}
 								onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-									setAdditionalInput(e.target.value)
+									setRejectionReason(e.target.value)
 								}
-								placeholder={
-									inputType === 'reject'
-										? 'Enter the reason for rejection...'
-										: 'Describe what updates or additional information is required...'
-								}
+								placeholder="Enter the reason for rejection..."
 								rows={4}
 								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
 							/>
@@ -418,22 +428,16 @@ const PostStatusManager = ({
 							<Button
 								type="button"
 								onClick={handleInputSubmit}
-								className={`flex-1 py-3 text-white ${
-									inputType === 'reject'
-										? 'bg-red-600 hover:bg-red-700'
-										: 'bg-orange-600 hover:bg-orange-700'
-								}`}
-								disabled={isUpdating}
+								className="flex-1 py-3 text-white bg-red-600 hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed"
+								disabled={isUpdating || !rejectionReason.trim()}
 							>
 								{isUpdating ? (
 									<div className="flex items-center gap-2">
 										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-										{inputType === 'reject' ? 'Rejecting...' : 'Updating...'}
+										Rejecting...
 									</div>
-								) : inputType === 'reject' ? (
-									'Reject Post'
 								) : (
-									'Request Updates'
+									'Reject Post'
 								)}
 							</Button>
 						</div>

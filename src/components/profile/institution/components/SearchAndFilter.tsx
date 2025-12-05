@@ -49,14 +49,14 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 	]
 
 	// Admin posts status options
-	// PostStatus enum: DRAFT, PUBLISHED, CLOSED, SUBMITTED, UPDATED, REQUIRE_UPDATE, DELETED
+	// PostStatus enum: DRAFT, PUBLISHED, CLOSED, SUBMITTED, UPDATED, REJECTED, DELETED
 	const adminPostStatusOptions = [
 		{ value: 'DRAFT', label: 'Draft' },
 		{ value: 'PUBLISHED', label: 'Published' },
 		{ value: 'CLOSED', label: 'Closed' },
 		{ value: 'SUBMITTED', label: 'Submitted' },
 		{ value: 'UPDATED', label: 'Updated' },
-		{ value: 'REQUIRE_UPDATE', label: 'Require Update' },
+		{ value: 'REJECTED', label: 'Rejected' },
 		{ value: 'DELETED', label: 'Deleted' },
 	]
 

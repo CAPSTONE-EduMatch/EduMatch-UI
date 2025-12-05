@@ -346,7 +346,7 @@ const AdminScholarshipDetail = () => {
 		setIsProcessing(true)
 		try {
 			await axios.patch(`/api/admin/posts/${params?.id}`, {
-				status: 'REQUIRE_UPDATE',
+				status: 'REJECTED',
 				additionalRequirements: additionalRequirements.trim(),
 			})
 

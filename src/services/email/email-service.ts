@@ -8,6 +8,7 @@ import {
 	PaymentDeadlineMessage,
 	PaymentFailedMessage,
 	PaymentSuccessMessage,
+	PostStatusUpdateMessage,
 	ProfileCreatedMessage,
 	SessionRevokedMessage,
 	SubscriptionExpiringMessage,
@@ -28,6 +29,7 @@ import {
 	generatePaymentDeadlineEmailTemplate,
 	generatePaymentFailedEmailTemplate,
 	generatePaymentSuccessEmailTemplate,
+	generatePostStatusUpdateEmailTemplate,
 	generateProfileCreatedEmailTemplate,
 	generateRevokeSessionEmailTemplate,
 	generateSubscriptionExpiringEmailTemplate,
@@ -349,6 +351,26 @@ export class EmailTemplates {
 
 		return { subject, html };
 	}
+
+	/**
+	 * Generate post status update email template
+	 * Used for: When admin changes status of institution's post
+	 */
+	static generatePostStatusUpdateEmail(message: PostStatusUpdateMessage): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		return generatePostStatusUpdateEmailTemplate(
+			metadata.postTitle,
+			metadata.postType,
+			metadata.institutionName,
+			metadata.oldStatus,
+			metadata.newStatus,
+			metadata.postUrl,
+			metadata.rejectionReason
+		);
+	}
 }
 
 // Email service class
@@ -487,6 +509,11 @@ export class EmailService {
 				case NotificationType.SUPPORT_REPLY:
 					emailContent = EmailTemplates.generateSupportReplyEmail(
 						message as SupportReplyMessage
+					);
+					break;
+				case NotificationType.POST_STATUS_UPDATE:
+					emailContent = EmailTemplates.generatePostStatusUpdateEmail(
+						message as PostStatusUpdateMessage
 					);
 					break;
 				default:

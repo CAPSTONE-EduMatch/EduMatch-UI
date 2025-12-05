@@ -38,6 +38,11 @@ frontend:
         - echo "NEXT_PUBLIC_APPSYNC_ENDPOINT=$NEXT_PUBLIC_APPSYNC_ENDPOINT" >> .env
         - echo "NEXT_PUBLIC_APPSYNC_API_KEY=$NEXT_PUBLIC_APPSYNC_API_KEY" >> .env
         - echo "NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION" >> .env
+        - echo "NEXT_PUBLIC_MISTRAL_OCR_API_KEY=$NEXT_PUBLIC_MISTRAL_OCR_API_KEY" >> .env
+        - echo "MISTRAL_OCR_ENDPOINT=$MISTRAL_OCR_ENDPOINT" >> .env
+        - echo "NEXT_PUBLIC_MISTRAL_OCR_ENABLED=$NEXT_PUBLIC_MISTRAL_OCR_ENABLED" >> .env
+        - echo "OLLAMA_API_KEY=$OLLAMA_API_KEY" >> .env
+        - echo "ONLINE_STATUS_THRESHOLD_MINUTES=$ONLINE_STATUS_THRESHOLD_MINUTES" >> .env
         - echo ".env file created successfully"
         - echo "Generating Prisma client..."
         - npx prisma generate

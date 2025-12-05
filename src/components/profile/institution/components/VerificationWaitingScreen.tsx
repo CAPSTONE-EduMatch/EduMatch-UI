@@ -5,7 +5,12 @@ import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface VerificationWaitingScreenProps {
-	verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRE_UPDATE'
+	verificationStatus:
+		| 'PENDING'
+		| 'APPROVED'
+		| 'REJECTED'
+		| 'REQUIRE_UPDATE'
+		| 'UPDATED'
 	submittedAt?: string | Date | null
 	rejectionReason?: string | null
 }
@@ -122,6 +127,81 @@ export const VerificationWaitingScreen: React.FC<
 					>
 						Update Profile
 					</button>
+				</motion.div>
+			</div>
+		)
+	}
+
+	// UPDATED status - profile was updated and waiting for re-verification
+	if (verificationStatus === 'UPDATED') {
+		return (
+			<div className="min-h-[calc(100vh-200px)] bg-gray-50 flex items-center justify-center p-4">
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8 text-center"
+				>
+					<div className="flex justify-center mb-6">
+						<motion.div
+							animate={{ rotate: 360 }}
+							transition={{
+								duration: 2,
+								repeat: Infinity,
+								ease: 'linear',
+							}}
+							className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center"
+						>
+							<Clock className="w-12 h-12 text-blue-600" />
+						</motion.div>
+					</div>
+					<h1 className="text-3xl font-bold text-gray-900 mb-4">
+						Profile Updated - Verification in Progress
+					</h1>
+					<p className="text-lg text-gray-600 mb-6">
+						Your institution profile has been updated and is currently under
+						review by our administrative team.
+					</p>
+					{submittedAt && (
+						<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+							<p className="text-sm text-blue-800">
+								<strong>Updated on:</strong> {formatDate(submittedAt)}
+							</p>
+						</div>
+					)}
+					<div className="bg-gray-50 rounded-lg p-6 mb-6">
+						<h3 className="font-semibold text-gray-900 mb-3">
+							What happens next?
+						</h3>
+						<ul className="text-sm text-gray-600 space-y-2 text-left">
+							<li className="flex items-start gap-2">
+								<CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+								<span>
+									Our team will review your updated institution profile and
+									verification documents
+								</span>
+							</li>
+							<li className="flex items-start gap-2">
+								<CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+								<span>
+									You&apos;ll receive a notification once the review is complete
+								</span>
+							</li>
+							<li className="flex items-start gap-2">
+								<CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+								<span>
+									Once approved, you&apos;ll have full access to all dashboard
+									features
+								</span>
+							</li>
+						</ul>
+					</div>
+					<div className="text-sm text-gray-500">
+						<p>
+							This process typically takes 1-3 business days. Thank you for your
+							patience.
+						</p>
+					</div>
 				</motion.div>
 			</div>
 		)

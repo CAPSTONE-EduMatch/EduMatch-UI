@@ -30,6 +30,7 @@ import { useUserProfile } from '@/hooks/profile/useUserProfile'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { useLocale, useTranslations } from 'next-intl'
 import { formatUTCRelativeTime, formatUTCDateToLocal } from '@/utils/date'
+import { clearSessionCache } from '@/services/messaging/appsync-client'
 
 export function EduMatchHeader() {
 	const router = useRouter()
@@ -173,19 +174,23 @@ export function EduMatchHeader() {
 
 	const handleLogout = async () => {
 		try {
+			// Clear AppSync session cache
+			clearSessionCache()
+
+			// Clear Better Auth session
 			await authClient.signOut()
 
-			// Clear any cached data
+			// Clear browser storage
 			localStorage.clear()
 			sessionStorage.clear()
 
-			// Refresh auth state to update header
-			await refreshAuth()
-
-			// Redirect to home page
-			router.push('/')
+			// Force full page reload to ensure all state is cleared
+			window.location.href = '/'
 		} catch (error) {
-			// Handle logout error silently or show user-friendly message
+			// eslint-disable-next-line no-console
+			console.error('Failed to logout:', error)
+			// Still redirect even if logout fails
+			window.location.href = '/'
 		}
 	}
 

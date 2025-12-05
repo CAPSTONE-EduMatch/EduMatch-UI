@@ -131,19 +131,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 		)
 	}
 
-	// Check verification status - show waiting screen if PENDING, REJECTED, or REQUIRE_UPDATE
+	// Check verification status - show waiting screen if NOT APPROVED
 	if (profile && profile.role === 'institution') {
 		const verificationStatus = profile.verification_status || 'PENDING'
 
-		// Allow access to profile page even if pending/rejected/require_update so they can update
+		// Allow access to profile page even if not approved so they can update
 		const isProfilePage = pathname.startsWith('/institution/dashboard/profile')
 
-		if (
-			(verificationStatus === 'PENDING' ||
-				verificationStatus === 'REJECTED' ||
-				verificationStatus === 'REQUIRE_UPDATE') &&
-			!isProfilePage
-		) {
+		// Show verification screen for all non-approved statuses (PENDING, REJECTED, REQUIRE_UPDATE, UPDATED, etc.)
+		if (verificationStatus !== 'APPROVED' && !isProfilePage) {
 			return (
 				<InstitutionProfileLayout
 					activeSection={activeSection}

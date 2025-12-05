@@ -2196,10 +2196,12 @@ const ProgramDetail = () => {
 									>
 										{(applicationStatus || pendingApplication?.status) ===
 										'PENDING'
-											? 'SUBMITTED'
+											? t('program_detail.documents_section.status_submitted')
 											: (applicationStatus || pendingApplication?.status) ===
 												  'REVIEWED'
-												? 'REQUIRE_UPDATE'
+												? t(
+														'program_detail.documents_section.status_require_update'
+													)
 												: applicationStatus || pendingApplication?.status}
 									</span>
 								)}
@@ -2225,7 +2227,9 @@ const ProgramDetail = () => {
 									<div className="bg-white rounded-lg p-4 border border-green-200">
 										<p className="text-sm text-green-600 font-medium">
 											{t('program_detail.congratulations.status_label')}{' '}
-											<span className="text-green-800">ACCEPTED</span>
+											<span className="text-green-800">
+												{t('program_detail.documents_section.status_accepted')}
+											</span>
 										</p>
 									</div>
 								</div>
@@ -2262,12 +2266,12 @@ const ProgramDetail = () => {
 										}`}
 									>
 										{applicationStatus === 'REJECTED'
-											? '❌'
+											? ''
 											: applicationStatus === 'UPDATED'
-												? '✓'
+												? ''
 												: applicationStatus === 'REQUIRE_UPDATE'
-													? '⚠'
-													: 'ℹ'}
+													? ''
+													: ''}
 									</div>
 									<div className="flex-1">
 										<h3
@@ -2731,8 +2735,10 @@ const ProgramDetail = () => {
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
-									Application Documents ({uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''})
+									{t('program_detail.documents_section.title_with_count', {
+										count: uploadedFiles.length,
+										plural: uploadedFiles.length !== 1 ? 's' : '',
+									})}
 								</span>
 								{applicationStatus === 'SUBMITTED' && (
 									<Button
@@ -2871,10 +2877,7 @@ const ProgramDetail = () => {
 										))}
 									</div>
 								) : (
-									<p>
-										These are the documents you submitted with your application.
-										They cannot be modified or deleted.
-									</p>
+									<p>{t('program_detail.documents_section.description')}</p>
 								)}
 							</div>
 							<div className="space-y-3">

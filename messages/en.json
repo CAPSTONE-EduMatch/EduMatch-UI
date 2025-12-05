@@ -486,6 +486,11 @@
 			"provided_by": "Provided by: {organization}",
 			"job_name": "Job's name"
 		},
+		"institution_status": {
+			"pending": "Pending Approval",
+			"rejected": "Account Rejected",
+			"deactivated": "Account Deactivated"
+		},
 		"info": {
 			"location": "Location",
 			"salary": "Salary",
@@ -509,28 +514,53 @@
 		},
 		"about": {
 			"title": "About",
-			"no_description": "No description available."
+			"no_description": "No description available.",
+			"research_focus": "Research Focus:",
+			"research_areas": "Research Areas:",
+			"institution": "Institution:",
+			"visit_website": "Visit Institution Website"
 		},
 		"job_description": {
-			"title": "Job Description"
+			"title": "Job Description",
+			"research_field": "1. Research Field:",
+			"start_date": "2. Start date:",
+			"deadline": "3. Application deadline:",
+			"country": "4. Country:",
+			"contract_type": "5. Type of Contract:",
+			"attendance": "6. Attendance:",
+			"job_type": "7. Job type:",
+			"detail_description": "8. Detail description:",
+			"not_specified": "Not specified",
+			"no_description": "No description available"
 		},
 		"offer_information": {
 			"title": "Offer Information",
 			"salary": "Salary:",
+			"salary_description": "Salary Description",
 			"benefit": "Benefit:",
 			"lab_facilities": "Lab Facilities:"
 		},
 		"job_requirements": {
 			"title": "Job Requirements",
+			"main_responsibilities": "1. Main responsibilities:",
+			"qualification_requirements": "2. Qualification requirements:",
+			"experience_requirements": "3. Experience requirements:",
+			"assessment_criteria": "4. Assessment criteria:",
+			"other_requirements": "5. Other requirements:",
+			"technical_skills": "Technical Skills:",
+			"academic_background": "Academic Background:",
 			"research_focus": "Research Focus:",
 			"research_areas": "Research Areas:",
 			"institution": "Institution:"
 		},
+		"other_information": {
+			"title": "Other Information:"
+		},
 		"apply": {
 			"title_not_applied": "Apply here !",
 			"title_applied": "Application Status",
-			"edit_documents_title": "Edit Application Documents",
-			"cancel_edit_button": "Cancel Edit",
+			"edit_documents": "Edit Application Documents",
+			"cancel_edit": "Cancel Edit",
 			"status_badge": {
 				"submitted": "SUBMITTED",
 				"pending": "SUBMITTED",
@@ -550,11 +580,9 @@
 				"rejected_message": "We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application."
 			},
 			"congratulations": {
-				"icon": "🎉",
 				"title": "Congratulations!",
 				"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
-				"status_label": "Application Status:",
-				"accepted": "ACCEPTED"
+				"status_label": "Application Status:"
 			},
 			"document_requirements": {
 				"no_specific": "Not have any specific document requirement. You can upload any"
@@ -575,17 +603,20 @@
 			"submit_button": "Submit Application",
 			"submitting_button": "Submitting...",
 			"upload_files_button": "Upload Files to Continue",
+			"uploading_files_button": "Uploading Files...",
 			"checking_button": "Checking...",
 			"application_submitted": "✓ Application Submitted",
 			"upload_warning": "📁 Please upload at least one document to submit your application",
-			"reapply_button": "Reapply Now"
+			"reapply_button": "Reapply Now",
+			"uploading_progress": "Uploading files...",
+			"file_progress": "File {index}",
+			"file_size": "{size} KB"
 		},
 		"recommendations": {
 			"title": "Related Research Labs",
 			"loading": "Loading recommendations...",
 			"no_recommendations": "No recommendations available at this time.",
 			"upgrade": {
-				"icon": "🔒",
 				"title": "Unlock Personalized Recommendations",
 				"message": "Upgrade to Standard or Premium to see research labs tailored to your profile and interests.",
 				"button": "View Upgrade Options"
@@ -646,7 +677,26 @@
 		},
 		"notifications": {
 			"files_uploaded": "Files Uploaded",
-			"files_uploaded_message": "{count} file(s) uploaded successfully"
+			"files_uploaded_message": "{count} file(s) uploaded successfully",
+			"validation_failed": "Validation Failed",
+			"validation_failed_message": "File failed validation. Please redact sensitive information and try again.",
+			"documents_updated": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"already_applied": "Already Applied",
+			"already_applied_message": "You have already applied to this research lab. You cannot submit multiple applications.",
+			"application_failed": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"application_error": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again.",
+			"application_limit": "Application Limit Reached",
+			"upload_failed": "Upload Failed",
+			"upload_failed_message": "Failed to upload files. Please try again.",
+			"application_submitted": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email."
 		}
 	},
 
@@ -791,7 +841,34 @@
 				"message_prefix": "Update request #"
 			}
 		},
+		"congratulations": {
+			"title": "Congratulations!",
+			"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
+			"status_label": "Application Status:"
+		},
+		"application_status": {
+			"accepted": {
+				"title": "Application Accepted!",
+				"message": "Congratulations! Your application has been accepted. The institution will contact you soon with next steps."
+			},
+			"rejected": {
+				"title": "Application Not Selected",
+				"message": "We regret to inform you that your application was not selected this time. You can reapply if you wish to submit a new application."
+			},
+			"updated": {
+				"title": "Application Updated",
+				"message": "Your application has been updated successfully. The institution will review your changes."
+			},
+			"submitted": {
+				"title": "Application Submitted Successfully!",
+				"message": "Your application has been submitted. You will receive updates via email."
+			}
+		},
 		"apply": {
+			"title": "Apply here !",
+			"status_title": "Application Status",
+			"edit_documents": "Edit Application Documents",
+			"cancel_edit": "Cancel Edit",
 			"reapply_button": "Reapply",
 			"document_requirement": "Required Document(s)",
 			"select_profile_button": "Select Documents from Profile",
@@ -822,6 +899,9 @@
 			"description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
 			"uploaded_label": "Uploaded:",
 			"download_button": "Download",
+			"status_submitted": "SUBMITTED",
+			"status_require_update": "REQUIRE_UPDATE",
+			"status_accepted": "ACCEPTED",
 			"ready_title": "{count} Document{plural} Ready",
 			"warning": "Please select at least one document to submit your application"
 		},
@@ -987,7 +1067,6 @@
 				"rejected_message": "We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application."
 			},
 			"congratulations": {
-				"icon": "🎉",
 				"title": "Congratulations!",
 				"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
 				"status_label": "Application Status:",
@@ -1265,6 +1344,44 @@
 			"file_too_large": "File {fileName} is too large. Maximum size is {maxSize}MB.",
 			"invalid_type": "File {fileName} is not an accepted file type.",
 			"upload_failed": "Upload failed: {error}"
+		}
+	},
+	"application_section": {
+		"title": "Application",
+		"tabs": {
+			"programmes": "Programmes",
+			"scholarships": "Scholarships",
+			"research": "Research Labs"
+		},
+		"filters": {
+			"submitted": "Submitted",
+			"update_required": "Update Required",
+			"accepted": "Accepted",
+			"rejected": "Rejected"
+		},
+		"search": {
+			"placeholder": "Search..."
+		},
+		"results": {
+			"count": "{count} results"
+		},
+		"empty": {
+			"title": "No applications found",
+			"description": "You haven't applied to any programs, scholarships, or research labs yet.",
+			"button": "Explore Opportunities"
+		},
+		"error": {
+			"failed_to_process": "Failed to process application data",
+			"button": "Retry"
+		},
+		"defaults": {
+			"no_description": "No description available",
+			"not_specified": "Not specified",
+			"academic_program": "Academic Program",
+			"funding_available": "Available",
+			"default_match": "85%",
+			"research": "Research",
+			"professor": "Prof. Researcher"
 		}
 	}
 }

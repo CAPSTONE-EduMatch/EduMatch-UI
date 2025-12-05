@@ -490,6 +490,11 @@
 			"provided_by": "Cung cấp bởi: {organization}",
 			"job_name": "Tên công việc"
 		},
+		"institution_status": {
+			"pending": "Đang chờ phê duyệt",
+			"rejected": "Tài khoản bị từ chối",
+			"deactivated": "Tài khoản bị vô hiệu hóa"
+		},
 		"info": {
 			"location": "Địa điểm",
 			"salary": "Lương",
@@ -513,28 +518,53 @@
 		},
 		"about": {
 			"title": "Giới thiệu",
-			"no_description": "Không có mô tả."
+			"no_description": "Không có mô tả.",
+			"research_focus": "Trọng tâm nghiên cứu:",
+			"research_areas": "Lĩnh vực nghiên cứu:",
+			"institution": "Cơ sở giáo dục:",
+			"visit_website": "Truy cập website cơ sở"
 		},
 		"job_description": {
-			"title": "Mô tả công việc"
+			"title": "Mô tả công việc",
+			"research_field": "1. Lĩnh vực nghiên cứu:",
+			"start_date": "2. Ngày bắt đầu:",
+			"deadline": "3. Hạn chót nộp hồ sơ:",
+			"country": "4. Quốc gia:",
+			"contract_type": "5. Loại hợp đồng:",
+			"attendance": "6. Hình thức làm việc:",
+			"job_type": "7. Loại công việc:",
+			"detail_description": "8. Mô tả chi tiết:",
+			"not_specified": "Chưa xác định",
+			"no_description": "Không có mô tả"
 		},
 		"offer_information": {
 			"title": "Thông tin đề nghị",
 			"salary": "Lương:",
+			"salary_description": "Mô tả mức lương",
 			"benefit": "Quyền lợi:",
 			"lab_facilities": "Cơ sở vật chất phòng thí nghiệm:"
 		},
 		"job_requirements": {
 			"title": "Yêu cầu công việc",
+			"main_responsibilities": "1. Trách nhiệm chính:",
+			"qualification_requirements": "2. Yêu cầu bằng cấp:",
+			"experience_requirements": "3. Yêu cầu kinh nghiệm:",
+			"assessment_criteria": "4. Tiêu chí đánh giá:",
+			"other_requirements": "5. Yêu cầu khác:",
+			"technical_skills": "Kỹ năng kỹ thuật:",
+			"academic_background": "Lý lịch học vấn:",
 			"research_focus": "Trọng tâm nghiên cứu:",
 			"research_areas": "Lĩnh vực nghiên cứu:",
 			"institution": "Cơ sở giáo dục:"
 		},
+		"other_information": {
+			"title": "Thông tin khác:"
+		},
 		"apply": {
 			"title_not_applied": "Ứng tuyển tại đây !",
 			"title_applied": "Trạng thái hồ sơ",
-			"edit_documents_title": "Chỉnh sửa tài liệu hồ sơ",
-			"cancel_edit_button": "Hủy chỉnh sửa",
+			"edit_documents": "Chỉnh sửa tài liệu hồ sơ",
+			"cancel_edit": "Hủy chỉnh sửa",
 			"status_badge": {
 				"submitted": "ĐÃ NỘP",
 				"pending": "ĐÃ NỘP",
@@ -554,19 +584,17 @@
 				"rejected_message": "Rất tiếc, hồ sơ của bạn không được chọn lần này. Bạn có thể nộp lại nếu muốn gửi hồ sơ mới."
 			},
 			"congratulations": {
-				"icon": "🎉",
 				"title": "Chúc mừng!",
 				"message": "Hồ sơ của bạn đã được phê duyệt! Cơ sở giáo dục sẽ liên hệ với bạn để cung cấp thêm thông tin về các bước tiếp theo.",
-				"status_label": "Trạng thái hồ sơ:",
-				"accepted": "ĐÃ CHẤP NHẬN"
+				"status_label": "Trạng thái hồ sơ:"
 			},
 			"document_requirements": {
 				"no_specific": "Không có yêu cầu tài liệu cụ thể. Bạn có thể tải lên bất kỳ tài liệu nào"
 			},
 			"select_profile_button": "📄 Chọn từ hồ sơ",
-			"select_profile_hint": "Chọn tài liệu từ hồ sơ của bạn cho snapshot",
+			"select_profile_hint": "Chọn tài liệu từ hồ sơ của bạn",
 			"or_divider": "HOẶC",
-			"documents_uploaded": "Tài liệu hồ sơ ({count} tệp{plural})",
+			"documents_uploaded": "Tài liệu hồ sơ ({count} tệp)",
 			"from_profile_badge": "Từ hồ sơ",
 			"uploaded_badge": "Đã tải lên",
 			"view_button": "Xem",
@@ -579,17 +607,20 @@
 			"submit_button": "Nộp hồ sơ",
 			"submitting_button": "Đang nộp...",
 			"upload_files_button": "Tải tệp lên để tiếp tục",
+			"uploading_files_button": "Đang tải tệp lên...",
 			"checking_button": "Đang kiểm tra...",
 			"application_submitted": "✓ Đã nộp hồ sơ",
 			"upload_warning": "📁 Vui lòng tải lên ít nhất một tài liệu để nộp hồ sơ",
-			"reapply_button": "Nộp lại ngay"
+			"reapply_button": "Nộp lại ngay",
+			"uploading_progress": "Đang tải tệp lên...",
+			"file_progress": "Tệp {index}",
+			"file_size": "{size} KB"
 		},
 		"recommendations": {
 			"title": "Phòng nghiên cứu liên quan",
 			"loading": "Đang tải đề xuất...",
 			"no_recommendations": "Hiện không có đề xuất nào.",
 			"upgrade": {
-				"icon": "🔒",
 				"title": "Mở khóa đề xuất cá nhân hóa",
 				"message": "Nâng cấp lên Tiêu chuẩn hoặc Cao cấp để xem phòng nghiên cứu phù hợp với hồ sơ và sở thích của bạn.",
 				"button": "Xem các gói nâng cấp"
@@ -630,7 +661,7 @@
 			"document_selector": {
 				"title": "Chọn tài liệu cho hồ sơ",
 				"summary": {
-					"selected": "Đã chọn {count} tài liệu{plural} từ hồ sơ",
+					"selected": "Đã chọn {count} tài liệu từ hồ sơ",
 					"ready": "Sẵn sàng nộp",
 					"none_selected": "Chưa chọn tài liệu nào",
 					"choose_files": "Chọn tệp để tiếp tục"
@@ -639,7 +670,7 @@
 				"continue": "Tiếp tục",
 				"select_first": "Chọn tài liệu trước",
 				"success": "Đã chọn tài liệu!",
-				"success_message": "{count} tài liệu{plural} sẵn sàng để nộp hồ sơ"
+				"success_message": "{count} tài liệu sẵn sàng để nộp hồ sơ"
 			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
@@ -650,7 +681,26 @@
 		},
 		"notifications": {
 			"files_uploaded": "Đã tải tệp lên",
-			"files_uploaded_message": "Đã tải lên {count} tệp thành công"
+			"files_uploaded_message": "Đã tải lên {count} tệp thành công",
+			"validation_failed": "Xác thực thất bại",
+			"validation_failed_message": "Tệp không qua xác thực. Vui lòng che giấu thông tin nhạy cảm và thử lại.",
+			"documents_updated": "Đã cập nhật tài liệu!",
+			"documents_updated_message": "Tài liệu hồ sơ của bạn đã được cập nhật thành công.",
+			"update_failed": "Cập nhật thất bại",
+			"update_failed_message": "Không thể cập nhật tài liệu. Vui lòng thử lại.",
+			"update_error": "Lỗi cập nhật",
+			"update_error_message": "Đã xảy ra lỗi không mong đợi. Vui lòng thử lại.",
+			"already_applied": "Đã nộp hồ sơ",
+			"already_applied_message": "Bạn đã nộp hồ sơ cho phòng nghiên cứu này. Bạn không thể nộp nhiều hồ sơ.",
+			"application_failed": "Nộp hồ sơ thất bại",
+			"application_failed_message": "Không thể nộp hồ sơ. Vui lòng thử lại.",
+			"application_error": "Lỗi nộp hồ sơ",
+			"application_error_message": "Đã xảy ra lỗi không mong đợi. Vui lòng thử lại.",
+			"application_limit": "Đã đạt giới hạn nộp hồ sơ",
+			"upload_failed": "Tải lên thất bại",
+			"upload_failed_message": "Không thể tải tệp lên. Vui lòng thử lại.",
+			"application_submitted": "Đã nộp hồ sơ!",
+			"application_submitted_message": "Hồ sơ của bạn đã được nộp thành công. Bạn sẽ nhận được cập nhật qua email."
 		}
 	},
 
@@ -702,7 +752,7 @@
 		},
 		"application": {
 			"title": "Hồ sơ ứng tuyển",
-			"back_to_list": "← Quay lại danh sách",
+			"back_to_list": "Quay lại danh sách",
 			"status_badge": {
 				"pending": "Đang chờ",
 				"approved": "Đã duyệt",
@@ -750,6 +800,9 @@
 		},
 		"apply": {
 			"title": "Ứng tuyển tại đây !",
+			"status_title": "Trạng Thái Hồ Sơ",
+			"edit_documents": "Chỉnh Sửa Tài Liệu Hồ Sơ",
+			"cancel_edit": "Hủy Chỉnh Sửa",
 			"reapply_button": "Nộp lại Hồ sơ",
 			"document_requirement": "Tài Liệu Bắt Buộc",
 			"select_profile_button": "Chọn Tài Liệu từ Hồ Sơ",
@@ -775,16 +828,19 @@
 		},
 		"documents_section": {
 			"title": "Tài Liệu Hồ Sơ",
-			"title_with_count": "Tài Liệu Hồ Sơ ({count} tệp{plural})",
+			"title_with_count": "Tài Liệu Hồ Sơ ({count} tệp)",
 			"edit_button": "Chỉnh Sửa Tài Liệu",
 			"description": "Đây là các tài liệu bạn đã nộp với hồ sơ của mình. Chúng không thể được sửa đổi hoặc xóa.",
 			"uploaded_label": "Đã tải lên:",
 			"download_button": "Tải xuống",
-			"ready_title": "{count} Tài Liệu{plural} Sẵn Sàng",
-			"warning": "Vui lòng chọn ít nhất một tài liệu để nộp hồ sơ"
+			"ready_title": "{count} Tài Liệu Sẵn Sàng",
+			"warning": "Vui lòng chọn ít nhất một tài liệu để nộp hồ sơ",
+			"status_submitted": "ĐÃ NỘP",
+			"status_require_update": "CẦN CẬP NHẬT",
+			"status_accepted": "ĐÃ CHẤP NHẬN"
 		},
 		"congratulations": {
-			"title": "🎉 Chúc mừng!",
+			"title": "Chúc mừng!",
 			"message": "Hồ sơ của bạn đã được chấp nhận! Cơ sở giáo dục sẽ liên hệ với bạn với thông tin chi tiết về các bước tiếp theo.",
 			"status_label": "Trạng thái ứng tuyển:"
 		},
@@ -928,7 +984,7 @@
 			"document_selector": {
 				"title": "Chọn Tài Liệu Cho Hồ Sơ",
 				"summary": {
-					"selected": "Đã chọn {count} tài liệu{plural} từ hồ sơ",
+					"selected": "Đã chọn {count} tài liệu từ hồ sơ",
 					"ready": "Sẵn sàng nộp",
 					"none_selected": "Chưa chọn tài liệu nào",
 					"choose_files": "Chọn tệp để tiếp tục"
@@ -937,7 +993,7 @@
 				"continue": "Tiếp Tục",
 				"select_first": "Chọn Tài Liệu Trước",
 				"success": "Đã Chọn Tài Liệu!",
-				"success_message": "{count} tài liệu{plural} sẵn sàng để nộp hồ sơ"
+				"success_message": "{count} tài liệu sẵn sàng để nộp hồ sơ"
 			},
 			"auth_required": {
 				"title": "Yêu Cầu Xác Thực",
@@ -990,8 +1046,8 @@
 		"header": {
 			"default_title": "Công nghệ thông tin",
 			"default_university": "Đại học Army West (AWU)",
-			"institution_detail_button": "Xem chi tiết cơ sở giáo dục",
-			"contact_button": "Liên hệ cơ sở giáo dục",
+			"institution_detail_button": "Chi Tiết Tổ Chức",
+			"contact_button": "Liên hệ",
 			"applications_count": "Số lượng hồ sơ: {count}",
 			"grant": "Học bổng",
 			"country": "Quốc gia",
@@ -1076,7 +1132,6 @@
 				"rejected_message": "Rất tiếc, hồ sơ của bạn không được chọn lần này. Bạn có thể nộp lại nếu muốn gửi hồ sơ mới."
 			},
 			"congratulations": {
-				"icon": "🎉",
 				"title": "Chúc mừng!",
 				"message": "Hồ sơ của bạn đã được phê duyệt! Cơ sở giáo dục sẽ liên hệ với bạn để cung cấp thêm thông tin về các bước tiếp theo.",
 				"status_label": "Trạng thái hồ sơ:",
@@ -1085,10 +1140,10 @@
 			"document_requirements": {
 				"no_specific": "Không có yêu cầu tài liệu cụ thể. Bạn có thể tải lên bất kỳ tài liệu nào"
 			},
-			"select_profile_button": "📄 Chọn từ hồ sơ",
-			"select_profile_hint": "Chọn tài liệu từ hồ sơ của bạn cho snapshot",
+			"select_profile_button": "Chọn từ hồ sơ",
+			"select_profile_hint": "Chọn tài liệu từ hồ sơ của bạn",
 			"or_divider": "HOẶC",
-			"documents_uploaded": "Tài liệu hồ sơ ({count} tệp{plural})",
+			"documents_uploaded": "Tài liệu hồ sơ ({count} tệp)",
 			"from_profile_badge": "Từ hồ sơ",
 			"uploaded_badge": "Đã tải lên",
 			"view_button": "Xem",
@@ -1104,7 +1159,7 @@
 			"checking_button": "Đang kiểm tra...",
 			"uploading_files_button": "Đang tải tệp lên...",
 			"application_submitted": "✓ Đã nộp hồ sơ",
-			"upload_warning": "📁 Vui lòng tải lên ít nhất một tài liệu để nộp hồ sơ",
+			"upload_warning": "Vui lòng tải lên ít nhất một tài liệu để nộp hồ sơ",
 			"uploading_progress": "Đang tải tệp lên...",
 			"file_progress": "Tệp {index}",
 			"reapply_button": "Nộp lại ngay"
@@ -1156,7 +1211,7 @@
 			"document_selector": {
 				"title": "Chọn tài liệu cho hồ sơ",
 				"summary": {
-					"selected": "Đã chọn {count} tài liệu{plural} từ hồ sơ",
+					"selected": "Đã chọn {count} tài liệu từ hồ sơ",
 					"ready": "Sẵn sàng nộp",
 					"none_selected": "Chưa chọn tài liệu nào",
 					"choose_files": "Chọn tệp để tiếp tục"
@@ -1165,7 +1220,7 @@
 				"continue": "Tiếp tục",
 				"select_first": "Chọn tài liệu trước",
 				"success": "Đã chọn tài liệu!",
-				"success_message": "{count} tài liệu{plural} sẵn sàng để nộp hồ sơ"
+				"success_message": "{count} tài liệu sẵn sàng để nộp hồ sơ"
 			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
@@ -1354,6 +1409,44 @@
 			"file_too_large": "Tệp {fileName} quá lớn. Kích thước tối đa là {maxSize}MB.",
 			"invalid_type": "Tệp {fileName} không phải là loại tệp được chấp nhận.",
 			"upload_failed": "Tải lên thất bại: {error}"
+		}
+	},
+	"application_section": {
+		"title": "Đơn Ứng Tuyển",
+		"tabs": {
+			"programmes": "Chương Trình",
+			"scholarships": "Học Bổng",
+			"research": "Phòng Nghiên Cứu"
+		},
+		"filters": {
+			"submitted": "Đã Nộp",
+			"update_required": "Cần Cập Nhật",
+			"accepted": "Đã Chấp Nhận",
+			"rejected": "Đã Từ Chối"
+		},
+		"search": {
+			"placeholder": "Tìm kiếm..."
+		},
+		"results": {
+			"count": "{count} kết quả"
+		},
+		"empty": {
+			"title": "Không tìm thấy đơn ứng tuyển",
+			"description": "Bạn chưa nộp đơn cho bất kỳ chương trình, học bổng hoặc phòng nghiên cứu nào.",
+			"button": "Khám Phá Cơ Hội"
+		},
+		"error": {
+			"failed_to_process": "Không thể xử lý dữ liệu đơn ứng tuyển",
+			"button": "Thử Lại"
+		},
+		"defaults": {
+			"no_description": "Không có mô tả",
+			"not_specified": "Không xác định",
+			"academic_program": "Chương Trình Học Thuật",
+			"funding_available": "Có Sẵn",
+			"default_match": "85%",
+			"research": "Nghiên Cứu",
+			"professor": "GS. Nghiên Cứu"
 		}
 	}
 }

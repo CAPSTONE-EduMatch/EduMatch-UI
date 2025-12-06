@@ -4,6 +4,7 @@ import React from 'react'
 import { ResearchLabCard } from '@/components/ui'
 import { ResearchLab } from '@/types/api/explore-api'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ResearchLabsTabProps {
 	researchLabs?: ResearchLab[]
@@ -32,6 +33,7 @@ export function ResearchLabsTab({
 	onUpdateRequest,
 	fromApplicationSection = false,
 }: ResearchLabsTabProps) {
+	const t = useTranslations('explore_page')
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
@@ -83,10 +85,10 @@ export function ResearchLabsTab({
 			) : (
 				<div className="text-center py-12">
 					<div className="text-gray-500 text-lg mb-2">
-						No research labs found
+						{t('empty.research.title')}
 					</div>
 					<div className="text-gray-400 text-sm">
-						Try adjusting your filters or search criteria
+						{t('empty.research.hint')}
 					</div>
 				</div>
 			)}

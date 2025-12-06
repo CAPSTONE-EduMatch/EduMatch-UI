@@ -12,6 +12,7 @@ import {
 import { cn } from '@/utils/index'
 import { Sparkles, CheckCircle, AlertCircle, Hourglass } from 'lucide-react'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
+import { useTranslations } from 'next-intl'
 
 interface FileUploadManagerWithOCRProps {
 	className?: string
@@ -61,6 +62,7 @@ export function FileUploadManagerWithOCR({
 	onOCRComplete,
 	onValidationComplete,
 }: FileUploadManagerWithOCRProps) {
+	const t = useTranslations()
 	const [dragActive, setDragActive] = useState(false)
 	// Track uploaded files for OCR callback matching
 	// eslint-disable-next-line no-unused-vars
@@ -100,7 +102,7 @@ export function FileUploadManagerWithOCR({
 			},
 			onError: (error) => {
 				// Handle upload error
-				alert('Upload failed: ' + error)
+				alert(t('file_upload.alerts.upload_failed', { error }))
 			},
 			category,
 			folderId,
@@ -110,7 +112,7 @@ export function FileUploadManagerWithOCR({
 	const processFileWithOCRAndValidation = useCallback(
 		async (file: File) => {
 			// Create unique ID with file name and timestamp to avoid conflicts
-			const tempId = `temp_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Math.random().toString(36).substr(2, 9)}`
+			const tempId = crypto.randomUUID()
 
 			// eslint-disable-next-line no-console
 			console.log('processFileWithOCRAndValidation called for:', file.name)
@@ -429,9 +431,7 @@ export function FileUploadManagerWithOCR({
 			const limitedFiles = maxFiles ? files.slice(0, maxFiles) : files
 
 			if (maxFiles && files.length > maxFiles) {
-				alert(
-					`You can only select up to ${maxFiles} file(s). Only the first ${maxFiles} file(s) will be processed.`
-				)
+				alert(t('file_upload.alerts.max_files', { maxFiles }))
 			}
 
 			// Check for duplicate files in processing queue
@@ -447,7 +447,12 @@ export function FileUploadManagerWithOCR({
 
 				// Check file size
 				if (file.size > maxSize * 1024 * 1024) {
-					alert(`File ${file.name} is too large. Maximum size is ${maxSize}MB.`)
+					alert(
+						t('file_upload.alerts.file_too_large', {
+							fileName: file.name,
+							maxSize,
+						})
+					)
 					return false
 				}
 
@@ -460,7 +465,7 @@ export function FileUploadManagerWithOCR({
 				})
 
 				if (!isValidType) {
-					alert(`File ${file.name} is not an accepted file type.`)
+					alert(t('file_upload.alerts.invalid_type', { fileName: file.name }))
 					return false
 				}
 
@@ -485,6 +490,7 @@ export function FileUploadManagerWithOCR({
 			acceptedTypes,
 			processFileWithOCRAndValidation,
 			processingFiles,
+			t,
 		]
 	)
 
@@ -582,12 +588,12 @@ export function FileUploadManagerWithOCR({
 								{file.status === 'failed' && (
 									<AlertCircle className="w-4 h-4 text-red-600" />
 								)}
-							</div>
+							</div>{' '}
 							<div className="flex-1">
 								<p className="text-sm font-medium">{file.file.name}</p>
 								<p className="text-xs text-muted-foreground">
 									{file.status === 'ocr' &&
-										'Extracting text (it will take a few seconds)...'}
+										t('file_upload.processing.extracting')}
 									{file.status === 'validating' &&
 										'Validating content (it will take 15s - 20s)...'}
 									{file.status === 'uploading' && 'Uploading to cloud...'}
@@ -628,28 +634,31 @@ export function FileUploadManagerWithOCR({
 				onDragOver={handleDrag}
 				onDrop={handleDrop}
 			>
+				{' '}
 				{!isUploading ? (
 					<div className="space-y-2">
 						<div className="text-4xl">📁</div>
 						<p className="text-sm text-muted-foreground">
-							Drag and drop files here, or{' '}
+							{t('file_upload.drag_drop')}{' '}
 							<button
 								type="button"
 								onClick={() => fileInputRef.current?.click()}
 								className="text-primary hover:underline"
 							>
-								browse
+								{t('file_upload.browse')}
 							</button>
 						</p>
-						<p className="text-xs text-muted-foreground">{maxSize}MB each</p>
+						<p className="text-xs text-muted-foreground">
+							{t('file_upload.max_size', { size: maxSize })}
+						</p>
 						{enableOCR && (
 							<div className="text-xs text-primary flex flex-col items-center gap-1">
 								<div className="flex items-center gap-1">
 									<Sparkles className="w-3 h-3" />
-									<span>OCR text extraction & validation required</span>
+									<span>{t('file_upload.ocr_required')}</span>
 								</div>
 								<span className="text-xs text-muted-foreground">
-									Files must pass content validation before upload
+									{t('file_upload.validation_required')}
 								</span>
 							</div>
 						)}
@@ -659,7 +668,7 @@ export function FileUploadManagerWithOCR({
 						<div className="flex flex-col items-center gap-3">
 							<Hourglass className="w-10 h-10 text-primary animate-pulse" />
 							<p className="text-sm font-medium text-foreground">
-								Uploading files...
+								{t('file_upload.uploading_files')}
 							</p>
 							{/* Overall progress bar (0 - 100%) */}
 							{uploadProgress.length > 0 && (
@@ -679,7 +688,7 @@ export function FileUploadManagerWithOCR({
 													/>
 												</div>
 												<div className="flex items-center justify-between text-xs text-muted-foreground">
-													<span>Overall progress</span>
+													<span>{t('file_upload.overall_progress')}</span>
 													<span>{overall}%</span>
 												</div>
 											</div>
@@ -690,7 +699,6 @@ export function FileUploadManagerWithOCR({
 						</div>
 					</div>
 				)}
-
 				<input
 					ref={fileInputRef}
 					type="file"

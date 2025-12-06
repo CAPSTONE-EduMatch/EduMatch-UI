@@ -1,6 +1,7 @@
 import { requireAuth } from "@/utils/auth/auth-utils";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../../prisma/index";
+import { randomUUID } from "crypto";
 
 // Handle institution actions (ban, unban, contact, revoke-sessions)
 export async function POST(
@@ -38,19 +39,39 @@ export async function POST(
 		}
 
 		// Determine if the ID is an institution_id or user_id
-		// institution_id format: "institution_${userId}"
-		// If it doesn't start with "institution_", treat it as user_id
-		let whereClause: any;
+		// Both are now UUIDs, so we try institution_id first, then user_id
+		// For backward compatibility, also check old format "institution_${userId}"
+		let institution;
 		if (id.startsWith("institution_")) {
-			whereClause = { institution_id: id };
+			// Legacy format: extract user_id from "institution_${userId}"
+			const userId = id.replace("institution_", "");
+			institution = await prismaClient.institution.findFirst({
+				where: { user_id: userId },
+			});
 		} else {
-			// It's a user_id, find by user_id
-			whereClause = { user_id: id };
+			// Try as institution_id first
+			institution = await prismaClient.institution.findFirst({
+				where: { institution_id: id },
+			});
+			// If not found, try as user_id
+			if (!institution) {
+				institution = await prismaClient.institution.findFirst({
+					where: { user_id: id },
+				});
+			}
 		}
 
-		// Find the institution and its user
-		const institution = await prismaClient.institution.findFirst({
-			where: whereClause,
+		// If institution not found, return error
+		if (!institution) {
+			return NextResponse.json(
+				{ error: "Institution not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Find the institution and its user with full data
+		const institutionWithUser = await prismaClient.institution.findFirst({
+			where: { institution_id: institution.institution_id },
 			include: {
 				user: {
 					select: {
@@ -63,8 +84,8 @@ export async function POST(
 			},
 		});
 
-		if (!institution) {
-			return Response.json(
+		if (!institutionWithUser) {
+			return NextResponse.json(
 				{
 					success: false,
 					error: "Institution not found",
@@ -77,7 +98,7 @@ export async function POST(
 
 		switch (action) {
 			case "ban":
-				if (institution.user.banned) {
+				if (institutionWithUser.user.banned) {
 					return Response.json(
 						{
 							success: false,
@@ -107,7 +128,7 @@ export async function POST(
 				// Ban the user
 				result = await prismaClient.user.update({
 					where: {
-						id: institution.user.id,
+						id: institutionWithUser.user.id,
 					},
 					data: {
 						banned: true,
@@ -119,7 +140,7 @@ export async function POST(
 				break;
 
 			case "unban":
-				if (!institution.user.banned) {
+				if (!institutionWithUser.user.banned) {
 					return Response.json(
 						{
 							success: false,
@@ -132,7 +153,7 @@ export async function POST(
 				// Unban the user
 				result = await prismaClient.user.update({
 					where: {
-						id: institution.user.id,
+						id: institutionWithUser.user.id,
 					},
 					data: {
 						banned: false,
@@ -157,7 +178,7 @@ export async function POST(
 				// Delete all sessions for the institution user
 				const deletedSessions = await prismaClient.session.deleteMany({
 					where: {
-						userId: institution.user.id,
+						userId: institutionWithUser.user.id,
 					},
 				});
 
@@ -172,7 +193,7 @@ export async function POST(
 				// Approve the institution
 				result = await prismaClient.institution.update({
 					where: {
-						institution_id: institution.institution_id,
+						institution_id: institutionWithUser.institution_id,
 					},
 					data: {
 						verification_status: "APPROVED",
@@ -184,8 +205,8 @@ export async function POST(
 				// Create notification for the institution
 				await prismaClient.notification.create({
 					data: {
-						notification_id: `institution-approved-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-						user_id: institution.user.id,
+						notification_id: randomUUID(),
+						user_id: institutionWithUser.user.id,
 						title: "Institution Profile Approved",
 						body: "Your institution profile has been approved. You now have full access to the dashboard.",
 						type: "INSTITUTION_APPROVED",
@@ -201,7 +222,7 @@ export async function POST(
 				const { rejectionReason } = body;
 				result = await prismaClient.institution.update({
 					where: {
-						institution_id: institution.institution_id,
+						institution_id: institutionWithUser.institution_id,
 					},
 					data: {
 						verification_status: "REJECTED",
@@ -214,8 +235,8 @@ export async function POST(
 				// Create notification for the institution
 				await prismaClient.notification.create({
 					data: {
-						notification_id: `institution-rejected-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-						user_id: institution.user.id,
+						notification_id: randomUUID(),
+						user_id: institutionWithUser.user.id,
 						title: "Institution Profile Rejected",
 						body: rejectionReason
 							? `Your institution profile has been rejected. Reason: ${rejectionReason}`
@@ -240,29 +261,96 @@ export async function POST(
 					return Response.json(
 						{
 							success: false,
-							error: "Note is required",
+							error: "Note is required. Please provide details about what additional information is needed.",
 						},
 						{ status: 400 }
 					);
 				}
 
-				// Create a notification for the institution
-				await prismaClient.notification.create({
-					data: {
-						notification_id: `additional-info-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-						user_id: institution.user.id,
-						title: "Additional Information Required",
-						body: `Administrator ${currentUser.id} requires additional information: ${note}`,
-						type: "ADMIN_ADDITIONAL_INFO",
-						send_at: new Date(),
-						create_at: new Date(),
-					},
-				});
+				try {
+					// Get admin user details for the notification
+					const adminUser = await prismaClient.user.findUnique({
+						where: { id: currentUser.id },
+						select: { name: true, email: true },
+					});
 
-				result = {
-					success: true,
-					message: "Additional information request sent successfully",
-				};
+					const adminName =
+						adminUser?.name || adminUser?.email || "Administrator";
+
+					// Use a transaction to ensure all operations succeed or fail together
+					await prismaClient.$transaction(async (tx) => {
+						// Update institution verification status to REQUIRE_UPDATE
+						await tx.institution.update({
+							where: {
+								institution_id:
+									institutionWithUser.institution_id,
+							},
+							data: {
+								verification_status: "REQUIRE_UPDATE" as any, // Type assertion until Prisma client is regenerated
+								submitted_at: new Date(),
+							},
+						});
+
+						// Create institution info request record
+						const infoRequestId = randomUUID();
+						await tx.institutionInfoRequest.create({
+							data: {
+								info_request_id: infoRequestId,
+								institution_id:
+									institutionWithUser.institution_id,
+								requested_by_user_id: currentUser.id,
+								request_message: note.trim(),
+								requested_fields: [], // Can be extended to specify which fields need updating
+								status: "PENDING",
+								created_at: new Date(),
+							},
+						});
+
+						// Create a notification for the institution
+						await tx.notification.create({
+							data: {
+								notification_id: randomUUID(),
+								user_id: institutionWithUser.user.id,
+								title: "Additional Information Required",
+								body: `${adminName} requires additional information from your institution:\n\n${note.trim()}\n\nPlease review your profile and provide the requested information.`,
+								type: "ADMIN_ADDITIONAL_INFO",
+								send_at: new Date(),
+								create_at: new Date(),
+							},
+						});
+
+						result = {
+							success: true,
+							message:
+								"Additional information request sent successfully",
+							infoRequestId: infoRequestId,
+						};
+					});
+				} catch (requireInfoError: any) {
+					// eslint-disable-next-line no-console
+					console.error(
+						"Error in require-info action:",
+						requireInfoError
+					);
+					// eslint-disable-next-line no-console
+					console.error("Error stack:", requireInfoError?.stack);
+					// eslint-disable-next-line no-console
+					console.error("Error code:", requireInfoError?.code);
+					// eslint-disable-next-line no-console
+					console.error("Error meta:", requireInfoError?.meta);
+					return Response.json(
+						{
+							success: false,
+							error: `Failed to create information request: ${requireInfoError?.message || "Unknown error"}`,
+							...(process.env.NODE_ENV === "development" && {
+								details: requireInfoError?.message,
+								code: requireInfoError?.code,
+								meta: requireInfoError?.meta,
+							}),
+						},
+						{ status: 500 }
+					);
+				}
 				break;
 
 			default:
@@ -279,13 +367,24 @@ export async function POST(
 			success: true,
 			data: result,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		// eslint-disable-next-line no-console
 		console.error("Error performing institution action:", error);
+		// eslint-disable-next-line no-console
+		console.error("Error details:", {
+			message: error?.message,
+			code: error?.code,
+			meta: error?.meta,
+			stack: error?.stack,
+		});
 		return Response.json(
 			{
 				success: false,
-				error: "Failed to perform action",
+				error: error?.message || "Failed to perform action",
+				...(process.env.NODE_ENV === "development" && {
+					details: error?.message,
+					code: error?.code,
+				}),
 			},
 			{ status: 500 }
 		);

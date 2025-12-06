@@ -32,8 +32,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Check, File, Heart, Lock, X } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 const ScholarshipDetail = () => {
+	const t = useTranslations()
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const params = useParams()
@@ -133,10 +135,10 @@ const ScholarshipDetail = () => {
 		if (!isApproved) {
 			const statusLabel =
 				institution.status === 'PENDING'
-					? 'Pending Approval'
+					? t('scholarship_detail.header.status_pending')
 					: institution.status === 'REJECTED'
-						? 'Account Rejected'
-						: 'Account Deactivated'
+						? t('scholarship_detail.header.status_rejected')
+						: t('scholarship_detail.header.status_deactivated')
 			return {
 				type: 'deactivated' as const,
 				label: statusLabel,
@@ -233,7 +235,10 @@ const ScholarshipDetail = () => {
 
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([{ label: 'Explore', href: '/explore' }, { label: 'Scholarship Detail' }])
+	>([
+		{ label: t('scholarship_detail.breadcrumb.home'), href: '/explore' },
+		{ label: t('scholarship_detail.breadcrumb.scholarships') },
+	])
 
 	// Fetch recommended scholarships based on current scholarship's characteristics
 	const fetchRecommendedScholarships = async (scholarship: any) => {
@@ -339,26 +344,30 @@ const ScholarshipDetail = () => {
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
 
-			const scholarshipName = currentScholarship?.title || 'Scholarship Detail'
+			const scholarshipName =
+				currentScholarship?.title || t('scholarship_detail.breadcrumb.detail')
 
 			let items: Array<{ label: string; href?: string }> = [
-				{ label: 'Explore', href: `/explore${queryString}` },
+				{
+					label: t('scholarship_detail.breadcrumb.home'),
+					href: `/explore${queryString}`,
+				},
 			]
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'programmes') {
 				items.push({
-					label: 'Programmes',
+					label: t('scholarship_detail.breadcrumb.programmes'),
 					href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else if (fromTab === 'research') {
 				items.push({
-					label: 'Research Labs',
+					label: t('scholarship_detail.breadcrumb.research_labs'),
 					href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else {
 				items.push({
-					label: 'Scholarships',
+					label: t('scholarship_detail.breadcrumb.scholarships'),
 					href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
 				})
 			}
@@ -1154,10 +1163,10 @@ const ScholarshipDetail = () => {
 	}
 
 	const menuItems = [
-		{ id: 'detail', label: 'Detail' },
-		{ id: 'eligibility', label: 'Eligibility' },
-		{ id: 'other', label: 'Other information' },
-		{ id: 'application', label: 'My Applications' },
+		{ id: 'detail', label: t('scholarship_detail.tabs.detail') },
+		{ id: 'eligibility', label: t('scholarship_detail.tabs.eligibility') },
+		{ id: 'other', label: t('scholarship_detail.tabs.other') },
+		{ id: 'application', label: t('scholarship_detail.tabs.application') },
 	]
 
 	const renderTabContent = () => {
@@ -1167,75 +1176,93 @@ const ScholarshipDetail = () => {
 					<div className="space-y-4">
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Description
+								{t('scholarship_detail.detail.description_title')}
 							</h3>
 							<p
 								className="text-gray-700 mb-6 prose prose-content"
 								dangerouslySetInnerHTML={{
 									__html:
 										currentScholarship?.description ||
-										'No description available for this scholarship.',
+										t('scholarship_detail.detail.no_description'),
 								}}
 							/>
 						</div>
 
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Scholarship Details
+								{t('scholarship_detail.detail.details_title')}
 							</h3>
 							<ol className="space-y-4">
 								<li className="text-base">
-									<span className="font-bold text-gray-900">1. Amount:</span>{' '}
+									<span className="font-bold text-gray-900">
+										{t('scholarship_detail.detail.amount')}:
+									</span>{' '}
 									<span
 										className="text-gray-700 prose prose-content"
 										dangerouslySetInnerHTML={{
-											__html: currentScholarship?.amount || 'N/A',
-										}}
-									/>
-								</li>
-								<li className="text-base">
-									<span className="font-bold text-gray-900">2. Type:</span>{' '}
-									<span className="text-gray-700">
-										{currentScholarship?.type || 'N/A'}
-									</span>
-								</li>
-								<li className="text-base">
-									<span className="font-bold text-gray-900">3. Coverage:</span>{' '}
-									<span
-										className="text-gray-700 prose prose-content"
-										dangerouslySetInnerHTML={{
-											__html: currentScholarship?.scholarshipCoverage || 'N/A',
+											__html:
+												currentScholarship?.amount ||
+												t('scholarship_detail.detail.not_available'),
 										}}
 									/>
 								</li>
 								<li className="text-base">
 									<span className="font-bold text-gray-900">
-										4. Essay Required:
+										{t('scholarship_detail.detail.type')}:
 									</span>{' '}
 									<span className="text-gray-700">
-										{currentScholarship?.essayRequired || 'N/A'}
+										{currentScholarship?.type ||
+											t('scholarship_detail.detail.not_available')}
 									</span>
 								</li>
 								<li className="text-base">
 									<span className="font-bold text-gray-900">
-										5. Number Available:
+										{t('scholarship_detail.detail.coverage')}:
 									</span>{' '}
-									<span className="text-gray-700">
-										{currentScholarship?.number || 'N/A'}
-									</span>
+									<span
+										className="text-gray-700 prose prose-content"
+										dangerouslySetInnerHTML={{
+											__html:
+												currentScholarship?.scholarshipCoverage ||
+												t('scholarship_detail.detail.not_available'),
+										}}
+									/>
 								</li>
 								<li className="text-base">
-									<span className="font-bold text-gray-900">6. Days Left:</span>{' '}
+									<span className="font-bold text-gray-900">
+										{t('scholarship_detail.detail.essay_required')}:
+									</span>{' '}
 									<span className="text-gray-700">
-										{currentScholarship?.daysLeft || 0} days
+										{currentScholarship?.essayRequired ||
+											t('scholarship_detail.detail.not_available')}
 									</span>
 								</li>
 								<li className="text-base">
 									<span className="font-bold text-gray-900">
-										7. Match Percentage:
+										{t('scholarship_detail.detail.number_available')}:
 									</span>{' '}
 									<span className="text-gray-700">
-										{currentScholarship?.match || 'N/A'}
+										{currentScholarship?.number ||
+											t('scholarship_detail.detail.not_available')}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										{t('scholarship_detail.detail.days_left')}:
+									</span>{' '}
+									<span className="text-gray-700">
+										{t('scholarship_detail.detail.days_count', {
+											count: currentScholarship?.daysLeft || 0,
+										})}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										{t('scholarship_detail.detail.match_percentage')}:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.match ||
+											t('scholarship_detail.detail.not_available')}
 									</span>
 								</li>
 							</ol>
@@ -1248,11 +1275,11 @@ const ScholarshipDetail = () => {
 					<div className="space-y-6">
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Eligibility Requirements
+								{t('scholarship_detail.eligibility.title')}
 							</h3>
 							<p className="text-gray-700 mb-6">
 								{currentScholarship?.eligibility ||
-									'No specific eligibility requirements listed.'}
+									t('scholarship_detail.eligibility.no_requirements')}
 							</p>
 						</div>
 
@@ -1260,7 +1287,7 @@ const ScholarshipDetail = () => {
 							currentScholarship.subdisciplines.length > 0 && (
 								<div>
 									<p className="font-bold text-gray-900 mb-3">
-										Related Subdisciplines:
+										{t('scholarship_detail.eligibility.subdisciplines_label')}
 									</p>
 									<ul className="list-disc pl-5 space-y-2 text-gray-700">
 										{currentScholarship.subdisciplines.map(
@@ -1276,7 +1303,7 @@ const ScholarshipDetail = () => {
 							currentScholarship.requiredDocuments.length > 0 && (
 								<div>
 									<p className="font-bold text-gray-900 mb-3">
-										Required Documents:
+										{t('scholarship_detail.eligibility.documents_label')}
 									</p>
 									<ul className="list-disc pl-5 space-y-2 text-gray-700">
 										{currentScholarship.requiredDocuments.map((doc: any) => (
@@ -1292,11 +1319,10 @@ const ScholarshipDetail = () => {
 						{/* Eligibility Programs Section */}
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Eligibility Programmes
+								{t('scholarship_detail.eligibility_programmes.title')}
 							</h3>
 							<p className="text-gray-700 mb-6">
-								Programmes you may be eligible for based on this
-								scholarship&apos;s requirements.
+								{t('scholarship_detail.eligibility_programmes.description')}
 							</p>
 
 							{/* Debug Panel */}
@@ -1376,7 +1402,7 @@ const ScholarshipDetail = () => {
 								</>
 							) : (
 								<div className="text-center py-8 text-gray-500">
-									No eligible programmes found for this scholarship.
+									{t('scholarship_detail.eligibility_programmes.empty.message')}
 								</div>
 							)}
 						</div>
@@ -1389,25 +1415,32 @@ const ScholarshipDetail = () => {
 						{currentScholarship?.institution && (
 							<div>
 								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Institution Information
+									{t('scholarship_detail.other.institution_title')}
 								</h3>
 								<div className="space-y-2">
 									<p className="text-gray-700">
-										<strong>Name:</strong> {currentScholarship.institution.name}
+										<strong>{t('scholarship_detail.other.name_label')}</strong>{' '}
+										{currentScholarship.institution.name}
 									</p>
 									{currentScholarship.institution.abbreviation && (
 										<p className="text-gray-700">
-											<strong>Abbreviation:</strong>{' '}
+											<strong>
+												{t('scholarship_detail.other.abbreviation_label')}
+											</strong>{' '}
 											{currentScholarship.institution.abbreviation}
 										</p>
 									)}
 									<p className="text-gray-700">
-										<strong>Country:</strong>{' '}
+										<strong>
+											{t('scholarship_detail.other.country_label')}
+										</strong>{' '}
 										{currentScholarship.institution.country}
 									</p>
 									{currentScholarship.institution.website && (
 										<p className="text-gray-700">
-											<strong>Website:</strong>{' '}
+											<strong>
+												{t('scholarship_detail.other.website_label')}
+											</strong>{' '}
 											<a
 												href={currentScholarship.institution.website}
 												target="_blank"
@@ -1450,7 +1483,7 @@ const ScholarshipDetail = () => {
 				return (
 					<div className="space-y-6">
 						<h2 className="text-2xl font-bold text-gray-900">
-							My Applications
+							{t('scholarship_detail.applications_list.title')}
 						</h2>
 
 						{loadingApplications &&
@@ -1481,13 +1514,19 @@ const ScholarshipDetail = () => {
 									<thead className="bg-gray-50">
 										<tr>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Application Date
+												{t(
+													'scholarship_detail.applications_list.table_headers.date'
+												)}
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Status
+												{t(
+													'scholarship_detail.applications_list.table_headers.status'
+												)}
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Documents
+												{t(
+													'scholarship_detail.applications_list.table_headers.documents'
+												)}
 											</th>
 										</tr>
 									</thead>
@@ -1519,7 +1558,10 @@ const ScholarshipDetail = () => {
 													</span>
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-													{app.documents?.length || 0} document(s)
+													{t(
+														'scholarship_detail.applications_list.documents_count',
+														{ count: app.documents?.length || 0 }
+													)}
 												</td>
 											</tr>
 										))}
@@ -1530,10 +1572,10 @@ const ScholarshipDetail = () => {
 							<div className="text-center py-12 bg-white rounded-lg shadow border">
 								<File className="w-12 h-12 text-gray-400 mx-auto mb-4" />
 								<p className="text-gray-600">
-									No applications found for this scholarship
+									{t('scholarship_detail.applications_list.empty.title')}
 								</p>
 								<p className="text-sm text-gray-500 mt-2">
-									Submit an application to get started
+									{t('scholarship_detail.applications_list.empty.message')}
 								</p>
 							</div>
 						)}
@@ -1550,7 +1592,9 @@ const ScholarshipDetail = () => {
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading scholarship details...</p>
+					<p className="mt-4 text-gray-600">
+						{t('scholarship_detail.loading')}
+					</p>
 				</div>
 			</div>
 		)
@@ -1560,12 +1604,14 @@ const ScholarshipDetail = () => {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
-					<p className="text-red-600 text-lg">Error: {error}</p>
+					<p className="text-red-600 text-lg">
+						{t('scholarship_detail.error')}: {error}
+					</p>
 					<button
 						onClick={() => window.location.reload()}
 						className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
 					>
-						Retry
+						{t('buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -1601,10 +1647,12 @@ const ScholarshipDetail = () => {
 					<div className="w-[1500px] flex justify-center items-center gap-10 mx-auto px-4 sm:px-6 lg:px-8 py-8 ">
 						<div className=" flex flex-col justify-center items-center w-1/2">
 							<h1 className="text-3xl font-bold mb-2">
-								{currentScholarship?.title || 'Information Technology'}
+								{currentScholarship?.title ||
+									t('scholarship_detail.header.default_title')}
 							</h1>
 							<p className="text-gray-600 mb-3">
-								{currentScholarship?.university || 'Army West University (AWU)'}
+								{currentScholarship?.university ||
+									t('scholarship_detail.header.default_university')}
 							</p>
 
 							{/* Institution Status Badge */}
@@ -1632,7 +1680,7 @@ const ScholarshipDetail = () => {
 											}}
 											className="bg-[#126E64] hover:bg-[#0d5952] text-white"
 										>
-											View Institution Detail
+											{t('scholarship_detail.header.institution_detail_button')}
 										</Button>
 									</div>
 								)}
@@ -1645,7 +1693,7 @@ const ScholarshipDetail = () => {
 										variant="outline"
 										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 									>
-										Contact Institution
+										{t('scholarship_detail.header.contact_button')}
 									</Button>
 								)}
 								<motion.button
@@ -1672,35 +1720,46 @@ const ScholarshipDetail = () => {
 							</div>
 
 							<p className="text-sm text-gray-500">
-								Number of applications:{' '}
-								{currentScholarship?.applicationCount || 0}
+								{t('scholarship_detail.header.applications_count', {
+									count: currentScholarship?.applicationCount || 0,
+								})}
 							</p>
 						</div>
 						<div className="  w-1/2 grid grid-cols-2 gap-4">
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Grant</span>
-								<span className="text-xl text-black font-bold">
-									{currentScholarship?.amount || 'N/A'}
+								<span className="text-md text-gray-500">
+									{t('scholarship_detail.header.grant')}
 								</span>
-							</div>
-							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Country</span>
 								<span className="text-xl text-black font-bold">
-									{currentScholarship?.country || 'N/A'}
-								</span>
-							</div>
-							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
-								<span className="text-md text-gray-500">Insitutuion Type</span>
-								<span className="text-xl text-black font-bold">
-									{currentScholarship?.institution.type || 'N/A'}
+									{currentScholarship?.amount ||
+										t('scholarship_detail.header.na')}
 								</span>
 							</div>
 							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
 								<span className="text-md text-gray-500">
-									Application deadline
+									{t('scholarship_detail.header.country')}
 								</span>
 								<span className="text-xl text-black font-bold">
-									{currentScholarship?.applicationDeadline || 'N/A'}
+									{currentScholarship?.country ||
+										t('scholarship_detail.header.na')}
+								</span>
+							</div>
+							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
+								<span className="text-md text-gray-500">
+									{t('scholarship_detail.header.institution_type')}
+								</span>
+								<span className="text-xl text-black font-bold">
+									{currentScholarship?.institution.type ||
+										t('scholarship_detail.header.na')}
+								</span>
+							</div>
+							<div className="border border-[#116E63] p-5 rounded-xl flex flex-col justify-start">
+								<span className="text-md text-gray-500">
+									{t('scholarship_detail.header.application_deadline')}
+								</span>
+								<span className="text-xl text-black font-bold">
+									{currentScholarship?.applicationDeadline ||
+										t('scholarship_detail.header.na')}
 								</span>
 							</div>
 						</div>
@@ -1743,7 +1802,9 @@ const ScholarshipDetail = () => {
 					transition={{ delay: 0.3 }}
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">About</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{t('scholarship_detail.about.title')}
+					</h2>
 
 					<div className="prose max-w-none text-gray-700 space-y-4">
 						{currentScholarship?.institution?.about && (
@@ -1809,7 +1870,9 @@ const ScholarshipDetail = () => {
 					transition={{ delay: 0.3 }}
 					className="p-8 bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">Eligibility programmes</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{t('scholarship_detail.eligibility_programmes.title')}
+					</h2>
 
 					<div className="flex gap-8">
 						{/* Filter Sidebar */}
@@ -1826,13 +1889,20 @@ const ScholarshipDetail = () => {
 							<div className="mb-4">
 								<div className="text-sm text-gray-600">
 									{eligibilityProgramsLoading
-										? 'Loading eligibility programmes...'
-										: `${eligibilityPrograms.length} results`}
+										? t('scholarship_detail.eligibility_programmes.loading')
+										: t('scholarship_detail.eligibility_programmes.results', {
+												count: eligibilityPrograms.length,
+											})}
 									{eligibilityProgramsTotalPages > 1 &&
 										!eligibilityProgramsLoading && (
 											<span className="ml-2">
-												(Page {eligibilityProgramsPage} of{' '}
-												{eligibilityProgramsTotalPages})
+												{t(
+													'scholarship_detail.eligibility_programmes.page_info',
+													{
+														current: eligibilityProgramsPage,
+														total: eligibilityProgramsTotalPages,
+													}
+												)}
 											</span>
 										)}
 								</div>
@@ -1843,7 +1913,7 @@ const ScholarshipDetail = () => {
 									<div className="flex flex-col items-center gap-3">
 										<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
 										<p className="text-gray-600 text-sm">
-											Loading eligibility programmes...
+											{t('scholarship_detail.eligibility_programmes.loading')}
 										</p>
 									</div>
 								</div>
@@ -1878,12 +1948,20 @@ const ScholarshipDetail = () => {
 										</>
 									) : (
 										<div className="text-center py-12">
-											<div className="text-gray-400 text-6xl mb-4">📚</div>
+											<div className="text-gray-400 text-6xl mb-4">
+												{t(
+													'scholarship_detail.eligibility_programmes.empty.icon'
+												)}
+											</div>
 											<h3 className="text-lg font-medium text-gray-900 mb-2">
-												No programmes found
+												{t(
+													'scholarship_detail.eligibility_programmes.empty.title'
+												)}
 											</h3>
 											<p className="text-gray-500">
-												Try adjusting your filters to find more programmes
+												{t(
+													'scholarship_detail.eligibility_programmes.empty.message'
+												)}
 											</p>
 										</div>
 									)}
@@ -1902,7 +1980,9 @@ const ScholarshipDetail = () => {
 				>
 					<div className="flex items-center justify-between mb-6">
 						<h2 className="text-3xl font-bold">
-							{hasApplied ? 'Application Status' : 'Apply here !'}
+							{hasApplied
+								? t('scholarship_detail.apply.title_applied')
+								: t('scholarship_detail.apply.title_not_applied')}
 						</h2>
 						{hasApplied && applicationStatus && (
 							<span
@@ -1922,10 +2002,12 @@ const ScholarshipDetail = () => {
 								}`}
 							>
 								{applicationStatus === 'PENDING'
-									? 'SUBMITTED'
+									? t('scholarship_detail.apply.status_badge.submitted')
 									: applicationStatus === 'REVIEWED'
-										? 'REQUIRE_UPDATE'
-										: applicationStatus}
+										? t('scholarship_detail.apply.status_badge.require_update')
+										: t(
+												`scholarship_detail.apply.status_badge.${applicationStatus.toLowerCase()}`
+											)}
 							</span>
 						)}
 					</div>
@@ -1941,16 +2023,19 @@ const ScholarshipDetail = () => {
 								</div>
 								<div className="flex-1">
 									<h3 className="text-2xl font-bold text-green-800 mb-2">
-										🎉 Congratulations!
+										{t('scholarship_detail.apply.congratulations.title')}
 									</h3>
 									<p className="text-lg text-green-700 mb-4">
-										Your application has been approved! The institution will
-										contact you with further details about the next steps.
+										{t('scholarship_detail.apply.congratulations.message')}
 									</p>
 									<div className="bg-white rounded-lg p-4 border border-green-200">
 										<p className="text-sm text-green-600 font-medium">
-											Application Status:{' '}
-											<span className="text-green-800">ACCEPTED</span>
+											{t(
+												'scholarship_detail.apply.congratulations.status_label'
+											)}{' '}
+											<span className="text-green-800">
+												{t('scholarship_detail.apply.congratulations.accepted')}
+											</span>
 										</p>
 									</div>
 								</div>
@@ -1967,7 +2052,7 @@ const ScholarshipDetail = () => {
 									isEditMode && (
 										<div className="mb-4 flex items-center justify-between">
 											<h3 className="text-lg font-semibold text-gray-900">
-												Edit Application Documents
+												{t('scholarship_detail.apply.edit_documents_title')}
 											</h3>
 											<Button
 												variant="outline"
@@ -1992,7 +2077,7 @@ const ScholarshipDetail = () => {
 												className="text-gray-600 border-gray-300 hover:bg-gray-50"
 												size="sm"
 											>
-												Cancel Edit
+												{t('scholarship_detail.apply.cancel_edit_button')}
 											</Button>
 										</div>
 									)}
@@ -2009,8 +2094,9 @@ const ScholarshipDetail = () => {
 										</div>
 									) : (
 										<p>
-											Not have any specific document requirement. You can upload
-											any
+											{t(
+												'scholarship_detail.apply.document_requirements.no_specific'
+											)}
 										</p>
 									)}
 								</div>
@@ -2027,10 +2113,10 @@ const ScholarshipDetail = () => {
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
 												>
-													📄 Select from Profile
+													{t('scholarship_detail.apply.select_profile_button')}
 												</Button>
 												<p className="text-sm text-gray-500 mt-2">
-													Choose documents from your profile for the snapshot
+													{t('scholarship_detail.apply.select_profile_hint')}
 												</p>
 											</div>
 
@@ -2038,7 +2124,7 @@ const ScholarshipDetail = () => {
 											<div className="flex items-center gap-4">
 												<div className="flex-1 border-t border-gray-300"></div>
 												<span className="text-sm font-medium text-gray-500">
-													OR
+													{t('scholarship_detail.apply.or_divider')}
 												</span>
 												<div className="flex-1 border-t border-gray-300"></div>
 											</div>
@@ -2095,8 +2181,13 @@ const ScholarshipDetail = () => {
 														setUploadedFiles(uniqueFiles)
 
 														showSuccess(
-															'Files Uploaded',
-															`${uploadedFileData.length} file(s) uploaded successfully`
+															t(
+																'scholarship_detail.notifications.files_uploaded'
+															),
+															t(
+																'scholarship_detail.notifications.files_uploaded_message',
+																{ count: uploadedFileData.length }
+															)
 														)
 													}}
 													onValidationComplete={(
@@ -2126,8 +2217,10 @@ const ScholarshipDetail = () => {
 										<div className="mt-6">
 											<div className="mb-4">
 												<h4 className="text-lg font-semibold text-gray-900">
-													Application Documents ({uploadedFiles.length} file
-													{uploadedFiles.length !== 1 ? 's' : ''})
+													{t('scholarship_detail.apply.documents_uploaded', {
+														count: uploadedFiles.length,
+														plural: uploadedFiles.length !== 1 ? 's' : '',
+													})}
 												</h4>
 											</div>
 											<div className="space-y-3">
@@ -2151,8 +2244,12 @@ const ScholarshipDetail = () => {
 																		}`}
 																	>
 																		{file.source === 'existing'
-																			? 'From Profile'
-																			: 'Uploaded'}
+																			? t(
+																					'scholarship_detail.apply.from_profile_badge'
+																				)
+																			: t(
+																					'scholarship_detail.apply.uploaded_badge'
+																				)}
 																	</span>
 																)}
 															</div>
@@ -2174,7 +2271,7 @@ const ScholarshipDetail = () => {
 																}}
 																className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 															>
-																View
+																{t('scholarship_detail.apply.view_button')}
 															</Button>
 															<Button
 																variant="outline"
@@ -2182,7 +2279,7 @@ const ScholarshipDetail = () => {
 																onClick={() => removeFile(file.id)}
 																className="text-red-500 border-red-500 hover:bg-red-50"
 															>
-																Remove
+																{t('scholarship_detail.apply.remove_button')}
 															</Button>
 														</div>
 													</div>
@@ -2195,12 +2292,16 @@ const ScholarshipDetail = () => {
 								{isUploading && uploadProgress.length > 0 && (
 									<div className="mt-6 space-y-2">
 										<p className="text-sm font-medium text-gray-700">
-											Uploading files...
+											{t('scholarship_detail.apply.uploading_progress')}
 										</p>
 										{uploadProgress.map((progress) => (
 											<div key={progress.fileIndex} className="space-y-1">
 												<div className="flex justify-between text-sm">
-													<span>File {progress.fileIndex + 1}</span>
+													<span>
+														{t('scholarship_detail.apply.file_progress', {
+															index: progress.fileIndex + 1,
+														})}
+													</span>
 													<span>{progress.progress}%</span>
 												</div>
 												<div className="w-full bg-gray-200 rounded-full h-2">
@@ -2261,12 +2362,16 @@ const ScholarshipDetail = () => {
 										}`}
 									>
 										{applicationStatus === 'ACCEPTED'
-											? 'Application Accepted!'
+											? t('scholarship_detail.apply.status_messages.accepted')
 											: applicationStatus === 'REJECTED'
-												? 'Application Not Selected'
+												? t('scholarship_detail.apply.status_messages.rejected')
 												: applicationStatus === 'UPDATED'
-													? 'Application Updated'
-													: 'Application Submitted Successfully!'}
+													? t(
+															'scholarship_detail.apply.status_messages.updated'
+														)
+													: t(
+															'scholarship_detail.apply.status_messages.submitted'
+														)}
 									</h3>
 									<p
 										className={`mt-1 ${
@@ -2280,12 +2385,20 @@ const ScholarshipDetail = () => {
 										}`}
 									>
 										{applicationStatus === 'ACCEPTED'
-											? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+											? t(
+													'scholarship_detail.apply.status_messages.accepted_message'
+												)
 											: applicationStatus === 'REJECTED'
-												? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
+												? t(
+														'scholarship_detail.apply.status_messages.rejected_message'
+													)
 												: applicationStatus === 'UPDATED'
-													? 'Your application has been updated. The institution will review your changes.'
-													: 'Your application has been submitted. You will receive updates via email.'}
+													? t(
+															'scholarship_detail.apply.status_messages.updated_message'
+														)
+													: t(
+															'scholarship_detail.apply.status_messages.submitted_message'
+														)}
 									</p>
 									{applicationStatus === 'REJECTED' &&
 										// Only show reapply button if all applications for this post are REJECTED
@@ -2294,6 +2407,7 @@ const ScholarshipDetail = () => {
 										applications.length > 0 &&
 										applications.every((app) => app.status === 'REJECTED') && (
 											<div className="mt-4">
+												{' '}
 												<Button
 													onClick={() => {
 														// Reset to allow new application
@@ -2317,7 +2431,7 @@ const ScholarshipDetail = () => {
 													}}
 													className="bg-[#126E64] hover:bg-teal-700 text-white"
 												>
-													Reapply Now
+													{t('scholarship_detail.apply.reapply_button')}
 												</Button>
 											</div>
 										)}
@@ -2331,8 +2445,10 @@ const ScholarshipDetail = () => {
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
-									Application Documents ({uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''})
+									{t('scholarship_detail.apply.documents_uploaded', {
+										count: uploadedFiles.length,
+										plural: uploadedFiles.length !== 1 ? 's' : '',
+									})}
 								</span>
 								{applicationStatus === 'SUBMITTED' && (
 									<Button
@@ -2378,7 +2494,7 @@ const ScholarshipDetail = () => {
 														document_id:
 															matchingProfileDoc?.document_id ||
 															file.id ||
-															`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+															crypto.randomUUID(),
 														name: file.name,
 														url: file.url,
 														size: file.size || 0,
@@ -2422,9 +2538,7 @@ const ScholarshipDetail = () => {
 											} catch (error) {
 												// Fallback: treat all as existing if fetch fails
 												const selectedDocs = uploadedFiles.map((file) => ({
-													document_id:
-														file.id ||
-														`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+													document_id: file.id || crypto.randomUUID(),
 													name: file.name,
 													url: file.url,
 													size: file.size || 0,
@@ -2455,7 +2569,7 @@ const ScholarshipDetail = () => {
 										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 										size="sm"
 									>
-										Edit Documents
+										{t('scholarship_detail.apply.edit_documents_button')}
 									</Button>
 								)}
 							</div>
@@ -2473,10 +2587,7 @@ const ScholarshipDetail = () => {
 										)}
 									</div>
 								) : (
-									<p>
-										These are the documents you submitted with your application.
-										They cannot be modified or deleted.
-									</p>
+									<p>{t('scholarship_detail.apply.documents_description')}</p>
 								)}
 							</div>
 							<div className="space-y-3">
@@ -2500,8 +2611,8 @@ const ScholarshipDetail = () => {
 														}`}
 													>
 														{file.source === 'existing'
-															? 'From Profile'
-															: 'Uploaded'}
+															? t('scholarship_detail.apply.from_profile_badge')
+															: t('scholarship_detail.apply.uploaded_badge')}
 													</span>
 												)}
 											</div>
@@ -2511,7 +2622,8 @@ const ScholarshipDetail = () => {
 													<>
 														<span>•</span>
 														<span>
-															Uploaded: {formatUTCDateToLocal(file.uploadDate)}
+															{t('scholarship_detail.apply.uploaded_label')}{' '}
+															{formatUTCDateToLocal(file.uploadDate)}
 														</span>
 													</>
 												)}
@@ -2526,7 +2638,7 @@ const ScholarshipDetail = () => {
 												}}
 												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 											>
-												View
+												{t('scholarship_detail.apply.view_button')}
 											</Button>
 											<Button
 												variant="outline"
@@ -2539,7 +2651,7 @@ const ScholarshipDetail = () => {
 												}}
 												className="text-blue-600 border-blue-600 hover:bg-blue-50"
 											>
-												Download
+												{t('scholarship_detail.apply.download_button')}
 											</Button>
 										</div>
 									</div>
@@ -2552,8 +2664,7 @@ const ScholarshipDetail = () => {
 					{!hasApplied && uploadedFiles.length === 0 && (
 						<div className="text-center mb-4">
 							<p className="text-amber-600 text-sm font-medium">
-								📁 Please upload at least one document to submit your
-								application
+								{t('scholarship_detail.apply.upload_warning')}
 							</p>
 						</div>
 					)}
@@ -2565,7 +2676,7 @@ const ScholarshipDetail = () => {
 								onClick={handleRemoveAllClick}
 								className="text-red-500 border-red-500 hover:bg-red-50"
 							>
-								Remove all
+								{t('scholarship_detail.apply.remove_all_button')}
 							</Button>
 						)}
 						<Button
@@ -2599,26 +2710,26 @@ const ScholarshipDetail = () => {
 							}}
 						>
 							{hasApplied ? (
-								'✓ Application Submitted'
+								t('scholarship_detail.apply.application_submitted')
 							) : isApplying ? (
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Submitting...
+									{t('scholarship_detail.apply.submitting_button')}
 								</div>
 							) : isUploading ? (
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Uploading Files...
+									{t('scholarship_detail.apply.uploading_files_button')}
 								</div>
 							) : isCheckingApplication ? (
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Checking...
+									{t('scholarship_detail.apply.checking_button')}
 								</div>
 							) : uploadedFiles.length === 0 ? (
-								'Upload Files to Continue'
+								t('scholarship_detail.apply.upload_files_button')
 							) : (
-								'Submit Application'
+								t('scholarship_detail.apply.submit_button')
 							)}
 						</Button>
 					</div>
@@ -2630,9 +2741,11 @@ const ScholarshipDetail = () => {
 					transition={{ delay: 0.4 }}
 					className="p-8 bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">Recommended Scholarships</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{t('scholarship_detail.recommendations.title')}
+					</h2>
 					<p className="text-gray-600 mb-6">
-						Similar scholarships based on discipline or degree level
+						{t('scholarship_detail.recommendations.description')}
 					</p>
 
 					{isLoadingRecommendations ? (
@@ -2640,7 +2753,7 @@ const ScholarshipDetail = () => {
 							<div className="flex flex-col items-center gap-3">
 								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
 								<p className="text-gray-600 text-sm">
-									Loading recommendations...
+									{t('scholarship_detail.recommendations.loading')}
 								</p>
 							</div>
 						</div>
@@ -2651,24 +2764,23 @@ const ScholarshipDetail = () => {
 									<Lock className="w-8 h-8 text-[#126E64]" />
 								</div>
 								<h3 className="text-xl font-semibold text-gray-800 mb-2">
-									Unlock Personalized Recommendations
+									{t('scholarship_detail.recommendations.upgrade.title')}
 								</h3>
 								<p className="text-gray-600 mb-6">
-									Upgrade to Standard or Premium to see scholarships tailored to
-									your profile and interests.
+									{t('scholarship_detail.recommendations.upgrade.message')}
 								</p>
 								<Button
 									onClick={() => router.push('/pricing')}
 									className="bg-[#126E64] hover:bg-[#0d5a52] text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
 								>
-									View Upgrade Options
+									{t('scholarship_detail.recommendations.upgrade.button')}
 								</Button>
 							</div>
 						</div>
 					) : recommendedScholarships.length === 0 ? (
 						<div className="flex justify-center items-center py-12">
 							<p className="text-gray-500">
-								No recommendations available at this time.
+								{t('scholarship_detail.recommendations.no_recommendations')}
 							</p>
 						</div>
 					) : (
@@ -2692,12 +2804,12 @@ const ScholarshipDetail = () => {
 			<Modal
 				isOpen={showDeleteConfirmModal}
 				onClose={() => setShowDeleteConfirmModal(false)}
-				title="Delete All Files"
+				title={t('scholarship_detail.modals.delete_confirm.title')}
 				maxWidth="sm"
 			>
 				<div className="space-y-6">
 					<p className="text-gray-600">
-						Do you want to delete all files? This action cannot be undone.
+						{t('scholarship_detail.modals.delete_confirm.message')}
 					</p>
 
 					<div className="flex gap-3 justify-end">
@@ -2706,13 +2818,13 @@ const ScholarshipDetail = () => {
 							onClick={() => setShowDeleteConfirmModal(false)}
 							className="text-gray-600 border-gray-300 hover:bg-gray-50"
 						>
-							Cancel
+							{t('scholarship_detail.modals.delete_confirm.cancel')}
 						</Button>
 						<Button
 							onClick={removeAllFiles}
 							className="bg-red-500 hover:bg-red-600 text-white"
 						>
-							Delete All
+							{t('scholarship_detail.modals.delete_confirm.confirm')}
 						</Button>
 					</div>
 				</div>
@@ -2722,12 +2834,12 @@ const ScholarshipDetail = () => {
 			<ErrorModal
 				isOpen={showAuthModal}
 				onClose={() => setShowAuthModal(false)}
-				title="Authentication Required"
-				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
-				buttonText="Sign In"
+				title={t('research_lab_detail.modals.auth_required.title')}
+				message={t('research_lab_detail.modals.auth_required.message')}
+				buttonText={t('research_lab_detail.modals.auth_required.sign_in')}
 				onButtonClick={handleSignIn}
 				showSecondButton={true}
-				secondButtonText="Sign Up"
+				secondButtonText={t('research_lab_detail.modals.auth_required.sign_up')}
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
 			/>
@@ -2736,7 +2848,7 @@ const ScholarshipDetail = () => {
 			<Modal
 				isOpen={showDocumentSelector}
 				onClose={() => setShowDocumentSelector(false)}
-				title="Select Documents for Application"
+				title={t('scholarship_detail.modals.document_selector.title')}
 				maxWidth="xl"
 			>
 				<div className="max-h-[70vh] overflow-y-auto">
@@ -2771,10 +2883,19 @@ const ScholarshipDetail = () => {
 										</div>
 										<div>
 											<p className="font-semibold text-gray-900">
-												{profileCount} document
-												{profileCount !== 1 ? 's' : ''} selected from profile
+												{t(
+													'scholarship_detail.modals.document_selector.summary.selected',
+													{
+														count: profileCount,
+														plural: profileCount !== 1 ? 's' : '',
+													}
+												)}
 											</p>
-											<p className="text-sm text-gray-500">Ready to submit</p>
+											<p className="text-sm text-gray-500">
+												{t(
+													'scholarship_detail.modals.document_selector.summary.ready'
+												)}
+											</p>
 										</div>
 									</div>
 								) : (
@@ -2784,10 +2905,14 @@ const ScholarshipDetail = () => {
 										</div>
 										<div>
 											<p className="font-medium text-gray-900">
-												No documents selected
+												{t(
+													'scholarship_detail.modals.document_selector.summary.none_selected'
+												)}
 											</p>
 											<p className="text-sm text-gray-500">
-												Choose files to continue
+												{t(
+													'scholarship_detail.modals.document_selector.summary.choose_files'
+												)}
 											</p>
 										</div>
 									</div>
@@ -2830,7 +2955,7 @@ const ScholarshipDetail = () => {
 								className="px-6 py-3 text-gray-600 border-gray-300 hover:bg-gray-50"
 								size="sm"
 							>
-								Cancel
+								{t('scholarship_detail.modals.document_selector.cancel')}
 							</Button>
 							<Button
 								onClick={() => {
@@ -2840,10 +2965,14 @@ const ScholarshipDetail = () => {
 									)
 									if (profileDocuments.length > 0) {
 										showSuccess(
-											'Documents Selected!',
-											`${profileDocuments.length} document${
-												profileDocuments.length !== 1 ? 's' : ''
-											} ready for application submission`
+											t('scholarship_detail.modals.document_selector.success'),
+											t(
+												'scholarship_detail.modals.document_selector.success_message',
+												{
+													count: profileDocuments.length,
+													plural: profileDocuments.length !== 1 ? 's' : '',
+												}
+											)
 										)
 									}
 								}}
@@ -2861,10 +2990,14 @@ const ScholarshipDetail = () => {
 							>
 								{selectedDocuments.filter((doc) => doc.source === 'existing')
 									.length === 0 ? (
-									'Select Documents First'
+									t('scholarship_detail.modals.document_selector.select_first')
 								) : (
 									<div className="flex items-center gap-2">
-										<span>Continue</span>
+										<span>
+											{t(
+												'scholarship_detail.modals.document_selector.continue'
+											)}
+										</span>
 									</div>
 								)}
 							</Button>
@@ -2877,13 +3010,12 @@ const ScholarshipDetail = () => {
 			<Modal
 				isOpen={showCancelEditModal}
 				onClose={() => setShowCancelEditModal(false)}
-				title="Discard Changes?"
+				title={t('scholarship_detail.modals.cancel_edit.title')}
 				maxWidth="sm"
 			>
 				<div className="space-y-6">
 					<p className="text-gray-600">
-						You have unsaved changes. Are you sure you want to cancel editing?
-						All changes will be lost.
+						{t('scholarship_detail.modals.cancel_edit.message')}
 					</p>
 
 					<div className="flex gap-3 justify-end">
@@ -2892,13 +3024,13 @@ const ScholarshipDetail = () => {
 							onClick={() => setShowCancelEditModal(false)}
 							className="text-gray-600 border-gray-300 hover:bg-gray-50"
 						>
-							Keep Editing
+							{t('scholarship_detail.modals.cancel_edit.keep')}
 						</Button>
 						<Button
 							onClick={handleCancelEdit}
 							className="bg-red-500 hover:bg-red-600 text-white"
 						>
-							Discard Changes
+							{t('scholarship_detail.modals.cancel_edit.discard')}
 						</Button>
 					</div>
 				</div>

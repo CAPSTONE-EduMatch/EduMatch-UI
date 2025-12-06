@@ -4,6 +4,7 @@ import React from 'react'
 import { ScholarshipCard } from '@/components/ui'
 import { Scholarship } from '@/types/api/explore-api'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ScholarshipsTabProps {
 	scholarships?: Scholarship[]
@@ -32,6 +33,7 @@ export function ScholarshipsTab({
 	onUpdateRequest,
 	fromApplicationSection = false,
 }: ScholarshipsTabProps) {
+	const t = useTranslations('explore_page')
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
@@ -88,10 +90,10 @@ export function ScholarshipsTab({
 			) : (
 				<div className="text-center py-12">
 					<div className="text-gray-500 text-lg mb-2">
-						No scholarships found
+						{t('empty.scholarships.title')}
 					</div>
 					<div className="text-gray-400 text-sm">
-						Try adjusting your filters or search criteria
+						{t('empty.scholarships.hint')}
 					</div>
 				</div>
 			)}

@@ -19,6 +19,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TabType } from '@/types/domain/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
+import { useTranslations } from 'next-intl'
 
 interface FilterSidebarProps {
 	activeTab: TabType
@@ -46,6 +47,7 @@ export function FilterSidebar({
 	activeTab,
 	onFiltersChange,
 }: FilterSidebarProps) {
+	const t = useTranslations('explore_page.filters')
 	const searchParams = useSearchParams()
 
 	// State to track if filters have been initialized from URL
@@ -1108,9 +1110,7 @@ export function FilterSidebar({
 				transition={{ delay: 0.1 }}
 			>
 				<div className="flex items-center justify-between mb-3">
-					<h3 className="text-lg font-semibold text-gray-900">
-						Selected filters
-					</h3>
+					<h3 className="text-lg font-semibold text-gray-900">{t('title')}</h3>
 					<motion.button
 						onClick={handleRefresh}
 						className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -1131,7 +1131,9 @@ export function FilterSidebar({
 							<div className="flex items-center gap-2">
 								<BookOpen className="w-5 h-5 text-[#116E63]" />
 								<h4 className="font-medium text-[#116E63]">
-									{activeTab === 'research' ? 'Research field' : 'Discipline'}
+									{activeTab === 'research'
+										? t('discipline.research_field')
+										: t('discipline.label')}
 								</h4>
 							</div>
 							<motion.div
@@ -1158,7 +1160,7 @@ export function FilterSidebar({
 												<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 												<input
 													type="text"
-													placeholder="Search discipline..."
+													placeholder={t('discipline.placeholder')}
 													value={searchTerms.discipline}
 													onChange={(e) =>
 														setTabSearchTerms((prev) => ({
@@ -1176,14 +1178,14 @@ export function FilterSidebar({
 												</button>
 											</div>
 											<p className="text-sm text-gray-600 mb-3">
-												Select a discipline
+												{t('discipline.select_prompt')}
 											</p>
 											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
 												{!allDisciplinesData ? (
 													<div className="flex items-center justify-center py-4">
 														<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
 														<span className="ml-2 text-sm text-gray-600">
-															Loading disciplines...
+															{t('discipline.loading')}
 														</span>
 													</div>
 												) : filterConfig.disciplines &&
@@ -1210,7 +1212,7 @@ export function FilterSidebar({
 																<span className="text-xs text-gray-500 block">
 																	{filterConfig.subdisciplines?.[discipline]
 																		?.length || 0}{' '}
-																	subdisciplines
+																	{t('discipline.subdisciplines_count')}
 																</span>
 															</motion.button>
 														))
@@ -1219,7 +1221,7 @@ export function FilterSidebar({
 															<div className="text-center">
 																<div className="text-2xl mb-2">🔍</div>
 																<p className="text-sm">
-																	No disciplines match your search
+																	{t('discipline.no_match')}
 																</p>
 															</div>
 														</div>
@@ -1229,10 +1231,10 @@ export function FilterSidebar({
 														<div className="text-center">
 															<div className="text-2xl mb-2">📚</div>
 															<p className="text-sm">
-																No disciplines available
+																{t('discipline.no_available')}
 															</p>
 															<p className="text-xs mt-1">
-																Check back later or contact support
+																{t('discipline.check_back')}
 															</p>
 														</div>
 													</div>
@@ -1248,7 +1250,7 @@ export function FilterSidebar({
 														onClick={handleBackToDisciplines}
 														className="text-[#116E63] hover:text-[#0d5a52] text-sm font-medium"
 													>
-														← Back to disciplines
+														{t('discipline.back_to_disciplines')}
 													</button>
 												</div>
 											)}
@@ -1256,11 +1258,11 @@ export function FilterSidebar({
 												<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 												<input
 													type="text"
-													placeholder={`Search ${
+													placeholder={
 														activeTab === 'research'
-															? 'research field'
-															: 'subdiscipline'
-													}...`}
+															? t('discipline.research_field_placeholder')
+															: t('discipline.subdiscipline_placeholder')
+													}
 													value={searchTerms.subdiscipline}
 													onChange={(e) =>
 														setTabSearchTerms((prev) => ({
@@ -1279,8 +1281,10 @@ export function FilterSidebar({
 											</div>
 											<p className="text-sm text-gray-600 mb-3">
 												{activeTab === 'research'
-													? 'Select research fields'
-													: `${selectedDiscipline} subdisciplines`}
+													? t('discipline.select_research_fields')
+													: t('discipline.subdisciplines_of', {
+															discipline: selectedDiscipline,
+														})}
 											</p>
 											<div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
 												{activeTab === 'research'
@@ -1386,7 +1390,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<Globe className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Country</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('country.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1409,7 +1415,7 @@ export function FilterSidebar({
 										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 										<input
 											type="text"
-											placeholder="Search country..."
+											placeholder={t('country.placeholder')}
 											value={searchTerms.country}
 											onChange={(e) =>
 												setTabSearchTerms((prev) => ({
@@ -1432,7 +1438,7 @@ export function FilterSidebar({
 											<div className="flex items-center justify-center py-4">
 												<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#116E63]"></div>
 												<span className="ml-2 text-sm text-gray-600">
-													Loading...
+													{t('country.loading')}
 												</span>
 											</div>
 										) : (
@@ -1478,7 +1484,7 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<DollarSign className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Fee</h4>
+								<h4 className="font-medium text-[#116E63]">{t('fee.label')}</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1517,7 +1523,7 @@ export function FilterSidebar({
 										{/* Dual Range Slider */}
 										<div className="space-y-2">
 											<label className="text-sm font-medium text-gray-700">
-												Fee Range
+												{t('fee.range_label')}
 											</label>
 											<div className="relative">
 												{/* Min slider */}
@@ -1576,7 +1582,9 @@ export function FilterSidebar({
 										{/* Manual Input Fields */}
 										<div className="grid grid-cols-2 gap-3">
 											<div className="space-y-1">
-												<label className="text-xs text-gray-500">Min ($)</label>
+												<label className="text-xs text-gray-500">
+													{t('fee.min_label')}
+												</label>
 												<input
 													type="number"
 													value={currentFeeRange.min}
@@ -1595,7 +1603,9 @@ export function FilterSidebar({
 												/>
 											</div>
 											<div className="space-y-1">
-												<label className="text-xs text-gray-500">Max ($)</label>
+												<label className="text-xs text-gray-500">
+													{t('fee.max_label')}
+												</label>
 												<input
 													type="number"
 													value={currentFeeRange.max}
@@ -1631,7 +1641,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<DollarSign className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Salary</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('salary.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1654,7 +1666,7 @@ export function FilterSidebar({
 										{/* Dual Range Slider */}
 										<div className="space-y-2">
 											<label className="text-sm font-medium text-gray-700">
-												Salary Range
+												{t('salary.range_label')}
 											</label>
 											<div className="relative">
 												{/* Min slider */}
@@ -1713,7 +1725,9 @@ export function FilterSidebar({
 										{/* Manual Input Fields */}
 										<div className="grid grid-cols-2 gap-3">
 											<div className="space-y-1">
-												<label className="text-xs text-gray-500">Min ($)</label>
+												<label className="text-xs text-gray-500">
+													{t('salary.min_label')}
+												</label>
 												<input
 													type="number"
 													value={currentSalaryRange.min}
@@ -1732,7 +1746,9 @@ export function FilterSidebar({
 												/>
 											</div>
 											<div className="space-y-1">
-												<label className="text-xs text-gray-500">Max ($)</label>
+												<label className="text-xs text-gray-500">
+													{t('salary.max_label')}
+												</label>
 												<input
 													type="number"
 													value={currentSalaryRange.max}
@@ -1768,7 +1784,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<Clock className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Duration</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('duration.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1826,7 +1844,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<GraduationCap className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Degree level</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('degree_level.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1882,7 +1902,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<FileText className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Essay required</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('essay_required.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -1949,7 +1971,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<Users className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Attendance</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('attendance.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -2004,7 +2028,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<Briefcase className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Type of Contract</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('contract_type.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"
@@ -2060,7 +2086,9 @@ export function FilterSidebar({
 						>
 							<div className="flex items-center gap-2">
 								<Building className="w-5 h-5 text-[#116E63]" />
-								<h4 className="font-medium text-[#116E63]">Job type</h4>
+								<h4 className="font-medium text-[#116E63]">
+									{t('job_type.label')}
+								</h4>
 							</div>
 							<motion.div
 								className="p-1"

@@ -3,6 +3,7 @@
 import React from 'react'
 import { Button } from '@/components/ui'
 import { Plus, Bell } from 'lucide-react'
+import { ShortIdWithCopy } from '@/components/ui/ShortIdWithCopy'
 
 export interface Post {
 	id: string
@@ -70,8 +71,8 @@ export const PostsTable: React.FC<PostsTableProps> = ({
 									className={`${rowBg} grid grid-cols-8 px-8 py-5 items-center`}
 								>
 									{/* ID */}
-									<div className="font-semibold text-base text-black text-left">
-										{post.id}
+									<div className="text-left">
+										<ShortIdWithCopy id={post.id} />
 									</div>
 
 									{/* Title */}

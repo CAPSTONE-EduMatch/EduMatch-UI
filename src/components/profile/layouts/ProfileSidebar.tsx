@@ -7,6 +7,7 @@ import { LogOut, LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect } from 'react'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
+import { clearSessionCache } from '@/services/messaging/appsync-client'
 
 export type ProfileSection = string
 
@@ -104,20 +105,23 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 	// Handle logout
 	const handleLogout = async () => {
 		try {
+			// Clear AppSync session cache
+			clearSessionCache()
+
+			// Clear Better Auth session
 			await authClient.signOut()
 
-			// Clear any cached data
+			// Clear browser storage
 			localStorage.clear()
 			sessionStorage.clear()
 
-			// Refresh auth state to update header
-			await refreshAuth()
-
-			// Redirect to home page
-			router.push('/')
+			// Force full page reload to ensure all state is cleared
+			window.location.href = '/'
 		} catch (error) {
-			// Handle logout error silently or show user-friendly message
-			// Logout error handled silently
+			// eslint-disable-next-line no-console
+			console.error('Failed to logout:', error)
+			// Still redirect even if logout fails
+			window.location.href = '/'
 		}
 	}
 

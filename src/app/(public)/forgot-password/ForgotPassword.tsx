@@ -6,6 +6,7 @@ import { Input } from '@/components/ui'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import React, { useEffect, useState } from 'react'
 // import { set } from 'better-auth'
 
@@ -37,6 +38,8 @@ const itemVariants = {
 }
 
 const ForgotPassword: React.FC = () => {
+	const t = useTranslations('auth.forgot_password')
+
 	const [newPassword, setNewPassword] = useState('')
 	const [confirmNewPassword, setConfirmNewPassword] = useState('')
 	const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
@@ -64,14 +67,13 @@ const ForgotPassword: React.FC = () => {
 		} = {}
 
 		if (!newPassword || !newPasswordIsValid) {
-			next.newPassword =
-				'Please enter a valid new password that meets all criteria.'
+			next.newPassword = t('errors.password_invalid')
 		}
 
 		if (!confirmNewPassword) {
-			next.confirmNewPassword = 'Please confirm your new password.'
+			next.confirmNewPassword = t('errors.confirm_required')
 		} else if (newPassword !== confirmNewPassword) {
-			next.confirmNewPassword = "Passwords don't match."
+			next.confirmNewPassword = t('errors.passwords_no_match')
 		}
 
 		setErrors(next)
@@ -96,17 +98,14 @@ const ForgotPassword: React.FC = () => {
 
 			if (error) {
 				setErrors({
-					general:
-						error.message || 'Failed to update password. Please try again.',
+					general: t('errors.update_failed'),
 				})
 				setIsLoading(false)
 				return
 			}
 
 			// Simulate success
-			setSuccessMessage(
-				'Password updated successfully! You will be redirected to sign in.'
-			)
+			setSuccessMessage(t('success.password_updated'))
 
 			// Redirect to sign in after success
 			setTimeout(() => {
@@ -115,7 +114,7 @@ const ForgotPassword: React.FC = () => {
 		} catch (err) {
 			// Error occurred during password reset
 			setErrors({
-				general: 'Failed to update password. Please try again.',
+				general: t('errors.update_failed'),
 			})
 		} finally {
 			setIsLoading(false)
@@ -197,7 +196,7 @@ const ForgotPassword: React.FC = () => {
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ duration: 0.7, delay: 0.4 }}
 							>
-								Reset Password
+								{t('title')}
 							</motion.h1>
 
 							<motion.p
@@ -206,7 +205,7 @@ const ForgotPassword: React.FC = () => {
 								animate={{ opacity: 1 }}
 								transition={{ duration: 0.7, delay: 0.5 }}
 							>
-								Create a new password for your account.
+								{t('subtitle')}
 							</motion.p>
 
 							{/* Success Message */}
@@ -284,15 +283,16 @@ const ForgotPassword: React.FC = () => {
 									variants={itemVariants}
 								>
 									<label className="col-span-3 text-sm font-medium text-gray-700">
-										Confirm New Password <span className="text-red-500">*</span>
+										{t('form.confirm_password.label')}{' '}
+										<span className="text-red-500">*</span>
 									</label>
 									<div className="col-span-9 relative">
 										<Input
 											value={confirmNewPassword}
 											onChange={(e) => setConfirmNewPassword(e.target.value)}
 											type={showConfirmNewPassword ? 'text' : 'password'}
-											placeholder="Confirm your new password"
-											aria-label="Confirm New Password"
+											placeholder={t('form.confirm_password.placeholder')}
+											aria-label={t('form.confirm_password.label')}
 											variant="signin"
 											error={errors.confirmNewPassword}
 										/>
@@ -313,7 +313,7 @@ const ForgotPassword: React.FC = () => {
 										}}
 										whileTap={{ scale: 0.98 }}
 									>
-										{isLoading ? 'Updating Password...' : 'Reset Password'}
+										{isLoading ? t('buttons.submitting') : t('buttons.submit')}
 									</motion.button>
 								</motion.div>
 
@@ -321,7 +321,7 @@ const ForgotPassword: React.FC = () => {
 									className="text-center text-sm text-gray-500 mt-2"
 									variants={itemVariants}
 								>
-									Remember your password?{' '}
+									{t('links.remember_password')}{' '}
 									<Link href="/signin">
 										<motion.span
 											className="text-[#126E64] font-medium hover:underline inline-block"
@@ -331,7 +331,7 @@ const ForgotPassword: React.FC = () => {
 												transition: { duration: 0.2 },
 											}}
 										>
-											Back to Sign In
+											{t('buttons.back_to_signin')}
 										</motion.span>
 									</Link>
 								</motion.p>

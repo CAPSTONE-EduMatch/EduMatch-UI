@@ -1,5 +1,6 @@
 import { auth } from "@/config/auth";
 import { prismaClient } from "../../../prisma/index";
+import { randomUUID } from "crypto";
 
 export interface UserDetailsFromDB {
 	id: string;
@@ -294,7 +295,7 @@ export class AdminUserService {
 			// You might want to create a separate ContactLog table
 			await prismaClient.notification.create({
 				data: {
-					notification_id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+					notification_id: crypto.randomUUID(),
 					user_id: userId,
 					title: "Contact Attempt",
 					body: adminId
@@ -514,7 +515,7 @@ export class AdminUserService {
 		try {
 			await prismaClient.notification.create({
 				data: {
-					notification_id: `additional-info-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+					notification_id: randomUUID(),
 					user_id: userId,
 					title: "Additional Information Required",
 					body: `Administrator ${adminId || "Unknown"} requires additional information: ${note}`,

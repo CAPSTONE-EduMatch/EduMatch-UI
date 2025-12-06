@@ -3,6 +3,7 @@
 import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
 import { authClient } from '@/config/auth-client'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
+import { clearSessionCache } from '@/services/messaging/appsync-client'
 import {
 	Building2,
 	CreditCard,
@@ -90,13 +91,27 @@ export function AdminSidebar({
 				break
 			case 'logout':
 				// Handle logout logic here
-				authClient.signOut({
-					fetchOptions: {
-						onSuccess: () => {
-							router.push('/signin')
-						},
-					},
-				})
+				;(async () => {
+					try {
+						// Clear AppSync session cache
+						clearSessionCache()
+
+						// Clear Better Auth session
+						await authClient.signOut()
+
+						// Clear browser storage
+						localStorage.clear()
+						sessionStorage.clear()
+
+						// Force full page reload to ensure all state is cleared
+						window.location.href = '/signin'
+					} catch (error) {
+						// eslint-disable-next-line no-console
+						console.error('Failed to logout:', error)
+						// Still redirect even if logout fails
+						window.location.href = '/signin'
+					}
+				})()
 				break
 			default:
 				// For other sections, you can add more routes as needed

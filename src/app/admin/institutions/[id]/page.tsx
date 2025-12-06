@@ -63,6 +63,8 @@ export default function InstitutionDetailPage() {
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [successMessage, setSuccessMessage] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
+	const [infoRequests, setInfoRequests] = useState<any[]>([])
+	const [loadingInfoRequests, setLoadingInfoRequests] = useState(false)
 	const router = useRouter()
 	const params = useParams()
 	const { isAdmin, isLoading: adminLoading } = useAdminAuth()
@@ -90,6 +92,31 @@ export default function InstitutionDetailPage() {
 			setLoading(false)
 		}
 	}
+
+	const loadInfoRequests = async (institutionId: string) => {
+		setLoadingInfoRequests(true)
+		try {
+			const response = await fetch(
+				`/api/admin/institutions/${institutionId}/info-requests`
+			)
+			const result = await response.json()
+			if (result.success && result.data) {
+				setInfoRequests(result.data)
+			}
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Failed to load info requests:', error)
+		} finally {
+			setLoadingInfoRequests(false)
+		}
+	}
+
+	// Load info requests when update history tab is active
+	useEffect(() => {
+		if (activeTab === 'update-history' && params?.id) {
+			loadInfoRequests(params.id as string)
+		}
+	}, [activeTab, params?.id])
 
 	const handleContactInstitution = async () => {
 		if (!params?.id) return
@@ -282,6 +309,8 @@ export default function InstitutionDetailPage() {
 		if (!params?.id) return
 
 		setActionLoading(true)
+		setErrorMessage('')
+		setSuccessMessage('')
 		try {
 			const response = await fetch(
 				`/api/admin/institutions/${params.id}/actions`,
@@ -292,17 +321,28 @@ export default function InstitutionDetailPage() {
 				}
 			)
 
-			if (response.ok) {
-				alert('Additional information request sent successfully!')
+			const data = await response.json()
+
+			if (response.ok && data.success) {
+				setSuccessMessage(
+					'Additional information request sent successfully! The institution has been notified.'
+				)
+				setShowSuccessModal(true)
 				setShowRequireInfoModal(false)
 				// Reload institution data to reflect changes
 				await loadInstitutionData(params.id as string)
 			} else {
-				const errorData = await response.json()
-				alert(`Failed to send request: ${errorData.error || 'Unknown error'}`)
+				setErrorMessage(
+					data.error ||
+						'Failed to send additional information request. Please try again.'
+				)
+				setShowErrorModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setErrorMessage(
+				'An error occurred while sending the request. Please try again.'
+			)
+			setShowErrorModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -460,17 +500,27 @@ export default function InstitutionDetailPage() {
 							{/* Status indicator */}
 							<div className="mt-3">
 								<span
-									className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-										institutionData.status === 'Active'
-											? 'bg-green-100 text-green-700'
-											: institutionData.status === 'Suspended'
-												? 'bg-red-100 text-red-700'
-												: institutionData.status === 'Pending'
-													? 'bg-yellow-100 text-yellow-700'
-													: institutionData.status === 'Rejected'
-														? 'bg-orange-100 text-orange-700'
-														: 'bg-gray-100 text-gray-700'
-									}`}
+									className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${(() => {
+										const status = institutionData.status
+										switch (status) {
+											case 'Active':
+												return 'bg-green-100 text-green-700'
+											case 'Suspended':
+												return 'bg-red-100 text-red-700'
+											case 'Pending':
+												return 'bg-yellow-100 text-yellow-700'
+											case 'Rejected':
+												return 'bg-orange-100 text-orange-700'
+											case 'Require Update':
+												return 'bg-orange-100 text-orange-700'
+											case 'Updated':
+												return 'bg-blue-100 text-blue-700'
+											case 'Inactive':
+												return 'bg-gray-100 text-gray-700'
+											default:
+												return 'bg-gray-100 text-gray-700'
+										}
+									})()}`}
 								>
 									{institutionData.status}
 								</span>
@@ -585,7 +635,9 @@ export default function InstitutionDetailPage() {
 								<LogOut className="w-4 h-4" />
 								{actionLoading ? 'Processing...' : 'Revoke All Sessions'}
 							</button>
-							{institutionData.verification_status === 'PENDING' && (
+							{/* Only show approve/deny buttons when status is PENDING, UPDATED, or REJECTED */}
+							{(institutionData.verification_status === 'PENDING' ||
+								institutionData.verification_status === 'UPDATED') && (
 								<>
 									<button
 										onClick={handleApprove}
@@ -601,24 +653,55 @@ export default function InstitutionDetailPage() {
 									>
 										{actionLoading ? 'Processing...' : 'Deny Institution'}
 									</button>
+									<button
+										onClick={handleRequireInfo}
+										disabled={actionLoading}
+										className="w-full bg-[#F59E0B] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+									>
+										{actionLoading
+											? 'Processing...'
+											: 'Require Additional Info'}
+									</button>
 								</>
 							)}
 							{institutionData.verification_status === 'REJECTED' && (
-								<button
-									onClick={handleApprove}
-									disabled={actionLoading}
-									className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-								>
-									{actionLoading ? 'Processing...' : 'Re-approve Institution'}
-								</button>
+								<>
+									<button
+										onClick={handleApprove}
+										disabled={actionLoading}
+										className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+									>
+										{actionLoading ? 'Processing...' : 'Re-approve Institution'}
+									</button>
+									<button
+										onClick={handleRequireInfo}
+										disabled={actionLoading}
+										className="w-full bg-[#F59E0B] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+									>
+										{actionLoading
+											? 'Processing...'
+											: 'Require Additional Info'}
+									</button>
+								</>
 							)}
-							<button
-								onClick={handleRequireInfo}
-								disabled={actionLoading}
-								className="w-full bg-[#F59E0B] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-							>
-								{actionLoading ? 'Processing...' : 'Require Additional Info'}
-							</button>
+							{/* Show message when status is UPDATED */}
+							{institutionData.verification_status === 'UPDATED' && (
+								<div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-3 text-center mb-3">
+									<p className="text-sm text-blue-800 font-medium">
+										Institution has updated their profile. Please review the
+										changes.
+									</p>
+								</div>
+							)}
+							{/* Hide all action buttons when status is REQUIRE_UPDATE */}
+							{(institutionData.verification_status as string) ===
+								'REQUIRE_UPDATE' && (
+								<div className="w-full bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+									<p className="text-sm text-orange-800 font-medium">
+										Waiting for institution to update their profile
+									</p>
+								</div>
+							)}
 						</div>
 					</motion.div>
 				</div>
@@ -665,6 +748,16 @@ export default function InstitutionDetailPage() {
 									}`}
 								>
 									Posts
+								</button>
+								<button
+									onClick={() => setActiveTab('update-history')}
+									className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all ${
+										activeTab === 'update-history'
+											? 'bg-white text-[#126E64] shadow-sm'
+											: 'text-gray-600 hover:text-[#126E64]'
+									}`}
+								>
+									Update History
 								</button>
 							</div>
 						</div>
@@ -737,6 +830,76 @@ export default function InstitutionDetailPage() {
 											institution.
 										</p>
 									</div>
+								</div>
+							)}
+
+							{/* Update History Tab */}
+							{activeTab === 'update-history' && (
+								<div className="bg-white rounded-lg p-6 shadow-sm">
+									<h3 className="text-lg font-semibold text-black mb-6">
+										Information Request History
+									</h3>
+									{loadingInfoRequests ? (
+										<div className="flex items-center justify-center py-12">
+											<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64]"></div>
+										</div>
+									) : infoRequests.length === 0 ? (
+										<div className="text-center py-12 text-gray-500">
+											<MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+											<p className="text-lg mb-2">No information requests</p>
+											<p className="text-sm">
+												No additional information requests have been made for
+												this institution.
+											</p>
+										</div>
+									) : (
+										<div className="space-y-3">
+											{infoRequests.map((request) => (
+												<div
+													key={request.infoRequestId}
+													className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+												>
+													<div className="flex items-center justify-between mb-2">
+														<div className="flex items-center gap-3">
+															<span
+																className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+																	request.status === 'PENDING'
+																		? 'bg-yellow-100 text-yellow-800'
+																		: request.status === 'RESPONDED'
+																			? 'bg-blue-100 text-blue-800'
+																			: request.status === 'REVIEWED'
+																				? 'bg-green-100 text-green-800'
+																				: 'bg-gray-100 text-gray-800'
+																}`}
+															>
+																{request.status}
+															</span>
+															<span className="text-sm text-gray-500">
+																{new Date(request.createdAt).toLocaleDateString(
+																	'en-US',
+																	{
+																		year: 'numeric',
+																		month: 'short',
+																		day: 'numeric',
+																		hour: '2-digit',
+																		minute: '2-digit',
+																	}
+																)}
+															</span>
+														</div>
+														<span className="text-xs text-gray-400">
+															{request.requestedBy.name}
+														</span>
+													</div>
+													<div className="bg-gray-50 rounded-md p-3">
+														<p className="text-sm text-gray-700 whitespace-pre-wrap">
+															{request.requestMessage}
+														</p>
+													</div>
+												</div>
+											))}
+										</div>
+									)}
 								</div>
 							)}
 						</div>

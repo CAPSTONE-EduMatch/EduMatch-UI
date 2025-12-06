@@ -24,78 +24,29 @@ export async function GET(
 		}
 
 		// Determine if the ID is an institution_id or user_id
-		// institution_id format: "institution_${userId}"
-		// If it doesn't start with "institution_", treat it as user_id
-		let whereClause: any;
+		// Both are now UUIDs, so we try institution_id first, then user_id
+		// For backward compatibility, also check old format "institution_${userId}"
+		let institution;
 		if (id.startsWith("institution_")) {
-			whereClause = { institution_id: id };
+			// Legacy format: extract user_id from "institution_${userId}"
+			const userId = id.replace("institution_", "");
+			institution = await prismaClient.institution.findFirst({
+				where: { user_id: userId },
+			});
 		} else {
-			// It's a user_id, find by user_id
-			whereClause = { user_id: id };
+			// Try as institution_id first
+			institution = await prismaClient.institution.findFirst({
+				where: { institution_id: id },
+			});
+			// If not found, try as user_id
+			if (!institution) {
+				institution = await prismaClient.institution.findFirst({
+					where: { user_id: id },
+				});
+			}
 		}
 
-		// Fetch institution with all related data
-		const institution = await prismaClient.institution.findFirst({
-			where: whereClause,
-			include: {
-				user: {
-					select: {
-						id: true,
-						email: true,
-						name: true,
-						banned: true,
-						status: true,
-						banReason: true,
-						banExpires: true,
-						createdAt: true,
-						updatedAt: true,
-						image: true,
-					},
-				},
-				documents: {
-					where: {
-						status: true, // Only fetch active documents, matching institution profile behavior
-					},
-					include: {
-						documentType: {
-							select: {
-								document_type_id: true,
-								name: true,
-								description: true,
-							},
-						},
-					},
-				},
-				subdisciplines: {
-					include: {
-						subdiscipline: {
-							select: {
-								subdiscipline_id: true,
-								name: true,
-								discipline: {
-									select: {
-										discipline_id: true,
-										name: true,
-									},
-								},
-							},
-						},
-					},
-				},
-				posts: {
-					include: {
-						applications: {
-							select: {
-								application_id: true,
-								status: true,
-								apply_at: true,
-							},
-						},
-					},
-				},
-			},
-		});
-
+		// If institution not found, return error
 		if (!institution) {
 			return Response.json(
 				{
@@ -106,8 +57,82 @@ export async function GET(
 			);
 		}
 
+		// Fetch institution with all related data
+		const institutionWithRelations =
+			await prismaClient.institution.findFirst({
+				where: { institution_id: institution.institution_id },
+				include: {
+					user: {
+						select: {
+							id: true,
+							email: true,
+							name: true,
+							banned: true,
+							status: true,
+							banReason: true,
+							banExpires: true,
+							createdAt: true,
+							updatedAt: true,
+							image: true,
+						},
+					},
+					documents: {
+						where: {
+							status: true, // Only fetch active documents, matching institution profile behavior
+						},
+						include: {
+							documentType: {
+								select: {
+									document_type_id: true,
+									name: true,
+									description: true,
+								},
+							},
+						},
+					},
+					subdisciplines: {
+						include: {
+							subdiscipline: {
+								select: {
+									subdiscipline_id: true,
+									name: true,
+									discipline: {
+										select: {
+											discipline_id: true,
+											name: true,
+										},
+									},
+								},
+							},
+						},
+					},
+					posts: {
+						include: {
+							applications: {
+								select: {
+									application_id: true,
+									status: true,
+									apply_at: true,
+								},
+							},
+						},
+					},
+				},
+			});
+
+		// Ensure institutionWithRelations is not null
+		if (!institutionWithRelations) {
+			return Response.json(
+				{
+					success: false,
+					error: "Institution not found",
+				},
+				{ status: 404 }
+			);
+		}
+
 		// Calculate application statistics
-		const allApplications = institution.posts.flatMap(
+		const allApplications = institutionWithRelations.posts.flatMap(
 			(post) => post.applications
 		);
 		const totalApplications = allApplications.length;
@@ -139,7 +164,7 @@ export async function GET(
 		});
 
 		// Group documents by their type and transform to match InstitutionDocument interface
-		institution.documents.forEach((doc) => {
+		institutionWithRelations.documents.forEach((doc) => {
 			const typeName = doc.documentType.name;
 			if (!documentsByType[typeName]) {
 				documentsByType[typeName] = [];
@@ -157,14 +182,16 @@ export async function GET(
 		});
 
 		// Transform subdisciplines data
-		const subdisciplines = institution.subdisciplines.map((item) => ({
-			subdisciplineId: item.subdiscipline.subdiscipline_id,
-			name: item.subdiscipline.name,
-			discipline: {
-				disciplineId: item.subdiscipline.discipline.discipline_id,
-				name: item.subdiscipline.discipline.name,
-			},
-		}));
+		const subdisciplines = institutionWithRelations.subdisciplines.map(
+			(item) => ({
+				subdisciplineId: item.subdiscipline.subdiscipline_id,
+				name: item.subdiscipline.name,
+				discipline: {
+					disciplineId: item.subdiscipline.discipline.discipline_id,
+					name: item.subdiscipline.discipline.name,
+				},
+			})
+		);
 
 		// Determine status based on verification_status first, then user status
 		let status:
@@ -172,30 +199,48 @@ export async function GET(
 			| "Inactive"
 			| "Suspended"
 			| "Pending"
-			| "Rejected" = "Active";
-		if (institution.user.banned) {
+			| "Rejected"
+			| "Require Update"
+			| "Updated" = "Active";
+		if (institutionWithRelations.user.banned) {
 			status = "Suspended";
-		} else if (institution.verification_status === "PENDING") {
+		} else if (institutionWithRelations.verification_status === "PENDING") {
 			status = "Pending";
-		} else if (institution.verification_status === "REJECTED") {
+		} else if (
+			institutionWithRelations.verification_status === "REJECTED"
+		) {
 			status = "Rejected";
-		} else if (institution.verification_status === "APPROVED") {
+		} else if (
+			institutionWithRelations.verification_status === "REQUIRE_UPDATE"
+		) {
+			// Institutions requiring updates should show as "Require Update"
+			status = "Require Update";
+		} else if ((institution.verification_status as string) === "UPDATED") {
+			// Institutions that have updated their profile need admin review
+			status = "Updated";
+		} else if (
+			institutionWithRelations.verification_status === "APPROVED"
+		) {
 			// Approved institutions show as "Active" if user status is true
-			status = institution.user.status ? "Active" : "Inactive";
-		} else if (!institution.user.status) {
+			status = institutionWithRelations.user.status
+				? "Active"
+				: "Inactive";
+		} else if (!institutionWithRelations.user.status) {
 			status = "Inactive";
 		}
 
 		// Build the response
 		const institutionDetails = {
-			id: institution.institution_id,
-			name: institution.name,
+			id: institutionWithRelations.institution_id,
+			name: institutionWithRelations.name,
 			abbreviation: institution.abbreviation,
 			type: institution.type,
 			country: institution.country,
 			address: institution.address,
 			website: institution.website,
-			email: institution.email || institution.user.email,
+			email:
+				institutionWithRelations.email ||
+				institutionWithRelations.user.email,
 			hotline: institution.hotline,
 			hotlineCode: institution.hotline_code,
 			logo: institution.logo,
@@ -211,21 +256,22 @@ export async function GET(
 			repPhoneCode: institution.rep_phone_code,
 
 			// User account information
-			userId: institution.user.id,
-			userEmail: institution.user.email,
-			userName: institution.user.name,
-			userImage: institution.user.image,
+			userId: institutionWithRelations.user.id,
+			userEmail: institutionWithRelations.user.email,
+			userName: institutionWithRelations.user.name,
+			userImage: institutionWithRelations.user.image,
 
 			// Status information
 			status,
-			banned: institution.user.banned || false,
-			banReason: institution.user.banReason,
-			banExpires: institution.user.banExpires?.toISOString(),
-			createdAt: institution.user.createdAt.toISOString(),
-			lastActive: institution.user.updatedAt?.toISOString(),
+			banned: institutionWithRelations.user.banned || false,
+			banReason: institutionWithRelations.user.banReason,
+			banExpires: institutionWithRelations.user.banExpires?.toISOString(),
+			createdAt: institutionWithRelations.user.createdAt.toISOString(),
+			lastActive: institutionWithRelations.user.updatedAt?.toISOString(),
 
 			// Verification information
-			verification_status: institution.verification_status || "PENDING",
+			verification_status:
+				institutionWithRelations.verification_status || "PENDING",
 			submitted_at: institution.submitted_at?.toISOString() || null,
 			verified_at: institution.verified_at?.toISOString() || null,
 			verified_by: institution.verified_by || null,

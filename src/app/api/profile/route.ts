@@ -3,6 +3,7 @@ import { InstitutionProfileService } from "@/services/profile/institution-profil
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../prisma";
+import { randomUUID } from "crypto";
 
 export async function GET() {
 	try {
@@ -531,10 +532,123 @@ export async function PUT(request: NextRequest) {
 				formData
 			);
 		} else if (formData.role === "institution") {
+			// Check institution status BEFORE updating to see if we need to handle REQUIRE_UPDATE
+			const institutionBeforeUpdate =
+				await prismaClient.institution.findUnique({
+					where: { user_id: userId },
+					select: { institution_id: true, verification_status: true },
+				});
+
+			const wasRequireUpdate =
+				institutionBeforeUpdate?.verification_status ===
+				"REQUIRE_UPDATE";
+
+			// Check if there are pending info requests before updating
+			const hasPendingRequests = institutionBeforeUpdate
+				? await prismaClient.institutionInfoRequest.findFirst({
+						where: {
+							institution_id:
+								institutionBeforeUpdate.institution_id,
+							status: "PENDING",
+						},
+					})
+				: null;
+
 			updatedProfile = await InstitutionProfileService.upsertProfile(
 				userId,
 				formData
 			);
+
+			// If institution profile was updated, check for pending info requests
+			// and update their status to RESPONDED
+			// Also handle verification documents if provided
+			if (updatedProfile && institutionBeforeUpdate) {
+				// Update all pending info requests to RESPONDED status
+				await prismaClient.institutionInfoRequest.updateMany({
+					where: {
+						institution_id: institutionBeforeUpdate.institution_id,
+						status: "PENDING",
+					},
+					data: {
+						status: "RESPONDED",
+						response_submitted_at: new Date(),
+						response_message:
+							"Institution has updated their profile in response to the information request.",
+					},
+				});
+
+				// If institution was in REQUIRE_UPDATE status and had pending requests,
+				// update verification_status to UPDATED
+				if (wasRequireUpdate && hasPendingRequests) {
+					await prismaClient.institution.update({
+						where: {
+							institution_id:
+								institutionBeforeUpdate.institution_id,
+						},
+						data: {
+							verification_status: "UPDATED" as any, // Type assertion until Prisma client is regenerated
+							submitted_at: new Date(),
+						},
+					});
+				}
+
+				// Handle verification documents if provided
+				// Only save documents when explicitly provided in formData
+				if (
+					formData.verificationDocuments &&
+					Array.isArray(formData.verificationDocuments) &&
+					formData.verificationDocuments.length > 0
+				) {
+					// Get or create document type for verification documents
+					let docType = await prismaClient.documentType.findFirst({
+						where: { name: "Institution Verification" },
+					});
+
+					if (!docType) {
+						docType = await prismaClient.documentType.create({
+							data: {
+								document_type_id: randomUUID(),
+								name: "Institution Verification",
+								description:
+									"Document type for Institution Verification",
+							},
+						});
+					}
+
+					// Save documents to database
+					for (const doc of formData.verificationDocuments) {
+						// Check if document already exists by URL to avoid duplicates
+						const existingDoc =
+							await prismaClient.institutionDocument.findFirst({
+								where: {
+									institution_id:
+										institutionBeforeUpdate.institution_id,
+									url: doc.url,
+									status: true,
+								},
+							});
+
+						if (!existingDoc) {
+							await prismaClient.institutionDocument.create({
+								data: {
+									document_id: doc.id || randomUUID(),
+									institution_id:
+										institutionBeforeUpdate.institution_id,
+									document_type_id: docType.document_type_id,
+									name:
+										doc.name ||
+										doc.originalName ||
+										"Verification Document",
+									url: doc.url || "",
+									size: doc.size || doc.fileSize || 0,
+									upload_at: new Date(),
+									status: true,
+								},
+							});
+						}
+					}
+				}
+			}
 		} else {
 			throw new Error("Invalid role specified");
 		}

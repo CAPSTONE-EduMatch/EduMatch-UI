@@ -42,7 +42,10 @@ import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
+import { useTranslations } from 'next-intl'
+
 const ProgramDetail = () => {
+	const t = useTranslations()
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const params = useParams()
@@ -85,7 +88,10 @@ const ProgramDetail = () => {
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([{ label: 'Explore', href: '/explore' }, { label: 'Program Detail' }])
+	>([
+		{ label: t('breadcrumb.explore'), href: '/explore' },
+		{ label: t('program_detail.breadcrumb.programmes') },
+	])
 	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [scholarships, setScholarships] = useState<any[]>([])
@@ -219,27 +225,27 @@ const ProgramDetail = () => {
 	// Dynamic info items based on current program data
 	const infoItems = [
 		{
-			label: 'Tuition fee',
+			label: t('program_detail.info.fee'),
 			value:
 				currentProgram?.program?.tuitionFeeFormatted ||
 				currentProgram?.program?.tuitionFee
 					? `$${currentProgram.program.tuitionFee}/year`
-					: 'Contact institution',
+					: t('program_detail.info.contact_institution'),
 		},
 		{
-			label: 'Duration',
+			label: t('program_detail.info.duration'),
 			value: currentProgram?.program?.duration || 'N/A',
 		},
 		{
-			label: 'Application deadline',
+			label: t('program_detail.info.deadline'),
 			value: currentProgram?.endDateFormatted || 'N/A',
 		},
 		{
-			label: 'Start Date',
+			label: t('program_detail.info.start_date'),
 			value: currentProgram?.startDateFormatted || 'N/A',
 		},
 		{
-			label: 'Location',
+			label: t('program_detail.info.location'),
 			value: currentProgram?.location || 'N/A',
 		},
 	]
@@ -374,22 +380,22 @@ const ProgramDetail = () => {
 
 				const programName = currentProgram?.title || 'Information Technology'
 				let items: Array<{ label: string; href?: string }> = [
-					{ label: 'Explore', href: `/explore${queryString}` },
+					{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
 				]
 
 				if (fromTab === 'scholarships') {
 					items.push({
-						label: 'Scholarships',
+						label: t('breadcrumb.scholarships'),
 						href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
 					})
 				} else if (fromTab === 'research') {
 					items.push({
-						label: 'Research Labs',
+						label: t('breadcrumb.research'),
 						href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
 					})
 				} else {
 					items.push({
-						label: 'Programmes',
+						label: t('breadcrumb.programmes'),
 						href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
 					})
 				}
@@ -414,23 +420,23 @@ const ProgramDetail = () => {
 			const programName = programData?.title || 'Information Technology'
 
 			let items: Array<{ label: string; href?: string }> = [
-				{ label: 'Explore', href: `/explore${queryString}` },
+				{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
 			]
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'scholarships') {
 				items.push({
-					label: 'Scholarships',
+					label: t('breadcrumb.scholarships'),
 					href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else if (fromTab === 'research') {
 				items.push({
-					label: 'Research Labs',
+					label: t('breadcrumb.research'),
 					href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else {
 				items.push({
-					label: 'Programmes',
+					label: t('breadcrumb.programmes'),
 					href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
 				})
 			}
@@ -1359,13 +1365,13 @@ const ProgramDetail = () => {
 	}
 
 	const menuItems = [
-		{ id: 'overview', label: 'Overview' },
-		{ id: 'structure', label: 'Programme structure' },
-		{ id: 'admission', label: 'Admission requirements' },
-		{ id: 'fee', label: 'Fee and funding' },
-		{ id: 'scholarship', label: 'Scholarship' },
-		{ id: 'other', label: 'Other information' },
-		{ id: 'application', label: 'My Applications' },
+		{ id: 'overview', label: t('program_detail.tabs.overview') },
+		{ id: 'structure', label: t('program_detail.tabs.structure') },
+		{ id: 'admission', label: t('program_detail.tabs.admission') },
+		{ id: 'fee', label: t('program_detail.tabs.fee') },
+		{ id: 'scholarship', label: t('program_detail.tabs.scholarship') },
+		{ id: 'other', label: t('program_detail.tabs.other') },
+		{ id: 'application', label: t('program_detail.tabs.application') },
 	]
 
 	const renderTabContent = () => {
@@ -1377,7 +1383,9 @@ const ProgramDetail = () => {
 							{/* Description Section */}
 							{currentProgram?.description && (
 								<div className="text-base border-b border-gray-200 pb-4 mb-4">
-									<span className="font-bold text-gray-900">Description:</span>
+									<span className="font-bold text-gray-900">
+										{t('program_detail.overview.description_label')}
+									</span>
 									<div
 										className="text-gray-700 mt-2 prose prose-content max-w-none"
 										dangerouslySetInnerHTML={{
@@ -1388,30 +1396,36 @@ const ProgramDetail = () => {
 							)}
 
 							<div className="text-base">
-								<span className="font-bold text-gray-900">1. Duration:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('program_detail.overview.duration_label')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.program?.duration || 'N/A'}
 								</span>
 							</div>
 							<div className="text-base">
-								<span className="font-bold text-gray-900">2. Start dates:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('program_detail.overview.start_dates_label')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.startDateFormatted || 'N/A'}
 								</span>
 							</div>
 							<div className="text-base">
 								<span className="font-bold text-gray-900">
-									3. Application deadlines:
+									{t('program_detail.overview.deadlines_label')}
 								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.endDateFormatted
-										? `before ${currentProgram.endDateFormatted}`
+										? t('program_detail.overview.deadlines_before', {
+												date: currentProgram.endDateFormatted,
+											})
 										: 'N/A'}
 								</span>
 							</div>
 							<div className="text-base">
 								<span className="font-bold text-gray-900">
-									4. Subdiscipline:
+									{t('program_detail.overview.subdiscipline_label')}
 								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.subdiscipline &&
@@ -1423,20 +1437,24 @@ const ProgramDetail = () => {
 								</span>
 							</div>
 							<div className="text-base">
-								<span className="font-bold text-gray-900">5. Attendance:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('program_detail.overview.attendance_label')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.program?.attendance || 'N/A'}
 								</span>
 							</div>
 							<div className="text-base">
-								<span className="font-bold text-gray-900">6. Location:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('program_detail.overview.location_label')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.location || 'N/A'}
 								</span>
 							</div>
 							<div className="text-base">
 								<span className="font-bold text-gray-900">
-									7. Degree level:
+									{t('program_detail.overview.degree_level_label')}
 								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.program?.degreeLevel || 'N/A'}
@@ -1449,10 +1467,14 @@ const ProgramDetail = () => {
 								</span>
 							</div> */}
 							<div className="text-base">
-								<span className="font-bold text-gray-900">8. Days left:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('program_detail.overview.days_left_label')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.daysLeft !== undefined
-										? `${currentProgram.daysLeft} days`
+										? t('program_detail.overview.days_unit', {
+												count: currentProgram.daysLeft,
+											})
 										: 'N/A'}
 								</span>
 							</div>
@@ -1465,7 +1487,9 @@ const ProgramDetail = () => {
 					<div className="space-y-6">
 						<div>
 							<p className="text-base mb-2">
-								<span className="font-bold text-gray-900">Subdiscipline:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('program_detail.structure.subdiscipline_label')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{currentProgram?.subdiscipline &&
 									currentProgram.subdiscipline.length > 0
@@ -1479,7 +1503,9 @@ const ProgramDetail = () => {
 
 						{currentProgram?.program?.courseInclude && (
 							<div>
-								<p className="font-bold text-gray-900 mb-3">Courses include:</p>
+								<p className="font-bold text-gray-900 mb-3">
+									{t('program_detail.structure.courses_include')}
+								</p>
 								<div
 									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
@@ -1494,7 +1520,7 @@ const ProgramDetail = () => {
 								<div>
 									<p className="text-base">
 										<span className="font-bold text-gray-900">
-											Discipline area:
+											{t('program_detail.structure.discipline_area')}
 										</span>{' '}
 										<span className="text-gray-700">
 											{currentProgram.subdiscipline
@@ -1519,22 +1545,34 @@ const ProgramDetail = () => {
 					<div className="space-y-6">
 						<div>
 							<p className="font-bold text-gray-900 mb-3">
-								Academic requirements:
+								{t('program_detail.admission.academic_requirements')}
 							</p>
 							<ul className="list-disc pl-5 space-y-1 text-gray-700">
 								{currentProgram?.program?.gpa && (
-									<li>GPA: {currentProgram.program.gpa}</li>
+									<li>
+										{t('program_detail.admission.gpa_label', {
+											value: currentProgram.program.gpa,
+										})}
+									</li>
 								)}
 								{currentProgram?.program?.gre && (
-									<li>GRE: {currentProgram.program.gre}</li>
+									<li>
+										{t('program_detail.admission.gre_label', {
+											value: currentProgram.program.gre,
+										})}
+									</li>
 								)}
 								{currentProgram?.program?.gmat && (
-									<li>GMAT: {currentProgram.program.gmat}</li>
+									<li>
+										{t('program_detail.admission.gmat_label', {
+											value: currentProgram.program.gmat,
+										})}
+									</li>
 								)}
 								{!currentProgram?.program?.gpa &&
 									!currentProgram?.program?.gre &&
 									!currentProgram?.program?.gmat && (
-										<li>Please contact institution for requirements</li>
+										<li>{t('program_detail.admission.contact_requirement')}</li>
 									)}
 							</ul>
 						</div>
@@ -1543,12 +1581,15 @@ const ProgramDetail = () => {
 							currentProgram.program.certificates.length > 0 && (
 								<div>
 									<p className="font-bold text-gray-900 mb-3">
-										Language requirements:
+										{t('program_detail.admission.language_requirements')}
 									</p>
 									<ul className="list-disc pl-5 space-y-1 text-gray-700">
 										{currentProgram.program.certificates.map((cert: any) => (
 											<li key={cert.id}>
-												{cert.name}: {cert.score}
+												{t('program_detail.admission.certificate_format', {
+													name: cert.name,
+													score: cert.score,
+												})}
 											</li>
 										))}
 									</ul>
@@ -1559,7 +1600,7 @@ const ProgramDetail = () => {
 							currentProgram.documents.length > 0 && (
 								<div>
 									<p className="font-bold text-gray-900 mb-3">
-										Required documents:
+										{t('program_detail.admission.required_documents')}
 									</p>
 									<ul className="list-disc pl-5 space-y-1 text-gray-700">
 										{currentProgram.documents.map((doc: any) => (
@@ -1597,20 +1638,26 @@ const ProgramDetail = () => {
 				return (
 					<div className="space-y-6">
 						<div>
-							<p className="font-bold text-gray-900 mb-2">Tuition Fee:</p>
+							<p className="font-bold text-gray-900 mb-2">
+								{t('program_detail.fee.tuition_fee')}
+							</p>
 							<ul className="list-disc pl-5 text-gray-700">
 								<li>
 									{currentProgram?.program?.tuitionFeeFormatted ||
 										(currentProgram?.program?.tuitionFee
-											? `$${currentProgram.program.tuitionFeeFormatted}/year`
-											: 'Contact institution for tuition fee information')}
+											? t('program_detail.fee.tuition_fee_value', {
+													amount: currentProgram.program.tuitionFeeFormatted,
+												})
+											: t('program_detail.fee.contact_for_fee'))}
 								</li>
 							</ul>
 						</div>
 
 						{currentProgram?.program?.feeDescription && (
 							<div>
-								<p className="font-bold text-gray-900 mb-2">Fee description:</p>
+								<p className="font-bold text-gray-900 mb-2">
+									{t('program_detail.fee.fee_description')}
+								</p>
 								<div
 									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
@@ -1627,7 +1674,7 @@ const ProgramDetail = () => {
 					<div className="space-y-6">
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Scholarships Information:
+								{t('program_detail.scholarship.title')}
 							</h3>
 							{currentProgram?.program?.scholarshipInfo ? (
 								<div
@@ -1638,21 +1685,19 @@ const ProgramDetail = () => {
 								/>
 							) : (
 								<p className="text-gray-700 mb-6">
-									Explore available scholarships offered by this institution
-									that may help fund your studies.
+									{t('program_detail.scholarship.default_message')}
 								</p>
 							)}
 						</div>
 
 						<div>
 							<h4 className="text-lg font-bold text-gray-900 mb-4">
-								Available Scholarships:
+								{t('program_detail.scholarship.available_title')}
 							</h4>
 							{scholarships.length > 0 ? (
 								<>
 									<p className="text-sm text-gray-600 mb-4">
-										You are eligible to apply for these scholarships but a
-										selection process will still be applied by the provider.
+										{t('program_detail.scholarship.eligibility_note')}
 									</p>
 
 									<div className="space-y-4">
@@ -1683,11 +1728,11 @@ const ProgramDetail = () => {
 								</>
 							) : isLoadingScholarships ? (
 								<p className="text-gray-500 text-center py-8">
-									Loading scholarships...
+									{t('program_detail.scholarship.loading')}
 								</p>
 							) : (
 								<p className="text-gray-500 text-center py-8">
-									No scholarships available from this institution at the moment.
+									{t('program_detail.scholarship.no_scholarships')}
 								</p>
 							)}
 						</div>
@@ -1700,7 +1745,7 @@ const ProgramDetail = () => {
 						{currentProgram?.otherInfo && (
 							<div>
 								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Other Information:
+									{t('program_detail.other_info.title')}
 								</h3>
 								<div
 									className="text-gray-700 prose prose-content max-w-none"
@@ -1713,13 +1758,15 @@ const ProgramDetail = () => {
 
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Contact Information:
+								{t('program_detail.other_info.contact_title')}
 							</h3>
 							{currentProgram?.institution && (
 								<div className="space-y-3 text-gray-700">
 									{currentProgram.institution.email && (
 										<p>
-											<span className="font-semibold">Email:</span>{' '}
+											<span className="font-semibold">
+												{t('program_detail.other_info.email_label')}
+											</span>{' '}
 											<a
 												href={`mailto:${currentProgram.institution.email}`}
 												className="text-[#126E64] hover:underline"
@@ -1730,7 +1777,9 @@ const ProgramDetail = () => {
 									)}
 									{currentProgram.institution.hotline && (
 										<p>
-											<span className="font-semibold">Hotline:</span>{' '}
+											<span className="font-semibold">
+												{t('program_detail.other_info.hotline_label')}
+											</span>{' '}
 											{currentProgram.institution.hotlineCode && (
 												<span>{currentProgram.institution.hotlineCode} </span>
 											)}
@@ -1739,7 +1788,9 @@ const ProgramDetail = () => {
 									)}
 									{currentProgram.institution.website && (
 										<p>
-											<span className="font-semibold">Website:</span>{' '}
+											<span className="font-semibold">
+												{t('program_detail.other_info.website_label')}
+											</span>{' '}
 											<a
 												href={currentProgram.institution.website}
 												target="_blank"
@@ -1752,7 +1803,9 @@ const ProgramDetail = () => {
 									)}
 									{currentProgram.institution.address && (
 										<p>
-											<span className="font-semibold">Address:</span>{' '}
+											<span className="font-semibold">
+												{t('program_detail.other_info.address_label')}
+											</span>{' '}
 											{currentProgram.institution.address}
 										</p>
 									)}
@@ -1767,7 +1820,7 @@ const ProgramDetail = () => {
 				return (
 					<div className="space-y-6">
 						<h2 className="text-2xl font-bold text-gray-900">
-							My Applications
+							{t('program_detail.applications_list.title')}
 						</h2>
 
 						{/* Upload area intentionally left out here; uploader is in "Apply here" section */}
@@ -1799,13 +1852,19 @@ const ProgramDetail = () => {
 									<thead className="bg-gray-50">
 										<tr>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Application Date
+												{t(
+													'program_detail.applications_list.table_headers.date'
+												)}
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Status
+												{t(
+													'program_detail.applications_list.table_headers.status'
+												)}
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Documents
+												{t(
+													'program_detail.applications_list.table_headers.documents'
+												)}
 											</th>
 										</tr>
 									</thead>
@@ -1833,11 +1892,16 @@ const ProgramDetail = () => {
 																		: 'bg-yellow-100 text-yellow-800'
 														}`}
 													>
-														{app.status}
+														{t(
+															`program_detail.applications_list.status_badges.${app.status.toLowerCase()}`
+														)}
 													</span>
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-													{app.documents?.length || 0} document(s)
+													{t(
+														'program_detail.applications_list.documents_count',
+														{ count: app.documents?.length || 0 }
+													)}
 												</td>
 											</tr>
 										))}
@@ -1848,10 +1912,10 @@ const ProgramDetail = () => {
 							<div className="text-center py-12 bg-white rounded-lg shadow border">
 								<File className="w-12 h-12 text-gray-400 mx-auto mb-4" />
 								<p className="text-gray-600">
-									No applications found for this program
+									{t('program_detail.applications_list.empty.title')}
 								</p>
 								<p className="text-sm text-gray-500 mt-2">
-									Submit an application to get started
+									{t('program_detail.applications_list.empty.message')}
 								</p>
 							</div>
 						)}
@@ -1867,7 +1931,7 @@ const ProgramDetail = () => {
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading program details...</p>
+					<p className="mt-4 text-gray-600">{t('program_detail.loading')}</p>
 				</div>
 			</div>
 		)
@@ -1877,12 +1941,14 @@ const ProgramDetail = () => {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
-					<p className="text-red-600 text-lg">Error: {error}</p>
+					<p className="text-red-600 text-lg">
+						{t('program_detail.error')}: {error}
+					</p>
 					<button
 						onClick={() => window.location.reload()}
 						className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
 					>
-						Retry
+						{t('buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -1917,7 +1983,6 @@ const ProgramDetail = () => {
 						<p className="text-gray-600 mb-3">
 							{currentProgram?.institution?.name || 'Loading...'}
 						</p>
-
 						{/* Institution Status Badge */}
 						{currentProgram?.institution && (
 							<div className="mb-4">
@@ -1926,7 +1991,6 @@ const ProgramDetail = () => {
 								/>
 							</div>
 						)}
-
 						<div className="flex items-center gap-3 mb-4">
 							{currentProgram?.institution && (
 								<Button
@@ -1943,7 +2007,7 @@ const ProgramDetail = () => {
 									}}
 									className=""
 								>
-									Institution Detail
+									{t('program_detail.header.institution_detail_button')}
 								</Button>
 							)}
 							{currentProgram?.institution?.userId && (
@@ -1955,7 +2019,7 @@ const ProgramDetail = () => {
 									variant="outline"
 									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 								>
-									Contact Institution
+									{t('program_detail.header.contact_button')}
 								</Button>
 							)}
 
@@ -1977,11 +2041,11 @@ const ProgramDetail = () => {
 									}`}
 								/>
 							</motion.button>
-						</div>
-
+						</div>{' '}
 						<p className="text-sm text-gray-500">
-							Number of applications:{' '}
-							{currentProgram?.statistics?.applications?.total || 0}
+							{t('program_detail.header.applications_count', {
+								count: currentProgram?.statistics?.applications?.total || 0,
+							})}
 						</p>
 					</motion.div>
 				</div>
@@ -2021,7 +2085,9 @@ const ProgramDetail = () => {
 					transition={{ delay: 0.3 }}
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">About</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{t('program_detail.about.title')}
+					</h2>
 
 					<div className="prose max-w-none text-gray-700 space-y-4">
 						{currentProgram?.institution.about ? (
@@ -2032,7 +2098,7 @@ const ProgramDetail = () => {
 								}}
 							/>
 						) : (
-							<p>No description available.</p>
+							<p>{t('program_detail.about.no_description')}</p>
 						)}
 					</div>
 				</motion.div>
@@ -2095,10 +2161,10 @@ const ProgramDetail = () => {
 						<div className="flex items-center justify-between mb-6">
 							<h2 className="text-3xl font-bold">
 								{hasApplied
-									? 'Application Status'
+									? t('program_detail.apply.status_title')
 									: pendingApplication
-										? 'Application Status'
-										: 'Apply here !'}
+										? t('program_detail.apply.status_title')
+										: t('program_detail.apply.title')}
 							</h2>
 							{(hasApplied || pendingApplication) &&
 								(applicationStatus || pendingApplication?.status) && (
@@ -2130,10 +2196,12 @@ const ProgramDetail = () => {
 									>
 										{(applicationStatus || pendingApplication?.status) ===
 										'PENDING'
-											? 'SUBMITTED'
+											? t('program_detail.documents_section.status_submitted')
 											: (applicationStatus || pendingApplication?.status) ===
 												  'REVIEWED'
-												? 'REQUIRE_UPDATE'
+												? t(
+														'program_detail.documents_section.status_require_update'
+													)
 												: applicationStatus || pendingApplication?.status}
 									</span>
 								)}
@@ -2151,16 +2219,17 @@ const ProgramDetail = () => {
 								</div>
 								<div className="flex-1">
 									<h3 className="text-2xl font-bold text-green-800 mb-2">
-										🎉 Congratulations!
+										{t('program_detail.congratulations.title')}
 									</h3>
 									<p className="text-lg text-green-700 mb-4">
-										Your application has been approved! The institution will
-										contact you with further details about the next steps.
+										{t('program_detail.congratulations.message')}
 									</p>
 									<div className="bg-white rounded-lg p-4 border border-green-200">
 										<p className="text-sm text-green-600 font-medium">
-											Application Status:{' '}
-											<span className="text-green-800">ACCEPTED</span>
+											{t('program_detail.congratulations.status_label')}{' '}
+											<span className="text-green-800">
+												{t('program_detail.documents_section.status_accepted')}
+											</span>
 										</p>
 									</div>
 								</div>
@@ -2197,12 +2266,12 @@ const ProgramDetail = () => {
 										}`}
 									>
 										{applicationStatus === 'REJECTED'
-											? '❌'
+											? ''
 											: applicationStatus === 'UPDATED'
-												? '✓'
+												? ''
 												: applicationStatus === 'REQUIRE_UPDATE'
-													? '⚠'
-													: 'ℹ'}
+													? ''
+													: ''}
 									</div>
 									<div className="flex-1">
 										<h3
@@ -2217,12 +2286,18 @@ const ProgramDetail = () => {
 											}`}
 										>
 											{applicationStatus === 'ACCEPTED'
-												? 'Application Accepted!'
+												? t('program_detail.application_status.accepted.title')
 												: applicationStatus === 'REJECTED'
-													? 'Application Not Selected'
+													? t(
+															'program_detail.application_status.rejected.title'
+														)
 													: applicationStatus === 'UPDATED'
-														? 'Application Updated'
-														: 'Application Submitted Successfully!'}
+														? t(
+																'program_detail.application_status.updated.title'
+															)
+														: t(
+																'program_detail.application_status.submitted.title'
+															)}
 										</h3>
 										<p
 											className={`mt-1 ${
@@ -2236,12 +2311,20 @@ const ProgramDetail = () => {
 											}`}
 										>
 											{applicationStatus === 'ACCEPTED'
-												? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+												? t(
+														'program_detail.application_status.accepted.message'
+													)
 												: applicationStatus === 'REJECTED'
-													? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
+													? t(
+															'program_detail.application_status.rejected.message'
+														)
 													: applicationStatus === 'UPDATED'
-														? 'Your application has been updated. The institution will review your changes.'
-														: 'Your application has been submitted. You will receive updates via email.'}
+														? t(
+																'program_detail.application_status.updated.message'
+															)
+														: t(
+																'program_detail.application_status.submitted.message'
+															)}
 										</p>
 										{applicationStatus === 'REJECTED' &&
 											// Only show reapply button if all applications for this post are REJECTED
@@ -2275,7 +2358,7 @@ const ProgramDetail = () => {
 														}}
 														className="bg-[#126E64] hover:bg-teal-700 text-white"
 													>
-														Reapply Now
+														{t('program_detail.apply.reapply_button')}
 													</Button>
 												</div>
 											)}
@@ -2293,7 +2376,7 @@ const ProgramDetail = () => {
 									isEditMode && (
 										<div className="mb-4 flex items-center justify-between">
 											<h3 className="text-lg font-semibold text-gray-900">
-												Edit Application Documents
+												{t('program_detail.apply.edit_documents')}
 											</h3>
 											<Button
 												variant="outline"
@@ -2318,7 +2401,7 @@ const ProgramDetail = () => {
 												className="text-gray-600 border-gray-300 hover:bg-gray-50"
 												size="sm"
 											>
-												Cancel Edit
+												{t('program_detail.apply.cancel_edit')}
 											</Button>
 										</div>
 									)}
@@ -2340,10 +2423,7 @@ const ProgramDetail = () => {
 											)}
 										</div>
 									) : (
-										<p>
-											Not have any specific document requirement. You can upload
-											any
-										</p>
+										<p>{t('program_detail.apply.document_requirement')}</p>
 									)}
 								</div>
 
@@ -2359,10 +2439,10 @@ const ProgramDetail = () => {
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
 												>
-													📄 Select from Profile
+													{t('program_detail.apply.select_profile_button')}
 												</Button>
 												<p className="text-sm text-gray-500 mt-2">
-													Choose documents from your profile for the snapshot
+													{t('program_detail.apply.select_profile_hint')}
 												</p>
 											</div>
 
@@ -2370,7 +2450,7 @@ const ProgramDetail = () => {
 											<div className="flex items-center gap-4">
 												<div className="flex-1 border-t border-gray-300"></div>
 												<span className="text-sm font-medium text-gray-500">
-													OR
+													{t('program_detail.apply.or_divider')}
 												</span>
 												<div className="flex-1 border-t border-gray-300"></div>
 											</div>
@@ -2421,15 +2501,20 @@ const ProgramDetail = () => {
 														setUploadedFiles(uniqueFiles)
 
 														showSuccess(
-															'Files Uploaded',
-															`${files.length} file(s) uploaded successfully`
+															t('program_detail.apply.files_uploaded'),
+															t('program_detail.apply.files_uploaded_message', {
+																count: files.length,
+															})
 														)
 													}}
 													onValidationComplete={(fileId, validation) => {
 														if (!validation.isValid) {
 															showError(
-																'Validation Failed',
-																validation.reasoning || 'File failed validation'
+																t('program_detail.apply.validation_failed'),
+																validation.reasoning ||
+																	t(
+																		'program_detail.apply.validation_failed_message'
+																	)
 															)
 														}
 													}}
@@ -2448,8 +2533,10 @@ const ProgramDetail = () => {
 										<div className="mt-6">
 											<div className="mb-4">
 												<h4 className="text-lg font-semibold text-gray-900">
-													Application Documents ({uploadedFiles.length} file
-													{uploadedFiles.length !== 1 ? 's' : ''})
+													{t('program_detail.apply.documents_label', {
+														count: uploadedFiles.length,
+														plural: uploadedFiles.length !== 1 ? 's' : '',
+													})}
 												</h4>
 											</div>
 											<div className="space-y-3">
@@ -2473,8 +2560,12 @@ const ProgramDetail = () => {
 																		}`}
 																	>
 																		{file.source === 'existing'
-																			? 'From Profile'
-																			: 'Uploaded'}
+																			? t(
+																					'program_detail.apply.from_profile_badge'
+																				)
+																			: t(
+																					'program_detail.apply.uploaded_badge'
+																				)}
 																	</span>
 																)}
 															</div>
@@ -2495,7 +2586,7 @@ const ProgramDetail = () => {
 																}}
 																className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 															>
-																View
+																{t('program_detail.apply.view_button')}
 															</Button>
 															<Button
 																variant="outline"
@@ -2503,7 +2594,7 @@ const ProgramDetail = () => {
 																onClick={() => removeFile(file.id)}
 																className="text-red-500 border-red-500 hover:bg-red-50"
 															>
-																Remove
+																{t('program_detail.apply.remove_button')}
 															</Button>
 														</div>
 													</div>
@@ -2516,7 +2607,7 @@ const ProgramDetail = () => {
 								{isUploading && uploadProgress.length > 0 && (
 									<div className="mt-6 space-y-2">
 										<p className="text-sm font-medium text-gray-700">
-											Uploading files...
+											{t('program_detail.apply.uploading_files')}
 										</p>
 										{uploadProgress.map((progress) => (
 											<div key={progress.fileIndex} className="space-y-1">
@@ -2644,8 +2735,10 @@ const ProgramDetail = () => {
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
-									Application Documents ({uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''})
+									{t('program_detail.documents_section.title_with_count', {
+										count: uploadedFiles.length,
+										plural: uploadedFiles.length !== 1 ? 's' : '',
+									})}
 								</span>
 								{applicationStatus === 'SUBMITTED' && (
 									<Button
@@ -2691,7 +2784,7 @@ const ProgramDetail = () => {
 														document_id:
 															matchingProfileDoc?.document_id ||
 															file.id ||
-															`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+															crypto.randomUUID(),
 														name: file.name,
 														url: file.url,
 														size: file.size || 0,
@@ -2735,9 +2828,7 @@ const ProgramDetail = () => {
 											} catch (error) {
 												// Fallback: treat all as existing if fetch fails
 												const selectedDocs = uploadedFiles.map((file) => ({
-													document_id:
-														file.id ||
-														`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+													document_id: file.id || crypto.randomUUID(),
 													name: file.name,
 													url: file.url,
 													size: file.size || 0,
@@ -2784,10 +2875,7 @@ const ProgramDetail = () => {
 										))}
 									</div>
 								) : (
-									<p>
-										These are the documents you submitted with your application.
-										They cannot be modified or deleted.
-									</p>
+									<p>{t('program_detail.documents_section.description')}</p>
 								)}
 							</div>
 							<div className="space-y-3">
@@ -2811,8 +2899,8 @@ const ProgramDetail = () => {
 														}`}
 													>
 														{file.source === 'existing'
-															? 'From Profile'
-															: 'Uploaded'}
+															? t('program_detail.apply.from_profile_badge')
+															: t('program_detail.apply.uploaded_badge')}
 													</span>
 												)}
 											</div>
@@ -2822,7 +2910,10 @@ const ProgramDetail = () => {
 													<>
 														<span>•</span>
 														<span>
-															Uploaded: {formatUTCDateToLocal(file.uploadDate)}
+															{t(
+																'program_detail.documents_section.uploaded_label'
+															)}{' '}
+															{formatUTCDateToLocal(file.uploadDate)}
 														</span>
 													</>
 												)}
@@ -2837,7 +2928,7 @@ const ProgramDetail = () => {
 												}}
 												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 											>
-												View
+												{t('program_detail.apply.view_button')}
 											</Button>
 											<Button
 												variant="outline"
@@ -2850,7 +2941,7 @@ const ProgramDetail = () => {
 												}}
 												className="text-blue-600 border-blue-600 hover:bg-blue-50"
 											>
-												Download
+												{t('program_detail.documents_section.download_button')}
 											</Button>
 										</div>
 									</div>
@@ -2868,8 +2959,10 @@ const ProgramDetail = () => {
 									</div>
 									<div className="flex-1">
 										<h4 className="text-lg font-semibold text-green-800">
-											{selectedDocuments.length} Document
-											{selectedDocuments.length !== 1 ? 's' : ''} Ready
+											{t('program_detail.documents_section.ready_title', {
+												count: selectedDocuments.length,
+												plural: selectedDocuments.length !== 1 ? 's' : '',
+											})}
 										</h4>
 									</div>
 								</div>
@@ -2885,8 +2978,7 @@ const ProgramDetail = () => {
 									<div className="flex items-center justify-center gap-2 text-amber-700">
 										<span className="text-lg">⚠️</span>
 										<p className="font-medium">
-											Please select at least one document to submit your
-											application
+											{t('program_detail.documents_section.warning')}
 										</p>
 									</div>
 								</div>
@@ -2905,7 +2997,7 @@ const ProgramDetail = () => {
 									onClick={handleRemoveAllClick}
 									className="text-red-500 border-red-500 hover:bg-red-50"
 								>
-									Remove all
+									{t('program_detail.apply.remove_all_button')}
 								</Button>
 							)}
 							{applicationStatus === 'SUBMITTED' &&
@@ -2919,10 +3011,10 @@ const ProgramDetail = () => {
 									{isApplying ? (
 										<div className="flex items-center gap-2">
 											<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-											Updating...
+											{t('program_detail.apply.updating_button')}
 										</div>
 									) : (
-										'Update Documents'
+										t('program_detail.apply.update_documents_button')
 									)}
 								</Button>
 							) : !hasApplied && selectedDocuments.length > 0 ? (
@@ -2934,10 +3026,10 @@ const ProgramDetail = () => {
 									{isApplying ? (
 										<div className="flex items-center gap-2">
 											<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-											Submitting...
+											{t('program_detail.apply.submitting_button')}
 										</div>
 									) : (
-										'Submit Application'
+										t('program_detail.apply.submit_button')
 									)}
 								</Button>
 							) : null}
@@ -2950,7 +3042,9 @@ const ProgramDetail = () => {
 					transition={{ delay: 0.3 }}
 					className=" p-8  bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">Recommend for you</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{t('program_detail.recommendations.title')}
+					</h2>
 
 					{/* Carousel */}
 					<div className="relative">
@@ -2958,6 +3052,9 @@ const ProgramDetail = () => {
 						{isLoadingRecommendations ? (
 							<div className="flex justify-center items-center py-12">
 								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+								<p className="ml-3 text-gray-500">
+									{t('program_detail.recommendations.loading')}
+								</p>
 							</div>
 						) : isRecommendationsRestricted ? (
 							<div className="flex flex-col items-center justify-center py-12 px-6">
@@ -2966,24 +3063,23 @@ const ProgramDetail = () => {
 										<Lock className="w-8 h-8 text-[#126E64]" />
 									</div>
 									<h3 className="text-xl font-semibold text-gray-800 mb-2">
-										Unlock Personalized Recommendations
+										{t('program_detail.recommendations.upgrade.title')}
 									</h3>
 									<p className="text-gray-600 mb-6">
-										Upgrade to Standard or Premium to see programs tailored to
-										your profile and interests.
+										{t('program_detail.recommendations.upgrade.message')}
 									</p>
 									<Button
 										onClick={() => router.push('/pricing')}
 										className="bg-[#126E64] hover:bg-[#0d5a52] text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
 									>
-										View Upgrade Options
+										{t('program_detail.recommendations.upgrade.button')}
 									</Button>
 								</div>
 							</div>
 						) : recommendedPrograms.length === 0 ? (
 							<div className="flex justify-center items-center py-12">
 								<p className="text-gray-500">
-									No recommendations available at this time.
+									{t('program_detail.recommendations.no_recommendations')}
 								</p>
 							</div>
 						) : (
@@ -3060,12 +3156,12 @@ const ProgramDetail = () => {
 			<Modal
 				isOpen={showDeleteConfirmModal}
 				onClose={() => setShowDeleteConfirmModal(false)}
-				title="Delete All Files"
+				title={t('program_detail.modals.delete_confirm.title')}
 				maxWidth="sm"
 			>
 				<div className="space-y-6">
 					<p className="text-gray-600">
-						Do you want to delete all files? This action cannot be undone.
+						{t('program_detail.modals.delete_confirm.message')}
 					</p>
 
 					<div className="flex gap-3 justify-end">
@@ -3074,13 +3170,13 @@ const ProgramDetail = () => {
 							onClick={() => setShowDeleteConfirmModal(false)}
 							className="text-gray-600 border-gray-300 hover:bg-gray-50"
 						>
-							Cancel
+							{t('program_detail.modals.delete_confirm.cancel')}
 						</Button>
 						<Button
 							onClick={removeAllFiles}
 							className="bg-red-500 hover:bg-red-600 text-white"
 						>
-							Delete All
+							{t('program_detail.modals.delete_confirm.confirm')}
 						</Button>
 					</div>
 				</div>
@@ -3090,13 +3186,12 @@ const ProgramDetail = () => {
 			<Modal
 				isOpen={showCancelEditModal}
 				onClose={() => setShowCancelEditModal(false)}
-				title="Discard Changes?"
+				title={t('program_detail.modals.cancel_edit.title')}
 				maxWidth="sm"
 			>
 				<div className="space-y-6">
 					<p className="text-gray-600">
-						You have unsaved changes. Are you sure you want to cancel editing?
-						All changes will be lost.
+						{t('program_detail.modals.cancel_edit.message')}
 					</p>
 
 					<div className="flex gap-3 justify-end">
@@ -3105,13 +3200,13 @@ const ProgramDetail = () => {
 							onClick={() => setShowCancelEditModal(false)}
 							className="text-gray-600 border-gray-300 hover:bg-gray-50"
 						>
-							Keep Editing
+							{t('program_detail.modals.cancel_edit.keep')}
 						</Button>
 						<Button
 							onClick={handleCancelEdit}
 							className="bg-red-500 hover:bg-red-600 text-white"
 						>
-							Discard Changes
+							{t('program_detail.modals.cancel_edit.discard')}
 						</Button>
 					</div>
 				</div>
@@ -3139,8 +3234,8 @@ const ProgramDetail = () => {
 						setShowUpdateModal(false)
 						setSelectedUpdateRequestId(null)
 						showSuccess(
-							'Update Submitted',
-							'Your update response has been submitted successfully. The institution will review your changes.'
+							t('program_detail.notifications.update_submitted'),
+							t('program_detail.notifications.update_submitted_message')
 						)
 					}}
 				/>
@@ -3150,7 +3245,7 @@ const ProgramDetail = () => {
 			<Modal
 				isOpen={showDocumentSelector}
 				onClose={() => setShowDocumentSelector(false)}
-				title="Select Documents for Application"
+				title={t('program_detail.modals.document_selector.title')}
 				maxWidth="xl"
 			>
 				<div className="max-h-[70vh] overflow-y-auto">
@@ -3185,10 +3280,19 @@ const ProgramDetail = () => {
 										</div>
 										<div>
 											<p className="font-semibold text-gray-900">
-												{profileCount} document
-												{profileCount !== 1 ? 's' : ''} selected from profile
+												{t(
+													'program_detail.modals.document_selector.summary.selected',
+													{
+														count: profileCount,
+														plural: profileCount !== 1 ? 's' : '',
+													}
+												)}
 											</p>
-											<p className="text-sm text-gray-500">Ready to submit</p>
+											<p className="text-sm text-gray-500">
+												{t(
+													'program_detail.modals.document_selector.summary.ready'
+												)}
+											</p>
 										</div>
 									</div>
 								) : (
@@ -3198,10 +3302,14 @@ const ProgramDetail = () => {
 										</div>
 										<div>
 											<p className="font-medium text-gray-900">
-												No documents selected
+												{t(
+													'program_detail.modals.document_selector.summary.none_selected'
+												)}
 											</p>
 											<p className="text-sm text-gray-500">
-												Choose files to continue
+												{t(
+													'program_detail.modals.document_selector.summary.choose_files'
+												)}
 											</p>
 										</div>
 									</div>
@@ -3244,7 +3352,7 @@ const ProgramDetail = () => {
 								className="px-6 py-3 text-gray-600 border-gray-300 hover:bg-gray-50"
 								size="sm"
 							>
-								Cancel
+								{t('program_detail.modals.document_selector.cancel')}{' '}
 							</Button>
 							<Button
 								onClick={() => {
@@ -3254,10 +3362,14 @@ const ProgramDetail = () => {
 									)
 									if (profileDocuments.length > 0) {
 										showSuccess(
-											'Documents Selected!',
-											`${profileDocuments.length} document${
-												profileDocuments.length !== 1 ? 's' : ''
-											} ready for application submission`
+											t('program_detail.modals.document_selector.success'),
+											t(
+												'program_detail.modals.document_selector.success_message',
+												{
+													count: profileDocuments.length,
+													plural: profileDocuments.length !== 1 ? 's' : '',
+												}
+											)
 										)
 									}
 								}}
@@ -3275,10 +3387,12 @@ const ProgramDetail = () => {
 							>
 								{selectedDocuments.filter((doc) => doc.source === 'existing')
 									.length === 0 ? (
-									'Select Documents First'
+									t('program_detail.modals.document_selector.select_first')
 								) : (
 									<div className="flex items-center gap-2">
-										<span>Continue</span>
+										<span>
+											{t('program_detail.modals.document_selector.continue')}
+										</span>
 									</div>
 								)}
 							</Button>
@@ -3291,12 +3405,12 @@ const ProgramDetail = () => {
 			<ErrorModal
 				isOpen={showAuthModal}
 				onClose={() => setShowAuthModal(false)}
-				title="Authentication Required"
-				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
-				buttonText="Sign In"
+				title={t('program_detail.modals.auth_required.title')}
+				message={t('program_detail.modals.auth_required.message')}
+				buttonText={t('program_detail.modals.auth_required.sign_in')}
 				onButtonClick={handleSignIn}
 				showSecondButton={true}
-				secondButtonText="Sign Up"
+				secondButtonText={t('program_detail.modals.auth_required.sign_up')}
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
 			/>

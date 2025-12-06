@@ -10,6 +10,7 @@ import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { ApplicationStatus } from '@/types/api/application-api'
 import { Program, ResearchLab, Scholarship } from '@/types/api/explore-api'
 import { BookOpen, Clock, Search, Users, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import React, { useCallback, useState } from 'react'
 import { ApplicationUpdateResponseModal } from './ApplicationUpdateResponseModal'
 
@@ -18,6 +19,8 @@ interface ApplicationSectionProps {
 }
 
 export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
+	const t = useTranslations('application_section')
+
 	const [sortBy, setSortBy] = useState<SortOption>('newest')
 	const [activeTab, setActiveTab] = useState<string>('programmes')
 	const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set())
@@ -132,15 +135,15 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					const program: Program = {
 						id: app.post.id,
 						title: app.post.title,
-						description: app.post.otherInfo || 'No description available',
+						description: app.post.otherInfo || t('defaults.no_description'),
 						university: app.post.institution.name,
 						logo: app.post.institution.logo || '',
-						field: 'Academic Program', // Default field
+						field: t('defaults.academic_program'), // Default field
 						country: app.post.institution.country || '',
 						price: app.post.program.tuition_fee
 							? `$${app.post.program.tuition_fee}`
-							: 'Not specified',
-						funding: 'Available', // Default
+							: t('defaults.not_specified'),
+						funding: t('defaults.funding_available'), // Default
 						attendance: app.post.program.attendance,
 						date: app.post.endDate || app.post.startDate,
 						daysLeft: Math.max(
@@ -151,7 +154,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 									(1000 * 60 * 60 * 24)
 							)
 						),
-						match: '85%', // Default match
+						match: t('defaults.default_match'), // Default match
 						applicationCount: 0, // Not available in application data
 					}
 
@@ -171,7 +174,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						university: app.post.institution.name,
 						essayRequired: app.post.scholarship.essay_required ? 'Yes' : 'No',
 						country: app.post.institution.country || '',
-						amount: app.post.scholarship.grant || 'Not specified',
+						amount: app.post.scholarship.grant || t('defaults.not_specified'),
 						date: app.post.endDate || app.post.startDate,
 						daysLeft: Math.max(
 							0,
@@ -181,7 +184,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 									(1000 * 60 * 60 * 24)
 							)
 						),
-						match: '85%', // Default match
+						match: t('defaults.default_match'), // Default match
 						applicationCount: 0, // Not available in application data
 					}
 
@@ -196,9 +199,9 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					const researchLab: ResearchLab = {
 						id: app.post.id,
 						title: app.post.title,
-						description: app.post.otherInfo || 'No description available',
-						professor: 'Prof. Researcher', // Default
-						field: 'Research', // Default field
+						description: app.post.otherInfo || t('defaults.no_description'),
+						professor: t('defaults.professor'), // Default
+						field: t('defaults.research'), // Default field
 						country: app.post.institution.country || '',
 						position: app.post.job.job_type,
 						institution: app.post.institution.name,
@@ -211,7 +214,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 									(1000 * 60 * 60 * 24)
 							)
 						),
-						match: '85%', // Default match
+						match: t('defaults.default_match'), // Default match
 						applicationCount: 0, // Not available in application data
 					}
 
@@ -230,11 +233,11 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		} catch (err) {
 			// eslint-disable-next-line no-console
 			console.error('Error processing application data:', err)
-			setError('Failed to process application data')
+			setError(t('error.failed_to_process'))
 		} finally {
 			setLoading(false)
 		}
-	}, [applications, applicationsLoading])
+	}, [applications, applicationsLoading, t])
 
 	// Fetch data when applications or sort changes
 	React.useEffect(() => {
@@ -243,17 +246,17 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 
 	// Main category tabs
 	const categories = [
-		{ id: 'programmes', label: 'Programmes' },
-		{ id: 'scholarships', label: 'Scholarships' },
-		{ id: 'research', label: 'Research Labs' },
+		{ id: 'programmes', label: t('tabs.programmes') },
+		{ id: 'scholarships', label: t('tabs.scholarships') },
+		{ id: 'research', label: t('tabs.research') },
 	]
 
 	// Application status filter options
 	const applicationStatusFilters = [
-		{ id: 'SUBMITTED', label: 'Submitted', icon: BookOpen },
-		{ id: 'REQUIRE_UPDATE', label: 'Update Required', icon: Clock },
-		{ id: 'ACCEPTED', label: 'Accepted', icon: Users },
-		{ id: 'REJECTED', label: 'Rejected', icon: X },
+		{ id: 'SUBMITTED', label: t('filters.submitted'), icon: BookOpen },
+		{ id: 'REQUIRE_UPDATE', label: t('filters.update_required'), icon: Clock },
+		{ id: 'ACCEPTED', label: t('filters.accepted'), icon: Users },
+		{ id: 'REJECTED', label: t('filters.rejected'), icon: X },
 	]
 
 	// Institution status filter options - removed Account Deactivated filter
@@ -502,13 +505,15 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 							onClick={fetchApplicationData}
 							className="text-xs text-red-600 hover:text-red-800 underline"
 						>
-							Retry
+							{t('error.button')}
 						</button>
 					</div>
 				)}
 				{/* Header Section */}
 				<div className="mb-6">
-					<h2 className="text-2xl font-bold text-gray-900 mb-4">Application</h2>
+					<h2 className="text-2xl font-bold text-gray-900 mb-4">
+						{t('title')}
+					</h2>
 
 					{/* Main Category Tabs */}
 					<div className="flex justify-between items-center mb-4">
@@ -524,7 +529,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 								<div className="relative flex-1">
 									<input
 										type="text"
-										placeholder="Search..."
+										placeholder={t('search.placeholder')}
 										value={searchQuery}
 										onChange={handleSearchChange}
 										className="w-full py-2 pl-4 pr-10 text-sm border border-gray-200 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -577,7 +582,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 
 				{/* Results Count */}
 				<div className="text-sm text-gray-600 mb-4">
-					{currentTabData.totalItems} results
+					{t('results.count', { count: currentTabData.totalItems })}
 				</div>
 
 				{/* Tab Content */}
@@ -592,17 +597,14 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						<div className="text-center py-12">
 							<div className="text-6xl mb-4">📝</div>
 							<h3 className="text-xl font-semibold text-gray-900 mb-2">
-								No applications found
+								{t('empty.title')}
 							</h3>
-							<p className="text-gray-600 mb-6">
-								You haven&apos;t applied to any programs, scholarships, or
-								research labs yet.
-							</p>
+							<p className="text-gray-600 mb-6">{t('empty.description')}</p>
 							<Button
 								onClick={() => (window.location.href = '/explore')}
 								className="bg-teal-600 hover:bg-teal-700 text-white"
 							>
-								Explore Opportunities
+								{t('empty.button')}
 							</Button>
 						</div>
 					) : (

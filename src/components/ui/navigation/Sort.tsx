@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronDown, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui'
+import { useTranslations } from 'next-intl'
 
 export type SortOption =
 	| 'most-popular'
@@ -26,13 +27,14 @@ interface SortOptionItem {
 
 export function SortDropdown({ value, onChange }: SortDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false)
+	const t = useTranslations('sort')
 
 	const sortOptions: SortOptionItem[] = [
-		{ value: 'most-popular' as SortOption, label: 'Most popular' },
-		{ value: 'newest' as SortOption, label: 'Newest' },
-		{ value: 'oldest' as SortOption, label: 'Oldest' },
-		{ value: 'match-score' as SortOption, label: 'Match score' },
-		{ value: 'deadline' as SortOption, label: 'Deadline' },
+		{ value: 'most-popular' as SortOption, label: t('most_popular') },
+		{ value: 'newest' as SortOption, label: t('newest') },
+		{ value: 'oldest' as SortOption, label: t('oldest') },
+		{ value: 'match-score' as SortOption, label: t('match_score') },
+		{ value: 'deadline' as SortOption, label: t('deadline') },
 		// { value: 'default' as SortOption, label: 'Clear sort', separator: true },
 	]
 
@@ -46,7 +48,7 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
 				className="flex items-center space-x-2 rounded-full border-gray-300 hover:border-teal-500 transition-colors"
 			>
 				<ArrowUpDown className="w-4 h-4" />
-				<span>Sort</span>
+				<span>{t('sort_by')}</span>
 				<motion.div
 					animate={{ rotate: isOpen ? 180 : 0 }}
 					transition={{ duration: 0.2 }}

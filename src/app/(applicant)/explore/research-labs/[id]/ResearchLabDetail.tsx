@@ -28,6 +28,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Check, File, Heart, Lock, X } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 const ResearchLabDetail = () => {
 	const router = useRouter()
@@ -35,6 +36,7 @@ const ResearchLabDetail = () => {
 	const params = useParams()
 	const { isAuthenticated } = useAuthCheck()
 	const [showAuthModal, setShowAuthModal] = useState(false)
+	const t = useTranslations()
 
 	// Check if we're viewing an application (from URL query param)
 	const applicationIdFromUrl = searchParams?.get('applicationId')
@@ -118,10 +120,10 @@ const ResearchLabDetail = () => {
 		if (!isApproved) {
 			const statusLabel =
 				institution.status === 'PENDING'
-					? 'Pending Approval'
+					? t('research_lab_detail.institution_status.pending')
 					: institution.status === 'REJECTED'
-						? 'Account Rejected'
-						: 'Account Deactivated'
+						? t('research_lab_detail.institution_status.rejected')
+						: t('research_lab_detail.institution_status.deactivated')
 			return {
 				type: 'deactivated' as const,
 				label: statusLabel,
@@ -213,11 +215,20 @@ const ResearchLabDetail = () => {
 
 	// Dynamic info items based on current lab data
 	const infoItems = [
-		{ label: 'Salary', value: researchLab?.salary || 'Up to $2000' },
-		{ label: 'Country', value: researchLab?.country || 'Italy' },
-		{ label: 'Job type', value: researchLab?.jobType || 'Researcher' },
 		{
-			label: 'Application deadline',
+			label: t('research_lab_detail.info.salary'),
+			value: researchLab?.salary || 'Up to $2000',
+		},
+		{
+			label: t('research_lab_detail.info.location'),
+			value: researchLab?.country || 'Italy',
+		},
+		{
+			label: t('research_lab_detail.info.job_type'),
+			value: researchLab?.jobType || 'Researcher',
+		},
+		{
+			label: t('research_lab_detail.info.deadline'),
 			value: researchLab?.applicationDeadline || '07/07/2026',
 		},
 	]
@@ -230,7 +241,10 @@ const ResearchLabDetail = () => {
 	const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([{ label: 'Explore', href: '/explore' }, { label: 'Research Lab Detail' }])
+	>([
+		{ label: t('breadcrumb.explore'), href: '/explore' },
+		{ label: t('research_lab_detail.breadcrumb.research_labs') },
+	])
 
 	// Update breadcrumb when component mounts or research lab data changes
 	useEffect(() => {
@@ -243,26 +257,27 @@ const ResearchLabDetail = () => {
 			const paramsString = currentParams.toString()
 			const queryString = paramsString ? `?${paramsString}` : ''
 
-			const labName = researchLab?.title || 'Research Lab Detail'
+			const labName =
+				researchLab?.title || t('research_lab_detail.breadcrumb.research_labs')
 
 			let items: Array<{ label: string; href?: string }> = [
-				{ label: 'Explore', href: `/explore${queryString}` },
+				{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
 			]
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'programmes') {
 				items.push({
-					label: 'Programmes',
+					label: t('program_detail.breadcrumb.programmes'),
 					href: `/explore?tab=programmes${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else if (fromTab === 'scholarships') {
 				items.push({
-					label: 'Scholarships',
+					label: t('scholarship_detail.breadcrumb.scholarships'),
 					href: `/explore?tab=scholarships${paramsString ? `&${paramsString}` : ''}`,
 				})
 			} else {
 				items.push({
-					label: 'Research Labs',
+					label: t('research_lab_detail.breadcrumb.research_labs'),
 					href: `/explore?tab=research${paramsString ? `&${paramsString}` : ''}`,
 				})
 			}
@@ -1135,18 +1150,32 @@ const ResearchLabDetail = () => {
 	}
 
 	const menuItems = [
-		{ id: 'job-description', label: 'Job description' },
-		{ id: 'offer-information', label: 'Offer information' },
-		{ id: 'job-requirements', label: 'Job requirements' },
-		{ id: 'other-information', label: 'Other information' },
-		{ id: 'application', label: 'My Applications' },
+		{
+			id: 'job-description',
+			label: t('research_lab_detail.tabs.job_description'),
+		},
+		{
+			id: 'offer-information',
+			label: t('research_lab_detail.tabs.offer_information'),
+		},
+		{
+			id: 'job-requirements',
+			label: t('research_lab_detail.tabs.job_requirements'),
+		},
+		{
+			id: 'other-information',
+			label: t('research_lab_detail.tabs.other_information'),
+		},
+		{ id: 'application', label: t('research_lab_detail.tabs.application') },
 	]
 
 	const renderTabContent = () => {
 		if (loading) {
 			return (
 				<div className="flex justify-center items-center py-8">
-					<div className="text-gray-500">Loading...</div>
+					<div className="text-gray-500">
+						{t('research_lab_detail.loading')}
+					</div>
 				</div>
 			)
 		}
@@ -1154,7 +1183,9 @@ const ResearchLabDetail = () => {
 		if (error) {
 			return (
 				<div className="flex justify-center items-center py-8">
-					<div className="text-red-500">Error: {error}</div>
+					<div className="text-red-500">
+						{t('research_lab_detail.error')}: {error}
+					</div>
 				</div>
 			)
 		}
@@ -1174,7 +1205,7 @@ const ResearchLabDetail = () => {
 						<ol className="space-y-4">
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
-									1. Research Field:
+									{t('research_lab_detail.job_description.research_field')}
 								</span>
 								<div
 									className="mt-2 prose prose-content max-w-none"
@@ -1184,48 +1215,61 @@ const ResearchLabDetail = () => {
 								/>
 							</li>
 							<li className="text-base">
-								<span className="font-bold text-gray-900">2. Start date:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('research_lab_detail.job_description.start_date')}
+								</span>{' '}
 								<span className="text-gray-700">
-									{researchLab.startDate || 'Not specified'}
+									{researchLab.startDate ||
+										t('research_lab_detail.job_description.not_specified')}
 								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
-									3. Application deadline:
+									{t('research_lab_detail.job_description.deadline')}
 								</span>{' '}
 								<span className="text-gray-700">
-									{researchLab.applicationDeadline || 'Not specified'}
-								</span>
-							</li>
-							<li className="text-base">
-								<span className="font-bold text-gray-900">4. Country:</span>{' '}
-								<span className="text-gray-700">
-									{researchLab.country || 'Not specified'}
+									{researchLab.applicationDeadline ||
+										t('research_lab_detail.job_description.not_specified')}
 								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
-									5. Type of Contract:
+									{t('research_lab_detail.job_description.country')}
 								</span>{' '}
 								<span className="text-gray-700">
-									{researchLab.contractType || 'Not specified'}
+									{researchLab.country ||
+										t('research_lab_detail.job_description.not_specified')}
 								</span>
 							</li>
 							<li className="text-base">
-								<span className="font-bold text-gray-900">6. Attendance:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('research_lab_detail.job_description.contract_type')}
+								</span>{' '}
 								<span className="text-gray-700">
-									{researchLab.attendance || 'Not specified'}
+									{researchLab.contractType ||
+										t('research_lab_detail.job_description.not_specified')}
 								</span>
 							</li>
 							<li className="text-base">
-								<span className="font-bold text-gray-900">7. Job type:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('research_lab_detail.job_description.attendance')}
+								</span>{' '}
+								<span className="text-gray-700">
+									{researchLab.attendance ||
+										t('research_lab_detail.job_description.not_specified')}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">
+									{t('research_lab_detail.job_description.job_type')}
+								</span>{' '}
 								<span className="text-gray-700">
 									{researchLab.jobType || 'Researcher'}
 								</span>
 							</li>
 							<li className="text-base">
 								<span className="font-bold text-gray-900">
-									8. Detail description:
+									{t('research_lab_detail.job_description.detail_description')}
 								</span>
 								<div
 									className="mt-2 text-gray-700 prose prose-content max-w-none"
@@ -1233,7 +1277,7 @@ const ResearchLabDetail = () => {
 										__html:
 											researchLab.description ||
 											researchLab.mainResponsibility ||
-											'No description available',
+											t('research_lab_detail.job_description.no_description'),
 									}}
 								/>
 							</li>
@@ -1246,7 +1290,9 @@ const ResearchLabDetail = () => {
 					<div className="space-y-6">
 						<div>
 							<p className="text-base mb-2">
-								<span className="font-bold text-gray-900">Salary:</span>{' '}
+								<span className="font-bold text-gray-900">
+									{t('research_lab_detail.offer_information.salary')}
+								</span>{' '}
 								<span className="text-gray-700">{researchLab.salary}</span>
 							</p>
 							{researchLab.salaryDescription && (
@@ -1258,7 +1304,9 @@ const ResearchLabDetail = () => {
 
 						{researchLab.benefit && (
 							<div>
-								<p className="font-bold text-gray-900 mb-3">Benefit:</p>
+								<p className="font-bold text-gray-900 mb-3">
+									{t('research_lab_detail.offer_information.benefit')}
+								</p>
 								<div
 									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
@@ -1289,7 +1337,9 @@ const ResearchLabDetail = () => {
 							<div>
 								<p className="text-base mb-4">
 									<span className="font-bold text-gray-900">
-										1. Main responsibilities:
+										{t(
+											'research_lab_detail.job_requirements.main_responsibilities'
+										)}
 									</span>
 								</p>
 								<div
@@ -1304,7 +1354,9 @@ const ResearchLabDetail = () => {
 						{researchLab.qualificationRequirement && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">
-									2. Qualification requirements:
+									{t(
+										'research_lab_detail.job_requirements.qualification_requirements'
+									)}
 								</p>
 								<div
 									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
@@ -1318,7 +1370,9 @@ const ResearchLabDetail = () => {
 						{researchLab.experienceRequirement && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">
-									3. Experience requirements:
+									{t(
+										'research_lab_detail.job_requirements.experience_requirements'
+									)}
 								</p>
 								<div
 									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
@@ -1332,7 +1386,9 @@ const ResearchLabDetail = () => {
 						{researchLab.assessmentCriteria && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">
-									4. Assessment criteria:
+									{t(
+										'research_lab_detail.job_requirements.assessment_criteria'
+									)}
 								</p>
 								<div
 									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
@@ -1347,7 +1403,9 @@ const ResearchLabDetail = () => {
 							<div>
 								<p className="text-base">
 									<span className="font-bold text-gray-900">
-										5. Other requirements:
+										{t(
+											'research_lab_detail.job_requirements.other_requirements'
+										)}
 									</span>
 								</p>
 								<div
@@ -1362,7 +1420,7 @@ const ResearchLabDetail = () => {
 						{researchLab.technicalSkills && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">
-									Technical Skills:
+									{t('research_lab_detail.job_requirements.technical_skills')}
 								</p>
 								<div className="text-gray-700 whitespace-pre-line">
 									{researchLab.technicalSkills}
@@ -1373,7 +1431,9 @@ const ResearchLabDetail = () => {
 						{researchLab.academicBackground && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">
-									Academic Background:
+									{t(
+										'research_lab_detail.job_requirements.academic_background'
+									)}
 								</p>
 								<div className="text-gray-700 whitespace-pre-line">
 									{researchLab.academicBackground}
@@ -1389,7 +1449,7 @@ const ResearchLabDetail = () => {
 						{/* 2. Work Location */}
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Other Information:
+								{t('research_lab_detail.other_information.title')}
 							</h3>
 							<div
 								className="text-gray-700 prose prose-content max-w-none"
@@ -1406,7 +1466,7 @@ const ResearchLabDetail = () => {
 				return (
 					<div className="space-y-6">
 						<h2 className="text-2xl font-bold text-gray-900">
-							My Applications
+							{t('research_lab_detail.applications_list.title')}
 						</h2>
 
 						{loadingApplications && lastFetchedPostId !== researchLab?.id ? (
@@ -1436,13 +1496,19 @@ const ResearchLabDetail = () => {
 									<thead className="bg-gray-50">
 										<tr>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Application Date
+												{t(
+													'research_lab_detail.applications_list.table_headers.date'
+												)}
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Status
+												{t(
+													'research_lab_detail.applications_list.table_headers.status'
+												)}
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Documents
+												{t(
+													'research_lab_detail.applications_list.table_headers.documents'
+												)}
 											</th>
 										</tr>
 									</thead>
@@ -1474,7 +1540,10 @@ const ResearchLabDetail = () => {
 													</span>
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-													{app.documents?.length || 0} document(s)
+													{t(
+														'research_lab_detail.applications_list.documents_count',
+														{ count: app.documents?.length || 0 }
+													)}
 												</td>
 											</tr>
 										))}
@@ -1485,10 +1554,10 @@ const ResearchLabDetail = () => {
 							<div className="text-center py-12 bg-white rounded-lg shadow border">
 								<File className="w-12 h-12 text-gray-400 mx-auto mb-4" />
 								<p className="text-gray-600">
-									No applications found for this research lab
+									{t('research_lab_detail.applications_list.empty.title')}
 								</p>
 								<p className="text-sm text-gray-500 mt-2">
-									Submit an application to get started
+									{t('research_lab_detail.applications_list.empty.message')}
 								</p>
 							</div>
 						)}
@@ -1505,7 +1574,9 @@ const ResearchLabDetail = () => {
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-					<p className="mt-4 text-gray-600">Loading scholarship details...</p>
+					<p className="mt-4 text-gray-600">
+						{t('research_lab_detail.loading')}
+					</p>
 				</div>
 			</div>
 		)
@@ -1515,12 +1586,14 @@ const ResearchLabDetail = () => {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="text-center">
-					<p className="text-red-600 text-lg">Error: {error}</p>
+					<p className="text-red-600 text-lg">
+						{t('research_lab_detail.error')}: {error}
+					</p>
 					<button
 						onClick={() => window.location.reload()}
 						className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
 					>
-						Retry
+						{t('buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -1547,10 +1620,14 @@ const ResearchLabDetail = () => {
 					<div className="w-[1500px] flex justify-center items-center gap-10 mx-auto px-4 sm:px-6 lg:px-8 py-8">
 						<div className="flex flex-col justify-center items-center w-1/2">
 							<h1 className="text-3xl font-bold mb-2">
-								{researchLab?.title || "Job's name"}
+								{researchLab?.title || t('research_lab_detail.header.job_name')}
 							</h1>
 							<p className="text-gray-600 mb-4">
-								Provided by: {researchLab?.organization || "Lab's name"}
+								{t('research_lab_detail.header.provided_by', {
+									organization:
+										researchLab?.organization ||
+										t('research_lab_detail.header.job_name'),
+								})}
 							</p>
 
 							{/* Institution Status Badge */}
@@ -1572,7 +1649,7 @@ const ResearchLabDetail = () => {
 										}}
 										className="bg-[#126E64] hover:bg-[#0d5952] text-white"
 									>
-										View Institution Detail
+										{t('research_lab_detail.header.institution_detail_button')}
 									</Button>
 								)}
 								{researchLab?.institution?.userId && (
@@ -1584,7 +1661,7 @@ const ResearchLabDetail = () => {
 										variant="outline"
 										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 									>
-										Contact Institution
+										{t('research_lab_detail.header.contact_button')}
 									</Button>
 								)}
 								<motion.button
@@ -1676,15 +1753,21 @@ const ResearchLabDetail = () => {
 					transition={{ delay: 0.3 }}
 					className="p-8 bg-white py-6 shadow-xl border"
 				>
-					<h2 className="text-3xl font-bold mb-6">About</h2>
+					<h2 className="text-3xl font-bold mb-6">
+						{t('research_lab_detail.about.title')}
+					</h2>
 
 					{loading ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="text-gray-500">Loading...</div>
+							<div className="text-gray-500">
+								{t('research_lab_detail.loading')}
+							</div>
 						</div>
 					) : error ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="text-red-500">Error: {error}</div>
+							<div className="text-red-500">
+								{t('research_lab_detail.error')}: {error}
+							</div>
 						</div>
 					) : researchLab ? (
 						<div className="prose prose-content max-w-none text-gray-700 space-y-4">
@@ -1801,7 +1884,9 @@ const ResearchLabDetail = () => {
 				>
 					<div className="flex items-center justify-between mb-6">
 						<h2 className="text-3xl font-bold">
-							{hasApplied ? 'Application Status' : 'Apply here !'}
+							{hasApplied
+								? t('research_lab_detail.apply.title_applied')
+								: t('research_lab_detail.apply.title_not_applied')}
 						</h2>
 						{hasApplied && applicationStatus && (
 							<span
@@ -1840,15 +1925,14 @@ const ResearchLabDetail = () => {
 								</div>
 								<div className="flex-1">
 									<h3 className="text-2xl font-bold text-green-800 mb-2">
-										🎉 Congratulations!
+										{t('research_lab_detail.congratulations.title')}
 									</h3>
 									<p className="text-lg text-green-700 mb-4">
-										Your application has been approved! The institution will
-										contact you with further details about the next steps.
+										{t('research_lab_detail.congratulations.message')}
 									</p>
 									<div className="bg-white rounded-lg p-4 border border-green-200">
 										<p className="text-sm text-green-600 font-medium">
-											Application Status:{' '}
+											{t('research_lab_detail.congratulations.status_label')}{' '}
 											<span className="text-green-800">ACCEPTED</span>
 										</p>
 									</div>
@@ -1866,7 +1950,7 @@ const ResearchLabDetail = () => {
 									isEditMode && (
 										<div className="mb-4 flex items-center justify-between">
 											<h3 className="text-lg font-semibold text-gray-900">
-												Edit Application Documents
+												{t('research_lab_detail.apply.edit_documents')}
 											</h3>
 											<Button
 												variant="outline"
@@ -1891,7 +1975,7 @@ const ResearchLabDetail = () => {
 												className="text-gray-600 border-gray-300 hover:bg-gray-50"
 												size="sm"
 											>
-												Cancel Edit
+												{t('research_lab_detail.apply.cancel_edit')}
 											</Button>
 										</div>
 									)}
@@ -1908,8 +1992,9 @@ const ResearchLabDetail = () => {
 										</div>
 									) : (
 										<p>
-											Not have any specific document requirement. You can upload
-											any
+											{t(
+												'research_lab_detail.apply.document_requirements.no_specific'
+											)}
 										</p>
 									)}
 								</div>
@@ -1926,10 +2011,10 @@ const ResearchLabDetail = () => {
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
 												>
-													📄 Select from Profile
+													{t('research_lab_detail.apply.select_profile_button')}
 												</Button>
 												<p className="text-sm text-gray-500 mt-2">
-													Choose documents from your profile for the snapshot
+													{t('research_lab_detail.apply.select_profile_hint')}
 												</p>
 											</div>
 
@@ -1937,7 +2022,7 @@ const ResearchLabDetail = () => {
 											<div className="flex items-center gap-4">
 												<div className="flex-1 border-t border-gray-300"></div>
 												<span className="text-sm font-medium text-gray-500">
-													OR
+													{t('research_lab_detail.apply.or_divider')}
 												</span>
 												<div className="flex-1 border-t border-gray-300"></div>
 											</div>
@@ -2025,8 +2110,10 @@ const ResearchLabDetail = () => {
 										<div className="mt-6">
 											<div className="mb-4">
 												<h4 className="text-lg font-semibold text-gray-900">
-													Application Documents ({uploadedFiles.length} file
-													{uploadedFiles.length !== 1 ? 's' : ''})
+													{t('research_lab_detail.apply.documents_uploaded', {
+														count: uploadedFiles.length,
+														plural: uploadedFiles.length !== 1 ? 's' : '',
+													})}
 												</h4>
 											</div>
 											<div className="space-y-3">
@@ -2050,15 +2137,21 @@ const ResearchLabDetail = () => {
 																		}`}
 																	>
 																		{file.source === 'existing'
-																			? 'From Profile'
-																			: 'Uploaded'}
+																			? t(
+																					'research_lab_detail.apply.from_profile_badge'
+																				)
+																			: t(
+																					'research_lab_detail.apply.uploaded_badge'
+																				)}
 																	</span>
 																)}
 															</div>
 															<div className="flex items-center gap-2 text-xs text-gray-500">
 																<span>
 																	{file.size
-																		? `${(file.size / 1024).toFixed(1)} KB`
+																		? t('research_lab_detail.apply.file_size', {
+																				size: (file.size / 1024).toFixed(1),
+																			})
 																		: '0 KB'}
 																</span>
 															</div>
@@ -2073,7 +2166,7 @@ const ResearchLabDetail = () => {
 																}}
 																className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 															>
-																View
+																{t('research_lab_detail.apply.view_button')}
 															</Button>
 															<Button
 																variant="outline"
@@ -2081,7 +2174,7 @@ const ResearchLabDetail = () => {
 																onClick={() => removeFile(file.id)}
 																className="text-red-500 border-red-500 hover:bg-red-50"
 															>
-																Remove
+																{t('research_lab_detail.apply.remove_button')}
 															</Button>
 														</div>
 													</div>
@@ -2094,12 +2187,16 @@ const ResearchLabDetail = () => {
 								{isUploading && uploadProgress.length > 0 && (
 									<div className="mt-6 space-y-2">
 										<p className="text-sm font-medium text-gray-700">
-											Uploading files...
+											{t('research_lab_detail.apply.uploading_progress')}
 										</p>
 										{uploadProgress.map((progress) => (
 											<div key={progress.fileIndex} className="space-y-1">
 												<div className="flex justify-between text-sm">
-													<span>File {progress.fileIndex + 1}</span>
+													<span>
+														{t('research_lab_detail.apply.file_progress', {
+															index: progress.fileIndex + 1,
+														})}
+													</span>
 													<span>{progress.progress}%</span>
 												</div>
 												<div className="w-full bg-gray-200 rounded-full h-2">
@@ -2159,12 +2256,18 @@ const ResearchLabDetail = () => {
 										}`}
 									>
 										{applicationStatus === 'ACCEPTED'
-											? 'Application Accepted!'
+											? t('research_lab_detail.apply.status_messages.accepted')
 											: applicationStatus === 'REJECTED'
-												? 'Application Not Selected'
+												? t(
+														'research_lab_detail.apply.status_messages.rejected'
+													)
 												: applicationStatus === 'UPDATED'
-													? 'Application Updated'
-													: 'Application Submitted Successfully!'}
+													? t(
+															'research_lab_detail.apply.status_messages.updated'
+														)
+													: t(
+															'research_lab_detail.apply.status_messages.submitted'
+														)}
 									</h3>
 									<p
 										className={`mt-1 ${
@@ -2178,12 +2281,20 @@ const ResearchLabDetail = () => {
 										}`}
 									>
 										{applicationStatus === 'ACCEPTED'
-											? 'Congratulations! Your application has been accepted. The institution will contact you soon with next steps.'
+											? t(
+													'research_lab_detail.apply.status_messages.accepted_message'
+												)
 											: applicationStatus === 'REJECTED'
-												? 'We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application.'
+												? t(
+														'research_lab_detail.apply.status_messages.rejected_message'
+													)
 												: applicationStatus === 'UPDATED'
-													? 'Your application has been updated. The institution will review your changes.'
-													: 'Your application has been submitted. You will receive updates via email.'}
+													? t(
+															'research_lab_detail.apply.status_messages.updated_message'
+														)
+													: t(
+															'research_lab_detail.apply.status_messages.submitted_message'
+														)}
 									</p>
 									{applicationStatus === 'REJECTED' &&
 										// Only show reapply button if all applications for this post are REJECTED
@@ -2215,7 +2326,7 @@ const ResearchLabDetail = () => {
 													}}
 													className="bg-[#126E64] hover:bg-teal-700 text-white"
 												>
-													Reapply Now
+													{t('research_lab_detail.apply.reapply_button')}
 												</Button>
 											</div>
 										)}
@@ -2228,8 +2339,10 @@ const ResearchLabDetail = () => {
 						<div className="bg-gray-50 rounded-lg p-4 mb-6">
 							<div className="flex items-center justify-between mb-4">
 								<span className="font-medium text-gray-700">
-									Application Documents ({uploadedFiles.length} file
-									{uploadedFiles.length !== 1 ? 's' : ''})
+									{t('research_lab_detail.apply.documents_uploaded', {
+										count: uploadedFiles.length,
+										plural: uploadedFiles.length !== 1 ? 's' : '',
+									})}
 								</span>
 								{applicationStatus === 'SUBMITTED' && (
 									<Button
@@ -2275,7 +2388,7 @@ const ResearchLabDetail = () => {
 														document_id:
 															matchingProfileDoc?.document_id ||
 															file.id ||
-															`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+															crypto.randomUUID(),
 														name: file.name,
 														url: file.url,
 														size: file.size || 0,
@@ -2319,9 +2432,7 @@ const ResearchLabDetail = () => {
 											} catch (error) {
 												// Fallback: treat all as existing if fetch fails
 												const selectedDocs = uploadedFiles.map((file) => ({
-													document_id:
-														file.id ||
-														`doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+													document_id: file.id || crypto.randomUUID(),
 													name: file.name,
 													url: file.url,
 													size: file.size || 0,
@@ -2352,7 +2463,7 @@ const ResearchLabDetail = () => {
 										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 										size="sm"
 									>
-										Edit Documents
+										{t('research_lab_detail.apply.edit_documents_button')}
 									</Button>
 								)}
 							</div>
@@ -2370,10 +2481,7 @@ const ResearchLabDetail = () => {
 										)}
 									</div>
 								) : (
-									<p>
-										These are the documents you submitted with your application.
-										They cannot be modified or deleted.
-									</p>
+									<p>{t('research_lab_detail.apply.documents_description')}</p>
 								)}
 							</div>
 							<div className="space-y-3">
@@ -2397,18 +2505,25 @@ const ResearchLabDetail = () => {
 														}`}
 													>
 														{file.source === 'existing'
-															? 'From Profile'
-															: 'Uploaded'}
+															? t(
+																	'research_lab_detail.apply.from_profile_badge'
+																)
+															: t('research_lab_detail.apply.uploaded_badge')}
 													</span>
 												)}
 											</div>
 											<div className="flex items-center gap-2 text-xs text-gray-500">
-												<span>{(file.size / 1024).toFixed(1)} KB</span>
+												<span>
+													{t('research_lab_detail.apply.file_size', {
+														size: (file.size / 1024).toFixed(1),
+													})}
+												</span>
 												{file.uploadDate && (
 													<>
 														<span>•</span>
 														<span>
-															Uploaded: {formatUTCDateToLocal(file.uploadDate)}
+															{t('research_lab_detail.apply.uploaded_label')}{' '}
+															{formatUTCDateToLocal(file.uploadDate)}
 														</span>
 													</>
 												)}
@@ -2423,7 +2538,7 @@ const ResearchLabDetail = () => {
 												}}
 												className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 											>
-												View
+												{t('research_lab_detail.apply.view_button')}
 											</Button>
 											<Button
 												variant="outline"
@@ -2436,7 +2551,7 @@ const ResearchLabDetail = () => {
 												}}
 												className="text-blue-600 border-blue-600 hover:bg-blue-50"
 											>
-												Download
+												{t('research_lab_detail.apply.download_button')}
 											</Button>
 										</div>
 									</div>
@@ -2448,8 +2563,7 @@ const ResearchLabDetail = () => {
 					{!hasApplied && uploadedFiles.length === 0 && (
 						<div className="text-center mb-4">
 							<p className="text-amber-600 text-sm font-medium">
-								📁 Please upload at least one document to submit your
-								application
+								{t('research_lab_detail.apply.upload_warning')}
 							</p>
 						</div>
 					)}
@@ -2460,7 +2574,7 @@ const ResearchLabDetail = () => {
 								onClick={handleRemoveAllClick}
 								className="text-red-500 border-red-500 hover:bg-red-50"
 							>
-								Remove all
+								{t('research_lab_detail.apply.remove_all_button')}
 							</Button>
 						)}
 						<Button
@@ -2494,26 +2608,26 @@ const ResearchLabDetail = () => {
 							}}
 						>
 							{hasApplied ? (
-								'✓ Application Submitted'
+								t('research_lab_detail.apply.application_submitted')
 							) : isApplying ? (
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Submitting...
+									{t('research_lab_detail.apply.submitting_button')}
 								</div>
 							) : isUploading ? (
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Uploading Files...
+									{t('research_lab_detail.apply.uploading_files_button')}
 								</div>
 							) : isCheckingApplication ? (
 								<div className="flex items-center gap-2">
 									<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									Checking...
+									{t('research_lab_detail.apply.checking_button')}
 								</div>
 							) : uploadedFiles.length === 0 ? (
-								'Upload Files to Continue'
+								t('research_lab_detail.apply.upload_files_button')
 							) : (
-								'Submit Application'
+								t('research_lab_detail.apply.submit_button')
 							)}
 						</Button>
 					</div>
@@ -2527,7 +2641,9 @@ const ResearchLabDetail = () => {
 						transition={{ delay: 0.3 }}
 						className="p-8 bg-white py-6 shadow-xl border"
 					>
-						<h2 className="text-3xl font-bold mb-6">Related Research Labs</h2>
+						<h2 className="text-3xl font-bold mb-6">
+							{t('research_lab_detail.recommendations.title')}
+						</h2>
 
 						{/* Show loading state */}
 						{isLoadingRecommendations ? (
@@ -2541,24 +2657,23 @@ const ResearchLabDetail = () => {
 										<Lock className="w-8 h-8 text-[#126E64]" />
 									</div>
 									<h3 className="text-xl font-semibold text-gray-800 mb-2">
-										Unlock Personalized Recommendations
+										{t('research_lab_detail.recommendations.upgrade.title')}
 									</h3>
 									<p className="text-gray-600 mb-6">
-										Upgrade to Standard or Premium to see research labs tailored
-										to your profile and interests.
+										{t('research_lab_detail.recommendations.upgrade.message')}
 									</p>
 									<Button
 										onClick={() => router.push('/pricing')}
 										className="bg-[#126E64] hover:bg-[#0d5a52] text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
 									>
-										View Upgrade Options
+										{t('research_lab_detail.recommendations.upgrade.button')}
 									</Button>
 								</div>
 							</div>
 						) : recommendedResearchLabs.length === 0 ? (
 							<div className="flex justify-center items-center py-12">
 								<p className="text-gray-500">
-									No recommendations available at this time.
+									{t('research_lab_detail.recommendations.no_recommendations')}
 								</p>
 							</div>
 						) : (
@@ -2584,12 +2699,12 @@ const ResearchLabDetail = () => {
 			<Modal
 				isOpen={showDeleteConfirmModal}
 				onClose={() => setShowDeleteConfirmModal(false)}
-				title="Delete All Files"
+				title={t('research_lab_detail.modals.delete_confirm.title')}
 				maxWidth="sm"
 			>
 				<div className="space-y-6">
 					<p className="text-gray-600">
-						Do you want to delete all files? This action cannot be undone.
+						{t('research_lab_detail.modals.delete_confirm.message')}
 					</p>
 
 					<div className="flex gap-3 justify-end">
@@ -2598,13 +2713,13 @@ const ResearchLabDetail = () => {
 							onClick={() => setShowDeleteConfirmModal(false)}
 							className="text-gray-600 border-gray-300 hover:bg-gray-50"
 						>
-							Cancel
+							{t('research_lab_detail.modals.delete_confirm.cancel')}
 						</Button>
 						<Button
 							onClick={removeAllFiles}
 							className="bg-red-500 hover:bg-red-600 text-white"
 						>
-							Delete All
+							{t('research_lab_detail.modals.delete_confirm.confirm')}
 						</Button>
 					</div>
 				</div>
@@ -2614,13 +2729,12 @@ const ResearchLabDetail = () => {
 			<Modal
 				isOpen={showCancelEditModal}
 				onClose={() => setShowCancelEditModal(false)}
-				title="Discard Changes?"
+				title={t('research_lab_detail.modals.cancel_edit.title')}
 				maxWidth="sm"
 			>
 				<div className="space-y-6">
 					<p className="text-gray-600">
-						You have unsaved changes. Are you sure you want to cancel editing?
-						All changes will be lost.
+						{t('research_lab_detail.modals.cancel_edit.message')}
 					</p>
 
 					<div className="flex gap-3 justify-end">
@@ -2629,13 +2743,13 @@ const ResearchLabDetail = () => {
 							onClick={() => setShowCancelEditModal(false)}
 							className="text-gray-600 border-gray-300 hover:bg-gray-50"
 						>
-							Keep Editing
+							{t('research_lab_detail.modals.cancel_edit.keep')}
 						</Button>
 						<Button
 							onClick={handleCancelEdit}
 							className="bg-red-500 hover:bg-red-600 text-white"
 						>
-							Discard Changes
+							{t('research_lab_detail.modals.cancel_edit.discard')}
 						</Button>
 					</div>
 				</div>
@@ -2645,12 +2759,12 @@ const ResearchLabDetail = () => {
 			<ErrorModal
 				isOpen={showAuthModal}
 				onClose={() => setShowAuthModal(false)}
-				title="Authentication Required"
-				message="You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
-				buttonText="Sign In"
+				title={t('research_lab_detail.modals.auth_required.title')}
+				message={t('research_lab_detail.modals.auth_required.message')}
+				buttonText={t('research_lab_detail.modals.auth_required.sign_in')}
 				onButtonClick={handleSignIn}
 				showSecondButton={true}
-				secondButtonText="Sign Up"
+				secondButtonText={t('research_lab_detail.modals.auth_required.sign_up')}
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
 			/>
@@ -2659,7 +2773,7 @@ const ResearchLabDetail = () => {
 			<Modal
 				isOpen={showDocumentSelector}
 				onClose={() => setShowDocumentSelector(false)}
-				title="Select Documents for Application"
+				title={t('research_lab_detail.modals.document_selector.title')}
 				maxWidth="xl"
 			>
 				<div className="max-h-[70vh] overflow-y-auto">
@@ -2694,10 +2808,19 @@ const ResearchLabDetail = () => {
 										</div>
 										<div>
 											<p className="font-semibold text-gray-900">
-												{profileCount} document
-												{profileCount !== 1 ? 's' : ''} selected from profile
+												{t(
+													'research_lab_detail.modals.document_selector.summary.selected',
+													{
+														count: profileCount,
+														plural: profileCount !== 1 ? 's' : '',
+													}
+												)}
 											</p>
-											<p className="text-sm text-gray-500">Ready to submit</p>
+											<p className="text-sm text-gray-500">
+												{t(
+													'research_lab_detail.modals.document_selector.summary.ready'
+												)}
+											</p>
 										</div>
 									</div>
 								) : (
@@ -2707,10 +2830,14 @@ const ResearchLabDetail = () => {
 										</div>
 										<div>
 											<p className="font-medium text-gray-900">
-												No documents selected
+												{t(
+													'research_lab_detail.modals.document_selector.summary.none_selected'
+												)}
 											</p>
 											<p className="text-sm text-gray-500">
-												Choose files to continue
+												{t(
+													'research_lab_detail.modals.document_selector.summary.choose_files'
+												)}
 											</p>
 										</div>
 									</div>
@@ -2753,7 +2880,7 @@ const ResearchLabDetail = () => {
 								className="px-6 py-3 text-gray-600 border-gray-300 hover:bg-gray-50"
 								size="sm"
 							>
-								Cancel
+								{t('research_lab_detail.modals.document_selector.cancel')}
 							</Button>
 							<Button
 								onClick={() => {
@@ -2763,10 +2890,14 @@ const ResearchLabDetail = () => {
 									)
 									if (profileDocuments.length > 0) {
 										showSuccess(
-											'Documents Selected!',
-											`${profileDocuments.length} document${
-												profileDocuments.length !== 1 ? 's' : ''
-											} ready for application submission`
+											t('research_lab_detail.modals.document_selector.success'),
+											t(
+												'research_lab_detail.modals.document_selector.success_message',
+												{
+													count: profileDocuments.length,
+													plural: profileDocuments.length !== 1 ? 's' : '',
+												}
+											)
 										)
 									}
 								}}
@@ -2784,10 +2915,14 @@ const ResearchLabDetail = () => {
 							>
 								{selectedDocuments.filter((doc) => doc.source === 'existing')
 									.length === 0 ? (
-									'Select Documents First'
+									t('research_lab_detail.modals.document_selector.select_first')
 								) : (
 									<div className="flex items-center gap-2">
-										<span>Continue</span>
+										<span>
+											{t(
+												'research_lab_detail.modals.document_selector.continue'
+											)}
+										</span>
 									</div>
 								)}
 							</Button>

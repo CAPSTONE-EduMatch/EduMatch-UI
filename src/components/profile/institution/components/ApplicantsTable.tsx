@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import { ShortIdWithCopy } from '@/components/ui/ShortIdWithCopy'
 
 export interface Applicant {
 	id: string
@@ -96,8 +97,8 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 
 	// Use custom grid template columns for better space distribution
 	const gridCols = hidePostId
-		? 'grid-cols-[minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
-		: 'grid-cols-[180px_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
+		? 'grid-cols-[minmax(140px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
+		: 'grid-cols-[180px_140px_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
 
 	return (
 		<div className="overflow-x-auto">
@@ -106,6 +107,7 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 					className={`bg-[#126E64] text-white grid ${gridCols} px-4 py-5 text-center font-bold text-base gap-2`}
 				>
 					{!hidePostId && <div className="text-left">Post ID</div>}
+					<div className="text-left">Application ID</div>
 					<div className="text-left">Name</div>
 					<div>Applied Date</div>
 					<div>Degree Level</div>
@@ -128,22 +130,20 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 								{/* Post ID */}
 								{!hidePostId && (
 									<div className="text-left">
-										<button
-											onClick={() => {
+										<ShortIdWithCopy
+											id={applicant.postId}
+											clickable={true}
+											onIdClick={() =>
 												handlePostIdClick(applicant.postId, applicant.postType)
-											}}
-											className="text-[#126E64] hover:text-[#126E64] text-sm underline hover:no-underline transition-all duration-200 font-medium group relative"
-											title={applicant.postId}
-										>
-											<span className="truncate block">
-												{applicant.postId.substring(0, 8)}...
-											</span>
-											<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
-												{applicant.postId}
-											</div>
-										</button>
+											}
+										/>
 									</div>
 								)}
+
+								{/* Application ID */}
+								<div className="text-left">
+									<ShortIdWithCopy id={applicant.id} />
+								</div>
 
 								{/* Name */}
 								<div className="font-semibold text-base text-black text-left group relative">

@@ -6,288 +6,252 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  /// PK - Better Auth required fields
+  id                      String                     @id @default(uuid())
+  name                    String?
+  email                   String                     @unique
+  emailVerified           Boolean                    @default(false)
+  image                   String?
+  createdAt               DateTime                   @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime                   @updatedAt @db.Timestamptz(6)
+  role                    String?
+  banned                  Boolean?                   @default(false)
+  stripeCustomerId        String?
+  password                String?
+  role_id                 String?
+  status                  Boolean?                   @default(true)
+  banExpires              DateTime?
+  banReason               String?
+  applicant               Applicant?
+  updateRequests          ApplicationUpdateRequest[]
+  boxesAsUserOne          Box[]                      @relation("BoxUserOne")
+  boxesAsUserTwo          Box[]                      @relation("BoxUserTwo")
+  institution             Institution?
+  institutionInfoRequests InstitutionInfoRequest[]
+  notifications           Notification[]
+  notifySetting           NotificationSetting?
+  managedSupports         SupportRequirement[]
+  accounts                Account[]
+  invoices                Invoice[]
+  sessions                Session[]
+  userRole                Role?                      @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("user")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(6)
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(6)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@map("account")
+}
+
+model Session {
+  id             String   @id @default(uuid())
+  userId         String
+  token          String   @unique
+  expiresAt      DateTime @db.Timestamptz(6)
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+  impersonatedBy String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("verification")
+}
+
+model Role {
+  role_id String  @id
+  name    String
+  status  Boolean
+  users   User[]
+
+  @@map("Role")
+}
+
 model Applicant {
-  applicant_id          String                  @id
-  first_name            String?
-  last_name             String?
-  birthday              DateTime?               @db.Date
-  gender                Boolean?
-  nationality           String?
-  phone_number          String?
-  graduated             Boolean?
-  level                 String?
-  subdiscipline_id      String?
-  gpa                   Decimal?                @db.Decimal
-  user_id               String                  @unique
-  country_code          String?
-  favorite_countries    String[]                @default([])
-  country_of_study      String?
-  has_foreign_language  Boolean?
-  languages             Json?
-  university            String?
-  deleted_at            DateTime?               @db.Timestamptz(6)
-  status                Boolean                 @default(true)
-  embedding             Json?
-  Subdiscipline         Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
-  user                  user                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ApplicantDocument     ApplicantDocument[]
-  ApplicantInterest     ApplicantInterest[]
-  ApplicantSubscription ApplicantSubscription[]
-  Application           Application[]
-  SupportRequirement    SupportRequirement[]
-  Wishlist              Wishlist[]
-}
-
-model ApplicantDocument {
-  document_id      String       @id
-  applicant_id     String
-  document_type_id String
-  name             String
-  url              String
-  size             Int
-  upload_at        DateTime     @db.Timestamptz(6)
-  subdiscipline    String[]     @default([])
-  title            String?
-  deleted_at       DateTime?    @db.Timestamptz(6)
-  status           Boolean      @default(true)
-  Applicant        Applicant    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  DocumentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model ApplicantInterest {
-  applicant_id     String
-  subdiscipline_id String
-  add_at           DateTime      @db.Timestamptz(6)
-  Applicant        Applicant     @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  Subdiscipline    Subdiscipline @relation(fields: [subdiscipline_id], references: [subdiscipline_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([applicant_id, subdiscipline_id])
-}
-
-model ApplicantSubscription {
-  subscription_id    String             @id
-  applicant_id       String
-  plan_id            String
-  status             SubscriptionStatus @default(ACTIVE)
-  subscribe_at       DateTime           @default(now()) @db.Timestamptz(6)
-  better_auth_sub_id String?            @unique
-  Applicant          Applicant          @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  subscription       subscription?      @relation(fields: [better_auth_sub_id], references: [id])
-  Plan               Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model Application {
-  application_id             String                      @id
-  applicant_id               String
-  apply_at                   DateTime                    @db.Timestamptz(6)
-  post_id                    String
-  status                     ApplicationStatus           @default(SUBMITTED)
-  reapply_count              Int                         @default(0)
-  Applicant                  Applicant                   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  OpportunityPost            OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-  ApplicationDetail          ApplicationDetail[]
-  ApplicationProfileSnapshot ApplicationProfileSnapshot?
-  ApplicationUpdateRequest   ApplicationUpdateRequest[]
-
-  @@index([applicant_id])
-  @@index([apply_at])
-  @@index([post_id])
-  @@index([status])
-}
-
-model ApplicationDetail {
-  document_id              String                    @id
-  application_id           String
-  update_at                DateTime?                 @db.Timestamptz(6)
-  url                      String
-  name                     String
-  size                     Int
-  document_type            DocumentTypeEnum          @default(OTHER)
-  is_update_submission     Boolean                   @default(false)
-  update_request_id        String?
-  Application              Application               @relation(fields: [application_id], references: [application_id], onDelete: NoAction, onUpdate: NoAction)
-  ApplicationUpdateRequest ApplicationUpdateRequest? @relation(fields: [update_request_id], references: [update_request_id], onUpdate: NoAction)
-
-  @@index([application_id])
-  @@index([is_update_submission])
-  @@index([update_request_id])
-}
-
-model ApplicationProfileSnapshot {
-  snapshot_id          String      @id
-  application_id       String      @unique
+  applicant_id         String                  @id
   first_name           String?
   last_name            String?
-  birthday             DateTime?   @db.Date
+  birthday             DateTime?               @db.Date
   gender               Boolean?
   nationality          String?
   phone_number         String?
-  country_code         String?
-  profile_photo        String?
   graduated            Boolean?
   level                String?
   subdiscipline_id     String?
-  gpa                  Decimal?    @db.Decimal
-  university           String?
+  gpa                  Decimal?                @db.Decimal
+  user_id              String                  @unique
+  country_code         String?
+  favorite_countries   String[]                @default([])
   country_of_study     String?
   has_foreign_language Boolean?
   languages            Json?
-  favorite_countries   String[]    @default([])
-  user_name            String?
-  user_email           String?
-  user_image           String?
-  created_at           DateTime    @default(now()) @db.Timestamptz(6)
-  subdiscipline_ids    String[]    @default([])
-  document_ids         String[]    @default([])
-  Application          Application @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
-}
+  university           String?
+  deleted_at           DateTime?               @db.Timestamptz(6)
+  status               Boolean                 @default(true)
+  embedding            Json?
+  subdiscipline        Subdiscipline?          @relation(fields: [subdiscipline_id], references: [subdiscipline_id])
+  user                 User                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  documents            ApplicantDocument[]
+  interests            ApplicantInterest[]
+  subscriptions        ApplicantSubscription[]
+  applications         Application[]
+  supportRequirements  SupportRequirement[]
+  wishlists            Wishlist[]
 
-model ApplicationUpdateRequest {
-  update_request_id     String              @id
-  application_id        String
-  requested_by_user_id  String
-  request_message       String
-  requested_documents   String[]            @default([])
-  status                UpdateRequestStatus @default(PENDING)
-  created_at            DateTime            @default(now()) @db.Timestamptz(6)
-  response_submitted_at DateTime?           @db.Timestamptz(6)
-  response_message      String?
-  ApplicationDetail     ApplicationDetail[]
-  Application           Application         @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
-  user                  user                @relation(fields: [requested_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([application_id])
-  @@index([created_at])
-  @@index([requested_by_user_id])
-  @@index([status])
-}
-
-model Box {
-  box_id                               String    @id
-  user_one_id                          String
-  user_two_id                          String
-  last_message_at                      DateTime? @db.Timestamptz(6)
-  created_at                           DateTime  @db.Timestamptz(6)
-  updated_at                           DateTime  @db.Timestamptz(6)
-  last_message_id                      String?   @unique
-  user_one_last_read_message_id        String?
-  user_two_last_read_message_id        String?
-  Message_Box_last_message_idToMessage Message?  @relation("Box_last_message_idToMessage", fields: [last_message_id], references: [message_id])
-  user_Box_user_one_idTouser           user      @relation("Box_user_one_idTouser", fields: [user_one_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_Box_user_two_idTouser           user      @relation("Box_user_two_idTouser", fields: [user_two_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  Message_Message_box_idToBox          Message[] @relation("Message_box_idToBox")
-}
-
-model Discipline {
-  discipline_id String          @id
-  name          String
-  status        Boolean
-  Subdiscipline Subdiscipline[]
-}
-
-model DocumentType {
-  document_type_id    String                @id
-  name                String
-  description         String?
-  ApplicantDocument   ApplicantDocument[]
-  InstitutionDocument InstitutionDocument[]
-  PostDocument        PostDocument[]
+  @@map("Applicant")
 }
 
 model Institution {
-  institution_id           String                        @id
-  name                     String
-  abbreviation             String?
-  hotline                  String
-  type                     String
-  country                  String
-  address                  String
-  rep_name                 String
-  rep_position             String
-  rep_email                String
-  rep_phone                String
-  about                    String
-  user_id                  String                        @unique
-  email                    String?
-  logo                     String?
-  rep_appellation          String?
-  website                  String?
-  hotline_code             String?
-  rep_phone_code           String?
-  cover_image              String?
-  deleted_at               DateTime?                     @db.Timestamptz(6)
-  status                   Boolean                       @default(true)
-  rejection_reason         String?
-  submitted_at             DateTime?                     @db.Timestamptz(6)
-  verification_status      InstitutionVerificationStatus @default(PENDING)
-  verified_at              DateTime?                     @db.Timestamptz(6)
-  verified_by              String?
-  user                     user                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  InstitutionDocument      InstitutionDocument[]
-  InstitutionInfoRequest   InstitutionInfoRequest[]
-  InstitutionSubdiscipline InstitutionSubdiscipline[]
-  InstitutionSubscription  InstitutionSubscription[]
-  OpportunityPost          OpportunityPost[]
-  SupportRequirement       SupportRequirement[]
+  institution_id      String                        @id
+  name                String
+  abbreviation        String?
+  hotline             String
+  type                String
+  country             String
+  address             String
+  rep_name            String
+  rep_position        String
+  rep_email           String
+  rep_phone           String
+  about               String
+  user_id             String                        @unique
+  email               String?
+  logo                String?
+  rep_appellation     String?
+  website             String?
+  hotline_code        String?
+  rep_phone_code      String?
+  cover_image         String?
+  deleted_at          DateTime?                     @db.Timestamptz(6)
+  status              Boolean                       @default(true)
+  rejection_reason    String?
+  submitted_at        DateTime?                     @db.Timestamptz(6)
+  verification_status InstitutionVerificationStatus @default(PENDING)
+  verified_at         DateTime?                     @db.Timestamptz(6)
+  verified_by         String?
+  user                User                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  documents           InstitutionDocument[]
+  infoRequests        InstitutionInfoRequest[]
+  subdisciplines      InstitutionSubdiscipline[]
+  subscriptions       InstitutionSubscription[]
+  posts               OpportunityPost[]
+  supportRequirements SupportRequirement[]
 
-  @@index([submitted_at])
   @@index([verification_status])
+  @@index([submitted_at])
+  @@map("Institution")
 }
 
-model InstitutionDocument {
-  document_id      String       @id
-  institution_id   String
-  document_type_id String
+model Discipline {
+  discipline_id  String          @id
+  name           String
+  status         Boolean
+  subdisciplines Subdiscipline[]
+
+  @@map("Discipline")
+}
+
+model Subdiscipline {
+  subdiscipline_id   String                     @id
+  name               String
+  status             Boolean
+  discipline_id      String
+  applicants         Applicant[]
+  applicantInterests ApplicantInterest[]
+  institutionLinks   InstitutionSubdiscipline[]
+  postLinks          PostSubdiscipline[]
+  discipline         Discipline                 @relation(fields: [discipline_id], references: [discipline_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("Subdiscipline")
+}
+
+model DocumentType {
+  document_type_id String                @id
   name             String
-  url              String
-  size             Int
-  upload_at        DateTime     @db.Timestamptz(6)
-  deleted_at       DateTime?    @db.Timestamptz(6)
-  status           Boolean      @default(true)
-  DocumentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
-  Institution      Institution  @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  description      String?
+  applicantDocs    ApplicantDocument[]
+  institutionDocs  InstitutionDocument[]
+  postDocs         PostDocument[]
+
+  @@map("DocumentType")
 }
 
-model InstitutionInfoRequest {
-  info_request_id       String              @id
-  institution_id        String
-  requested_by_user_id  String
-  request_message       String
-  requested_fields      String[]            @default([])
-  status                UpdateRequestStatus @default(PENDING)
-  created_at            DateTime            @default(now()) @db.Timestamptz(6)
-  response_submitted_at DateTime?           @db.Timestamptz(6)
-  response_message      String?
-  Institution           Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: Cascade)
-  user                  user                @relation(fields: [requested_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([created_at])
-  @@index([institution_id])
-  @@index([requested_by_user_id])
-  @@index([status])
-}
-
-model InstitutionSubdiscipline {
-  subdiscipline_id String
+model OpportunityPost {
+  post_id          String              @id
+  title            String
+  start_date       DateTime            @db.Timestamptz(6)
+  end_date         DateTime?           @db.Timestamptz(6)
+  location         String?
+  other_info       String?
+  status           PostStatus          @default(DRAFT)
+  update_at        DateTime?           @db.Timestamptz(6)
+  create_at        DateTime            @db.Timestamptz(6)
+  degree_level     String
   institution_id   String
-  add_at           DateTime      @db.Timestamptz(6)
-  status           Boolean
-  Institution      Institution   @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  Subdiscipline    Subdiscipline @relation(fields: [subdiscipline_id], references: [subdiscipline_id], onDelete: NoAction, onUpdate: NoAction)
+  description      String?
+  rejection_reason String?
+  applications     Application[]
+  jobPost          JobPost?
+  institution      Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  postDocs         PostDocument[]
+  subdisciplines   PostSubdiscipline[]
+  programPost      ProgramPost?
+  scholarshipPost  ScholarshipPost?
+  wishlists        Wishlist[]
 
-  @@id([subdiscipline_id, institution_id])
+  @@index([institution_id])
+  @@index([status])
+  @@index([create_at])
+  @@index([start_date, end_date])
+  @@map("OpportunityPost")
 }
 
-model InstitutionSubscription {
-  subscription_id    String             @id
-  plan_id            String
-  institution_id     String
-  status             SubscriptionStatus @default(ACTIVE)
-  subscribe_at       DateTime           @default(now()) @db.Timestamptz(6)
-  better_auth_sub_id String?            @unique
-  subscription       subscription?      @relation(fields: [better_auth_sub_id], references: [id])
-  Institution        Institution        @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  Plan               Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
+model ProgramPost {
+  post_id              String               @id
+  duration             String
+  attendance           String
+  course_include       String?
+  gpa                  Decimal?             @db.Decimal
+  gre                  Int?
+  gmat                 Int?
+  tuition_fee          Decimal?             @db.Decimal
+  fee_description      String?
+  scholarship_info     String?
+  language_requirement String?
+  embedding            Json?
+  certificates         PostCertificate[]
+  post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  ProgramScholarship   ProgramScholarship[]
+
+  @@map("ProgramPost")
 }
 
 model JobPost {
@@ -320,153 +284,9 @@ model JobPost {
   technical_skills          String?
   professor_name            String?
   embedding                 Json?
-  OpportunityPost           OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-}
+  post                      OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
 
-model Message {
-  box_id                           String
-  message_id                       String   @id
-  sender_id                        String
-  body                             String
-  send_at                          DateTime @db.Timestamptz(6)
-  Box_Box_last_message_idToMessage Box?     @relation("Box_last_message_idToMessage")
-  Box_Message_box_idToBox          Box      @relation("Message_box_idToBox", fields: [box_id], references: [box_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model Notification {
-  notification_id String    @id
-  user_id         String
-  type            String
-  title           String
-  body            String
-  url             String?
-  send_at         DateTime  @db.Timestamptz(6)
-  read_at         DateTime? @db.Timestamptz(6)
-  create_at       DateTime? @db.Timestamptz(6)
-  queued_at       DateTime? @db.Timestamptz(6)
-  user            user      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([read_at])
-  @@index([send_at])
-  @@index([user_id])
-}
-
-model NotificationSetting {
-  user_id             String   @id
-  notify_application  Boolean
-  notify_wishlist     Boolean?
-  notify_subscription Boolean
-  update_at           DateTime @db.Timestamptz(6)
-  user                user     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model OpportunityPost {
-  post_id           String              @id
-  title             String
-  start_date        DateTime            @db.Timestamptz(6)
-  end_date          DateTime?           @db.Timestamptz(6)
-  location          String?
-  other_info        String?
-  status            PostStatus          @default(DRAFT)
-  update_at         DateTime?           @db.Timestamptz(6)
-  create_at         DateTime            @db.Timestamptz(6)
-  degree_level      String
-  institution_id    String
-  description       String?
-  rejection_reason  String?
-  Application       Application[]
-  JobPost           JobPost?
-  Institution       Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  PostDocument      PostDocument[]
-  PostSubdiscipline PostSubdiscipline[]
-  ProgramPost       ProgramPost?
-  ScholarshipPost   ScholarshipPost?
-  Wishlist          Wishlist[]
-
-  @@index([create_at])
-  @@index([institution_id])
-  @@index([start_date, end_date])
-  @@index([status])
-}
-
-model Plan {
-  plan_id                 String                    @id
-  priceId                 String                    @unique
-  name                    String
-  description             String?
-  features                String[]
-  month_price             Int?
-  year_price              Int?
-  status                  Boolean
-  create_at               DateTime                  @db.Timestamptz(6)
-  type                    Int
-  hierarchy               Int                       @default(0)
-  ApplicantSubscription   ApplicantSubscription[]
-  InstitutionSubscription InstitutionSubscription[]
-}
-
-model PostCertificate {
-  certificate_id String      @id
-  post_id        String
-  name           String
-  score          String
-  ProgramPost    ProgramPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model PostDocument {
-  document_id      String
-  post_id          String
-  document_type_id String
-  name             String
-  description      String?
-  DocumentType     DocumentType    @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
-  OpportunityPost  OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([document_id, post_id])
-}
-
-model PostSubdiscipline {
-  subdiscipline_id String
-  post_id          String
-  add_at           DateTime        @db.Timestamptz(6)
-  OpportunityPost  OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-  Subdiscipline    Subdiscipline   @relation(fields: [subdiscipline_id], references: [subdiscipline_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([subdiscipline_id, post_id])
-}
-
-model ProgramPost {
-  post_id              String               @id
-  duration             String
-  attendance           String
-  course_include       String?
-  gpa                  Decimal?             @db.Decimal
-  gre                  Int?
-  gmat                 Int?
-  tuition_fee          Decimal?             @db.Decimal
-  fee_description      String?
-  scholarship_info     String?
-  language_requirement String?
-  embedding            Json?
-  PostCertificate      PostCertificate[]
-  OpportunityPost      OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
-  ProgramScholarship   ProgramScholarship[]
-}
-
-model ProgramScholarship {
-  program_post_id     String
-  scholarship_post_id String
-  ProgramPost         ProgramPost     @relation(fields: [program_post_id], references: [post_id], onDelete: Cascade)
-  ScholarshipPost     ScholarshipPost @relation(fields: [scholarship_post_id], references: [post_id], onDelete: Cascade)
-
-  @@id([program_post_id, scholarship_post_id])
-}
-
-model Role {
-  role_id String  @id
-  name    String
-  status  Boolean
-  user    user[]
+  @@map("JobPost")
 }
 
 model ScholarshipPost {
@@ -483,19 +303,352 @@ model ScholarshipPost {
   renewable            Boolean?
   embedding            Json?
   ProgramScholarship   ProgramScholarship[]
-  OpportunityPost      OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  post                 OpportunityPost      @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("ScholarshipPost")
 }
 
-model Subdiscipline {
-  subdiscipline_id         String                     @id
-  name                     String
-  status                   Boolean
-  discipline_id            String
-  Applicant                Applicant[]
-  ApplicantInterest        ApplicantInterest[]
-  InstitutionSubdiscipline InstitutionSubdiscipline[]
-  PostSubdiscipline        PostSubdiscipline[]
-  Discipline               Discipline                 @relation(fields: [discipline_id], references: [discipline_id], onDelete: NoAction, onUpdate: NoAction)
+model PostCertificate {
+  certificate_id String      @id
+  post_id        String
+  name           String
+  score          String
+  program        ProgramPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("PostCertificate")
+}
+
+model PostDocument {
+  document_id      String
+  post_id          String
+  document_type_id String
+  name             String
+  description      String?
+  documentType     DocumentType    @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
+  post             OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([document_id, post_id])
+  @@map("PostDocument")
+}
+
+model PostSubdiscipline {
+  subdiscipline_id String
+  post_id          String
+  add_at           DateTime        @db.Timestamptz(6)
+  post             OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  subdiscipline    Subdiscipline   @relation(fields: [subdiscipline_id], references: [subdiscipline_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([subdiscipline_id, post_id])
+  @@map("PostSubdiscipline")
+}
+
+model ApplicantDocument {
+  document_id      String       @id
+  applicant_id     String
+  document_type_id String
+  name             String
+  url              String
+  size             Int
+  upload_at        DateTime     @db.Timestamptz(6)
+  subdiscipline    String[]     @default([])
+  title            String?
+  deleted_at       DateTime?    @db.Timestamptz(6)
+  status           Boolean      @default(true)
+  applicant        Applicant    @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("ApplicantDocument")
+}
+
+model InstitutionDocument {
+  document_id      String       @id
+  institution_id   String
+  document_type_id String
+  name             String
+  url              String
+  size             Int
+  upload_at        DateTime     @db.Timestamptz(6)
+  deleted_at       DateTime?    @db.Timestamptz(6)
+  status           Boolean      @default(true)
+  documentType     DocumentType @relation(fields: [document_type_id], references: [document_type_id], onDelete: NoAction, onUpdate: NoAction)
+  institution      Institution  @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("InstitutionDocument")
+}
+
+model ApplicantInterest {
+  applicant_id     String
+  subdiscipline_id String
+  add_at           DateTime      @db.Timestamptz(6)
+  applicant        Applicant     @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  subdiscipline    Subdiscipline @relation(fields: [subdiscipline_id], references: [subdiscipline_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([applicant_id, subdiscipline_id])
+  @@map("ApplicantInterest")
+}
+
+model Wishlist {
+  applicant_id String
+  post_id      String
+  add_at       DateTime        @db.Timestamptz(6)
+  applicant    Applicant       @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  post         OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([applicant_id, post_id])
+  @@index([applicant_id])
+  @@index([post_id])
+  @@map("Wishlist")
+}
+
+model Application {
+  application_id             String                      @id
+  applicant_id               String
+  apply_at                   DateTime                    @db.Timestamptz(6)
+  post_id                    String
+  status                     ApplicationStatus           @default(SUBMITTED)
+  reapply_count              Int                         @default(0)
+  applicant                  Applicant                   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  post                       OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+  details                    ApplicationDetail[]
+  ApplicationProfileSnapshot ApplicationProfileSnapshot?
+  updateRequests             ApplicationUpdateRequest[]
+
+  @@index([applicant_id])
+  @@index([post_id])
+  @@index([status])
+  @@index([apply_at])
+  @@map("Application")
+}
+
+model ApplicationDetail {
+  document_id          String                    @id
+  application_id       String
+  update_at            DateTime?                 @db.Timestamptz(6)
+  url                  String
+  name                 String
+  size                 Int
+  document_type        DocumentTypeEnum          @default(OTHER)
+  is_update_submission Boolean                   @default(false)
+  update_request_id    String?
+  application          Application               @relation(fields: [application_id], references: [application_id], onDelete: NoAction, onUpdate: NoAction)
+  updateRequest        ApplicationUpdateRequest? @relation(fields: [update_request_id], references: [update_request_id], onUpdate: NoAction)
+
+  @@index([application_id])
+  @@index([update_request_id])
+  @@index([is_update_submission])
+  @@map("ApplicationDetail")
+}
+
+model ApplicationProfileSnapshot {
+  snapshot_id          String      @id
+  application_id       String      @unique
+  first_name           String?
+  last_name            String?
+  birthday             DateTime?   @db.Date
+  gender               Boolean?
+  nationality          String?
+  phone_number         String?
+  country_code         String?
+  profile_photo        String?
+  graduated            Boolean?
+  level                String?
+  subdiscipline_id     String?
+  gpa                  Decimal?    @db.Decimal
+  university           String?
+  country_of_study     String?
+  has_foreign_language Boolean?
+  languages            Json?
+  favorite_countries   String[]    @default([])
+  user_name            String?
+  user_email           String?
+  user_image           String?
+  created_at           DateTime    @default(now()) @db.Timestamptz(6)
+  subdiscipline_ids    String[]    @default([])
+  document_ids         String[]    @default([])
+  application          Application @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
+
+  @@map("ApplicationProfileSnapshot")
+}
+
+model ApplicationUpdateRequest {
+  update_request_id     String              @id
+  application_id        String
+  requested_by_user_id  String
+  request_message       String
+  requested_documents   String[]            @default([])
+  status                UpdateRequestStatus @default(PENDING)
+  created_at            DateTime            @default(now()) @db.Timestamptz(6)
+  response_submitted_at DateTime?           @db.Timestamptz(6)
+  response_message      String?
+  responseDocuments     ApplicationDetail[]
+  application           Application         @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
+  requestedBy           User                @relation(fields: [requested_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([application_id])
+  @@index([requested_by_user_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("ApplicationUpdateRequest")
+}
+
+model InstitutionInfoRequest {
+  info_request_id       String              @id
+  institution_id        String
+  requested_by_user_id  String
+  request_message       String
+  requested_fields      String[]            @default([])
+  status                UpdateRequestStatus @default(PENDING)
+  created_at            DateTime            @default(now()) @db.Timestamptz(6)
+  response_submitted_at DateTime?           @db.Timestamptz(6)
+  response_message      String?
+  institution           Institution         @relation(fields: [institution_id], references: [institution_id], onDelete: Cascade)
+  requestedBy           User                @relation(fields: [requested_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([institution_id])
+  @@index([requested_by_user_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("InstitutionInfoRequest")
+}
+
+model NotificationSetting {
+  user_id             String   @id
+  notify_application  Boolean
+  notify_wishlist     Boolean?
+  notify_subscription Boolean
+  update_at           DateTime @db.Timestamptz(6)
+  user                User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("NotificationSetting")
+}
+
+model Notification {
+  notification_id String    @id
+  user_id         String
+  type            String
+  title           String
+  body            String
+  url             String?
+  send_at         DateTime  @db.Timestamptz(6)
+  read_at         DateTime? @db.Timestamptz(6)
+  create_at       DateTime? @db.Timestamptz(6)
+  queued_at       DateTime? @db.Timestamptz(6)
+  user            User      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@index([send_at])
+  @@index([read_at])
+  @@map("Notification")
+}
+
+model Box {
+  box_id                        String    @id
+  user_one_id                   String
+  user_two_id                   String
+  last_message_at               DateTime? @db.Timestamptz(6)
+  created_at                    DateTime  @db.Timestamptz(6)
+  updated_at                    DateTime  @db.Timestamptz(6)
+  last_message_id               String?   @unique
+  user_one_last_read_message_id String?
+  user_two_last_read_message_id String?
+  lastMessage                   Message?  @relation("LastMessage", fields: [last_message_id], references: [message_id])
+  userOne                       User      @relation("BoxUserOne", fields: [user_one_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userTwo                       User      @relation("BoxUserTwo", fields: [user_two_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  messages                      Message[]
+
+  @@map("Box")
+}
+
+model Message {
+  box_id         String
+  message_id     String   @id
+  sender_id      String
+  body           String
+  send_at        DateTime @db.Timestamptz(6)
+  boxLastMessage Box?     @relation("LastMessage")
+  box            Box      @relation(fields: [box_id], references: [box_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("Message")
+}
+
+model Plan {
+  plan_id         String                    @id
+  priceId         String                    @unique
+  name            String
+  description     String?
+  features        String[]
+  month_price     Int?
+  year_price      Int?
+  status          Boolean
+  create_at       DateTime                  @db.Timestamptz(6)
+  type            Int
+  hierarchy       Int                       @default(0)
+  applicantSubs   ApplicantSubscription[]
+  institutionSubs InstitutionSubscription[]
+
+  @@map("Plan")
+}
+
+model ApplicantSubscription {
+  subscription_id        String             @id
+  applicant_id           String
+  plan_id                String
+  status                 SubscriptionStatus @default(ACTIVE)
+  subscribe_at           DateTime           @default(now()) @db.Timestamptz(6)
+  better_auth_sub_id     String?            @unique
+  applicant              Applicant          @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  betterAuthSubscription Subscription?      @relation("ApplicantToBetterAuth", fields: [better_auth_sub_id], references: [id])
+  plan                   Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("ApplicantSubscription")
+}
+
+model InstitutionSubscription {
+  subscription_id        String             @id
+  plan_id                String
+  institution_id         String
+  status                 SubscriptionStatus @default(ACTIVE)
+  subscribe_at           DateTime           @default(now()) @db.Timestamptz(6)
+  better_auth_sub_id     String?            @unique
+  betterAuthSubscription Subscription?      @relation("InstitutionToBetterAuth", fields: [better_auth_sub_id], references: [id])
+  institution            Institution        @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  plan                   Plan               @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("InstitutionSubscription")
+}
+
+model Subscription {
+  id                      String                   @id @default(uuid())
+  referenceId             String?
+  stripeSubscriptionId    String?                  @unique
+  stripeCustomerId        String?
+  plan                    String?
+  status                  String?                  @default("active")
+  periodStart             DateTime?                @db.Timestamptz(6)
+  periodEnd               DateTime?                @db.Timestamptz(6)
+  cancelAtPeriodEnd       Boolean?                 @default(false)
+  seats                   Int?                     @default(1)
+  createdAt               DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime                 @updatedAt @db.Timestamptz(6)
+  trialEnd                DateTime?                @db.Timestamptz(6)
+  trialStart              DateTime?                @db.Timestamptz(6)
+  applicantSubscription   ApplicantSubscription?   @relation("ApplicantToBetterAuth")
+  institutionSubscription InstitutionSubscription? @relation("InstitutionToBetterAuth")
+  invoices                Invoice[]
+
+  @@map("subscription")
+}
+
+model InstitutionSubdiscipline {
+  subdiscipline_id String
+  institution_id   String
+  add_at           DateTime      @db.Timestamptz(6)
+  status           Boolean
+  institution      Institution   @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  subdiscipline    Subdiscipline @relation(fields: [subdiscipline_id], references: [subdiscipline_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([subdiscipline_id, institution_id])
+  @@map("InstitutionSubdiscipline")
 }
 
 model SupportRequirement {
@@ -507,50 +660,29 @@ model SupportRequirement {
   status         Boolean
   update_at      DateTime?    @db.Timestamptz(6)
   manager_id     String
-  Applicant      Applicant?   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  Institution    Institution? @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
-  user           user         @relation(fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  applicant      Applicant?   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
+  institution    Institution? @relation(fields: [institution_id], references: [institution_id], onDelete: NoAction, onUpdate: NoAction)
+  manager        User         @relation(fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([applicant_id])
-  @@index([create_at])
   @@index([institution_id])
   @@index([manager_id])
   @@index([status])
+  @@index([create_at])
+  @@map("SupportRequirement")
 }
 
-model Wishlist {
-  applicant_id    String
-  post_id         String
-  add_at          DateTime        @db.Timestamptz(6)
-  Applicant       Applicant       @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
-  OpportunityPost OpportunityPost @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
+model ProgramScholarship {
+  program_post_id     String
+  scholarship_post_id String
+  ProgramPost         ProgramPost     @relation(fields: [program_post_id], references: [post_id], onDelete: Cascade)
+  ScholarshipPost     ScholarshipPost @relation(fields: [scholarship_post_id], references: [post_id], onDelete: Cascade)
 
-  @@id([applicant_id, post_id])
-  @@index([applicant_id])
-  @@index([post_id])
+  @@id([program_post_id, scholarship_post_id])
 }
 
-model account {
-  id                    String    @id
-  userId                String
-  accountId             String
-  providerId            String
-  accessToken           String?
-  refreshToken          String?
-  accessTokenExpiresAt  DateTime? @db.Timestamptz(6)
-  refreshTokenExpiresAt DateTime? @db.Timestamptz(6)
-  scope                 String?
-  idToken               String?
-  password              String?
-  createdAt             DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime  @db.Timestamptz(6)
-  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([providerId, accountId])
-}
-
-model invoice {
-  id                   String        @id
+model Invoice {
+  id                   String        @id @default(uuid())
   stripeInvoiceId      String        @unique
   stripeCustomerId     String
   stripeSubscriptionId String?
@@ -568,88 +700,26 @@ model invoice {
   periodEnd            DateTime?     @db.Timestamptz(6)
   paidAt               DateTime?     @db.Timestamptz(6)
   createdAt            DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt            DateTime      @db.Timestamptz(6)
-  subscription         subscription? @relation(fields: [stripeSubscriptionId], references: [stripeSubscriptionId])
-  user                 user          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(6)
+  subscription         Subscription? @relation(fields: [stripeSubscriptionId], references: [stripeSubscriptionId])
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([paidAt])
-  @@index([status])
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
   @@index([userId])
+  @@index([status])
+  @@index([paidAt])
+  @@map("invoice")
 }
 
-model session {
-  id             String   @id
-  userId         String
-  token          String   @unique
-  expiresAt      DateTime @db.Timestamptz(6)
-  ipAddress      String?
-  userAgent      String?
-  createdAt      DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime @db.Timestamptz(6)
-  impersonatedBy String?
-  user           user     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model subscription {
-  id                      String                   @id
-  referenceId             String?
-  stripeSubscriptionId    String?                  @unique
-  stripeCustomerId        String?
-  plan                    String?
-  status                  String?                  @default("active")
-  periodStart             DateTime?                @db.Timestamptz(6)
-  periodEnd               DateTime?                @db.Timestamptz(6)
-  cancelAtPeriodEnd       Boolean?                 @default(false)
-  seats                   Int?                     @default(1)
-  createdAt               DateTime                 @default(now()) @db.Timestamptz(6)
-  updatedAt               DateTime                 @db.Timestamptz(6)
-  trialEnd                DateTime?                @db.Timestamptz(6)
-  trialStart              DateTime?                @db.Timestamptz(6)
-  ApplicantSubscription   ApplicantSubscription?
-  InstitutionSubscription InstitutionSubscription?
-  invoice                 invoice[]
-}
-
-model user {
-  id                        String                     @id
-  name                      String?
-  email                     String                     @unique
-  emailVerified             Boolean                    @default(false)
-  image                     String?
-  createdAt                 DateTime                   @default(now()) @db.Timestamptz(6)
-  updatedAt                 DateTime                   @db.Timestamptz(6)
-  role                      String?
-  banned                    Boolean?                   @default(false)
-  stripeCustomerId          String?
-  password                  String?
-  role_id                   String?
-  status                    Boolean?                   @default(true)
-  banExpires                DateTime?
-  banReason                 String?
-  Applicant                 Applicant?
-  ApplicationUpdateRequest  ApplicationUpdateRequest[]
-  Box_Box_user_one_idTouser Box[]                      @relation("Box_user_one_idTouser")
-  Box_Box_user_two_idTouser Box[]                      @relation("Box_user_two_idTouser")
-  Institution               Institution?
-  InstitutionInfoRequest    InstitutionInfoRequest[]
-  Notification              Notification[]
-  NotificationSetting       NotificationSetting?
-  SupportRequirement        SupportRequirement[]
-  account                   account[]
-  invoice                   invoice[]
-  session                   session[]
-  Role                      Role?                      @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model verification {
-  id         String   @id
-  identifier String
-  value      String
-  expiresAt  DateTime @db.Timestamptz(6)
-  createdAt  DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt  DateTime @db.Timestamptz(6)
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  REJECTED
+  SUBMITTED
+  UPDATED
+  DELETED
 }
 
 enum ApplicationStatus {
@@ -657,6 +727,28 @@ enum ApplicationStatus {
   PROGRESSING
   ACCEPTED
   REJECTED
+}
+
+enum UpdateRequestStatus {
+  PENDING
+  RESPONDED
+  REVIEWED
+  CLOSED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum InstitutionVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REQUIRE_UPDATE
+  UPDATED
 }
 
 enum DocumentTypeEnum {
@@ -673,36 +765,4 @@ enum DocumentTypeEnum {
   INSTITUTION_VERIFICATION
   REQUIRED_DOCUMENTS
   OTHER
-}
-
-enum InstitutionVerificationStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  REQUIRE_UPDATE
-  UPDATED
-}
-
-enum PostStatus {
-  DRAFT
-  PUBLISHED
-  CLOSED
-  REJECTED
-  SUBMITTED
-  UPDATED
-  DELETED
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  INACTIVE
-  CANCELLED
-  EXPIRED
-}
-
-enum UpdateRequestStatus {
-  PENDING
-  RESPONDED
-  REVIEWED
-  CLOSED
 }

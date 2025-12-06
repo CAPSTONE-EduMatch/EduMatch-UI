@@ -25,7 +25,7 @@ const sidebarItems = [
 	{ id: 'plan', icon: Building2, label: 'Plan' },
 	// { id: 'transaction', icon: Building2, label: 'Transaction' },
 	{ id: 'supports', icon: Building2, label: 'Supports' },
-	{ id: 'track-user-log', icon: Building2, label: 'Track user log' },
+	// { id: 'track-user-log', icon: Building2, label: 'Track user log' },
 	{ id: 'change-password', icon: KeyRound, label: 'Change Password' },
 	{ id: 'logout', icon: Building2, label: 'Log out' },
 ]
@@ -83,9 +83,9 @@ export function AdminSidebar({
 			case 'supports':
 				router.push('/admin/support')
 				break
-			case 'track-user-log':
-				router.push('/admin/track-user-log')
-				break
+			// case 'track-user-log':
+			// 	router.push('/admin/track-user-log')
+			// 	break
 			case 'change-password':
 				router.push('/admin/settings')
 				break

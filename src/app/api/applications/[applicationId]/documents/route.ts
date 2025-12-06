@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/utils/auth/auth-utils";
-import { prismaClient } from "../../../../../../prisma";
 import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { prismaClient } from "../../../../../../prisma";
 
 // PUT /api/applications/[applicationId]/documents - Update application documents (for applicants)
 export async function PUT(
@@ -40,6 +40,26 @@ export async function PUT(
 			return NextResponse.json(
 				{ error: "Application not found" },
 				{ status: 404 }
+			);
+		}
+
+		// Check subscription eligibility - user must have active paid plan to edit
+		const { canApplyToOpportunity } = await import(
+			"@/services/authorization"
+		);
+		const eligibility = await canApplyToOpportunity(applicant.applicant_id);
+
+		if (!eligibility.canApply) {
+			return NextResponse.json(
+				{
+					error: "You need an active Standard or Premium subscription to edit applications. Please upgrade your plan to continue.",
+					eligibility: {
+						canApply: false,
+						planName: eligibility.planName,
+						reason: eligibility.reason,
+					},
+				},
+				{ status: 403 }
 			);
 		}
 

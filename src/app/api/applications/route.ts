@@ -8,6 +8,93 @@ import {
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../prisma";
+import { SimilarityService } from "@/services/similarity/similarity-service";
+
+// Helper function to calculate match scores for applications
+async function calculateMatchScoresForApplications(
+	applications: any[],
+	applicantEmbedding: number[] | null
+): Promise<Record<string, string>> {
+	const matchScores: Record<string, string> = {};
+
+	// If no embedding, return "0%" for all
+	if (!applicantEmbedding) {
+		applications.forEach((app) => {
+			matchScores[app.post_id] = "0%";
+		});
+		return matchScores;
+	}
+
+	try {
+		// Check authorization
+		const { canSeeMatchingScore } = await import(
+			"@/services/authorization"
+		);
+		const applicantId = applications[0]?.applicant_id;
+		if (!applicantId) {
+			return matchScores;
+		}
+
+		const matchingPermission = await canSeeMatchingScore(applicantId);
+		if (!matchingPermission.authorized) {
+			// User cannot see matching scores, show restricted indicator
+			applications.forEach((app) => {
+				matchScores[app.post_id] = "—";
+			});
+			return matchScores;
+		}
+
+		// Get post IDs and determine post types
+		const postIds = applications.map((app) => app.post_id);
+
+		// Fetch embeddings for all posts (check program, scholarship, and job)
+		const [programPosts, scholarshipPosts, jobPosts] = await Promise.all([
+			prismaClient.programPost.findMany({
+				where: { post_id: { in: postIds } },
+				select: { post_id: true, embedding: true },
+			}),
+			prismaClient.scholarshipPost.findMany({
+				where: { post_id: { in: postIds } },
+				select: { post_id: true, embedding: true },
+			}),
+			prismaClient.jobPost.findMany({
+				where: { post_id: { in: postIds } },
+				select: { post_id: true, embedding: true },
+			}),
+		]);
+
+		// Combine all embeddings
+		const allPostEmbeddings = [
+			...programPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			})),
+			...scholarshipPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			})),
+			...jobPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			})),
+		];
+
+		// Calculate similarity scores
+		const scores = SimilarityService.calculateMatchScores(
+			applicantEmbedding,
+			allPostEmbeddings
+		);
+
+		return scores;
+	} catch (error) {
+		console.error("Error calculating match scores:", error);
+		// Fallback to 0% on error
+		applications.forEach((app) => {
+			matchScores[app.post_id] = "0%";
+		});
+		return matchScores;
+	}
+}
 
 // GET /api/applications - Get user's applications
 export async function GET(request: NextRequest) {
@@ -22,10 +109,10 @@ export async function GET(request: NextRequest) {
 		const status = searchParams.get("status");
 		const stats = searchParams.get("stats") === "true";
 
-		// Get user's applicant profile
+		// Get user's applicant profile with embedding for match score calculation
 		const applicant = await prismaClient.applicant.findUnique({
 			where: { user_id: user.id },
-			select: { applicant_id: true },
+			select: { applicant_id: true, embedding: true },
 		});
 
 		if (!applicant) {
@@ -89,7 +176,7 @@ export async function GET(request: NextRequest) {
 									name: true,
 									logo: true,
 									country: true,
-									verification_status: true,
+									status: true,
 									deleted_at: true,
 								},
 							},
@@ -106,6 +193,12 @@ export async function GET(request: NextRequest) {
 			}),
 			prismaClient.application.count({ where: whereClause }),
 		]);
+
+		// Calculate match scores for all applications
+		const matchScores = await calculateMatchScoresForApplications(
+			applications,
+			applicant.embedding as number[] | null
+		);
 
 		// Transform applications
 		const transformedApplications = applications.map((app: any) => ({
@@ -131,11 +224,12 @@ export async function GET(request: NextRequest) {
 				endDate: app.post.end_date?.toISOString(),
 				location: app.post.location || undefined,
 				otherInfo: app.post.other_info || undefined,
+				matchScore: matchScores[app.post_id] || "—",
 				institution: {
 					name: app.post.institution.name,
 					logo: app.post.institution.logo,
 					country: app.post.institution.country || undefined,
-					status: app.post.institution.verification_status,
+					status: app.post.institution.status,
 					deletedAt:
 						app.post.institution.deleted_at?.toISOString() || null,
 				},

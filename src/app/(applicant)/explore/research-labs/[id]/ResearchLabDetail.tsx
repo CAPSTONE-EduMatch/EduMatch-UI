@@ -103,34 +103,26 @@ const ResearchLabDetail = () => {
 
 	// Utility function to get institution status
 	const getInstitutionStatus = (institution?: {
-		status: string | boolean
+		status?: boolean | string
 		deletedAt?: string | null
 	}) => {
 		if (!institution) return null
 
-		// Check for non-approved status
-		// The API returns verification_status as 'status' field
-		// verification_status can be: PENDING, APPROVED, REJECTED
-		// Also handle legacy boolean status field
-		const isApproved =
-			institution.status === 'APPROVED' ||
-			institution.status === true ||
-			institution.status === 'ACTIVE' // Legacy support
+		const statusValue =
+			typeof institution.status === 'string'
+				? institution.status.toLowerCase() === 'false'
+					? false
+					: institution.status.toLowerCase() === 'true'
+						? true
+						: undefined
+				: institution.status
 
-		if (!isApproved) {
-			const statusLabel =
-				institution.status === 'PENDING'
-					? t('research_lab_detail.institution_status.pending')
-					: institution.status === 'REJECTED'
-						? t('research_lab_detail.institution_status.rejected')
-						: t('research_lab_detail.institution_status.deactivated')
+		// Check for deactivated account (status = false)
+		if (statusValue === false) {
 			return {
 				type: 'deactivated' as const,
-				label: statusLabel,
-				color:
-					institution.status === 'PENDING'
-						? 'bg-blue-100 text-blue-800 border-blue-200'
-						: 'bg-orange-100 text-orange-800 border-orange-200',
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
 			}
 		}
 

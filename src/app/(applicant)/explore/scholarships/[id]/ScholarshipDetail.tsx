@@ -118,34 +118,16 @@ const ScholarshipDetail = () => {
 
 	// Utility function to get institution status
 	const getInstitutionStatus = (institution?: {
-		status: string | boolean
-		deletedAt?: string | null
+		status?: string | boolean
 	}) => {
 		if (!institution) return null
 
-		// Check for non-approved status
-		// The API returns verification_status as 'status' field
-		// verification_status can be: PENDING, APPROVED, REJECTED
-		// Also handle legacy boolean status field
-		const isApproved =
-			institution.status === 'APPROVED' ||
-			institution.status === true ||
-			institution.status === 'ACTIVE' // Legacy support
-
-		if (!isApproved) {
-			const statusLabel =
-				institution.status === 'PENDING'
-					? t('scholarship_detail.header.status_pending')
-					: institution.status === 'REJECTED'
-						? t('scholarship_detail.header.status_rejected')
-						: t('scholarship_detail.header.status_deactivated')
+		// Check for deactivated account (status = false)
+		if (institution.status === false) {
 			return {
 				type: 'deactivated' as const,
-				label: statusLabel,
-				color:
-					institution.status === 'PENDING'
-						? 'bg-blue-100 text-blue-800 border-blue-200'
-						: 'bg-orange-100 text-orange-800 border-orange-200',
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
 			}
 		}
 
@@ -2151,34 +2133,41 @@ const ScholarshipDetail = () => {
 															})
 														)
 
-														// Merge with existing documents, deduplicate by URL
-														const docsMap = new Map<string, any>()
-														selectedDocuments.forEach((doc) => {
-															docsMap.set(doc.url, doc)
+														// Use functional updates to ensure we have latest state
+														setSelectedDocuments((prevDocs) => {
+															const docsMap = new Map<string, any>()
+															// Add existing documents
+															prevDocs.forEach((doc) =>
+																docsMap.set(doc.url, doc)
+															)
+															// Add new documents
+															newDocuments.forEach((doc) =>
+																docsMap.set(doc.url, doc)
+															)
+															return Array.from(docsMap.values())
 														})
-														newDocuments.forEach((doc) => {
-															docsMap.set(doc.url, doc)
-														})
-														const updatedDocs = Array.from(docsMap.values())
-														setSelectedDocuments(updatedDocs)
 
-														// Convert to uploadedFiles format and dedupe
-														const convertedFiles = updatedDocs.map((doc) => ({
-															id: doc.document_id,
-															name: doc.name,
-															url: doc.url,
-															size: doc.size,
-															documentType: doc.documentType,
-															source: doc.source,
-															applicationDocumentId: (doc as any)
-																.applicationDocumentId,
-														}))
-														const uniqueFiles = Array.from(
-															new Map(
-																convertedFiles.map((file) => [file.url, file])
-															).values()
-														)
-														setUploadedFiles(uniqueFiles)
+														setUploadedFiles((prevFiles) => {
+															const filesMap = new Map<string, any>()
+															// Add existing files
+															prevFiles.forEach((file) =>
+																filesMap.set(file.url, file)
+															)
+															// Add new files
+															newDocuments.forEach((doc) => {
+																filesMap.set(doc.url, {
+																	id: doc.document_id,
+																	name: doc.name,
+																	url: doc.url,
+																	size: doc.size,
+																	documentType: doc.documentType,
+																	source: doc.source,
+																	applicationDocumentId: (doc as any)
+																		.applicationDocumentId,
+																})
+															})
+															return Array.from(filesMap.values())
+														})
 
 														showSuccess(
 															t(

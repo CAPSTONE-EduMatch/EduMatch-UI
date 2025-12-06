@@ -45,7 +45,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			applicationStatus?: ApplicationStatus
 			applicationId?: string
 			institutionStatus?: {
-				isActive: boolean
+				status?: boolean
 			}
 		})[]
 	>([])
@@ -54,7 +54,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			applicationStatus?: ApplicationStatus
 			applicationId?: string
 			institutionStatus?: {
-				isActive: boolean
+				status?: boolean
 			}
 		})[]
 	>([])
@@ -63,7 +63,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			applicationStatus?: ApplicationStatus
 			applicationId?: string
 			institutionStatus?: {
-				isActive: boolean
+				status?: boolean
 			}
 		})[]
 	>([])
@@ -98,36 +98,33 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				applicationStatus?: ApplicationStatus
 				applicationId?: string
 				institutionStatus?: {
-					isActive: boolean
+					status?: boolean
 				}
 			})[] = []
 			const scholarshipsData: (Scholarship & {
 				applicationStatus?: ApplicationStatus
 				applicationId?: string
 				institutionStatus?: {
-					isActive: boolean
+					status?: boolean
 				}
 			})[] = []
 			const researchLabsData: (ResearchLab & {
 				applicationStatus?: ApplicationStatus
 				applicationId?: string
 				institutionStatus?: {
-					isActive: boolean
+					status?: boolean
 				}
 			})[] = []
 
 			applications.forEach((app) => {
-				// Convert institution status enum to isActive boolean
-				// APPROVED = active (true), PENDING/REJECTED = not active (false)
-				// The API returns verification_status as 'status' field
-				// Pass both status and isActive so cards can show detailed badges
+				// Convert institution status to Boolean for badge display
+				// From API: Institution.status is Boolean (true = active, false = deactivated)
 				const institutionStatus = {
-					status: app.post.institution.status, // Pass raw status for detailed badges
-					isActive:
-						app.post.institution.status === 'APPROVED' ||
-						app.post.institution.status === true ||
-						app.post.institution.status === 'ACTIVE', // Legacy support
+					status: Boolean(app.post.institution.status),
 				}
+
+				// Get match score from post's matchScore field (calculated by backend)
+				const matchScore = app.post.matchScore || '—'
 
 				// Convert application post to explore format based on post type
 				if (app.post.program) {
@@ -154,7 +151,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 									(1000 * 60 * 60 * 24)
 							)
 						),
-						match: t('defaults.default_match'), // Default match
+						match: matchScore,
 						applicationCount: 0, // Not available in application data
 					}
 
@@ -184,7 +181,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 									(1000 * 60 * 60 * 24)
 							)
 						),
-						match: t('defaults.default_match'), // Default match
+						match: matchScore,
 						applicationCount: 0, // Not available in application data
 					}
 
@@ -214,7 +211,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 									(1000 * 60 * 60 * 24)
 							)
 						),
-						match: t('defaults.default_match'), // Default match
+						match: matchScore,
 						applicationCount: 0, // Not available in application data
 					}
 
@@ -284,7 +281,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			institution?: string
 			applicationStatus?: ApplicationStatus
 			institutionStatus?: {
-				isActive: boolean
+				status?: boolean
 			}
 		},
 	>(

@@ -491,6 +491,7 @@ export function FileUploadManagerWithOCR({
 			processFileWithOCRAndValidation,
 			processingFiles,
 			t,
+			onFilesUploaded,
 		]
 	)
 
@@ -585,9 +586,9 @@ export function FileUploadManagerWithOCR({
 								{file.status === 'completed' && (
 									<CheckCircle className="w-4 h-4 text-green-600" />
 								)}
-								{file.status === 'failed' && (
+								{/* {file.status === 'failed' && (
 									<AlertCircle className="w-4 h-4 text-red-600" />
-								)}
+								)} */}
 							</div>{' '}
 							<div className="flex-1">
 								<p className="text-sm font-medium">{file.file.name}</p>
@@ -640,13 +641,13 @@ export function FileUploadManagerWithOCR({
 						<div className="text-4xl">📁</div>
 						<p className="text-sm text-muted-foreground">
 							{t('file_upload.drag_drop')}{' '}
-							<button
+							{/* <button
 								type="button"
 								onClick={() => fileInputRef.current?.click()}
 								className="text-primary hover:underline"
 							>
 								{t('file_upload.browse')}
-							</button>
+							</button> */}
 						</p>
 						<p className="text-xs text-muted-foreground">
 							{t('file_upload.max_size', { size: maxSize })}

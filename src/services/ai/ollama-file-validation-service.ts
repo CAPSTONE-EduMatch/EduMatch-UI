@@ -1,22 +1,31 @@
-interface OllamaRequest {
+interface MistralRequest {
 	model: string;
-	prompt: string;
-	stream?: boolean;
-	format?: "json";
+	messages: Array<{
+		role: "system" | "user" | "assistant";
+		content: string;
+	}>;
+	temperature?: number;
+	max_tokens?: number;
 }
 
-interface OllamaResponse {
+interface MistralResponse {
+	id: string;
+	object: string;
+	created: number;
 	model: string;
-	created_at: string;
-	response: string;
-	done: boolean;
-	context?: number[];
-	total_duration?: number;
-	load_duration?: number;
-	prompt_eval_count?: number;
-	prompt_eval_duration?: number;
-	eval_count?: number;
-	eval_duration?: number;
+	choices: Array<{
+		index: number;
+		message: {
+			role: string;
+			content: string;
+		};
+		finish_reason: string;
+	}>;
+	usage: {
+		prompt_tokens: number;
+		completion_tokens: number;
+		total_tokens: number;
+	};
 }
 
 export interface FileValidationResult {
@@ -32,17 +41,16 @@ export interface FileValidationResult {
 }
 
 export class OllamaFileValidationService {
-	// CHỈ GỌI API CỦA CHÍNH APP
-	private static readonly API_URL = "/api/ollama/generate";
-	// KHÔNG dùng env ở đây nữa, vì file này chạy trên client
-	// private static readonly API_KEY = process.env.OLLAMA_API_KEY;
-
-	private static readonly API_KEY = process.env.OLLAMA_API_KEY;
+	// Use Mistral AI API instead of Ollama
+	private static readonly API_URL =
+		"https://api.mistral.ai/v1/chat/completions";
+	private static readonly API_KEY =
+		process.env.NEXT_PUBLIC_MISTRAL_OCR_API_KEY;
 
 	private static getValidationPrompt(
 		expectedFileType: string,
 		extractedText: string
-	): string {
+	): { systemMessage: string; userMessage: string } {
 		const fileTypeInstructions = {
 			"application-documents": `You are a STRICT application document validator. Analyze the provided text and determine whether the document is appropriate for inclusion in an application (supporting documents such as CVs, transcripts, certificates, letters) and DOES NOT contain sensitive personal data.
 
@@ -112,15 +120,37 @@ Be conservative:
 			"institution-verification": `You are a STRICT institution verification document expert. Analyze the provided text and determine if it's a valid institution verification document.
 
 A valid institution verification document should contain:
-- Institution name and official details
-- Registration numbers or accreditation information, if applicable
-- Official letterhead, logo, seal, or certification marks
-- Some statement of legal status, authorization, or recognition
-- Contact information of the institution (address, email, phone, or website)
+- The institution’s official name (university, scholarship provider, government agency, research lab, testing lab, accreditation body, or any formal organization)
+- Official identifiers such as:
+  • registration number
+  • certificate/verification/report number
+  • accreditation ID
+  • reference code
+- Official institution markers:
+  • letterhead
+  • logo/emblem
+  • seal/stamp
+  • authorized signature
+- A clear formal statement issued by the institution that performs:
+  • verification
+  • certification
+  • authentication
+  • identification
+  • approval
+  • or any official confirmation
+- Traceable contact information:
+  • address
+  • phone number
+  • email
+  • official website
 
 Be conservative:
-- If the document looks like a general brochure, advertisement, or informal text without formal verification details, treat it as INVALID.
-- If key information about the institution's identity and official status is missing or unclear, treat it as INVALID.
+- Only evaluate based on information explicitly visible in the document — DO NOT infer or assume external institutions or unrelated details.
+- Documents from universities, scholarship bodies, government offices, research labs, testing labs, certification bodies, or other recognized institutions are all acceptable if official elements are present.
+- Treat as INVALID if the document is:
+  • an advertisement, brochure, flyer, or commercial product sheet
+  • missing institutional identity or official verification content
+  • unclear, incomplete, or lacking traceable official markers
 - If you are not clearly sure, you MUST treat it as invalid.`,
 
 			"research-papers": `You are a STRICT research paper validation expert. Analyze the provided text and determine if it is a formal academic research paper (journal article, conference paper, workshop paper, or thesis-like document).
@@ -146,11 +176,12 @@ Be conservative:
 			] || fileTypeInstructions["cv-resume"];
 
 		const snippet =
-			extractedText.length > 3000
-				? extractedText.substring(0, 3000) + "...(truncated)"
+			extractedText.length > 4000
+				? extractedText.substring(0, 4000) + "...(truncated)"
 				: extractedText;
 
-		return `${instruction}
+		return {
+			systemMessage: `${instruction}
 
 You are validating a document of type: "${expectedFileType}".
 
@@ -158,10 +189,6 @@ Use the instructions above to decide whether this document is a valid instance o
 If the document clearly does NOT meet the required criteria, or you are not sure, you MUST treat it as invalid and set:
 "isValid": false
 "action": "reupload"
-
-Here is the document text to analyze (possibly truncated):
-
-${snippet}
 
 Your response MUST be a valid JSON object with this exact structure:
 {
@@ -183,7 +210,11 @@ Field requirements:
   - When the document is invalid, give clear suggestions to help the user re-upload a better file.
   - When the document is valid, "suggestions" may be an empty array.
 
-Respond with ONLY the JSON object. Do NOT include any extra text, explanations, markdown, or code fences.`;
+Respond with ONLY the JSON object. Do NOT include any extra text, explanations, markdown, or code fences.`,
+			userMessage: `Here is the document text to analyze (possibly truncated):
+
+${snippet}`,
+		};
 	}
 
 	/**
@@ -254,13 +285,14 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 				};
 			}
 
-			const prompt = this.getValidationPrompt(
+			const promptResult = this.getValidationPrompt(
 				expectedFileType,
 				extractedText
 			);
 
-			// Log the prompt being sent to Ollama
-			console.log("🤖 OLLAMA VALIDATION PROMPT:", {
+			// Log the prompt being sent to Mistral
+			// eslint-disable-next-line no-console
+			console.log("🤖 MISTRAL VALIDATION PROMPT:", {
 				expectedFileType,
 				fileName,
 				extractedTextLength: extractedText.length,
@@ -269,41 +301,48 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 					(extractedText.length > 500 ? "...(truncated)" : ""),
 			});
 
-			const request: OllamaRequest = {
-				model: "gpt-oss:120b",
-				prompt: prompt,
-				stream: false,
+			const request: MistralRequest = {
+				model: "mistral-large-latest",
+				messages: [
+					{
+						role: "system",
+						content: promptResult.systemMessage,
+					},
+					{
+						role: "user",
+						content: promptResult.userMessage,
+					},
+				],
+				temperature: 0.1,
+				max_tokens: 1000,
 			};
 
 			// Log the complete request
-			console.log("🚀 OLLAMA VALIDATION REQUEST:", {
+			// eslint-disable-next-line no-console
+			console.log("🚀 MISTRAL VALIDATION REQUEST:", {
 				apiUrl: this.API_URL,
 				model: request.model,
-				promptLength: request.prompt.length,
+				messagesLength: request.messages.length,
 			});
 
-			// const headers: Record<string, string> = {
-			// 	"Content-Type": "application/json",
-			// };
+			if (!this.API_KEY) {
+				throw new Error(
+					"Mistral API key not found in environment variables"
+				);
+			}
 
-			// // Add API key if available (for cloud Ollama)
-			// if (this.API_KEY) {
-			// 	headers["Authorization"] = `Bearer ${this.API_KEY}`;
-			// }
-
-			// const response = await fetch(this.API_URL, {
-			// 	method: "POST",
-			// 	headers,
-			// 	body: JSON.stringify(request),
-			// });
 			const response = await fetch(this.API_URL, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(request), // { model, prompt, stream, format }
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${this.API_KEY}`,
+				},
+				body: JSON.stringify(request),
 			});
 
+			// eslint-disable-next-line no-console
 			console.log(
-				"Response from Ollama:",
+				"Response from Mistral:",
 				response.status,
 				response.statusText
 			);
@@ -314,31 +353,36 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 				);
 			}
 
-			const data: OllamaResponse = await response.json();
-			console.log("Data from Ollama:", data);
+			const data: MistralResponse = await response.json();
+			// eslint-disable-next-line no-console
+			console.log("Data from Mistral:", data);
 
-			const content = data.response;
+			const content = data.choices?.[0]?.message?.content;
 
 			if (!content) {
-				throw new Error("No response content from Ollama");
+				throw new Error("No response content from Mistral");
 			}
 
 			// Debug: log the raw content string returned by the model
+			// eslint-disable-next-line no-console
 			console.log(
-				"📨 Ollama validation content length:",
+				"📨 Mistral validation content length:",
 				content?.length ?? 0
 			);
-			console.log("📨 Ollama validation content preview:", content);
+			// eslint-disable-next-line no-console
+			console.log("📨 Mistral validation content preview:", content);
 
 			// Try to parse JSON response
 			let parsed: any = null;
 			try {
 				parsed = JSON.parse(content) as FileValidationResult;
-				console.log("📨 Parsed JSON from Ollama (direct):", parsed);
+				// eslint-disable-next-line no-console
+				console.log("📨 Parsed JSON from Mistral (direct):", parsed);
 			} catch (parseError) {
 				// Try to extract JSON from noisy content
 				parsed = this.extractJsonFromString(content);
-				console.log("📨 Parsed JSON from Ollama (extracted):", parsed);
+				// eslint-disable-next-line no-console
+				console.log("📨 Parsed JSON from Mistral (extracted):", parsed);
 			}
 
 			if (parsed) {
@@ -356,7 +400,8 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 					output: parsed.output || undefined,
 				};
 
-				console.log("✅ OLLAMA VALIDATION RESULT:", {
+				// eslint-disable-next-line no-console
+				console.log("✅ MISTRAL VALIDATION RESULT:", {
 					fileName,
 					expectedFileType,
 					result: validationResult,
@@ -365,11 +410,13 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 				return validationResult;
 			} else {
 				// Could not parse JSON, fallback to text-based heuristic
+				// eslint-disable-next-line no-console
 				console.warn(
-					"⚠️ Could not parse JSON from Ollama content, using text fallback"
+					"⚠️ Could not parse JSON from Mistral content, using text fallback"
 				);
+				// eslint-disable-next-line no-console
 				console.log(
-					"📨 Ollama raw content used for fallback preview:",
+					"📨 Mistral raw content used for fallback preview:",
 					content?.substring(0, 500)
 				);
 
@@ -399,6 +446,7 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 				};
 			}
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error("File validation error:", error);
 
 			// Fallback validation based on simple text analysis
@@ -531,7 +579,11 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 				return {
 					isValid: transcriptMatches >= 2,
 					confidence: Math.min(0.8, transcriptMatches * 0.25),
-					reasoning: `Found ${transcriptMatches} transcript-related keywords. ${transcriptMatches >= 2 ? "Likely an academic transcript." : "May not be a transcript."}`,
+					reasoning: `Found ${transcriptMatches} transcript-related keywords. ${
+						transcriptMatches >= 2
+							? "Likely an academic transcript."
+							: "May not be a transcript."
+					}`,
 					action: transcriptMatches >= 2 ? "accept" : "reupload",
 					suggestions:
 						transcriptMatches < 2
@@ -540,6 +592,83 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 				};
 			}
 
+			case "application-documents": {
+				// Check for sensitive content patterns
+				const sensitivePatterns = [
+					/\b\d{3}-\d{2}-\d{4}\b/, // SSN pattern
+					/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, // Credit card pattern
+					/\bconfidential\b/i,
+					/\bprivate\b/i,
+					/\binternal use only\b/i,
+				];
+
+				const inappropriateWords = [
+					"fuck",
+					"shit",
+					"damn",
+					"hate",
+					"kill",
+					"fraud",
+					"fake",
+					"scam",
+				];
+
+				const hasSensitiveContent = sensitivePatterns.some((pattern) =>
+					pattern.test(extractedText)
+				);
+				const hasInappropriateContent = inappropriateWords.some(
+					(word) => lowerText.includes(word.toLowerCase())
+				);
+
+				const educationalKeywords = [
+					"education",
+					"academic",
+					"school",
+					"university",
+					"college",
+					"student",
+					"application",
+					"program",
+					"course",
+					"study",
+				];
+
+				const educationalMatches = educationalKeywords.filter(
+					(keyword) =>
+						lowerText.includes(keyword) ||
+						lowerFileName.includes(keyword)
+				).length;
+
+				if (hasSensitiveContent || hasInappropriateContent) {
+					return {
+						isValid: false,
+						confidence: 0.9,
+						reasoning:
+							"Document contains potentially sensitive or inappropriate content",
+						action: "reupload",
+						suggestions: [
+							"Please remove sensitive information and upload appropriate educational documents",
+						],
+					};
+				}
+
+				return {
+					isValid: educationalMatches >= 1,
+					confidence: Math.min(0.8, educationalMatches * 0.3),
+					reasoning: `Found ${educationalMatches} educational keywords. ${
+						educationalMatches >= 1
+							? "Appears appropriate for educational applications."
+							: "Content may not be suitable for educational applications."
+					}`,
+					action: educationalMatches >= 1 ? "accept" : "reupload",
+					suggestions:
+						educationalMatches < 1
+							? [
+									"Please upload content relevant to educational applications",
+								]
+							: [],
+				};
+			}
 			default:
 				return {
 					isValid: true,
@@ -559,6 +688,7 @@ Respond with ONLY the JSON object. Do NOT include any extra text, explanations, 
 			transcripts: "Academic Transcript",
 			"institution-verification": "Institution Verification Document",
 			"research-papers": "Research Paper",
+			"application-documents": "Application Document",
 		};
 		return displayNames[fileType] || fileType;
 	}

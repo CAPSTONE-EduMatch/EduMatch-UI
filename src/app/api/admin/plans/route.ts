@@ -3,6 +3,10 @@ import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 
+// Force dynamic rendering - no caching
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
 	try {
 		const session = await auth.api.getSession({

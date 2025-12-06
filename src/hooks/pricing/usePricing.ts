@@ -18,7 +18,18 @@ export function usePricing(): UsePricingReturn {
 			setLoading(true);
 			setError(null);
 
-			const response = await fetch("/api/pricing/applicant");
+			// Add timestamp to bust browser cache and force fresh data
+			const timestamp = new Date().getTime();
+			const response = await fetch(
+				`/api/pricing/applicant?t=${timestamp}`,
+				{
+					cache: "no-store",
+					headers: {
+						"Cache-Control": "no-cache, no-store, must-revalidate",
+						Pragma: "no-cache",
+					},
+				}
+			);
 			const data = await response.json();
 
 			if (!response.ok || !data.success) {
@@ -31,10 +42,24 @@ export function usePricing(): UsePricingReturn {
 				popular: plan.hierarchy === 1,
 			}));
 
+			// eslint-disable-next-line no-console
+			console.log(
+				"[USE PRICING] ✅ Fetched plans:",
+				plansWithPopular.map((p: Plan) => ({
+					name: p.name,
+					month_price: p.month_price,
+					hyierarchy: p.hierarchy,
+				}))
+			);
+
 			setPlans(plansWithPopular);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Unknown error");
-			console.error("Error fetching pricing plans:", err);
+			// eslint-disable-next-line no-console
+			console.error(
+				"[USE PRICING] ❌ Error fetching pricing plans:",
+				err
+			);
 		} finally {
 			setLoading(false);
 		}

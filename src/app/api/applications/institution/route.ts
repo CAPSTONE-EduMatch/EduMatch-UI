@@ -179,6 +179,22 @@ export async function GET(request: NextRequest) {
 								name: true,
 							},
 						},
+						subscriptions: {
+							where: {
+								status: "ACTIVE",
+							},
+							include: {
+								plan: {
+									select: {
+										name: true,
+									},
+								},
+							},
+							orderBy: {
+								subscribe_at: "desc",
+							},
+							take: 1,
+						},
 					},
 				},
 				post: {
@@ -297,6 +313,9 @@ export async function GET(request: NextRequest) {
 				postType: postType, // Include post type for navigation
 				applicantId: app.applicant.applicant_id,
 				userId: app.applicant.user.id, // Include user ID for thread matching
+				subscriptionTier:
+					app.applicant.subscriptions?.[0]?.plan?.name?.toLowerCase() ||
+					"free", // Include subscription tier from active subscription
 				// Additional snapshot data for detailed view
 				snapshotData: snapshot
 					? {

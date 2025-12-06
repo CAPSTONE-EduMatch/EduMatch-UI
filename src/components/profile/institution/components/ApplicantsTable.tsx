@@ -16,6 +16,7 @@ export interface Applicant {
 	userId: string // User ID for thread matching
 	gpa?: number | string // GPA for suggested applicants
 	postType?: 'Program' | 'Scholarship' | 'Research Lab' // Post type for navigation
+	subscriptionTier?: string // Subscription tier (free, standard, premium)
 }
 
 interface ApplicantsTableProps {

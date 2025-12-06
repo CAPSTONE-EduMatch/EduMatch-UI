@@ -19,6 +19,7 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { applicationService } from '@/services/application/application-service'
 import { ExploreApiService } from '@/services/explore/explore-api'
 import { ApplicationLimitError } from '@/types/api/application-errors'
@@ -40,6 +41,7 @@ const ScholarshipDetail = () => {
 	const searchParams = useSearchParams()
 	const params = useParams()
 	const { isAuthenticated } = useAuthCheck()
+	const { currentPlan } = useSubscription()
 	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Check if we're viewing an application (from URL query param)
@@ -1648,7 +1650,7 @@ const ScholarshipDetail = () => {
 
 							<div className="flex items-center gap-3 mb-4">
 								{currentScholarship.institution && (
-									<div className="mt-4">
+									<div className="">
 										<Button
 											onClick={() => {
 												const institutionId =
@@ -1666,18 +1668,19 @@ const ScholarshipDetail = () => {
 										</Button>
 									</div>
 								)}
-								{currentScholarship?.institution?.userId && (
-									<Button
-										onClick={() => {
-											const contactUrl = `/messages?contact=${(currentScholarship.institution as any).userId}`
-											router.push(contactUrl)
-										}}
-										variant="outline"
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										{t('scholarship_detail.header.contact_button')}
-									</Button>
-								)}
+								{currentScholarship?.institution?.userId &&
+									currentPlan !== 'free' && (
+										<Button
+											onClick={() => {
+												const contactUrl = `/messages?contact=${(currentScholarship.institution as any).userId}`
+												router.push(contactUrl)
+											}}
+											variant="outline"
+											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										>
+											{t('scholarship_detail.header.contact_button')}
+										</Button>
+									)}
 								<motion.button
 									onClick={(e) => {
 										e.preventDefault()

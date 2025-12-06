@@ -142,6 +142,8 @@ const InstitutionProgramDetail = () => {
 				userId: app.userId || app.user_id,
 				gpa: app.snapshotData?.gpa || app.gpa || undefined,
 				postType: app.postType || 'Program', // Preserve postType from API
+				subscriptionTier:
+					app.subscriptionTier || app.subscription_tier || 'free',
 			}
 		})
 	}
@@ -170,9 +172,12 @@ const InstitutionProgramDetail = () => {
 			) {
 				const transformed = transformApplications(applications)
 				setTransformedApplicants(transformed)
-				// For suggested applicants, filter by high matching score (80+)
+				// For suggested applicants, filter by high matching score (80+) AND Premium subscription tier
 				const suggested = transformed
-					.filter((app) => app.matchingScore >= 80)
+					.filter(
+						(app) =>
+							app.matchingScore >= 80 && app.subscriptionTier === 'premium'
+					)
 					.sort((a, b) => b.matchingScore - a.matchingScore)
 					.slice(0, 10)
 				setSuggestedApplicants(suggested)

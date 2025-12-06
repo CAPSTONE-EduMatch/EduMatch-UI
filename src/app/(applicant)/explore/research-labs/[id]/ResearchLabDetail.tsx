@@ -17,6 +17,7 @@ import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useResearchLabDetail } from '@/hooks/explore/useResearchLabDetail'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { applicationService } from '@/services/application/application-service'
 import { ApplicationLimitError } from '@/types/api/application-errors'
 import { formatUTCDateToLocal } from '@/utils/date'
@@ -35,6 +36,7 @@ const ResearchLabDetail = () => {
 	const searchParams = useSearchParams()
 	const params = useParams()
 	const { isAuthenticated } = useAuthCheck()
+	const { currentPlan } = useSubscription()
 	const [showAuthModal, setShowAuthModal] = useState(false)
 	const t = useTranslations()
 
@@ -1644,7 +1646,7 @@ const ResearchLabDetail = () => {
 										{t('research_lab_detail.header.institution_detail_button')}
 									</Button>
 								)}
-								{researchLab?.institution?.userId && (
+								{researchLab?.institution?.userId && currentPlan !== 'free' && (
 									<Button
 										onClick={() => {
 											const contactUrl = `/messages?contact=${(researchLab.institution as any).userId}`

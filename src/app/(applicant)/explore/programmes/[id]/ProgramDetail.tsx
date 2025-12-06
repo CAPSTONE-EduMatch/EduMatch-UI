@@ -19,6 +19,7 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { useApiWrapper } from '@/services/api/api-wrapper'
 import { applicationService } from '@/services/application/application-service'
 import { ApplicationLimitError } from '@/types/api/application-errors'
@@ -168,6 +169,7 @@ const ProgramDetail = () => {
 	const { showSuccess, showError } = useNotification()
 	const apiWrapper = useApiWrapper()
 	const { isAuthenticated } = useAuthCheck()
+	const { currentPlan } = useSubscription()
 	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Utility function to get institution status
@@ -1992,18 +1994,19 @@ const ProgramDetail = () => {
 									{t('program_detail.header.institution_detail_button')}
 								</Button>
 							)}
-							{currentProgram?.institution?.userId && (
-								<Button
-									onClick={() => {
-										const contactUrl = `/messages?contact=${currentProgram.institution.userId}`
-										router.push(contactUrl)
-									}}
-									variant="outline"
-									className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-								>
-									{t('program_detail.header.contact_button')}
-								</Button>
-							)}
+							{currentProgram?.institution?.userId &&
+								currentPlan !== 'free' && (
+									<Button
+										onClick={() => {
+											const contactUrl = `/messages?contact=${currentProgram.institution.userId}`
+											router.push(contactUrl)
+										}}
+										variant="outline"
+										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+									>
+										{t('program_detail.header.contact_button')}
+									</Button>
+								)}
 
 							<motion.button
 								onClick={(e) => {

@@ -29,14 +29,24 @@ export default function AdminSettingsPage() {
 				// Get current session
 				const session = await authClient.getSession()
 				if (!session?.data?.user?.id) {
+					// eslint-disable-next-line no-console
+					console.log('No session found')
 					setLoadingProfile(false)
 					return
 				}
 
+				// eslint-disable-next-line no-console
+				console.log('Fetching profile for user:', session.data.user.id)
 				const response = await fetch(`/api/profile/${session.data.user.id}`)
+
 				if (response.ok) {
 					const data = await response.json()
+					// eslint-disable-next-line no-console
+					console.log('Profile data received:', data)
 					setProfile(data)
+				} else {
+					// eslint-disable-next-line no-console
+					console.error('Profile fetch failed with status:', response.status)
 				}
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -48,6 +58,9 @@ export default function AdminSettingsPage() {
 
 		if (isAdmin && !isLoading) {
 			fetchProfile()
+		} else if (!isLoading && !isAdmin) {
+			// If not admin, stop loading immediately
+			setLoadingProfile(false)
 		}
 	}, [isAdmin, isLoading])
 
@@ -92,9 +105,9 @@ export default function AdminSettingsPage() {
 						</p>
 					</CardHeader>
 					<CardContent>
-						{profile ? (
+						{!loadingProfile ? (
 							<PasswordChangeSection
-								profile={profile}
+								profile={profile || {}}
 								showPassword={showPassword}
 								setShowPassword={setShowPassword}
 							/>

@@ -65,16 +65,16 @@ const PlanCard = ({
 		>
 			<Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 bg-white rounded-xl overflow-hidden">
 				<CardHeader className="pb-6 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
-					<div className="flex items-center justify-between">
+					<div className="flex flex-col items-center justify-between gap-3">
 						<div className="flex items-center gap-4">
-							<div className="p-3 bg-gradient-to-br from-[#126E64] to-[#0E5B52] rounded-xl shadow-sm">
+							{/* <div className="p-3 bg-gradient-to-br from-[#126E64] to-[#0E5B52] rounded-xl shadow-sm">
 								<Package className="w-6 h-6 text-white" />
-							</div>
+							</div> */}
 							<div className="space-y-1">
-								<CardTitle className="text-xl font-bold text-gray-900">
+								<CardTitle className="text-3xl text-center font-bold text-gray-900">
 									{plan.name}
 								</CardTitle>
-								<div className="flex items-center gap-2">
+								<div className="flex items-center justify-center gap-2">
 									<span
 										className={`px-2 py-1 text-xs font-medium rounded-full ${
 											plan.type === PLAN_TYPE.APPLICANT
@@ -95,17 +95,18 @@ const PlanCard = ({
 									</span>
 								</div>
 							</div>
+							{/* <div className="bg-amber-700 p-10 w-full"></div> */}
 						</div>
-						<div className="flex items-center gap-2">
+						<div className="flex items-center justify-center gap-2 w-full">
 							{isEditing ? (
 								<>
 									<Button
 										onClick={() => onSave(plan.plan_id)}
 										size="sm"
 										disabled={isSaving}
-										className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm border-0 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md disabled:opacity-50"
+										className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm border-0 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md disabled:opacity-50"
 									>
-										<Save className="w-4 h-4 mr-2" />
+										{/* <Save className="w-4 h-4 mr-2" /> */}
 										{isSaving ? 'Saving...' : 'Save Changes'}
 									</Button>
 									<Button
@@ -113,9 +114,9 @@ const PlanCard = ({
 										variant="outline"
 										size="sm"
 										disabled={isSaving}
-										className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+										className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-4 py-2 rounded-lg font-medium transition-all duration-200"
 									>
-										<X className="w-4 h-4 mr-2" />
+										{/* <X className="w-4 h-4 mr-2" /> */}
 										Cancel
 									</Button>
 								</>
@@ -124,9 +125,9 @@ const PlanCard = ({
 									onClick={() => onEdit(plan)}
 									variant="outline"
 									size="sm"
-									className="border-[#126E64] text-[#126E64] bg-white hover:bg-[#126E64] hover:text-[#126E64] hover:border-[#126E64] px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
+									className="w-full border-[#126E64] text-[#126E64] bg-white hover:bg-[#126E64] hover:text-[#126E64] hover:border-[#126E64] px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
 								>
-									<Edit className="w-4 h-4 mr-2" />
+									{/* <Edit className="w-4 h-4 mr-2" /> */}
 									Edit Pricing
 								</Button>
 							)}

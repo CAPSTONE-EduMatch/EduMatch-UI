@@ -37,6 +37,7 @@ export interface Application {
 		endDate?: string;
 		location?: string;
 		otherInfo?: string;
+		matchScore?: string; // Match percentage (e.g., "85%" or "—" for unauthorized users)
 		institution: {
 			name: string;
 			logo?: string | null;

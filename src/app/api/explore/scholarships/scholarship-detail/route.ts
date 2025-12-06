@@ -165,9 +165,8 @@ export async function GET(request: NextRequest) {
 					})
 				: "",
 			daysLeft,
-			amount: scholarshipData?.grant
-				? `$${formatCurrency(scholarshipData.grant)}`
-				: "N/A",
+			amount: scholarshipData?.grant || "0",
+
 			awardAmount: scholarshipData?.award_amount
 				? `$${formatCurrency(scholarshipData.award_amount)}`
 				: "",

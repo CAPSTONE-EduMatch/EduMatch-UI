@@ -136,7 +136,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 		const verificationStatus = profile.verification_status || 'PENDING'
 
 		// Allow access to profile page even if not approved so they can update
-		const isProfilePage = pathname.startsWith('/institution/dashboard/profile')
+		const isProfilePage = pathname?.startsWith('/institution/dashboard/profile')
 
 		// Show verification screen for all non-approved statuses (PENDING, REJECTED, REQUIRE_UPDATE, UPDATED, etc.)
 		if (verificationStatus !== 'APPROVED' && !isProfilePage) {

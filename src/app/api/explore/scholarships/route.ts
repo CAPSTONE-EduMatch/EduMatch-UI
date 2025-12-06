@@ -256,9 +256,7 @@ export async function GET(request: NextRequest) {
 						post.institution?.country || post.location || "Unknown",
 					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at
 					daysLeft: calculateDaysLeft(deadlineDate.toISOString()), // This will be recalculated on frontend
-					amount: postScholarship.grant
-						? `$${formatCurrency(postScholarship.grant)}`
-						: "Contact for details",
+					amount: postScholarship.grant || "0",
 					match: "0%", // Will be calculated later based on similarity
 					applicationCount, // Add application count for popularity sorting
 				};

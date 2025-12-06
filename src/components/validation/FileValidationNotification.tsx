@@ -55,9 +55,7 @@ export const FileValidationNotification: React.FC<
 
 	// Invalid or low confidence - show concise message
 	const confidencePercent = Math.round((validation.confidence || 0) * 100)
-	const shortMessage = validation.isValid
-		? `Low confidence (${confidencePercent}%). Please review.`
-		: `Invalid file. Please re-upload.`
+	const shortMessage = validation.reasoning || 'Invalid file. Please re-upload.'
 
 	return (
 		<div className={`border rounded-lg p-3 bg-red-50 ${className}`}>

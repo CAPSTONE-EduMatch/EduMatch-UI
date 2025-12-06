@@ -15,29 +15,20 @@ export class EmbeddingService {
 	private static readonly API_URL =
 		"https://notlongfen-embeddingmodel.hf.space/api/embeddings";
 	private static readonly TIMEOUT_MS = 30000; // 30 seconds timeout
-	private static readonly USE_MOCK_FALLBACK = true; // Enable mock fallback
 
 	static async generateEmbedding(text: string): Promise<number[] | null> {
-		// Try real API first
-		if (!this.USE_MOCK_FALLBACK) {
-			return this.generateRealEmbedding(text);
-		}
-
-		// Try real API with fallback to mock
 		try {
-			console.log("🌐 Attempting real embedding API...");
-			const realEmbedding = await this.generateRealEmbedding(text);
-			if (realEmbedding) {
+			const embedding = await this.generateRealEmbedding(text);
+			if (embedding) {
 				console.log("✅ Real embedding API succeeded");
-				return realEmbedding;
+				return embedding;
 			}
 		} catch (error) {
-			console.warn("⚠️ Real embedding API failed, using mock:", error);
+			console.error("❌ Real embedding API failed:", error);
 		}
 
-		// Fallback to mock embedding
-		console.log("🎭 Using mock embedding as fallback");
-		return this.generateMockEmbedding(text);
+		// Return null if API fails - no mock fallback
+		return null;
 	}
 
 	private static async generateRealEmbedding(
@@ -123,40 +114,6 @@ export class EmbeddingService {
 			console.error("Error generating real embedding:", error);
 			throw error;
 		}
-	}
-
-	private static generateMockEmbedding(text: string): number[] {
-		console.log(
-			"🎭 Generating mock embedding for text length:",
-			text.length
-		);
-
-		// Generate a consistent mock embedding based on text content
-		// This ensures the same text always gets the same embedding
-		let seed = 0;
-		for (let i = 0; i < text.length; i++) {
-			seed += text.charCodeAt(i);
-		}
-
-		// Use seeded random for consistent results
-		const seededRandom = (seed: number) => {
-			const x = Math.sin(seed) * 10000;
-			return x - Math.floor(x);
-		};
-
-		// Generate 384 dimensions (standard for all-MiniLM-L6-v2)
-		const dimensions = 384;
-		const mockEmbedding: number[] = [];
-
-		for (let i = 0; i < dimensions; i++) {
-			// Use seeded random to generate values between -1 and 1
-			mockEmbedding.push(seededRandom(seed + i) * 2 - 1);
-		}
-
-		console.log(
-			`✅ Generated consistent mock embedding with ${mockEmbedding.length} dimensions`
-		);
-		return mockEmbedding;
 	}
 
 	static formatScholarshipDataForEmbedding(formData: any): string {
@@ -250,24 +207,18 @@ export class EmbeddingService {
 	static formatApplicantDataForEmbedding(formData: any): string {
 		const parts: string[] = [];
 
-		// Interest subdisciplines - key field for matching
+		// Subdiscipline - normalize to match program format
 		if (formData.interests && formData.interests.length > 0) {
-			parts.push(
-				`Interest Subdisciplines: ${formData.interests.join(", ")}`
-			);
+			parts.push(`Subdiscipline: ${formData.interests.join(", ")}`);
 		}
 
-		// Favorite countries - key field for matching
-		if (
-			formData.favoriteCountries &&
-			formData.favoriteCountries.length > 0
-		) {
-			parts.push(
-				`Favorite Countries: ${formData.favoriteCountries.join(", ")}`
-			);
+		// GPA Requirement - normalize to match program format
+		if (formData.gpa || formData.scoreValue) {
+			const score = formData.gpa || formData.scoreValue;
+			parts.push(`GPA Requirement: ${score}`);
 		}
 
-		// Foreign language skills - key field for matching
+		// Language Requirements - normalize to match program format
 		if (
 			formData.hasForeignLanguage === "yes" &&
 			formData.languages &&
@@ -281,17 +232,19 @@ export class EmbeddingService {
 				.filter((lang: string) => lang.trim() !== "  :")
 				.join(", ");
 			if (languageSkills) {
-				parts.push(`Foreign Languages: ${languageSkills}`);
+				parts.push(`Language Requirements: ${languageSkills}`);
 			}
 		}
 
-		// GPA - key field for matching
-		if (formData.gpa || formData.scoreValue) {
-			const score = formData.gpa || formData.scoreValue;
-			parts.push(`GPA: ${score}`);
+		// Country - normalize to match program format
+		if (
+			formData.favoriteCountries &&
+			formData.favoriteCountries.length > 0
+		) {
+			parts.push(`Country: ${formData.favoriteCountries.join(", ")}`);
 		}
 
-		// Level (degree level) - key field for matching
+		// Degree Level - additional context for matching
 		if (formData.degree) {
 			parts.push(`Level: ${formData.degree}`);
 		}

@@ -39,12 +39,16 @@ const replyToSupportRequest = async ({
 	id: string
 	message: string
 }) => {
-	const response = await fetch(`/api/admin/support/${id}/reply`, {
-		method: 'POST',
+	const response = await fetch(`/api/admin/support`, {
+		method: 'PATCH',
 		headers: {
 			'Content-Type': 'application/json',
 		},
-		body: JSON.stringify({ message }),
+		body: JSON.stringify({
+			supportId: id,
+			reply: message,
+			action: 'reply',
+		}),
 	})
 
 	if (!response.ok) {

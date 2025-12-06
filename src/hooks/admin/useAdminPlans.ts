@@ -103,8 +103,20 @@ export function useAdminPlans() {
 	>({
 		mutationFn: updatePlan,
 		onSuccess: () => {
+			// eslint-disable-next-line no-console
+			console.log(
+				"[USE ADMIN PLANS] ✅ Mutation successful, invalidating cache..."
+			);
 			// Invalidate and refetch plans after successful update
 			queryClient.invalidateQueries({ queryKey: ["admin", "plans"] });
+			// Also invalidate pricing endpoints that might be cached
+			queryClient.invalidateQueries({ queryKey: ["pricing"] });
+			// eslint-disable-next-line no-console
+			console.log("[USE ADMIN PLANS] Cache invalidated");
+		},
+		onError: (error) => {
+			// eslint-disable-next-line no-console
+			console.error("[USE ADMIN PLANS] ❌ Mutation failed:", error);
 		},
 	});
 

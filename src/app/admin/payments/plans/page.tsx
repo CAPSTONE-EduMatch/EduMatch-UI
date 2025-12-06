@@ -290,20 +290,35 @@ export default function PlansPage() {
 		if (!editData) return
 
 		try {
-			// Convert dollars to cents for storage
-			await updatePlan({
+			const updatePayload = {
 				plan_id: planId,
 				month_price: dollarsToCents(editData.month_price),
 				year_price: editData.year_price
 					? dollarsToCents(editData.year_price)
 					: undefined,
 				priceId: editData.priceId || undefined,
-			})
+			}
 
+			// eslint-disable-next-line no-console
+			console.log('[ADMIN PLANS UI] Saving plan update:', updatePayload)
+
+			// Convert dollars to cents for storage
+			const result = await updatePlan(updatePayload)
+
+			// eslint-disable-next-line no-console
+			console.log('[ADMIN PLANS UI] ✅ Update successful:', result)
 			toast.success('Plan updated successfully')
+
 			setEditingPlan(null)
 			setEditData(null)
+
+			// Force refetch to ensure UI shows latest data
+			await refetch()
+			// eslint-disable-next-line no-console
+			console.log('[ADMIN PLANS UI] Data refetched')
 		} catch (err) {
+			// eslint-disable-next-line no-console
+			console.error('[ADMIN PLANS UI] ❌ Update failed:', err)
 			const errorMessage =
 				err instanceof Error ? err.message : 'Failed to update plan'
 			toast.error(errorMessage)

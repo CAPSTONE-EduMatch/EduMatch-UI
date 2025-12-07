@@ -126,10 +126,7 @@ export function ProgramCard({
 
 				<div className="">
 					<Image
-						src={
-							program.logo ||
-							'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png'
-						}
+						src={program.logo || ''}
 						alt={program.university}
 						width={140}
 						height={140}

@@ -132,15 +132,16 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					const program: Program = {
 						id: app.post.id,
 						title: app.post.title,
-						description: app.post.otherInfo || t('defaults.no_description'),
+						description: app.post.description || t('defaults.no_description'),
 						university: app.post.institution.name,
 						logo: app.post.institution.logo || '',
-						field: t('defaults.academic_program'), // Default field
+						field: app.post.subdisciplines?.[0]?.name || 'Not have field', // Use subdiscipline name from API
 						country: app.post.institution.country || '',
 						price: app.post.program.tuition_fee
 							? `$${app.post.program.tuition_fee}`
 							: t('defaults.not_specified'),
-						funding: t('defaults.funding_available'), // Default
+						funding:
+							app.post.program.scholarship_info || t('defaults.not_specified'),
 						attendance: app.post.program.attendance,
 						date: app.post.endDate || app.post.startDate,
 						daysLeft: Math.max(
@@ -166,7 +167,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					const scholarship: Scholarship = {
 						id: app.post.id,
 						title: app.post.title,
-						description: app.post.scholarship.description,
+						description: app.post.description || t('defaults.no_description'),
 						provider: app.post.institution.name,
 						university: app.post.institution.name,
 						essayRequired: app.post.scholarship.essay_required ? 'Yes' : 'No',
@@ -196,9 +197,9 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 					const researchLab: ResearchLab = {
 						id: app.post.id,
 						title: app.post.title,
-						description: app.post.otherInfo || t('defaults.no_description'),
+						description: app.post.description || t('defaults.no_description'),
 						professor: t('defaults.professor'), // Default
-						field: t('defaults.research'), // Default field
+						field: app.post.subdisciplines?.[0]?.name || 'Not have field', // Default field
 						country: app.post.institution.country || '',
 						position: app.post.job.job_type,
 						institution: app.post.institution.name,

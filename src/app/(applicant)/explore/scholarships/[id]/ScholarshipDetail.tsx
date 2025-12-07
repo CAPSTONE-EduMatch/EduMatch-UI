@@ -1309,50 +1309,6 @@ const ScholarshipDetail = () => {
 								{t('scholarship_detail.eligibility_programmes.description')}
 							</p>
 
-							{/* Debug Panel */}
-							{process.env.NODE_ENV === 'development' && (
-								<div className="bg-gray-100 p-4 rounded-lg mb-4">
-									<h4 className="font-bold text-sm mb-2">🐛 Debug Info:</h4>
-									<div className="text-xs space-y-1">
-										<p>Main Loading: {loading ? 'Yes' : 'No'}</p>
-										<p>
-											Eligibility Loading:{' '}
-											{eligibilityProgramsLoading ? 'Yes' : 'No'}
-										</p>
-										<p>Scholarship ID: {currentScholarship?.id || 'None'}</p>
-										<p>Programs Found: {eligibilityPrograms.length}</p>
-										<p>Current Page: {eligibilityProgramsPage}</p>
-										<p>Total Pages: {eligibilityProgramsTotalPages}</p>
-										<p>API Endpoint: /api/explore/programs</p>
-										<button
-											onClick={async () => {
-												setEligibilityProgramsLoading(true)
-												try {
-													const filters: ExploreFilters = {
-														page: 1,
-														limit: eligibilityProgramsPerPage,
-													}
-													const response =
-														await ExploreApiService.getPrograms(filters)
-													if (response.data) {
-														setEligibilityPrograms(response.data)
-														setEligibilityProgramsTotalPages(
-															response.meta?.totalPages || 1
-														)
-													}
-												} catch (error) {
-												} finally {
-													setEligibilityProgramsLoading(false)
-												}
-											}}
-											className="bg-blue-500 text-white px-2 py-1 rounded text-xs mt-2"
-										>
-											Test Fetch
-										</button>
-									</div>
-								</div>
-							)}
-
 							{eligibilityProgramsLoading ? (
 								<div className="flex justify-center py-8">
 									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

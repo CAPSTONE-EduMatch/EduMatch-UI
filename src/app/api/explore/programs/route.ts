@@ -291,18 +291,17 @@ export async function GET(request: NextRequest) {
 					applicationCountMap.get(post.post_id) || 0;
 
 				// Get field name from post subdisciplines or fallback to degree level
-				let fieldName = "General Studies";
+				let fieldName = "Not have field";
 
 				// Try to get field name from post subdisciplines first
 				const postSubdisciplines =
 					postSubdisciplineMap.get(post.post_id) || [];
 
 				if (postSubdisciplines.length > 0) {
-					const firstSub = postSubdisciplines[0];
-					fieldName = `${firstSub.disciplineName} - ${firstSub.name}`;
+					fieldName = postSubdisciplines[0].name;
 				} else {
 					// Fallback to using degree level as field name
-					fieldName = post.degree_level || "General Studies";
+					fieldName = "Not have field";
 				}
 
 				// Use end_date as deadline, fallback to start_date + 90 days if not available

@@ -33,11 +33,15 @@ export interface Application {
 	post: {
 		id: string;
 		title: string;
+		description?: string;
 		startDate: string;
 		endDate?: string;
 		location?: string;
 		otherInfo?: string;
 		matchScore?: string; // Match percentage (e.g., "85%" or "—" for unauthorized users)
+		subdisciplines?: Array<{
+			name: string;
+		}>;
 		institution: {
 			name: string;
 			logo?: string | null;
@@ -57,6 +61,7 @@ export interface Application {
 			tuition_fee?: number;
 			fee_description?: string;
 			scholarship_info?: string;
+			field?: string;
 		};
 		scholarship?: {
 			post_id: string;

@@ -183,6 +183,15 @@ export async function GET(request: NextRequest) {
 							programPost: true,
 							scholarshipPost: true,
 							jobPost: true,
+							subdisciplines: {
+								include: {
+									subdiscipline: {
+										select: {
+											name: true,
+										},
+									},
+								},
+							},
 						},
 					},
 					details: true,
@@ -220,11 +229,16 @@ export async function GET(request: NextRequest) {
 			post: {
 				id: app.post.post_id,
 				title: app.post.title,
+				description: app.post.description || undefined,
 				startDate: app.post.start_date.toISOString(),
 				endDate: app.post.end_date?.toISOString(),
 				location: app.post.location || undefined,
 				otherInfo: app.post.other_info || undefined,
 				matchScore: matchScores[app.post_id] || "—",
+				subdisciplines:
+					app.post.subdisciplines?.map((sub: any) => ({
+						name: sub.subdiscipline.name,
+					})) || [],
 				institution: {
 					name: app.post.institution.name,
 					logo: app.post.institution.logo,

@@ -136,15 +136,6 @@ export default function AdminUserManagement() {
 							User Management
 						</h1>
 					</div>
-					{activeTab === 'admins' && (
-						<Button
-							onClick={() => setIsCreateModalOpen(true)}
-							className="bg-[#126E64] hover:bg-[#0f5a52] text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-200 flex items-center gap-2"
-						>
-							<Plus className="h-5 w-5" />
-							Add Admin
-						</Button>
-					)}
 				</div>
 
 				{/* Page Content */}
@@ -179,6 +170,7 @@ export default function AdminUserManagement() {
 						</div>
 
 						{/* Table Content */}
+
 						<Card className="bg-transparent border-0 shadow-none">
 							<CardContent className="p-0">
 								{activeTab === 'applicants' ? (
@@ -195,6 +187,7 @@ export default function AdminUserManagement() {
 									<UserManagementTable
 										userType="admin"
 										onViewDetails={handleViewDetails}
+										onAddAdmin={() => setIsCreateModalOpen(true)}
 									/>
 								)}
 							</CardContent>
@@ -329,7 +322,7 @@ export default function AdminUserManagement() {
 							<Button
 								type="button"
 								onClick={() => setIsCreateModalOpen(false)}
-								className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border-0"
+								className="flex-1 bg-gray-400 hover:bg-gray-500 text-white border-0"
 								disabled={isLoading}
 							>
 								Cancel

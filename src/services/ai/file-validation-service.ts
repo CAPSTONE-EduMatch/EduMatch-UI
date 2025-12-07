@@ -259,9 +259,6 @@ A valid application document should be:
 INVALID content includes (but not limited to):
 - Personal sensitive information: Social Security Numbers, detailed financial information, medical records, personal identification numbers
 - Inappropriate content: Offensive language, discriminatory remarks, personal attacks, political propaganda
-- Confidential information: Private communications, internal company documents, legal documents not meant for applications
-- Fake or fraudulent information: Obviously fabricated documents, falsified credentials, misleading information
-- Irrelevant content: Marketing materials, advertisements, random text unrelated to education
 - Harmful content: Instructions for illegal activities, harmful advice, malicious content
 
 Be strict about content safety:

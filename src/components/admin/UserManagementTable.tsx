@@ -4,17 +4,19 @@ import { SearchAndFilter } from '@/components/profile/institution/components/Sea
 import { Button, Card, CardContent } from '@/components/ui'
 import { useAdminUserManagement } from '@/hooks/admin/useAdminUserManagement'
 import { motion } from 'framer-motion'
-import { Eye } from 'lucide-react'
+import { Eye, Plus } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 interface UserManagementTableProps {
 	userType: 'applicant' | 'institution' | 'admin'
 	onViewDetails: (userId: string) => void
+	onAddAdmin?: () => void
 }
 
 const UserManagementTable = memo(function UserManagementTable({
 	userType,
 	onViewDetails,
+	onAddAdmin,
 }: UserManagementTableProps) {
 	const {
 		users,
@@ -172,7 +174,6 @@ const UserManagementTable = memo(function UserManagementTable({
 					{userType}s {!loading && `(${total} total)`}
 				</h2>
 			</div>
-
 			{/* Search and Filters */}
 			<SearchAndFilter
 				searchQuery={searchInput}
@@ -211,7 +212,18 @@ const UserManagementTable = memo(function UserManagementTable({
 					{ value: 'email', label: 'Email' },
 				]}
 			/>
-
+			{/* Add Admin Button */}
+			{userType === 'admin' && onAddAdmin && (
+				<div className="mb-4 flex justify-end">
+					<Button
+						onClick={onAddAdmin}
+						className="bg-[#126E64] hover:bg-[#0f5a52] text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-200 flex items-center gap-2"
+					>
+						<Plus className="h-5 w-5" />
+						Add Admin
+					</Button>
+				</div>
+			)}{' '}
 			{/* Table with horizontal scroll */}
 			<Card className="bg-white rounded-[24px] shadow-xl overflow-hidden border-0">
 				<CardContent className="p-0">
@@ -337,7 +349,7 @@ const UserManagementTable = memo(function UserManagementTable({
 													variant="secondary"
 													size="sm"
 													onClick={() => onViewDetails(user.id)}
-													className="text-[#126E64] hover:bg-[#126E64] hover:text-white text-sm px-2.5 py-1.5 h-auto flex items-center"
+													className="text-[#126E64] hover:bg-[#126E64] hover:text-black text-sm px-2.5 py-1.5 h-auto flex items-center"
 												>
 													<Eye className="w-3.5 h-3.5 mr-1" />
 													<span>Details</span>
@@ -357,7 +369,6 @@ const UserManagementTable = memo(function UserManagementTable({
 					</div>
 				</CardContent>
 			</Card>
-
 			{/* Pagination */}
 			{!loading && (
 				<div className="flex justify-between items-center mt-6">

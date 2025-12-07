@@ -73,7 +73,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 	const currentSortOptions = sortOptions || defaultSortOptions
 
 	return (
-		<div className="pb-6 mb-6">
+		<div className="">
 			<div className="flex flex-col sm:flex-row gap-4">
 				<div className="flex-1">
 					<div className="relative">

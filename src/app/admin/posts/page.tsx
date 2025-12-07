@@ -246,7 +246,7 @@ export default function AdminPostsPage() {
 
 				{/* Posts Table */}
 				<div>
-					<h2 className="text-2xl font-bold text-black mb-6">
+					<h2 className="text-2xl font-bold text-black mb-6 mt-4">
 						Posts ({pagination.totalCount} total)
 					</h2>
 

@@ -7,6 +7,7 @@ import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { ApiService, cacheUtils } from '@/services/api/axios-config'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 // Import applicant layout and section components
 import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
@@ -188,20 +189,15 @@ export default function ProfileView() {
 		loadFullProfile()
 	}, [isAuthenticated])
 
-	// Load subdisciplines once
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const { subdisciplines: contextSubdisciplines = [] } = useDisciplinesContext()
+
+	// Update local state when context data is available
 	useEffect(() => {
-		const loadSubdisciplines = async () => {
-			try {
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setSubdisciplines(response.subdisciplines)
-				}
-			} catch (error) {
-				// Failed to load subdisciplines - will use empty array
-			}
+		if (contextSubdisciplines.length > 0) {
+			setSubdisciplines(contextSubdisciplines)
 		}
-		loadSubdisciplines()
-	}, [])
+	}, [contextSubdisciplines])
 
 	const refreshProfile = async () => {
 		if (!isAuthenticated) return

@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { ProfileFormData } from '@/services/profile/profile-service'
 import { Label } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { FileUploadManager, FileUploadManagerWithOCR } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
-import { ApiService } from '@/services/api/axios-config'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
 import { Info } from 'lucide-react'
@@ -31,12 +31,13 @@ export function InstitutionDetailsStep({
 	onNext,
 	onShowManageModal,
 }: InstitutionDetailsStepProps) {
-	// State for disciplines loaded from database
-	const [disciplines, setDisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
-	const [isLoadingDisciplines, setIsLoadingDisciplines] = useState(true)
-	const [disciplinesError, setDisciplinesError] = useState<string | null>(null)
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const {
+		subdisciplines: disciplines = [],
+		isLoadingSubdisciplines: isLoadingDisciplines,
+		subdisciplinesError: disciplinesError,
+		refetchSubdisciplines,
+	} = useDisciplinesContext()
 
 	// Note: OCR results are no longer displayed to user
 
@@ -50,27 +51,6 @@ export function InstitutionDetailsStep({
 	const [validationNotifications, setValidationNotifications] = useState<
 		ValidationNotification[]
 	>([])
-
-	// Load disciplines from database
-	useEffect(() => {
-		const loadDisciplines = async () => {
-			try {
-				setIsLoadingDisciplines(true)
-				setDisciplinesError(null)
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setDisciplines(response.subdisciplines)
-				} else {
-					setDisciplinesError('Failed to load disciplines')
-				}
-			} catch (error) {
-				setDisciplinesError('Failed to load disciplines from database')
-			} finally {
-				setIsLoadingDisciplines(false)
-			}
-		}
-		loadDisciplines()
-	}, [])
 
 	const handleCategoryFilesUploaded = (category: string, files: any[]) => {
 		// Add to existing files instead of replacing
@@ -220,31 +200,14 @@ export function InstitutionDetailsStep({
 						</div>
 					) : disciplinesError ? (
 						<div className="p-4 border border-red-200 rounded-lg bg-red-50">
-							<p className="text-sm text-red-600">{disciplinesError}</p>
+							<p className="text-sm text-red-600">
+								{disciplinesError?.message || 'Failed to load disciplines'}
+							</p>
 							<Button
 								variant="outline"
 								size="sm"
 								onClick={() => {
-									setDisciplinesError(null)
-									setIsLoadingDisciplines(true)
-									// Retry loading
-									const loadDisciplines = async () => {
-										try {
-											const response = await ApiService.getSubdisciplines()
-											if (response.success) {
-												setDisciplines(response.subdisciplines)
-											} else {
-												setDisciplinesError('Failed to load disciplines')
-											}
-										} catch (error) {
-											setDisciplinesError(
-												'Failed to load disciplines from database'
-											)
-										} finally {
-											setIsLoadingDisciplines(false)
-										}
-									}
-									loadDisciplines()
+									refetchSubdisciplines()
 								}}
 								className="mt-2"
 							>

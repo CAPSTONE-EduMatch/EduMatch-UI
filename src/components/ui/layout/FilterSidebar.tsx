@@ -20,6 +20,7 @@ import { useSearchParams } from 'next/navigation'
 import { TabType } from '@/types/domain/explore'
 import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { useTranslations } from 'next-intl'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 interface FilterSidebarProps {
 	activeTab: TabType
@@ -163,9 +164,8 @@ export function FilterSidebar({
 
 	const [isLoadingFilters, setIsLoadingFilters] = useState(false)
 
-	// Store all disciplines data
-	const [allDisciplinesData, setAllDisciplinesData] =
-		useState<DisciplineData | null>(null)
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const { disciplines: allDisciplinesData } = useDisciplinesContext()
 
 	// Add debounce refs for fee and salary ranges
 	const feeDebounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -442,41 +442,8 @@ export function FilterSidebar({
 		}
 	}, [tabFilters, tabRanges, activeTab]) // Remove serializeFiltersToURL to prevent infinite loops
 
-	// Fetch all disciplines data once on mount
-	useEffect(() => {
-		const fetchAllDisciplines = async () => {
-			try {
-				const response = await fetch('/api/disciplines')
-				if (!response.ok) {
-					throw new Error(`HTTP error! status: ${response.status}`)
-				}
-				const data = await response.json()
-
-				// Ensure the data has the expected structure
-				const disciplinesData = {
-					disciplines: data.disciplines || [],
-					subdisciplines: data.subdisciplines || [],
-					subdisciplinesByDiscipline: data.subdisciplinesByDiscipline || {},
-				}
-
-				setAllDisciplinesData(disciplinesData)
-			} catch (error) {
-				if (process.env.NODE_ENV === 'development') {
-					// eslint-disable-next-line no-console
-					console.error('Error fetching all disciplines:', error)
-				}
-
-				// Set empty data structure on error
-				setAllDisciplinesData({
-					disciplines: [],
-					subdisciplines: [],
-					subdisciplinesByDiscipline: {},
-				})
-			}
-		}
-
-		fetchAllDisciplines()
-	}, [])
+	// Disciplines data is now loaded via DisciplinesContext at layout level
+	// No need to fetch here - it's already cached and available
 
 	// Call onFiltersChange when selectedFilters or ranges change (only after initialization)
 	useEffect(() => {

@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { DisciplinesProvider } from '@/contexts/DisciplinesContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -23,7 +24,9 @@ export default function RootLayout({
 				<QueryProvider>
 					<NextIntlClientProvider>
 						<AuthProvider>
-							<NotificationProvider>{children}</NotificationProvider>
+							<DisciplinesProvider>
+								<NotificationProvider>{children}</NotificationProvider>
+							</DisciplinesProvider>
 						</AuthProvider>
 					</NextIntlClientProvider>
 				</QueryProvider>

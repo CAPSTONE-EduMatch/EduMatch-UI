@@ -22,6 +22,7 @@ import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-man
 import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { ApiService, apiClient } from '@/services/api/axios-config'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 interface InstitutionProfileSectionProps {
 	profile?: any
@@ -87,10 +88,13 @@ export const InstitutionProfileSection: React.FC<
 	const [deletedDocumentIds, setDeletedDocumentIds] = useState<string[]>([])
 	const [isUploadingDocument, setIsUploadingDocument] = useState(false)
 	const [isUploadingCoverImage, setIsUploadingCoverImage] = useState(false)
-	const [subdisciplines, setSubdisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
-	const [isLoadingDisciplines, setIsLoadingDisciplines] = useState(true)
+
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const {
+		subdisciplines = [],
+		isLoadingSubdisciplines: isLoadingDisciplines,
+		refetchSubdisciplines,
+	} = useDisciplinesContext()
 
 	// Use the authentication check hook
 	const { isAuthenticated } = useAuthCheck()
@@ -120,28 +124,6 @@ export const InstitutionProfileSection: React.FC<
 			console.error('Failed to load verification documents:', error)
 			setVerificationDocuments([])
 			setOriginalVerificationDocuments([])
-		}
-	}, [])
-
-	// Load subdisciplines from database
-	const loadDisciplines = useCallback(async () => {
-		try {
-			setIsLoadingDisciplines(true)
-			const response = await ApiService.getSubdisciplines()
-
-			if (response.success && response.subdisciplines) {
-				// Transform subdisciplines to the format needed for CustomSelect
-				setSubdisciplines(response.subdisciplines)
-			} else {
-				// Fallback to empty array if API response is unexpected
-				setSubdisciplines([])
-			}
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to load subdisciplines:', error)
-			setSubdisciplines([])
-		} finally {
-			setIsLoadingDisciplines(false)
 		}
 	}, [])
 
@@ -176,11 +158,6 @@ export const InstitutionProfileSection: React.FC<
 
 		loadProfile()
 	}, [isAuthenticated, propProfile, loadVerificationDocuments])
-
-	// Load disciplines on component mount
-	useEffect(() => {
-		loadDisciplines()
-	}, [loadDisciplines])
 
 	const handleSave = async () => {
 		// If there are pending info requests, show warning modal first

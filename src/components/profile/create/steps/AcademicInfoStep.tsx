@@ -12,8 +12,8 @@ import { ProfileFormData } from '@/services/profile/profile-service'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import { ApiService } from '@/services/api/axios-config'
 import { Info } from 'lucide-react'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData
@@ -46,10 +46,8 @@ export function AcademicInfoStep({
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 
-	// State for subdisciplines loaded from database
-	const [subdisciplines, setSubdisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const { subdisciplines = [] } = useDisciplinesContext()
 
 	// State for validation notifications
 	interface ValidationNotification {
@@ -61,21 +59,6 @@ export function AcademicInfoStep({
 	const [validationNotifications, setValidationNotifications] = useState<
 		ValidationNotification[]
 	>([])
-
-	// Load subdisciplines from database
-	useEffect(() => {
-		const loadSubdisciplines = async () => {
-			try {
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setSubdisciplines(response.subdisciplines)
-				}
-			} catch (error) {
-				// Failed to load subdisciplines
-			}
-		}
-		loadSubdisciplines()
-	}, [])
 
 	// Add default research paper when component mounts
 	useEffect(() => {

@@ -14,6 +14,7 @@ import { ProfileFormData } from '@/services/profile/profile-service'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { usePresignedUpload } from '@/hooks/files/usePresignedUpload'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -40,25 +41,12 @@ export function BasicInfoStep({
 	onNext,
 	user,
 }: BasicInfoStepProps) {
-	const [subdisciplines, setSubdisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
-
-	// Load subdisciplines from database
-	useEffect(() => {
-		const loadSubdisciplines = async () => {
-			try {
-				const { ApiService } = await import('@/services/api/axios-config')
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setSubdisciplines(response.subdisciplines)
-				}
-			} catch (error) {
-				console.error('Failed to load subdisciplines:', error)
-			}
-		}
-		loadSubdisciplines()
-	}, [])
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const {
+		subdisciplines = [],
+		isLoadingSubdisciplines,
+		subdisciplinesError,
+	} = useDisciplinesContext()
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [phoneValidationError, setPhoneValidationError] = useState('')
@@ -568,23 +556,33 @@ export function BasicInfoStep({
 				<div className="space-y-4">
 					<div className="space-y-2">
 						<Label>Interest</Label>
-						<CustomSelect
-							value={formData.interests.map((interest) => ({
-								value: interest,
-								label: interest,
-							}))}
-							onChange={(options) =>
-								onMultiSelectChange('interests')(
-									options ? options.map((option: any) => option.value) : []
-								)
-							}
-							placeholder="Choose subject(s)/field(s) you interested in"
-							options={subdisciplines}
-							isMulti
-							isSearchable
-							isClearable
-							maxSelectedHeight="120px"
-						/>
+						{isLoadingSubdisciplines ? (
+							<div className="text-sm text-muted-foreground py-2">
+								Loading disciplines...
+							</div>
+						) : subdisciplinesError ? (
+							<div className="text-sm text-red-600 py-2">
+								Failed to load disciplines. Please refresh the page.
+							</div>
+						) : (
+							<CustomSelect
+								value={formData.interests.map((interest) => ({
+									value: interest,
+									label: interest,
+								}))}
+								onChange={(options) =>
+									onMultiSelectChange('interests')(
+										options ? options.map((option: any) => option.value) : []
+									)
+								}
+								placeholder="Choose subject(s)/field(s) you interested in"
+								options={subdisciplines}
+								isMulti
+								isSearchable
+								isClearable
+								maxSelectedHeight="120px"
+							/>
+						)}
 					</div>
 
 					<div className="space-y-2">

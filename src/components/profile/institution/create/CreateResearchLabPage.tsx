@@ -13,7 +13,7 @@ import {
 	ErrorModal,
 } from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
-import { ApiService } from '@/services/api/axios-config'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 interface CreateResearchLabPageProps {
 	onBack?: () => void
@@ -30,26 +30,8 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 }) => {
 	const isEditMode = !!editId && !!initialData
 	const router = useRouter()
-	// State for subdisciplines loaded from database
-	const [subdisciplines, setSubdisciplines] = useState<
-		Array<{ value: string; label: string; discipline: string }>
-	>([])
-
-	// Load subdisciplines from database
-	useEffect(() => {
-		const loadSubdisciplines = async () => {
-			try {
-				const response = await ApiService.getSubdisciplines()
-				if (response.success) {
-					setSubdisciplines(response.subdisciplines)
-				}
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.error('Failed to load subdisciplines:', error)
-			}
-		}
-		loadSubdisciplines()
-	}, [])
+	// Use shared disciplines context (loaded once at layout level, cached by React Query)
+	const { subdisciplines = [] } = useDisciplinesContext()
 
 	// Populate form with initialData when in edit mode
 	useEffect(() => {

@@ -2,7 +2,6 @@
 	"explore": "Khám phá",
 	"about-us": "Về chúng tôi",
 	"program": "Chương trình",
-
 	"breadcrumb": {
 		"home": "Trang chủ",
 		"explore": "Khám phá",
@@ -11,7 +10,6 @@
 		"scholarships": "Học bổng",
 		"research_labs": "Phòng nghiên cứu"
 	},
-
 	"explore_page": {
 		"quote": {
 			"author": "John Dewey:",
@@ -143,25 +141,20 @@
 			"account_deactivated": "Tài khoản đã bị vô hiệu hóa"
 		}
 	},
-
 	"search": {
 		"title": "Tìm kiếm nhu cầu của bạn tại đây",
 		"placeholder": "Tìm kiếm theo tên chương trình, học bổng, hoặc phòng nghiên cứu"
 	},
-
 	"tabs": {
 		"programmes": "Chương trình",
 		"scholarships": "Học bổng",
 		"research_labs": "Phòng nghiên cứu"
 	},
-
 	"images": {
 		"university_campus": "Khuôn viên trường đại học",
 		"student_illustration": "Hình minh họa sinh viên"
 	},
-
 	"results": "kết quả",
-
 	"sort": {
 		"most_popular": "Phổ biến nhất",
 		"newest": "Mới nhất",
@@ -174,22 +167,18 @@
 		"z_to_a": "Z → A",
 		"sort_by": "Sắp xếp"
 	},
-
 	"filter": {
 		"title": "Bộ lọc"
 	},
-
 	"pagination": {
 		"previous": "Trước",
 		"next": "Sau"
 	},
-
 	"loading": {
 		"programmes": "Đang tải chương trình...",
 		"scholarships": "Đang tải học bổng...",
 		"research": "Đang tải phòng nghiên cứu..."
 	},
-
 	"auth": {
 		"required": {
 			"title": "Yêu cầu xác thực",
@@ -373,12 +362,10 @@
 			"accountBannedWithReason": "Tài khoản của bạn đã bị cấm. Lý do: {reason}"
 		}
 	},
-
 	"quote": {
 		"JohnDewey": "Giáo dục không phải là sự chuẩn bị cho cuộc sống, giáo dục chính là cuộc sống. Đó là quá trình tái kiến tạo kinh nghiệm liên tục, nơi mỗi bài học trở thành nền tảng cho sự trưởng thành mới, và mỗi thách thức là cơ hội để đạt được trí tuệ sâu sắc hơn.",
 		"author": "John Dewey:"
 	},
-
 	"subscription": {
 		"badge": "Gói thành viên",
 		"title": "Tìm lộ trình học tập phù hợp nhất",
@@ -400,7 +387,6 @@
 			"alt": "Hình minh họa sinh viên"
 		}
 	},
-
 	"homepage": {
 		"hero_section": {
 			"title": "Phù hợp. Ứng tuyển. Thành công.",
@@ -433,30 +419,38 @@
 			}
 		},
 		"blog_section": {
-			"title": "Bài viết mới nhất"
+			"title": "Bài viết mới nhất",
+			"empty": {
+				"title": "Không có bài viết",
+				"description_programmes": "Hiện tại chưa có chương trình nào. Vui lòng quay lại sau.",
+				"description_scholarships": "Hiện tại chưa có học bổng nào. Vui lòng quay lại sau.",
+				"description_research_labs": "Hiện tại chưa có phòng nghiên cứu nào. Vui lòng quay lại sau.",
+				"try_other_button": "Thử danh mục khác"
+			}
 		},
 		"cta_section": {
 			"title": "Khám phá chương trình, nghiên cứu và cơ hội học bổng ngay hôm nay",
 			"description_1": "Tham gia EduMatch ngay để bắt đầu hành trình thành công của bạn.",
-			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn."
+			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn.",
+			"authenticated_title": "Sẵn sàng tìm kiếm sự phù hợp hoàn hảo?",
+			"authenticated_description_1": "Khám phá hàng ngàn chương trình, học bổng và cơ hội nghiên cứu",
+			"authenticated_description_2": "được thiết kế riêng cho bạn. Bắt đầu khám phá ngay!"
 		}
 	},
-
 	"buttons": {
 		"explore_more": "Khám phá thêm",
 		"show_more": "Xem thêm",
+		"show_less": "Thu gọn",
 		"learn_more": "Tìm hiểu thêm",
 		"sign_in": "Đăng nhập",
 		"sign_up": "Đăng ký",
 		"log_out": "Đăng xuất",
 		"retry": "Thử lại"
 	},
-
 	"empty": {
 		"title": "Không tìm thấy chương trình",
 		"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
 	},
-
 	"document_selector": {
 		"header": {
 			"title": "Chọn tài liệu",
@@ -473,7 +467,6 @@
 		"loading": "Đang tải tài liệu...",
 		"error": "Không thể tải tài liệu"
 	},
-
 	"research_lab_detail": {
 		"loading": "Đang tải chi tiết phòng nghiên cứu...",
 		"error": "Lỗi",
@@ -703,7 +696,6 @@
 			"application_submitted_message": "Hồ sơ của bạn đã được nộp thành công. Bạn sẽ nhận được cập nhật qua email."
 		}
 	},
-
 	"program_detail": {
 		"breadcrumb": {
 			"home": "Trang chủ",
@@ -1033,7 +1025,6 @@
 		"error": "Không thể tải chi tiết chương trình",
 		"not_found": "Không tìm thấy chương trình"
 	},
-
 	"scholarship_detail": {
 		"loading": "Đang tải chi tiết học bổng...",
 		"error": "Không thể tải chi tiết học bổng",
@@ -1234,7 +1225,6 @@
 			"files_uploaded_message": "Đã tải lên {count} tệp thành công"
 		}
 	},
-
 	"pricing": {
 		"hero": {
 			"badge": "Gói dịch vụ",

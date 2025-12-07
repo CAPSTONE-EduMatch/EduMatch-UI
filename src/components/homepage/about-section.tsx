@@ -3,9 +3,11 @@
 import { Button } from '@/components/ui'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 
 export function AboutSection() {
 	const t = useTranslations()
+	const router = useRouter()
 
 	return (
 		<section className="py-20 bg-background">
@@ -21,6 +23,7 @@ export function AboutSection() {
 						<Button
 							className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md py-3 px-8 rounded-full font-medium"
 							animate={true}
+							onClick={() => router.push('/explore')}
 						>
 							{t('buttons.learn_more')}
 						</Button>

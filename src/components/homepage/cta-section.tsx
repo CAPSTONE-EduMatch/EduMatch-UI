@@ -2,9 +2,13 @@
 
 import { Button } from '@/components/ui'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 
 export function CTASection() {
 	const t = useTranslations()
+	const router = useRouter()
+	const { isAuthenticated } = useAuthCheck()
 
 	return (
 		<section className="py-12 sm:py-16 lg:py-20 px-2 sm:px-4 lg:px-6">
@@ -19,21 +23,49 @@ export function CTASection() {
 
 				<div className="relative bg-primary rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 text-center text-white overflow-hidden">
 					<div className="relative z-10">
-						<h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 text-balance leading-tight">
-							{t('homepage.cta_section.title')}
-						</h2>
-						<p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl mb-4 sm:mb-6 md:mb-8 opacity-90 max-w-2xl mx-auto leading-relaxed">
-							<span>{t('homepage.cta_section.description_1')}</span>
-							<br />
-							<span>{t('homepage.cta_section.description_2')}</span>
-						</p>
-						<Button
-							variant="secondary"
-							className="bg-white text-black hover:bg-gray-100 hover:text-black px-4 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-3 rounded-full text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-md"
-							animate={true}
-						>
-							{t('buttons.sign_in')}
-						</Button>
+						{isAuthenticated ? (
+							<>
+								<h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 text-balance leading-tight">
+									{t('homepage.cta_section.authenticated_title')}
+								</h2>
+								<p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl mb-4 sm:mb-6 md:mb-8 opacity-90 max-w-2xl mx-auto leading-relaxed">
+									<span>
+										{t('homepage.cta_section.authenticated_description_1')}
+									</span>
+									<br />
+									<span>
+										{t('homepage.cta_section.authenticated_description_2')}
+									</span>
+								</p>
+								<Button
+									variant="secondary"
+									className="bg-white text-black hover:bg-gray-100 hover:text-black px-4 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-3 rounded-full text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-md"
+									animate={true}
+									onClick={() => router.push('/explore')}
+								>
+									{t('buttons.explore_more')}
+								</Button>
+							</>
+						) : (
+							<>
+								<h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 text-balance leading-tight">
+									{t('homepage.cta_section.title')}
+								</h2>
+								<p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl mb-4 sm:mb-6 md:mb-8 opacity-90 max-w-2xl mx-auto leading-relaxed">
+									<span>{t('homepage.cta_section.description_1')}</span>
+									<br />
+									<span>{t('homepage.cta_section.description_2')}</span>
+								</p>
+								<Button
+									variant="secondary"
+									className="bg-white text-black hover:bg-gray-100 hover:text-black px-4 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-3 rounded-full text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-md"
+									animate={true}
+									onClick={() => router.push('/sign-in')}
+								>
+									{t('buttons.sign_in')}
+								</Button>
+							</>
+						)}
 					</div>
 				</div>
 			</div>

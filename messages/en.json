@@ -2,12 +2,10 @@
 	"explore": "Explore",
 	"about-us": "About us",
 	"program": "Program",
-
 	"breadcrumb": {
 		"home": "Home",
 		"explore": "Explore"
 	},
-
 	"explore_page": {
 		"quote": {
 			"author": "John Dewey:",
@@ -139,25 +137,20 @@
 			"account_deactivated": "Account Deactivated"
 		}
 	},
-
 	"search": {
 		"title": "Search your needs here",
 		"placeholder": "Search by name of program, scholarship, or research lab"
 	},
-
 	"tabs": {
 		"programmes": "Programmes",
 		"scholarships": "Scholarships",
 		"research_labs": "Research Labs"
 	},
-
 	"images": {
 		"university_campus": "University Campus",
 		"student_illustration": "Student illustration"
 	},
-
 	"results": "results",
-
 	"sort": {
 		"most_popular": "Most popular",
 		"newest": "Newest",
@@ -170,22 +163,18 @@
 		"z_to_a": "Z → A",
 		"sort_by": "Sort"
 	},
-
 	"filter": {
 		"title": "Filters"
 	},
-
 	"pagination": {
 		"previous": "Previous",
 		"next": "Next"
 	},
-
 	"loading": {
 		"programmes": "Loading programs...",
 		"scholarships": "Loading scholarships...",
 		"research": "Loading research labs..."
 	},
-
 	"auth": {
 		"required": {
 			"title": "Authentication Required",
@@ -369,12 +358,10 @@
 			"accountBannedWithReason": "Your account has been banned. Reason: {reason}"
 		}
 	},
-
 	"quote": {
 		"JohnDewey": "Education is not preparation for life; education is life itself. It is the continuous reconstruction of experience, where each lesson learned becomes the foundation for new growth, and every challenge faced an opportunity for deeper wisdom.",
 		"author": "John Dewey:"
 	},
-
 	"subscription": {
 		"badge": "Subscription Plans",
 		"title": "Find Your Perfect Learning Path",
@@ -396,7 +383,6 @@
 			"alt": "Student illustration"
 		}
 	},
-
 	"homepage": {
 		"hero_section": {
 			"title": "Match. Apply. Succeed.",
@@ -429,30 +415,38 @@
 			}
 		},
 		"blog_section": {
-			"title": "Latest Posts"
+			"title": "Latest Posts",
+			"empty": {
+				"title": "No Posts Available",
+				"description_programmes": "There are no programs available at the moment. Please check back later.",
+				"description_scholarships": "There are no scholarships available at the moment. Please check back later.",
+				"description_research_labs": "There are no research labs available at the moment. Please check back later.",
+				"try_other_button": "Try Other Categories"
+			}
 		},
 		"cta_section": {
 			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
 			"description_1": "Join EduMatch now to start your journey to success.",
-			"description_2": "Find the perfect opportunities for you."
+			"description_2": "Find the perfect opportunities for you.",
+			"authenticated_title": "Ready to Find Your Perfect Match?",
+			"authenticated_description_1": "Discover thousands of programs, scholarships, and research opportunities",
+			"authenticated_description_2": "tailored just for you. Start exploring now!"
 		}
 	},
-
 	"buttons": {
 		"explore_more": "Explore more",
 		"show_more": "Show more",
+		"show_less": "Show less",
 		"learn_more": "Learn more",
 		"sign_in": "Sign in",
 		"sign_up": "Sign up",
 		"log-out": "Log out",
 		"retry": "Retry"
 	},
-
 	"empty": {
 		"title": "No programs found",
 		"hint": "Try adjusting your filters or search criteria"
 	},
-
 	"document_selector": {
 		"header": {
 			"title": "Select Documents",
@@ -469,7 +463,6 @@
 		"loading": "Loading documents...",
 		"error": "Failed to load documents"
 	},
-
 	"research_lab_detail": {
 		"loading": "Loading research lab details...",
 		"error": "Error",
@@ -699,7 +692,6 @@
 			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email."
 		}
 	},
-
 	"program_detail": {
 		"breadcrumb": {
 			"home": "Home",
@@ -970,7 +962,6 @@
 		"error": "Failed to load program details",
 		"not_found": "Program not found"
 	},
-
 	"scholarship_detail": {
 		"loading": "Loading scholarship details...",
 		"error": "Failed to load scholarship details",
@@ -1169,7 +1160,6 @@
 			"files_uploaded_message": "{count} file(s) uploaded successfully"
 		}
 	},
-
 	"pricing": {
 		"hero": {
 			"badge": "Pricing plan",

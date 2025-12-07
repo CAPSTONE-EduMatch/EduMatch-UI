@@ -5,8 +5,10 @@ import { useUserInvoices } from '@/hooks/subscription/useUserInvoices'
 import { CreditCard, Download, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 import { formatUTCDate } from '@/utils/date'
+import { useTranslations } from 'next-intl'
 
 export function BillingPortalCard() {
+	const t = useTranslations('profile_view.billing_portal')
 	const [currentPage, setCurrentPage] = useState(1)
 	const { invoices, pagination, loading, error } = useUserInvoices(
 		currentPage,
@@ -72,11 +74,9 @@ export function BillingPortalCard() {
 						</div>
 						<div>
 							<h3 className="text-2xl font-bold text-gray-900 mb-1">
-								Billing & Payments
+								{t('title')}
 							</h3>
-							<p className="text-gray-600">
-								Manage your subscription, payment methods, and billing history
-							</p>
+							<p className="text-gray-600">{t('description')}</p>
 						</div>
 					</div>
 				</div>
@@ -85,10 +85,10 @@ export function BillingPortalCard() {
 				<div className="bg-gray-50 rounded-3xl p-6">
 					<div className="mb-4">
 						<h4 className="text-lg font-semibold text-gray-900 mb-2">
-							Payment History
+							{t('payment_history')}
 						</h4>
 						<p className="text-sm text-gray-600">
-							View all your past transactions and download invoices
+							{t('payment_history_description')}
 						</p>
 					</div>
 
@@ -105,9 +105,9 @@ export function BillingPortalCard() {
 					) : invoices.length === 0 ? (
 						<div className="text-center py-12">
 							<CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-							<p className="text-gray-600">No payment history found</p>
+							<p className="text-gray-600">{t('no_history_found')}</p>
 							<p className="text-sm text-gray-500 mt-1">
-								Your transaction history will appear here
+								{t('transaction_history')}
 							</p>
 						</div>
 					) : (
@@ -118,19 +118,19 @@ export function BillingPortalCard() {
 									<thead>
 										<tr className="border-b border-gray-200">
 											<th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">
-												Date
+												{t('table.date')}
 											</th>
 											<th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">
-												Invoice ID
+												{t('table.invoice_id')}
 											</th>
 											<th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">
-												Amount
+												{t('table.amount')}
 											</th>
 											<th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">
-												Status
+												{t('table.status')}
 											</th>
 											<th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">
-												Actions
+												{t('table.actions')}
 											</th>
 										</tr>
 									</thead>
@@ -168,7 +168,7 @@ export function BillingPortalCard() {
 																className="text-[#126E64] hover:text-[#0f5c54] flex items-center gap-1 text-sm"
 															>
 																<ExternalLink className="w-4 h-4" />
-																View
+																{t('actions.view')}
 															</a>
 														)}
 														{invoice.invoicePdf && (
@@ -226,7 +226,7 @@ export function BillingPortalCard() {
 													className="text-[#126E64] hover:text-[#0f5c54] flex items-center gap-1 text-sm"
 												>
 													<ExternalLink className="w-4 h-4" />
-													View Invoice
+													{t('actions.view_invoice')}
 												</a>
 											)}
 											{invoice.invoicePdf && (
@@ -237,7 +237,7 @@ export function BillingPortalCard() {
 													className="text-[#126E64] hover:text-[#0f5c54] flex items-center gap-1 text-sm"
 												>
 													<Download className="w-4 h-4" />
-													Download PDF
+													{t('actions.download_pdf')}
 												</a>
 											)}
 										</div>
@@ -262,10 +262,13 @@ export function BillingPortalCard() {
 											disabled={pagination.page === 1}
 											className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
 										>
-											Previous
+											{t('pagination.previous')}
 										</button>
 										<span className="text-sm text-gray-600">
-											Page {pagination.page} of {pagination.totalPages}
+											{t('pagination.page_of', {
+												current: pagination.page,
+												total: pagination.totalPages,
+											})}
 										</span>
 										<button
 											onClick={() =>
@@ -276,7 +279,7 @@ export function BillingPortalCard() {
 											disabled={pagination.page === pagination.totalPages}
 											className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
 										>
-											Next
+											{t('pagination.next')}
 										</button>
 									</div>
 								</div>

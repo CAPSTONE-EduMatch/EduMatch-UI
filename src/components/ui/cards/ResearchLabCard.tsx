@@ -7,6 +7,7 @@ import {
 import { motion } from 'framer-motion'
 import { Building, Clock, Heart, Lock, MapPin, Users, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ResearchLabCardProps {
 	lab: {
@@ -52,6 +53,7 @@ export function ResearchLabCard({
 	institutionStatus,
 }: ResearchLabCardProps) {
 	const router = useRouter()
+	const t = useTranslations('application_section')
 	// Check if match score is restricted (shown as "—" for non-Premium users)
 	const isMatchRestricted = lab.match === '—'
 	// Format date and calculate days left on the client side
@@ -247,7 +249,7 @@ export function ResearchLabCard({
 												: 'bg-gray-100 text-gray-800'
 							}`}
 						>
-							{lab.applicationStatus}
+							{t(`status.${lab.applicationStatus}`)}
 						</span>
 					</div>
 				)}

@@ -7,6 +7,7 @@ import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { ApiService, cacheUtils } from '@/services/api/axios-config'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
 // Import applicant layout and section components
@@ -146,6 +147,7 @@ interface ProfileData {
 }
 
 export default function ProfileView() {
+	const t = useTranslations('profile_view')
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -180,14 +182,14 @@ export default function ProfileView() {
 					setProfile(null)
 					return
 				}
-				setError('Failed to load profile data')
+				setError(t('errors.load_failed'))
 			} finally {
 				setLoading(false)
 			}
 		}
 
 		loadFullProfile()
-	}, [isAuthenticated])
+	}, [isAuthenticated, t])
 
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const { subdisciplines: contextSubdisciplines = [] } = useDisciplinesContext()
@@ -210,7 +212,7 @@ export default function ProfileView() {
 			const data = await ApiService.getProfile()
 			setProfile(data.profile)
 		} catch (error: any) {
-			setError('Failed to refresh profile data')
+			setError(t('errors.refresh_failed'))
 		} finally {
 			setLoading(false)
 		}
@@ -229,7 +231,7 @@ export default function ProfileView() {
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">Loading profile...</p>
+					<p className="mt-4 text-muted-foreground">{t('loading')}</p>
 				</div>
 			</div>
 		)
@@ -241,9 +243,9 @@ export default function ProfileView() {
 				<Card className="w-full max-w-md">
 					<CardContent className="p-6 text-center">
 						<div className="text-red-500 text-6xl mb-4">⚠️</div>
-						<h2 className="text-xl font-semibold mb-2">Error</h2>
+						<h2 className="text-xl font-semibold mb-2">{t('error_title')}</h2>
 						<p className="text-muted-foreground mb-4">{error}</p>
-						<Button onClick={refreshProfile}>Try Again</Button>
+						<Button onClick={refreshProfile}>{t('try_again')}</Button>
 					</CardContent>
 				</Card>
 			</div>
@@ -257,7 +259,7 @@ export default function ProfileView() {
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">Redirecting...</p>
+					<p className="mt-4 text-muted-foreground">{t('redirecting')}</p>
 				</div>
 			</div>
 		)
@@ -310,6 +312,7 @@ function ApplicantProfileView({
 	refreshProfile: () => Promise<void>
 	subdisciplines: Array<{ value: string; label: string; discipline: string }>
 }) {
+	const t = useTranslations('profile_view')
 	const router = useRouter()
 	const [activeSection, setActiveSection] =
 		useState<ApplicantProfileSection>('profile')
@@ -368,11 +371,9 @@ function ApplicantProfileView({
 					<div className="space-y-8">
 						<div>
 							<h1 className="text-3xl font-bold text-gray-900 mb-2">
-								My Subscription
+								{t('payment.title')}
 							</h1>
-							<p className="text-gray-600">
-								Manage your subscription plan and billing through Stripe
-							</p>
+							<p className="text-gray-600">{t('payment.description')}</p>
 						</div>
 						<SubscriptionProgressWidget
 							applicantId={profile.id}

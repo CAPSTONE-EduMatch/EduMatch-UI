@@ -4,7 +4,10 @@
 	"program": "Program",
 	"breadcrumb": {
 		"home": "Home",
-		"explore": "Explore"
+		"explore": "Explore",
+		"programmes": "Programmes",
+		"scholarships": "Scholarships",
+		"research_labs": "Research Labs"
 	},
 	"explore_page": {
 		"quote": {
@@ -603,7 +606,24 @@
 			"reapply_button": "Reapply Now",
 			"uploading_progress": "Uploading files...",
 			"file_progress": "File {index}",
-			"file_size": "{size} KB"
+			"file_size": "{size} KB",
+			"already_applied_title": "Already Applied",
+			"already_applied_message": "You have already applied to this research lab. You cannot submit multiple applications.",
+			"documents_updated_title": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed_title": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error_title": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"retry": "Retry",
+			"application_submitted_title": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email.",
+			"application_failed_title": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"limit_reached_title": "Application Limit Reached",
+			"upgrade_plan": "Upgrade Plan",
+			"application_error_title": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again."
 		},
 		"recommendations": {
 			"title": "Related Research Labs",
@@ -669,8 +689,6 @@
 			}
 		},
 		"notifications": {
-			"files_uploaded": "Files Uploaded",
-			"files_uploaded_message": "{count} file(s) uploaded successfully",
 			"validation_failed": "Validation Failed",
 			"validation_failed_message": "File failed validation. Please redact sensitive information and try again.",
 			"documents_updated": "Documents Updated!",
@@ -802,6 +820,23 @@
 			"contact_button": "Contact Institution",
 			"applications_count": "Number of applications: {count}"
 		},
+		"institution_status": {
+			"pending": "Pending Approval",
+			"rejected": "Account Rejected",
+			"deactivated": "Account Deactivated"
+		},
+		"errors": {
+			"error_title": "Error",
+			"failed_to_load": "Failed to load program details"
+		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This program has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This program has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
 		"recommendations": {
 			"title": "Recommend for you",
 			"no_recommendations": "No recommendations available at this time.",
@@ -882,7 +917,25 @@
 			"submit_button": "Submit Application",
 			"submitting_button": "Submitting...",
 			"cancel_edit_button": "Cancel",
-			"save_changes_button": "Save Changes"
+			"save_changes_button": "Save Changes",
+			"edit_documents_button": "Edit Documents",
+			"already_applied_title": "Already Applied",
+			"already_applied_message": "You have already applied to this program. You cannot submit multiple applications.",
+			"documents_updated_title": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed_title": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error_title": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"retry": "Retry",
+			"application_submitted_title": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email.",
+			"application_failed_title": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"limit_reached_title": "Application Limit Reached",
+			"upgrade_plan": "Upgrade Plan",
+			"application_error_title": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again."
 		},
 		"documents_section": {
 			"title": "Application Documents",
@@ -1349,6 +1402,14 @@
 			"accepted": "Accepted",
 			"rejected": "Rejected"
 		},
+		"status": {
+			"SUBMITTED": "Submitted",
+			"REQUIRE_UPDATE": "Update Required",
+			"ACCEPTED": "Accepted",
+			"REJECTED": "Rejected",
+			"UPDATED": "Updated",
+			"PROGRESSING": "In Progress"
+		},
 		"search": {
 			"placeholder": "Search..."
 		},
@@ -1372,6 +1433,471 @@
 			"default_match": "85%",
 			"research": "Research",
 			"professor": "Prof. Researcher"
+		}
+	},
+	"profile_view": {
+		"loading": "Loading profile...",
+		"redirecting": "Redirecting...",
+		"error_title": "Error",
+		"try_again": "Try Again",
+		"errors": {
+			"load_failed": "Failed to load profile data",
+			"refresh_failed": "Failed to refresh profile data"
+		},
+		"payment": {
+			"title": "My Subscription",
+			"description": "Manage your subscription plan and billing through Stripe"
+		},
+		"subscription_widget": {
+			"plan_applications": "Plan Applications",
+			"resets_in_days": "Resets in {days} days",
+			"applications_used": "Applications Used",
+			"status": {
+				"limit_reached": "Application limit reached.",
+				"upgrade_unlimited": "Upgrade for unlimited applications",
+				"only_remaining": "Only {count} application remaining this period",
+				"only_remaining_plural": "Only {count} applications remaining this period",
+				"remaining": "{count} applications remaining this period"
+			}
+		},
+		"subscription_info": {
+			"current_subscription": "Your current subscription",
+			"upgrade_plan": "Upgrade plan",
+			"next_billing_date": "Next Billing Date",
+			"monthly_cost": "Monthly cost",
+			"member_since": "Member since",
+			"not_available": "N/A",
+			"not_available_full": "Not available",
+			"plans": {
+				"free": "Free Plan",
+				"standard": "Standard Membership",
+				"premium": "Premium Membership"
+			}
+		},
+		"subscription_features": {
+			"title": "Current plan include",
+			"features": {
+				"messages": "Send messages to scholarship officers / professors (limited number of initiated messages)",
+				"match_level": "View scholarship/research match level",
+				"basic_recommendations": "Basic opportunity recommendations (rule-based)",
+				"advanced_matching": "Advanced scholarship matching algorithms",
+				"priority_tracking": "Priority application tracking",
+				"extended_database": "Extended program database access",
+				"email_notifications": "Email notifications & reminders",
+				"direct_messaging": "Direct messaging with admissions staff",
+				"all_standard": "All Standard Plan features",
+				"ai_essay_review": "AI-powered essay review & suggestions",
+				"consultation_calls": "One-on-one consultation calls",
+				"custom_recommendations": "Custom scholarship recommendations",
+				"document_templates": "Application document templates",
+				"interview_prep": "Interview preparation resources",
+				"exclusive_webinars": "Exclusive webinars & workshops",
+				"priority_support": "Priority customer support"
+			}
+		},
+		"billing_portal": {
+			"title": "Billing & Payments",
+			"description": "Manage your subscription, payment methods, and billing history",
+			"payment_history": "Payment History",
+			"payment_history_description": "View all your past transactions and download invoices",
+			"no_history_found": "No payment history found",
+			"transaction_history": "Your transaction history will appear here",
+			"table": {
+				"date": "Date",
+				"invoice_id": "Invoice ID",
+				"amount": "Amount",
+				"status": "Status",
+				"actions": "Actions"
+			},
+			"actions": {
+				"view": "View",
+				"view_invoice": "View Invoice",
+				"download_pdf": "Download PDF"
+			},
+			"pagination": {
+				"showing": "Showing {from} to {to} of {total} transactions",
+				"page_of": "Page {current} of {total}",
+				"previous": "Previous",
+				"next": "Next"
+			},
+			"status": {
+				"paid": "Paid",
+				"open": "Open",
+				"void": "Void",
+				"uncollectible": "Uncollectible"
+			}
+		},
+		"navigation": {
+			"profile_info": "Profile Info",
+			"academic": "Academic",
+			"portfolio": "Portfolio",
+			"wishlist": "Wishlist",
+			"applications": "Applications",
+			"payment": "Payment",
+			"settings": "Settings",
+			"student": "Student"
+		}
+	},
+	"profile_info_section": {
+		"title": "Basic Information",
+		"description": "Manage your personal information and preferences",
+		"not_available": "This section is only available for student accounts.",
+		"buttons": {
+			"edit": "Edit",
+			"cancel": "Cancel",
+			"save": "Save",
+			"saving": "Saving...",
+			"upload_photo": "Upload your photo",
+			"uploading": "Uploading..."
+		},
+		"photo": {
+			"instructions": "Must be PNG or JPG file (max 5MB)"
+		},
+		"fields": {
+			"first_name": {
+				"label": "First Name",
+				"placeholder": "Enter your first name",
+				"not_provided": "Not provided"
+			},
+			"last_name": {
+				"label": "Last Name",
+				"placeholder": "Enter your last name",
+				"not_provided": "Not provided"
+			},
+			"gender": {
+				"label": "Gender",
+				"placeholder": "Choose gender",
+				"male": "Male",
+				"female": "Female",
+				"not_provided": "Not provided",
+				"options": {
+					"male": "Male",
+					"female": "Female"
+				}
+			},
+			"birthday": {
+				"label": "Birthday",
+				"placeholder": "dd/mm/yyyy"
+			},
+			"email": {
+				"label": "Email",
+				"not_provided": "Not provided"
+			},
+			"nationality": {
+				"label": "Nationality",
+				"placeholder": "Choose your nationality",
+				"not_provided": "Not provided"
+			},
+			"phone": {
+				"label": "Phone Number",
+				"placeholder": "Enter your phone number",
+				"not_provided": "Not provided"
+			},
+			"interests": {
+				"label": "Interest",
+				"placeholder": "Choose subject(s)/field(s) you interested in",
+				"not_provided": "No interests specified"
+			},
+			"favorite_countries": {
+				"label": "Favorite country",
+				"placeholder": "Choose your favorite countries",
+				"not_provided": "No favorite countries specified"
+			}
+		},
+		"errors": {
+			"invalid_image": "Please select an image file",
+			"file_too_large": "File size must be less than 5MB",
+			"upload_failed": "Failed to upload image. Please try again.",
+			"save_failed": "Failed to save profile. Please try again."
+		},
+		"success": {
+			"title": "Success!",
+			"message": "Your profile has been updated successfully.",
+			"button": "Continue"
+		},
+		"error": {
+			"title": "Error",
+			"button": "Close"
+		}
+	},
+	"academic_section": {
+		"title": "Academic Information",
+		"description": "Your educational background and academic achievements",
+		"not_available": "This section is only available for student accounts.",
+		"buttons": {
+			"edit": "Edit",
+			"cancel": "Cancel",
+			"save": "Save",
+			"saving": "Saving...",
+			"add_language": "Add language certification",
+			"add_research_paper": "Add Research Paper",
+			"delete_language": "Delete language certification",
+			"delete_research_paper": "Delete Research Paper"
+		},
+		"graduated": {
+			"title": "Graduated",
+			"not_yet": "Not yet",
+			"graduated": "Graduated",
+			"level": "Level",
+			"discipline": "Discipline",
+			"gpa": "GPA",
+			"university": "University",
+			"country_of_study": "Country of Study"
+		},
+		"fields": {
+			"level": {
+				"label": "Level",
+				"placeholder": "Level",
+				"not_provided": "Not provided",
+				"options": {
+					"high_school": "High School",
+					"associate": "Associate",
+					"bachelor": "Bachelor's",
+					"master": "Master's",
+					"phd": "PhD",
+					"professional": "Professional"
+				}
+			},
+			"discipline": {
+				"label": "Discipline",
+				"placeholder": "Choose discipline",
+				"not_provided": "Not provided"
+			},
+			"gpa": {
+				"label": "GPA",
+				"placeholder": "0.0–4.0",
+				"not_provided": "Not provided"
+			},
+			"university": {
+				"label": "University",
+				"placeholder": "e.g., Harvard University",
+				"not_provided": "Not provided"
+			},
+			"country_of_study": {
+				"label": "Country of Study",
+				"placeholder": "Select country",
+				"not_provided": "Not provided"
+			}
+		},
+		"foreign_language": {
+			"title": "Foreign Language",
+			"yes": "Yes",
+			"no": "No",
+			"language": "Language",
+			"certificate": "Certificate",
+			"score": "Score",
+			"placeholder": {
+				"language": "Language",
+				"certificate": "Select certificate",
+				"score": "Score"
+			},
+			"languages": {
+				"vietnamese": "Vietnamese",
+				"english": "English",
+				"spanish": "Spanish",
+				"french": "French",
+				"german": "German",
+				"chinese": "Chinese",
+				"japanese": "Japanese",
+				"korean": "Korean"
+			}
+		},
+		"files": {
+			"cv": {
+				"title": "CV / Resume",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
+			},
+			"language_cert": {
+				"title": "Foreign Language Certificate"
+			},
+			"degree": {
+				"title": "Degree Certificate"
+			},
+			"transcript": {
+				"title": "Academic Transcript"
+			},
+			"view": "View",
+			"remove": "Remove"
+		},
+		"research_papers": {
+			"title": "Research Papers",
+			"paper_title": "Paper Title",
+			"disciplines": "Disciplines",
+			"files": "Research Paper Files",
+			"no_files": "No files uploaded",
+			"no_papers": "No research papers uploaded yet",
+			"upload_hint": "Click \"Add Research Paper\" to get started",
+			"placeholder": {
+				"title": "Enter research paper title",
+				"disciplines": "Choose disciplines"
+			},
+			"not_provided": "Not provided"
+		},
+		"errors": {
+			"incomplete_papers": "Please provide both title and discipline for all research papers before uploading files.",
+			"save_failed": "Failed to save academic information. Please try again.",
+			"upload_failed": "Failed to upload files. Please try again.",
+			"invalid_file": "Please select image, PDF, or document files",
+			"file_too_large": "File size must be less than 10MB"
+		},
+		"success": {
+			"title": "Success!",
+			"message": "Your academic information has been updated successfully.",
+			"button": "Continue"
+		}
+	},
+	"wishlist_section": {
+		"title": "Wishlist",
+		"tabs": {
+			"programmes": "Programmes",
+			"scholarships": "Scholarships",
+			"research_labs": "Research Labs"
+		},
+		"search": {
+			"placeholder": "Search..."
+		},
+		"filters": {
+			"all_disciplines": "All Disciplines",
+			"all_countries": "All Countries",
+			"fee_range": "Fee Range",
+			"all_durations": "All Durations",
+			"all_degree_levels": "All Degree Levels",
+			"all_attendance": "All Attendance",
+			"show_expired": "Show Expired",
+			"clear_filters": "Clear Filters"
+		},
+		"results": {
+			"count": "{count} results"
+		},
+		"loading": "Loading your wishlist...",
+		"empty": {
+			"title": "No items in your wishlist",
+			"description": "Start exploring and add programs, scholarships, or research opportunities to your wishlist.",
+			"button": "Explore Opportunities"
+		},
+		"error": {
+			"message": "Failed to load wishlist data",
+			"button": "Retry"
+		}
+	},
+	"settings_section": {
+		"account_info": {
+			"title": "Account Information",
+			"description": "Manage your personal information and account settings. Keep your details up to date for the best experience.",
+			"email": {
+				"label": "Email"
+			}
+		},
+		"notifications": {
+			"title": "Notification Preferences",
+			"loading": "Loading...",
+			"application_status": {
+				"title": "Application status updates",
+				"description": "Get notified when your application status changes through email"
+			},
+			"wishlist_deadline": {
+				"title": "Deadline for wishlist items",
+				"description": "Get email notifications when events in your wishlist are about to expire"
+			},
+			"payment": {
+				"title": "Payment",
+				"description": "Get email notifications 3 days before membership fee payment is due"
+			}
+		},
+		"delete_account": {
+			"title": "Delete account",
+			"description": "Permanently remove your account and all associated data. This action cannot be undone and will:",
+			"consequences": [
+				"Delete your profile and personal information",
+				"Remove all your applications and saved opportunities",
+				"Cancel any active subscriptions",
+				"Permanently delete your account history"
+			],
+			"note": "Note: Your account data will be preserved and you can contact support to reactivate your account in the future if needed.",
+			"button": "Delete your account",
+			"checking": "Checking subscriptions...",
+			"modal": {
+				"title": "Delete Account",
+				"confirmation_title": "Are you absolutely sure?",
+				"confirmation_message": "This action cannot be undone. This will permanently delete your account and remove all your data from our servers.",
+				"data_warning": "The following data will be permanently deleted:",
+				"data_list": [
+					"Your profile information",
+					"All your applications and saved posts",
+					"Your wishlist and preferences",
+					"Your message history",
+					"All associated files and documents"
+				],
+				"type_delete": "Type \"DELETE\" to confirm",
+				"placeholder": "Type DELETE to confirm",
+				"cancel": "Cancel",
+				"delete": "Delete Account",
+				"deleting": "Deleting..."
+			},
+			"subscription_warning": {
+				"title": "Active Subscription Found",
+				"cannot_delete": "Cannot Delete Account",
+				"message": "You have active subscriptions that need to be canceled before you can delete your account.",
+				"what_to_do": "What you need to do:",
+				"steps": [
+					"Go to the pricing page to manage your subscriptions",
+					"Cancel all active subscriptions",
+					"Return to this page to delete your account"
+				],
+				"cancel": "Cancel",
+				"go_to_pricing": "Go to Pricing Page"
+			}
+		}
+	},
+	"application_update_modal": {
+		"title": "Update Required - Submit Response",
+		"loading": "Loading update request...",
+		"error": {
+			"title": "Failed to load update request"
+		},
+		"request": {
+			"title": "Institution Request",
+			"requested_on": "Requested on: {date}",
+			"requested_documents": "Requested Documents:"
+		},
+		"upload": {
+			"title": "Upload Documents",
+			"required": "*",
+			"drag_drop": "Click to upload or drag and drop",
+			"accepted_formats": "PDF, DOC, DOCX, JPG, PNG (Max 10MB)",
+			"uploaded_files": "Uploaded Files",
+			"submitted_documents": "Submitted Documents ({count})"
+		},
+		"document_types": {
+			"research_proposal": "Research Proposal",
+			"cv_resume": "CV/Resume",
+			"portfolio": "Portfolio",
+			"academic_transcript": "Academic Transcript",
+			"personal_statement": "Personal Statement",
+			"recommendation_letter": "Recommendation Letter",
+			"language_certificate": "Language Certificate",
+			"passport_copy": "Passport Copy",
+			"degree_certificate": "Degree Certificate",
+			"other": "Other"
+		},
+		"response": {
+			"title": "Response Message (Optional)",
+			"placeholder": "Add any comments or notes regarding the update...",
+			"characters": "{count} characters",
+			"your_response": "Your Response",
+			"submitted_on": "Submitted on: {date}"
+		},
+		"buttons": {
+			"cancel": "Cancel",
+			"submit": "Submit Update Response",
+			"submitting": "Submitting...",
+			"view": "View",
+			"close": "Close"
+		},
+		"errors": {
+			"no_documents": "Please upload at least one document",
+			"submit_failed": "Failed to submit update response. Please try again."
 		}
 	}
 }

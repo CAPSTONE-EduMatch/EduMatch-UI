@@ -13,6 +13,7 @@ import { DateInput } from '@/components/ui'
 import { Upload, User, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
 import { formatDateForDisplay } from '@/utils/date/date-utils'
+import { useTranslations } from 'next-intl'
 
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY for DateInput
 const convertDateForInput = (dateString: string | undefined | null): string => {
@@ -61,6 +62,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	profile,
 	subdisciplines,
 }) => {
+	const t = useTranslations('profile_info_section')
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
 	const [isUploading, setIsUploading] = useState(false)
@@ -147,10 +149,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 			setIsEditing(false)
 			setHasUnsavedChanges(false)
 		} catch (error: any) {
-			setErrorMessage(
-				error.response?.data?.error ||
-					'Failed to save profile. Please try again.'
-			)
+			setErrorMessage(error.response?.data?.error || t('errors.save_failed'))
 			setShowErrorModal(true)
 		} finally {
 			setIsSaving(false)
@@ -231,14 +230,14 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 		// Validate file type
 		if (!file.type.startsWith('image/')) {
-			setErrorMessage('Please select an image file')
+			setErrorMessage(t('errors.invalid_image'))
 			setShowErrorModal(true)
 			return
 		}
 
 		// Validate file size (5MB max)
 		if (file.size > 5 * 1024 * 1024) {
-			setErrorMessage('File size must be less than 5MB')
+			setErrorMessage(t('errors.file_too_large'))
 			setShowErrorModal(true)
 			return
 		}
@@ -258,7 +257,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 			handleFieldChange('profilePhoto', result.url)
 			setShowSuccessModal(true)
 		} catch (error) {
-			setErrorMessage('Failed to upload image. Please try again.')
+			setErrorMessage(t('errors.upload_failed'))
 			setShowErrorModal(true)
 		} finally {
 			setIsUploading(false)
@@ -278,10 +277,8 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		return (
 			<div className="text-center py-12">
 				<div className="text-6xl mb-4">👤</div>
-				<h2 className="text-2xl font-bold mb-2">Basic Information</h2>
-				<p className="text-muted-foreground">
-					This section is only available for student accounts.
-				</p>
+				<h2 className="text-2xl font-bold mb-2">{t('title')}</h2>
+				<p className="text-muted-foreground">{t('not_available')}</p>
 			</div>
 		)
 	}
@@ -290,10 +287,8 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		<div className="space-y-6">
 			<div className="flex justify-between items-center">
 				<div>
-					<h2 className="text-2xl font-bold mb-2">Basic Information</h2>
-					<p className="text-muted-foreground">
-						Manage your personal information and preferences
-					</p>
+					<h2 className="text-2xl font-bold mb-2">{t('title')}</h2>
+					<p className="text-muted-foreground">{t('description')}</p>
 				</div>
 				{!isEditing ? (
 					<Button
@@ -303,7 +298,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						className="flex items-center gap-2"
 					>
 						<Edit3 className="h-4 w-4" />
-						Edit
+						{t('buttons.edit')}
 					</Button>
 				) : (
 					<div className="flex gap-2">
@@ -314,7 +309,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 							className="flex items-center gap-2"
 						>
 							<X className="h-4 w-4" />
-							Cancel
+							{t('buttons.cancel')}
 						</Button>
 						<Button
 							size="sm"
@@ -323,7 +318,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 							className="flex items-center gap-2"
 						>
 							<Save className="h-4 w-4" />
-							{isSaving ? 'Saving...' : 'Save'}
+							{isSaving ? t('buttons.saving') : t('buttons.save')}
 						</Button>
 					</div>
 				)}
@@ -364,12 +359,14 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 										onClick={handleUploadClick}
 										disabled={isUploading}
 									>
-										{isUploading ? 'Uploading...' : 'Upload your photo'}
+										{isUploading
+											? t('buttons.uploading')
+											: t('buttons.upload_photo')}
 									</Button>
 								)}
 								{isEditing && (
 									<p className="text-xs text-muted-foreground">
-										Must be PNG or JPG file (max 5MB)
+										{t('photo.instructions')}
 									</p>
 								)}
 							</div>
@@ -386,11 +383,13 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						{/* Form Fields - Applicant only */}
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="firstName">First Name</Label>
+								<Label htmlFor="firstName">
+									{t('fields.first_name.label')}
+								</Label>
 								{isEditing ? (
 									<Input
 										id="firstName"
-										placeholder="Enter your first name"
+										placeholder={t('fields.first_name.placeholder')}
 										value={editedProfile?.firstName || ''}
 										onChange={(e) =>
 											handleFieldChange('firstName', e.target.value)
@@ -400,17 +399,18 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								) : (
 									<div className="px-3 py-2 bg-gray-50 rounded-md">
 										<p className="text-sm font-medium text-gray-900">
-											{profile?.firstName || 'Not provided'}
+											{profile?.firstName ||
+												t('fields.first_name.not_provided')}
 										</p>
 									</div>
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="lastName">Last Name</Label>
+								<Label htmlFor="lastName">{t('fields.last_name.label')}</Label>
 								{isEditing ? (
 									<Input
 										id="lastName"
-										placeholder="Enter your last name"
+										placeholder={t('fields.last_name.placeholder')}
 										value={editedProfile?.lastName || ''}
 										onChange={(e) =>
 											handleFieldChange('lastName', e.target.value)
@@ -420,13 +420,13 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								) : (
 									<div className="px-3 py-2 bg-gray-50 rounded-md">
 										<p className="text-sm font-medium text-gray-900">
-											{profile?.lastName || 'Not provided'}
+											{profile?.lastName || t('fields.last_name.not_provided')}
 										</p>
 									</div>
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="gender">Gender</Label>
+								<Label htmlFor="gender">{t('fields.gender.label')}</Label>
 								{isEditing ? (
 									<CustomSelect
 										value={
@@ -434,18 +434,27 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 												? {
 														value: editedProfile.gender,
 														label:
-															editedProfile.gender.charAt(0).toUpperCase() +
-															editedProfile.gender.slice(1),
+															editedProfile.gender === 'male'
+																? t('fields.gender.options.male')
+																: editedProfile.gender === 'female'
+																	? t('fields.gender.options.female')
+																	: editedProfile.gender
+																			.charAt(0)
+																			.toUpperCase() +
+																		editedProfile.gender.slice(1),
 													}
 												: null
 										}
 										onChange={(option) =>
 											handleFieldChange('gender', option?.value || '')
 										}
-										placeholder="Choose gender"
+										placeholder={t('fields.gender.placeholder')}
 										options={[
-											{ value: 'male', label: 'Male' },
-											{ value: 'female', label: 'Female' },
+											{ value: 'male', label: t('fields.gender.options.male') },
+											{
+												value: 'female',
+												label: t('fields.gender.options.female'),
+											},
 										]}
 										isClearable={false}
 										className="w-full"
@@ -453,7 +462,13 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								) : (
 									<div className="px-3 py-2 bg-gray-50 rounded-md">
 										<p className="text-sm font-medium text-gray-900">
-											{profile?.gender || 'Not provided'}
+											{profile?.gender
+												? profile.gender === 'male'
+													? t('fields.gender.options.male')
+													: profile.gender === 'female'
+														? t('fields.gender.options.female')
+														: profile.gender
+												: t('fields.gender.not_provided')}
 										</p>
 									</div>
 								)}
@@ -462,13 +477,13 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="birthday">Birthday</Label>
+								<Label htmlFor="birthday">{t('fields.birthday.label')}</Label>
 								{isEditing ? (
 									<DateInput
 										id="birthday"
 										value={convertDateForInput(editedProfile?.birthday)}
 										onChange={(value) => handleFieldChange('birthday', value)}
-										placeholder="dd/mm/yyyy"
+										placeholder={t('fields.birthday.placeholder')}
 										minDate="1900-01-01"
 										maxDate={new Date().toISOString().split('T')[0]}
 									/>
@@ -481,10 +496,10 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="email">Email</Label>
+								<Label htmlFor="email">{t('fields.email.label')}</Label>
 								<div className="px-3 py-2 bg-gray-50 rounded-md">
 									<p className="text-sm font-medium text-gray-900">
-										{profile?.user?.email || 'Not provided'}
+										{profile?.user?.email || t('fields.email.not_provided')}
 									</p>
 								</div>
 							</div>
@@ -492,7 +507,9 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="nationality">Nationality</Label>
+								<Label htmlFor="nationality">
+									{t('fields.nationality.label')}
+								</Label>
 								{isEditing ? (
 									<CustomSelect
 										value={
@@ -507,7 +524,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 										onChange={(option) =>
 											handleFieldChange('nationality', option?.name || '')
 										}
-										placeholder="Choose your nationality"
+										placeholder={t('fields.nationality.placeholder')}
 										options={getCountriesWithSvgFlags()}
 										formatOptionLabel={(option: any) => (
 											<div className="flex items-center space-x-2">
@@ -547,13 +564,15 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 												})()}
 											</div>
 										) : (
-											<p className="text-sm text-gray-500">Not provided</p>
+											<p className="text-sm text-gray-500">
+												{t('fields.nationality.not_provided')}
+											</p>
 										)}
 									</div>
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="phone">Phone Number</Label>
+								<Label htmlFor="phone">{t('fields.phone.label')}</Label>
 								{isEditing ? (
 									<PhoneInput
 										value={editedProfile?.phoneNumber || ''}
@@ -564,7 +583,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 										onCountryChange={(countryCode) =>
 											handleFieldChange('countryCode', countryCode)
 										}
-										placeholder="Enter your phone number"
+										placeholder={t('fields.phone.placeholder')}
 									/>
 								) : (
 									<div className="px-3 py-2 bg-gray-50 rounded-md">
@@ -587,7 +606,9 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 												})()}
 											</div>
 										) : (
-											<p className="text-sm text-gray-500">Not provided</p>
+											<p className="text-sm text-gray-500">
+												{t('fields.phone.not_provided')}
+											</p>
 										)}
 									</div>
 								)}
@@ -597,7 +618,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 						<div className="space-y-4">
 							<div className="space-y-4">
 								<div className="space-y-2">
-									<Label>Interest</Label>
+									<Label>{t('fields.interests.label')}</Label>
 									{isEditing ? (
 										<CustomSelect
 											value={(editedProfile?.interests || []).map(
@@ -614,7 +635,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 														: []
 												)
 											}
-											placeholder="Choose subject(s)/field(s) you interested in"
+											placeholder={t('fields.interests.placeholder')}
 											options={subdisciplines}
 											isMulti
 											isSearchable
@@ -639,7 +660,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 													</div>
 												) : (
 													<p className="text-sm text-gray-500">
-														No interests specified
+														{t('fields.interests.not_provided')}
 													</p>
 												)
 											})()}
@@ -648,7 +669,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								</div>
 
 								<div className="space-y-2">
-									<Label>Favorite country</Label>
+									<Label>{t('fields.favorite_countries.label')}</Label>
 									{isEditing ? (
 										<CustomSelect
 											value={(editedProfile?.favoriteCountries || []).map(
@@ -672,7 +693,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 														: []
 												)
 											}
-											placeholder="Choose your favorite countries"
+											placeholder={t('fields.favorite_countries.placeholder')}
 											options={getCountriesWithSvgFlags().map((country) => ({
 												value: country.name,
 												label: country.name,
@@ -724,7 +745,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 													</div>
 												) : (
 													<p className="text-sm text-gray-500">
-														No favorite countries specified
+														{t('fields.favorite_countries.not_provided')}
 													</p>
 												)
 											})()}
@@ -741,18 +762,18 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 			<SuccessModal
 				isOpen={showSuccessModal}
 				onClose={() => setShowSuccessModal(false)}
-				title="Success!"
-				message="Your profile has been updated successfully."
-				buttonText="Continue"
+				title={t('success.title')}
+				message={t('success.message')}
+				buttonText={t('success.button')}
 			/>
 
 			{/* Error Modal */}
 			<ErrorModal
 				isOpen={showErrorModal}
 				onClose={() => setShowErrorModal(false)}
-				title="Error"
+				title={t('error.title')}
 				message={errorMessage}
-				buttonText="Try Again"
+				buttonText={t('error.button')}
 			/>
 
 			{/* Simple Warning Modal */}

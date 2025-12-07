@@ -13,6 +13,7 @@ import {
 	ProfileLayoutBase,
 	NavItem,
 } from '@/components/profile/layouts/ProfileLayoutBase'
+import { useTranslations } from 'next-intl'
 
 type ApplicantProfileSection =
 	| 'profile'
@@ -21,39 +22,6 @@ type ApplicantProfileSection =
 	| 'application'
 	| 'payment'
 	| 'settings'
-
-const applicantNavItems: NavItem[] = [
-	{
-		id: 'profile' as ApplicantProfileSection,
-		label: 'Profile Info',
-		icon: User,
-	},
-	{
-		id: 'academic' as ApplicantProfileSection,
-		label: 'Academic',
-		icon: GraduationCap,
-	},
-	{
-		id: 'wishlist' as ApplicantProfileSection,
-		label: 'Wishlist',
-		icon: Heart,
-	},
-	{
-		id: 'application' as ApplicantProfileSection,
-		label: 'Applications',
-		icon: FileText,
-	},
-	{
-		id: 'payment' as ApplicantProfileSection,
-		label: 'Payment',
-		icon: CreditCard,
-	},
-	{
-		id: 'settings' as ApplicantProfileSection,
-		label: 'Settings',
-		icon: Settings,
-	},
-]
 
 interface ApplicantProfileLayoutProps {
 	activeSection: ApplicantProfileSection
@@ -70,6 +38,41 @@ export const ApplicantProfileLayout: React.FC<ApplicantProfileLayoutProps> = ({
 	profile,
 	onEditProfile,
 }) => {
+	const t = useTranslations('profile_view')
+
+	const applicantNavItems: NavItem[] = [
+		{
+			id: 'profile' as ApplicantProfileSection,
+			label: t('navigation.profile_info'),
+			icon: User,
+		},
+		{
+			id: 'academic' as ApplicantProfileSection,
+			label: t('navigation.academic'),
+			icon: GraduationCap,
+		},
+		{
+			id: 'wishlist' as ApplicantProfileSection,
+			label: t('navigation.wishlist'),
+			icon: Heart,
+		},
+		{
+			id: 'application' as ApplicantProfileSection,
+			label: t('navigation.applications'),
+			icon: FileText,
+		},
+		{
+			id: 'payment' as ApplicantProfileSection,
+			label: t('navigation.payment'),
+			icon: CreditCard,
+		},
+		{
+			id: 'settings' as ApplicantProfileSection,
+			label: t('navigation.settings'),
+			icon: Settings,
+		},
+	]
+
 	return (
 		<ProfileLayoutBase
 			activeSection={activeSection}
@@ -77,7 +80,7 @@ export const ApplicantProfileLayout: React.FC<ApplicantProfileLayoutProps> = ({
 			profile={profile}
 			onEditProfile={onEditProfile}
 			navItems={applicantNavItems}
-			roleLabel="Student"
+			roleLabel={t('navigation.student')}
 			roleIcon={<User className="w-8 h-8 text-white" />}
 			containerPaddingTop="pt-26"
 		>

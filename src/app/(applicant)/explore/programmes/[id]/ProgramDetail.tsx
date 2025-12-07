@@ -308,15 +308,16 @@ const ProgramDetail = () => {
 				setCurrentProgram(programData)
 				return programData
 			} else {
-				const errorMessage = data.message || 'Failed to load program details'
+				const errorMessage =
+					data.message || t('program_detail.errors.failed_to_load')
 				setError(errorMessage)
-				showError('Error', errorMessage)
+				showError(t('program_detail.errors.error_title'), errorMessage)
 				return null
 			}
 		} catch (error) {
-			const errorMessage = 'Failed to load program details'
+			const errorMessage = t('program_detail.errors.failed_to_load')
 			setError(errorMessage)
-			showError('Error', errorMessage)
+			showError(t('program_detail.errors.error_title'), errorMessage)
 			return null
 		} finally {
 			setIsLoadingProgram(false)
@@ -1109,8 +1110,8 @@ const ProgramDetail = () => {
 
 				if (response.success) {
 					showSuccess(
-						'Documents Updated!',
-						'Your application documents have been updated successfully.'
+						t('program_detail.apply.documents_updated_title'),
+						t('program_detail.apply.documents_updated_message')
 					)
 					// Exit edit mode and refresh the application to get updated documents
 					setIsEditMode(false)
@@ -1123,23 +1124,23 @@ const ProgramDetail = () => {
 					}
 				} else {
 					showError(
-						'Update Failed',
-						response.message || 'Failed to update documents. Please try again.',
+						t('program_detail.apply.update_failed_title'),
+						response.message || t('program_detail.apply.update_failed_message'),
 						{
 							onRetry: handleApply,
 							showRetry: true,
-							retryText: 'Retry',
+							retryText: t('program_detail.apply.retry'),
 						}
 					)
 				}
 			} catch (error: any) {
 				showError(
-					'Update Error',
-					error.message || 'An unexpected error occurred. Please try again.',
+					t('program_detail.apply.update_error_title'),
+					error.message || t('program_detail.apply.update_error_message'),
 					{
 						onRetry: handleApply,
 						showRetry: true,
-						retryText: 'Retry',
+						retryText: t('program_detail.apply.retry'),
 					}
 				)
 			} finally {
@@ -1153,8 +1154,8 @@ const ProgramDetail = () => {
 		// if all applications are rejected
 		if (hasApplied && applicationStatus !== 'REJECTED') {
 			showError(
-				'Already Applied',
-				'You have already applied to this program. You cannot submit multiple applications.',
+				t('program_detail.apply.already_applied_title'),
+				t('program_detail.apply.already_applied_message'),
 				{
 					showRetry: false,
 				}
@@ -1197,49 +1198,54 @@ const ProgramDetail = () => {
 				router.push(newUrl.pathname + newUrl.search)
 				setActiveTab('application')
 				showSuccess(
-					'Application Submitted!',
-					'Your application has been submitted successfully. You will receive updates via email.'
+					t('program_detail.apply.application_submitted_title'),
+					t('program_detail.apply.application_submitted_message')
 				)
 			} else {
 				showError(
-					'Application Failed',
-					response.error || 'Failed to submit application. Please try again.',
+					t('program_detail.apply.application_failed_title'),
+					response.error ||
+						t('program_detail.apply.application_failed_message'),
 					{
 						onRetry: handleApply,
 						showRetry: true,
-						retryText: 'Retry',
+						retryText: t('program_detail.apply.retry'),
 					}
 				)
 			}
 		} catch (error: any) {
 			// Handle application limit error
 			if (error instanceof ApplicationLimitError) {
-				showError('Application Limit Reached', error.getUserFriendlyMessage(), {
-					showRetry: false,
-					showUpgradeButton: true,
-					upgradeButtonText: 'Upgrade Plan',
-					onUpgradeClick: () => {
-						router.push('/pricing')
-					},
-				})
+				showError(
+					t('program_detail.apply.limit_reached_title'),
+					error.getUserFriendlyMessage(),
+					{
+						showRetry: false,
+						showUpgradeButton: true,
+						upgradeButtonText: t('program_detail.apply.upgrade_plan'),
+						onUpgradeClick: () => {
+							router.push('/pricing')
+						},
+					}
+				)
 				// Handle specific "already applied" error
 			} else if (error.message && error.message.includes('already applied')) {
 				setHasApplied(true)
 				showError(
-					'Already Applied',
-					'You have already applied to this program. You cannot submit multiple applications.',
+					t('program_detail.apply.already_applied_title'),
+					t('program_detail.apply.already_applied_message'),
 					{
 						showRetry: false,
 					}
 				)
 			} else {
 				showError(
-					'Application Error',
-					error.message || 'An unexpected error occurred. Please try again.',
+					t('program_detail.apply.application_error_title'),
+					error.message || t('program_detail.apply.application_error_message'),
 					{
 						onRetry: handleApply,
 						showRetry: true,
-						retryText: 'Retry',
+						retryText: t('program_detail.apply.retry'),
 					}
 				)
 			}
@@ -1268,10 +1274,12 @@ const ProgramDetail = () => {
 
 			// Show success message based on the previous state (opposite of what it was)
 			showSuccess(
-				wasWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
 				wasWishlisted
-					? 'This program has been removed from your wishlist.'
-					: 'This program has been added to your wishlist.'
+					? t('program_detail.wishlist.removed_title')
+					: t('program_detail.wishlist.added_title'),
+				wasWishlisted
+					? t('program_detail.wishlist.removed_message')
+					: t('program_detail.wishlist.added_message')
 			)
 		} catch (error) {
 			// Check if error is due to authentication
@@ -1284,14 +1292,16 @@ const ProgramDetail = () => {
 			) {
 				setShowAuthModal(true)
 			} else {
+				// Log error for debugging
+				// eslint-disable-next-line no-console
 				console.error('Failed to toggle wishlist item:', error)
 				showError(
-					'Wishlist Error',
-					'Failed to update wishlist. Please try again.',
+					t('program_detail.wishlist.error_title'),
+					t('program_detail.wishlist.error_message'),
 					{
 						onRetry: handleWishlistToggle,
 						showRetry: true,
-						retryText: 'Retry',
+						retryText: t('program_detail.apply.retry'),
 					}
 				)
 			}
@@ -2665,11 +2675,11 @@ const ProgramDetail = () => {
 											}`}
 										>
 											{request.status === 'PENDING'
-												? 'Update Required'
+												? t('program_detail.update_request.update_required')
 												: request.status === 'RESPONDED' ||
 													  request.status === 'REVIEWED'
-													? 'Update Submitted Successfully'
-													: 'Update Request'}
+													? t('program_detail.update_request.update_submitted')
+													: t('program_detail.update_request.update_request')}
 										</h3>
 										<p
 											className={`mt-1 mb-4 ${
@@ -2682,11 +2692,13 @@ const ProgramDetail = () => {
 											}`}
 										>
 											{request.status === 'PENDING'
-												? 'The institution has requested additional information or documents for your application. Please review the request and submit the required updates.'
+												? t('program_detail.update_request.pending_message')
 												: request.status === 'RESPONDED' ||
 													  request.status === 'REVIEWED'
-													? 'Your update response has been submitted successfully. The institution will review your changes.'
-													: `Update request #${updateRequests.length - index}`}
+													? t('program_detail.update_request.responded_message')
+													: t('program_detail.update_request.request_number', {
+															number: updateRequests.length - index,
+														})}
 										</p>
 										<div className="flex gap-3">
 											{request.status === 'PENDING' && applicationId && (
@@ -2697,7 +2709,7 @@ const ProgramDetail = () => {
 													}}
 													className="bg-orange-500 hover:bg-orange-600 text-white"
 												>
-													View Update Request & Submit Response
+													{t('program_detail.update_request.view_and_submit')}
 												</Button>
 											)}
 											{(request.status === 'RESPONDED' ||
@@ -2713,7 +2725,7 @@ const ProgramDetail = () => {
 														variant="outline"
 														className="border-green-600 text-green-600 hover:bg-green-50"
 													>
-														View Update Details
+														{t('program_detail.update_request.view_details')}
 													</Button>
 												)}
 										</div>
@@ -2886,7 +2898,7 @@ const ProgramDetail = () => {
 										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
 										size="sm"
 									>
-										Edit Documents
+										{t('program_detail.apply.edit_documents_button')}
 									</Button>
 								)}
 							</div>

@@ -7,6 +7,7 @@ import {
 import { motion } from 'framer-motion'
 import { Building, Clock, FileText, Heart, Lock, MapPin, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ScholarshipCardProps {
 	scholarship: {
@@ -51,6 +52,7 @@ export function ScholarshipCard({
 	institutionStatus,
 }: ScholarshipCardProps) {
 	const router = useRouter()
+	const t = useTranslations('application_section')
 	// Check if match score is restricted (shown as "—" for non-Premium users)
 	const isMatchRestricted = scholarship.match === '—'
 	// Format date and calculate days left on the client side
@@ -231,7 +233,7 @@ export function ScholarshipCard({
 												: 'bg-gray-100 text-gray-800'
 							}`}
 						>
-							{scholarship.applicationStatus}
+							{t(`status.${scholarship.applicationStatus}`)}
 						</span>
 					</div>
 				)}

@@ -3,6 +3,7 @@
 import { useApplicationEligibility } from '@/hooks/application/useApplicationEligibility'
 import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle, Clock, Crown } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface SubscriptionProgressWidgetProps {
 	applicantId?: string
@@ -17,6 +18,7 @@ export function SubscriptionProgressWidget({
 	className = '',
 	showTitle = true,
 }: SubscriptionProgressWidgetProps) {
+	const t = useTranslations('profile_view.subscription_widget')
 	const {
 		planName,
 		applicationsUsed,
@@ -84,12 +86,12 @@ export function SubscriptionProgressWidget({
 				<div className="flex items-center justify-between mb-3">
 					<h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
 						<Crown className="w-4 h-4 text-amber-500" />
-						{planName} Plan Applications
+						{planName} {t('plan_applications')}
 					</h3>
 					{daysUntilReset && (
 						<div className="flex items-center gap-1 text-xs text-gray-500">
 							<Clock className="w-3 h-3" />
-							Resets in {daysUntilReset} days
+							{t('resets_in_days', { days: daysUntilReset })}
 						</div>
 					)}
 				</div>
@@ -98,7 +100,7 @@ export function SubscriptionProgressWidget({
 			{/* Progress Bar */}
 			<div className="mb-3">
 				<div className="flex justify-between text-sm mb-2">
-					<span className="text-gray-600">Applications Used</span>
+					<span className="text-gray-600">{t('applications_used')}</span>
 					<span
 						className={`font-semibold ${
 							isAtLimit
@@ -141,25 +143,32 @@ export function SubscriptionProgressWidget({
 					<div className="flex items-center gap-2">
 						<AlertTriangle className="w-4 h-4" />
 						<span>
-							Application limit reached.{' '}
+							{t('status.limit_reached')}{' '}
 							{daysUntilReset
-								? `Resets in ${daysUntilReset} days`
-								: 'Upgrade for unlimited applications'}
+								? t('resets_in_days', { days: daysUntilReset.toString() })
+								: t('status.upgrade_unlimited')}
 						</span>
 					</div>
 				) : isNearLimit ? (
 					<div className="flex items-center gap-2">
 						<AlertTriangle className="w-4 h-4" />
 						<span>
-							Only {applicationsRemaining} application
-							{applicationsRemaining !== 1 ? 's' : ''} remaining this period
+							{applicationsRemaining === 1
+								? t('status.only_remaining', {
+										count: (applicationsRemaining || 0).toString(),
+									})
+								: t('status.only_remaining_plural', {
+										count: (applicationsRemaining || 0).toString(),
+									})}
 						</span>
 					</div>
 				) : (
 					<div className="flex items-center gap-2">
 						<CheckCircle className="w-4 h-4" />
 						<span>
-							{applicationsRemaining} applications remaining this period
+							{t('status.remaining', {
+								count: (applicationsRemaining || 0).toString(),
+							})}
 						</span>
 					</div>
 				)}

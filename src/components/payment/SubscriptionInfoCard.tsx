@@ -6,8 +6,10 @@ import { Calendar, Star, User, Wallet } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { formatUTCDate } from '@/utils/date'
+import { useTranslations } from 'next-intl'
 
 export function SubscriptionInfoCard() {
+	const t = useTranslations('profile_view.subscription_info')
 	const { subscriptions, currentPlan, isAuthenticated } = useSubscription()
 	const { user } = useAuth()
 	const router = useRouter()
@@ -22,19 +24,19 @@ export function SubscriptionInfoCard() {
 		switch (plan) {
 			case 'standard':
 				return {
-					name: 'Standard Membership',
+					name: t('plans.standard'),
 					price: 99,
 					color: 'bg-blue-100 text-blue-700',
 				}
 			case 'premium':
 				return {
-					name: 'Premium Membership',
+					name: t('plans.premium'),
 					price: 199,
 					color: 'bg-purple-100 text-purple-700',
 				}
 			default:
 				return {
-					name: 'Free Plan',
+					name: t('plans.free'),
 					price: 0,
 					color: 'bg-gray-100 text-gray-700',
 				}
@@ -45,7 +47,7 @@ export function SubscriptionInfoCard() {
 
 	// Format date - timezone-aware
 	const formatDate = (date: Date | string) => {
-		if (!date) return 'Not available'
+		if (!date) return t('not_available_full')
 		// Use timezone-aware formatting with custom format
 		return formatUTCDate(date, {
 			year: 'numeric',
@@ -61,7 +63,7 @@ export function SubscriptionInfoCard() {
 	// Compute display strings to keep JSX simple and avoid nested ternaries
 	const nextBillingText =
 		planDetails.price === 0
-			? 'N/A'
+			? t('not_available')
 			: activeSubscription
 				? formatDate(activeSubscription.periodEnd)
 				: 'January 15, 2025'
@@ -85,7 +87,7 @@ export function SubscriptionInfoCard() {
 							<h2 className="text-2xl font-bold text-gray-900 mb-1">
 								{planDetails.name}
 							</h2>
-							<p className="text-gray-600">Your current subscription</p>
+							<p className="text-gray-600">{t('current_subscription')}</p>
 						</div>
 					</div>
 					{isAuthenticated && currentPlan !== 'premium' && (
@@ -93,7 +95,7 @@ export function SubscriptionInfoCard() {
 							onClick={handleUpgradePlan}
 							className="bg-[#126E64] hover:bg-[#0f5c54] text-white px-6 py-3 rounded-full"
 						>
-							Upgrade plan
+							{t('upgrade_plan')}
 						</Button>
 					)}
 				</div>
@@ -105,7 +107,7 @@ export function SubscriptionInfoCard() {
 						<div className="flex items-center gap-3">
 							<Calendar className="w-5 h-5 text-[#126E64]" />
 							<span className="text-gray-600 font-medium">
-								Next Billing Date
+								{t('next_billing_date')}
 							</span>
 						</div>
 						<p className="text-lg font-semibold text-gray-900">
@@ -117,7 +119,9 @@ export function SubscriptionInfoCard() {
 					<div className="space-y-3">
 						<div className="flex items-center gap-3">
 							<Wallet className="w-5 h-5 text-[#126E64]" />
-							<span className="text-gray-600 font-medium">Monthly cost</span>
+							<span className="text-gray-600 font-medium">
+								{t('monthly_cost')}
+							</span>
 						</div>
 						<p className="text-lg font-semibold text-gray-900">
 							${planDetails.price}.00
@@ -128,7 +132,9 @@ export function SubscriptionInfoCard() {
 					<div className="space-y-3">
 						<div className="flex items-center gap-3">
 							<User className="w-5 h-5 text-[#126E64]" />
-							<span className="text-gray-600 font-medium">Member since</span>
+							<span className="text-gray-600 font-medium">
+								{t('member_since')}
+							</span>
 						</div>
 						<p className="text-lg font-semibold text-gray-900">
 							{memberSinceText}

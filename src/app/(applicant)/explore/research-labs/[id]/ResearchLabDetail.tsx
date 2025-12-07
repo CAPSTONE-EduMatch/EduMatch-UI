@@ -1691,12 +1691,14 @@ const ResearchLabDetail = () => {
 												? 'fill-red-500 text-red-500'
 												: 'text-gray-400 hover:text-red-500'
 										}`}
-									/>
+									/>{' '}
 								</motion.button>
 							</div>
 
 							<p className="text-sm text-gray-500">
-								Number of applications: {researchLab?.applicationCount || 0}
+								{t('research_lab_detail.header.applications_count', {
+									count: researchLab?.applicationCount || 0,
+								})}
 							</p>
 						</div>
 						<div className="w-1/2 grid grid-cols-2 gap-4">

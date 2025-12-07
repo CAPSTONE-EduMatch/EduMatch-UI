@@ -15,6 +15,7 @@ import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
 import { openSessionProtectedFile } from '@/utils/files/getSessionProtectedFileUrl'
 import { FileValidationResult } from '@/services/ai/file-validation-service'
+import { useTranslations } from 'next-intl'
 
 interface AcademicSectionProps {
 	profile: any
@@ -27,6 +28,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	subdisciplines,
 	onProfileUpdate,
 }) => {
+	const t = useTranslations('academic_section')
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
 	const [isUploading, setIsUploading] = useState(false)
@@ -71,9 +73,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			) || []
 
 		if (incompleteResearchPapers.length > 0) {
-			setErrorMessage(
-				'Please provide both title and discipline for all research papers before uploading files.'
-			)
+			setErrorMessage(t('errors.incomplete_research_papers'))
 			setShowErrorModal(true)
 			return
 		}
@@ -114,7 +114,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 
 			const result = await response.json()
 			if (!result.success) {
-				throw new Error(result.error || 'Failed to update academic profile')
+				throw new Error(result.error || t('errors.save_failed'))
 			}
 
 			// Update local state with the saved data
@@ -136,8 +136,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			window.dispatchEvent(new CustomEvent('profileUpdated'))
 		} catch (error: any) {
 			setErrorMessage(
-				error.response?.data?.error ||
-					'Failed to save academic information. Please try again.'
+				error.response?.data?.error || t('errors.save_failed_detail')
 			)
 			setShowErrorModal(true)
 		} finally {
@@ -404,10 +403,8 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 		return (
 			<div className="text-center py-12">
 				<div className="text-6xl mb-4">🎓</div>
-				<h2 className="text-2xl font-bold mb-2">Academic Information</h2>
-				<p className="text-muted-foreground">
-					This section is only available for student accounts.
-				</p>
+				<h2 className="text-2xl font-bold mb-2">{t('title')}</h2>
+				<p className="text-muted-foreground">{t('not_available')}</p>
 			</div>
 		)
 	}
@@ -416,10 +413,8 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 		<div className="space-y-6">
 			<div className="flex justify-between items-center">
 				<div>
-					<h2 className="text-2xl font-bold mb-2">Academic Information</h2>
-					<p className="text-muted-foreground">
-						Your educational background and academic achievements
-					</p>
+					<h2 className="text-2xl font-bold mb-2">{t('title')}</h2>
+					<p className="text-muted-foreground">{t('description')}</p>
 				</div>
 				{!isEditing ? (
 					<Button
@@ -429,7 +424,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 						className="flex items-center gap-2"
 					>
 						<Edit3 className="h-4 w-4" />
-						Edit
+						{t('buttons.edit')}
 					</Button>
 				) : (
 					<div className="flex gap-2">
@@ -440,7 +435,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							className="flex items-center gap-2"
 						>
 							<X className="h-4 w-4" />
-							Cancel
+							{t('buttons.cancel')}
 						</Button>
 						<Button
 							size="sm"
@@ -449,7 +444,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							className="flex items-center gap-2"
 						>
 							<Save className="h-4 w-4" />
-							{isSaving ? 'Saving...' : 'Save'}
+							{isSaving ? t('buttons.saving') : t('buttons.save')}
 						</Button>
 					</div>
 				)}
@@ -462,7 +457,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 						{/* Row: Title + Graduation radios */}
 						<div className="flex flex-row  gap-4">
 							<h3 className="text-base md:text-lg font-semibold text-foreground tracking-tight">
-								Graduated
+								{t('graduated.title')}
 							</h3>
 
 							{/* Radio group */}
@@ -487,7 +482,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										className="w-4 h-4 border-2 rounded-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60"
 										style={{ accentColor: '#126E64' }}
 									/>
-									<span className="text-sm text-foreground/90">Not yet</span>
+									<span className="text-sm text-foreground/90">
+										{t('graduated.not_yet')}
+									</span>
 								</label>
 
 								<label
@@ -510,7 +507,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										className="w-4 h-4 border-2 rounded-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60"
 										style={{ accentColor: '#126E64' }}
 									/>
-									<span className="text-sm text-foreground/90">Graduated</span>
+									<span className="text-sm text-foreground/90">
+										{t('graduated.graduated')}
+									</span>
 								</label>
 							</div>
 						</div>
@@ -521,7 +520,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 								{/* Level */}
 								<div className="space-y-1.5">
 									<Label className="text-l font-medium text-foreground/80">
-										Level
+										{t('graduated.level')}
 									</Label>
 									{isEditing ? (
 										<CustomSelect
@@ -536,14 +535,29 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											onChange={(option) =>
 												handleFieldChange('degree', option?.value || '')
 											}
-											placeholder="Level"
+											placeholder={t('fields.level.placeholder')}
 											options={[
-												{ value: 'High School', label: 'High School' },
-												{ value: 'Associate', label: 'Associate' },
-												{ value: "Bachelor's", label: "Bachelor's" },
-												{ value: "Master's", label: "Master's" },
-												{ value: 'PhD', label: 'PhD' },
-												{ value: 'Professional', label: 'Professional' },
+												{
+													value: 'High School',
+													label: t('fields.level.options.high_school'),
+												},
+												{
+													value: 'Associate',
+													label: t('fields.level.options.associate'),
+												},
+												{
+													value: "Bachelor's",
+													label: t('fields.level.options.bachelor'),
+												},
+												{
+													value: "Master's",
+													label: t('fields.level.options.master'),
+												},
+												{ value: 'PhD', label: t('fields.level.options.phd') },
+												{
+													value: 'Professional',
+													label: t('fields.level.options.professional'),
+												},
 											]}
 											menuPortalTarget={document.body}
 											isClearable={false}
@@ -552,7 +566,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										/>
 									) : (
 										<p className="text-sm font-medium">
-											{profile?.degree || 'Not provided'}
+											{profile?.degree || t('fields.level.not_provided')}
 										</p>
 									)}
 								</div>
@@ -560,7 +574,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 								{/* Discipline */}
 								<div className="space-y-1.5 md:border-l md:pl-6 border-border/60">
 									<Label className="text-l font-medium text-foreground/80">
-										Discipline
+										{t('graduated.discipline')}
 									</Label>
 									{isEditing ? (
 										<CustomSelect
@@ -575,7 +589,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											onChange={(option) =>
 												handleFieldChange('fieldOfStudy', option?.value || '')
 											}
-											placeholder="Choose discipline"
+											placeholder={t('fields.discipline.placeholder')}
 											options={subdisciplines}
 											menuPortalTarget={document.body}
 											isClearable={false}
@@ -583,7 +597,8 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										/>
 									) : (
 										<p className="text-sm font-medium">
-											{profile?.fieldOfStudy || 'Not provided'}
+											{profile?.fieldOfStudy ||
+												t('fields.discipline.not_provided')}
 										</p>
 									)}
 								</div>
@@ -591,15 +606,12 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 								{/* GPA */}
 								<div className="space-y-1.5 md:border-l md:pl-6 border-border/60">
 									<Label className="text-l font-medium text-foreground/80">
-										GPA
+										{t('graduated.gpa')}
 									</Label>
 									<div className="flex items-center gap-3">
-										{/* <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-primary/15 text-primary">
-											GPA
-										</span> */}
 										{isEditing ? (
 											<Input
-												placeholder="0.0–4.0"
+												placeholder={t('fields.gpa.placeholder')}
 												value={editedProfile?.gpa || ''}
 												onChange={handleGpaInput}
 												inputSize="select"
@@ -608,9 +620,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											/>
 										) : (
 											<p className="text-sm font-medium">
-												{(() => {
-													return profile?.gpa || 'Not provided'
-												})()}
+												{profile?.gpa || t('fields.gpa.not_provided')}
 											</p>
 										)}
 									</div>
@@ -625,7 +635,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									htmlFor="university"
 									className="text-l font-medium text-foreground/80"
 								>
-									University
+									{t('graduated.university')}
 								</Label>
 								{isEditing ? (
 									<Input
@@ -634,12 +644,12 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										onChange={(e) =>
 											handleFieldChange('university', e.target.value)
 										}
-										placeholder="e.g., Harvard University"
+										placeholder={t('fields.university.placeholder')}
 										inputSize="select"
 									/>
 								) : (
 									<p className="text-sm font-medium">
-										{profile?.university || 'Not provided'}
+										{profile?.university || t('fields.university.not_provided')}
 									</p>
 								)}
 							</div>
@@ -649,7 +659,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									htmlFor="countryOfStudy"
 									className="text-l font-medium text-foreground/80"
 								>
-									Country of Study
+									{t('graduated.country_of_study')}
 								</Label>
 								{isEditing ? (
 									<CustomSelect
@@ -663,7 +673,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										onChange={(option) =>
 											handleFieldChange('countryOfStudy', option?.name || '')
 										}
-										placeholder="Select country"
+										placeholder={t('fields.country_of_study.placeholder')}
 										options={getCountriesWithSvgFlags()}
 										formatOptionLabel={(option: any) => (
 											<div className="flex items-center gap-2">
@@ -693,7 +703,8 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 														<span className="text-lg">{countryData.flag}</span>
 													)}
 													<span className="text-sm font-medium">
-														{profile?.countryOfStudy || 'Not provided'}
+														{profile?.countryOfStudy ||
+															t('fields.country_of_study.not_provided')}
 													</span>
 												</>
 											)
@@ -711,7 +722,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 					<div className="space-y-4">
 						<div className="flex items-center gap-8">
 							<h3 className="text-lg font-semibold text-foreground">
-								Foreign Language
+								{t('foreign_language.title')}
 							</h3>
 
 							{/* Foreign Language Status Radio Buttons */}
@@ -739,7 +750,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										htmlFor="language-yes"
 										className="text-sm font-normal cursor-pointer"
 									>
-										Yes
+										{t('foreign_language.yes')}
 									</Label>
 								</div>
 								<div className="flex items-center space-x-2">
@@ -765,7 +776,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										htmlFor="language-no"
 										className="text-sm font-normal cursor-pointer"
 									>
-										No
+										{t('foreign_language.no')}
 									</Label>
 								</div>
 							</div>
@@ -786,7 +797,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									>
 										<div className="space-y-2 md:col-span-2">
 											<Label className="text-l font-medium text-foreground">
-												Language
+												{t('foreign_language.language')}
 											</Label>
 											{isEditing ? (
 												<CustomSelect
@@ -835,46 +846,48 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 														}
 														handleFieldChange('languages', newLanguages)
 													}}
-													placeholder="Language"
+													placeholder={t(
+														'foreign_language.placeholder.language'
+													)}
 													options={[
 														{
 															value: 'Vietnamese',
-															label: 'Vietnamese',
+															label: t('foreign_language.languages.vietnamese'),
 															flag: '🇻🇳',
 														},
 														{
 															value: 'English',
-															label: 'English',
+															label: t('foreign_language.languages.english'),
 															flag: '🇺🇸',
 														},
 														{
 															value: 'Spanish',
-															label: 'Spanish',
+															label: t('foreign_language.languages.spanish'),
 															flag: '🇪🇸',
 														},
 														{
 															value: 'French',
-															label: 'French',
+															label: t('foreign_language.languages.french'),
 															flag: '🇫🇷',
 														},
 														{
 															value: 'German',
-															label: 'German',
+															label: t('foreign_language.languages.german'),
 															flag: '🇩🇪',
 														},
 														{
 															value: 'Chinese',
-															label: 'Chinese',
+															label: t('foreign_language.languages.chinese'),
 															flag: '🇨🇳',
 														},
 														{
 															value: 'Japanese',
-															label: 'Japanese',
+															label: t('foreign_language.languages.japanese'),
 															flag: '🇯🇵',
 														},
 														{
 															value: 'Korean',
-															label: 'Korean',
+															label: t('foreign_language.languages.korean'),
 															flag: '🇰🇷',
 														},
 													]}
@@ -911,7 +924,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										</div>
 										<div className="space-y-2 md:col-span-2">
 											<Label className="text-l font-medium text-foreground">
-												Certificate
+												{t('foreign_language.certificate')}
 											</Label>
 											{isEditing ? (
 												<CustomSelect
@@ -934,7 +947,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 														}
 														handleFieldChange('languages', newLanguages)
 													}}
-													placeholder="Select certificate"
+													placeholder={t(
+														'foreign_language.placeholder.certificate'
+													)}
 													options={getCertificateOptions(lang.language)}
 													menuPortalTarget={document.body}
 													variant="green"
@@ -947,12 +962,12 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										</div>
 										<div className="space-y-2 md:col-span-1">
 											<Label className="text-l font-medium text-foreground">
-												Score
+												{t('foreign_language.score')}
 											</Label>
 											{isEditing ? (
 												<Input
 													key={`score-${index}-${lang.language}`}
-													placeholder="Score"
+													placeholder={t('foreign_language.placeholder.score')}
 													value={lang.score || ''}
 													onChange={(e) => {
 														const newLanguages = [
@@ -1008,7 +1023,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
 										>
 											<span className="underline">
-												Add language certification
+												{t('buttons.add_language')}
 											</span>
 											<div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
 												<span className="text-white text-sm font-bold">+</span>
@@ -1025,7 +1040,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			<Card>
 				<CardContent className="p-6">
 					<div className="mb-4">
-						<h3 className="text-lg font-semibold mb-2">CV / Resume</h3>
+						<h3 className="text-lg font-semibold mb-2">
+							{t('files.cv.title')}
+						</h3>
 						{isEditing && (
 							<FileUploadManagerWithOCR
 								onFilesUploaded={(files: any[]) => {
@@ -1086,7 +1103,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 												}}
 												className="text-primary hover:text-primary/80 text-sm font-medium"
 											>
-												View
+												{t('files.view')}
 											</button>
 											{isEditing && (
 												<button
@@ -1102,11 +1119,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							)
 						) : (
 							<div className="text-center py-8 text-muted-foreground">
-								<p>No files uploaded yet</p>
+								<p>{t('files.cv.no_files')}</p>
 								{isEditing && (
-									<p className="text-sm mt-1">
-										Click &quot;Add More&quot; to upload files
-									</p>
+									<p className="text-sm mt-1">{t('files.cv.upload_hint')}</p>
 								)}
 							</div>
 						)}
@@ -1118,7 +1133,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 				<CardContent className="p-6">
 					<div className="mb-4">
 						<h3 className="text-lg font-semibold mb-2">
-							Foreign Language Certificate
+							{t('files.language_cert.title')}
 						</h3>
 						{isEditing && (
 							<FileUploadManagerWithOCR
@@ -1184,7 +1199,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											}}
 											className="text-primary hover:text-primary/80 text-sm font-medium"
 										>
-											View
+											{t('files.view')}
 										</button>
 										{isEditing && (
 											<button
@@ -1199,11 +1214,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							))
 						) : (
 							<div className="text-center py-8 text-muted-foreground">
-								<p>No files uploaded yet</p>
+								<p>{t('files.language_cert.no_files')}</p>
 								{isEditing && (
-									<p className="text-sm mt-1">
-										Click &quot;Add More&quot; to upload files
-									</p>
+									<p className="text-sm mt-1">{t('files.cv.upload_hint')}</p>
 								)}
 							</div>
 						)}
@@ -1215,7 +1228,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			<Card>
 				<CardContent className="p-6">
 					<div className="mb-4">
-						<h3 className="text-lg font-semibold mb-2">Degree Certificate</h3>
+						<h3 className="text-lg font-semibold mb-2">
+							{t('files.degree.title')}
+						</h3>
 						{isEditing && (
 							<FileUploadManagerWithOCR
 								onFilesUploaded={(files) => {
@@ -1275,7 +1290,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											}}
 											className="text-primary hover:text-primary/80 text-sm font-medium"
 										>
-											View
+											{t('files.view')}
 										</button>
 										{isEditing && (
 											<button
@@ -1290,10 +1305,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							))
 						) : (
 							<div className="text-center py-8 text-muted-foreground">
-								<p>No files uploaded yet</p>
+								<p>{t('files.degree.no_files')}</p>
 								{isEditing && (
 									<p className="text-sm mt-1">
-										Click &quot;Add More&quot; to upload files
+										{t('files.degree.upload_hint')}
 									</p>
 								)}
 							</div>
@@ -1306,7 +1321,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			<Card>
 				<CardContent className="p-6">
 					<div className="mb-4">
-						<h3 className="text-lg font-semibold mb-2">Academic Transcript</h3>
+						<h3 className="text-lg font-semibold mb-2">
+							{t('files.transcript.title')}
+						</h3>
 						{isEditing && (
 							<FileUploadManagerWithOCR
 								onFilesUploaded={(files: any[]) => {
@@ -1371,7 +1388,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											}}
 											className="text-primary hover:text-primary/80 text-sm font-medium"
 										>
-											View
+											{t('files.view')}
 										</button>
 										{isEditing && (
 											<button
@@ -1386,10 +1403,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							))
 						) : (
 							<div className="text-center py-8 text-muted-foreground">
-								<p>No files uploaded yet</p>
+								<p>{t('files.transcript.no_files')}</p>
 								{isEditing && (
 									<p className="text-sm mt-1">
-										Click &quot;Add More&quot; to upload files
+										{t('files.transcript.upload_hint')}
 									</p>
 								)}
 							</div>
@@ -1402,7 +1419,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 			<Card>
 				<CardContent className="p-6">
 					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-semibold">Research Papers</h3>
+						<h3 className="text-lg font-semibold">
+							{t('research_papers.title')}
+						</h3>
 						{isEditing && (
 							<Button
 								variant="outline"
@@ -1417,7 +1436,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 								className="flex items-center gap-2"
 							>
 								<Upload className="h-4 w-4" />
-								Add Research Paper
+								{t('buttons.add_research_paper')}
 							</Button>
 						)}
 					</div>
@@ -1438,11 +1457,11 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										<div className="space-y-4">
 											<div className="space-y-2">
 												<Label className="text-l font-medium text-foreground">
-													Paper Title
+													{t('research_papers.paper_title')}
 												</Label>
 												{isEditing ? (
 													<Input
-														placeholder="Enter research paper title"
+														placeholder={t('research_papers.placeholder.title')}
 														value={paper.title}
 														onChange={(e) => {
 															const newPapers = [
@@ -1458,12 +1477,12 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 													/>
 												) : (
 													<p className="text-sm font-medium">
-														{paper.title || 'Not provided'}
+														{paper.title || t('research_papers.not_provided')}
 													</p>
 												)}
 											</div>
 											<div className="space-y-2">
-												<Label>Disciplines</Label>
+												<Label>{t('research_papers.disciplines')}</Label>
 												{isEditing ? (
 													<CustomSelect
 														value={
@@ -1490,7 +1509,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 															}
 															handleFieldChange('researchPapers', newPapers)
 														}}
-														placeholder="Choose disciplines"
+														placeholder={t(
+															'research_papers.placeholder.disciplines'
+														)}
 														options={subdisciplines}
 														isMulti
 														isSearchable
@@ -1499,7 +1520,8 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 													/>
 												) : (
 													<p className="text-sm">
-														{paper.discipline || 'Not provided'}
+														{paper.discipline ||
+															t('research_papers.not_provided')}
 													</p>
 												)}
 											</div>
@@ -1508,7 +1530,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 										{/* Right side - File Upload */}
 										<div className="space-y-3">
 											<Label className="text-l font-medium text-foreground">
-												Research Paper Files
+												{t('research_papers.files')}
 											</Label>
 											{isEditing && (
 												<FileUploadManagerWithOCR
@@ -1584,7 +1606,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 																	}}
 																	className="text-primary hover:text-primary/80 text-xs font-medium"
 																>
-																	View
+																	{t('files.view')}
 																</button>
 																{isEditing && (
 																	<button
@@ -1604,7 +1626,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 													))
 												) : (
 													<p className="text-xs text-muted-foreground">
-														No files uploaded
+														{t('research_papers.no_files')}
 													</p>
 												)}
 											</div>
@@ -1624,7 +1646,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 												className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
 											>
 												<X className="h-4 w-4" />
-												Delete Research Paper
+												{t('buttons.delete_research_paper')}
 											</button>
 										</div>
 									)}
@@ -1632,10 +1654,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							))
 						) : (
 							<div className="text-center py-8 text-muted-foreground">
-								<p>No research papers uploaded yet</p>
+								<p>{t('research_papers.no_papers')}</p>
 								{isEditing && (
 									<p className="text-sm mt-1">
-										Click &quot;Add Research Paper&quot; to get started
+										{t('research_papers.upload_hint')}
 									</p>
 								)}
 							</div>
@@ -1661,18 +1683,18 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 						}
 					}
 				}}
-				title="Success!"
-				message="Your academic information has been updated successfully."
-				buttonText="Continue"
+				title={t('success.title')}
+				message={t('success.message')}
+				buttonText={t('success.button')}
 			/>
 
 			{/* Error Modal */}
 			<ErrorModal
 				isOpen={showErrorModal}
 				onClose={() => setShowErrorModal(false)}
-				title="Error"
+				title={t('error.title')}
 				message={errorMessage}
-				buttonText="Try Again"
+				buttonText={t('error.button')}
 			/>
 
 			{/* Simple Warning Modal */}

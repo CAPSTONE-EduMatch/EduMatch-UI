@@ -5,7 +5,6 @@
 	"breadcrumb": {
 		"home": "Trang chủ",
 		"explore": "Khám phá",
-		"program_detail": "Chi tiết chương trình",
 		"programmes": "Chương trình",
 		"scholarships": "Học bổng",
 		"research_labs": "Phòng nghiên cứu"
@@ -816,7 +815,25 @@
 			"submit_button": "Nộp Hồ Sơ",
 			"submitting_button": "Đang nộp...",
 			"cancel_edit_button": "Hủy",
-			"save_changes_button": "Lưu Thay Đổi"
+			"save_changes_button": "Lưu Thay Đổi",
+			"edit_documents_button": "Chỉnh Sửa Tài Liệu",
+			"already_applied_title": "Đã Ứng Tuyển",
+			"already_applied_message": "Bạn đã ứng tuyển vào chương trình này. Bạn không thể nộp nhiều hồ sơ.",
+			"documents_updated_title": "Đã Cập Nhật Tài Liệu!",
+			"documents_updated_message": "Tài liệu ứng tuyển của bạn đã được cập nhật thành công.",
+			"update_failed_title": "Cập Nhật Thất Bại",
+			"update_failed_message": "Không thể cập nhật tài liệu. Vui lòng thử lại.",
+			"update_error_title": "Lỗi Cập Nhật",
+			"update_error_message": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
+			"retry": "Thử Lại",
+			"application_submitted_title": "Đã Nộp Hồ Sơ!",
+			"application_submitted_message": "Hồ sơ của bạn đã được nộp thành công. Bạn sẽ nhận được cập nhật qua email.",
+			"application_failed_title": "Nộp Hồ Sơ Thất Bại",
+			"application_failed_message": "Không thể nộp hồ sơ. Vui lòng thử lại.",
+			"limit_reached_title": "Đã Đạt Giới Hạn Hồ Sơ",
+			"upgrade_plan": "Nâng Cấp Gói",
+			"application_error_title": "Lỗi Hồ Sơ",
+			"application_error_message": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại."
 		},
 		"documents_section": {
 			"title": "Tài Liệu Hồ Sơ",
@@ -1023,7 +1040,24 @@
 		},
 		"loading": "Đang tải chi tiết chương trình...",
 		"error": "Không thể tải chi tiết chương trình",
-		"not_found": "Không tìm thấy chương trình"
+		"not_found": "Không tìm thấy chương trình",
+		"institution_status": {
+			"pending": "Đang Chờ Phê Duyệt",
+			"rejected": "Tài Khoản Bị Từ Chối",
+			"deactivated": "Tài Khoản Bị Vô Hiệu Hóa"
+		},
+		"errors": {
+			"error_title": "Lỗi",
+			"failed_to_load": "Không thể tải chi tiết chương trình"
+		},
+		"wishlist": {
+			"added_title": "Đã Thêm vào Danh Sách Yêu Thích",
+			"added_message": "Chương trình này đã được thêm vào danh sách yêu thích của bạn.",
+			"removed_title": "Đã Xóa khỏi Danh Sách Yêu Thích",
+			"removed_message": "Chương trình này đã được xóa khỏi danh sách yêu thích của bạn.",
+			"error_title": "Lỗi Danh Sách Yêu Thích",
+			"error_message": "Không thể cập nhật danh sách yêu thích. Vui lòng thử lại."
+		}
 	},
 	"scholarship_detail": {
 		"loading": "Đang tải chi tiết học bổng...",
@@ -1414,6 +1448,14 @@
 			"accepted": "Đã Chấp Nhận",
 			"rejected": "Đã Từ Chối"
 		},
+		"status": {
+			"SUBMITTED": "Đã Nộp",
+			"REQUIRE_UPDATE": "Cần Cập Nhật",
+			"ACCEPTED": "Đã Chấp Nhận",
+			"REJECTED": "Đã Từ Chối",
+			"UPDATED": "Đã Cập Nhật",
+			"PROGRESSING": "Đang Xử Lý"
+		},
 		"search": {
 			"placeholder": "Tìm kiếm..."
 		},
@@ -1437,6 +1479,471 @@
 			"default_match": "85%",
 			"research": "Nghiên Cứu",
 			"professor": "GS. Nghiên Cứu"
+		}
+	},
+	"profile_view": {
+		"loading": "Đang tải hồ sơ...",
+		"redirecting": "Đang chuyển hướng...",
+		"error_title": "Lỗi",
+		"try_again": "Thử Lại",
+		"errors": {
+			"load_failed": "Không thể tải dữ liệu hồ sơ",
+			"refresh_failed": "Không thể làm mới dữ liệu hồ sơ"
+		},
+		"payment": {
+			"title": "Gói Thành Viên Của Tôi",
+			"description": "Quản lý gói thành viên và thanh toán qua Stripe"
+		},
+		"subscription_widget": {
+			"plan_applications": "Ứng Dụng Gói",
+			"resets_in_days": "Đặt lại sau {days} ngày",
+			"applications_used": "Đơn Đã Sử Dụng",
+			"status": {
+				"limit_reached": "Đã đạt giới hạn đơn ứng tuyển.",
+				"upgrade_unlimited": "Nâng cấp để có đơn ứng tuyển không giới hạn",
+				"only_remaining": "Chỉ còn {count} đơn ứng tuyển trong kỳ này",
+				"only_remaining_plural": "Chỉ còn {count} đơn ứng tuyển trong kỳ này",
+				"remaining": "{count} đơn ứng tuyển còn lại trong kỳ này"
+			}
+		},
+		"subscription_info": {
+			"current_subscription": "Gói thành viên hiện tại của bạn",
+			"upgrade_plan": "Nâng cấp gói",
+			"next_billing_date": "Ngày Thanh Toán Tiếp Theo",
+			"monthly_cost": "Chi phí hàng tháng",
+			"member_since": "Thành viên từ",
+			"not_available": "N/A",
+			"not_available_full": "Không có sẵn",
+			"plans": {
+				"free": "Gói Miễn Phí",
+				"standard": "Gói Thành Viên Tiêu Chuẩn",
+				"premium": "Gói Thành Viên Cao Cấp"
+			}
+		},
+		"subscription_features": {
+			"title": "Gói hiện tại bao gồm",
+			"features": {
+				"messages": "Gửi tin nhắn cho nhân viên học bổng / giáo sư (số lượng tin nhắn khởi tạo có giới hạn)",
+				"match_level": "Xem mức độ phù hợp học bổng/nghiên cứu",
+				"basic_recommendations": "Đề xuất cơ hội cơ bản (dựa trên quy tắc)",
+				"advanced_matching": "Thuật toán phù hợp học bổng nâng cao",
+				"priority_tracking": "Theo dõi đơn ứng tuyển ưu tiên",
+				"extended_database": "Truy cập cơ sở dữ liệu chương trình mở rộng",
+				"email_notifications": "Thông báo và nhắc nhở qua email",
+				"direct_messaging": "Nhắn tin trực tiếp với nhân viên tuyển sinh",
+				"all_standard": "Tất cả tính năng của Gói Tiêu Chuẩn",
+				"ai_essay_review": "Đánh giá và gợi ý bài luận bằng AI",
+				"consultation_calls": "Cuộc gọi tư vấn một-một",
+				"custom_recommendations": "Đề xuất học bổng tùy chỉnh",
+				"document_templates": "Mẫu tài liệu ứng tuyển",
+				"interview_prep": "Tài liệu chuẩn bị phỏng vấn",
+				"exclusive_webinars": "Hội thảo và workshop độc quyền",
+				"priority_support": "Hỗ trợ khách hàng ưu tiên"
+			}
+		},
+		"billing_portal": {
+			"title": "Thanh Toán & Hóa Đơn",
+			"description": "Quản lý gói thành viên, phương thức thanh toán và lịch sử thanh toán của bạn",
+			"payment_history": "Lịch Sử Thanh Toán",
+			"payment_history_description": "Xem tất cả các giao dịch trước đây và tải xuống hóa đơn",
+			"no_history_found": "Không tìm thấy lịch sử thanh toán",
+			"transaction_history": "Lịch sử giao dịch của bạn sẽ xuất hiện ở đây",
+			"table": {
+				"date": "Ngày",
+				"invoice_id": "Mã Hóa Đơn",
+				"amount": "Số Tiền",
+				"status": "Trạng Thái",
+				"actions": "Thao Tác"
+			},
+			"actions": {
+				"view": "Xem",
+				"view_invoice": "Xem Hóa Đơn",
+				"download_pdf": "Tải PDF"
+			},
+			"pagination": {
+				"showing": "Hiển thị {from} đến {to} trong {total} giao dịch",
+				"page_of": "Trang {current} trong {total}",
+				"previous": "Trước",
+				"next": "Tiếp"
+			},
+			"status": {
+				"paid": "Đã Thanh Toán",
+				"open": "Mở",
+				"void": "Hủy",
+				"uncollectible": "Không Thu Được"
+			}
+		},
+		"navigation": {
+			"profile_info": "Thông Tin Hồ Sơ",
+			"academic": "Học Vấn",
+			"portfolio": "Danh Mục",
+			"wishlist": "Danh Sách Yêu Thích",
+			"applications": "Đơn Ứng Tuyển",
+			"payment": "Thanh Toán",
+			"settings": "Cài Đặt",
+			"student": "Sinh Viên"
+		}
+	},
+	"profile_info_section": {
+		"title": "Thông Tin Cơ Bản",
+		"description": "Quản lý thông tin cá nhân và sở thích của bạn",
+		"not_available": "Phần này chỉ dành cho tài khoản sinh viên.",
+		"buttons": {
+			"edit": "Chỉnh Sửa",
+			"cancel": "Hủy",
+			"save": "Lưu",
+			"saving": "Đang lưu...",
+			"upload_photo": "Tải ảnh của bạn",
+			"uploading": "Đang tải lên..."
+		},
+		"photo": {
+			"instructions": "Phải là tệp PNG hoặc JPG (tối đa 5MB)"
+		},
+		"fields": {
+			"first_name": {
+				"label": "Tên",
+				"placeholder": "Nhập tên của bạn",
+				"not_provided": "Chưa cung cấp"
+			},
+			"last_name": {
+				"label": "Họ",
+				"placeholder": "Nhập họ của bạn",
+				"not_provided": "Chưa cung cấp"
+			},
+			"gender": {
+				"label": "Giới Tính",
+				"placeholder": "Chọn giới tính",
+				"male": "Nam",
+				"female": "Nữ",
+				"not_provided": "Chưa cung cấp",
+				"options": {
+					"male": "Nam",
+					"female": "Nữ"
+				}
+			},
+			"birthday": {
+				"label": "Ngày Sinh",
+				"placeholder": "dd/mm/yyyy"
+			},
+			"email": {
+				"label": "Email",
+				"not_provided": "Chưa cung cấp"
+			},
+			"nationality": {
+				"label": "Quốc Tịch",
+				"placeholder": "Chọn quốc tịch của bạn",
+				"not_provided": "Chưa cung cấp"
+			},
+			"phone": {
+				"label": "Số Điện Thoại",
+				"placeholder": "Nhập số điện thoại của bạn",
+				"not_provided": "Chưa cung cấp"
+			},
+			"interests": {
+				"label": "Sở Thích",
+				"placeholder": "Chọn môn học/lĩnh vực bạn quan tâm",
+				"not_provided": "Chưa chỉ định sở thích"
+			},
+			"favorite_countries": {
+				"label": "Quốc Gia Yêu Thích",
+				"placeholder": "Chọn quốc gia yêu thích của bạn",
+				"not_provided": "Chưa chỉ định quốc gia yêu thích"
+			}
+		},
+		"errors": {
+			"invalid_image": "Vui lòng chọn tệp ảnh",
+			"file_too_large": "Kích thước tệp phải nhỏ hơn 5MB",
+			"upload_failed": "Không thể tải ảnh lên. Vui lòng thử lại.",
+			"save_failed": "Không thể lưu hồ sơ. Vui lòng thử lại."
+		},
+		"success": {
+			"title": "Thành Công!",
+			"message": "Hồ sơ của bạn đã được cập nhật thành công.",
+			"button": "Tiếp Tục"
+		},
+		"error": {
+			"title": "Lỗi",
+			"button": "Đóng"
+		}
+	},
+	"academic_section": {
+		"title": "Thông Tin Học Vấn",
+		"description": "Nền tảng giáo dục và thành tích học thuật của bạn",
+		"not_available": "Phần này chỉ dành cho tài khoản sinh viên.",
+		"buttons": {
+			"edit": "Chỉnh Sửa",
+			"cancel": "Hủy",
+			"save": "Lưu",
+			"saving": "Đang lưu...",
+			"add_language": "Thêm chứng chỉ ngoại ngữ",
+			"add_research_paper": "Thêm Bài Nghiên Cứu",
+			"delete_language": "Xóa chứng chỉ ngoại ngữ",
+			"delete_research_paper": "Xóa Bài Nghiên Cứu"
+		},
+		"graduated": {
+			"title": "Đã Tốt Nghiệp",
+			"not_yet": "Chưa",
+			"graduated": "Đã Tốt Nghiệp",
+			"level": "Cấp Độ",
+			"discipline": "Ngành",
+			"gpa": "GPA",
+			"university": "Trường Đại Học",
+			"country_of_study": "Quốc Gia Học Tập"
+		},
+		"fields": {
+			"level": {
+				"label": "Cấp Độ",
+				"placeholder": "Cấp độ",
+				"not_provided": "Chưa cung cấp",
+				"options": {
+					"high_school": "Trung Học Phổ Thông",
+					"associate": "Cao Đẳng",
+					"bachelor": "Cử Nhân",
+					"master": "Thạc Sĩ",
+					"phd": "Tiến Sĩ",
+					"professional": "Chuyên Nghiệp"
+				}
+			},
+			"discipline": {
+				"label": "Ngành",
+				"placeholder": "Chọn ngành",
+				"not_provided": "Chưa cung cấp"
+			},
+			"gpa": {
+				"label": "GPA",
+				"placeholder": "0.0–4.0",
+				"not_provided": "Chưa cung cấp"
+			},
+			"university": {
+				"label": "Trường Đại Học",
+				"placeholder": "vd., Đại học Harvard",
+				"not_provided": "Chưa cung cấp"
+			},
+			"country_of_study": {
+				"label": "Quốc Gia Học Tập",
+				"placeholder": "Chọn quốc gia",
+				"not_provided": "Chưa cung cấp"
+			}
+		},
+		"foreign_language": {
+			"title": "Ngoại Ngữ",
+			"yes": "Có",
+			"no": "Không",
+			"language": "Ngôn Ngữ",
+			"certificate": "Chứng Chỉ",
+			"score": "Điểm Số",
+			"placeholder": {
+				"language": "Ngôn ngữ",
+				"certificate": "Chọn chứng chỉ",
+				"score": "Điểm số"
+			},
+			"languages": {
+				"vietnamese": "Tiếng Việt",
+				"english": "Tiếng Anh",
+				"spanish": "Tiếng Tây Ban Nha",
+				"french": "Tiếng Pháp",
+				"german": "Tiếng Đức",
+				"chinese": "Tiếng Trung",
+				"japanese": "Tiếng Nhật",
+				"korean": "Tiếng Hàn"
+			}
+		},
+		"files": {
+			"cv": {
+				"title": "CV / Sơ Yếu Lý Lịch",
+				"no_files": "Chưa tải lên tệp nào",
+				"upload_hint": "Nhấp \"Thêm\" để tải tệp lên"
+			},
+			"language_cert": {
+				"title": "Chứng Chỉ Ngoại Ngữ"
+			},
+			"degree": {
+				"title": "Bằng Cấp"
+			},
+			"transcript": {
+				"title": "Bảng Điểm Học Tập"
+			},
+			"view": "Xem",
+			"remove": "Xóa"
+		},
+		"research_papers": {
+			"title": "Bài Nghiên Cứu",
+			"paper_title": "Tiêu Đề Bài Báo",
+			"disciplines": "Ngành",
+			"files": "Tệp Bài Nghiên Cứu",
+			"no_files": "Chưa tải lên tệp",
+			"no_papers": "Chưa tải lên bài nghiên cứu nào",
+			"upload_hint": "Nhấp \"Thêm Bài Nghiên Cứu\" để bắt đầu",
+			"placeholder": {
+				"title": "Nhập tiêu đề bài nghiên cứu",
+				"disciplines": "Chọn ngành"
+			},
+			"not_provided": "Chưa cung cấp"
+		},
+		"errors": {
+			"incomplete_papers": "Vui lòng cung cấp cả tiêu đề và ngành cho tất cả các bài nghiên cứu trước khi tải tệp lên.",
+			"save_failed": "Không thể lưu thông tin học vấn. Vui lòng thử lại.",
+			"upload_failed": "Không thể tải tệp lên. Vui lòng thử lại.",
+			"invalid_file": "Vui lòng chọn tệp ảnh, PDF hoặc tài liệu",
+			"file_too_large": "Kích thước tệp phải nhỏ hơn 10MB"
+		},
+		"success": {
+			"title": "Thành Công!",
+			"message": "Thông tin học vấn của bạn đã được cập nhật thành công.",
+			"button": "Tiếp Tục"
+		}
+	},
+	"wishlist_section": {
+		"title": "Danh Sách Yêu Thích",
+		"tabs": {
+			"programmes": "Chương Trình",
+			"scholarships": "Học Bổng",
+			"research_labs": "Phòng Nghiên Cứu"
+		},
+		"search": {
+			"placeholder": "Tìm kiếm..."
+		},
+		"filters": {
+			"all_disciplines": "Tất Cả Lĩnh Vực",
+			"all_countries": "Tất Cả Quốc Gia",
+			"fee_range": "Khoảng Học Phí",
+			"all_durations": "Tất Cả Thời Lượng",
+			"all_degree_levels": "Tất Cả Cấp Độ",
+			"all_attendance": "Tất Cả Hình Thức",
+			"show_expired": "Hiển Thị Hết Hạn",
+			"clear_filters": "Xóa Bộ Lọc"
+		},
+		"results": {
+			"count": "{count} kết quả"
+		},
+		"loading": "Đang tải danh sách yêu thích của bạn...",
+		"empty": {
+			"title": "Không có mục nào trong danh sách yêu thích",
+			"description": "Bắt đầu khám phá và thêm chương trình, học bổng hoặc cơ hội nghiên cứu vào danh sách yêu thích của bạn.",
+			"button": "Khám Phá Cơ Hội"
+		},
+		"error": {
+			"message": "Không thể tải dữ liệu danh sách yêu thích",
+			"button": "Thử Lại"
+		}
+	},
+	"settings_section": {
+		"account_info": {
+			"title": "Thông Tin Tài Khoản",
+			"description": "Quản lý thông tin cá nhân và cài đặt tài khoản của bạn. Giữ thông tin của bạn luôn cập nhật để có trải nghiệm tốt nhất.",
+			"email": {
+				"label": "Email"
+			}
+		},
+		"notifications": {
+			"title": "Tùy Chọn Thông Báo",
+			"loading": "Đang tải...",
+			"application_status": {
+				"title": "Cập nhật trạng thái đơn ứng tuyển",
+				"description": "Nhận thông báo khi trạng thái đơn ứng tuyển của bạn thay đổi qua email"
+			},
+			"wishlist_deadline": {
+				"title": "Hạn chót cho mục yêu thích",
+				"description": "Nhận thông báo email khi sự kiện trong danh sách yêu thích của bạn sắp hết hạn"
+			},
+			"payment": {
+				"title": "Thanh Toán",
+				"description": "Nhận thông báo email 3 ngày trước khi đến hạn thanh toán phí thành viên"
+			}
+		},
+		"delete_account": {
+			"title": "Xóa tài khoản",
+			"description": "Xóa vĩnh viễn tài khoản của bạn và tất cả dữ liệu liên quan. Hành động này không thể hoàn tác và sẽ:",
+			"consequences": [
+				"Xóa hồ sơ và thông tin cá nhân của bạn",
+				"Xóa tất cả đơn ứng tuyển và cơ hội đã lưu của bạn",
+				"Hủy tất cả các gói thành viên đang hoạt động",
+				"Xóa vĩnh viễn lịch sử tài khoản của bạn"
+			],
+			"note": "Lưu ý: Dữ liệu tài khoản của bạn sẽ được bảo quản và bạn có thể liên hệ hỗ trợ để kích hoạt lại tài khoản trong tương lai nếu cần.",
+			"button": "Xóa tài khoản của bạn",
+			"checking": "Đang kiểm tra gói thành viên...",
+			"modal": {
+				"title": "Xóa Tài Khoản",
+				"confirmation_title": "Bạn có chắc chắn không?",
+				"confirmation_message": "Hành động này không thể hoàn tác. Điều này sẽ xóa vĩnh viễn tài khoản của bạn và xóa tất cả dữ liệu của bạn khỏi máy chủ của chúng tôi.",
+				"data_warning": "Dữ liệu sau đây sẽ bị xóa vĩnh viễn:",
+				"data_list": [
+					"Thông tin hồ sơ của bạn",
+					"Tất cả đơn ứng tuyển và bài đăng đã lưu của bạn",
+					"Danh sách yêu thích và sở thích của bạn",
+					"Lịch sử tin nhắn của bạn",
+					"Tất cả các tệp và tài liệu liên quan"
+				],
+				"type_delete": "Nhập \"DELETE\" để xác nhận",
+				"placeholder": "Nhập DELETE để xác nhận",
+				"cancel": "Hủy",
+				"delete": "Xóa Tài Khoản",
+				"deleting": "Đang xóa..."
+			},
+			"subscription_warning": {
+				"title": "Tìm Thấy Gói Thành Viên Đang Hoạt Động",
+				"cannot_delete": "Không Thể Xóa Tài Khoản",
+				"message": "Bạn có gói thành viên đang hoạt động cần được hủy trước khi có thể xóa tài khoản của bạn.",
+				"what_to_do": "Những gì bạn cần làm:",
+				"steps": [
+					"Đi đến trang giá để quản lý gói thành viên của bạn",
+					"Hủy tất cả các gói thành viên đang hoạt động",
+					"Quay lại trang này để xóa tài khoản của bạn"
+				],
+				"cancel": "Hủy",
+				"go_to_pricing": "Đến Trang Giá"
+			}
+		}
+	},
+	"application_update_modal": {
+		"title": "Yêu Cầu Cập Nhật - Gửi Phản Hồi",
+		"loading": "Đang tải yêu cầu cập nhật...",
+		"error": {
+			"title": "Không thể tải yêu cầu cập nhật"
+		},
+		"request": {
+			"title": "Yêu Cầu Từ Trường",
+			"requested_on": "Yêu cầu vào: {date}",
+			"requested_documents": "Tài Liệu Được Yêu Cầu:"
+		},
+		"upload": {
+			"title": "Tải Lên Tài Liệu",
+			"required": "*",
+			"drag_drop": "Nhấp để tải lên hoặc kéo và thả",
+			"accepted_formats": "PDF, DOC, DOCX, JPG, PNG (Tối đa 10MB)",
+			"uploaded_files": "Tệp Đã Tải Lên",
+			"submitted_documents": "Tài Liệu Đã Gửi ({count})"
+		},
+		"document_types": {
+			"research_proposal": "Đề Xuất Nghiên Cứu",
+			"cv_resume": "CV/Sơ Yếu Lý Lịch",
+			"portfolio": "Danh Mục Đầu Tư",
+			"academic_transcript": "Bảng Điểm Học Tập",
+			"personal_statement": "Bản Tuyên Bố Cá Nhân",
+			"recommendation_letter": "Thư Giới Thiệu",
+			"language_certificate": "Chứng Chỉ Ngoại Ngữ",
+			"passport_copy": "Bản Sao Hộ Chiếu",
+			"degree_certificate": "Bằng Cấp",
+			"other": "Khác"
+		},
+		"response": {
+			"title": "Tin Nhắn Phản Hồi (Tùy Chọn)",
+			"placeholder": "Thêm bất kỳ nhận xét hoặc ghi chú nào liên quan đến bản cập nhật...",
+			"characters": "{count} ký tự",
+			"your_response": "Phản Hồi Của Bạn",
+			"submitted_on": "Đã gửi vào: {date}"
+		},
+		"buttons": {
+			"cancel": "Hủy",
+			"submit": "Gửi Phản Hồi Cập Nhật",
+			"submitting": "Đang gửi...",
+			"view": "Xem",
+			"close": "Đóng"
+		},
+		"errors": {
+			"no_documents": "Vui lòng tải lên ít nhất một tài liệu",
+			"submit_failed": "Không thể gửi phản hồi cập nhật. Vui lòng thử lại."
 		}
 	}
 }

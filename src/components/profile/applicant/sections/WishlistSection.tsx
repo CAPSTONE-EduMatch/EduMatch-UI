@@ -13,12 +13,14 @@ import { X, Search } from 'lucide-react'
 import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { ExploreApiService } from '@/services/explore/explore-api'
+import { useTranslations } from 'next-intl'
 
 interface WishlistSectionProps {
 	profile: any
 }
 
 export const WishlistSection: React.FC<WishlistSectionProps> = () => {
+	const t = useTranslations('wishlist_section')
 	const [sortBy, setSortBy] = useState<SortOption>('newest')
 	const [activeTab, setActiveTab] = useState<string>('programmes')
 	const [searchQuery, setSearchQuery] = useState<string>('')
@@ -35,9 +37,9 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 
 	// Main category tabs
 	const categories = [
-		{ id: 'programmes', label: 'Programmes' },
-		{ id: 'scholarships', label: 'Scholarships' },
-		{ id: 'research', label: 'Research Labs' },
+		{ id: 'programmes', label: t('tabs.programmes') },
+		{ id: 'scholarships', label: t('tabs.scholarships') },
+		{ id: 'research', label: t('tabs.research_labs') },
 	]
 
 	// Get wishlist IDs only
@@ -452,13 +454,15 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 							onClick={fetchWishlistData}
 							className="text-xs text-red-600 hover:text-red-800 underline"
 						>
-							Retry
+							{t('error.button')}
 						</button>
 					</div>
 				)}
 				{/* Header Section */}
 				<div className="mb-6">
-					<h2 className="text-2xl font-bold text-gray-900 mb-4">Wishlist</h2>
+					<h2 className="text-2xl font-bold text-gray-900 mb-4">
+						{t('title')}
+					</h2>
 
 					{/* Main Category Tabs */}
 					<div className="flex justify-between items-center mb-4">
@@ -474,7 +478,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 								<div className="relative flex-1">
 									<input
 										type="text"
-										placeholder="Search..."
+										placeholder={t('search.placeholder')}
 										value={searchQuery}
 										onChange={handleSearchChange}
 										className="w-full py-2 pl-4 pr-10 text-sm border border-gray-200 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -512,7 +516,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 										selected.map((item: any) => item.value)
 									)
 								}
-								placeholder="All Disciplines"
+								placeholder={t('filters.all_disciplines')}
 								options={availableOptions.disciplines.map((d) => ({
 									value: d as string,
 									label: d as string,
@@ -530,7 +534,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 								onChange={(selected) =>
 									setSelectedCountries(selected.map((item: any) => item.value))
 								}
-								placeholder="All Countries"
+								placeholder={t('filters.all_countries')}
 								options={availableOptions.countries.map((c) => ({
 									value: c,
 									label: c,
@@ -563,7 +567,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 											selected && selected.length > 0 ? selected[0].value : null
 										)
 									}}
-									placeholder="Fee Range"
+									placeholder={t('filters.fee_range')}
 									options={availableOptions.feeRanges}
 									variant="default"
 									isClearable
@@ -580,7 +584,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 									onChange={(selected) =>
 										setSelectedDuration(selected.map((item: any) => item.value))
 									}
-									placeholder="All Durations"
+									placeholder={t('filters.all_durations')}
 									options={availableOptions.durations.map((d) => ({
 										value: d,
 										label: d,
@@ -601,7 +605,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 										selected.map((item: any) => item.value)
 									)
 								}
-								placeholder="All Degree Levels"
+								placeholder={t('filters.all_degree_levels')}
 								options={availableOptions.degreeLevels.map((d) => ({
 									value: d,
 									label: d,
@@ -625,7 +629,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 											selected.map((item: any) => item.value)
 										)
 									}
-									placeholder="All Attendance"
+									placeholder={t('filters.all_attendance')}
 									options={availableOptions.attendanceTypes.map((a) => ({
 										value: a,
 										label: a,
@@ -641,7 +645,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 
 				{/* Results Count */}
 				<div className="text-sm text-gray-600 mb-4">
-					{currentTabData.totalItems} results
+					{t('results.count', { count: currentTabData.totalItems })}
 				</div>
 
 				{/* Tab Content */}
@@ -649,9 +653,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					<div className="flex items-center justify-center h-64">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-							<p className="mt-4 text-muted-foreground">
-								Loading your wishlist...
-							</p>
+							<p className="mt-4 text-muted-foreground">{t('loading')}</p>
 						</div>
 					</div>
 				) : (
@@ -664,17 +666,14 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 							<div className="text-center py-12">
 								<div className="text-6xl mb-4">📝</div>
 								<h3 className="text-xl font-semibold text-gray-900 mb-2">
-									No items in your wishlist
+									{t('empty.title')}
 								</h3>
-								<p className="text-gray-600 mb-6">
-									Start exploring and add programs, scholarships, or research
-									opportunities to your wishlist.
-								</p>
+								<p className="text-gray-600 mb-6">{t('empty.description')}</p>
 								<Button
 									onClick={() => (window.location.href = '/explore')}
 									className="bg-teal-600 hover:bg-teal-700 text-white"
 								>
-									Explore Opportunities
+									{t('empty.button')}
 								</Button>
 							</div>
 						) : (

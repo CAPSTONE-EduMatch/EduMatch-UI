@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { Calendar, GraduationCap, Heart, Lock, MapPin, X } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ProgramCardProps {
 	program: {
@@ -55,6 +56,7 @@ export function ProgramCard({
 	institutionStatus,
 }: ProgramCardProps) {
 	const router = useRouter()
+	const t = useTranslations('application_section')
 	// Check if match score is restricted (shown as "—" for non-Premium users)
 	const isMatchRestricted = program.match === '—'
 	// Format date and calculate days left on the client side
@@ -271,7 +273,7 @@ export function ProgramCard({
 											: 'bg-gray-100 text-gray-800'
 						}`}
 					>
-						{program.applicationStatus}
+						{t(`status.${program.applicationStatus}`)}
 					</span>
 				</div>
 			)}

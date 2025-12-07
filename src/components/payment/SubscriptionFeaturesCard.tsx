@@ -3,8 +3,10 @@
 import { Card, CardContent } from '@/components/ui'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function SubscriptionFeaturesCard() {
+	const t = useTranslations('profile_view.subscription_features')
 	const { currentPlan } = useSubscription()
 
 	// Get plan features based on current plan
@@ -12,32 +14,28 @@ export function SubscriptionFeaturesCard() {
 		switch (plan) {
 			case 'standard':
 				return [
-					'Send messages to scholarship officers / professors (limited number of initiated messages)',
-					'View scholarship/research match level',
-					'Basic opportunity recommendations (rule-based)',
-					'Advanced scholarship matching algorithms',
-					'Priority application tracking',
-					'Extended program database access',
-					'Email notifications & reminders',
-					'Direct messaging with admissions staff',
+					'messages',
+					'match_level',
+					'basic_recommendations',
+					'advanced_matching',
+					'priority_tracking',
+					'extended_database',
+					'email_notifications',
+					'direct_messaging',
 				]
 			case 'premium':
 				return [
-					'All Standard Plan features',
-					'AI-powered essay review & suggestions',
-					'One-on-one consultation calls',
-					'Custom scholarship recommendations',
-					'Application document templates',
-					'Interview preparation resources',
-					'Exclusive webinars & workshops',
-					'Priority customer support',
+					'all_standard',
+					'ai_essay_review',
+					'consultation_calls',
+					'custom_recommendations',
+					'document_templates',
+					'interview_prep',
+					'exclusive_webinars',
+					'priority_support',
 				]
 			default:
-				return [
-					'Send messages to scholarship officers / professors (limited number of initiated messages)',
-					'View scholarship/research match level',
-					'Basic opportunity recommendations (rule-based)',
-				]
+				return ['messages', 'match_level', 'basic_recommendations']
 		}
 	}
 
@@ -48,7 +46,7 @@ export function SubscriptionFeaturesCard() {
 			<CardContent className="p-8">
 				<div>
 					<h3 className="text-xl font-semibold text-gray-900 mb-6">
-						Current plan include
+						{t('title')}
 					</h3>
 
 					<div className="space-y-4">
@@ -59,7 +57,9 @@ export function SubscriptionFeaturesCard() {
 										<Check className="w-4 h-4 text-[#126E64]" strokeWidth={2} />
 									</div>
 								</div>
-								<span className="text-gray-700 leading-relaxed">{feature}</span>
+								<span className="text-gray-700 leading-relaxed">
+									{t(`features.${feature}`)}
+								</span>
 							</div>
 						))}
 					</div>

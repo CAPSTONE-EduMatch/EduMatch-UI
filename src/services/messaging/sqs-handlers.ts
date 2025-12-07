@@ -582,6 +582,71 @@ export class NotificationUtils {
 							break;
 					}
 					break;
+				case "POST_STATUS_UPDATE":
+					title = `${message.metadata?.postType || "Post"} Status Update - ${message.metadata?.postTitle || "Your Post"}`;
+					const postStatus = (
+						message.metadata?.newStatus || ""
+					).toUpperCase();
+					const postStatusLabels: Record<string, string> = {
+						PUBLISHED: "Published",
+						CLOSED: "Closed",
+						REJECTED: "Rejected",
+						SUBMITTED: "Submitted",
+						UPDATED: "Updated",
+						DRAFT: "Draft",
+					};
+					const postStatusLabel =
+						postStatusLabels[postStatus] || postStatus;
+
+					if (postStatus === "PUBLISHED") {
+						bodyText = `🎉 Your ${(message.metadata?.postType || "post").toLowerCase()} "${message.metadata?.postTitle || "your post"}" has been published and is now visible to all users.`;
+					} else if (postStatus === "REJECTED") {
+						const reason = message.metadata?.rejectionReason
+							? ` Reason: ${message.metadata.rejectionReason}`
+							: "";
+						bodyText = `❌ Your ${(message.metadata?.postType || "post").toLowerCase()} "${message.metadata?.postTitle || "your post"}" has been rejected.${reason}`;
+					} else if (postStatus === "CLOSED") {
+						bodyText = `📋 Your ${(message.metadata?.postType || "post").toLowerCase()} "${message.metadata?.postTitle || "your post"}" has been closed and is no longer accepting applications.`;
+					} else {
+						bodyText = `Your ${(message.metadata?.postType || "post").toLowerCase()} "${message.metadata?.postTitle || "your post"}" status has been updated to ${postStatusLabel}.`;
+					}
+					url =
+						message.metadata?.postUrl ||
+						"/institution/dashboard/posts";
+					break;
+				case "INSTITUTION_PROFILE_STATUS_UPDATE":
+					title = "Institution Profile Status Update";
+					const profileStatus = (
+						message.metadata?.newStatus || ""
+					).toUpperCase();
+					const profileStatusLabels: Record<string, string> = {
+						PENDING: "Pending Review",
+						APPROVED: "Approved",
+						REJECTED: "Rejected",
+						REQUIRE_UPDATE: "Update Required",
+						UPDATED: "Updated",
+					};
+					const profileStatusLabel =
+						profileStatusLabels[profileStatus] || profileStatus;
+
+					if (profileStatus === "APPROVED") {
+						bodyText = `🎉 Congratulations! Your institution profile "${message.metadata?.institutionName || "your profile"}" has been approved. You now have full access to the dashboard.`;
+					} else if (profileStatus === "REJECTED") {
+						const reason = message.metadata?.rejectionReason
+							? ` Reason: ${message.metadata.rejectionReason}`
+							: "";
+						bodyText = `❌ Your institution profile "${message.metadata?.institutionName || "your profile"}" has been rejected.${reason} Please review and update your profile information.`;
+					} else if (profileStatus === "REQUIRE_UPDATE") {
+						bodyText = `📋 Action Required: Your institution profile "${message.metadata?.institutionName || "your profile"}" requires updates. Please review the feedback and update your profile.`;
+					} else if (profileStatus === "UPDATED") {
+						bodyText = `✅ Your institution profile "${message.metadata?.institutionName || "your profile"}" has been updated and is under review.`;
+					} else {
+						bodyText = `Your institution profile "${message.metadata?.institutionName || "your profile"}" status has been updated to ${profileStatusLabel}.`;
+					}
+					url =
+						message.metadata?.profileUrl ||
+						"/institution/dashboard/profile";
+					break;
 				default:
 					title = "New Notification";
 					bodyText = "You have a new notification from EduMatch.";
@@ -848,6 +913,109 @@ export class NotificationUtils {
 		}
 
 		// Also store directly in database for immediate display
+		await this.storeNotificationDirectly(message);
+	}
+
+	/**
+	 * Send a post status update notification to institution
+	 */
+	static async sendPostStatusUpdateNotification(
+		userId: string,
+		userEmail: string,
+		postId: string,
+		postTitle: string,
+		postType: "Program" | "Scholarship" | "Research Lab",
+		institutionName: string,
+		oldStatus: string,
+		newStatus: string,
+		postUrl: string,
+		rejectionReason?: string
+	): Promise<void> {
+		const message: NotificationMessage = {
+			id: `post-status-${postId}-${Date.now()}`,
+			type: NotificationType.POST_STATUS_UPDATE,
+			userId,
+			userEmail,
+			timestamp: new Date().toISOString(),
+			metadata: {
+				postId,
+				postTitle,
+				postType,
+				institutionName,
+				oldStatus,
+				newStatus,
+				postUrl,
+				...(rejectionReason && { rejectionReason }),
+			},
+		};
+
+		await SQSService.sendNotification(message);
+		await this.storeNotificationDirectly(message);
+	}
+
+	/**
+	 * Send an institution profile status update notification
+	 */
+	static async sendInstitutionProfileStatusUpdateNotification(
+		userId: string,
+		userEmail: string,
+		institutionId: string,
+		institutionName: string,
+		oldStatus: string,
+		newStatus: string,
+		profileUrl: string,
+		rejectionReason?: string
+	): Promise<void> {
+		const message: NotificationMessage = {
+			id: `institution-profile-status-${institutionId}-${Date.now()}`,
+			type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE,
+			userId,
+			userEmail,
+			timestamp: new Date().toISOString(),
+			metadata: {
+				institutionId,
+				institutionName,
+				oldStatus,
+				newStatus,
+				profileUrl,
+				...(rejectionReason && { rejectionReason }),
+			},
+		};
+
+		await SQSService.sendNotification(message);
+		await this.storeNotificationDirectly(message);
+	}
+
+	/**
+	 * Send a new application notification to institution
+	 * This is called when an applicant applies to a post
+	 */
+	static async sendNewApplicationNotification(
+		institutionUserId: string,
+		institutionUserEmail: string,
+		applicationId: string,
+		postTitle: string,
+		applicantName: string,
+		institutionName: string
+	): Promise<void> {
+		// Use APPLICATION_STATUS_UPDATE type but with SUBMITTED status for new applications
+		const message: NotificationMessage = {
+			id: `new-application-${applicationId}-${Date.now()}`,
+			type: NotificationType.APPLICATION_STATUS_UPDATE,
+			userId: institutionUserId,
+			userEmail: institutionUserEmail,
+			timestamp: new Date().toISOString(),
+			metadata: {
+				applicationId,
+				programName: postTitle,
+				oldStatus: "",
+				newStatus: "SUBMITTED",
+				institutionName,
+				applicantName, // Add applicant name for institution notifications
+			},
+		};
+
+		await SQSService.sendNotification(message);
 		await this.storeNotificationDirectly(message);
 	}
 }

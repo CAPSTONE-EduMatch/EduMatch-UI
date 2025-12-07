@@ -251,7 +251,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 	// Application status filter options
 	const applicationStatusFilters = [
 		{ id: 'SUBMITTED', label: t('filters.submitted'), icon: BookOpen },
-		{ id: 'REQUIRE_UPDATE', label: t('filters.update_required'), icon: Clock },
+		{ id: 'PROGRESSING', label: t('filters.progressing'), icon: Clock },
 		{ id: 'ACCEPTED', label: t('filters.accepted'), icon: Users },
 		{ id: 'REJECTED', label: t('filters.rejected'), icon: X },
 	]
@@ -316,7 +316,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 			// Check application status filters
 			const applicationStatusFilters = [
 				'SUBMITTED',
-				'REQUIRE_UPDATE',
+				'PROGRESSING',
 				'ACCEPTED',
 				'REJECTED',
 			]

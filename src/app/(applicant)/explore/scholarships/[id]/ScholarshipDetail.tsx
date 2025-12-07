@@ -31,9 +31,9 @@ import {
 } from '@/utils/files/getSessionProtectedFileUrl'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, File, Heart, Lock, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
 
 const ScholarshipDetail = () => {
 	const t = useTranslations()
@@ -2446,6 +2446,41 @@ const ScholarshipDetail = () => {
 									<Button
 										variant="outline"
 										onClick={async () => {
+											// Check subscription eligibility before allowing edit
+											try {
+												const eligibilityResponse = await fetch(
+													'/api/applications/eligibility',
+													{
+														method: 'GET',
+														headers: {
+															'Content-Type': 'application/json',
+														},
+														credentials: 'include',
+													}
+												)
+												const eligibilityData = await eligibilityResponse.json()
+
+												if (!eligibilityData.eligibility?.canApply) {
+													showError(
+														'Subscription Required',
+														'You need an active Standard or Premium subscription to edit applications.',
+														{
+															onRetry: () => router.push('/pricing'),
+															showRetry: true,
+															retryText: 'Upgrade Now',
+														}
+													)
+													return
+												}
+											} catch (eligibilityError) {
+												showError(
+													'Error',
+													'Failed to verify subscription status. Please try again.'
+												)
+												return
+											}
+
+											// Proceed with edit mode setup
 											// Fetch profile documents to match against application documents
 											try {
 												const profileResponse = await fetch(

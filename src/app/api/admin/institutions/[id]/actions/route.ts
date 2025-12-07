@@ -76,6 +76,7 @@ export async function POST(
 				user: {
 					select: {
 						id: true,
+						email: true,
 						banned: true,
 						banReason: true,
 						banExpires: true,
@@ -191,6 +192,8 @@ export async function POST(
 
 			case "approve":
 				// Approve the institution
+				const oldStatusApprove =
+					institutionWithUser.verification_status;
 				result = await prismaClient.institution.update({
 					where: {
 						institution_id: institutionWithUser.institution_id,
@@ -202,24 +205,40 @@ export async function POST(
 					},
 				});
 
-				// Create notification for the institution
-				await prismaClient.notification.create({
-					data: {
-						notification_id: randomUUID(),
-						user_id: institutionWithUser.user.id,
-						title: "Institution Profile Approved",
-						body: "Your institution profile has been approved. You now have full access to the dashboard.",
-						type: "INSTITUTION_APPROVED",
-						send_at: new Date(),
-						create_at: new Date(),
-					},
-				});
+				// Send notification and email via SQS
+				try {
+					const { NotificationUtils } = await import(
+						"@/services/messaging/sqs-handlers"
+					);
+
+					const baseUrl =
+						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+						"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+					const profileUrl = `${baseUrl}/institution/dashboard/profile`;
+
+					await NotificationUtils.sendInstitutionProfileStatusUpdateNotification(
+						institutionWithUser.user.id,
+						institutionWithUser.user.email,
+						institutionWithUser.institution_id,
+						institutionWithUser.name,
+						oldStatusApprove as string,
+						"APPROVED",
+						profileUrl
+					);
+				} catch (notificationError) {
+					console.error(
+						"Failed to send institution approval notification:",
+						notificationError
+					);
+					// Don't fail the request if notification fails
+				}
 
 				break;
 
 			case "deny":
 				// Deny the institution
 				const { rejectionReason } = body;
+				const oldStatusDeny = institutionWithUser.verification_status;
 				result = await prismaClient.institution.update({
 					where: {
 						institution_id: institutionWithUser.institution_id,
@@ -232,20 +251,34 @@ export async function POST(
 					},
 				});
 
-				// Create notification for the institution
-				await prismaClient.notification.create({
-					data: {
-						notification_id: randomUUID(),
-						user_id: institutionWithUser.user.id,
-						title: "Institution Profile Rejected",
-						body: rejectionReason
-							? `Your institution profile has been rejected. Reason: ${rejectionReason}`
-							: "Your institution profile has been rejected. Please review your submission and try again.",
-						type: "INSTITUTION_REJECTED",
-						send_at: new Date(),
-						create_at: new Date(),
-					},
-				});
+				// Send notification and email via SQS
+				try {
+					const { NotificationUtils } = await import(
+						"@/services/messaging/sqs-handlers"
+					);
+
+					const baseUrl =
+						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+						"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+					const profileUrl = `${baseUrl}/institution/dashboard/profile`;
+
+					await NotificationUtils.sendInstitutionProfileStatusUpdateNotification(
+						institutionWithUser.user.id,
+						institutionWithUser.user.email,
+						institutionWithUser.institution_id,
+						institutionWithUser.name,
+						oldStatusDeny as string,
+						"REJECTED",
+						profileUrl,
+						rejectionReason || undefined
+					);
+				} catch (notificationError) {
+					console.error(
+						"Failed to send institution rejection notification:",
+						notificationError
+					);
+					// Don't fail the request if notification fails
+				}
 
 				break;
 
@@ -278,6 +311,8 @@ export async function POST(
 						adminUser?.name || adminUser?.email || "Administrator";
 
 					// Use a transaction to ensure all operations succeed or fail together
+					const oldStatusRequire =
+						institutionWithUser.verification_status;
 					await prismaClient.$transaction(async (tx) => {
 						// Update institution verification status to REQUIRE_UPDATE
 						await tx.institution.update({
@@ -326,6 +361,35 @@ export async function POST(
 							infoRequestId: infoRequestId,
 						};
 					});
+
+					// Send notification and email via SQS after transaction
+					try {
+						const { NotificationUtils } = await import(
+							"@/services/messaging/sqs-handlers"
+						);
+
+						const baseUrl =
+							process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+							"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+						const profileUrl = `${baseUrl}/institution/dashboard/profile`;
+
+						await NotificationUtils.sendInstitutionProfileStatusUpdateNotification(
+							institutionWithUser.user.id,
+							institutionWithUser.user.email,
+							institutionWithUser.institution_id,
+							institutionWithUser.name,
+							oldStatusRequire as string,
+							"REQUIRE_UPDATE",
+							profileUrl,
+							note.trim()
+						);
+					} catch (notificationError) {
+						console.error(
+							"Failed to send institution require-update notification:",
+							notificationError
+						);
+						// Don't fail the request if notification fails
+					}
 				} catch (requireInfoError: any) {
 					// eslint-disable-next-line no-console
 					console.error(

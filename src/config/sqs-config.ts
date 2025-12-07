@@ -57,6 +57,7 @@ export enum NotificationType {
 	ACCOUNT_DELETED = "ACCOUNT_DELETED",
 	SUPPORT_REPLY = "SUPPORT_REPLY",
 	POST_STATUS_UPDATE = "POST_STATUS_UPDATE",
+	INSTITUTION_PROFILE_STATUS_UPDATE = "INSTITUTION_PROFILE_STATUS_UPDATE",
 }
 
 // Base notification message structure
@@ -100,6 +101,7 @@ export interface ApplicationStatusMessage extends BaseNotificationMessage {
 		newStatus: string;
 		institutionName: string;
 		message?: string; // Optional message for REQUIRE_UPDATE status
+		applicantName?: string; // Optional applicant name for institution notifications
 	};
 }
 
@@ -236,6 +238,19 @@ export interface PostStatusUpdateMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface InstitutionProfileStatusUpdateMessage
+	extends BaseNotificationMessage {
+	type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE;
+	metadata: {
+		institutionId: string;
+		institutionName: string;
+		oldStatus: string;
+		newStatus: string;
+		rejectionReason?: string;
+		profileUrl: string;
+	};
+}
+
 // Union type for all notification messages
 export type NotificationMessage =
 	| ProfileCreatedMessage
@@ -252,7 +267,8 @@ export type NotificationMessage =
 	| PasswordChangedMessage
 	| AccountDeletedMessage
 	| SupportReplyMessage
-	| PostStatusUpdateMessage;
+	| PostStatusUpdateMessage
+	| InstitutionProfileStatusUpdateMessage;
 
 // SQS Service class
 export class SQSService {

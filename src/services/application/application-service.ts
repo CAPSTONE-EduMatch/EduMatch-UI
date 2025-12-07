@@ -179,6 +179,34 @@ class ApplicationService {
 		}>,
 		selectedProfileDocumentIds?: string[]
 	): Promise<{ success: boolean; message: string }> {
+		// Pre-flight check: Verify subscription eligibility before attempting update
+		try {
+			const eligibilityResponse = await fetch(
+				"/api/applications/eligibility",
+				{
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+			const eligibilityData = await eligibilityResponse.json();
+
+			if (!eligibilityData.eligibility?.canApply) {
+				throw new ApplicationError(
+					"You need an active Standard or Premium subscription to edit applications. Please upgrade your plan.",
+					403
+				);
+			}
+		} catch (error) {
+			if (error instanceof ApplicationError) {
+				throw error;
+			}
+			// If eligibility check fails for other reasons, continue
+			// (API route will perform the authoritative check)
+		}
+
 		return this.request<{ success: boolean; message: string }>(
 			`/${applicationId}/documents`,
 			{

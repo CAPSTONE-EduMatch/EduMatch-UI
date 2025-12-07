@@ -170,6 +170,7 @@ export async function GET(
 		// Change status to PROGRESSING when institution views application details
 		// Only if current status is SUBMITTED
 		if (application.status === "SUBMITTED") {
+			const oldStatus = application.status;
 			await prismaClient.application.update({
 				where: { application_id: params.applicationId },
 				data: {
@@ -178,6 +179,31 @@ export async function GET(
 			});
 			// Update the application object for response
 			application.status = "PROGRESSING";
+
+			// Send notification to applicant about status change to PROGRESSING
+			try {
+				const { NotificationUtils } = await import(
+					"@/services/messaging/sqs-handlers"
+				);
+
+				if (application.applicant?.user) {
+					await NotificationUtils.sendApplicationStatusNotification(
+						application.applicant.user.id,
+						application.applicant.user.email || "",
+						params.applicationId,
+						application.post.title,
+						oldStatus,
+						"PROGRESSING",
+						institution.name
+					);
+				}
+			} catch (notificationError) {
+				console.error(
+					"❌ Failed to send PROGRESSING status notification:",
+					notificationError
+				);
+				// Don't fail the request if notification fails
+			}
 		}
 
 		// Fetch ALL documents from snapshot (profile snapshot preserves state at application time)

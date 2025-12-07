@@ -592,13 +592,13 @@ export async function POST(request: NextRequest) {
 		// Note: Application count is now tracked by counting records in the applications table
 		// within the subscription period, so no manual increment needed
 
-		// Send notification to institution
+		// Send notification to institution about new application
 		try {
 			const { NotificationUtils } = await import(
 				"@/services/messaging/sqs-handlers"
 			);
 
-			// Get institution info
+			// Get institution info and applicant info
 			const institution = await prismaClient.opportunityPost.findUnique({
 				where: { post_id: body.postId },
 				include: {
@@ -610,18 +610,32 @@ export async function POST(request: NextRequest) {
 				},
 			});
 
-			if (institution?.institution?.user) {
-				await NotificationUtils.sendApplicationStatusNotification(
+			const applicant = await prismaClient.applicant.findUnique({
+				where: { applicant_id: application.applicant_id },
+				include: {
+					user: true,
+				},
+			});
+
+			if (institution?.institution?.user && applicant) {
+				const applicantName =
+					`${applicant.first_name || ""} ${applicant.last_name || ""}`.trim() ||
+					"An applicant";
+
+				await NotificationUtils.sendNewApplicationNotification(
 					institution.institution.user.id,
 					institution.institution.user.email || "",
 					application.application_id,
 					post.title,
-					"",
-					"SUBMITTED",
+					applicantName,
 					institution.institution.name
 				);
 			}
 		} catch (notificationError) {
+			console.error(
+				"❌ Failed to send new application notification:",
+				notificationError
+			);
 			// Don't fail the application if notification fails
 		}
 

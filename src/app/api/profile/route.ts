@@ -590,6 +590,47 @@ export async function PUT(request: NextRequest) {
 							submitted_at: new Date(),
 						},
 					});
+
+					// Send notification about status change to UPDATED
+					try {
+						const { NotificationUtils } = await import(
+							"@/services/messaging/sqs-handlers"
+						);
+
+						const institution =
+							await prismaClient.institution.findUnique({
+								where: {
+									institution_id:
+										institutionBeforeUpdate.institution_id,
+								},
+								include: {
+									user: true,
+								},
+							});
+
+						if (institution?.user) {
+							const baseUrl =
+								process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+								"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+							const profileUrl = `${baseUrl}/institution/dashboard/profile`;
+
+							await NotificationUtils.sendInstitutionProfileStatusUpdateNotification(
+								institution.user.id,
+								institution.user.email,
+								institution.institution_id,
+								institution.name,
+								"REQUIRE_UPDATE",
+								"UPDATED",
+								profileUrl
+							);
+						}
+					} catch (notificationError) {
+						console.error(
+							"Failed to send institution UPDATED status notification:",
+							notificationError
+						);
+						// Don't fail the request if notification fails
+					}
 				}
 
 				// Handle verification documents if provided

@@ -9,6 +9,7 @@ import {
 	PaymentFailedMessage,
 	PaymentSuccessMessage,
 	PostStatusUpdateMessage,
+	InstitutionProfileStatusUpdateMessage,
 	ProfileCreatedMessage,
 	SessionRevokedMessage,
 	SubscriptionExpiringMessage,
@@ -30,6 +31,7 @@ import {
 	generatePaymentFailedEmailTemplate,
 	generatePaymentSuccessEmailTemplate,
 	generatePostStatusUpdateEmailTemplate,
+	generateInstitutionProfileStatusUpdateEmailTemplate,
 	generateProfileCreatedEmailTemplate,
 	generateRevokeSessionEmailTemplate,
 	generateSubscriptionExpiringEmailTemplate,
@@ -330,7 +332,7 @@ export class EmailTemplates {
             <p>If you have any additional questions or need further assistance, please don't hesitate to contact us again.</p>
             
             <div class="footer">
-                <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support" class="button">
+                <a href="${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/support" class="button">
                     Contact Support Again
                 </a>
                 
@@ -368,6 +370,22 @@ export class EmailTemplates {
 			metadata.oldStatus,
 			metadata.newStatus,
 			metadata.postUrl,
+			metadata.rejectionReason
+		);
+	}
+
+	static generateInstitutionProfileStatusUpdateEmail(
+		message: InstitutionProfileStatusUpdateMessage
+	): {
+		subject: string;
+		html: string;
+	} {
+		const { metadata } = message;
+		return generateInstitutionProfileStatusUpdateEmailTemplate(
+			metadata.institutionName,
+			metadata.oldStatus,
+			metadata.newStatus,
+			metadata.profileUrl,
 			metadata.rejectionReason
 		);
 	}
@@ -515,6 +533,12 @@ export class EmailService {
 					emailContent = EmailTemplates.generatePostStatusUpdateEmail(
 						message as PostStatusUpdateMessage
 					);
+					break;
+				case NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE:
+					emailContent =
+						EmailTemplates.generateInstitutionProfileStatusUpdateEmail(
+							message as InstitutionProfileStatusUpdateMessage
+						);
 					break;
 				default:
 					throw new Error(

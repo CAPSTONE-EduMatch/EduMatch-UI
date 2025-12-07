@@ -1420,7 +1420,7 @@
 		},
 		"filters": {
 			"submitted": "Đã Nộp",
-			"update_required": "Cần Cập Nhật",
+			"progressing": "Đang Xử Lý",
 			"accepted": "Đã Chấp Nhận",
 			"rejected": "Đã Từ Chối"
 		},

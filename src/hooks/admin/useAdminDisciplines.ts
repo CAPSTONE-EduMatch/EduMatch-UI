@@ -36,6 +36,26 @@ export interface DisciplineStats {
 	inactive: number;
 }
 
+export interface DisciplineDetails {
+	id: string;
+	name: string;
+	status: "Active" | "Inactive";
+	subdisciplines: {
+		id: string;
+		name: string;
+		status: "Active" | "Inactive";
+		createdAt: string;
+	}[];
+	stats: {
+		totalSubdisciplines: number;
+		activeSubdisciplines: number;
+		inactiveSubdisciplines: number;
+		linkedPosts: number;
+		linkedInstitutions: number;
+		linkedApplicants: number;
+	};
+}
+
 interface ApiResponse {
 	success: boolean;
 	disciplines: Discipline[];
@@ -199,6 +219,32 @@ const deleteDisciplineOrSubdiscipline = async ({
 	}
 
 	return data;
+};
+
+// Fetch single discipline details
+const fetchDisciplineDetails = async (
+	id: string
+): Promise<DisciplineDetails> => {
+	const response = await fetch(`/api/admin/disciplines/${id}`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to fetch discipline details: ${response.statusText}`
+		);
+	}
+
+	const result = await response.json();
+
+	if (!result.success) {
+		throw new Error(result.error || "Failed to fetch discipline details");
+	}
+
+	return result.data;
 };
 
 export function useAdminDisciplines() {
@@ -380,5 +426,94 @@ export function useAdminDisciplines() {
 		updateSubdiscipline,
 		deleteDiscipline,
 		deleteSubdiscipline,
+	};
+}
+
+export function useDisciplineDetails(id: string) {
+	const queryClient = useQueryClient();
+
+	const { data, isLoading, error, refetch } = useQuery({
+		queryKey: ["discipline-detail", id],
+		queryFn: () => fetchDisciplineDetails(id),
+		staleTime: 0,
+		enabled: !!id,
+	});
+
+	// Create subdiscipline mutation
+	const createSubdisciplineMutation = useMutation({
+		mutationFn: createDisciplineOrSubdiscipline,
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["discipline-detail", id],
+			});
+			queryClient.invalidateQueries({ queryKey: ["admin-disciplines"] });
+			toast.success("Subdiscipline created successfully");
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || "Failed to create subdiscipline");
+		},
+	});
+
+	// Update subdiscipline mutation
+	const updateSubdisciplineMutation = useMutation({
+		mutationFn: updateDisciplineOrSubdiscipline,
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["discipline-detail", id],
+			});
+			queryClient.invalidateQueries({ queryKey: ["admin-disciplines"] });
+			toast.success("Subdiscipline updated successfully");
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || "Failed to update subdiscipline");
+		},
+	});
+
+	// Delete subdiscipline mutation
+	const deleteSubdisciplineMutation = useMutation({
+		mutationFn: deleteDisciplineOrSubdiscipline,
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["discipline-detail", id],
+			});
+			queryClient.invalidateQueries({ queryKey: ["admin-disciplines"] });
+			toast.success("Subdiscipline deactivated successfully");
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || "Failed to deactivate subdiscipline");
+		},
+	});
+
+	return {
+		discipline: data || null,
+		isLoading,
+		error: error as Error | null,
+		refetch,
+		isCreating: createSubdisciplineMutation.isPending,
+		isUpdating: updateSubdisciplineMutation.isPending,
+		isDeleting: deleteSubdisciplineMutation.isPending,
+		createSubdiscipline: async (name: string) => {
+			return createSubdisciplineMutation.mutateAsync({
+				type: "subdiscipline",
+				name,
+				disciplineId: id,
+			});
+		},
+		updateSubdiscipline: async (
+			subdisciplineId: string,
+			updates: { name?: string; status?: "Active" | "Inactive" }
+		) => {
+			return updateSubdisciplineMutation.mutateAsync({
+				type: "subdiscipline",
+				id: subdisciplineId,
+				...updates,
+			});
+		},
+		deleteSubdiscipline: async (subdisciplineId: string) => {
+			return deleteSubdisciplineMutation.mutateAsync({
+				type: "subdiscipline",
+				id: subdisciplineId,
+			});
+		},
 	};
 }

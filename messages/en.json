@@ -1355,7 +1355,7 @@
 		},
 		"filters": {
 			"submitted": "Submitted",
-			"update_required": "Update Required",
+			"progressing": "Progressing",
 			"accepted": "Accepted",
 			"rejected": "Rejected"
 		},

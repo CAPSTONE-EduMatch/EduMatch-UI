@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
 						<p><strong>Authenticated:</strong> ${userId ? "Yes" : "No"}</p>
 						<pre style=\"white-space:pre-wrap;font-family:inherit;\">${escapeHtml(question)}</pre>
 					`,
-					helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+					helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/support`,
 				},
 				emailAttachments.length ? emailAttachments : undefined
 			);
@@ -193,9 +193,9 @@ export async function POST(request: NextRequest) {
 					`,
 					primaryCta: {
 						label: "Visit Help Center",
-						url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+						url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/support`,
 					},
-					helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`,
+					helpCenterUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/support`,
 				}
 			);
 

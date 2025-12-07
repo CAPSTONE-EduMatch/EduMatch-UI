@@ -1,8 +1,3 @@
-import {
-	NotificationType,
-	PostStatusUpdateMessage,
-	SQSService,
-} from "@/config/sqs-config";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
@@ -345,36 +340,29 @@ export async function PATCH(
 				},
 			});
 
-			// Send email notification via SQS
+			// Send email notification via SQS using utility function
 			try {
+				const { NotificationUtils } = await import(
+					"@/services/messaging/sqs-handlers"
+				);
+
 				const baseUrl =
 					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-					"https://edumatch.app";
+					"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
 				const postUrl = `${baseUrl}/institution/posts/${postId}`;
 
-				const emailMessage: PostStatusUpdateMessage = {
-					id: `post-status-${postId}-${Date.now()}`,
-					type: NotificationType.POST_STATUS_UPDATE,
-					userId: institutionUser.id,
-					userEmail: institutionUser.email,
-					timestamp: new Date().toISOString(),
-					metadata: {
-						postId: postId,
-						postTitle: currentPost.title,
-						postType: postType as
-							| "Program"
-							| "Scholarship"
-							| "Research Lab",
-						institutionName: currentPost.institution.name,
-						oldStatus: currentStatus,
-						newStatus: status,
-						rejectionReason:
-							status === "REJECTED" ? rejectionReason : undefined,
-						postUrl: postUrl,
-					},
-				};
-
-				await SQSService.sendNotification(emailMessage);
+				await NotificationUtils.sendPostStatusUpdateNotification(
+					institutionUser.id,
+					institutionUser.email,
+					postId,
+					currentPost.title,
+					postType as "Program" | "Scholarship" | "Research Lab",
+					currentPost.institution.name,
+					currentStatus,
+					status,
+					postUrl,
+					status === "REJECTED" ? rejectionReason : undefined
+				);
 			} catch (emailError) {
 				// Log error but don't fail the request
 				console.error("Failed to send email notification:", emailError);

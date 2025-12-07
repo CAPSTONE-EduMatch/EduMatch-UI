@@ -432,7 +432,7 @@ export async function PATCH(request: NextRequest) {
 								label: "Contact Support",
 								url: `${
 									process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-									"https://edumatch.app"
+									"https://dev.d1jaxpbx3axxsh.amplifyapp.com"
 								}/support`,
 							},
 							helpCenterUrl: `${

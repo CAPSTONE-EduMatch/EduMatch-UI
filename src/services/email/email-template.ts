@@ -35,23 +35,10 @@ export function renderCompanyEmail(options: CompanyEmailOptions): string {
 	const textColor = "#1f2937";
 	const mutedText = "#6b7280";
 	const borderColor = "#e5e7eb";
-	// Construct absolute logo URL for email clients
-	// IMPORTANT: Use PNG instead of SVG - most email clients (including Gmail) don't support SVG
-	const getLogoUrl = (): string => {
-		if (options.logoUrl) {
-			return options.logoUrl;
-		}
-		// Allow explicit logo URL via environment variable if needed
-		if (process.env.NEXT_PUBLIC_BRAND_LOGO) {
-			return process.env.NEXT_PUBLIC_BRAND_LOGO;
-		}
-		// Use S3-hosted PNG logo (PNG format works better in emails than SVG)
-		return "https://edumatch-file-12.s3.ap-northeast-1.amazonaws.com/Edumatch/edumatch_logo.png";
-	};
-	const logoUrl = getLogoUrl();
+	// Logo removed - no logo in emails
 	const helpCenterUrl =
 		options.helpCenterUrl ||
-		`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://edumatch.app"}/support`;
+		`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/support`;
 	const unsubscribeUrl = options.unsubscribeUrl;
 	const preheader = options.preheader || "";
 	const title = options.title || brandName;
@@ -86,8 +73,7 @@ export function renderCompanyEmail(options: CompanyEmailOptions): string {
     .container { width: 100%; max-width: 640px; margin: 0 auto; padding: 24px 16px; }
     .card { background: ${contentBg}; border: 1px solid ${borderColor}; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
     .header { background: linear-gradient(135deg, ${primaryColor}, ${accentColor}); padding: 28px 24px; color: #fff; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand img { height: 36px; width: 36px; border-radius: 8px; background: rgba(255,255,255,0.9); }
+    .brand { display: flex; align-items: center; }
     .brand h1 { margin: 0; font-size: 18px; line-height: 1.2; }
     .brand p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; }
     .content { padding: 24px; }
@@ -121,15 +107,6 @@ export function renderCompanyEmail(options: CompanyEmailOptions): string {
     <div class="card">
       <div class="header">
         <div class="brand">
-          <img 
-            src="${logoUrl}" 
-            alt="${escapeHtml(brandName)}" 
-            width="36" 
-            height="36" 
-            style="display: block; border: none; outline: none; text-decoration: none; max-width: 36px; height: auto; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 8px;" 
-            loading="eager"
-            decoding="async"
-          />
           <div>
             <h1>${escapeHtml(brandName)}</h1>
             <p>${escapeHtml(brandTagline)}</p>
@@ -231,7 +208,7 @@ export function generateWelcomeEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Complete Your Profile",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/create`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/create`,
 		},
 	});
 
@@ -271,7 +248,7 @@ export function generateProfileCreatedEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Start Exploring",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/explore`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/explore`,
 		},
 		brandingColor: "#4CAF50",
 	});
@@ -313,7 +290,7 @@ export function generatePaymentDeadlineEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Pay Now",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/view?tab=payment`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view?tab=payment`,
 		},
 		brandingColor: "#ff9800",
 	});
@@ -358,7 +335,7 @@ export function generateWishlistDeadlineEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "View Opportunity",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || ""}/explore/programs/program-detail?postId=${postId}`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/explore/programmes/${postId}`,
 		},
 		brandingColor: "#9C27B0",
 	});
@@ -405,7 +382,7 @@ export function generateApplicationStatusEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "View Application",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/applications`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view?tab=application`,
 		},
 		brandingColor: "#2196F3",
 	});
@@ -445,7 +422,7 @@ export function generateDocumentUpdatedEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Review Application",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/institution/dashboard/applications/${applicationId}`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/dashboard/applications/${applicationId}`,
 		},
 		brandingColor: "#9C27B0",
 	});
@@ -487,7 +464,7 @@ export function generatePaymentSuccessEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Access Your Profile",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view`,
 		},
 		brandingColor: "#4CAF50",
 	});
@@ -528,7 +505,7 @@ export function generatePaymentFailedEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Update Payment Method",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/view?tab=payment`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view?tab=payment`,
 		},
 		brandingColor: "#f44336",
 	});
@@ -569,7 +546,7 @@ export function generateSubscriptionExpiringEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Renew Subscription",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile/view?tab=payment`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view?tab=payment`,
 		},
 		brandingColor: "#ff9800",
 	});
@@ -690,7 +667,7 @@ export function generateRevokeSessionEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Sign In Again",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/signin`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/signin`,
 		},
 		brandingColor: "#ff9800",
 		footerExtrasHtml: `<p style="color: #6b7280; font-size: 14px; margin: 0;">This is an automated security notification. Please do not reply to this email.</p>`,
@@ -740,7 +717,7 @@ export function generatePasswordChangedEmailTemplate(
 		bodyHtml,
 		primaryCta: {
 			label: "Review Account Security",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/profile`,
+			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view`,
 		},
 		brandingColor: "#667eea",
 		footerExtrasHtml: `<p style="color: #6b7280; font-size: 14px; margin: 0;">This is an automated security notification. Please do not reply to this email.</p>`,
@@ -927,6 +904,150 @@ function getPostStatusLabel(status: string): string {
 			return "Updated";
 		case "DRAFT":
 			return "Draft";
+		default:
+			return status;
+	}
+}
+
+/**
+ * Template: Institution Profile Status Update Email
+ * Used for: Institution profile verification status change notification
+ * Trigger: When admin changes institution profile verification status
+ */
+export function generateInstitutionProfileStatusUpdateEmailTemplate(
+	institutionName: string,
+	oldStatus: string,
+	newStatus: string,
+	profileUrl: string,
+	rejectionReason?: string
+): { subject: string; html: string } {
+	const subject = `Institution Profile Status Update - ${institutionName}`;
+	const statusColor = getInstitutionStatusColor(newStatus);
+	const statusLabel = getInstitutionStatusLabel(newStatus);
+
+	let statusContent = "";
+	if (newStatus === "APPROVED") {
+		statusContent = `
+			<div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">🎉 Your institution profile has been approved!</h3>
+				<p style="margin: 0;">Your institution profile is now verified and you have full access to the dashboard. You can now create and manage posts.</p>
+			</div>
+		`;
+	} else if (newStatus === "REJECTED") {
+		statusContent = `
+			<div style="background: #ffebee; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f44336;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">❌ Your institution profile has been rejected</h3>
+				<p style="margin: 0 0 12px;">Unfortunately, your institution profile could not be approved at this time.</p>
+				${
+					rejectionReason
+						? `
+					<div style="background: white; padding: 15px; border-radius: 8px; margin: 12px 0; border: 1px solid #e0e0e0;">
+						<p style="margin: 0 0 10px; font-weight: 600; color: #333;">Reason for rejection:</p>
+						<p style="margin: 0; color: #555; white-space: pre-wrap;">${escapeHtml(rejectionReason)}</p>
+					</div>
+				`
+						: ""
+				}
+				<p style="margin: 12px 0 0;">Please review the feedback and update your profile information. Once updated, you can resubmit your profile for review.</p>
+			</div>
+		`;
+	} else if (newStatus === "REQUIRE_UPDATE") {
+		statusContent = `
+			<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">📋 Action Required: Profile Update Needed</h3>
+				<p style="margin: 0 0 12px;">Our admin team requires additional information or updates to your institution profile.</p>
+				${
+					rejectionReason
+						? `
+					<div style="background: white; padding: 15px; border-radius: 8px; margin: 12px 0; border: 1px solid #e0e0e0;">
+						<p style="margin: 0 0 10px; font-weight: 600; color: #333;">Additional information needed:</p>
+						<p style="margin: 0; color: #555; white-space: pre-wrap;">${escapeHtml(rejectionReason)}</p>
+					</div>
+				`
+						: ""
+				}
+				<p style="margin: 12px 0 0;">Please review your profile and provide the requested information. Once updated, your profile will be reviewed again.</p>
+			</div>
+		`;
+	} else if (newStatus === "UPDATED") {
+		statusContent = `
+			<div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196F3;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">✅ Profile Updated Successfully</h3>
+				<p style="margin: 0;">Your institution profile has been updated and is now under review. We'll notify you once the review is complete.</p>
+			</div>
+		`;
+	} else {
+		statusContent = `
+			<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #9e9e9e;">
+				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">📋 Status Updated</h3>
+				<p style="margin: 0;">Your institution profile status has changed to ${statusLabel}.</p>
+			</div>
+		`;
+	}
+
+	const bodyHtml = `
+		<p>Dear <strong>${escapeHtml(institutionName)}</strong>,</p>
+		<p>The verification status of your institution profile has been updated.</p>
+		
+		<div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+			<h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600;">Profile Status</h3>
+			<p style="margin: 4px 0;">
+				<strong>Status:</strong> 
+				<span style="display: inline-block; padding: 4px 12px; border-radius: 12px; background: ${statusColor}; color: white; font-weight: 500;">${statusLabel}</span>
+			</p>
+		</div>
+		
+		${statusContent}
+		
+		<div style="text-align: center; margin: 30px 0;">
+			<a href="${escapeHtml(profileUrl)}" style="display: inline-block; padding: 14px 32px; background: #126E64; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">View Profile</a>
+		</div>
+		
+		<p>If you have any questions, please don't hesitate to contact our support team.</p>
+	`;
+
+	const html = renderCompanyEmail({
+		title: "Institution Profile Status Update",
+		preheader: `Your institution profile "${institutionName}" status has been updated`,
+		bodyHtml,
+		brandingColor: statusColor,
+		footerExtrasHtml: `<p style="color: #6b7280; font-size: 14px; margin: 0;">This notification was sent regarding your institution profile on EduMatch.</p>`,
+	});
+
+	return { subject, html };
+}
+
+// Helper function for institution status colors
+function getInstitutionStatusColor(status: string): string {
+	switch (status.toUpperCase()) {
+		case "APPROVED":
+			return "#4CAF50";
+		case "REJECTED":
+			return "#f44336";
+		case "REQUIRE_UPDATE":
+			return "#ff9800";
+		case "UPDATED":
+			return "#2196F3";
+		case "PENDING":
+			return "#9e9e9e";
+		default:
+			return "#6B7280";
+	}
+}
+
+// Helper function for institution status labels
+function getInstitutionStatusLabel(status: string): string {
+	switch (status.toUpperCase()) {
+		case "APPROVED":
+			return "Approved";
+		case "REJECTED":
+			return "Rejected";
+		case "REQUIRE_UPDATE":
+			return "Update Required";
+		case "UPDATED":
+			return "Updated";
+		case "PENDING":
+			return "Pending Review";
 		default:
 			return status;
 	}

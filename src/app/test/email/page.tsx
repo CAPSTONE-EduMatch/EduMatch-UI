@@ -20,9 +20,64 @@ const EMAIL_TYPES = [
 		description: 'Wishlist deadline reminder',
 	},
 	{
-		value: 'application_status',
-		label: 'Application Status',
-		description: 'Application status update',
+		value: 'application_status_submitted',
+		label: 'Application Status - SUBMITTED',
+		description: 'Application submitted (to applicant)',
+	},
+	{
+		value: 'application_status_progressing',
+		label: 'Application Status - PROGRESSING',
+		description: 'Application in progress (to applicant)',
+	},
+	{
+		value: 'application_status_accepted',
+		label: 'Application Status - ACCEPTED',
+		description: 'Application accepted (to applicant)',
+	},
+	{
+		value: 'application_status_rejected',
+		label: 'Application Status - REJECTED',
+		description: 'Application rejected (to applicant)',
+	},
+	{
+		value: 'new_application',
+		label: 'New Application (Institution)',
+		description: 'New application received (to institution)',
+	},
+	{
+		value: 'post_status_published',
+		label: 'Post Status - PUBLISHED',
+		description: 'Post published (to institution)',
+	},
+	{
+		value: 'post_status_rejected',
+		label: 'Post Status - REJECTED',
+		description: 'Post rejected (to institution)',
+	},
+	{
+		value: 'post_status_closed',
+		label: 'Post Status - CLOSED',
+		description: 'Post closed (to institution)',
+	},
+	{
+		value: 'institution_profile_approved',
+		label: 'Institution Profile - APPROVED',
+		description: 'Institution profile approved',
+	},
+	{
+		value: 'institution_profile_rejected',
+		label: 'Institution Profile - REJECTED',
+		description: 'Institution profile rejected',
+	},
+	{
+		value: 'institution_profile_require_update',
+		label: 'Institution Profile - REQUIRE_UPDATE',
+		description: 'Institution profile requires update',
+	},
+	{
+		value: 'institution_profile_updated',
+		label: 'Institution Profile - UPDATED',
+		description: 'Institution profile updated',
 	},
 	{
 		value: 'document_updated',

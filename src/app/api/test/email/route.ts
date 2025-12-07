@@ -15,6 +15,8 @@ import {
 	SessionRevokedMessage,
 	PasswordChangedMessage,
 	AccountDeletedMessage,
+	PostStatusUpdateMessage,
+	InstitutionProfileStatusUpdateMessage,
 	NotificationType,
 } from "@/config/sqs-config";
 
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
 				} as WishlistDeadlineMessage;
 				break;
 
-			case "application_status":
+			case "application_status_submitted":
 				testMessage = {
 					id: `test-application-status-${Date.now()}`,
 					type: NotificationType.APPLICATION_STATUS_UPDATE,
@@ -150,12 +152,214 @@ export async function POST(request: NextRequest) {
 						applicationId: "test-app-id",
 						programName: "Master's in Data Science",
 						institutionName: "Test University",
-						oldStatus: "submitted",
-						newStatus: "accepted",
+						oldStatus: "",
+						newStatus: "SUBMITTED",
+					},
+				} as ApplicationStatusMessage;
+				break;
+
+			case "application_status_progressing":
+				testMessage = {
+					id: `test-application-status-${Date.now()}`,
+					type: NotificationType.APPLICATION_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						applicationId: "test-app-id",
+						programName: "Master's in Data Science",
+						institutionName: "Test University",
+						oldStatus: "SUBMITTED",
+						newStatus: "PROGRESSING",
+					},
+				} as ApplicationStatusMessage;
+				break;
+
+			case "application_status_accepted":
+				testMessage = {
+					id: `test-application-status-${Date.now()}`,
+					type: NotificationType.APPLICATION_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						applicationId: "test-app-id",
+						programName: "Master's in Data Science",
+						institutionName: "Test University",
+						oldStatus: "PROGRESSING",
+						newStatus: "ACCEPTED",
 						message:
 							"Congratulations! Your application has been accepted.",
 					},
 				} as ApplicationStatusMessage;
+				break;
+
+			case "application_status_rejected":
+				testMessage = {
+					id: `test-application-status-${Date.now()}`,
+					type: NotificationType.APPLICATION_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						applicationId: "test-app-id",
+						programName: "Master's in Data Science",
+						institutionName: "Test University",
+						oldStatus: "PROGRESSING",
+						newStatus: "REJECTED",
+						message:
+							"Unfortunately, your application was not selected at this time.",
+					},
+				} as ApplicationStatusMessage;
+				break;
+
+			case "new_application":
+				testMessage = {
+					id: `test-new-application-${Date.now()}`,
+					type: NotificationType.APPLICATION_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						applicationId: "test-app-id",
+						programName: "PhD in Computer Science",
+						institutionName: "Test University",
+						oldStatus: "",
+						newStatus: "SUBMITTED",
+						applicantName: "John Doe",
+					},
+				} as ApplicationStatusMessage;
+				break;
+
+			case "post_status_published":
+				testMessage = {
+					id: `test-post-status-${Date.now()}`,
+					type: NotificationType.POST_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						postId: "test-post-id",
+						postTitle: "PhD in Computer Science",
+						postType: "Program",
+						institutionName: "Test University",
+						oldStatus: "SUBMITTED",
+						newStatus: "PUBLISHED",
+						postUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/posts/test-post-id`,
+					},
+				} as PostStatusUpdateMessage;
+				break;
+
+			case "post_status_rejected":
+				testMessage = {
+					id: `test-post-status-${Date.now()}`,
+					type: NotificationType.POST_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						postId: "test-post-id",
+						postTitle: "PhD in Computer Science",
+						postType: "Program",
+						institutionName: "Test University",
+						oldStatus: "SUBMITTED",
+						newStatus: "REJECTED",
+						rejectionReason:
+							"The post description needs more details about the research focus.",
+						postUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/posts/test-post-id`,
+					},
+				} as PostStatusUpdateMessage;
+				break;
+
+			case "post_status_closed":
+				testMessage = {
+					id: `test-post-status-${Date.now()}`,
+					type: NotificationType.POST_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						postId: "test-post-id",
+						postTitle: "PhD in Computer Science",
+						postType: "Program",
+						institutionName: "Test University",
+						oldStatus: "PUBLISHED",
+						newStatus: "CLOSED",
+						postUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/posts/test-post-id`,
+					},
+				} as PostStatusUpdateMessage;
+				break;
+
+			case "institution_profile_approved":
+				testMessage = {
+					id: `test-institution-profile-${Date.now()}`,
+					type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						institutionId: "test-institution-id",
+						institutionName: "Test University",
+						oldStatus: "PENDING",
+						newStatus: "APPROVED",
+						profileUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/dashboard/profile`,
+					},
+				} as InstitutionProfileStatusUpdateMessage;
+				break;
+
+			case "institution_profile_rejected":
+				testMessage = {
+					id: `test-institution-profile-${Date.now()}`,
+					type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						institutionId: "test-institution-id",
+						institutionName: "Test University",
+						oldStatus: "PENDING",
+						newStatus: "REJECTED",
+						rejectionReason:
+							"The verification documents provided are not clear enough. Please resubmit with clearer copies.",
+						profileUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/dashboard/profile`,
+					},
+				} as InstitutionProfileStatusUpdateMessage;
+				break;
+
+			case "institution_profile_require_update":
+				testMessage = {
+					id: `test-institution-profile-${Date.now()}`,
+					type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						institutionId: "test-institution-id",
+						institutionName: "Test University",
+						oldStatus: "PENDING",
+						newStatus: "REQUIRE_UPDATE",
+						rejectionReason:
+							"Please provide additional information about your institution's accreditation and recent achievements.",
+						profileUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/dashboard/profile`,
+					},
+				} as InstitutionProfileStatusUpdateMessage;
+				break;
+
+			case "institution_profile_updated":
+				testMessage = {
+					id: `test-institution-profile-${Date.now()}`,
+					type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE,
+					userId: testUserId,
+					userEmail: to,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						institutionId: "test-institution-id",
+						institutionName: "Test University",
+						oldStatus: "REQUIRE_UPDATE",
+						newStatus: "UPDATED",
+						profileUrl: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/institution/dashboard/profile`,
+					},
+				} as InstitutionProfileStatusUpdateMessage;
 				break;
 
 			case "document_updated":
@@ -303,7 +507,18 @@ export async function POST(request: NextRequest) {
 							"profile_created",
 							"payment_deadline",
 							"wishlist_deadline",
-							"application_status",
+							"application_status_submitted",
+							"application_status_progressing",
+							"application_status_accepted",
+							"application_status_rejected",
+							"new_application",
+							"post_status_published",
+							"post_status_rejected",
+							"post_status_closed",
+							"institution_profile_approved",
+							"institution_profile_rejected",
+							"institution_profile_require_update",
+							"institution_profile_updated",
 							"document_updated",
 							"payment_success",
 							"payment_failed",
@@ -362,8 +577,52 @@ export async function GET() {
 				description: "Wishlist deadline reminder",
 			},
 			{
-				type: "application_status",
-				description: "Application status update",
+				type: "application_status_submitted",
+				description: "Application submitted (to applicant)",
+			},
+			{
+				type: "application_status_progressing",
+				description: "Application in progress (to applicant)",
+			},
+			{
+				type: "application_status_accepted",
+				description: "Application accepted (to applicant)",
+			},
+			{
+				type: "application_status_rejected",
+				description: "Application rejected (to applicant)",
+			},
+			{
+				type: "new_application",
+				description: "New application received (to institution)",
+			},
+			{
+				type: "post_status_published",
+				description: "Post published (to institution)",
+			},
+			{
+				type: "post_status_rejected",
+				description: "Post rejected (to institution)",
+			},
+			{
+				type: "post_status_closed",
+				description: "Post closed (to institution)",
+			},
+			{
+				type: "institution_profile_approved",
+				description: "Institution profile approved",
+			},
+			{
+				type: "institution_profile_rejected",
+				description: "Institution profile rejected",
+			},
+			{
+				type: "institution_profile_require_update",
+				description: "Institution profile requires update",
+			},
+			{
+				type: "institution_profile_updated",
+				description: "Institution profile updated",
 			},
 			{
 				type: "document_updated",

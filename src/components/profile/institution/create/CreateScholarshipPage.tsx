@@ -83,36 +83,18 @@ export const CreateScholarshipPage: React.FC<CreateScholarshipPageProps> = ({
 
 	const [formData, setFormData] = useState({
 		// Overview Section
-		scholarshipName: 'Merit Scholarship for International Students',
+		scholarshipName: '',
 		startDate: '',
 		applicationDeadline: '',
 		subdisciplines: [],
-		country: 'Vietnam',
+		country: '',
 
 		// Detail Section
-		scholarshipDescription: `<p>This scholarship is designed to support outstanding international students pursuing their academic goals.</p>
-<p>Key features include:</p>
-<ul>
-<li>Full tuition coverage</li>
-<li>Living allowance</li>
-<li>Research funding opportunities</li>
-<li>Mentorship program</li>
-</ul>`,
+		scholarshipDescription: '',
 		scholarshipType: [],
-		numberOfScholarships: '10',
-		grant: `<p>Full tuition coverage for the entire program duration.</p>
-<ul>
-<li>Tuition fees</li>
-<li>Registration fees</li>
-<li>Laboratory fees</li>
-</ul>`,
-		scholarshipCoverage: `<p>Comprehensive financial support including:</p>
-<ul>
-<li>Tuition fee reduction (100%)</li>
-<li>Living expenses allowance</li>
-<li>Travel expenses for international students</li>
-<li>Health insurance coverage</li>
-</ul>`,
+		numberOfScholarships: '',
+		grant: '',
+		scholarshipCoverage: '',
 
 		// Eligibility Requirements
 		eligibilityRequirements: '',

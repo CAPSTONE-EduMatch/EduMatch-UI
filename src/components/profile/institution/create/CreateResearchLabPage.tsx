@@ -119,14 +119,14 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 
 	const [formData, setFormData] = useState({
 		// Overview Section
-		jobName: 'International Business and Intercultural Management',
+		jobName: '',
 		startDate: '',
 		applicationDeadline: '',
-		country: 'Vietnam',
-		researchFields: ['data science', 'information system'],
-		typeOfContract: 'Full-time',
-		attendance: 'On-site',
-		jobType: 'Research Assistant',
+		country: '',
+		researchFields: [],
+		typeOfContract: '',
+		attendance: '',
+		jobType: '',
 		professorName: '',
 
 		// Offer Information Section
@@ -135,83 +135,26 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 			max: '',
 			description: '',
 		},
-		benefit: `<p>Comprehensive benefits package including:</p>
-<ul>
-<li>Health insurance coverage</li>
-<li>Professional development opportunities</li>
-<li>Research funding support</li>
-<li>Conference travel allowance</li>
-</ul>`,
+		benefit: '',
 
 		// Job Requirements Section
-		mainResponsibility: `<p>Key responsibilities include:</p>
-<ul>
-<li>Conducting independent research</li>
-<li>Collaborating with research team</li>
-<li>Publishing research findings</li>
-<li>Mentoring junior researchers</li>
-</ul>`,
-		qualificationRequirement: `<p>Required qualifications:</p>
-<ul>
-<li>PhD in relevant field</li>
-<li>Strong research background</li>
-<li>Excellent analytical skills</li>
-<li>Proficiency in research methodologies</li>
-</ul>`,
-		experienceRequirement: `<p>Experience requirements:</p>
-<ul>
-<li>3+ years of research experience</li>
-<li>Published research papers</li>
-<li>Experience with research tools</li>
-<li>Collaborative research experience</li>
-</ul>`,
-		assessmentCriteria: `<p>Assessment criteria:</p>
-<ul>
-<li>Research quality and impact</li>
-<li>Publication record</li>
-<li>Collaboration skills</li>
-<li>Innovation and creativity</li>
-</ul>`,
-		otherRequirement: `<p>Additional requirements:</p>
-<ul>
-<li>Strong communication skills</li>
-<li>Ability to work independently</li>
-<li>Commitment to research excellence</li>
-<li>Flexibility in research focus</li>
-</ul>`,
+		mainResponsibility: '',
+		qualificationRequirement: '',
+		experienceRequirement: '',
+		assessmentCriteria: '',
+		otherRequirement: '',
 
 		// Lab Details Section
-		labDescription: `<p>The Advanced AI Research Laboratory is a cutting-edge research facility dedicated to advancing artificial intelligence technologies.</p>
-<p>Our research focuses on:</p>
-<ul>
-<li>Machine Learning and Deep Learning</li>
-<li>Natural Language Processing</li>
-<li>Computer Vision</li>
-<li>Robotics and Autonomous Systems</li>
-</ul>`,
-		labType: 'Academic',
-		researchFocus: 'Artificial Intelligence',
-		labCapacity: '20',
+		labDescription: '',
+		labType: '',
+		researchFocus: '',
+		labCapacity: '',
 
 		// Research Areas
-		researchAreas: `<p>Our laboratory conducts research in the following key areas:</p>
-<ul>
-<li>Machine Learning Algorithms</li>
-<li>Neural Networks and Deep Learning</li>
-<li>Natural Language Processing</li>
-<li>Computer Vision and Image Recognition</li>
-<li>Robotics and Automation</li>
-</ul>`,
+		researchAreas: '',
 
 		// Lab Facilities
-		labFacilities: `<p>State-of-the-art facilities include:</p>
-<ul>
-<li>High-performance computing clusters</li>
-<li>GPU workstations for deep learning</li>
-<li>Robotics testing environment</li>
-<li>Data visualization lab</li>
-<li>Collaborative workspace</li>
-</ul>`,
+		labFacilities: '',
 
 		// Research Requirements
 		researchRequirements: {

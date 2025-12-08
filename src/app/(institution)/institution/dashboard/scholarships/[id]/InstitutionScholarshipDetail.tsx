@@ -1,6 +1,6 @@
 'use client'
 
-import { Breadcrumb, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 import {
 	ApplicantsTable,
 	SuggestedApplicantsTable,
@@ -9,11 +9,12 @@ import {
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
 import CoverImage from '../../../../../../../public/EduMatch_Default.png'
-import { Edit, Users, Trash2 } from 'lucide-react'
+import { Users, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modals/Modal'
 
 const InstitutionScholarshipDetail = () => {
@@ -21,13 +22,6 @@ const InstitutionScholarshipDetail = () => {
 	const params = useParams()
 	const [activeTab, setActiveTab] = useState('detail')
 	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
-	const [breadcrumbItems, setBreadcrumbItems] = useState<
-		Array<{ label: string; href?: string }>
-	>([
-		{ label: 'Dashboard', href: '/institution/dashboard' },
-		{ label: 'Programs', href: '/institution/dashboard/programs' },
-		{ label: 'Scholarship Detail' },
-	])
 	const [isLoadingScholarship, setIsLoadingScholarship] = useState(true)
 	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
 	const [transformedApplicants, setTransformedApplicants] = useState<
@@ -186,7 +180,7 @@ const InstitutionScholarshipDetail = () => {
 
 	// Load scholarship data when component mounts
 	useEffect(() => {
-		const updateBreadcrumb = async () => {
+		const loadScholarshipData = async () => {
 			// Get scholarship ID from URL params
 			const scholarshipId = params?.id as string
 
@@ -199,22 +193,12 @@ const InstitutionScholarshipDetail = () => {
 			const scholarshipData = await fetchScholarshipDetail(scholarshipId)
 
 			if (scholarshipData) {
-				const scholarshipName = scholarshipData?.title || 'Scholarship Detail'
-
-				const items: Array<{ label: string; href?: string }> = [
-					{ label: 'Dashboard', href: '/institution/dashboard' },
-					{ label: 'Programs', href: '/institution/dashboard/programs' },
-					{ label: scholarshipName },
-				]
-
-				setBreadcrumbItems(items)
-
 				// Fetch applications for this scholarship
 				await fetchApplications(scholarshipId)
 			}
 		}
 
-		updateBreadcrumb()
+		loadScholarshipData()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params?.id])
 
@@ -495,13 +479,24 @@ const InstitutionScholarshipDetail = () => {
 				animate={{ opacity: 1 }}
 				className="relative h-[500px] w-full"
 			>
-				<Image
-					src={currentScholarship?.institution?.coverImage || CoverImage}
-					alt={currentScholarship?.institution?.name || 'University'}
-					fill
-					className="object-cover"
-					priority
-				/>
+				{currentScholarship?.institution?.coverImage ? (
+					<ProtectedImage
+						src={currentScholarship.institution.coverImage}
+						alt={currentScholarship?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						expiresIn={7200}
+						autoRefresh={true}
+					/>
+				) : (
+					<Image
+						src={CoverImage}
+						alt={currentScholarship?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						priority
+					/>
+				)}
 
 				<div className="container mx-auto px-4 h-full relative">
 					<motion.div
@@ -567,9 +562,7 @@ const InstitutionScholarshipDetail = () => {
 				transition={{ duration: 0.5 }}
 			>
 				{/* Breadcrumb */}
-				<div className="mb-6">
-					<Breadcrumb items={breadcrumbItems} />
-				</div>
+				<div className="mb-6"></div>
 
 				{/* Info Cards */}
 				<motion.div

@@ -197,6 +197,20 @@ export class InstitutionProfileService {
 		userId: string,
 		formData: InstitutionProfileFormData
 	): Promise<InstitutionProfile | null> {
+		// SECURITY: Ensure formData doesn't contain userId that could override
+		if ((formData as any).userId || (formData as any).user_id) {
+			// eslint-disable-next-line no-console
+			console.error(
+				"❌ SECURITY: formData contains userId/user_id. This should not happen.",
+				{
+					userId,
+					formDataUserId:
+						(formData as any).userId || (formData as any).user_id,
+				}
+			);
+			delete (formData as any).userId;
+			delete (formData as any).user_id;
+		}
 		try {
 			console.log(
 				"🔄 InstitutionProfileService: Starting profile upsert for user:",

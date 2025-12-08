@@ -123,17 +123,24 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 	const [formData, setFormData] = useState({
 		// Overview Section
-		programTitle: '',
+		programTitle: 'International Business and Intercultural Management',
 		startDate: '',
 		applicationDeadline: '',
-		subdiscipline: '',
-		duration: '',
-		degreeLevel: '',
-		attendance: '',
-		location: '',
+		subdiscipline: 'Information system',
+		duration: 'More than 2 years',
+		degreeLevel: 'Master',
+		attendance: 'At campus',
+		location: 'Vietnam',
 
 		// Programme Structure
-		courseInclude: '',
+		courseInclude: `<ul>
+<li>Strategy and Governance in IT</li>
+<li>Project Management</li>
+<li>Information Security</li>
+<li>Digital Design and Development</li>
+<li>Group Software Development Project</li>
+<li>Cloud Computing</li>
+</ul>`,
 		description: '',
 
 		// Admission Requirements
@@ -144,15 +151,15 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		},
 		languageRequirements: [
 			{
-				language: '',
-				certificate: '',
-				score: '',
+				language: 'English',
+				certificate: 'IELTS',
+				score: '7.0',
 			},
 		],
 
 		// File Requirements
 		fileRequirements: {
-			fileName: '',
+			fileName: 'Required Documents',
 			fileDescription: '',
 		},
 
@@ -664,6 +671,7 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 								variant="default"
 								isClearable={false}
 								className="w-full"
+								isSearchable={true}
 							/>
 						</div>
 

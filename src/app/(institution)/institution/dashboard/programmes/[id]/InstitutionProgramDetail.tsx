@@ -1,6 +1,6 @@
 'use client'
 
-import { Breadcrumb, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 import {
 	ApplicantsTable,
 	SuggestedApplicantsTable,
@@ -9,6 +9,7 @@ import {
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
@@ -21,13 +22,6 @@ const InstitutionProgramDetail = () => {
 	const params = useParams()
 	const [activeTab, setActiveTab] = useState('overview')
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
-	const [breadcrumbItems, setBreadcrumbItems] = useState<
-		Array<{ label: string; href?: string }>
-	>([
-		{ label: 'Dashboard', href: '/institution/dashboard' },
-		{ label: 'Programs', href: '/institution/dashboard/programs' },
-		{ label: 'Program Detail' },
-	])
 	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
 	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
 	const [transformedApplicants, setTransformedApplicants] = useState<
@@ -196,7 +190,7 @@ const InstitutionProgramDetail = () => {
 
 	// Load program data when component mounts
 	useEffect(() => {
-		const updateBreadcrumb = async () => {
+		const loadProgramData = async () => {
 			// Get program ID from URL params
 			const programId = params?.id as string
 
@@ -209,22 +203,12 @@ const InstitutionProgramDetail = () => {
 			const programData = await fetchProgramDetail(programId)
 
 			if (programData) {
-				const programName = programData?.title || 'Program Detail'
-
-				const items: Array<{ label: string; href?: string }> = [
-					{ label: 'Dashboard', href: '/institution/dashboard' },
-					{ label: 'Programs', href: '/institution/dashboard/programs' },
-					{ label: programName },
-				]
-
-				setBreadcrumbItems(items)
-
 				// Fetch applications for this program
 				await fetchApplications(programId)
 			}
 		}
 
-		updateBreadcrumb()
+		loadProgramData()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params?.id])
 
@@ -648,13 +632,24 @@ const InstitutionProgramDetail = () => {
 				animate={{ opacity: 1 }}
 				className="relative h-[500px] w-full"
 			>
-				<Image
-					src={currentProgram?.institution?.coverImage || CoverImage}
-					alt={currentProgram?.institution?.name || 'University'}
-					fill
-					className="object-cover"
-					priority
-				/>
+				{currentProgram?.institution?.coverImage ? (
+					<ProtectedImage
+						src={currentProgram.institution.coverImage}
+						alt={currentProgram?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						expiresIn={7200}
+						autoRefresh={true}
+					/>
+				) : (
+					<Image
+						src={CoverImage}
+						alt={currentProgram?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						priority
+					/>
+				)}
 
 				<div className="container mx-auto px-4 h-full relative">
 					<motion.div
@@ -721,16 +716,14 @@ const InstitutionProgramDetail = () => {
 				transition={{ duration: 0.5 }}
 			>
 				{/* Breadcrumb */}
-				<div className="mb-6">
-					<Breadcrumb items={breadcrumbItems} />
-				</div>
+				<div className="mb-6"></div>
 
 				{/* Info Cards */}
 				<motion.div
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="bg-white py-6 shadow-xl border"
+					className="bg-white py-6 shadow-xl border mt-6"
 				>
 					<div className="container mx-auto px-4">
 						<div className="grid grid-cols-2 md:grid-cols-6 gap-6">

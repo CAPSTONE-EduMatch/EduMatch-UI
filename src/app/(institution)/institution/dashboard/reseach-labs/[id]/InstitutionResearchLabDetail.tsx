@@ -1,6 +1,6 @@
 'use client'
 
-import { Breadcrumb, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 import {
 	ApplicantsTable,
 	SuggestedApplicantsTable,
@@ -9,11 +9,12 @@ import {
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
 import CoverImage from '../../../../../../../public/EduMatch_Default.png'
-import { Edit, Users, Trash2 } from 'lucide-react'
+import { Users, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modals/Modal'
 
 const InstitutionResearchLabDetail = () => {
@@ -21,13 +22,6 @@ const InstitutionResearchLabDetail = () => {
 	const params = useParams()
 	const [activeTab, setActiveTab] = useState('job-description')
 	const [currentResearchLab, setCurrentResearchLab] = useState<any>(null)
-	const [breadcrumbItems, setBreadcrumbItems] = useState<
-		Array<{ label: string; href?: string }>
-	>([
-		{ label: 'Dashboard', href: '/institution/dashboard' },
-		{ label: 'Programs', href: '/institution/dashboard/programs' },
-		{ label: 'Research Lab Detail' },
-	])
 	const [isLoadingResearchLab, setIsLoadingResearchLab] = useState(true)
 	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
 	const [transformedApplicants, setTransformedApplicants] = useState<
@@ -182,7 +176,7 @@ const InstitutionResearchLabDetail = () => {
 
 	// Load research lab data when component mounts
 	useEffect(() => {
-		const updateBreadcrumb = async () => {
+		const loadResearchLabData = async () => {
 			// Get research lab ID from URL params
 			const researchLabId = params?.id as string
 
@@ -195,22 +189,12 @@ const InstitutionResearchLabDetail = () => {
 			const researchLabData = await fetchResearchLabDetail(researchLabId)
 
 			if (researchLabData) {
-				const researchLabName = researchLabData?.title || 'Research Lab Detail'
-
-				const items: Array<{ label: string; href?: string }> = [
-					{ label: 'Dashboard', href: '/institution/dashboard' },
-					{ label: 'Programs', href: '/institution/dashboard/programs' },
-					{ label: researchLabName },
-				]
-
-				setBreadcrumbItems(items)
-
 				// Fetch applications for this research lab
 				await fetchApplications(researchLabId)
 			}
 		}
 
-		updateBreadcrumb()
+		loadResearchLabData()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params?.id])
 
@@ -591,13 +575,24 @@ const InstitutionResearchLabDetail = () => {
 				animate={{ opacity: 1 }}
 				className="relative h-[500px] w-full"
 			>
-				<Image
-					src={currentResearchLab?.institution?.coverImage || CoverImage}
-					alt={currentResearchLab?.institution?.name || 'University'}
-					fill
-					className="object-cover"
-					priority
-				/>
+				{currentResearchLab?.institution?.coverImage ? (
+					<ProtectedImage
+						src={currentResearchLab.institution.coverImage}
+						alt={currentResearchLab?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						expiresIn={7200}
+						autoRefresh={true}
+					/>
+				) : (
+					<Image
+						src={CoverImage}
+						alt={currentResearchLab?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						priority
+					/>
+				)}
 
 				<div className="container mx-auto px-4 h-full relative">
 					<motion.div
@@ -663,9 +658,7 @@ const InstitutionResearchLabDetail = () => {
 				transition={{ duration: 0.5 }}
 			>
 				{/* Breadcrumb */}
-				<div className="mb-6">
-					<Breadcrumb items={breadcrumbItems} />
-				</div>
+				<div className="mb-6"></div>
 
 				{/* Info Cards */}
 				<motion.div

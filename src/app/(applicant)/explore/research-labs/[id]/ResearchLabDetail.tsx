@@ -1646,18 +1646,20 @@ const ResearchLabDetail = () => {
 										{t('research_lab_detail.header.institution_detail_button')}
 									</Button>
 								)}
-								{researchLab?.institution?.userId && currentPlan !== 'free' && (
-									<Button
-										onClick={() => {
-											const contactUrl = `/messages?contact=${(researchLab.institution as any).userId}`
-											router.push(contactUrl)
-										}}
-										variant="outline"
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										{t('research_lab_detail.header.contact_button')}
-									</Button>
-								)}
+								{researchLab?.institution?.userId &&
+									currentPlan !== 'free' &&
+									hasApplied && (
+										<Button
+											onClick={() => {
+												const contactUrl = `/messages?contact=${(researchLab.institution as any).userId}`
+												router.push(contactUrl)
+											}}
+											variant="outline"
+											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										>
+											{t('research_lab_detail.header.contact_button')}
+										</Button>
+									)}
 								<motion.button
 									onClick={(e) => {
 										e.preventDefault()

@@ -642,7 +642,7 @@ const Signup = () => {
 					<motion.div className="mt-4" variants={itemVariants}>
 						<GoogleButton
 							action="signup"
-							callbackURL="/"
+							callbackURL="/signin" // Redirect to signin page to check profile and redirect to create profile if needed
 							isLoading={isLoading}
 							text={t('buttons.google')}
 							loadingText={t('buttons.google_loading')}

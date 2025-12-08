@@ -366,6 +366,23 @@ export async function POST(request: NextRequest) {
 
 		const userId = user.id;
 
+		// SECURITY: Remove any userId/user_id from formData to prevent override
+		// This ensures profiles can only be created for the authenticated user
+		if (formData.userId || formData.user_id || formData.id) {
+			// eslint-disable-next-line no-console
+			console.warn(
+				"⚠️ SECURITY: Attempted to create profile with userId in formData. Removing it.",
+				{
+					authenticatedUserId: userId,
+					providedUserId:
+						formData.userId || formData.user_id || formData.id,
+				}
+			);
+			delete formData.userId;
+			delete formData.user_id;
+			delete formData.id;
+		}
+
 		// Check if profile already exists based on role
 		let hasExistingProfile = false;
 		if (formData.role === "applicant") {
@@ -406,19 +423,9 @@ export async function POST(request: NextRequest) {
 		// Use the appropriate profile service based on role
 		let newProfile;
 		if (formData.role === "applicant") {
-			console.log("📝 Creating applicant profile with data:", {
-				firstName: formData.firstName,
-				role: formData.role,
-				fieldOfStudy: formData.fieldOfStudy,
-				// Log other key fields but not sensitive data
-				hasData: !!formData,
-			});
 			newProfile = await ApplicantProfileService.upsertProfile(
 				userId,
 				formData
-			);
-			console.log(
-				"✅ Profile created, embedding should have been processed"
 			);
 		} else if (formData.role === "institution") {
 			newProfile = await InstitutionProfileService.upsertProfile(
@@ -484,6 +491,23 @@ export async function PUT(request: NextRequest) {
 
 		const userId = user.id;
 		const formData = await request.json();
+
+		// SECURITY: Remove any userId/user_id from formData to prevent override
+		// This ensures profiles can only be updated for the authenticated user
+		if (formData.userId || formData.user_id || formData.id) {
+			// eslint-disable-next-line no-console
+			console.warn(
+				"⚠️ SECURITY: Attempted to update profile with userId in formData. Removing it.",
+				{
+					authenticatedUserId: userId,
+					providedUserId:
+						formData.userId || formData.user_id || formData.id,
+				}
+			);
+			delete formData.userId;
+			delete formData.user_id;
+			delete formData.id;
+		}
 
 		// Validate role before proceeding
 		if (

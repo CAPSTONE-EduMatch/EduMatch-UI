@@ -12,6 +12,7 @@ import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
 import { Info } from 'lucide-react'
 import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
+import { ProtectedImg } from '@/components/ui/ProtectedImage'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData
@@ -70,8 +71,21 @@ export function InstitutionDetailsStep({
 	}
 
 	const handleCoverImageUpload = (files: any[]) => {
-		if (files.length > 0) {
-			onInputChange('institutionCoverImage', files[0].url)
+		if (files && files.length > 0) {
+			const uploadedFile = files[0]
+			// The file object should have a url property after upload
+			const imageUrl = uploadedFile.url
+
+			if (imageUrl) {
+				// Update the form data with the image URL
+				onInputChange('institutionCoverImage', imageUrl)
+			} else {
+				// eslint-disable-next-line no-console
+				console.error(
+					'Cover image uploaded but URL not found in file object:',
+					uploadedFile
+				)
+			}
 		}
 	}
 
@@ -255,15 +269,24 @@ export function InstitutionDetailsStep({
 					{/* Display uploaded cover image */}
 					{formData.institutionCoverImage && (
 						<div className="mb-4">
-							<div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-								<img
+							<div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+								<ProtectedImg
 									src={formData.institutionCoverImage}
 									alt="Institution Cover"
 									className="w-full h-full object-cover"
+									expiresIn={7200}
+									autoRefresh={true}
+									fallback={
+										<div className="w-full h-full bg-gray-200 flex items-center justify-center">
+											<div className="text-gray-400 text-sm">
+												Failed to load image
+											</div>
+										</div>
+									}
 								/>
 								<button
 									onClick={() => onInputChange('institutionCoverImage', '')}
-									className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+									className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 z-10"
 								>
 									×
 								</button>

@@ -35,7 +35,14 @@ export const InstitutionProfileSection: React.FC<
 	InstitutionProfileSectionProps
 > = ({ profile: propProfile, onProfileUpdate, onEditingChange }) => {
 	const [profile, setProfile] = useState<any>(propProfile)
-	const [isEditing, setIsEditing] = useState(true)
+	// Only auto-enable edit mode if profile is REJECTED or REQUIRE_UPDATE
+	// Approved profiles should start in view mode
+	const getInitialEditState = () => {
+		if (!propProfile) return false
+		const status = propProfile.verification_status
+		return status === 'REJECTED' || status === 'REQUIRE_UPDATE'
+	}
+	const [isEditing, setIsEditing] = useState(getInitialEditState())
 
 	// Notify parent when editing state changes
 	useEffect(() => {
@@ -43,6 +50,20 @@ export const InstitutionProfileSection: React.FC<
 			onEditingChange(isEditing)
 		}
 	}, [isEditing, onEditingChange])
+
+	// Update edit state when profile verification status changes
+	useEffect(() => {
+		if (profile) {
+			const status = profile.verification_status
+			// Only auto-enable edit mode for REJECTED or REQUIRE_UPDATE
+			// Don't auto-enable for APPROVED profiles
+			if (status === 'REJECTED' || status === 'REQUIRE_UPDATE') {
+				setIsEditing(true)
+			} else if (status === 'APPROVED') {
+				setIsEditing(false)
+			}
+		}
+	}, [profile?.verification_status])
 	const [editedProfile, setEditedProfile] = useState(profile)
 	const [isSaving, setIsSaving] = useState(false)
 	const [loading, setLoading] = useState(false)

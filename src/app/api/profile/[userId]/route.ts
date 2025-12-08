@@ -26,6 +26,15 @@ export async function GET(
 			);
 		}
 
+		// SECURITY FIX: Verify the authenticated user matches the userId parameter
+		// This prevents users from accessing other users' profiles
+		if (session.user.id !== userId) {
+			return NextResponse.json(
+				{ error: "Forbidden: You can only access your own profile" },
+				{ status: 403 }
+			);
+		}
+
 		// Use ProfileService to check for profile
 		const profile = await ProfileService.getProfile(userId);
 		const hasProfile = await ProfileService.hasProfile(userId);

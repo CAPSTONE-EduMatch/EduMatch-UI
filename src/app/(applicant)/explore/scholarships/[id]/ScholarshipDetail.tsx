@@ -1625,7 +1625,8 @@ const ScholarshipDetail = () => {
 									</div>
 								)}
 								{currentScholarship?.institution?.userId &&
-									currentPlan !== 'free' && (
+									currentPlan !== 'free' &&
+									hasApplied && (
 										<Button
 											onClick={() => {
 												const contactUrl = `/messages?contact=${(currentScholarship.institution as any).userId}`

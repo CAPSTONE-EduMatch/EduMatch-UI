@@ -44,6 +44,7 @@ import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
 const ProgramDetail = () => {
 	const t = useTranslations()
@@ -1956,13 +1957,33 @@ const ProgramDetail = () => {
 				animate={{ opacity: 1 }}
 				className="relative h-[500px] w-full"
 			>
-				<Image
-					src={currentProgram?.institution?.coverImage || CoverImage}
-					alt={currentProgram?.institution?.name || 'University'}
-					fill
-					className="object-cover"
-					priority
-				/>
+				{currentProgram?.institution?.coverImage ? (
+					<ProtectedImage
+						src={currentProgram.institution.coverImage}
+						alt={currentProgram?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						expiresIn={7200}
+						autoRefresh={true}
+						errorFallback={
+							<Image
+								src={CoverImage}
+								alt={currentProgram?.institution?.name || 'University'}
+								fill
+								className="object-cover"
+								priority
+							/>
+						}
+					/>
+				) : (
+					<Image
+						src={CoverImage}
+						alt={currentProgram?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						priority
+					/>
+				)}
 
 				<div className="container mx-auto px-4 h-full relative">
 					<motion.div
@@ -2005,7 +2026,8 @@ const ProgramDetail = () => {
 								</Button>
 							)}
 							{currentProgram?.institution?.userId &&
-								currentPlan !== 'free' && (
+								currentPlan !== 'free' &&
+								hasApplied && (
 									<Button
 										onClick={() => {
 											const contactUrl = `/messages?contact=${currentProgram.institution.userId}`

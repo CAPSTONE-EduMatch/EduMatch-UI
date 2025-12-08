@@ -464,21 +464,6 @@ export class ProfileService {
 				);
 			}
 
-			console.log("✅ ProfileService: All required fields validated");
-			console.log("📋 ProfileService: Institution data:", {
-				name: formData.institutionName,
-				type: formData.institutionType,
-				country: formData.institutionCountry,
-				hasDisciplines: formData.institutionDisciplines?.length || 0,
-			});
-			console.log("🔍 ProfileService: Field types:", {
-				name: typeof formData.institutionName,
-				type: typeof formData.institutionType,
-				country: typeof formData.institutionCountry,
-				hotline: typeof formData.institutionHotline,
-				address: typeof formData.institutionAddress,
-			});
-
 			// Check if institution already exists
 			const existingInstitution =
 				await prismaClient.institution.findUnique({
@@ -565,11 +550,6 @@ export class ProfileService {
 				},
 			});
 
-			console.log(
-				"✅ ProfileService: Institution created/updated:",
-				institution.institution_id
-			);
-
 			// Update user image
 			const profilePhoto = getStringValue(formData.profilePhoto);
 			if (profilePhoto) {
@@ -635,12 +615,6 @@ export class ProfileService {
 		formData: ProfileFormData
 	): Promise<ApplicantProfile | InstitutionProfile | null> {
 		try {
-			console.log(
-				"🔄 ProfileService: Starting profile upsert for user:",
-				userId
-			);
-			console.log("📋 ProfileService: Role:", formData.role);
-
 			// Update user's role in the database first
 			let roleId: string;
 			let role: string;
@@ -659,15 +633,10 @@ export class ProfileService {
 				where: { id: userId },
 				data: { role_id: roleId, role: role },
 			});
-			console.log("✅ ProfileService: User role updated successfully");
 
 			if (formData.role === "applicant") {
-				console.log("👤 ProfileService: Creating applicant profile...");
 				return await this.upsertApplicantProfile(userId, formData);
 			} else if (formData.role === "institution") {
-				console.log(
-					"🏫 ProfileService: Creating institution profile..."
-				);
 				return await this.upsertInstitutionProfile(userId, formData);
 			}
 
@@ -983,10 +952,6 @@ export class ProfileService {
 							deleted_at: new Date(),
 						},
 					});
-
-					console.log(
-						`✅ Soft deleted applicant profile for user ${userId}. Preserved ${snapshotDocumentIds.size} documents referenced in profile snapshots.`
-					);
 				}
 
 				return true;

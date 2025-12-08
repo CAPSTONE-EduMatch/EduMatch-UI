@@ -1155,12 +1155,12 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 						</div>
 					</div>
 
-					{/* Description */}
+					{/* Tuition Fee Description */}
 					<RichTextEditor
-						value={formData.description}
-						onChange={(value) => handleInputChange('description', value)}
-						label="Description"
-						placeholder="Enter program description..."
+						value={formData.tuitionFee?.description || ''}
+						onChange={(value) => handleTuitionFeeChange('description', value)}
+						label="Additional Fee Information"
+						placeholder="Enter additional fee details, payment plans, or other fee-related information..."
 					/>
 				</div>
 			</div>

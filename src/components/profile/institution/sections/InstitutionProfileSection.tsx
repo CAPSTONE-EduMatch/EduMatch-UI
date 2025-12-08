@@ -19,10 +19,11 @@ import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { Modal } from '@/components/ui'
 import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
+// import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { ApiService, apiClient } from '@/services/api/axios-config'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 
 interface InstitutionProfileSectionProps {
 	profile?: any
@@ -34,7 +35,7 @@ export const InstitutionProfileSection: React.FC<
 	InstitutionProfileSectionProps
 > = ({ profile: propProfile, onProfileUpdate, onEditingChange }) => {
 	const [profile, setProfile] = useState<any>(propProfile)
-	const [isEditing, setIsEditing] = useState(false)
+	const [isEditing, setIsEditing] = useState(true)
 
 	// Notify parent when editing state changes
 	useEffect(() => {

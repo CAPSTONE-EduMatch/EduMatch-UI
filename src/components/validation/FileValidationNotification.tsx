@@ -1,5 +1,5 @@
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 import React from 'react'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
 
 interface FileValidationNotificationProps {
 	validation: FileValidationResult

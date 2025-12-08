@@ -14,8 +14,9 @@ import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
 import { openSessionProtectedFile } from '@/utils/files/getSessionProtectedFileUrl'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
+// import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { useTranslations } from 'next-intl'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 
 interface AcademicSectionProps {
 	profile: any

@@ -7,8 +7,9 @@ import {
 	CardTitle,
 	Badge,
 } from '@/components/ui'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
+// import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { FileValidationDisplay } from '@/components/validation/FileValidationDisplay'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 
 export interface OCRResult {
 	fileId: string

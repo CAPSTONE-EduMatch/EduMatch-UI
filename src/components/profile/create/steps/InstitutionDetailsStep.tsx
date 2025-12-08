@@ -8,9 +8,10 @@ import { FileUploadManager, FileUploadManagerWithOCR } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
+// import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
 import { Info } from 'lucide-react'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData

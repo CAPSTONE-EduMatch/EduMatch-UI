@@ -1,6 +1,7 @@
 import React from 'react'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
+// import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { Badge } from '@/components/ui'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 
 interface FileValidationDisplayProps {
 	validation: FileValidationResult

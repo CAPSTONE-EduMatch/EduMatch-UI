@@ -5,7 +5,7 @@ import { FileUploadManagerWithOCR } from '@/components/ui'
 import { CustomSelect } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
-import { FileValidationResult } from '@/services/ai/file-validation-service'
+// import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
 import { FileItem } from '@/utils/file/file-utils'
 import { ProfileFormData } from '@/services/profile/profile-service'
@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom'
 import { getCountriesWithSvgFlags } from '@/data/countries'
 import { Info } from 'lucide-react'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData

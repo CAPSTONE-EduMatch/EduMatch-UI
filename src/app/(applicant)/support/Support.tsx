@@ -7,7 +7,6 @@ import {
 	SelectValue,
 } from '@/components/ui/inputs/select'
 import Button from '@/components/ui/forms/Button'
-import { mockFaqData } from '@/data/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
 	ChevronDown,
@@ -19,14 +18,22 @@ import {
 	Paperclip,
 	Send,
 	Loader2,
-	X,
 	FolderOpen,
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTranslations } from 'next-intl'
 
 const Support = () => {
 	const { isAuthenticated, user } = useAuth()
+	const tHeader = useTranslations('support_page.header')
+	const tTabs = useTranslations('support_page.tabs')
+	const tFaq = useTranslations('support_page.faq')
+	const tFaqs = useTranslations('support_page.faqs')
+	const tContact = useTranslations('support_page.contact')
+	const tFileValidation = useTranslations('support_page.file_validation')
+	const tFileModal = useTranslations('support_page.file_modal')
+
 	const [activeTab, setActiveTab] = useState('account')
 	const [expandedFaqs, setExpandedFaqs] = useState<
 		Record<string, number | null>
@@ -49,22 +56,22 @@ const Support = () => {
 	const menuItems = [
 		{
 			id: 'account',
-			label: 'Account',
+			label: tTabs('account'),
 			icon: User,
 		},
 		{
 			id: 'application',
-			label: 'Application',
+			label: tTabs('application'),
 			icon: BookOpen,
 		},
 		{
 			id: 'subscription',
-			label: 'Subscription',
+			label: tTabs('subscription'),
 			icon: CreditCard,
 		},
 		{
 			id: 'other',
-			label: 'Other information',
+			label: tTabs('other'),
 			icon: Info,
 		},
 	]
@@ -91,7 +98,7 @@ const Support = () => {
 					fileType.includes('jpg')
 				) {
 					if (fileSize > 5) {
-						alert(`${file.name} is too large. Image files must be under 5MB.`)
+						alert(tFileValidation('image_too_large', { filename: file.name }))
 						return false
 					}
 					return true
@@ -106,7 +113,7 @@ const Support = () => {
 				) {
 					if (fileSize > 10) {
 						alert(
-							`${file.name} is too large. Document files must be under 10MB.`
+							tFileValidation('document_too_large', { filename: file.name })
 						)
 						return false
 					}
@@ -114,9 +121,7 @@ const Support = () => {
 				}
 
 				// Unsupported file type
-				alert(
-					`${file.name} is not supported. Only PNG, JPEG, PDF, and DOC files are allowed.`
-				)
+				alert(tFileValidation('unsupported_type', { filename: file.name }))
 				return false
 			})
 
@@ -151,11 +156,11 @@ const Support = () => {
 		setSubmitMessage(null)
 		setSubmitError(null)
 		if (!question.trim()) {
-			setSubmitError('Please enter your question')
+			setSubmitError(tContact('submit_error'))
 			return
 		}
 		if (!isAuthenticated && !email.trim()) {
-			setSubmitError('Please provide your email')
+			setSubmitError(tContact('email_required'))
 			return
 		}
 		setSubmitting(true)
@@ -184,23 +189,24 @@ const Support = () => {
 			}
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}))
-				throw new Error(data?.error || 'Failed to submit support request')
+				throw new Error(data?.error || tContact('generic_error'))
 			}
-			setSubmitMessage(
-				'Your request has been submitted. We will contact you soon.'
-			)
+			setSubmitMessage(tContact('submit_success'))
 			setQuestion('')
 			if (!isAuthenticated) setEmail('')
 			setUploadedFiles([])
 		} catch (err: any) {
-			setSubmitError(err?.message || 'Something went wrong')
+			setSubmitError(err?.message || tContact('generic_error'))
 		} finally {
 			setSubmitting(false)
 		}
 	}
 
 	const renderTabContent = () => {
-		const currentFaqs = mockFaqData[activeTab as keyof typeof mockFaqData] || []
+		// Get translated FAQs for the active tab
+		const currentFaqs =
+			(tFaqs.raw(activeTab) as Array<{ question: string; answer: string }>) ||
+			[]
 
 		return (
 			<div className="space-y-4">
@@ -257,12 +263,10 @@ const Support = () => {
 				>
 					<div className="w-[1500px] text-center mx-auto px-4 sm:px-6 lg:px-8">
 						<h1 className="text-4xl font-bold mb-4 text-gray-900">
-							Support Center
+							{tHeader('title')}
 						</h1>
 						<p className="text-xl text-gray-600 max-w-3xl mx-auto">
-							Get help with using EduMatch platform, find answers to common
-							questions, and contact our support team for personalized
-							assistance.
+							{tHeader('subtitle')}
 						</p>
 					</div>
 				</motion.div>
@@ -308,7 +312,7 @@ const Support = () => {
 				<div className="bg-white shadow-xl border rounded-lg overflow-hidden">
 					<div className="p-8">
 						<h2 className="text-2xl font-bold text-gray-900 mb-6">
-							Frequently asked questions
+							{tFaq('title')}
 						</h2>
 
 						<div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -369,43 +373,52 @@ const Support = () => {
 				>
 					<div className="p-8">
 						<h2 className="text-2xl font-bold text-gray-900 mb-4">
-							Contact us
+							{tContact('title')}
 						</h2>
-						<p className="text-gray-600 mb-6">
-							You have problem that do not mention at frequently asked question?
-							You can give question for us here, we will contact you to support.
-						</p>
+						<p className="text-gray-600 mb-6">{tContact('subtitle')}</p>
 
 						<form onSubmit={handleSubmit} className="space-y-6">
 							{!isAuthenticated && (
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-2">
-										Your email
+										{tContact('email_label')}
 									</label>
 									<input
 										type="email"
 										value={email}
 										onChange={(e) => setEmail(e.target.value)}
 										className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent"
-										placeholder="you@example.com"
+										placeholder={tContact('email_placeholder')}
 										required
 									/>
 								</div>
 							)}
 							<div>
 								<label className="block text-sm font-medium text-gray-700 mb-2">
-									Type of problem
+									{tContact('problem_type_label')}
 								</label>
 								<Select value={problemType} onValueChange={setProblemType}>
 									<SelectTrigger className="w-full">
-										<SelectValue placeholder="Select problem type" />
+										<SelectValue
+											placeholder={tContact('problem_type_placeholder')}
+										/>
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="application">Application</SelectItem>
-										<SelectItem value="account">Account</SelectItem>
-										<SelectItem value="subscription">Subscription</SelectItem>
-										<SelectItem value="technical">Technical</SelectItem>
-										<SelectItem value="other">Other</SelectItem>
+										<SelectItem value="application">
+											{tContact('problem_types.application')}
+										</SelectItem>
+										<SelectItem value="account">
+											{tContact('problem_types.account')}
+										</SelectItem>
+										<SelectItem value="subscription">
+											{tContact('problem_types.subscription')}
+										</SelectItem>
+										<SelectItem value="technical">
+											{tContact('problem_types.technical')}
+										</SelectItem>
+										<SelectItem value="other">
+											{tContact('problem_types.other')}
+										</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
@@ -417,7 +430,7 @@ const Support = () => {
 										value={question}
 										onChange={(e) => setQuestion(e.target.value)}
 										className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent resize-none"
-										placeholder="Type your question here"
+										placeholder={tContact('question_placeholder')}
 									/>
 									<div className="absolute bottom-3 right-3 flex gap-2">
 										<label htmlFor="file-upload" className="cursor-pointer">
@@ -451,7 +464,7 @@ const Support = () => {
 										aria-live="polite"
 									>
 										<Loader2 className="w-4 h-4 animate-spin" />
-										<span>Sending your request...</span>
+										<span>{tContact('sending')}</span>
 									</div>
 								)}
 
@@ -464,9 +477,7 @@ const Support = () => {
 
 								{/* File Upload Note */}
 								<p className="text-xs text-gray-500 mt-2">
-									<strong>Note:</strong> You can attach files to help us better
-									understand your issue. Supported formats: PNG, JPEG (max 5MB),
-									PDF, DOC, DOCX (max 10MB).
+									<strong>{tContact('note_label')}</strong> {tContact('note')}
 								</p>
 
 								{/* Uploaded Files Display */}
@@ -474,7 +485,9 @@ const Support = () => {
 									<div className="mt-4 space-y-2">
 										<div className="flex items-center justify-between bg-gray-200 py-3 px-4 rounded-md">
 											<p className="text-sm font-medium text-gray-700">
-												Uploaded files ({uploadedFiles.length}):
+												{tContact('uploaded_files_label', {
+													count: uploadedFiles.length,
+												})}
 											</p>
 											<Button
 												variant="outline"
@@ -482,7 +495,7 @@ const Support = () => {
 												className="text-xs px-5 flex items-center gap-3 py-1 h-auto bg-white"
 											>
 												<FolderOpen className="w-3 h-3 mr-1" />
-												<span>Manage Files</span>
+												<span>{tContact('manage_files_button')}</span>
 											</Button>
 										</div>
 										{/* {uploadedFiles.slice(0, 3).map((file, index) => (
@@ -510,8 +523,9 @@ const Support = () => {
 										))} */}
 										{uploadedFiles.length > 3 && (
 											<p className="text-xs text-gray-500 text-center">
-												... and {uploadedFiles.length - 3} more files. Click
-												&ldquo;Manage Files&rdquo; to view all.
+												{tContact('more_files_text', {
+													count: uploadedFiles.length - 3,
+												})}
 											</p>
 										)}
 									</div>
@@ -531,13 +545,13 @@ const Support = () => {
 				>
 					<div className="p-6 border-b">
 						<div className="flex items-center justify-between">
-							<h2 className="text-xl font-semibold">Manage Files</h2>
+							<h2 className="text-xl font-semibold">{tFileModal('title')}</h2>
 							<Button
 								variant="outline"
 								onClick={handleCloseModal}
 								className="rounded-full text-gray-500 hover:text-gray-700"
 							>
-								✕
+								{tFileModal('close_button')}
 							</Button>
 						</div>
 					</div>
@@ -548,7 +562,9 @@ const Support = () => {
 							{uploadedFiles.length > 0 && (
 								<div className="space-y-6">
 									<h3 className="text-lg font-medium text-foreground border-b pb-2">
-										Uploaded Files ({uploadedFiles.length})
+										{tFileModal('uploaded_section_title', {
+											count: uploadedFiles.length,
+										})}
 									</h3>
 									<div className="space-y-3">
 										<div className="grid grid-cols-1 gap-3">
@@ -559,10 +575,10 @@ const Support = () => {
 												>
 													<div className="text-2xl">
 														{file.type.includes('pdf')
-															? '📄'
+															? tFileModal('file_icons.pdf')
 															: file.type.includes('image')
-																? '🖼️'
-																: '📎'}
+																? tFileModal('file_icons.image')
+																: tFileModal('file_icons.default')}
 													</div>
 													<div className="flex-1 min-w-0">
 														<p className="text-sm font-medium text-foreground truncate">
@@ -578,7 +594,7 @@ const Support = () => {
 															onClick={() => removeFile(index)}
 															className="text-red-500 hover:text-red-700 text-xs px-2 py-1 h-auto"
 														>
-															Delete
+															{tFileModal('delete_button')}
 														</Button>
 													</div>
 												</div>
@@ -591,8 +607,12 @@ const Support = () => {
 							{/* Empty State */}
 							{uploadedFiles.length === 0 && (
 								<div className="text-center py-8">
-									<div className="text-4xl mb-4">📁</div>
-									<p className="text-muted-foreground">No files uploaded yet</p>
+									<div className="text-4xl mb-4">
+										{tFileModal('empty_icon')}
+									</div>
+									<p className="text-muted-foreground">
+										{tFileModal('empty_state')}
+									</p>
 								</div>
 							)}
 						</div>

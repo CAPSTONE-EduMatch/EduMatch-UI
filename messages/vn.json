@@ -2070,8 +2070,8 @@
 	},
 	"support_page": {
 		"header": {
-			"title": "Chúng tôi có thể giúp gì cho bạn?",
-			"subtitle": "Nhận câu trả lời cho câu hỏi của bạn hoặc liên hệ với nhóm hỗ trợ"
+			"title": "Trung Tâm Hỗ Trợ",
+			"subtitle": "Nhận trợ giúp khi sử dụng nền tảng EduMatch, tìm câu trả lời cho các câu hỏi thường gặp và liên hệ với đội ngũ hỗ trợ của chúng tôi để được hỗ trợ cá nhân."
 		},
 		"tabs": {
 			"account": "Tài Khoản",
@@ -2079,43 +2079,129 @@
 			"subscription": "Gói Đăng Ký",
 			"other": "Thông tin khác"
 		},
-		"form": {
-			"title": "Vẫn cần trợ giúp?",
-			"subtitle": "Gửi tin nhắn cho chúng tôi và chúng tôi sẽ phản hồi sớm nhất có thể",
-			"problem_type": {
-				"label": "Vấn đề của bạn là gì?",
-				"placeholder": "Chọn loại vấn đề",
-				"options": {
-					"application": "Đơn Ứng Tuyển",
-					"account": "Tài Khoản",
-					"payment": "Thanh Toán",
-					"technical": "Vấn Đề Kỹ Thuật",
-					"other": "Khác"
-				}
+		"faq": {
+			"title": "Câu hỏi thường gặp"
+		},
+		"divider": {
+			"icon_label": "Cần thêm trợ giúp?"
+		},
+		"contact": {
+			"title": "Liên hệ với chúng tôi",
+			"subtitle": "Bạn có vấn đề không được đề cập trong câu hỏi thường gặp? Bạn có thể đặt câu hỏi cho chúng tôi tại đây, chúng tôi sẽ liên hệ để hỗ trợ bạn.",
+			"email_label": "Email của bạn",
+			"email_placeholder": "ban@example.com",
+			"problem_type_label": "Loại vấn đề",
+			"problem_type_placeholder": "Chọn loại vấn đề",
+			"problem_types": {
+				"application": "Đơn Ứng Tuyển",
+				"account": "Tài Khoản",
+				"subscription": "Gói Đăng Ký",
+				"technical": "Kỹ Thuật",
+				"other": "Khác"
 			},
-			"question": {
-				"label": "Câu Hỏi Của Bạn",
-				"placeholder": "Vui lòng mô tả chi tiết vấn đề của bạn..."
-			},
-			"email": {
-				"label": "Địa Chỉ Email",
-				"placeholder": "email.cua.ban@example.com"
-			},
-			"attach_files": {
-				"button": "Đính Kèm Tệp",
-				"hint": "PNG, JPEG (tối đa 5MB) • PDF, DOC, DOCX (tối đa 10MB)"
-			},
-			"manage_files": "Quản Lý Tệp ({count})",
-			"submit": "Gửi Tin Nhắn",
-			"submitting": "Đang gửi...",
-			"success": "Yêu cầu của bạn đã được gửi. Chúng tôi sẽ liên hệ với bạn sớm.",
-			"error": "Không thể gửi yêu cầu. Vui lòng thử lại."
+			"question_placeholder": "Nhập câu hỏi của bạn tại đây",
+			"note": "Bạn có thể đính kèm tệp để giúp chúng tôi hiểu rõ hơn về vấn đề của bạn. Định dạng hỗ trợ: PNG, JPEG (tối đa 5MB), PDF, DOC, DOCX (tối đa 10MB).",
+			"note_label": "Lưu ý:",
+			"uploaded_files_label": "Tệp đã tải lên ({count}):",
+			"manage_files_button": "Quản Lý Tệp",
+			"more_files_text": "... và {count} tệp khác. Nhấp \"Quản Lý Tệp\" để xem tất cả.",
+			"sending": "Đang gửi yêu cầu của bạn...",
+			"submit_success": "Yêu cầu của bạn đã được gửi. Chúng tôi sẽ liên hệ với bạn sớm.",
+			"submit_error": "Vui lòng nhập câu hỏi của bạn",
+			"email_required": "Vui lòng cung cấp email của bạn",
+			"generic_error": "Đã xảy ra lỗi"
+		},
+		"file_validation": {
+			"image_too_large": "{filename} quá lớn. Tệp hình ảnh phải dưới 5MB.",
+			"document_too_large": "{filename} quá lớn. Tệp tài liệu phải dưới 10MB.",
+			"unsupported_type": "{filename} không được hỗ trợ. Chỉ chấp nhận tệp PNG, JPEG, PDF và DOC."
 		},
 		"file_modal": {
-			"title": "Quản Lý Tệp Đính Kèm",
-			"empty": "Không có tệp đính kèm",
-			"remove": "Xóa",
-			"close": "Đóng"
+			"title": "Quản Lý Tệp",
+			"close_button": "✕",
+			"uploaded_section_title": "Tệp Đã Tải Lên ({count})",
+			"delete_button": "Xóa",
+			"empty_state": "Chưa tải lên tệp nào",
+			"empty_icon": "📁",
+			"file_icons": {
+				"pdf": "📄",
+				"image": "🖼️",
+				"default": "📎"
+			}
+		},
+		"faqs": {
+			"account": [
+				{
+					"question": "Làm thế nào để tạo tài khoản EduMatch?",
+					"answer": "Nhấp vào nút \"Đăng Ký\" trên trang chủ, điền thông tin của bạn bao gồm email, mật khẩu và thông tin hồ sơ cơ bản. Bạn sẽ nhận được email xác minh để kích hoạt tài khoản của mình."
+				},
+				{
+					"question": "Tôi quên mật khẩu. Làm thế nào để đặt lại?",
+					"answer": "Nhấp vào \"Quên Mật Khẩu\" trên trang đăng nhập, nhập địa chỉ email của bạn và chúng tôi sẽ gửi cho bạn liên kết đặt lại mật khẩu. Làm theo hướng dẫn trong email để tạo mật khẩu mới."
+				},
+				{
+					"question": "Làm thế nào để cập nhật thông tin hồ sơ của tôi?",
+					"answer": "Vào phần Hồ Sơ sau khi đăng nhập. Bạn có thể chỉnh sửa thông tin cá nhân, lý lịch học vấn, sở thích nghiên cứu và tải lên tài liệu."
+				},
+				{
+					"question": "Tôi có thể xóa tài khoản của mình không?",
+					"answer": "Có, bạn có thể xóa tài khoản của mình bằng cách vào Cài Đặt Tài Khoản và nhấp vào \"Xóa Tài Khoản\". Lưu ý rằng hành động này không thể hoàn tác và tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn."
+				}
+			],
+			"application": [
+				{
+					"question": "Làm thế nào để đăng ký học bổng và cơ hội nghiên cứu?",
+					"answer": "Điều hướng đến phần Khám Phá, lọc theo sở thích của bạn và nhấp vào bất kỳ cơ hội nào mà bạn quan tâm. Mỗi danh sách có hướng dẫn đăng ký chi tiết và tài liệu yêu cầu."
+				},
+				{
+					"question": "Tôi có thể đăng ký nhiều cơ hội cùng lúc không?",
+					"answer": "Có, bạn có thể đăng ký nhiều cơ hội mà bạn đủ điều kiện. Chúng tôi khuyến nghị điều chỉnh từng đơn đăng ký theo các yêu cầu cụ thể."
+				},
+				{
+					"question": "Làm thế nào để theo dõi trạng thái đơn đăng ký của tôi?",
+					"answer": "Truy cập bảng điều khiển hồ sơ của bạn nơi bạn có thể xem tất cả các đơn đã nộp, trạng thái hiện tại và mọi cập nhật từ các tổ chức."
+				},
+				{
+					"question": "Tôi cần những tài liệu gì cho đơn đăng ký?",
+					"answer": "Các tài liệu phổ biến bao gồm CV/Sơ Yếu Lý Lịch, bảng điểm, thư giới thiệu, bản kê khai cá nhân và đề xuất nghiên cứu. Mỗi cơ hội chỉ định các yêu cầu chính xác của nó."
+				}
+			],
+			"subscription": [
+				{
+					"question": "Có những gói đăng ký nào?",
+					"answer": "Chúng tôi cung cấp các gói đăng ký Cơ Bản (miễn phí), Cao Cấp và Chuyên Nghiệp. Mỗi gói cung cấp các mức độ truy cập khác nhau vào cơ hội, theo dõi đơn đăng ký và các tính năng cao cấp."
+				},
+				{
+					"question": "Làm thế nào để nâng cấp đăng ký của tôi?",
+					"answer": "Vào Cài Đặt Tài Khoản và nhấp vào \"Đăng Ký\". Chọn gói mong muốn của bạn và hoàn tất quy trình thanh toán. Nâng cấp của bạn sẽ được kích hoạt ngay lập tức."
+				},
+				{
+					"question": "Tôi có thể hủy đăng ký bất cứ lúc nào không?",
+					"answer": "Có, bạn có thể hủy đăng ký bất cứ lúc nào từ Cài Đặt Tài Khoản của bạn. Các tính năng cao cấp của bạn sẽ vẫn hoạt động cho đến cuối chu kỳ thanh toán hiện tại."
+				},
+				{
+					"question": "Bạn có hoàn tiền không?",
+					"answer": "Chúng tôi cung cấp đảm bảo hoàn tiền trong 30 ngày cho đăng ký mới. Liên hệ với đội ngũ hỗ trợ của chúng tôi trong vòng 30 ngày kể từ khi mua để được hoàn tiền đầy đủ."
+				}
+			],
+			"other": [
+				{
+					"question": "Thuật toán ghép cặp hoạt động như thế nào?",
+					"answer": "Thuật toán của chúng tôi phân tích lý lịch học vấn, sở thích nghiên cứu, sở thích vị trí và mục tiêu nghề nghiệp của bạn để ghép cặp bạn với các cơ hội phù hợp nhất."
+				},
+				{
+					"question": "Thông tin cá nhân của tôi có được bảo mật không?",
+					"answer": "Có, chúng tôi sử dụng mã hóa tiêu chuẩn ngành và các biện pháp bảo mật để bảo vệ dữ liệu của bạn. Chúng tôi không bao giờ chia sẻ thông tin cá nhân của bạn với bên thứ ba mà không có sự đồng ý của bạn."
+				},
+				{
+					"question": "Làm thế nào để liên hệ với bộ phận hỗ trợ?",
+					"answer": "Bạn có thể liên hệ với đội ngũ hỗ trợ của chúng tôi qua email, điện thoại hoặc trò chuyện trực tiếp. Chúng tôi cũng có trung tâm trợ giúp mở rộng với các bài viết và hướng dẫn."
+				},
+				{
+					"question": "Bạn có ứng dụng di động không?",
+					"answer": "Hiện tại, EduMatch có sẵn dưới dạng ứng dụng web được tối ưu hóa cho thiết bị di động. Chúng tôi đang làm việc trên các ứng dụng di động gốc sẽ sớm có sẵn."
+				}
+			]
 		}
 	},
 	"create_profile": {

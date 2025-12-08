@@ -9,6 +9,7 @@ import { authClient } from '@/config/auth-client'
 import { NotificationType, SQSService } from '@/config/sqs-config'
 import { clearSessionCache } from '@/services/messaging/appsync-client'
 import { Eye, EyeOff } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -24,6 +25,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 	setShowPassword,
 }) => {
 	const router = useRouter()
+	const t = useTranslations('settings_section.password')
 
 	// Password reset modal state
 	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
@@ -240,12 +242,12 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 			{/* Password Field */}
 			<div>
 				<label className="block text-sm font-medium text-gray-700 mb-2">
-					Password
+					{t('label')}
 				</label>
 				{checkingAuthProvider ? (
 					<div className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 flex items-center">
 						<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
-						Checking authentication method...
+						{t('checking_auth')}
 					</div>
 				) : isGoogleUser ? (
 					<div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600">
@@ -272,12 +274,9 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 									fill="#EA4335"
 								/>
 							</svg>
-							Signed in with Google
+							{t('google_signin')}
 						</div>
-						<p className="text-sm text-gray-500 mt-1">
-							Password management is handled by Google. You can change your
-							password in your Google account settings.
-						</p>
+						<p className="text-sm text-gray-500 mt-1">{t('google_message')}</p>
 					</div>
 				) : (
 					<>
@@ -306,7 +305,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 								onClick={openPasswordModal}
 								className="text-green-600 hover:text-green-700 text-sm font-medium"
 							>
-								Change password
+								{t('change_button')}
 							</button>
 						</div>
 					</>
@@ -318,7 +317,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 				<Modal
 					isOpen={isPasswordModalOpen}
 					onClose={closePasswordModal}
-					title="Change Password"
+					title={t('modal.title')}
 					maxWidth="md"
 				>
 					<form onSubmit={handlePasswordSubmit} className="space-y-6">
@@ -338,7 +337,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 										<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 									</svg>
 									<p className="text-green-700 font-medium">
-										Password changed successfully!
+										{t('modal.success')}
 									</p>
 								</div>
 							</div>
@@ -367,7 +366,8 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 						{/* Current Password */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Current Password *
+								{t('modal.current_password.label')}{' '}
+								{t('modal.current_password.required')}
 							</label>
 							<div className="relative">
 								<input
@@ -381,7 +381,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 									}
 									required
 									className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent pr-12"
-									placeholder="Enter your current password"
+									placeholder={t('modal.current_password.placeholder')}
 								/>
 								<button
 									type="button"
@@ -400,7 +400,8 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 						{/* New Password */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								New Password *
+								{t('modal.new_password.label')}{' '}
+								{t('modal.new_password.required')}
 							</label>
 							<div className="relative">
 								<input
@@ -415,7 +416,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 									required
 									minLength={12}
 									className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent pr-12"
-									placeholder="Enter your new password"
+									placeholder={t('modal.new_password.placeholder')}
 								/>
 								<button
 									type="button"
@@ -444,7 +445,8 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 						{/* Confirm Password */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Confirm New Password *
+								{t('modal.confirm_password.label')}{' '}
+								{t('modal.confirm_password.required')}
 							</label>
 							<div className="relative">
 								<input
@@ -458,7 +460,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 									}
 									required
 									className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent pr-12"
-									placeholder="Confirm your new password"
+									placeholder={t('modal.confirm_password.placeholder')}
 								/>
 								<button
 									type="button"
@@ -483,7 +485,7 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 								className="flex-1 py-3"
 								disabled={passwordChanging}
 							>
-								Cancel
+								{t('modal.cancel')}
 							</Button>
 							<Button
 								type="submit"
@@ -501,12 +503,12 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 								{passwordChanging ? (
 									<div className="flex items-center gap-2">
 										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-										Changing...
+										{t('modal.submitting')}
 									</div>
 								) : passwordSuccess ? (
-									'Success!'
+									t('modal.success_button')
 								) : (
-									'Change Password'
+									t('modal.submit')
 								)}
 							</Button>
 						</div>

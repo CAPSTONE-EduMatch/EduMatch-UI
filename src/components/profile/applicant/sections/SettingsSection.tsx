@@ -6,6 +6,7 @@ import Modal from '@/components/ui/modals/Modal'
 import { authClient } from '@/config/auth-client'
 import { ApiService } from '@/services/api/axios-config'
 import { clearSessionCache } from '@/services/messaging/appsync-client'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -17,6 +18,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 	profile,
 }) => {
 	const router = useRouter()
+	const t = useTranslations('settings_section')
 	const [showPassword, setShowPassword] = useState(false)
 	const [notifications, setNotifications] = useState({
 		applicationStatus: true,
@@ -184,18 +186,15 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 				{/* Account Information Section */}
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
 					<h2 className="text-2xl font-bold text-gray-900 mb-2">
-						Account Information
+						{t('account_info.title')}
 					</h2>
-					<p className="text-gray-600 mb-8">
-						Manage your personal information and account settings. Keep your
-						details up to date for the best experience.
-					</p>
+					<p className="text-gray-600 mb-8">{t('account_info.description')}</p>
 
 					<div className="space-y-6">
 						{/* Email Field */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Email
+								{t('account_info.email.label')}
 							</label>
 							<input
 								type="email"
@@ -217,7 +216,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 				{/* Notification Preferences Section */}
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
 					<h2 className="text-2xl font-bold text-gray-900 mb-2">
-						Notification Preferences
+						{t('notifications.title')}
 					</h2>
 
 					{loading ? (
@@ -230,11 +229,10 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 							<div className="flex items-center justify-between">
 								<div className="flex-1">
 									<h3 className="text-lg font-medium text-gray-900">
-										Application status updates
+										{t('notifications.application_status.title')}
 									</h3>
 									<p className="text-gray-600 text-sm mt-1">
-										Get notified when your application status changes through
-										email
+										{t('notifications.application_status.description')}
 									</p>
 								</div>
 								<label className="relative inline-flex items-center cursor-pointer">
@@ -258,11 +256,10 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 							<div className="flex items-center justify-between">
 								<div className="flex-1">
 									<h3 className="text-lg font-medium text-gray-900">
-										Deadline for wishlist items
+										{t('notifications.wishlist_deadline.title')}
 									</h3>
 									<p className="text-gray-600 text-sm mt-1">
-										Get email notifications when events in your wishlist are
-										about to expire
+										{t('notifications.wishlist_deadline.description')}
 									</p>
 								</div>
 								<label className="relative inline-flex items-center cursor-pointer">
@@ -285,10 +282,11 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 							{/* Payment */}
 							<div className="flex items-center justify-between">
 								<div className="flex-1">
-									<h3 className="text-lg font-medium text-gray-900">Payment</h3>
+									<h3 className="text-lg font-medium text-gray-900">
+										{t('notifications.payment.title')}
+									</h3>
 									<p className="text-gray-600 text-sm mt-1">
-										Get email notifications 3 days before membership fee payment
-										is due
+										{t('notifications.payment.description')}
 									</p>
 								</div>
 								<label className="relative inline-flex items-center cursor-pointer">
@@ -311,40 +309,33 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 				{/* Delete Account Section */}
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
 					<h2 className="text-2xl font-bold text-gray-900 mb-2">
-						Delete account
+						{t('delete_account.title')}
 					</h2>
 					<p className="text-gray-600 mb-6">
-						Permanently remove your account and all associated data. This action
-						cannot be undone and will:
+						{t('delete_account.description')}
 					</p>
 
 					{/* Consequences List */}
 					<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
 						<ul className="space-y-2">
-							<li className="text-red-700 text-sm flex items-start">
-								<span className="mr-2">•</span>
-								Delete your profile and personal information
-							</li>
-							<li className="text-red-700 text-sm flex items-start">
-								<span className="mr-2">•</span>
-								Remove all your applications and saved opportunities
-							</li>
-							<li className="text-red-700 text-sm flex items-start">
-								<span className="mr-2">•</span>
-								Cancel any active subscriptions
-							</li>
-							<li className="text-red-700 text-sm flex items-start">
-								<span className="mr-2">•</span>
-								Permanently delete your account history
-							</li>
+							{(t.raw('delete_account.consequences') as string[]).map(
+								(consequence, index) => (
+									<li
+										key={index}
+										className="text-red-700 text-sm flex items-start"
+									>
+										<span className="mr-2">•</span>
+										{consequence}
+									</li>
+								)
+							)}
 						</ul>
 					</div>
 
 					<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
 						<p className="text-blue-800 text-sm">
-							<strong>Note:</strong> Your account data will be preserved and you
-							can contact support to reactivate your account in the future if
-							needed.
+							<strong>{t('delete_account.note').split(':')[0]}:</strong>{' '}
+							{t('delete_account.note').split(':').slice(1).join(':')}
 						</p>
 					</div>
 
@@ -358,10 +349,10 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 						{checkingSubscription ? (
 							<div className="flex items-center gap-2">
 								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
-								Checking subscriptions...
+								{t('delete_account.checking')}
 							</div>
 						) : (
-							'Delete your account'
+							t('delete_account.button')
 						)}
 					</Button>
 				</div>
@@ -372,7 +363,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 				<Modal
 					isOpen={isDeleteModalOpen}
 					onClose={() => setIsDeleteModalOpen(false)}
-					title="Delete Account"
+					title={t('delete_account.modal.title')}
 				>
 					<div className="space-y-6">
 						{/* Warning Icon */}
@@ -397,22 +388,21 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 						{/* Warning Message */}
 						<div className="text-center">
 							<h3 className="text-lg font-semibold text-gray-900 mb-2">
-								Are you absolutely sure?
+								{t('delete_account.modal.confirmation_title')}
 							</h3>
 							<p className="text-gray-600 mb-4">
-								This action cannot be undone. This will permanently delete your
-								account and remove all your data from our servers.
+								{t('delete_account.modal.confirmation_message')}
 							</p>
 							<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
 								<p className="text-sm text-red-800 font-medium mb-2">
-									The following data will be permanently deleted:
+									{t('delete_account.modal.data_warning')}
 								</p>
 								<ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-									<li>Your profile information</li>
-									<li>All your applications and saved posts</li>
-									<li>Your wishlist and preferences</li>
-									<li>Your message history</li>
-									<li>All associated files and documents</li>
+									{(t.raw('delete_account.modal.data_list') as string[]).map(
+										(item, index) => (
+											<li key={index}>{item}</li>
+										)
+									)}
 								</ul>
 							</div>
 						</div>
@@ -420,14 +410,14 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 						{/* Confirmation Input */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Type &quot;DELETE&quot; to confirm
+								{t('delete_account.modal.type_delete')}
 							</label>
 							<input
 								type="text"
 								value={deleteConfirmation}
 								onChange={(e) => setDeleteConfirmation(e.target.value)}
 								className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-								placeholder="Type DELETE to confirm"
+								placeholder={t('delete_account.modal.placeholder')}
 								disabled={deletingAccount}
 							/>
 						</div>
@@ -441,7 +431,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 								className="flex-1 py-3"
 								disabled={deletingAccount}
 							>
-								Cancel
+								{t('delete_account.modal.cancel')}
 							</Button>
 							<Button
 								type="button"
@@ -452,23 +442,22 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 								{deletingAccount ? (
 									<div className="flex items-center gap-2">
 										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-										Deleting...
+										{t('delete_account.modal.deleting')}
 									</div>
 								) : (
-									'Delete Account'
+									t('delete_account.modal.delete')
 								)}
 							</Button>
 						</div>
 					</div>
 				</Modal>
 			)}
-
 			{/* Subscription Warning Modal */}
 			{showSubscriptionWarning && (
 				<Modal
 					isOpen={showSubscriptionWarning}
 					onClose={() => setShowSubscriptionWarning(false)}
-					title="Active Subscription Found"
+					title={t('delete_account.subscription_warning.title')}
 				>
 					<div className="space-y-6">
 						{/* Warning Icon */}
@@ -493,20 +482,25 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 						{/* Warning Message */}
 						<div className="text-center">
 							<h3 className="text-lg font-semibold text-gray-900 mb-2">
-								Cannot Delete Account
+								{t('delete_account.subscription_warning.cannot_delete')}
 							</h3>
 							<p className="text-gray-600 mb-4">
-								You have active subscriptions that need to be canceled before
-								you can delete your account.
+								{t('delete_account.subscription_warning.message')}
 							</p>
 							<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
 								<p className="text-sm text-yellow-800">
-									<strong>What you need to do:</strong>
+									<strong>
+										{t('delete_account.subscription_warning.what_to_do')}
+									</strong>
 								</p>
 								<ul className="text-sm text-yellow-700 list-disc list-inside mt-2 space-y-1">
-									<li>Go to the pricing page to manage your subscriptions</li>
-									<li>Cancel all active subscriptions</li>
-									<li>Return to this page to delete your account</li>
+									{(
+										t.raw(
+											'delete_account.subscription_warning.steps'
+										) as string[]
+									).map((step, index) => (
+										<li key={index}>{step}</li>
+									))}
 								</ul>
 							</div>
 						</div>
@@ -519,7 +513,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 								variant="outline"
 								className="flex-1 py-3"
 							>
-								Cancel
+								{t('delete_account.subscription_warning.cancel')}
 							</Button>
 							<Button
 								type="button"
@@ -528,7 +522,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 								}}
 								className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-700 text-white"
 							>
-								Go to Pricing Page
+								{t('delete_account.subscription_warning.go_to_pricing')}
 							</Button>
 						</div>
 					</div>

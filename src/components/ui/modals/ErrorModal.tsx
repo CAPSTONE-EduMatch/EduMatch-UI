@@ -2,6 +2,7 @@
 
 import { Button, Modal } from '@/components/ui'
 import React from 'react'
+import { useTranslations } from 'next-intl'
 
 interface ErrorModalProps {
 	isOpen: boolean
@@ -24,20 +25,22 @@ interface ErrorModalProps {
 const ErrorModal: React.FC<ErrorModalProps> = ({
 	isOpen,
 	onClose,
-	title = 'Error',
-	message = 'Something went wrong. Please try again.',
-	buttonText = 'Close',
+	title,
+	message,
+	buttonText,
 	onButtonClick,
 	showButton = true,
 	showRetry = false,
 	onRetry,
-	retryText = 'Try Again',
+	retryText,
 	showCloseButton = true,
 	// Two button support
-	secondButtonText = 'Cancel',
+	secondButtonText,
 	onSecondButtonClick,
 	showSecondButton = false,
 }) => {
+	const t = useTranslations('modals.error')
+
 	const handleButtonClick = () => {
 		if (onButtonClick) {
 			onButtonClick()
@@ -80,15 +83,19 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
 						</svg>
 					</div>
 
-					<h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-					<p className="text-sm text-gray-600 mb-6">{message}</p>
+					<h3 className="text-lg font-semibold text-gray-900 mb-2">
+						{title || t('title')}
+					</h3>
+					<p className="text-sm text-gray-600 mb-6">
+						{message || t('message')}
+					</p>
 
 					{showButton && (
 						<Button
 							onClick={handleButtonClick}
 							className="w-full bg-gray-600 hover:bg-gray-700 text-white"
 						>
-							{buttonText}
+							{buttonText || t('button')}
 						</Button>
 					)}
 					{showSecondButton && (
@@ -96,7 +103,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
 							onClick={handleSecondButtonClick}
 							className="w-full bg-[#126E64] hover:bg-teal-700 text-white mt-3"
 						>
-							{secondButtonText}
+							{secondButtonText || t('cancel')}
 						</Button>
 					)}
 					{showRetry && (

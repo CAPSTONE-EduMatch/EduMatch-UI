@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import React, { useEffect } from 'react'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { clearSessionCache } from '@/services/messaging/appsync-client'
+import { useTranslations } from 'next-intl'
 
 export type ProfileSection = string
 
@@ -61,6 +62,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 	const { subscriptions, currentPlan } = useSubscription()
 	const router = useRouter()
 	const { refreshAuth } = useAuthCheck()
+	const t = useTranslations('sidebar.subscription')
 
 	// Check if user has an active institution subscription
 	const hasActiveInstitutionSubscription = subscriptions.some(
@@ -80,22 +82,22 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 							sub.plan === 'institution_yearly')
 				)
 				if (activeSub?.plan === 'institution_yearly') {
-					return { label: 'Institution Yearly', color: 'bg-green-500' }
+					return { label: t('institution_yearly'), color: 'bg-green-500' }
 				} else if (activeSub?.plan === 'institution_monthly') {
-					return { label: 'Institution Monthly', color: 'bg-blue-500' }
+					return { label: t('institution_monthly'), color: 'bg-blue-500' }
 				}
 			}
-			return { label: 'No Subscription', color: 'bg-gray-500' }
+			return { label: t('no_subscription'), color: 'bg-gray-500' }
 		}
 
 		// Applicant plans
 		switch (plan) {
 			case 'standard':
-				return { label: 'Standard', color: 'bg-blue-500' }
+				return { label: t('standard'), color: 'bg-blue-500' }
 			case 'premium':
-				return { label: 'Premium', color: 'bg-purple-500' }
+				return { label: t('premium'), color: 'bg-purple-500' }
 			default:
-				return { label: 'Free', color: 'bg-gray-500' }
+				return { label: t('free'), color: 'bg-gray-500' }
 		}
 	}
 

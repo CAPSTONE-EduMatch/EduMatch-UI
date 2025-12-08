@@ -3,6 +3,7 @@
 import React from 'react'
 import { Modal } from '@/components/ui'
 import { Button } from '@/components/ui'
+import { useTranslations } from 'next-intl'
 
 interface SuccessModalProps {
 	isOpen: boolean
@@ -17,12 +18,14 @@ interface SuccessModalProps {
 const SuccessModal: React.FC<SuccessModalProps> = ({
 	isOpen,
 	onClose,
-	title = 'Success!',
-	message = 'Operation completed successfully.',
-	buttonText = 'Continue',
+	title,
+	message,
+	buttonText,
 	onButtonClick,
 	showButton = true,
 }) => {
+	const t = useTranslations('modals.success')
+
 	const handleButtonClick = () => {
 		if (onButtonClick) {
 			onButtonClick()
@@ -53,15 +56,19 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
 						</svg>
 					</div>
 
-					<h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-					<p className="text-sm text-gray-600 mb-6">{message}</p>
+					<h3 className="text-lg font-semibold text-gray-900 mb-2">
+						{title || t('title')}
+					</h3>
+					<p className="text-sm text-gray-600 mb-6">
+						{message || t('message')}
+					</p>
 
 					{showButton && (
 						<Button
 							onClick={handleButtonClick}
 							className="w-full bg-green-600 hover:bg-green-700 text-white"
 						>
-							{buttonText}
+							{buttonText || t('button')}
 						</Button>
 					)}
 				</div>

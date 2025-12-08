@@ -2,6 +2,52 @@
 	"explore": "Explore",
 	"about-us": "About us",
 	"program": "Program",
+
+	"header": {
+		"navigation": {
+			"about_us": "About us",
+			"explore": "Explore",
+			"pricing": "Pricing",
+			"support": "Support",
+			"program": "Program"
+		},
+		"notifications": {
+			"title": "Notifications",
+			"mark_all_read": "Mark all read",
+			"no_notifications": "No notifications yet"
+		},
+		"language": {
+			"select": "Select Language",
+			"english": "English",
+			"vietnamese": "Vietnamese",
+			"switch_to": "Switch to"
+		},
+		"user_menu": {
+			"user_menu": "User Menu",
+			"login": "Login",
+			"sign_in": "Sign In",
+			"sign_up": "Sign Up",
+			"logout": "Log out",
+			"student": "Student",
+			"institution": "Institution",
+			"plan": "Plan",
+			"free_plan": "Free Plan",
+			"standard_plan": "Standard Plan",
+			"premium_plan": "Premium Plan"
+		},
+		"menu": {
+			"profile": "Profile",
+			"institution_profile": "Institution Profile",
+			"academic_information": "Academic Information",
+			"wishlist": "Wishlist",
+			"my_applications": "My Applications",
+			"applications": "Applications",
+			"programs": "Programs",
+			"payment": "Payment",
+			"settings": "Settings"
+		}
+	},
+
 	"breadcrumb": {
 		"home": "Home",
 		"explore": "Explore",
@@ -9,6 +55,7 @@
 		"scholarships": "Scholarships",
 		"research_labs": "Research Labs"
 	},
+
 	"explore_page": {
 		"quote": {
 			"author": "John Dewey:",
@@ -140,20 +187,25 @@
 			"account_deactivated": "Account Deactivated"
 		}
 	},
+
 	"search": {
 		"title": "Search your needs here",
 		"placeholder": "Search by name of program, scholarship, or research lab"
 	},
+
 	"tabs": {
 		"programmes": "Programmes",
 		"scholarships": "Scholarships",
 		"research_labs": "Research Labs"
 	},
+
 	"images": {
 		"university_campus": "University Campus",
 		"student_illustration": "Student illustration"
 	},
+
 	"results": "results",
+
 	"sort": {
 		"most_popular": "Most popular",
 		"newest": "Newest",
@@ -166,18 +218,22 @@
 		"z_to_a": "Z → A",
 		"sort_by": "Sort"
 	},
+
 	"filter": {
 		"title": "Filters"
 	},
+
 	"pagination": {
 		"previous": "Previous",
 		"next": "Next"
 	},
+
 	"loading": {
 		"programmes": "Loading programs...",
 		"scholarships": "Loading scholarships...",
 		"research": "Loading research labs..."
 	},
+
 	"auth": {
 		"required": {
 			"title": "Authentication Required",
@@ -361,10 +417,12 @@
 			"accountBannedWithReason": "Your account has been banned. Reason: {reason}"
 		}
 	},
+
 	"quote": {
 		"JohnDewey": "Education is not preparation for life; education is life itself. It is the continuous reconstruction of experience, where each lesson learned becomes the foundation for new growth, and every challenge faced an opportunity for deeper wisdom.",
 		"author": "John Dewey:"
 	},
+
 	"subscription": {
 		"badge": "Subscription Plans",
 		"title": "Find Your Perfect Learning Path",
@@ -386,6 +444,7 @@
 			"alt": "Student illustration"
 		}
 	},
+
 	"homepage": {
 		"hero_section": {
 			"title": "Match. Apply. Succeed.",
@@ -418,38 +477,30 @@
 			}
 		},
 		"blog_section": {
-			"title": "Latest Posts",
-			"empty": {
-				"title": "No Posts Available",
-				"description_programmes": "There are no programs available at the moment. Please check back later.",
-				"description_scholarships": "There are no scholarships available at the moment. Please check back later.",
-				"description_research_labs": "There are no research labs available at the moment. Please check back later.",
-				"try_other_button": "Try Other Categories"
-			}
+			"title": "Latest Posts"
 		},
 		"cta_section": {
 			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
 			"description_1": "Join EduMatch now to start your journey to success.",
-			"description_2": "Find the perfect opportunities for you.",
-			"authenticated_title": "Ready to Find Your Perfect Match?",
-			"authenticated_description_1": "Discover thousands of programs, scholarships, and research opportunities",
-			"authenticated_description_2": "tailored just for you. Start exploring now!"
+			"description_2": "Find the perfect opportunities for you."
 		}
 	},
+
 	"buttons": {
 		"explore_more": "Explore more",
 		"show_more": "Show more",
-		"show_less": "Show less",
 		"learn_more": "Learn more",
 		"sign_in": "Sign in",
 		"sign_up": "Sign up",
 		"log-out": "Log out",
 		"retry": "Retry"
 	},
+
 	"empty": {
 		"title": "No programs found",
 		"hint": "Try adjusting your filters or search criteria"
 	},
+
 	"document_selector": {
 		"header": {
 			"title": "Select Documents",
@@ -466,6 +517,7 @@
 		"loading": "Loading documents...",
 		"error": "Failed to load documents"
 	},
+
 	"research_lab_detail": {
 		"loading": "Loading research lab details...",
 		"error": "Error",
@@ -710,6 +762,7 @@
 			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email."
 		}
 	},
+
 	"program_detail": {
 		"breadcrumb": {
 			"home": "Home",
@@ -745,6 +798,10 @@
 			"scholarship": "Scholarship",
 			"other": "Other information",
 			"application": "My Applications"
+		},
+		"about": {
+			"title": "About",
+			"no_description": "No description available."
 		},
 		"overview": {
 			"description_label": "Description:",
@@ -1015,6 +1072,7 @@
 		"error": "Failed to load program details",
 		"not_found": "Program not found"
 	},
+
 	"scholarship_detail": {
 		"loading": "Loading scholarship details...",
 		"error": "Failed to load scholarship details",
@@ -1213,6 +1271,7 @@
 			"files_uploaded_message": "{count} file(s) uploaded successfully"
 		}
 	},
+
 	"pricing": {
 		"hero": {
 			"badge": "Pricing plan",
@@ -1741,16 +1800,11 @@
 			"not_provided": "Not provided"
 		},
 		"errors": {
-			"incomplete_research_papers": "Please provide both title and discipline for all research papers with files.",
+			"incomplete_papers": "Please provide both title and discipline for all research papers before uploading files.",
 			"save_failed": "Failed to save academic information. Please try again.",
-			"save_failed_detail": "Failed to save academic information. Please try again.",
 			"upload_failed": "Failed to upload files. Please try again.",
 			"invalid_file": "Please select image, PDF, or document files",
 			"file_too_large": "File size must be less than 10MB"
-		},
-		"error": {
-			"title": "Error",
-			"button": "Close"
 		},
 		"success": {
 			"title": "Success!",
@@ -1859,6 +1913,36 @@
 				"cancel": "Cancel",
 				"go_to_pricing": "Go to Pricing Page"
 			}
+		},
+		"password": {
+			"label": "Password",
+			"change_button": "Change password",
+			"checking_auth": "Checking authentication method...",
+			"google_signin": "Signed in with Google",
+			"google_message": "Password management is handled by Google. You can change your password in your Google account settings.",
+			"modal": {
+				"title": "Change Password",
+				"success": "Password changed successfully!",
+				"current_password": {
+					"label": "Current Password",
+					"placeholder": "Enter your current password",
+					"required": "*"
+				},
+				"new_password": {
+					"label": "New Password",
+					"placeholder": "Enter your new password",
+					"required": "*"
+				},
+				"confirm_password": {
+					"label": "Confirm New Password",
+					"placeholder": "Confirm your new password",
+					"required": "*"
+				},
+				"cancel": "Cancel",
+				"submit": "Change Password",
+				"submitting": "Changing...",
+				"success_button": "Success!"
+			}
 		}
 	},
 	"application_update_modal": {
@@ -1909,6 +1993,182 @@
 		"errors": {
 			"no_documents": "Please upload at least one document",
 			"submit_failed": "Failed to submit update response. Please try again."
+		}
+	},
+	"sidebar": {
+		"subscription": {
+			"institution_yearly": "Institution Yearly",
+			"institution_monthly": "Institution Monthly",
+			"no_subscription": "No Subscription",
+			"standard": "Standard",
+			"premium": "Premium",
+			"free": "Free"
+		}
+	},
+	"modals": {
+		"success": {
+			"title": "Success!",
+			"message": "Operation completed successfully.",
+			"button": "Continue"
+		},
+		"error": {
+			"title": "Error",
+			"message": "Something went wrong. Please try again.",
+			"button": "Close",
+			"retry": "Try Again",
+			"cancel": "Cancel"
+		},
+		"warning": {
+			"title": "Unsaved Changes",
+			"message": "You have unsaved changes. What would you like to do before leaving this section?",
+			"discard": "Discard Changes",
+			"save": "Save & Continue",
+			"saving": "Saving..."
+		}
+	},
+	"support_page": {
+		"header": {
+			"title": "How can we help?",
+			"subtitle": "Get answers to your questions or contact our support team"
+		},
+		"tabs": {
+			"account": "Account",
+			"application": "Application",
+			"subscription": "Subscription",
+			"other": "Other information"
+		},
+		"form": {
+			"title": "Still need help?",
+			"subtitle": "Send us a message and we'll get back to you as soon as possible",
+			"problem_type": {
+				"label": "What is your problem about?",
+				"placeholder": "Select problem type",
+				"options": {
+					"application": "Application",
+					"account": "Account",
+					"payment": "Payment",
+					"technical": "Technical Issue",
+					"other": "Other"
+				}
+			},
+			"question": {
+				"label": "Your Question",
+				"placeholder": "Please describe your issue in detail..."
+			},
+			"email": {
+				"label": "Email Address",
+				"placeholder": "your.email@example.com"
+			},
+			"attach_files": {
+				"button": "Attach Files",
+				"hint": "PNG, JPEG (max 5MB) • PDF, DOC, DOCX (max 10MB)"
+			},
+			"manage_files": "Manage Files ({count})",
+			"submit": "Send Message",
+			"submitting": "Sending...",
+			"success": "Your request has been submitted. We will contact you soon.",
+			"error": "Failed to submit request. Please try again."
+		},
+		"file_modal": {
+			"title": "Manage Attached Files",
+			"empty": "No files attached",
+			"remove": "Remove",
+			"close": "Close"
+		}
+	},
+	"create_profile": {
+		"role_selection": {
+			"title": "Choose your role",
+			"subtitle": "Select whether you're looking for educational opportunities or representing an educational institution.",
+			"applicant": {
+				"title": "Applicant",
+				"description": "I'm a student or professional looking for educational opportunities, courses, or programs."
+			},
+			"institution": {
+				"title": "Institution",
+				"description": "I represent a school, university, or educational organization offering programs and courses."
+			},
+			"next": "Next"
+		},
+		"basic_info": {
+			"title": "Basic Information",
+			"subtitle": "Tell us about yourself",
+			"profile_photo": {
+				"label": "Profile Photo",
+				"upload": "Upload Photo",
+				"uploading": "Uploading..."
+			},
+			"first_name": {
+				"label": "First Name",
+				"placeholder": "Enter your first name",
+				"required": "First name is required"
+			},
+			"last_name": {
+				"label": "Last Name",
+				"placeholder": "Enter your last name",
+				"required": "Last name is required"
+			},
+			"email": {
+				"label": "Email",
+				"placeholder": "your.email@example.com",
+				"required": "Email is required",
+				"invalid": "Please enter a valid email"
+			},
+			"phone": {
+				"label": "Phone Number (Optional)",
+				"placeholder": "Enter phone number",
+				"min_length": "Phone number must be at least 7 digits",
+				"max_length": "Phone number cannot exceed 15 digits"
+			},
+			"gender": {
+				"label": "Gender",
+				"placeholder": "Select gender",
+				"required": "Gender is required",
+				"options": {
+					"male": "Male",
+					"female": "Female",
+					"other": "Other"
+				}
+			},
+			"nationality": {
+				"label": "Nationality",
+				"placeholder": "Select nationality",
+				"required": "Nationality is required"
+			},
+			"interests": {
+				"label": "Interests (Optional)",
+				"placeholder": "Select your interests"
+			},
+			"favorite_countries": {
+				"label": "Favorite Countries (Optional)",
+				"placeholder": "Select countries"
+			},
+			"back": "Back",
+			"next": "Next"
+		},
+		"academic_info": {
+			"title": "Academic Information",
+			"subtitle": "Share your educational background",
+			"back": "Back",
+			"next": "Next"
+		},
+		"institution_info": {
+			"title": "Institution Information",
+			"subtitle": "Tell us about your institution",
+			"back": "Back",
+			"next": "Next"
+		},
+		"institution_details": {
+			"title": "Institution Details",
+			"subtitle": "Additional information about your institution",
+			"verification_error": "Please upload at least one verification document to continue.",
+			"back": "Back",
+			"next": "Next"
+		},
+		"completion": {
+			"title": "Profile Complete!",
+			"message": "Your profile has been successfully created. You can now start using EduMatch.",
+			"button": "Get Started"
 		}
 	}
 }

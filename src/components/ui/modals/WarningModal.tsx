@@ -3,6 +3,7 @@
 import React from 'react'
 import { Modal } from '@/components/ui'
 import { Button } from '@/components/ui'
+import { useTranslations } from 'next-intl'
 
 interface SimpleWarningModalProps {
 	isOpen: boolean
@@ -19,6 +20,8 @@ export const SimpleWarningModal: React.FC<SimpleWarningModalProps> = ({
 	onCancel,
 	isSaving = false,
 }) => {
+	const t = useTranslations('modals.warning')
+
 	if (!isOpen) return null
 
 	return (
@@ -42,12 +45,9 @@ export const SimpleWarningModal: React.FC<SimpleWarningModalProps> = ({
 					</div>
 
 					<h3 className="text-lg font-semibold text-gray-900 mb-2">
-						Unsaved Changes
+						{t('title')}
 					</h3>
-					<p className="text-sm text-gray-600 mb-6">
-						You have unsaved changes. What would you like to do before leaving
-						this section?
-					</p>
+					<p className="text-sm text-gray-600 mb-6">{t('message')}</p>
 
 					<div className="flex gap-3 justify-center">
 						<Button
@@ -57,14 +57,14 @@ export const SimpleWarningModal: React.FC<SimpleWarningModalProps> = ({
 							className="min-w-[140px]"
 							size="sm"
 						>
-							Discard Changes
+							{t('discard')}
 						</Button>
 						<Button
 							onClick={onSaveAndContinue}
 							disabled={isSaving}
 							className="min-w-[140px] bg-green-600 hover:bg-green-700 text-white"
 						>
-							{isSaving ? 'Saving...' : 'Save & Continue'}
+							{isSaving ? t('saving') : t('save')}
 						</Button>
 					</div>
 				</div>

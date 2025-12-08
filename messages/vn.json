@@ -2,6 +2,52 @@
 	"explore": "Khám phá",
 	"about-us": "Về chúng tôi",
 	"program": "Chương trình",
+
+	"header": {
+		"navigation": {
+			"about_us": "Về chúng tôi",
+			"explore": "Khám phá",
+			"pricing": "Gói thành viên",
+			"support": "Hỗ trợ",
+			"program": "Chương trình"
+		},
+		"notifications": {
+			"title": "Thông báo",
+			"mark_all_read": "Đánh dấu đã đọc tất cả",
+			"no_notifications": "Chưa có thông báo"
+		},
+		"language": {
+			"select": "Chọn ngôn ngữ",
+			"english": "Tiếng Anh",
+			"vietnamese": "Tiếng Việt",
+			"switch_to": "Chuyển sang"
+		},
+		"user_menu": {
+			"user_menu": "Menu người dùng",
+			"login": "Đăng nhập",
+			"sign_in": "Đăng nhập",
+			"sign_up": "Đăng ký",
+			"logout": "Đăng xuất",
+			"student": "Sinh viên",
+			"institution": "Tổ chức",
+			"plan": "Gói",
+			"free_plan": "Gói miễn phí",
+			"standard_plan": "Gói tiêu chuẩn",
+			"premium_plan": "Gói cao cấp"
+		},
+		"menu": {
+			"profile": "Hồ sơ",
+			"institution_profile": "Hồ sơ tổ chức",
+			"academic_information": "Thông tin học vấn",
+			"wishlist": "Danh sách yêu thích",
+			"my_applications": "Đơn của tôi",
+			"applications": "Đơn ứng tuyển",
+			"programs": "Chương trình",
+			"payment": "Thanh toán",
+			"settings": "Cài đặt"
+		}
+	},
+
 	"breadcrumb": {
 		"home": "Trang chủ",
 		"explore": "Khám phá",
@@ -9,6 +55,7 @@
 		"scholarships": "Học bổng",
 		"research_labs": "Phòng nghiên cứu"
 	},
+
 	"explore_page": {
 		"quote": {
 			"author": "John Dewey:",
@@ -140,20 +187,25 @@
 			"account_deactivated": "Tài khoản đã bị vô hiệu hóa"
 		}
 	},
+
 	"search": {
 		"title": "Tìm kiếm nhu cầu của bạn tại đây",
 		"placeholder": "Tìm kiếm theo tên chương trình, học bổng, hoặc phòng nghiên cứu"
 	},
+
 	"tabs": {
 		"programmes": "Chương trình",
 		"scholarships": "Học bổng",
 		"research_labs": "Phòng nghiên cứu"
 	},
+
 	"images": {
 		"university_campus": "Khuôn viên trường đại học",
 		"student_illustration": "Hình minh họa sinh viên"
 	},
+
 	"results": "kết quả",
+
 	"sort": {
 		"most_popular": "Phổ biến nhất",
 		"newest": "Mới nhất",
@@ -166,18 +218,22 @@
 		"z_to_a": "Z → A",
 		"sort_by": "Sắp xếp"
 	},
+
 	"filter": {
 		"title": "Bộ lọc"
 	},
+
 	"pagination": {
 		"previous": "Trước",
 		"next": "Sau"
 	},
+
 	"loading": {
 		"programmes": "Đang tải chương trình...",
 		"scholarships": "Đang tải học bổng...",
 		"research": "Đang tải phòng nghiên cứu..."
 	},
+
 	"auth": {
 		"required": {
 			"title": "Yêu cầu xác thực",
@@ -361,10 +417,12 @@
 			"accountBannedWithReason": "Tài khoản của bạn đã bị cấm. Lý do: {reason}"
 		}
 	},
+
 	"quote": {
 		"JohnDewey": "Giáo dục không phải là sự chuẩn bị cho cuộc sống, giáo dục chính là cuộc sống. Đó là quá trình tái kiến tạo kinh nghiệm liên tục, nơi mỗi bài học trở thành nền tảng cho sự trưởng thành mới, và mỗi thách thức là cơ hội để đạt được trí tuệ sâu sắc hơn.",
 		"author": "John Dewey:"
 	},
+
 	"subscription": {
 		"badge": "Gói thành viên",
 		"title": "Tìm lộ trình học tập phù hợp nhất",
@@ -386,6 +444,7 @@
 			"alt": "Hình minh họa sinh viên"
 		}
 	},
+
 	"homepage": {
 		"hero_section": {
 			"title": "Phù hợp. Ứng tuyển. Thành công.",
@@ -418,38 +477,30 @@
 			}
 		},
 		"blog_section": {
-			"title": "Bài viết mới nhất",
-			"empty": {
-				"title": "Không có bài viết",
-				"description_programmes": "Hiện tại chưa có chương trình nào. Vui lòng quay lại sau.",
-				"description_scholarships": "Hiện tại chưa có học bổng nào. Vui lòng quay lại sau.",
-				"description_research_labs": "Hiện tại chưa có phòng nghiên cứu nào. Vui lòng quay lại sau.",
-				"try_other_button": "Thử danh mục khác"
-			}
+			"title": "Bài viết mới nhất"
 		},
 		"cta_section": {
 			"title": "Khám phá chương trình, nghiên cứu và cơ hội học bổng ngay hôm nay",
 			"description_1": "Tham gia EduMatch ngay để bắt đầu hành trình thành công của bạn.",
-			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn.",
-			"authenticated_title": "Sẵn sàng tìm kiếm sự phù hợp hoàn hảo?",
-			"authenticated_description_1": "Khám phá hàng ngàn chương trình, học bổng và cơ hội nghiên cứu",
-			"authenticated_description_2": "được thiết kế riêng cho bạn. Bắt đầu khám phá ngay!"
+			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn."
 		}
 	},
+
 	"buttons": {
 		"explore_more": "Khám phá thêm",
 		"show_more": "Xem thêm",
-		"show_less": "Thu gọn",
 		"learn_more": "Tìm hiểu thêm",
 		"sign_in": "Đăng nhập",
 		"sign_up": "Đăng ký",
 		"log_out": "Đăng xuất",
 		"retry": "Thử lại"
 	},
+
 	"empty": {
 		"title": "Không tìm thấy chương trình",
 		"hint": "Hãy điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm của bạn"
 	},
+
 	"document_selector": {
 		"header": {
 			"title": "Chọn tài liệu",
@@ -466,6 +517,7 @@
 		"loading": "Đang tải tài liệu...",
 		"error": "Không thể tải tài liệu"
 	},
+
 	"research_lab_detail": {
 		"loading": "Đang tải chi tiết phòng nghiên cứu...",
 		"error": "Lỗi",
@@ -695,6 +747,7 @@
 			"application_submitted_message": "Hồ sơ của bạn đã được nộp thành công. Bạn sẽ nhận được cập nhật qua email."
 		}
 	},
+
 	"program_detail": {
 		"breadcrumb": {
 			"home": "Trang chủ",
@@ -731,6 +784,10 @@
 			"other": "Thông tin khác",
 			"application": "Hồ sơ của tôi",
 			"applications": "Hồ sơ ứng tuyển"
+		},
+		"about": {
+			"title": "Giới thiệu",
+			"no_description": "Không có mô tả."
 		},
 		"program_description": {
 			"title": "Mô tả chương trình"
@@ -784,10 +841,6 @@
 				"update_failed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
 				"load_failed": "Không thể tải chi tiết hồ sơ."
 			}
-		},
-		"about": {
-			"title": "Giới thiệu",
-			"no_description": "Không có mô tả."
 		},
 		"apply": {
 			"title": "Ứng tuyển tại đây !",
@@ -1059,6 +1112,7 @@
 			"error_message": "Không thể cập nhật danh sách yêu thích. Vui lòng thử lại."
 		}
 	},
+
 	"scholarship_detail": {
 		"loading": "Đang tải chi tiết học bổng...",
 		"error": "Không thể tải chi tiết học bổng",
@@ -1259,6 +1313,7 @@
 			"files_uploaded_message": "Đã tải lên {count} tệp thành công"
 		}
 	},
+
 	"pricing": {
 		"hero": {
 			"badge": "Gói dịch vụ",
@@ -1787,16 +1842,11 @@
 			"not_provided": "Chưa cung cấp"
 		},
 		"errors": {
-			"incomplete_research_papers": "Vui lòng cung cấp cả tiêu đề và ngành cho tất cả các bài nghiên cứu có tệp đính kèm.",
+			"incomplete_papers": "Vui lòng cung cấp cả tiêu đề và ngành cho tất cả các bài nghiên cứu trước khi tải tệp lên.",
 			"save_failed": "Không thể lưu thông tin học vấn. Vui lòng thử lại.",
-			"save_failed_detail": "Không thể lưu thông tin học vấn. Vui lòng thử lại.",
 			"upload_failed": "Không thể tải tệp lên. Vui lòng thử lại.",
 			"invalid_file": "Vui lòng chọn tệp ảnh, PDF hoặc tài liệu",
 			"file_too_large": "Kích thước tệp phải nhỏ hơn 10MB"
-		},
-		"error": {
-			"title": "Lỗi",
-			"button": "Đóng"
 		},
 		"success": {
 			"title": "Thành Công!",
@@ -1905,6 +1955,36 @@
 				"cancel": "Hủy",
 				"go_to_pricing": "Đến Trang Giá"
 			}
+		},
+		"password": {
+			"label": "Mật Khẩu",
+			"change_button": "Đổi mật khẩu",
+			"checking_auth": "Đang kiểm tra phương thức xác thực...",
+			"google_signin": "Đã đăng nhập bằng Google",
+			"google_message": "Quản lý mật khẩu được xử lý bởi Google. Bạn có thể thay đổi mật khẩu trong cài đặt tài khoản Google của mình.",
+			"modal": {
+				"title": "Đổi Mật Khẩu",
+				"success": "Đổi mật khẩu thành công!",
+				"current_password": {
+					"label": "Mật Khẩu Hiện Tại",
+					"placeholder": "Nhập mật khẩu hiện tại của bạn",
+					"required": "*"
+				},
+				"new_password": {
+					"label": "Mật Khẩu Mới",
+					"placeholder": "Nhập mật khẩu mới của bạn",
+					"required": "*"
+				},
+				"confirm_password": {
+					"label": "Xác Nhận Mật Khẩu Mới",
+					"placeholder": "Xác nhận mật khẩu mới của bạn",
+					"required": "*"
+				},
+				"cancel": "Hủy",
+				"submit": "Đổi Mật Khẩu",
+				"submitting": "Đang đổi...",
+				"success_button": "Thành công!"
+			}
 		}
 	},
 	"application_update_modal": {
@@ -1955,6 +2035,182 @@
 		"errors": {
 			"no_documents": "Vui lòng tải lên ít nhất một tài liệu",
 			"submit_failed": "Không thể gửi phản hồi cập nhật. Vui lòng thử lại."
+		}
+	},
+	"sidebar": {
+		"subscription": {
+			"institution_yearly": "Gói Trường Hàng Năm",
+			"institution_monthly": "Gói Trường Hàng Tháng",
+			"no_subscription": "Chưa Đăng Ký",
+			"standard": "Tiêu Chuẩn",
+			"premium": "Cao Cấp",
+			"free": "Miễn Phí"
+		}
+	},
+	"modals": {
+		"success": {
+			"title": "Thành Công!",
+			"message": "Thao tác hoàn tất thành công.",
+			"button": "Tiếp Tục"
+		},
+		"error": {
+			"title": "Lỗi",
+			"message": "Đã xảy ra lỗi. Vui lòng thử lại.",
+			"button": "Đóng",
+			"retry": "Thử Lại",
+			"cancel": "Hủy"
+		},
+		"warning": {
+			"title": "Thay Đổi Chưa Lưu",
+			"message": "Bạn có những thay đổi chưa lưu. Bạn muốn làm gì trước khi rời khỏi phần này?",
+			"discard": "Hủy Thay Đổi",
+			"save": "Lưu & Tiếp Tục",
+			"saving": "Đang lưu..."
+		}
+	},
+	"support_page": {
+		"header": {
+			"title": "Chúng tôi có thể giúp gì cho bạn?",
+			"subtitle": "Nhận câu trả lời cho câu hỏi của bạn hoặc liên hệ với nhóm hỗ trợ"
+		},
+		"tabs": {
+			"account": "Tài Khoản",
+			"application": "Đơn Ứng Tuyển",
+			"subscription": "Gói Đăng Ký",
+			"other": "Thông tin khác"
+		},
+		"form": {
+			"title": "Vẫn cần trợ giúp?",
+			"subtitle": "Gửi tin nhắn cho chúng tôi và chúng tôi sẽ phản hồi sớm nhất có thể",
+			"problem_type": {
+				"label": "Vấn đề của bạn là gì?",
+				"placeholder": "Chọn loại vấn đề",
+				"options": {
+					"application": "Đơn Ứng Tuyển",
+					"account": "Tài Khoản",
+					"payment": "Thanh Toán",
+					"technical": "Vấn Đề Kỹ Thuật",
+					"other": "Khác"
+				}
+			},
+			"question": {
+				"label": "Câu Hỏi Của Bạn",
+				"placeholder": "Vui lòng mô tả chi tiết vấn đề của bạn..."
+			},
+			"email": {
+				"label": "Địa Chỉ Email",
+				"placeholder": "email.cua.ban@example.com"
+			},
+			"attach_files": {
+				"button": "Đính Kèm Tệp",
+				"hint": "PNG, JPEG (tối đa 5MB) • PDF, DOC, DOCX (tối đa 10MB)"
+			},
+			"manage_files": "Quản Lý Tệp ({count})",
+			"submit": "Gửi Tin Nhắn",
+			"submitting": "Đang gửi...",
+			"success": "Yêu cầu của bạn đã được gửi. Chúng tôi sẽ liên hệ với bạn sớm.",
+			"error": "Không thể gửi yêu cầu. Vui lòng thử lại."
+		},
+		"file_modal": {
+			"title": "Quản Lý Tệp Đính Kèm",
+			"empty": "Không có tệp đính kèm",
+			"remove": "Xóa",
+			"close": "Đóng"
+		}
+	},
+	"create_profile": {
+		"role_selection": {
+			"title": "Chọn vai trò của bạn",
+			"subtitle": "Chọn xem bạn đang tìm kiếm cơ hội giáo dục hay đại diện cho một tổ chức giáo dục.",
+			"applicant": {
+				"title": "Người Ứng Tuyển",
+				"description": "Tôi là sinh viên hoặc chuyên gia đang tìm kiếm cơ hội giáo dục, khóa học hoặc chương trình."
+			},
+			"institution": {
+				"title": "Tổ Chức",
+				"description": "Tôi đại diện cho một trường học, đại học hoặc tổ chức giáo dục cung cấp chương trình và khóa học."
+			},
+			"next": "Tiếp Theo"
+		},
+		"basic_info": {
+			"title": "Thông Tin Cơ Bản",
+			"subtitle": "Cho chúng tôi biết về bạn",
+			"profile_photo": {
+				"label": "Ảnh Hồ Sơ",
+				"upload": "Tải Ảnh Lên",
+				"uploading": "Đang tải lên..."
+			},
+			"first_name": {
+				"label": "Tên",
+				"placeholder": "Nhập tên của bạn",
+				"required": "Tên là bắt buộc"
+			},
+			"last_name": {
+				"label": "Họ",
+				"placeholder": "Nhập họ của bạn",
+				"required": "Họ là bắt buộc"
+			},
+			"email": {
+				"label": "Email",
+				"placeholder": "email.cua.ban@example.com",
+				"required": "Email là bắt buộc",
+				"invalid": "Vui lòng nhập email hợp lệ"
+			},
+			"phone": {
+				"label": "Số Điện Thoại (Tùy Chọn)",
+				"placeholder": "Nhập số điện thoại",
+				"min_length": "Số điện thoại phải có ít nhất 7 chữ số",
+				"max_length": "Số điện thoại không được vượt quá 15 chữ số"
+			},
+			"gender": {
+				"label": "Giới Tính",
+				"placeholder": "Chọn giới tính",
+				"required": "Giới tính là bắt buộc",
+				"options": {
+					"male": "Nam",
+					"female": "Nữ",
+					"other": "Khác"
+				}
+			},
+			"nationality": {
+				"label": "Quốc Tịch",
+				"placeholder": "Chọn quốc tịch",
+				"required": "Quốc tịch là bắt buộc"
+			},
+			"interests": {
+				"label": "Sở Thích (Tùy Chọn)",
+				"placeholder": "Chọn sở thích của bạn"
+			},
+			"favorite_countries": {
+				"label": "Quốc Gia Yêu Thích (Tùy Chọn)",
+				"placeholder": "Chọn quốc gia"
+			},
+			"back": "Quay Lại",
+			"next": "Tiếp Theo"
+		},
+		"academic_info": {
+			"title": "Thông Tin Học Tập",
+			"subtitle": "Chia sẻ nền tảng giáo dục của bạn",
+			"back": "Quay Lại",
+			"next": "Tiếp Theo"
+		},
+		"institution_info": {
+			"title": "Thông Tin Tổ Chức",
+			"subtitle": "Cho chúng tôi biết về tổ chức của bạn",
+			"back": "Quay Lại",
+			"next": "Tiếp Theo"
+		},
+		"institution_details": {
+			"title": "Chi Tiết Tổ Chức",
+			"subtitle": "Thông tin bổ sung về tổ chức của bạn",
+			"verification_error": "Vui lòng tải lên ít nhất một tài liệu xác minh để tiếp tục.",
+			"back": "Quay Lại",
+			"next": "Tiếp Theo"
+		},
+		"completion": {
+			"title": "Hồ Sơ Hoàn Tất!",
+			"message": "Hồ sơ của bạn đã được tạo thành công. Bạn có thể bắt đầu sử dụng EduMatch ngay bây giờ.",
+			"button": "Bắt Đầu"
 		}
 	}
 }

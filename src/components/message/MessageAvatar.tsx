@@ -1,6 +1,7 @@
 'use client'
 
 import { ProtectedImg } from '@/components/ui/ProtectedImage'
+import { Building2 } from 'lucide-react'
 
 interface MessageAvatarProps {
 	src?: string | null
@@ -9,6 +10,7 @@ interface MessageAvatarProps {
 	className?: string
 	showOnlineStatus?: boolean
 	isOnline?: boolean
+	userType?: 'applicant' | 'institution' | 'unknown'
 }
 
 const sizeClasses = {
@@ -57,11 +59,30 @@ export function MessageAvatar({
 	className = '',
 	showOnlineStatus = false,
 	isOnline = false,
+	userType = 'unknown',
 }: MessageAvatarProps) {
 	const sizeClass = sizeClasses[size]
 	const statusSizeClass = statusSizeClasses[size]
 
-	const fallbackElement = (
+	// For institutions, use Building icon fallback instead of default avatar
+	const isInstitution = userType === 'institution'
+
+	// Check if src is a Google image URL (should not be used for institutions)
+	const isGoogleImage =
+		src?.includes('googleusercontent.com') || src?.includes('google.com')
+
+	// For institutions, if src is a Google image, ignore it and use fallback
+	const shouldUseSrc = src && !(isInstitution && isGoogleImage)
+
+	const fallbackElement = isInstitution ? (
+		<div
+			className={`${sizeClass} rounded-full bg-[#126E64]/10 flex items-center justify-center border-2 border-gray-200`}
+		>
+			<Building2
+				className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} text-[#126E64]`}
+			/>
+		</div>
+	) : (
 		<div
 			className={`${sizeClass} rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-200`}
 			style={{
@@ -74,7 +95,7 @@ export function MessageAvatar({
 
 	return (
 		<div className={`relative flex-shrink-0 ${className}`}>
-			{src ? (
+			{shouldUseSrc ? (
 				// Use ProtectedImg for S3 URLs, regular img for pre-signed or regular URLs
 				isS3Url(src) && !isPreSignedUrl(src) ? (
 					<ProtectedImg
@@ -86,19 +107,43 @@ export function MessageAvatar({
 						fallback={fallbackElement}
 					/>
 				) : (
-					<img
-						src={src}
-						alt={alt}
-						className={`${sizeClass} rounded-full object-cover border-2 border-gray-200 shadow-sm`}
-						onError={(e) => {
-							// Fallback to default avatar on error
-							const target = e.currentTarget
-							if (target.src !== defaultAvatarSvg) {
-								target.src = defaultAvatarSvg
-							}
-						}}
-						loading="lazy"
-					/>
+					<>
+						<img
+							src={src}
+							alt={alt}
+							className={`${sizeClass} rounded-full object-cover border-2 border-gray-200 shadow-sm`}
+							onError={(e) => {
+								// For institutions, hide image and show Building icon fallback
+								if (isInstitution) {
+									const target = e.currentTarget
+									target.style.display = 'none'
+									// Show the Building icon fallback
+									const parent = target.parentElement
+									if (parent) {
+										const fallback = parent.querySelector(
+											'.institution-fallback'
+										) as HTMLElement
+										if (fallback) {
+											fallback.style.display = 'flex'
+										}
+									}
+								} else {
+									// Fallback to default avatar on error for non-institutions
+									const target = e.currentTarget
+									if (target.src !== defaultAvatarSvg) {
+										target.src = defaultAvatarSvg
+									}
+								}
+							}}
+							loading="lazy"
+						/>
+						{/* Hidden Building icon fallback for institutions */}
+						{isInstitution && (
+							<div className="institution-fallback" style={{ display: 'none' }}>
+								{fallbackElement}
+							</div>
+						)}
+					</>
 				)
 			) : (
 				fallbackElement

@@ -11,6 +11,7 @@ interface ResearchLab {
 	description: string;
 	professor: string;
 	institution: string;
+	logo?: string;
 	field: string;
 	country: string;
 	position: string;
@@ -230,6 +231,7 @@ export async function GET(request: NextRequest) {
 						institution_id: true,
 						name: true,
 						country: true,
+						logo: true,
 					},
 				},
 				subdisciplines: {
@@ -306,6 +308,7 @@ export async function GET(request: NextRequest) {
 					professor: "Prof. Researcher", // Default value since not in JobPost
 					institution:
 						post.institution?.name || "Research Institution",
+					logo: post.institution?.logo || undefined,
 					field:
 						subdisciplineNames.length > 0
 							? subdisciplineNames.join(", ")

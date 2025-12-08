@@ -20,26 +20,6 @@ export const QUEUE_URLS = {
 	EMAILS: process.env.SQS_EMAILS_QUEUE_URL!,
 } as const;
 
-// Debug logging
-console.log("🔧 SQS Configuration:");
-console.log("📍 Region:", process.env.REGION || "ap-northeast-1");
-console.log(
-	"🔑 Access Key:",
-	process.env.ACCESS_KEY_ID ? "✅ Set" : "❌ Missing"
-);
-console.log(
-	"🔐 Secret Key:",
-	process.env.SECRET_ACCESS_KEY ? "✅ Set" : "❌ Missing"
-);
-console.log(
-	"📧 Notifications Queue:",
-	process.env.SQS_NOTIFICATIONS_QUEUE_URL ? "✅ Set" : "❌ Missing"
-);
-console.log(
-	"📬 Emails Queue:",
-	process.env.SQS_EMAILS_QUEUE_URL ? "✅ Set" : "❌ Missing"
-);
-
 // Message types for notifications
 export enum NotificationType {
 	PROFILE_CREATED = "PROFILE_CREATED",

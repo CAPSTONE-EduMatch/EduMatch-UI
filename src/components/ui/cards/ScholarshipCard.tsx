@@ -6,8 +6,31 @@ import {
 } from '@/utils/date/date-utils'
 import { motion } from 'framer-motion'
 import { Building, Clock, FileText, Heart, Lock, MapPin, X } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+
+// Check if URL is an S3 URL that needs protection (not already public)
+const isProtectedS3Url = (url: string | null | undefined): boolean => {
+	if (!url) return false
+
+	// If it's already a pre-signed URL (has AWS signature query params), it's ready to use
+	if (url.includes('X-Amz-Algorithm') || url.includes('X-Amz-Signature')) {
+		return false // Already pre-signed, use directly
+	}
+
+	// All S3 URLs (including HTTPS ones) need protection unless pre-signed
+	// Check if it's an S3 URL
+	const isS3Url =
+		url.includes('.s3.') ||
+		url.includes('.s3.amazonaws.com') ||
+		url.startsWith('s3://') ||
+		url.includes('/users/') ||
+		url.includes('/institutions/')
+
+	return isS3Url
+}
 
 interface ScholarshipCardProps {
 	scholarship: {
@@ -16,6 +39,7 @@ interface ScholarshipCardProps {
 		description: string
 		provider: string
 		university: string
+		logo?: string
 		essayRequired: string
 		country: string
 		date: string
@@ -102,31 +126,78 @@ export function ScholarshipCard({
 			className="bg-white rounded-3xl border border-gray-600 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
 			onClick={() => onClick?.(scholarship.id)}
 		>
-			{/* Header */}
-			<div className="flex justify-between items-start mb-4">
-				<span className="text-sm text-gray-500">{scholarship.provider}</span>
-				<div className="flex items-center gap-3">
-					<span className="text-lg font-bold text-orange-500">
-						Grant: {scholarship.amount}
-					</span>
-					<motion.button
-						onClick={(e) => {
-							e.preventDefault()
-							e.stopPropagation()
-							onWishlistToggle(scholarship.id)
-						}}
-						className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
-						whileHover={{ scale: 1.1 }}
-						whileTap={{ scale: 0.9 }}
+			{/* Header with logo */}
+			<div className="flex justify-between items-start mb-4 gap-10">
+				<div className="">
+					{scholarship.logo ? (
+						isProtectedS3Url(scholarship.logo) ? (
+							<ProtectedImage
+								src={scholarship.logo}
+								alt={scholarship.university}
+								width={140}
+								height={140}
+								className="rounded-lg h-[124px] w-[124px] object-cover"
+								expiresIn={7200}
+								autoRefresh={true}
+								errorFallback={
+									<div className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center">
+										<span className="text-gray-400 text-xs text-center px-2">
+											{scholarship.university.substring(0, 2).toUpperCase()}
+										</span>
+									</div>
+								}
+							/>
+						) : (
+							<Image
+								src={scholarship.logo}
+								alt={scholarship.university}
+								width={140}
+								height={140}
+								className="rounded-lg h-[124px] w-[124px] object-cover"
+								onError={(e) => {
+									const target = e.currentTarget
+									target.style.display = 'none'
+									const fallback = target.nextElementSibling as HTMLElement
+									if (fallback) fallback.style.display = 'flex'
+								}}
+							/>
+						)
+					) : null}
+					{/* Fallback that shows when image fails to load */}
+					<div
+						className="w-[124px] h-[124px] bg-gray-200 rounded-lg items-center justify-center"
+						style={{ display: 'none' }}
 					>
-						<Heart
-							className={`w-6 h-6 transition-all duration-200 ${
-								isWishlisted
-									? 'fill-red-500 text-red-500'
-									: 'text-gray-400 hover:text-red-500'
-							}`}
-						/>
-					</motion.button>
+						<span className="text-gray-400 text-xs text-center px-2">
+							{scholarship.university.substring(0, 2).toUpperCase()}
+						</span>
+					</div>
+				</div>
+				<div className="flex flex-col items-end gap-2">
+					<span className="text-sm text-gray-500">{scholarship.provider}</span>
+					<div className="flex items-center gap-3">
+						<span className="text-lg font-bold text-orange-500">
+							Grant: {scholarship.amount}
+						</span>
+						<motion.button
+							onClick={(e) => {
+								e.preventDefault()
+								e.stopPropagation()
+								onWishlistToggle(scholarship.id)
+							}}
+							className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
+							whileHover={{ scale: 1.1 }}
+							whileTap={{ scale: 0.9 }}
+						>
+							<Heart
+								className={`w-6 h-6 transition-all duration-200 ${
+									isWishlisted
+										? 'fill-red-500 text-red-500'
+										: 'text-gray-400 hover:text-red-500'
+								}`}
+							/>
+						</motion.button>
+					</div>
 				</div>
 			</div>
 

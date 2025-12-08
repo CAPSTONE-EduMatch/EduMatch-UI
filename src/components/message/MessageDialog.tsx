@@ -43,7 +43,7 @@ interface Message {
 	sender: {
 		id: string
 		name: string
-		image?: string
+		image?: string | null
 	}
 	fileUrl?: string
 	fileName?: string
@@ -63,6 +63,7 @@ interface Thread {
 		name: string
 		image?: string
 		status?: string
+		userType?: 'applicant' | 'institution' | 'unknown'
 	}>
 	unreadCount: number
 	updatedAt: Date
@@ -72,8 +73,9 @@ interface User {
 	id: string
 	name: string
 	email: string
-	image?: string
+	image?: string | null
 	status?: 'online' | 'offline'
+	userType?: 'applicant' | 'institution' | 'unknown'
 }
 
 interface ContactApplicant {
@@ -272,12 +274,17 @@ export function MessageDialog({
 									id: user.id,
 									name: user.name || '',
 									image: user.image,
+									userType:
+										profile?.role === 'institution'
+											? 'institution'
+											: 'applicant',
 								},
 								{
 									id: otherUser.id,
 									name: otherUser.name,
 									image: otherUser.image,
 									status: otherUser.status,
+									userType: otherUser.userType || 'unknown',
 								},
 							],
 							unreadCount: thread.unreadCount || 0,
@@ -291,6 +298,7 @@ export function MessageDialog({
 							email: otherUser.email,
 							image: otherUser.image,
 							status: otherUser.status,
+							userType: otherUser.userType,
 						})
 
 						setIsInitialLoad(true)
@@ -428,6 +436,7 @@ export function MessageDialog({
 											email: userData.user.email || '',
 											image: userData.user.image,
 											status: userData.user.status || 'offline',
+											userType: userData.user.userType || 'unknown',
 										})
 									}
 								})
@@ -636,6 +645,10 @@ export function MessageDialog({
 							email: userData.user.email || contactApplicant.email,
 							image: userData.user.image || contactApplicant.image,
 							status: userData.user.status || 'offline',
+							userType:
+								userData.user.userType ||
+								contactApplicant.userType ||
+								'unknown',
 						})
 					} else {
 						// Fallback to applicant data if user fetch fails
@@ -645,6 +658,7 @@ export function MessageDialog({
 							email: contactApplicant.email,
 							image: contactApplicant.image,
 							status: 'offline',
+							userType: contactApplicant.userType || 'unknown',
 						})
 					}
 				} catch (error) {
@@ -857,6 +871,9 @@ export function MessageDialog({
 					name: otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
 					image: otherUser?.image,
 					status: otherUser?.status || 'offline',
+					userType:
+						(otherUser?.userType as 'applicant' | 'institution' | 'unknown') ||
+						'unknown',
 				}
 
 				// Create a mock lastMessage object from the string
@@ -876,7 +893,8 @@ export function MessageDialog({
 										otherParticipant.name,
 									image:
 										appSyncThread.lastMessageSenderImage ||
-										otherParticipant.image,
+										otherParticipant.image ||
+										undefined,
 								},
 								fileUrl: appSyncThread.lastMessageFileUrl,
 								fileName: appSyncThread.lastMessageFileName,
@@ -900,11 +918,18 @@ export function MessageDialog({
 							id: user?.id || '',
 							name: user?.name || '',
 							image: user?.image,
+							userType: (profile?.role === 'institution'
+								? 'institution'
+								: 'applicant') as 'applicant' | 'institution' | 'unknown',
 						},
 						{
 							id: otherParticipant.id,
 							name: otherParticipant.name,
 							image: otherParticipant.image,
+							userType: (otherParticipant.userType || 'unknown') as
+								| 'applicant'
+								| 'institution'
+								| 'unknown',
 						},
 					],
 					unreadCount: appSyncThread.unreadCount || 0,
@@ -964,14 +989,27 @@ export function MessageDialog({
 			// Set selectedUser and selectedThread FIRST to prevent useEffect from running
 			// This ensures the component state is updated before URL changes
 			if (otherParticipant) {
-				// Find the user in the users list to get their current status
+				// Find the user in the users list to get their current status and correct image
 				const userWithStatus = users.find((u) => u.id === otherParticipant.id)
+				// Use image from users list (which has correct institution logo) if available,
+				// otherwise fall back to participant image
+				const imageToUse = userWithStatus?.image || otherParticipant.image
 				setSelectedUser({
 					id: otherParticipant.id,
 					name: otherParticipant.name,
 					email: userWithStatus?.email || '', // Get email from users list
-					image: otherParticipant.image,
+					image: imageToUse, // Use image from users list (has correct institution logo)
 					status: userWithStatus?.status || 'offline', // Get actual status
+					userType:
+						(otherParticipant.userType as
+							| 'applicant'
+							| 'institution'
+							| 'unknown') ||
+						(userWithStatus?.userType as
+							| 'applicant'
+							| 'institution'
+							| 'unknown') ||
+						'unknown',
 				})
 			}
 
@@ -1218,10 +1256,17 @@ export function MessageDialog({
 								>
 									<div className="flex items-center space-x-3">
 										<MessageAvatar
-											src={
-												thread.participants.find((p) => p.id !== user?.id)
-													?.image
-											}
+											src={(() => {
+												const otherParticipant = thread.participants.find(
+													(p) => p.id !== user?.id
+												)
+												// Use image from users list (which has correct institution logo) if available,
+												// otherwise fall back to participant image
+												const userWithStatus = users.find(
+													(u) => u.id === otherParticipant?.id
+												)
+												return userWithStatus?.image || otherParticipant?.image
+											})()}
 											alt={thread.title}
 											size="lg"
 											showOnlineStatus={true}
@@ -1233,6 +1278,25 @@ export function MessageDialog({
 													(u) => u.id === otherParticipant?.id
 												)
 												return userWithStatus?.status === 'online'
+											})()}
+											userType={(() => {
+												const otherParticipant = thread.participants.find(
+													(p) => p.id !== user?.id
+												)
+												const userWithStatus = users.find(
+													(u) => u.id === otherParticipant?.id
+												)
+												return (
+													(userWithStatus?.userType as
+														| 'applicant'
+														| 'institution'
+														| 'unknown') ||
+													(otherParticipant?.userType as
+														| 'applicant'
+														| 'institution'
+														| 'unknown') ||
+													'unknown'
+												)
 											})()}
 										/>
 										<div className="flex-1 min-w-0">
@@ -1312,6 +1376,7 @@ export function MessageDialog({
 												size="md"
 												showOnlineStatus={true}
 												isOnline={currentStatus === 'online'}
+												userType={selectedUser.userType}
 											/>
 											<div>
 												<h2 className="text-lg font-semibold text-gray-900">
@@ -1392,6 +1457,13 @@ export function MessageDialog({
 														message.senderId === user?.id
 															? user?.name || 'You'
 															: selectedUser?.name || 'User'
+													}
+													userType={
+														message.senderId === user?.id
+															? profile?.role === 'institution'
+																? 'institution'
+																: 'applicant'
+															: selectedUser?.userType || 'unknown'
 													}
 													size="sm"
 												/>

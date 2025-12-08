@@ -6,7 +6,7 @@ import { Button, Card, CardContent } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { ApiService, cacheUtils } from '@/services/api/axios-config'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 
@@ -159,13 +159,25 @@ export default function ProfileView() {
 
 	// Use the authentication check hook
 	const { isAuthenticated, user } = useAuthCheck()
+	const previousUserIdRef = useRef<string | undefined>(undefined)
 
 	// Load full profile data when authenticated
 	useEffect(() => {
 		const loadFullProfile = async () => {
-			if (!isAuthenticated) {
+			// Clear profile when user logs out
+			if (!isAuthenticated || !user) {
+				setProfile(null)
+				setLoading(false)
+				setError(null)
+				previousUserIdRef.current = undefined
 				return
 			}
+
+			// Clear profile if user ID changed (different user logged in)
+			if (previousUserIdRef.current && previousUserIdRef.current !== user.id) {
+				setProfile(null)
+			}
+			previousUserIdRef.current = user.id
 
 			setLoading(true)
 			setError(null)
@@ -183,13 +195,14 @@ export default function ProfileView() {
 					return
 				}
 				setError(t('errors.load_failed'))
+				setProfile(null) // Clear profile on error
 			} finally {
 				setLoading(false)
 			}
 		}
 
 		loadFullProfile()
-	}, [isAuthenticated, t])
+	}, [isAuthenticated, user?.id, t])
 
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const { subdisciplines: contextSubdisciplines = [] } = useDisciplinesContext()

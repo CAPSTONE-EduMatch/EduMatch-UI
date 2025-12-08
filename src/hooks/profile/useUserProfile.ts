@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthCheck } from "../auth/useAuthCheck";
 
 interface UserProfile {
@@ -23,16 +23,35 @@ export function useUserProfile() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+	const previousUserIdRef = useRef<string | undefined>(undefined);
 
 	const fetchProfile = async () => {
 		if (!isAuthenticated || authLoading) {
+			// Clear profile when user logs out
 			setProfile(null);
+			setLastFetchTime(0);
+			previousUserIdRef.current = undefined;
 			return;
 		}
 
+		// Clear profile if user ID changed (different user logged in)
+		if (
+			previousUserIdRef.current &&
+			previousUserIdRef.current !== authUser?.id
+		) {
+			setProfile(null);
+			setLastFetchTime(0);
+		}
+		previousUserIdRef.current = authUser?.id;
+
 		// Prevent excessive API calls - only fetch if it's been more than 30 seconds since last fetch
+		// AND the cached profile belongs to the current user
 		const now = Date.now();
-		if (now - lastFetchTime < 30000 && profile) {
+		if (
+			now - lastFetchTime < 30000 &&
+			profile &&
+			profile.id === authUser?.id
+		) {
 			return;
 		}
 

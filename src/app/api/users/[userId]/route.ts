@@ -42,6 +42,7 @@ export async function GET(
 						type: true,
 						country: true,
 						abbreviation: true,
+						logo: true,
 					},
 				},
 				role_id: true,
@@ -71,11 +72,17 @@ export async function GET(
 		const isApplicant = user.role_id === "1" || user.applicant !== null;
 
 		// Transform the data to match our interface
+		// For institutions, use logo instead of user image (Google profile image)
+		// If institution has no logo, return null so fallback icon is shown (not Google image)
+		const imageToUse = isInstitution
+			? user.institution?.logo || null // For institutions, only use logo, never Google image
+			: user.image; // For applicants, use user image (Google profile image)
+
 		const transformedUser = {
 			id: user.id,
 			name: displayName,
 			email: user.email || "",
-			image: user.image,
+			image: imageToUse,
 			status: "offline", // You can implement real-time status later
 			// Include applicant data if available
 			degreeLevel: user.applicant?.level || null,

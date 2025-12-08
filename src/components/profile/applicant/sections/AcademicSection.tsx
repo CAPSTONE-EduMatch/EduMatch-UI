@@ -572,7 +572,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									)}
 								</div>
 
-								{/* Discipline */}
+								{/* Subdiscipline */}
 								<div className="space-y-1.5 md:border-l md:pl-6 border-border/60">
 									<Label className="text-l font-medium text-foreground/80">
 										{t('graduated.discipline')}
@@ -595,6 +595,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 											menuPortalTarget={document.body}
 											isClearable={false}
 											className="min-w-[12rem]"
+											isSearchable={true}
 										/>
 									) : (
 										<p className="text-sm font-medium">
@@ -1454,7 +1455,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 							).map((paper: any, index: number) => (
 								<div key={index} className="border rounded-lg p-4">
 									<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-										{/* Left side - Title and Discipline */}
+										{/* Left side - Title and Subdiscipline */}
 										<div className="space-y-4">
 											<div className="space-y-2">
 												<Label className="text-l font-medium text-foreground">
@@ -1491,9 +1492,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 																? paper.discipline
 																		.split(',')
 																		.map((d: string) => d.trim())
-																		.map((discipline: string) => ({
-																			value: discipline,
-																			label: discipline,
+																		.map((subdiscipline: string) => ({
+																			value: subdiscipline,
+																			label: subdiscipline,
 																		}))
 																: []
 														}
@@ -1501,12 +1502,12 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 															const newPapers = [
 																...(editedProfile?.researchPapers || []),
 															]
-															const selectedDisciplines = options
+															const selectedSubdisciplines = options
 																? options.map((option: any) => option.value)
 																: []
 															newPapers[index] = {
 																...newPapers[index],
-																discipline: selectedDisciplines.join(', '),
+																discipline: selectedSubdisciplines.join(', '),
 															}
 															handleFieldChange('researchPapers', newPapers)
 														}}

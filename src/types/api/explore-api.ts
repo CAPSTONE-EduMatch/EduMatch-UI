@@ -82,6 +82,7 @@ export interface Scholarship {
 	description: string;
 	provider: string;
 	university: string;
+	logo?: string;
 	essayRequired: string;
 	country: string;
 	date: string;
@@ -100,6 +101,7 @@ export interface ResearchLab {
 	country: string;
 	position: string;
 	institution: string;
+	logo?: string;
 	date: string;
 	daysLeft: number;
 	match: string;

@@ -101,16 +101,6 @@ function extractS3Key(url: string): string | null {
  */
 export async function GET(request: NextRequest) {
 	try {
-		// Check authentication
-		const { user } = await requireAuth();
-
-		if (!user) {
-			return NextResponse.json(
-				{ error: "Authentication required" },
-				{ status: 401 }
-			);
-		}
-
 		const searchParams = request.nextUrl.searchParams;
 		const imageUrl = searchParams.get("url");
 		const expiresInParam = searchParams.get("expiresIn");
@@ -132,8 +122,144 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// SECURITY CHECK: Ownership validation
+		// Check if this is a public institution image (cover image or logo)
+		// Institution images should be publicly accessible for unauthenticated users
 		const keyParts = s3Key.split("/");
+
+		// Check if path starts with "institutions"
+		const isInInstitutionsFolder = keyParts[0] === "institutions";
+
+		// Check if this S3 key matches any institution's logo or cover_image in the database
+		// This allows public access to institution images without authentication
+		let isInstitutionImage = isInInstitutionsFolder;
+
+		if (!isInstitutionImage) {
+			// Check database to see if this URL is used as an institution logo or cover image
+			try {
+				// Strategy 1: Check if file is in a user's uploads folder and that user is an institution
+				if (
+					keyParts.length >= 3 &&
+					keyParts[0] === "users" &&
+					keyParts[2] === "uploads"
+				) {
+					const userId = keyParts[1];
+					const user = await prismaClient.user.findUnique({
+						where: { id: userId },
+						select: {
+							role_id: true,
+							institution: {
+								select: {
+									institution_id: true,
+									logo: true,
+									cover_image: true,
+								},
+							},
+						},
+					});
+
+					// If user is an institution, check if this file matches their logo or cover_image
+					if (user?.institution) {
+						const inst = user.institution;
+						// Check if the S3 key or URL matches the institution's logo or cover_image
+						const logoMatches =
+							inst.logo &&
+							(inst.logo === imageUrl ||
+								inst.logo.includes(s3Key) ||
+								s3Key.includes(extractS3Key(inst.logo) || ""));
+						const coverMatches =
+							inst.cover_image &&
+							(inst.cover_image === imageUrl ||
+								inst.cover_image.includes(s3Key) ||
+								s3Key.includes(
+									extractS3Key(inst.cover_image) || ""
+								));
+
+						if (logoMatches || coverMatches) {
+							isInstitutionImage = true;
+						}
+					}
+				}
+
+				// Strategy 2: Direct database query for exact or partial URL matches
+				if (!isInstitutionImage) {
+					const institution =
+						await prismaClient.institution.findFirst({
+							where: {
+								OR: [
+									{ logo: imageUrl },
+									{ cover_image: imageUrl },
+									{ logo: { contains: s3Key } },
+									{ cover_image: { contains: s3Key } },
+								],
+							},
+							select: {
+								institution_id: true,
+							},
+						});
+
+					if (institution) {
+						isInstitutionImage = true;
+					}
+				}
+			} catch (error) {
+				// If database check fails, continue with other checks
+				// Don't block access, just log the error
+			}
+		}
+
+		// For institution images, allow public access without authentication
+		if (isInstitutionImage) {
+			// Parse expiration time (default: 1 hour, max: 7 days)
+			let expiresIn = 3600; // 1 hour default
+			if (expiresInParam) {
+				const parsed = parseInt(expiresInParam, 10);
+				if (!isNaN(parsed) && parsed > 0) {
+					// Clamp between 1 second and 7 days (604800 seconds)
+					expiresIn = Math.min(Math.max(parsed, 1), 604800);
+				}
+			}
+
+			// Create GetObject command
+			const command = new GetObjectCommand({
+				Bucket: BUCKET_NAME,
+				Key: s3Key,
+			});
+
+			// Generate pre-signed URL
+			const presignedUrl = await getSignedUrl(s3Client, command, {
+				expiresIn,
+			});
+
+			return NextResponse.json({
+				url: presignedUrl,
+				expiresIn,
+				expiresAt: new Date(
+					Date.now() + expiresIn * 1000
+				).toISOString(),
+			});
+		}
+
+		// For non-institution images, require authentication
+		let user;
+		try {
+			const authResult = await requireAuth();
+			user = authResult.user;
+		} catch (error) {
+			// Authentication failed
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 }
+			);
+		}
+
+		if (!user) {
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 }
+			);
+		}
+
+		// SECURITY CHECK: Ownership validation for user files
 		if (keyParts.length >= 2 && keyParts[0] === "users") {
 			const fileOwnerId = keyParts[1];
 

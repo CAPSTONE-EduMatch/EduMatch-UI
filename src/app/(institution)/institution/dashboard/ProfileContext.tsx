@@ -27,11 +27,30 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 	const [profile, setProfile] = useState<any>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
+	const previousUserIdRef = React.useRef<string | undefined>(undefined)
 
 	// Load full profile data when userProfile is available
 	useEffect(() => {
 		const loadFullProfile = async () => {
-			if (!userProfile || userProfileLoading) {
+			// Clear profile if userProfile is null (user logged out)
+			if (!userProfile) {
+				setProfile(null)
+				setIsLoading(false)
+				setError(null)
+				previousUserIdRef.current = undefined
+				return
+			}
+
+			// Clear profile if user ID changed (different user logged in)
+			if (
+				previousUserIdRef.current &&
+				previousUserIdRef.current !== userProfile.id
+			) {
+				setProfile(null)
+			}
+			previousUserIdRef.current = userProfile.id
+
+			if (userProfileLoading) {
 				return
 			}
 
@@ -43,6 +62,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 				setProfile(data.profile)
 			} catch (error: any) {
 				setError('Failed to load profile data')
+				setProfile(null) // Clear profile on error
 			} finally {
 				setIsLoading(false)
 			}

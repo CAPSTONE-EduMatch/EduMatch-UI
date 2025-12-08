@@ -6,8 +6,31 @@ import {
 } from '@/utils/date/date-utils'
 import { motion } from 'framer-motion'
 import { Building, Clock, Heart, Lock, MapPin, Users, X } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+
+// Check if URL is an S3 URL that needs protection (not already public)
+const isProtectedS3Url = (url: string | null | undefined): boolean => {
+	if (!url) return false
+
+	// If it's already a pre-signed URL (has AWS signature query params), it's ready to use
+	if (url.includes('X-Amz-Algorithm') || url.includes('X-Amz-Signature')) {
+		return false // Already pre-signed, use directly
+	}
+
+	// All S3 URLs (including HTTPS ones) need protection unless pre-signed
+	// Check if it's an S3 URL
+	const isS3Url =
+		url.includes('.s3.') ||
+		url.includes('.s3.amazonaws.com') ||
+		url.startsWith('s3://') ||
+		url.includes('/users/') ||
+		url.includes('/institutions/')
+
+	return isS3Url
+}
 
 interface ResearchLabCardProps {
 	lab: {
@@ -16,6 +39,7 @@ interface ResearchLabCardProps {
 		description: string
 		professor: string
 		institution: string
+		logo?: string
 		field: string
 		country: string
 		position: string
@@ -109,9 +133,53 @@ export function ResearchLabCard({
 			className="bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
 			onClick={() => onClick?.(lab.id)}
 		>
-			{/* Header with wishlist */}
-			<div className="flex justify-between items-start mb-4">
-				<div></div>
+			{/* Header with logo and wishlist */}
+			<div className="flex justify-between items-start mb-4 gap-10">
+				<div className="">
+					{lab.logo ? (
+						isProtectedS3Url(lab.logo) ? (
+							<ProtectedImage
+								src={lab.logo}
+								alt={lab.institution}
+								width={140}
+								height={140}
+								className="rounded-lg h-[124px] w-[124px] object-cover"
+								expiresIn={7200}
+								autoRefresh={true}
+								errorFallback={
+									<div className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center">
+										<span className="text-gray-400 text-xs text-center px-2">
+											{lab.institution.substring(0, 2).toUpperCase()}
+										</span>
+									</div>
+								}
+							/>
+						) : (
+							<Image
+								src={lab.logo}
+								alt={lab.institution}
+								width={140}
+								height={140}
+								className="rounded-lg h-[124px] w-[124px] object-cover"
+								onError={(e) => {
+									const target = e.currentTarget
+									target.style.display = 'none'
+									const fallback = target.nextElementSibling as HTMLElement
+									if (fallback) fallback.style.display = 'flex'
+								}}
+							/>
+						)
+					) : null}
+					{/* Fallback that shows when image fails to load */}
+					<div
+						className="w-[124px] h-[124px] bg-gray-200 rounded-lg items-center justify-center"
+						style={{ display: 'none' }}
+					>
+						<span className="text-gray-400 text-xs text-center px-2">
+							{lab.institution.substring(0, 2).toUpperCase()}
+						</span>
+					</div>
+				</div>
 				<motion.button
 					onClick={(e) => {
 						e.preventDefault()

@@ -11,6 +11,7 @@ interface Scholarship {
 	description: string;
 	provider: string;
 	university: string;
+	logo?: string;
 	essayRequired: string;
 	country: string;
 	date: string;
@@ -175,6 +176,7 @@ export async function GET(request: NextRequest) {
 						name: true,
 						country: true,
 						type: true,
+						logo: true,
 					},
 				},
 			},
@@ -249,6 +251,7 @@ export async function GET(request: NextRequest) {
 					provider:
 						post.institution?.type || "Provided by institution",
 					university: post.institution?.name || "University",
+					logo: post.institution?.logo || undefined,
 					essayRequired: postScholarship.essay_required
 						? "Yes"
 						: "No",

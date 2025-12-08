@@ -228,35 +228,31 @@ export async function GET(_request: NextRequest) {
 						last_name: true,
 					},
 				},
+				institution: {
+					select: {
+						name: true,
+						logo: true,
+					},
+				},
 			},
 			orderBy: {
 				email: "asc", // Order by email since name might be null
 			},
 		});
 
-		// Only fetch institution data for users with institution role (role_id = 2)
-		// This prevents querying Institution table for all users when most are applicants
-		const institutionUserIds = users
-			.filter((user) => user.role_id === "2")
-			.map((user) => user.id);
-
-		const institutionsMap = new Map<string, string>();
-		if (institutionUserIds.length > 0) {
-			const institutions = await prismaClient.institution.findMany({
-				where: {
-					user_id: { in: institutionUserIds },
-				},
-				select: {
-					user_id: true,
-					name: true,
-				},
-			});
-
-			// Create a map for quick lookup
-			institutions.forEach((inst) => {
-				institutionsMap.set(inst.user_id, inst.name);
-			});
-		}
+		// Create institutions map from already fetched data
+		const institutionsMap = new Map<
+			string,
+			{ name: string; logo: string | null }
+		>();
+		users.forEach((user) => {
+			if (user.institution) {
+				institutionsMap.set(user.id, {
+					name: user.institution.name,
+					logo: user.institution.logo,
+				});
+			}
+		});
 
 		// Determine online status (online if last seen within threshold)
 		const now = new Date();
@@ -273,18 +269,27 @@ export async function GET(_request: NextRequest) {
 					`${user.applicant.first_name || ""} ${user.applicant.last_name || ""}`.trim();
 			} else if (institutionsMap.has(user.id)) {
 				// For institutions: use institution name from our map
+				const institutionData = institutionsMap.get(user.id);
 				displayName =
-					institutionsMap.get(user.id) || user.name || "Unknown User";
+					institutionData?.name || user.name || "Unknown User";
 			} else if (user.name) {
 				// Fallback to User.name
 				displayName = user.name;
 			}
 
+			// For institutions, use logo instead of user image (Google profile image)
+			// If institution has no logo, return null so fallback icon is shown (not Google image)
+			const institutionData = institutionsMap.get(user.id);
+			const imageToUse =
+				user.role_id === "2" && institutionData
+					? institutionData.logo || null // For institutions, only use logo, never Google image
+					: user.image; // For applicants, use user image (Google profile image)
+
 			return {
 				id: user.id,
 				name: displayName,
 				email: user.email || undefined, // Only include email for users with threads
-				image: user.image,
+				image: imageToUse,
 				status:
 					user.updatedAt && user.updatedAt > thresholdTime
 						? "online"

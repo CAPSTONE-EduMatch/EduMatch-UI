@@ -135,7 +135,7 @@ Field requirements:
 
 Respond with ONLY this JSON object. Do NOT include markdown, code fences, or any extra text.`,
 
-			transcripts: `You are a STRICT academic transcript validation expert. Analyze the provided text and determine if it's an academic transcript.
+			"academic-transcripts": `You are a STRICT academic transcript validation expert. Analyze the provided text and determine if it's an academic transcript.
 
 A valid academic transcript should contain:
 - A list of courses or subjects

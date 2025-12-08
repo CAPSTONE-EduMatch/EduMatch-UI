@@ -267,7 +267,7 @@ export function AcademicInfoStep({
 				} else if (formData.degreeFiles?.some((f) => f.id === fileId)) {
 					category = 'degree-certificates'
 				} else if (formData.transcriptFiles?.some((f) => f.id === fileId)) {
-					category = 'transcripts'
+					category = 'academic-transcripts'
 				} else {
 					// Check research papers
 					formData.researchPapers?.forEach((p, index) => {

@@ -1755,13 +1755,19 @@
 				"upload_hint": "Nhấp \"Thêm\" để tải tệp lên"
 			},
 			"language_cert": {
-				"title": "Chứng Chỉ Ngoại Ngữ"
+				"title": "Chứng Chỉ Ngoại Ngữ",
+				"no_files": "Chưa tải lên tệp nào",
+				"upload_hint": "Nhấp \"Thêm\" để tải tệp lên"
 			},
 			"degree": {
-				"title": "Bằng Cấp"
+				"title": "Bằng Cấp",
+				"no_files": "Chưa tải lên tệp nào",
+				"upload_hint": "Nhấp \"Thêm\" để tải tệp lên"
 			},
 			"transcript": {
-				"title": "Bảng Điểm Học Tập"
+				"title": "Bảng Điểm Học Tập",
+				"no_files": "Chưa tải lên tệp nào",
+				"upload_hint": "Nhấp \"Thêm\" để tải tệp lên"
 			},
 			"view": "Xem",
 			"remove": "Xóa"
@@ -1781,11 +1787,16 @@
 			"not_provided": "Chưa cung cấp"
 		},
 		"errors": {
-			"incomplete_papers": "Vui lòng cung cấp cả tiêu đề và ngành cho tất cả các bài nghiên cứu trước khi tải tệp lên.",
+			"incomplete_research_papers": "Vui lòng cung cấp cả tiêu đề và ngành cho tất cả các bài nghiên cứu có tệp đính kèm.",
 			"save_failed": "Không thể lưu thông tin học vấn. Vui lòng thử lại.",
+			"save_failed_detail": "Không thể lưu thông tin học vấn. Vui lòng thử lại.",
 			"upload_failed": "Không thể tải tệp lên. Vui lòng thử lại.",
 			"invalid_file": "Vui lòng chọn tệp ảnh, PDF hoặc tài liệu",
 			"file_too_large": "Kích thước tệp phải nhỏ hơn 10MB"
+		},
+		"error": {
+			"title": "Lỗi",
+			"button": "Đóng"
 		},
 		"success": {
 			"title": "Thành Công!",

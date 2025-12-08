@@ -1709,13 +1709,19 @@
 				"upload_hint": "Click \"Add More\" to upload files"
 			},
 			"language_cert": {
-				"title": "Foreign Language Certificate"
+				"title": "Foreign Language Certificate",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
 			},
 			"degree": {
-				"title": "Degree Certificate"
+				"title": "Degree Certificate",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
 			},
 			"transcript": {
-				"title": "Academic Transcript"
+				"title": "Academic Transcript",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
 			},
 			"view": "View",
 			"remove": "Remove"
@@ -1735,11 +1741,16 @@
 			"not_provided": "Not provided"
 		},
 		"errors": {
-			"incomplete_papers": "Please provide both title and discipline for all research papers before uploading files.",
+			"incomplete_research_papers": "Please provide both title and discipline for all research papers with files.",
 			"save_failed": "Failed to save academic information. Please try again.",
+			"save_failed_detail": "Failed to save academic information. Please try again.",
 			"upload_failed": "Failed to upload files. Please try again.",
 			"invalid_file": "Please select image, PDF, or document files",
 			"file_too_large": "File size must be less than 10MB"
+		},
+		"error": {
+			"title": "Error",
+			"button": "Close"
 		},
 		"success": {
 			"title": "Success!",

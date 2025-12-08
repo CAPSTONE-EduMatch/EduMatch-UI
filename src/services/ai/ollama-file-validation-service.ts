@@ -102,7 +102,7 @@ Be conservative:
 - If core fields like degree type, institution, or student name are missing or unclear, treat it as INVALID.
 - If you are not clearly sure, you MUST treat it as invalid.`,
 
-			transcripts: `You are a STRICT academic transcript validation expert. Analyze the provided text and determine if it's an academic transcript.
+			"academic-transcripts": `You are a STRICT academic transcript validation expert. Analyze the provided text and determine if it's an academic transcript.
 
 A valid academic transcript should contain:
 - A list of courses or subjects
@@ -560,7 +560,7 @@ ${snippet}`,
 				};
 			}
 
-			case "transcripts": {
+			case "academic-transcripts": {
 				const transcriptKeywords = [
 					"transcript",
 					"gpa",
@@ -685,7 +685,7 @@ ${snippet}`,
 			"cv-resume": "CV/Resume",
 			"language-certificates": "Language Certificate",
 			"degree-certificates": "Degree Certificate",
-			transcripts: "Academic Transcript",
+			"academic-transcripts": "Academic Transcript",
 			"institution-verification": "Institution Verification Document",
 			"research-papers": "Research Paper",
 			"application-documents": "Application Document",

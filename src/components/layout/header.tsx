@@ -1,5 +1,3 @@
-'use client'
-
 import {
 	Bell,
 	Book,
@@ -36,6 +34,7 @@ export function EduMatchHeader() {
 	const router = useRouter()
 	const pathname = usePathname()
 	const t = useTranslations()
+	const th = useTranslations('header')
 	const currentLocale = useLocale()
 
 	// Check if we're on a create-profile page
@@ -246,10 +245,10 @@ export function EduMatchHeader() {
 						{/* Desktop Navigation Menu - hidden on mobile */}
 						<nav className="hidden md:flex items-center gap-16">
 							{[
-								{ label: t('about-us'), href: '#' },
+								{ label: th('navigation.about_us'), href: '#' },
 								{ label: t('explore'), href: '/explore' },
-								{ label: 'Pricing', href: '/pricing' },
-								{ label: 'Support', href: '/support' },
+								{ label: th('navigation.pricing'), href: '/pricing' },
+								{ label: th('navigation.support'), href: '/support' },
 								// Uncomment if needed: { label: t('program'), href: '#' },
 							].map((nav, idx) => (
 								<Link
@@ -305,7 +304,7 @@ export function EduMatchHeader() {
 											{/* Header */}
 											<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
 												<h3 className="text-sm font-semibold text-gray-700">
-													Notifications
+													{th('notifications.title')}
 												</h3>
 												{unreadCount > 0 && (
 													<button
@@ -313,7 +312,7 @@ export function EduMatchHeader() {
 														className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
 													>
 														<Check className="w-3 h-3" />
-														Mark all read
+														{th('notifications.mark_all_read')}
 													</button>
 												)}
 											</div>
@@ -323,7 +322,9 @@ export function EduMatchHeader() {
 												{notifications.length === 0 ? (
 													<div className="px-4 py-8 text-center text-gray-500">
 														<Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-														<p className="text-sm">No notifications yet</p>
+														<p className="text-sm">
+															{th('notifications.no_notifications')}
+														</p>
 													</div>
 												) : (
 													notifications.map((notification) => (
@@ -376,7 +377,7 @@ export function EduMatchHeader() {
 							<div
 								className="w-10 h-10  rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
 								onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-								title="Select Language"
+								title={th('language.select')}
 							>
 								<span className="text-lg">
 									{currentLanguage === 'EN' ? '🇺🇸' : '🇻🇳'}
@@ -394,7 +395,9 @@ export function EduMatchHeader() {
 										}}
 									>
 										<span className="text-lg">🇺🇸</span>
-										<span className="text-sm text-gray-700">English</span>
+										<span className="text-sm text-gray-700">
+											{th('language.english')}
+										</span>
 									</div>
 									<div
 										className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer"
@@ -404,7 +407,9 @@ export function EduMatchHeader() {
 										}}
 									>
 										<span className="text-lg">🇻🇳</span>
-										<span className="text-sm text-gray-700">Vietnamese</span>
+										<span className="text-sm text-gray-700">
+											{th('language.vietnamese')}
+										</span>
 									</div>
 								</div>
 							)}
@@ -416,7 +421,11 @@ export function EduMatchHeader() {
 								<div
 									className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
 									onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-									title={isAuthenticated ? 'User Menu' : 'Login'}
+									title={
+										isAuthenticated
+											? th('user_menu.user_menu')
+											: th('user_menu.login')
+									}
 								>
 									<User className="w-5 h-5 text-[#1e3a8a]" />
 								</div>
@@ -442,9 +451,9 @@ export function EduMatchHeader() {
 														{profileLoading ? (
 															<div className="animate-pulse bg-gray-200 h-4 w-16 rounded mt-1"></div>
 														) : userProfile?.role === 'institution' ? (
-															'Institution'
+															th('user_menu.institution')
 														) : (
-															'Student'
+															th('user_menu.student')
 														)}
 													</div>
 													{/* Subscription Plan Tag with Progress */}
@@ -452,7 +461,11 @@ export function EduMatchHeader() {
 														<span
 															className={`inline-block ${planInfo.color} text-white px-2 py-1 rounded-full text-xs font-medium`}
 														>
-															{planInfo.label} Plan
+															{planInfo.label === 'Free'
+																? th('user_menu.free_plan')
+																: planInfo.label === 'Standard'
+																	? th('user_menu.standard_plan')
+																	: th('user_menu.premium_plan')}
 														</span>
 														{userProfile?.role === 'applicant' && (
 															<ApplicationLimitIndicator
@@ -478,7 +491,7 @@ export function EduMatchHeader() {
 															>
 																<UserCircle className="w-4 h-4" />
 																<span className="text-sm">
-																	Institution Profile
+																	{th('menu.institution_profile')}
 																</span>
 															</div>
 
@@ -490,7 +503,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<Book className="w-4 h-4" />
-																<span className="text-sm">Programs</span>
+																<span className="text-sm">
+																	{th('menu.programs')}
+																</span>
 															</div>
 
 															<div
@@ -501,7 +516,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<FileText className="w-4 h-4" />
-																<span className="text-sm">Applications</span>
+																<span className="text-sm">
+																	{th('menu.applications')}
+																</span>
 															</div>
 
 															<div
@@ -512,7 +529,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<Settings className="w-4 h-4" />
-																<span className="text-sm">Settings</span>
+																<span className="text-sm">
+																	{th('menu.settings')}
+																</span>
 															</div>
 														</>
 													) : (
@@ -526,7 +545,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<UserCircle className="w-4 h-4" />
-																<span className="text-sm">Profile</span>
+																<span className="text-sm">
+																	{th('menu.profile')}
+																</span>
 															</div>
 
 															<div
@@ -538,7 +559,7 @@ export function EduMatchHeader() {
 															>
 																<Book className="w-4 h-4" />
 																<span className="text-sm">
-																	Academic Information
+																	{th('menu.academic_information')}
 																</span>
 															</div>
 
@@ -550,7 +571,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<Bookmark className="w-4 h-4" />
-																<span className="text-sm">Wishlist</span>
+																<span className="text-sm">
+																	{th('menu.wishlist')}
+																</span>
 															</div>
 
 															<div
@@ -561,7 +584,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<FileText className="w-4 h-4" />
-																<span className="text-sm">My Applications</span>
+																<span className="text-sm">
+																	{th('menu.my_applications')}
+																</span>
 															</div>
 
 															<div
@@ -572,7 +597,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<CreditCard className="w-4 h-4" />
-																<span className="text-sm">Payment</span>
+																<span className="text-sm">
+																	{th('menu.payment')}
+																</span>
 															</div>
 
 															<div
@@ -583,7 +610,9 @@ export function EduMatchHeader() {
 																}}
 															>
 																<Settings className="w-4 h-4" />
-																<span className="text-sm">Settings</span>
+																<span className="text-sm">
+																	{th('menu.settings')}
+																</span>
 															</div>
 														</>
 													)}
@@ -599,7 +628,9 @@ export function EduMatchHeader() {
 														}}
 													>
 														<LogOut className="w-4 h-4" />
-														<span className="text-sm">Log out</span>
+														<span className="text-sm">
+															{th('user_menu.logout')}
+														</span>
 													</div>
 												</div>
 											</>
@@ -614,7 +645,9 @@ export function EduMatchHeader() {
 													}}
 												>
 													<User className="w-4 h-4" />
-													<span className="text-sm">Sign In</span>
+													<span className="text-sm">
+														{th('user_menu.sign_in')}
+													</span>
 												</div>
 												<div
 													className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer text-green-600"
@@ -624,7 +657,9 @@ export function EduMatchHeader() {
 													}}
 												>
 													<User className="w-4 h-4" />
-													<span className="text-sm">Sign Up</span>
+													<span className="text-sm">
+														{th('user_menu.sign_up')}
+													</span>
 												</div>
 											</>
 										)}
@@ -661,21 +696,20 @@ export function EduMatchHeader() {
 								className="block text-[#222222] hover:text-[#126e64]  transition-colors py-2"
 								onClick={() => setIsMobileMenuOpen(false)}
 							>
-								About us
+								{th('navigation.about_us')}
 							</Link>
 							<Link
 								href="/explore"
 								className="block text-[#222222] hover:text-[#126e64]  transition-colors py-2"
 								onClick={() => setIsMobileMenuOpen(false)}
 							>
-								{/* {t('explore')} */}
-								Explore
+								{t('explore')}
 							</Link>
 							<Link
 								href="#"
 								className="block text-[#222222] hover:text-[#126e64]  transition-colors py-2"
 							>
-								Program
+								{t('program')}
 							</Link>
 						</nav>
 
@@ -721,7 +755,7 @@ export function EduMatchHeader() {
 										const newLocale = currentLanguage === 'EN' ? 'vn' : 'en'
 										handleChangeLanguage(newLocale)
 									}}
-									title={`Switch to ${currentLanguage === 'EN' ? 'Vietnamese' : 'English'}`}
+									title={`${th('language.switch_to')} ${currentLanguage === 'EN' ? th('language.vietnamese') : th('language.english')}`}
 								>
 									<span className="text-lg">
 										{currentLanguage === 'EN' ? '🇺🇸' : '🇻🇳'}
@@ -732,7 +766,7 @@ export function EduMatchHeader() {
 									<div
 										className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
 										onClick={handleLogout}
-										title="Logout"
+										title={th('user_menu.logout')}
 									>
 										<LogOut className="w-5 h-5 text-red-600" />
 									</div>
@@ -743,7 +777,7 @@ export function EduMatchHeader() {
 										onClick={() => {
 											router.push('/signin')
 										}}
-										title="Sign In"
+										title={th('user_menu.sign_in')}
 									>
 										<User className="w-5 h-5 text-blue-600" />
 									</div>

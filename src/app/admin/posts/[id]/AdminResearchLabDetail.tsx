@@ -1,16 +1,9 @@
 'use client'
-import {
-	Breadcrumb,
-	Button,
-	ErrorModal,
-	Modal,
-	ResearchLabCard,
-} from '@/components/ui'
+import { Button, ErrorModal, Modal } from '@/components/ui'
 
 import PostStatusManager, {
 	PostStatus,
 } from '@/components/admin/PostStatusManager'
-import { mockResearchLabs } from '@/data/utils'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import axios from 'axios'
@@ -73,9 +66,6 @@ const AdminResearchLabDetail = () => {
 						// Map admin API response to expected structure
 						researchFields:
 							data.data.researchLab?.researchAreas?.split(',') || [],
-						researchFocus: data.data.researchLab?.researchFocus || '',
-						researchExperience: data.data.researchLab?.researchExperience || '',
-						researchProposal: data.data.researchLab?.researchProposal || '',
 						technicalSkills: data.data.researchLab?.technicalSkills || '',
 						academicBackground: data.data.researchLab?.academicBackground || '',
 						benefit: data.data.researchLab?.benefit || '',
@@ -87,13 +77,6 @@ const AdminResearchLabDetail = () => {
 							data.data.researchLab?.experienceRequirement || '',
 						assessmentCriteria: data.data.researchLab?.assessmentCriteria || '',
 						otherRequirement: data.data.researchLab?.otherRequirement || '',
-						labType: data.data.researchLab?.labType || '',
-						labDirector: data.data.researchLab?.labDirector || '',
-						labCapacity: data.data.researchLab?.labCapacity || 0,
-						labFacilities: data.data.researchLab?.labFacilities || '',
-						labWebsite: data.data.researchLab?.labWebsite || '',
-						labContactEmail: data.data.researchLab?.labContactEmail || '',
-						recommendations: data.data.researchLab?.recommendations || '',
 						applicationDocuments:
 							data.data.researchLab?.applicationDocuments || '',
 						contractType: data.data.researchLab?.contractType || '',
@@ -104,9 +87,7 @@ const AdminResearchLabDetail = () => {
 							data.data.researchLab?.maxSalary
 								? `$${data.data.researchLab.minSalary} - $${data.data.researchLab.maxSalary}`
 								: data.data.researchLab?.salaryDescription || 'N/A',
-						subdisciplines: data.data.subdiscipline
-							? [data.data.subdiscipline]
-							: [],
+						subdisciplines: data.data.subdisciplines || [],
 					}
 					setResearchLab(labData)
 				} else {
@@ -661,17 +642,67 @@ const AdminResearchLabDetail = () => {
 			case 'other-information':
 				return (
 					<div className="space-y-6">
-						{/* 2. Work Location */}
+						{researchLab?.otherInfo && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Other Information:
+								</h3>
+								<div
+									className="text-gray-700 prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: researchLab.otherInfo,
+									}}
+								/>
+							</div>
+						)}
+
 						<div>
 							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Other Information:
+								Contact Information:
 							</h3>
-							<div
-								className="text-gray-700 prose prose-content max-w-none"
-								dangerouslySetInnerHTML={{
-									__html: researchLab.otherInfo,
-								}}
-							/>
+							{researchLab?.institution && (
+								<div className="space-y-3 text-gray-700">
+									{researchLab.institution.email && (
+										<p>
+											<span className="font-semibold">Email:</span>{' '}
+											<a
+												href={`mailto:${researchLab.institution.email}`}
+												className="text-[#126E64] hover:underline"
+											>
+												{researchLab.institution.email}
+											</a>
+										</p>
+									)}
+									{researchLab.institution.hotline && (
+										<p>
+											<span className="font-semibold">Hotline:</span>{' '}
+											{researchLab.institution.hotlineCode && (
+												<span>{researchLab.institution.hotlineCode} </span>
+											)}
+											{researchLab.institution.hotline}
+										</p>
+									)}
+									{researchLab.institution.website && (
+										<p>
+											<span className="font-semibold">Website:</span>{' '}
+											<a
+												href={researchLab.institution.website}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-[#126E64] hover:underline"
+											>
+												{researchLab.institution.website}
+											</a>
+										</p>
+									)}
+									{researchLab.institution.address && (
+										<p>
+											<span className="font-semibold">Address:</span>{' '}
+											{researchLab.institution.address}
+										</p>
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 				)

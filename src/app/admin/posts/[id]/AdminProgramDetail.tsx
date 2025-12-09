@@ -1,13 +1,12 @@
 'use client'
 import {
-	Breadcrumb,
 	Button,
 	ErrorModal,
 	Modal,
 	Pagination,
-	ProgramCard,
 	ScholarshipCard,
 } from '@/components/ui'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
 import PostStatusManager, {
 	PostStatus,
@@ -20,13 +19,9 @@ import { useFileUpload } from '@/hooks/files/useFileUpload'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { useApiWrapper } from '@/services/api/api-wrapper'
 import { applicationService } from '@/services/application/application-service'
-import {
-	downloadSessionProtectedFile,
-	openSessionProtectedFile,
-} from '@/utils/files/getSessionProtectedFileUrl'
 import axios from 'axios'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -794,10 +789,10 @@ const AdminProgramDetail = () => {
 									4. Subdiscipline:
 								</span>{' '}
 								<span className="text-gray-700">
-									{currentProgram?.subdiscipline &&
-									currentProgram.subdiscipline.length > 0
-										? currentProgram.subdiscipline
-												.map((s: any) => s.name || s.subdisciplineName)
+									{currentProgram?.subdisciplines &&
+									currentProgram.subdisciplines.length > 0
+										? currentProgram.subdisciplines
+												.map((s: any) => s.name)
 												.join(', ')
 										: 'N/A'}
 								</span>
@@ -847,16 +842,15 @@ const AdminProgramDetail = () => {
 							<p className="text-base mb-2">
 								<span className="font-bold text-gray-900">Subdiscipline:</span>{' '}
 								<span className="text-gray-700">
-									{currentProgram?.subdiscipline &&
-									currentProgram.subdiscipline.length > 0
-										? currentProgram.subdiscipline
-												.map((s: any) => s.name || s.subdisciplineName)
+									{currentProgram?.subdisciplines &&
+									currentProgram.subdisciplines.length > 0
+										? currentProgram.subdisciplines
+												.map((s: any) => s.name)
 												.join(', ')
 										: 'N/A'}
 								</span>
 							</p>
-						</div>
-
+						</div>{' '}
 						{currentProgram?.program?.courseInclude && (
 							<div>
 								<p className="font-bold text-gray-900 mb-3">Courses include:</p>
@@ -868,20 +862,16 @@ const AdminProgramDetail = () => {
 								/>
 							</div>
 						)}
-
-						{currentProgram?.subdiscipline &&
-							currentProgram.subdiscipline.length > 0 && (
+						{currentProgram?.subdisciplines &&
+							currentProgram.subdisciplines.length > 0 && (
 								<div>
 									<p className="text-base">
 										<span className="font-bold text-gray-900">
 											Discipline area:
 										</span>{' '}
 										<span className="text-gray-700">
-											{currentProgram.subdiscipline
-												.map(
-													(s: any) =>
-														s.disciplineName || s.discipline?.name || 'N/A'
-												)
+											{currentProgram.subdisciplines
+												.map((s: any) => s.discipline?.name || 'N/A')
 												.filter(
 													(value: string, index: number, self: string[]) =>
 														self.indexOf(value) === index
@@ -1155,13 +1145,33 @@ const AdminProgramDetail = () => {
 				animate={{ opacity: 1 }}
 				className="relative h-[500px] w-full"
 			>
-				<Image
-					src={currentProgram?.institution?.coverImage || CoverImage}
-					alt={currentProgram?.institution?.name || 'University'}
-					fill
-					className="object-cover"
-					priority
-				/>
+				{currentProgram?.institution?.coverImage ? (
+					<ProtectedImage
+						src={currentProgram.institution.coverImage}
+						alt={currentProgram?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						expiresIn={7200}
+						autoRefresh={true}
+						errorFallback={
+							<Image
+								src={CoverImage}
+								alt={currentProgram?.institution?.name || 'University'}
+								fill
+								className="object-cover"
+								priority
+							/>
+						}
+					/>
+				) : (
+					<Image
+						src={CoverImage}
+						alt={currentProgram?.institution?.name || 'University'}
+						fill
+						className="object-cover"
+						priority
+					/>
+				)}
 
 				<div className="container mx-auto px-4 h-full relative">
 					<motion.div
@@ -1249,7 +1259,7 @@ const AdminProgramDetail = () => {
 			</motion.div>
 			{/* --------------------------------------------------------------------------------------------- */}
 			<motion.div
-				className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 flex flex-col gap-6 sm:gap-10"
+				className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 mt-24 sm:mt-32 flex flex-col gap-6 sm:gap-10"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}

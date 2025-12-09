@@ -50,7 +50,16 @@ export async function GET(
 						},
 					},
 				},
-				programPost: true,
+				postDocs: {
+					include: {
+						documentType: true,
+					},
+				},
+				programPost: {
+					include: {
+						certificates: true,
+					},
+				},
 				scholarshipPost: true,
 				jobPost: true,
 			},
@@ -71,7 +80,48 @@ export async function GET(
 		else if (post.scholarshipPost) postType = "Scholarship";
 		else if (post.jobPost) postType = "Research Lab";
 
-		const primarySubdiscipline = post.subdisciplines[0]?.subdiscipline;
+		// Map all subdisciplines
+		const subdisciplines = post.subdisciplines.map((ps) => ({
+			id: ps.subdiscipline.subdiscipline_id,
+			name: ps.subdiscipline.name,
+			discipline: ps.subdiscipline.discipline
+				? {
+						id: ps.subdiscipline.discipline.discipline_id,
+						name: ps.subdiscipline.discipline.name,
+					}
+				: null,
+		}));
+
+		// Map required documents
+		const documents = post.postDocs.map((pd) => ({
+			id: pd.document_id,
+			name: pd.name,
+			description: pd.description,
+			type: pd.documentType.name,
+			typeDescription: pd.documentType.description,
+		}));
+
+		// Calculate days left until deadline
+		const now = new Date();
+		const daysLeft = post.end_date
+			? Math.max(
+					0,
+					Math.ceil(
+						(post.end_date.getTime() - now.getTime()) /
+							(1000 * 60 * 60 * 24)
+					)
+				)
+			: null;
+
+		// Format dates
+		const formatDate = (date: Date | null) => {
+			if (!date) return null;
+			return date.toLocaleDateString("en-US", {
+				year: "numeric",
+				month: "long",
+				day: "numeric",
+			});
+		};
 
 		const transformedPost = {
 			id: post.post_id,
@@ -82,6 +132,9 @@ export async function GET(
 			rejectionReason: post.rejection_reason,
 			startDate: post.start_date,
 			endDate: post.end_date,
+			startDateFormatted: formatDate(post.start_date),
+			endDateFormatted: formatDate(post.end_date),
+			daysLeft: daysLeft,
 			location: post.location,
 			otherInfo: post.other_info,
 			degreeLevel: post.degree_level,
@@ -95,21 +148,15 @@ export async function GET(
 						website: post.institution.website,
 						country: post.institution.country,
 						description: post.institution.about,
+						email: post.institution.email,
+						hotline: post.institution.hotline,
+						hotlineCode: post.institution.hotline_code,
+						address: post.institution.address,
+						coverImage: post.institution.cover_image,
 					}
 				: null,
-			subdiscipline: primarySubdiscipline
-				? {
-						id: primarySubdiscipline.subdiscipline_id,
-						name: primarySubdiscipline.name,
-						discipline: primarySubdiscipline.discipline
-							? {
-									id: primarySubdiscipline.discipline
-										.discipline_id,
-									name: primarySubdiscipline.discipline.name,
-								}
-							: null,
-					}
-				: null,
+			subdisciplines: subdisciplines,
+			documents: documents,
 		};
 
 		if (postType === "Program" && post.programPost) {
@@ -117,14 +164,25 @@ export async function GET(
 				id: post.programPost.post_id,
 				duration: post.programPost.duration,
 				attendance: post.programPost.attendance,
+				degreeLevel: post.degree_level,
 				courseInclude: post.programPost.course_include,
 				gpa: post.programPost.gpa?.toString(),
 				gre: post.programPost.gre,
 				gmat: post.programPost.gmat,
 				tuitionFee: post.programPost.tuition_fee?.toString(),
+				tuitionFeeFormatted: post.programPost.tuition_fee
+					? `$${parseFloat(
+							post.programPost.tuition_fee.toString()
+						).toLocaleString()}`
+					: null,
 				feeDescription: post.programPost.fee_description,
 				scholarshipInfo: post.programPost.scholarship_info,
 				languageRequirement: post.programPost.language_requirement,
+				certificates: post.programPost.certificates.map((cert) => ({
+					id: cert.certificate_id,
+					name: cert.name,
+					score: cert.score,
+				})),
 			};
 		} else if (postType === "Scholarship" && post.scholarshipPost) {
 			(transformedPost as any).scholarship = {
@@ -158,19 +216,8 @@ export async function GET(
 				otherRequirement: post.jobPost.other_requirement,
 				academicBackground: post.jobPost.academic_background,
 				applicationDocuments: post.jobPost.application_documents,
-				labCapacity: post.jobPost.lab_capacity,
-				labContactEmail: post.jobPost.lab_contact_email,
-				labDirector: post.jobPost.lab_director,
-				labFacilities: post.jobPost.lab_facilities,
-				labType: post.jobPost.lab_type,
-				labWebsite: post.jobPost.lab_website,
-				recommendations: post.jobPost.recommendations,
 				researchAreas: post.jobPost.research_areas,
-				researchExperience: post.jobPost.research_experience,
-				researchFocus: post.jobPost.research_focus,
-				researchProposal: post.jobPost.research_proposal,
 				technicalSkills: post.jobPost.technical_skills,
-				professorName: post.jobPost.professor_name,
 			};
 		}
 

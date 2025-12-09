@@ -1,19 +1,16 @@
 'use client'
 import {
-	Breadcrumb,
 	Button,
 	ErrorModal,
 	FilterSidebar,
 	Modal,
 	Pagination,
 	ProgramCard,
-	ScholarshipCard,
 } from '@/components/ui'
 
 import PostStatusManager, {
 	PostStatus,
 } from '@/components/admin/PostStatusManager'
-import { mockScholarships } from '@/data/utils'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import axios from 'axios'
@@ -548,14 +545,6 @@ const AdminScholarshipDetail = () => {
 										{currentScholarship?.daysLeft || 0} days
 									</span>
 								</li>
-								<li className="text-base">
-									<span className="font-bold text-gray-900">
-										7. Match Percentage:
-									</span>{' '}
-									<span className="text-gray-700">
-										{currentScholarship?.match || 'N/A'}
-									</span>
-								</li>
 							</ol>
 						</div>
 					</div>
@@ -590,17 +579,17 @@ const AdminScholarshipDetail = () => {
 								</div>
 							)}
 
-						{currentScholarship?.requiredDocuments &&
-							currentScholarship.requiredDocuments.length > 0 && (
+						{currentScholarship?.documents &&
+							currentScholarship.documents.length > 0 && (
 								<div>
 									<p className="font-bold text-gray-900 mb-3">
 										Required Documents:
 									</p>
 									<ul className="list-disc pl-5 space-y-2 text-gray-700">
-										{currentScholarship.requiredDocuments.map((doc: any) => (
+										{currentScholarship.documents.map((doc: any) => (
 											<li key={doc.id}>
-												<strong>{doc.name}</strong>
-												{doc.description && ` - ${doc.description}`}
+												{doc.type}
+												{doc.description && `: ${doc.description}`}
 											</li>
 										))}
 									</ul>
@@ -660,62 +649,70 @@ const AdminScholarshipDetail = () => {
 			case 'other':
 				return (
 					<div className="space-y-6">
-						{currentScholarship?.institution && (
+						{currentScholarship?.otherInfo && (
 							<div>
 								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Institution Information
+									Other Information:
 								</h3>
-								<div className="space-y-2">
-									<p className="text-gray-700">
-										<strong>Name:</strong> {currentScholarship.institution.name}
-									</p>
-									{currentScholarship.institution.abbreviation && (
-										<p className="text-gray-700">
-											<strong>Abbreviation:</strong>{' '}
-											{currentScholarship.institution.abbreviation}
+								<div
+									className="text-gray-700 prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentScholarship.otherInfo,
+									}}
+								/>
+							</div>
+						)}
+
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Contact Information:
+							</h3>
+							{currentScholarship?.institution && (
+								<div className="space-y-3 text-gray-700">
+									{currentScholarship.institution.email && (
+										<p>
+											<span className="font-semibold">Email:</span>{' '}
+											<a
+												href={`mailto:${currentScholarship.institution.email}`}
+												className="text-[#126E64] hover:underline"
+											>
+												{currentScholarship.institution.email}
+											</a>
 										</p>
 									)}
-									<p className="text-gray-700">
-										<strong>Country:</strong>{' '}
-										{currentScholarship.institution.country}
-									</p>
+									{currentScholarship.institution.hotline && (
+										<p>
+											<span className="font-semibold">Hotline:</span>{' '}
+											{currentScholarship.institution.hotlineCode && (
+												<span>
+													{currentScholarship.institution.hotlineCode}{' '}
+												</span>
+											)}
+											{currentScholarship.institution.hotline}
+										</p>
+									)}
 									{currentScholarship.institution.website && (
-										<p className="text-gray-700">
-											<strong>Website:</strong>{' '}
+										<p>
+											<span className="font-semibold">Website:</span>{' '}
 											<a
 												href={currentScholarship.institution.website}
 												target="_blank"
 												rel="noopener noreferrer"
-												className="text-blue-600 hover:underline"
+												className="text-[#126E64] hover:underline"
 											>
 												{currentScholarship.institution.website}
 											</a>
 										</p>
 									)}
-									{/* {currentScholarship.institution.about && (
-										<div className="mt-4">
-											<strong>About:</strong>
-											<p
-												className="text-gray-700 mt-2"
-												dangerouslySetInnerHTML={{
-													__html: currentScholarship.institution.about,
-												}}
-											/>
-										</div>
-									)} */}
+									{currentScholarship.institution.address && (
+										<p>
+											<span className="font-semibold">Address:</span>{' '}
+											{currentScholarship.institution.address}
+										</p>
+									)}
 								</div>
-							</div>
-						)}
-
-						{/* <div>
-							<h3 className="text-xl font-bold text-gray-900 mb-4">
-								Application Statistics
-							</h3>
-							<p className="text-gray-700">
-								<strong>Current Applications:</strong>{' '}
-								{currentScholarship?.applicationCount || 0}
-							</p>
-						</div> */}
+							)}
+						</div>
 					</div>
 				)
 

@@ -477,18 +477,29 @@
 			}
 		},
 		"blog_section": {
-			"title": "Latest Posts"
+			"title": "Latest Posts",
+			"empty": {
+				"title": "No Posts Available Yet",
+				"description_programmes": "There are no programmes available at the moment. Check back soon for new opportunities!",
+				"description_scholarships": "There are no scholarships available at the moment. Check back soon for new opportunities!",
+				"description_research_labs": "There are no research labs available at the moment. Check back soon for new opportunities!",
+				"try_other_button": "Try Another Category"
+			}
 		},
 		"cta_section": {
 			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
 			"description_1": "Join EduMatch now to start your journey to success.",
-			"description_2": "Find the perfect opportunities for you."
+			"description_2": "Find the perfect opportunities for you.",
+			"authenticated_title": "Ready to Find Your Perfect Match?",
+			"authenticated_description_1": "Start exploring opportunities tailored to your profile.",
+			"authenticated_description_2": "Your next big opportunity is just a click away!"
 		}
 	},
 
 	"buttons": {
 		"explore_more": "Explore more",
 		"show_more": "Show more",
+		"show_less": "Show less",
 		"learn_more": "Learn more",
 		"sign_in": "Sign in",
 		"sign_up": "Sign up",
@@ -513,6 +524,9 @@
 		"available_documents": {
 			"title": "Available Documents",
 			"select": "Select"
+		},
+		"folder": {
+			"other_documents": "Other Documents"
 		},
 		"loading": "Loading documents...",
 		"error": "Failed to load documents"
@@ -1426,7 +1440,7 @@
 		"includes": "Includes"
 	},
 	"file_upload": {
-		"drag_drop": "Drag and drop files here, or",
+		"drag_drop": "Drag and drop files here",
 		"browse": "browse",
 		"max_size": "{size}MB each",
 		"processing": {

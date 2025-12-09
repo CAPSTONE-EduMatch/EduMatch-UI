@@ -319,10 +319,11 @@ const Signup = () => {
 			}
 
 			// If user doesn't exist, send OTP for email verification during signup
+			// Use 'sign-in' type for new users - Better Auth requires this to call sendVerificationOTP
 			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
 				{
 					email: email,
-					type: 'email-verification',
+					type: 'sign-in', // Must use 'sign-in' for new users, otherwise Better Auth returns early
 				}
 			)
 
@@ -378,41 +379,24 @@ const Signup = () => {
 				return
 			}
 
-			if (!response.data.exists) {
-				// setErrors({
-				// 	email:
-				// 		'An account with this email already exists. Please sign in instead.',
-				// })
-				const { error: signUpError } = await authClient.signUp.email({
-					email,
-					password,
-					name: email.split('@')[0], // Use email username as temporary name
-				})
-				if (signUpError) {
-					setOTPError(
-						t('errors.verification_failed', {
-							error: signUpError?.message || 'Unknown error',
-						})
-					)
-					return
-				}
-			}
-
-			// First verify the OTP
-			const { error: verifyError } = await authClient.emailOtp.verifyEmail({
+			// Since we sent OTP with type 'sign-in', we must verify using signIn.emailOtp
+			// This works for both new and existing users
+			const trimmedOtp = otp.trim()
+			const { error: signInError } = await authClient.signIn.emailOtp({
 				email,
-				otp,
+				otp: trimmedOtp,
 			})
 
-			if (verifyError) {
+			if (signInError) {
 				setOTPError(
 					t('errors.verification_failed', {
-						error: verifyError.message || 'Unknown error',
+						error: signInError.message || 'Invalid OTP',
 					})
 				)
 				return
 			}
 
+			// If user didn't exist, account was created automatically
 			if (!response.data.exists) {
 				// Get the user ID after account creation
 				const updatedResponse = await axios.get(
@@ -424,6 +408,7 @@ const Signup = () => {
 					return
 				}
 
+				// Set the password
 				const responseUpdate = await axios.put('/api/user/update-password', {
 					userId: updatedResponse.data.userId,
 					newPassword: password,
@@ -431,10 +416,11 @@ const Signup = () => {
 
 				if (responseUpdate.status !== 204) {
 					setOTPError(t('errors.password_set_failed'))
+					return
 				}
 			}
 
-			// After successful OTP verification, create the account
+			// After successful OTP verification
 
 			// Clear global cooldown since verification was successful
 			setGlobalOtpCooldown(0)

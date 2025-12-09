@@ -171,32 +171,39 @@ export const auth = betterAuth({
 			};
 		}),
 		emailOTP({
-			async sendVerificationOTP({
-				email,
-				otp,
-				type,
-			}: {
-				email: string;
-				otp: string;
-				type: string;
-			}) {
+			async sendVerificationOTP(
+				data: {
+					email: string;
+					otp: string;
+					type: "sign-in" | "email-verification" | "forget-password";
+				},
+				_ctx?: any
+			) {
 				// Check if account is deactivated or banned before sending OTP
-				const accountStatus = await checkAccountStatus(email);
+				const accountStatus = await checkAccountStatus(data.email);
 				if (accountStatus.isBlocked) {
 					throw new Error(accountStatus.errorMessage);
 				}
 
 				// Determine OTP type based on the type parameter
+				// Better Auth uses 'sign-in' for new users during signup
 				let otpType: OTPType = "email-verification"; // default
-				if (type === "sign-up") {
-					otpType = "signup";
-				} else if (type === "email-verification") {
+				if (data.type === "sign-in") {
+					// Check if user exists - if not, this is a signup
+					const user = await prismaClient.user.findUnique({
+						where: { email: data.email },
+						select: { id: true },
+					});
+					otpType = user ? "email-verification" : "signup";
+				} else if (data.type === "email-verification") {
 					otpType = "email-verification";
+				} else if (data.type === "forget-password") {
+					otpType = "forgot-password";
 				}
 
 				// Check rate limiting before sending OTP
 				const rateLimitResult = await checkOTPRateLimitByType(
-					email,
+					data.email,
 					otpType
 				);
 
@@ -208,10 +215,10 @@ export const auth = betterAuth({
 				}
 
 				// Record the attempt
-				await recordOTPAttemptByType(email, otpType);
+				await recordOTPAttemptByType(data.email, otpType);
 
 				// Send OTP via email using our sendEmail function
-				await sendEmail(email, "", otp);
+				await sendEmail(data.email, "", data.otp);
 			},
 			// disableSignUp: false, // Allow sign-ups via OTP
 			// allowedAttempts: 5, // Max 5 attempts per hour
@@ -280,16 +287,10 @@ export const auth = betterAuth({
 				// Authorization callback for billing portal and subscription management
 				authorizeReference: async ({
 					user,
-					session,
+					session: _session,
 					referenceId,
 					action,
 				}) => {
-					console.log(
-						"Authorizing action:",
-						action,
-						"for user:",
-						user.id
-					);
 					// For billing portal access, ensure user owns the subscription
 					if (action === "billing-portal") {
 						// The referenceId should be the user's ID for individual subscriptions
@@ -317,10 +318,6 @@ export const auth = betterAuth({
 										],
 									},
 								});
-							console.log(
-								"Subscription found for authorization:",
-								subscription
-							);
 
 							return subscription !== null;
 						} catch (error) {
@@ -336,26 +333,10 @@ export const auth = betterAuth({
 					return true;
 				},
 				onSubscriptionComplete: async ({ subscription, plan }) => {
-					// Log detailed info for testing
-					// eslint-disable-next-line no-console
-					console.log(
-						"🎉 [Better-auth] onSubscriptionComplete FIRED!"
-					);
-					// eslint-disable-next-line no-console
-					console.log(
-						"📋 Subscription data:",
-						JSON.stringify(subscription, null, 2)
-					);
-					// eslint-disable-next-line no-console
-					console.log("📦 Plan data:", JSON.stringify(plan, null, 2));
-
 					// Update subscription in database when payment is complete
 					try {
 						const stripeSubscription = subscription as any;
 						const userId = stripeSubscription.userId;
-
-						// eslint-disable-next-line no-console
-						console.log("👤 User ID from subscription:", userId);
 
 						// Create invoice record from subscription
 						// This is crucial - Better Auth doesn't create invoices automatically
@@ -363,11 +344,6 @@ export const auth = betterAuth({
 							const { createInvoiceFromSubscription } =
 								await import("@/services/payments/invoice-service");
 							await createInvoiceFromSubscription(
-								stripeSubscription.stripeSubscriptionId
-							);
-							// eslint-disable-next-line no-console
-							console.log(
-								"✅ Invoice created for subscription:",
 								stripeSubscription.stripeSubscriptionId
 							);
 						} catch (invoiceError) {
@@ -388,12 +364,6 @@ export const auth = betterAuth({
 											stripeSubscription.stripeSubscriptionId,
 									},
 								});
-
-							// eslint-disable-next-line no-console
-							console.log(
-								"🔍 Existing subscription found:",
-								existingSub ? "YES" : "NO"
-							);
 
 							if (existingSub) {
 								// Update existing subscription
@@ -418,167 +388,97 @@ export const auth = betterAuth({
 											false,
 									},
 								});
-								// eslint-disable-next-line no-console
-								console.log(
-									"✅ Subscription UPDATED in database"
-								);
 							} else {
 								// Create new subscription
-								const newSub =
-									await prismaClient.subscription.create({
-										data: {
-											id: crypto.randomUUID(),
-											referenceId: userId,
-											stripeSubscriptionId:
-												stripeSubscription.stripeSubscriptionId,
-											stripeCustomerId:
-												stripeSubscription.customerId,
-											plan: plan.name,
-											status: "active",
-											periodStart:
-												stripeSubscription.periodStart
-													? new Date(
-															stripeSubscription.periodStart
-														)
-													: null,
-											periodEnd:
-												stripeSubscription.periodEnd
-													? new Date(
-															stripeSubscription.periodEnd
-														)
-													: null,
-											cancelAtPeriodEnd:
-												stripeSubscription.cancelAtPeriodEnd ||
-												false,
-											seats: 1,
-											updatedAt: new Date(),
-										},
-									});
-								// eslint-disable-next-line no-console
-								console.log(
-									"✅ Subscription CREATED in database with ID:",
-									newSub.id
-								);
+								await prismaClient.subscription.create({
+									data: {
+										id: crypto.randomUUID(),
+										referenceId: userId,
+										stripeSubscriptionId:
+											stripeSubscription.stripeSubscriptionId,
+										stripeCustomerId:
+											stripeSubscription.customerId,
+										plan: plan.name,
+										status: "active",
+										periodStart:
+											stripeSubscription.periodStart
+												? new Date(
+														stripeSubscription.periodStart
+													)
+												: null,
+										periodEnd: stripeSubscription.periodEnd
+											? new Date(
+													stripeSubscription.periodEnd
+												)
+											: null,
+										cancelAtPeriodEnd:
+											stripeSubscription.cancelAtPeriodEnd ||
+											false,
+										seats: 1,
+										updatedAt: new Date(),
+									},
+								});
 							}
-						} else {
-							// eslint-disable-next-line no-console
-							console.warn(
-								"⚠️ No userId found in subscription data"
-							);
 						}
 					} catch (error) {
 						// eslint-disable-next-line no-console
 						console.error(
-							"❌ Error updating subscription on completion:",
+							"Error updating subscription on completion:",
 							error
-						);
-					}
-
-					// Log subscription completion for debugging
-					if (process.env.NODE_ENV === "development") {
-						// eslint-disable-next-line no-console
-						console.log(
-							`✅ Subscription ${subscription.id} completed for plan ${plan.name}`
 						);
 					}
 				},
 				onSubscriptionUpdate: async ({ subscription }) => {
-					// eslint-disable-next-line no-console
-					console.log("🔄 [Better-auth] onSubscriptionUpdate FIRED!");
-					// eslint-disable-next-line no-console
-					console.log(
-						"📋 Subscription data:",
-						JSON.stringify(subscription, null, 2)
-					);
-
 					// Update subscription in database
 					try {
 						const stripeSubscription = subscription as any;
 
-						const result =
-							await prismaClient.subscription.updateMany({
-								where: {
-									stripeSubscriptionId:
-										stripeSubscription.stripeSubscriptionId,
-								},
-								data: {
-									status: stripeSubscription.status,
-									periodStart: stripeSubscription.periodStart
-										? new Date(
-												stripeSubscription.periodStart
-											)
-										: null,
-									periodEnd: stripeSubscription.periodEnd
-										? new Date(stripeSubscription.periodEnd)
-										: null,
-									cancelAtPeriodEnd:
-										stripeSubscription.cancelAtPeriodEnd ||
-										false,
-								},
-							});
-
-						// eslint-disable-next-line no-console
-						console.log(
-							`✅ Updated ${result.count} subscription(s) in database`
-						);
+						await prismaClient.subscription.updateMany({
+							where: {
+								stripeSubscriptionId:
+									stripeSubscription.stripeSubscriptionId,
+							},
+							data: {
+								status: stripeSubscription.status,
+								periodStart: stripeSubscription.periodStart
+									? new Date(stripeSubscription.periodStart)
+									: null,
+								periodEnd: stripeSubscription.periodEnd
+									? new Date(stripeSubscription.periodEnd)
+									: null,
+								cancelAtPeriodEnd:
+									stripeSubscription.cancelAtPeriodEnd ||
+									false,
+							},
+						});
 					} catch (error) {
 						// eslint-disable-next-line no-console
 						console.error(
-							"❌ Error updating subscription on update:",
+							"Error updating subscription on update:",
 							error
-						);
-					}
-
-					// Log subscription update for debugging
-					if (process.env.NODE_ENV === "development") {
-						// eslint-disable-next-line no-console
-						console.log(
-							`✅ Subscription ${subscription.id} updated`
 						);
 					}
 				},
 				onSubscriptionCancel: async ({ subscription }) => {
-					// eslint-disable-next-line no-console
-					console.log("❌ [Better-auth] onSubscriptionCancel FIRED!");
-					// eslint-disable-next-line no-console
-					console.log(
-						"📋 Subscription data:",
-						JSON.stringify(subscription, null, 2)
-					);
-
 					// Update subscription status in database
 					try {
 						const stripeSubscription = subscription as any;
 
-						const result =
-							await prismaClient.subscription.updateMany({
-								where: {
-									stripeSubscriptionId:
-										stripeSubscription.stripeSubscriptionId,
-								},
-								data: {
-									status: "canceled",
-									cancelAtPeriodEnd: false,
-								},
-							});
-
-						// eslint-disable-next-line no-console
-						console.log(
-							`✅ Canceled ${result.count} subscription(s) in database`
-						);
+						await prismaClient.subscription.updateMany({
+							where: {
+								stripeSubscriptionId:
+									stripeSubscription.stripeSubscriptionId,
+							},
+							data: {
+								status: "canceled",
+								cancelAtPeriodEnd: false,
+							},
+						});
 					} catch (error) {
 						// eslint-disable-next-line no-console
 						console.error(
-							"❌ Error updating subscription on cancellation:",
+							"Error updating subscription on cancellation:",
 							error
-						);
-					}
-
-					// Log subscription cancellation for debugging
-					if (process.env.NODE_ENV === "development") {
-						// eslint-disable-next-line no-console
-						console.log(
-							`✅ Subscription ${subscription.id} canceled`
 						);
 					}
 				},
@@ -773,19 +673,7 @@ export const auth = betterAuth({
 			// Record the attempt
 			await recordOTPAttemptByType(user.email, "forgot-password");
 
-			await sendEmail(
-				user.email,
-				`Reset your password: Click the link to reset your password: ${url}
-		And this is your token: ${token}
-		${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
-		`,
-				// `
-				// Click the link to reset your password: ${url}
-				// And this is your token: ${token}
-				// ${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password?token=${token}
-				// `
-				``
-			);
+			await sendEmail(user.email, url, token);
 		},
 		resetPasswordTokenExpiresIn: 900, // 15 minutes
 	},
@@ -836,48 +724,75 @@ async function sendEmail(to: string, url: string, token: string) {
 	let html: string;
 
 	if (isOtp) {
-		subject = "Your OTP Code";
+		subject = "Your Verification Code";
 		html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Your Verification Code</h2>
-        <p>Your OTP code is:</p>
-        <div style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 3px; margin: 20px 0;">
-          ${token}
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #126E64; margin: 0; font-size: 28px; font-weight: 600;">Your Verification Code</h1>
         </div>
-        <p style="color: #666;">This code will expire in 10 minutes.</p>
-        <p style="color: #666;">If you did not request this code, please ignore this email.</p>
+        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 30px; margin-bottom: 30px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hello,</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Please use the following verification code to complete your request:</p>
+          <div style="background-color: #ffffff; border: 2px solid #126E64; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
+            <div style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #126E64; font-family: 'Courier New', monospace;">
+              ${token}
+            </div>
+          </div>
+          <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0; text-align: center;">⏱️ This code will expire in 5 minutes.</p>
+        </div>
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 30px;">
+          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0;">If you did not request this code, please ignore this email.</p>
+        </div>
       </div>
     `;
 	} else if (isReset) {
 		subject = "Reset Your Password";
 		html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Password Reset Request</h2>
-        <p>Hello,</p>
-        <p>We received a request to reset your password. Click the button below to reset it:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${url}" style="background-color: #007cba; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #126E64; margin: 0; font-size: 28px; font-weight: 600;">Password Reset Request</h1>
         </div>
-        <p style="color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="color: #666; word-break: break-all;">${url}</p>
-        <p style="color: #666;">This link will expire in 1 hour.</p>
-        <p style="color: #666;">If you did not request a password reset, please ignore this email.</p>
+        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 30px; margin-bottom: 30px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hello,</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">We received a request to reset your password. Click the button below to create a new password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${url}" style="background-color: #126E64; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 16px; font-weight: 500; box-shadow: 0 2px 4px rgba(18, 110, 100, 0.2);">Reset Password</a>
+          </div>
+          <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="color: #126E64; font-size: 13px; word-break: break-all; margin: 10px 0; padding: 10px; background-color: #ffffff; border-radius: 4px; border: 1px solid #e0e0e0;">${url}</p>
+        </div>
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 30px;">
+          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0 0 10px 0;">⏱️ This link will expire in 1 hour for security reasons.</p>
+          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">Need help? Contact our support team.</p>
+        </div>
       </div>
     `;
 	} else {
 		subject = "Verify Your Email Address";
 		html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Welcome! Please Verify Your Email</h2>
-        <p>Hello,</p>
-        <p>Thank you for signing up! Please verify your email address by clicking the button below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${url}" style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email</a>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #126E64; margin: 0; font-size: 28px; font-weight: 600;">Welcome! Please Verify Your Email</h1>
         </div>
-        <p style="color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="color: #666; word-break: break-all;">${url}</p>
-        <p style="color: #666;">This link will expire in 1 hour.</p>
-        <p style="color: #666;">If you did not create an account, please ignore this email.</p>
+        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 30px; margin-bottom: 30px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hello,</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">Thank you for signing up! Please verify your email address by clicking the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${url}" style="background-color: #126E64; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 16px; font-weight: 500; box-shadow: 0 2px 4px rgba(18, 110, 100, 0.2);">Verify Email</a>
+          </div>
+          <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="color: #126E64; font-size: 13px; word-break: break-all; margin: 10px 0; padding: 10px; background-color: #ffffff; border-radius: 4px; border: 1px solid #e0e0e0;">${url}</p>
+        </div>
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 30px;">
+          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0 0 10px 0;">⏱️ This link will expire in 1 hour.</p>
+          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0;">If you did not create an account, please ignore this email.</p>
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">Need help? Contact our support team.</p>
+        </div>
       </div>
     `;
 	}

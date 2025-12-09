@@ -9,10 +9,8 @@ const { POST: _POST, GET: _GET } = toNextJsHandler(auth.handler);
 
 export async function POST(request: NextRequest) {
 	try {
-		// Removed verbose logging to reduce console spam
 		return await _POST(request);
 	} catch (error) {
-		// Only log errors
 		// eslint-disable-next-line no-console
 		console.error("Auth API POST error:", error);
 		return NextResponse.json(

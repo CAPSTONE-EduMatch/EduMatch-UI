@@ -70,6 +70,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/about"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										About Us
@@ -78,6 +79,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/contact"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Contact
@@ -86,6 +88,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/careers"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Careers
@@ -94,6 +97,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/blog"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Blog
@@ -110,6 +114,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/support"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Help Center
@@ -118,6 +123,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/faq"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										FAQ
@@ -126,6 +132,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/guides"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Guides
@@ -134,6 +141,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/community"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Community
@@ -150,6 +158,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/terms"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Terms of Service
@@ -158,6 +167,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/privacy"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Privacy Policy
@@ -166,6 +176,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/cookies"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Cookie Policy
@@ -174,6 +185,7 @@ export function Footer() {
 								<li>
 									<Link
 										href="/sitemap"
+										prefetch={false}
 										className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm"
 									>
 										Sitemap

@@ -142,7 +142,8 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 										className="bg-white border border-gray-200 rounded-lg p-6"
 									>
 										<h4 className="font-medium text-gray-700 mb-4 pb-2 border-b border-gray-200">
-											{documentType?.name || 'Other Documents'} ({docs.length})
+											{documentType?.name || t('folder.other_documents')} (
+											{docs.length})
 										</h4>
 										<div className="grid gap-3">
 											{docs.map((document) => {

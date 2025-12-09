@@ -477,18 +477,29 @@
 			}
 		},
 		"blog_section": {
-			"title": "Bài viết mới nhất"
+			"title": "Bài viết mới nhất",
+			"empty": {
+				"title": "Chưa có bài đăng nào",
+				"description_programmes": "Hiện chưa có chương trình nào. Hãy quay lại sau để xem các cơ hội mới!",
+				"description_scholarships": "Hiện chưa có học bổng nào. Hãy quay lại sau để xem các cơ hội mới!",
+				"description_research_labs": "Hiện chưa có phòng thí nghiệm nghiên cứu nào. Hãy quay lại sau để xem các cơ hội mới!",
+				"try_other_button": "Thử danh mục khác"
+			}
 		},
 		"cta_section": {
 			"title": "Khám phá chương trình, nghiên cứu và cơ hội học bổng ngay hôm nay",
 			"description_1": "Tham gia EduMatch ngay để bắt đầu hành trình thành công của bạn.",
-			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn."
+			"description_2": "Hãy tìm kiếm cơ hội hoàn hảo cho bạn.",
+			"authenticated_title": "Sẵn sàng tìm kiếm sự phù hợp hoàn hảo?",
+			"authenticated_description_1": "Bắt đầu khám phá các cơ hội phù hợp với hồ sơ của bạn.",
+			"authenticated_description_2": "Cơ hội lớn tiếp theo của bạn chỉ cách một cú nhấp chuột!"
 		}
 	},
 
 	"buttons": {
 		"explore_more": "Khám phá thêm",
 		"show_more": "Xem thêm",
+		"show_less": "Ẩn bớt",
 		"learn_more": "Tìm hiểu thêm",
 		"sign_in": "Đăng nhập",
 		"sign_up": "Đăng ký",
@@ -513,6 +524,9 @@
 		"available_documents": {
 			"title": "Tài liệu có sẵn",
 			"select": "Chọn"
+		},
+		"folder": {
+			"other_documents": "Tài Liệu Khác"
 		},
 		"loading": "Đang tải tài liệu...",
 		"error": "Không thể tải tài liệu"

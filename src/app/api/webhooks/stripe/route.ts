@@ -1216,7 +1216,12 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 				"💡 User may need to complete their profile setup to access premium features"
 			);
 
-			// Send payment success notification anyway
+			// Send payment success notification via SQS (even without profile)
+			// eslint-disable-next-line no-console
+			console.log(
+				"📧 Sending payment success notification to SQS for:",
+				user.email
+			);
 			await NotificationUtils.sendPaymentSuccessNotification(
 				user.id,
 				user.email,
@@ -1228,7 +1233,9 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 			);
 
 			// eslint-disable-next-line no-console
-			console.log("✅ Sent payment success notification");
+			console.log(
+				"✅ Payment success notification queued to SQS successfully"
+			);
 			return;
 		}
 
@@ -1337,7 +1344,13 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 			}
 		}
 
-		// Send payment success notification
+		// Send payment success notification via SQS
+		// This will queue the message to SQS EMAILS queue, which will be processed by Lambda
+		// eslint-disable-next-line no-console
+		console.log(
+			"📧 Sending payment success notification to SQS for:",
+			user.email
+		);
 		await NotificationUtils.sendPaymentSuccessNotification(
 			user.id,
 			user.email,
@@ -1349,7 +1362,9 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 		);
 
 		// eslint-disable-next-line no-console
-		console.log("✅ Sent payment success notification");
+		console.log(
+			"✅ Payment success notification queued to SQS successfully"
+		);
 
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console

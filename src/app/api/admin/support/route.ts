@@ -362,26 +362,47 @@ export async function PATCH(request: NextRequest) {
 					supportRequest.institution?.user_id;
 
 				if (targetUserId) {
-					// Send notification using the new notification system
-					await EmailService.sendNotificationEmail({
-						id: `support-reply-${supportId}-${Date.now()}`,
-						type: NotificationType.SUPPORT_REPLY,
-						userId: targetUserId,
-						userEmail: userEmail,
-						timestamp: new Date().toISOString(),
-						metadata: {
-							supportId: supportId,
-							firstName: firstName,
-							lastName: lastName,
-							originalSubject:
-								existingContent.problemType ||
-								"Support Request",
-							originalMessage: existingContent.question || "",
-							replyMessage: reply,
-							repliedBy: session.user.id,
-							repliedAt: new Date().toISOString(),
-						},
-					});
+					// Queue notification using unified API endpoint
+					const baseUrl =
+						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+						process.env.NEXT_PUBLIC_APP_URL ||
+						"http://localhost:3000";
+
+					const response = await fetch(
+						`${baseUrl}/api/notifications/queue`,
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								id: `support-reply-${supportId}-${Date.now()}`,
+								type: NotificationType.SUPPORT_REPLY,
+								userId: targetUserId,
+								userEmail: userEmail,
+								timestamp: new Date().toISOString(),
+								metadata: {
+									supportId: supportId,
+									firstName: firstName,
+									lastName: lastName,
+									originalSubject:
+										existingContent.problemType ||
+										"Support Request",
+									originalMessage:
+										existingContent.question || "",
+									replyMessage: reply,
+									repliedBy: session.user.id,
+									repliedAt: new Date().toISOString(),
+								},
+							}),
+						}
+					);
+
+					if (!response.ok) {
+						throw new Error(
+							"Failed to queue support reply notification"
+						);
+					}
 				} else {
 					// Fallback to direct email if no user ID found
 					const userName = supportRequest.applicant

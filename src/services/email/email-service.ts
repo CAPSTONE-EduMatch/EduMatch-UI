@@ -123,17 +123,41 @@ export class EmailTemplates {
 	 * Generate application status update email template
 	 * Used for: Application status changes
 	 */
-	static generateApplicationStatusEmail(message: ApplicationStatusMessage): {
-		subject: string;
-		html: string;
-	} {
-		const { metadata } = message;
+	static async generateApplicationStatusEmail(
+		message: ApplicationStatusMessage
+	): Promise<{ subject: string; html: string }> {
+		const { metadata, userId } = message;
+
+		// Determine if recipient is institution or applicant
+		// If applicantName is in metadata, this is for institution
+		// Otherwise, check user role
+		let isInstitution = false;
+		if (metadata.applicantName) {
+			isInstitution = true;
+		} else {
+			// Check user role from database
+			try {
+				const { prismaClient } = await import("../../../prisma");
+				const user = await prismaClient.user.findUnique({
+					where: { id: userId },
+					select: { role_id: true },
+				});
+				isInstitution = user?.role_id === "2";
+			} catch (error) {
+				// Default to applicant if lookup fails
+				isInstitution = false;
+			}
+		}
+
 		return generateApplicationStatusEmailTemplate(
 			metadata.programName,
 			metadata.institutionName,
 			metadata.oldStatus,
 			metadata.newStatus,
-			metadata.message
+			metadata.message,
+			isInstitution,
+			metadata.applicationId,
+			metadata.applicantName
 		);
 	}
 
@@ -474,7 +498,7 @@ export class EmailService {
 					break;
 				case NotificationType.APPLICATION_STATUS_UPDATE:
 					emailContent =
-						EmailTemplates.generateApplicationStatusEmail(
+						await EmailTemplates.generateApplicationStatusEmail(
 							message as ApplicationStatusMessage
 						);
 					break;

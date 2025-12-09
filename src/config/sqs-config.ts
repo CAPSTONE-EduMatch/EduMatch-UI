@@ -81,7 +81,7 @@ export interface ApplicationStatusMessage extends BaseNotificationMessage {
 		newStatus: string;
 		institutionName: string;
 		message?: string; // Optional message for REQUIRE_UPDATE status
-		applicantName?: string; // Optional applicant name for institution notifications
+		applicantName?: string; // Optional applicant name for institution notifications (if present, indicates institution recipient)
 	};
 }
 
@@ -218,8 +218,7 @@ export interface PostStatusUpdateMessage extends BaseNotificationMessage {
 	};
 }
 
-export interface InstitutionProfileStatusUpdateMessage
-	extends BaseNotificationMessage {
+export interface InstitutionProfileStatusUpdateMessage extends BaseNotificationMessage {
 	type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE;
 	metadata: {
 		institutionId: string;
@@ -299,6 +298,15 @@ export class SQSService {
 	 */
 	static async sendEmailMessage(message: NotificationMessage): Promise<void> {
 		try {
+			console.log(
+				`📤 Sending email message to SQS queue: ${message.type} for ${message.userEmail}`
+			);
+			console.log(`📍 Queue URL: ${QUEUE_URLS.EMAILS}`);
+
+			if (!QUEUE_URLS.EMAILS) {
+				throw new Error("SQS_EMAILS_QUEUE_URL is not configured");
+			}
+
 			const command = new SendMessageCommand({
 				QueueUrl: QUEUE_URLS.EMAILS,
 				MessageBody: JSON.stringify(message),
@@ -316,12 +324,20 @@ export class SQSService {
 				MessageDeduplicationId: message.id, // For FIFO queues - use message ID
 			});
 
-			await sqsClient.send(command);
+			const result = await sqsClient.send(command);
 			console.log(
-				`Email message sent to SQS: ${message.type} for ${message.userEmail}`
+				`✅ Email message sent to SQS successfully: ${message.type} for ${message.userEmail}`
 			);
+			console.log(`📋 SQS Message ID: ${result.MessageId}`);
 		} catch (error) {
-			console.error("Error sending email message to SQS:", error);
+			console.error(
+				`❌ Error sending email message to SQS for ${message.userEmail}:`,
+				error
+			);
+			if (error instanceof Error) {
+				console.error(`❌ Error details: ${error.message}`);
+				console.error(`❌ Error stack: ${error.stack}`);
+			}
 			throw error;
 		}
 	}

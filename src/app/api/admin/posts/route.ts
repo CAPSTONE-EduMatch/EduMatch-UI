@@ -225,6 +225,33 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
+		// Get current post to get institution info for notifications
+		const currentPost = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: postId },
+			include: {
+				institution: {
+					include: {
+						user: true,
+					},
+				},
+				programPost: true,
+				scholarshipPost: true,
+				jobPost: true,
+			},
+		});
+
+		if (!currentPost) {
+			return NextResponse.json(
+				{
+					success: false,
+					message: "Post not found",
+				},
+				{ status: 404 }
+			);
+		}
+
+		const currentStatus = currentPost.status;
+
 		// Update the post
 		const updatedPost = await prismaClient.opportunityPost.update({
 			where: { post_id: postId },
@@ -233,6 +260,51 @@ export async function PATCH(request: NextRequest) {
 				update_at: new Date(),
 			},
 		});
+
+		// Send notification if status changed and institution user exists
+		if (
+			status &&
+			status !== currentStatus &&
+			currentPost.institution?.user
+		) {
+			try {
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
+
+				const institutionUser = currentPost.institution.user;
+
+				// Determine post type
+				let postType = "Post";
+				if (currentPost.programPost) postType = "Program";
+				else if (currentPost.scholarshipPost) postType = "Scholarship";
+				else if (currentPost.jobPost) postType = "Research Lab";
+
+				const baseUrl =
+					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+					"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+				const postUrl = `${baseUrl}/institution/posts/${postId}`;
+
+				await NotificationUtils.sendPostStatusUpdateNotification(
+					institutionUser.id,
+					institutionUser.email,
+					postId,
+					currentPost.title,
+					postType as "Program" | "Scholarship" | "Research Lab",
+					currentPost.institution.name,
+					currentStatus,
+					status,
+					postUrl,
+					status === "REJECTED" ? body.rejectionReason : undefined
+				);
+			} catch (notificationError) {
+				// Log error but don't fail the request
+				// eslint-disable-next-line no-console
+				console.error(
+					"Failed to send post status update notification:",
+					notificationError
+				);
+			}
+		}
 
 		return NextResponse.json({
 			success: true,

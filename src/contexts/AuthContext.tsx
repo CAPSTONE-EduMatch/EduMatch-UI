@@ -32,11 +32,15 @@ let isCheckingAuth = false
 interface SessionCache {
 	session: any
 	timestamp: number
+	// Track if we got a rate limit error - don't retry immediately
+	rateLimited?: boolean
+	rateLimitUntil?: number
 }
 
 let globalSessionCache: SessionCache | null = null
 const SESSION_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - cache session for 5 minutes to reduce API calls
 const MIN_CALL_INTERVAL = 10 * 1000 // Minimum 10 seconds between API calls
+const RATE_LIMIT_BACKOFF = 60 * 1000 // 60 seconds - wait 1 minute after rate limit before retrying
 
 let lastCallTime = 0
 
@@ -67,6 +71,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				globalSessionCache &&
 				now - globalSessionCache.timestamp < SESSION_CACHE_DURATION
 			) {
+				// If we're rate limited, respect the backoff period
+				if (
+					globalSessionCache.rateLimited &&
+					globalSessionCache.rateLimitUntil &&
+					now < globalSessionCache.rateLimitUntil
+				) {
+					// Still use cached data but don't make new requests
+					const cachedSession = globalSessionCache.session
+					const hasUser = cachedSession?.data?.user
+					const isAuth = !!(
+						cachedSession?.data?.user && cachedSession?.data?.session
+					)
+
+					setIsAuthenticated(isAuth)
+					setUser(hasUser)
+					setIsLoading(false)
+					setShowAuthModal(!hasUser)
+					return
+				}
+
 				const cachedSession = globalSessionCache.session
 				const hasUser = cachedSession?.data?.user
 				const isAuth = !!(
@@ -98,6 +122,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				return
 			}
 
+			// Check if we're still in rate limit backoff period
+			if (
+				globalSessionCache?.rateLimited &&
+				globalSessionCache?.rateLimitUntil &&
+				now < globalSessionCache.rateLimitUntil
+			) {
+				// Use cached data and don't make new requests
+				const cachedSession = globalSessionCache.session
+				const hasUser = cachedSession?.data?.user
+				const isAuth = !!(
+					cachedSession?.data?.user && cachedSession?.data?.session
+				)
+
+				setIsAuthenticated(isAuth)
+				setUser(hasUser)
+				setIsLoading(false)
+				setShowAuthModal(!hasUser)
+				return
+			}
+
 			isCheckingAuth = true
 			lastCallTime = now
 
@@ -109,10 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					},
 				})
 
-				// Update cache
+				// Update cache - clear rate limit flags on success
 				globalSessionCache = {
 					session,
 					timestamp: now,
+					rateLimited: false,
 				}
 
 				const hasUser = session?.data?.user
@@ -122,13 +167,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				setUser(hasUser)
 				setIsLoading(false)
 				setShowAuthModal(!hasUser)
-			} catch (error) {
-				setIsAuthenticated(false)
-				setUser(null)
-				setIsLoading(false)
-				setShowAuthModal(true)
-				// Clear cache on error
-				globalSessionCache = null
+			} catch (error: any) {
+				// Check if this is a rate limit error (429)
+				const isRateLimit =
+					error?.status === 429 ||
+					error?.response?.status === 429 ||
+					error?.message?.includes('429') ||
+					error?.message?.includes('rate limit') ||
+					error?.message?.includes('Too Many Requests')
+
+				if (isRateLimit) {
+					// Cache the "no session" result with rate limit backoff
+					// Preserve last known session if available, otherwise use null
+					const lastSession = globalSessionCache?.session || null
+					globalSessionCache = {
+						session: lastSession,
+						timestamp: now,
+						rateLimited: true,
+						rateLimitUntil: now + RATE_LIMIT_BACKOFF,
+					}
+
+					// Set state based on cached session
+					if (lastSession?.data?.user) {
+						const hasUser = lastSession.data.user
+						const isAuth = !!(hasUser && lastSession.data.session)
+						setIsAuthenticated(isAuth)
+						setUser(hasUser)
+					} else {
+						setIsAuthenticated(false)
+						setUser(null)
+					}
+					setIsLoading(false)
+					setShowAuthModal(!lastSession?.data?.user)
+				} else {
+					// For other errors, set unauthenticated but don't clear cache immediately
+					// This prevents rapid retries
+					setIsAuthenticated(false)
+					setUser(null)
+					setIsLoading(false)
+					setShowAuthModal(true)
+
+					// Only clear cache if it's been a while since last successful check
+					// This prevents clearing cache on transient errors
+					if (
+						!globalSessionCache ||
+						now - globalSessionCache.timestamp > SESSION_CACHE_DURATION
+					) {
+						globalSessionCache = {
+							session: null,
+							timestamp: now,
+							rateLimited: false,
+						}
+					}
+				}
 			} finally {
 				isCheckingAuth = false
 			}
@@ -170,12 +261,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setIsAuthenticated(isAuth)
 			setUser(hasUser)
 			setShowAuthModal(!hasUser)
-		} catch (error) {
+		} catch (error: any) {
+			// Check if this is a rate limit error (429)
+			const isRateLimit =
+				error?.status === 429 ||
+				error?.response?.status === 429 ||
+				error?.message?.includes('429') ||
+				error?.message?.includes('rate limit') ||
+				error?.message?.includes('Too Many Requests')
+
+			if (isRateLimit) {
+				// Cache the "no session" result with rate limit backoff
+				globalSessionCache = {
+					session: null,
+					timestamp: Date.now(),
+					rateLimited: true,
+					rateLimitUntil: Date.now() + RATE_LIMIT_BACKOFF,
+				}
+			} else {
+				// For other errors, preserve cache if recent
+				if (
+					!globalSessionCache ||
+					Date.now() - globalSessionCache.timestamp > SESSION_CACHE_DURATION
+				) {
+					globalSessionCache = {
+						session: null,
+						timestamp: Date.now(),
+						rateLimited: false,
+					}
+				}
+			}
+
 			setIsAuthenticated(false)
 			setUser(null)
 			setShowAuthModal(true)
-			// Clear cache on error
-			globalSessionCache = null
 		} finally {
 			setIsLoading(false)
 			isCheckingAuth = false

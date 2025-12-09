@@ -27,9 +27,8 @@ async function calculateMatchScoresForApplications(
 
 	try {
 		// Check authorization
-		const { canSeeMatchingScore } = await import(
-			"@/services/authorization"
-		);
+		const { canSeeMatchingScore } =
+			await import("@/services/authorization");
 		const applicantId = applications[0]?.applicant_id;
 		if (!applicantId) {
 			return matchScores;
@@ -372,9 +371,8 @@ export async function POST(request: NextRequest) {
 		}
 
 		// PLAN-BASED AUTHORIZATION: Check if applicant can apply to opportunities
-		const { canApplyToOpportunity } = await import(
-			"@/services/authorization"
-		);
+		const { canApplyToOpportunity } =
+			await import("@/services/authorization");
 		const eligibility = await canApplyToOpportunity(applicant.applicant_id);
 
 		if (!eligibility.canApply) {
@@ -608,9 +606,8 @@ export async function POST(request: NextRequest) {
 
 		// Send notification to institution about new application
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			// Get institution info and applicant info
 			const institution = await prismaClient.opportunityPost.findUnique({
@@ -636,6 +633,7 @@ export async function POST(request: NextRequest) {
 					`${applicant.first_name || ""} ${applicant.last_name || ""}`.trim() ||
 					"An applicant";
 
+				// Send notification to institution about new application
 				await NotificationUtils.sendNewApplicationNotification(
 					institution.institution.user.id,
 					institution.institution.user.email || "",
@@ -644,6 +642,19 @@ export async function POST(request: NextRequest) {
 					applicantName,
 					institution.institution.name
 				);
+
+				// Send confirmation notification to applicant
+				if (applicant.user) {
+					await NotificationUtils.sendApplicationStatusNotification(
+						applicant.user.id,
+						applicant.user.email || "",
+						application.application_id,
+						post.title,
+						"",
+						"SUBMITTED",
+						institution.institution.name
+					);
+				}
 			}
 		} catch (notificationError) {
 			console.error(

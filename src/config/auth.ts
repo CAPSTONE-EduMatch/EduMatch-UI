@@ -231,7 +231,7 @@ export const auth = betterAuth({
 						priceId:
 							process.env.STRIPE_STANDARD_PRICE_ID ||
 							process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID ||
-							"price_1SFXgR1f58RNYg0098jAKotV",
+							"price_1ScKov1f58RNYg00vyTjn04c",
 						limits: {
 							applications: 10,
 							scholarships: 50,
@@ -243,7 +243,7 @@ export const auth = betterAuth({
 						priceId:
 							process.env.STRIPE_PREMIUM_PRICE_ID ||
 							process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ||
-							"price_1S4fZ61f58RNYg00FWakIrLm",
+							"price_1ScKqu1f58RNYg00CW5F6SIp",
 						limits: {
 							applications: 25,
 							scholarships: 100,
@@ -256,7 +256,7 @@ export const auth = betterAuth({
 							process.env.STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
 							process.env
 								.NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
-							"price_1InstitutionMonthly",
+							"price_1ScKre1f58RNYg00yfjkz3ZE",
 						limits: {
 							applications: 999999,
 							scholarships: 999999,
@@ -269,7 +269,7 @@ export const auth = betterAuth({
 							process.env.STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
 							process.env
 								.NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
-							"price_1InstitutionYearly",
+							"price_1ScL0R1f58RNYg00KHw5wAFS",
 						limits: {
 							applications: 999999,
 							scholarships: 999999,

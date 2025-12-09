@@ -51,16 +51,16 @@ const PLAN_HIERARCHY = {
 const PLAN_PRICE_MAPPING = {
 	standard:
 		process.env.NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID ||
-		"price_1SFXgR1f58RNYg0098jAKotV",
+		"price_1ScKov1f58RNYg00vyTjn04c",
 	premium:
 		process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ||
-		"price_1S4fZ61f58RNYg00FWakIrLm",
+		"price_1ScKqu1f58RNYg00CW5F6SIp",
 	institution_monthly:
 		process.env.NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID ||
-		"price_1InstitutionMonthly",
+		"price_1ScKre1f58RNYg00yfjkz3ZE",
 	institution_yearly:
 		process.env.NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID ||
-		"price_1InstitutionYearly",
+		"price_1ScL0R1f58RNYg00KHw5wAFS",
 } as const;
 
 export function useSubscription(): SubscriptionHook {

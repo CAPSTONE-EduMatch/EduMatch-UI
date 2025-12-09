@@ -14,7 +14,14 @@ export async function GET() {
 		// Get user with role information to determine profile type
 		const userRecord = await prismaClient.user.findUnique({
 			where: { id: userId },
-			include: { userRole: true },
+			select: {
+				id: true,
+				role_id: true,
+				role: true,
+				name: true,
+				email: true,
+				image: true,
+			},
 		});
 
 		if (!userRecord) {
@@ -439,9 +446,8 @@ export async function POST(request: NextRequest) {
 		// Send notifications
 		if (newProfile) {
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				// Send welcome notification (for new users)
 				await NotificationUtils.sendWelcomeNotification(
@@ -617,9 +623,8 @@ export async function PUT(request: NextRequest) {
 
 					// Send notification about status change to UPDATED
 					try {
-						const { NotificationUtils } = await import(
-							"@/services/messaging/sqs-handlers"
-						);
+						const { NotificationUtils } =
+							await import("@/services/messaging/sqs-handlers");
 
 						const institution =
 							await prismaClient.institution.findUnique({

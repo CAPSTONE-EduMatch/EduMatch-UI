@@ -28,7 +28,6 @@ async function cleanDatabase() {
 		console.log("📋 Deleting application-related records...");
 		await prismaClient.applicationDetail.deleteMany({});
 		await prismaClient.applicationProfileSnapshot.deleteMany({});
-		await prismaClient.applicationUpdateRequest.deleteMany({});
 		await prismaClient.application.deleteMany({});
 
 		console.log("📋 Deleting wishlist records...");

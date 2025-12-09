@@ -24,7 +24,6 @@ model User {
   banExpires              DateTime?
   banReason               String?
   applicant               Applicant?
-  updateRequests          ApplicationUpdateRequest[]
   boxesAsUserOne          Box[]                      @relation("BoxUserOne")
   boxesAsUserTwo          Box[]                      @relation("BoxUserTwo")
   institution             Institution?
@@ -35,7 +34,6 @@ model User {
   accounts                Account[]
   invoices                Invoice[]
   sessions                Session[]
-  userRole                Role?                      @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("user")
 }
@@ -90,7 +88,6 @@ model Role {
   role_id String  @id
   name    String
   status  Boolean
-  users   User[]
 
   @@map("Role")
 }
@@ -411,7 +408,6 @@ model Application {
   post                       OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
   details                    ApplicationDetail[]
   ApplicationProfileSnapshot ApplicationProfileSnapshot?
-  updateRequests             ApplicationUpdateRequest[]
 
   @@index([applicant_id])
   @@index([post_id])
@@ -429,12 +425,9 @@ model ApplicationDetail {
   size                 Int
   document_type        DocumentTypeEnum          @default(OTHER)
   is_update_submission Boolean                   @default(false)
-  update_request_id    String?
   application          Application               @relation(fields: [application_id], references: [application_id], onDelete: NoAction, onUpdate: NoAction)
-  updateRequest        ApplicationUpdateRequest? @relation(fields: [update_request_id], references: [update_request_id], onUpdate: NoAction)
 
   @@index([application_id])
-  @@index([update_request_id])
   @@index([is_update_submission])
   @@map("ApplicationDetail")
 }
@@ -468,27 +461,6 @@ model ApplicationProfileSnapshot {
   application          Application @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
 
   @@map("ApplicationProfileSnapshot")
-}
-
-model ApplicationUpdateRequest {
-  update_request_id     String              @id
-  application_id        String
-  requested_by_user_id  String
-  request_message       String
-  requested_documents   String[]            @default([])
-  status                UpdateRequestStatus @default(PENDING)
-  created_at            DateTime            @default(now()) @db.Timestamptz(6)
-  response_submitted_at DateTime?           @db.Timestamptz(6)
-  response_message      String?
-  responseDocuments     ApplicationDetail[]
-  application           Application         @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
-  requestedBy           User                @relation(fields: [requested_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([application_id])
-  @@index([requested_by_user_id])
-  @@index([status])
-  @@index([created_at])
-  @@map("ApplicationUpdateRequest")
 }
 
 model InstitutionInfoRequest {

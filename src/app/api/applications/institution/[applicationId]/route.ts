@@ -94,30 +94,6 @@ export async function GET(
 			},
 			include: {
 				ApplicationProfileSnapshot: true, // Include the profile snapshot
-				updateRequests: {
-					include: {
-						requestedBy: {
-							select: {
-								id: true,
-								name: true,
-								email: true,
-							},
-						},
-						responseDocuments: {
-							select: {
-								document_id: true,
-								name: true,
-								url: true,
-								size: true,
-								document_type: true,
-								update_at: true,
-							},
-						},
-					},
-					orderBy: {
-						created_at: "desc",
-					},
-				},
 				applicant: {
 					include: {
 						user: {
@@ -182,9 +158,8 @@ export async function GET(
 
 			// Send notification to applicant about status change to PROGRESSING
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				if (application.applicant?.user) {
 					await NotificationUtils.sendApplicationStatusNotification(
@@ -448,7 +423,6 @@ export async function GET(
 						uploadDate:
 							detail.update_at?.toISOString() ||
 							new Date().toISOString(),
-						updateRequestId: detail.update_request_id,
 					})),
 				post: {
 					id: application.post.post_id,
@@ -693,36 +667,9 @@ export async function GET(
 			},
 		};
 
-		// Add update requests to response
-		const responseData = {
-			...transformedData,
-			updateRequests: application.updateRequests.map((req) => ({
-				updateRequestId: req.update_request_id,
-				requestMessage: req.request_message,
-				requestedDocuments: req.requested_documents,
-				status: req.status,
-				createdAt: req.created_at.toISOString(),
-				responseSubmittedAt: req.response_submitted_at?.toISOString(),
-				responseMessage: req.response_message,
-				requestedBy: {
-					userId: req.requestedBy.id,
-					name: req.requestedBy.name,
-					email: req.requestedBy.email,
-				},
-				responseDocuments: req.responseDocuments.map((doc) => ({
-					documentId: doc.document_id,
-					name: doc.name,
-					url: doc.url,
-					size: doc.size,
-					documentType: doc.document_type,
-					updatedAt: doc.update_at?.toISOString(),
-				})),
-			})),
-		};
-
 		return NextResponse.json({
 			success: true,
-			data: responseData,
+			data: transformedData,
 		});
 	} catch (error) {
 		if (process.env.NODE_ENV === "development") {
@@ -817,9 +764,8 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			if (application.applicant?.user) {
 				await NotificationUtils.sendApplicationStatusNotification(

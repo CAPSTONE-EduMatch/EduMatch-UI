@@ -301,6 +301,19 @@ export class SQSMessageHandler {
 					break;
 			}
 
+			// Check if notification already exists to prevent duplicates
+			const existingNotification =
+				await prismaClient.notification.findUnique({
+					where: { notification_id: message.id },
+				});
+
+			if (existingNotification) {
+				console.log(
+					`⚠️ Notification ${message.id} already exists, skipping duplicate storage`
+				);
+				return;
+			}
+
 			// Save notification to database
 			await prismaClient.notification.create({
 				data: {
@@ -410,10 +423,27 @@ export class NotificationUtils {
 		};
 
 		console.log("📝 Created message:", JSON.stringify(message, null, 2));
-		console.log("📤 Calling SQSService.sendNotification...");
+		console.log("📤 Calling unified queue API...");
 
-		await SQSService.sendNotification(message);
-		console.log("✅ SQSService.sendNotification completed");
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue welcome notification");
+		}
+
+		console.log("✅ Notification queued successfully");
 
 		// Also store directly in database for immediate display
 		await this.storeNotificationDirectly(message);
@@ -447,11 +477,28 @@ export class NotificationUtils {
 			},
 		};
 
-		console.log("📤 Sending notification to SQS...");
+		console.log("📤 Sending notification to queue API...");
 		console.log("📋 Message:", JSON.stringify(message, null, 2));
 
-		await SQSService.sendNotification(message);
-		console.log("✅ Notification sent to SQS successfully!");
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue profile created notification");
+		}
+
+		console.log("✅ Notification queued successfully!");
 
 		// Also store directly in database for immediate display
 		await this.storeNotificationDirectly(message);
@@ -653,6 +700,19 @@ export class NotificationUtils {
 					break;
 			}
 
+			// Check if notification already exists to prevent duplicates
+			const existingNotification =
+				await prismaClient.notification.findUnique({
+					where: { notification_id: message.id },
+				});
+
+			if (existingNotification) {
+				console.log(
+					`⚠️ Notification ${message.id} already exists, skipping duplicate storage`
+				);
+				return;
+			}
+
 			// Save notification to database
 			await prismaClient.notification.create({
 				data: {
@@ -702,7 +762,23 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue payment deadline notification");
+		}
 	}
 
 	/**
@@ -734,7 +810,23 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(notificationMessage);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(notificationMessage),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue application status notification");
+		}
 
 		// Also store directly in database for immediate display
 		await this.storeNotificationDirectly(notificationMessage);
@@ -753,22 +845,65 @@ export class NotificationUtils {
 		currency: string,
 		transactionId: string
 	): Promise<void> {
-		const message: NotificationMessage = {
-			id: `payment-success-${userId}-${Date.now()}`,
-			type: NotificationType.PAYMENT_SUCCESS,
-			userId,
-			userEmail,
-			timestamp: new Date().toISOString(),
-			metadata: {
-				subscriptionId,
-				planName,
-				amount,
-				currency,
-				transactionId,
-			},
-		};
+		try {
+			console.log(
+				`📧 Sending payment success notification for user ${userId} (${userEmail})`
+			);
 
-		await SQSService.sendNotification(message);
+			const message: NotificationMessage = {
+				id: `payment-success-${userId}-${Date.now()}`,
+				type: NotificationType.PAYMENT_SUCCESS,
+				userId,
+				userEmail,
+				timestamp: new Date().toISOString(),
+				metadata: {
+					subscriptionId,
+					planName,
+					amount,
+					currency,
+					transactionId,
+				},
+			};
+
+			console.log(
+				`📋 Payment success message created: ${JSON.stringify(message, null, 2)}`
+			);
+
+			// Use unified API endpoint for consistency
+			const baseUrl =
+				process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+				process.env.NEXT_PUBLIC_APP_URL ||
+				"http://localhost:3000";
+
+			const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(message),
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(
+					`Failed to queue payment success notification: ${errorText}`
+				);
+			}
+
+			console.log(
+				`✅ Payment success notification queued successfully for ${userEmail}`
+			);
+		} catch (error) {
+			console.error(
+				`❌ Error sending payment success notification for user ${userId}:`,
+				error
+			);
+			if (error instanceof Error) {
+				console.error(`❌ Error details: ${error.message}`);
+				console.error(`❌ Error stack: ${error.stack}`);
+			}
+			throw error;
+		}
 	}
 
 	/**
@@ -798,7 +933,26 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(
+				`Failed to queue payment failed notification: ${errorText}`
+			);
+		}
 	}
 
 	/**
@@ -826,7 +980,25 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				"Failed to queue subscription expiring notification"
+			);
+		}
 	}
 
 	/**
@@ -856,7 +1028,23 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue document update notification");
+		}
 
 		// Also store directly in database for immediate display
 		await this.storeNotificationDirectly(message);
@@ -892,24 +1080,43 @@ export class NotificationUtils {
 		};
 
 		console.log(
-			`📤 Attempting to send wishlist deadline notification to SQS for user ${userId}, post ${postId}`
+			`📤 Attempting to queue wishlist deadline notification for user ${userId}, post ${postId}`
 		);
 		try {
-			await SQSService.sendNotification(message);
+			// Use unified API endpoint for consistency
+			const baseUrl =
+				process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+				process.env.NEXT_PUBLIC_APP_URL ||
+				"http://localhost:3000";
+
+			const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(message),
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					"Failed to queue wishlist deadline notification"
+				);
+			}
+
 			console.log(
-				`✅ Successfully sent wishlist deadline notification to SQS for user ${userId}`
+				`✅ Successfully queued wishlist deadline notification for user ${userId}`
 			);
-		} catch (sqsError) {
+		} catch (error) {
 			console.error(
-				`❌ Failed to send wishlist deadline notification to SQS for user ${userId}:`,
-				sqsError
+				`❌ Failed to queue wishlist deadline notification for user ${userId}:`,
+				error
 			);
-			if (sqsError instanceof Error) {
-				console.error(`❌ SQS Error details:`, sqsError.message);
-				console.error(`❌ SQS Error stack:`, sqsError.stack);
+			if (error instanceof Error) {
+				console.error(`❌ Error details:`, error.message);
+				console.error(`❌ Error stack:`, error.stack);
 			}
 			// Re-throw to ensure the error is visible
-			throw sqsError;
+			throw error;
 		}
 
 		// Also store directly in database for immediate display
@@ -949,7 +1156,24 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue post status update notification");
+		}
+
 		await this.storeNotificationDirectly(message);
 	}
 
@@ -982,7 +1206,26 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				"Failed to queue institution profile status update notification"
+			);
+		}
+
 		await this.storeNotificationDirectly(message);
 	}
 
@@ -1015,7 +1258,24 @@ export class NotificationUtils {
 			},
 		};
 
-		await SQSService.sendNotification(message);
+		// Use unified API endpoint for consistency
+		const baseUrl =
+			process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+			process.env.NEXT_PUBLIC_APP_URL ||
+			"http://localhost:3000";
+
+		const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(message),
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to queue new application notification");
+		}
+
 		await this.storeNotificationDirectly(message);
 	}
 }

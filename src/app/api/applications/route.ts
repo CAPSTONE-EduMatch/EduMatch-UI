@@ -633,6 +633,7 @@ export async function POST(request: NextRequest) {
 					`${applicant.first_name || ""} ${applicant.last_name || ""}`.trim() ||
 					"An applicant";
 
+				// Send notification to institution about new application
 				await NotificationUtils.sendNewApplicationNotification(
 					institution.institution.user.id,
 					institution.institution.user.email || "",
@@ -641,6 +642,19 @@ export async function POST(request: NextRequest) {
 					applicantName,
 					institution.institution.name
 				);
+
+				// Send confirmation notification to applicant
+				if (applicant.user) {
+					await NotificationUtils.sendApplicationStatusNotification(
+						applicant.user.id,
+						applicant.user.email || "",
+						application.application_id,
+						post.title,
+						"",
+						"SUBMITTED",
+						institution.institution.name
+					);
+				}
 			}
 		} catch (notificationError) {
 			console.error(

@@ -6,7 +6,7 @@ import PasswordCriteriaChecker, {
 import { Button } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
 import { authClient } from '@/config/auth-client'
-import { NotificationType, SQSService } from '@/config/sqs-config'
+import { NotificationType } from '@/config/sqs-config'
 import { clearSessionCache } from '@/services/messaging/appsync-client'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -164,20 +164,31 @@ export const PasswordChangeSection: React.FC<PasswordChangeSectionProps> = ({
 					setIsPasswordModalOpen(false)
 					setPasswordSuccess(false)
 
-					// Send password change notification email
+					// Send password change notification email via API
 					try {
-						await SQSService.sendEmailMessage({
-							id: `password-change-${profile.user.id}-${Date.now()}`,
-							type: NotificationType.PASSWORD_CHANGED,
-							userId: profile.user.id,
-							userEmail: profile.user.email,
-							timestamp: new Date().toISOString(),
-							metadata: {
-								firstName: profile.user.firstName || '',
-								lastName: profile.user.lastName || '',
-								changeTime: new Date().toISOString(),
+						const response = await fetch('/api/notifications/queue', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
 							},
+							credentials: 'include',
+							body: JSON.stringify({
+								id: `password-change-${profile.user.id}-${Date.now()}`,
+								type: NotificationType.PASSWORD_CHANGED,
+								userId: profile.user.id,
+								userEmail: profile.user.email,
+								timestamp: new Date().toISOString(),
+								metadata: {
+									firstName: profile.user.firstName || '',
+									lastName: profile.user.lastName || '',
+									changeTime: new Date().toISOString(),
+								},
+							}),
 						})
+
+						if (!response.ok) {
+							throw new Error('Failed to queue password change notification')
+						}
 					} catch (emailError) {
 						// Email sending failure shouldn't block the password change flow
 						// eslint-disable-next-line no-console

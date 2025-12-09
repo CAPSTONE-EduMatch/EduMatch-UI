@@ -449,15 +449,8 @@ export async function POST(request: NextRequest) {
 				const { NotificationUtils } =
 					await import("@/services/messaging/sqs-handlers");
 
-				// Send welcome notification (for new users)
-				await NotificationUtils.sendWelcomeNotification(
-					userId,
-					user.email || "",
-					formData.firstName || "",
-					formData.lastName || ""
-				);
-
 				// Send profile created notification
+				// Note: Welcome notification should only be sent on signup, not profile creation
 				await NotificationUtils.sendProfileCreatedNotification(
 					userId,
 					user.email || "",

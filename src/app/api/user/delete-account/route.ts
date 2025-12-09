@@ -1,4 +1,4 @@
-import { NotificationType, SQSService } from "@/config/sqs-config";
+import { NotificationType } from "@/config/sqs-config";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma";
@@ -46,21 +46,39 @@ export async function DELETE() {
 		// Invalidate all sessions for the user
 		await prismaClient.session.deleteMany({ where: { userId } });
 
-		// Send account deletion notification email
+		// Send account deletion notification email via API
 		try {
-			await SQSService.sendEmailMessage({
-				id: `account-deleted-${userId}-${Date.now()}`,
-				type: NotificationType.ACCOUNT_DELETED,
-				userId: userId,
-				userEmail: updatedUser.email,
-				timestamp: new Date().toISOString(),
-				metadata: {
-					firstName: updatedUser.name?.split(" ")[0] || "",
-					lastName:
-						updatedUser.name?.split(" ").slice(1).join(" ") || "",
-					deletionTime: new Date().toISOString(),
+			const baseUrl =
+				process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+				process.env.NEXT_PUBLIC_APP_URL ||
+				"http://localhost:3000";
+
+			const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
+				body: JSON.stringify({
+					id: `account-deleted-${userId}-${Date.now()}`,
+					type: NotificationType.ACCOUNT_DELETED,
+					userId: userId,
+					userEmail: updatedUser.email,
+					timestamp: new Date().toISOString(),
+					metadata: {
+						firstName: updatedUser.name?.split(" ")[0] || "",
+						lastName:
+							updatedUser.name?.split(" ").slice(1).join(" ") ||
+							"",
+						deletionTime: new Date().toISOString(),
+					},
+				}),
 			});
+
+			if (!response.ok) {
+				throw new Error(
+					"Failed to queue account deletion notification"
+				);
+			}
 		} catch (emailError) {
 			// Email sending failure shouldn't block the account deletion
 			// eslint-disable-next-line no-console

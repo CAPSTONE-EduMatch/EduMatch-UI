@@ -353,41 +353,103 @@ export function generateApplicationStatusEmailTemplate(
 	institutionName: string,
 	oldStatus: string,
 	newStatus: string,
-	message?: string
+	message?: string,
+	isInstitution: boolean = false,
+	applicationId?: string,
+	applicantName?: string
 ): { subject: string; html: string } {
-	const subject = `Application Status Update - ${escapeHtml(programName)}`;
+	const baseUrl =
+		process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+		"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
 
-	const statusBadgeColor = getStatusColor(newStatus);
-	const statusContent = getStatusSpecificContent(newStatus, message);
+	if (isInstitution) {
+		// Email template for institution
+		const subject = `New Application Received - ${escapeHtml(programName)}`;
 
-	const bodyHtml = `
-		<p>We have an update regarding your application to <strong>${escapeHtml(programName)}</strong> at <strong>${escapeHtml(institutionName)}</strong>.</p>
-		
-		<div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
-			<p style="margin: 0 0 12px; font-weight: 600;">Application Details:</p>
-			<p style="margin: 4px 0;"><strong>Program:</strong> ${escapeHtml(programName)}</p>
-			<p style="margin: 4px 0;"><strong>Institution:</strong> ${escapeHtml(institutionName)}</p>
-			<p style="margin: 4px 0;"><strong>Previous Status:</strong> ${escapeHtml(oldStatus)}</p>
-			<p style="margin: 4px 0;"><strong>New Status:</strong> <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; background: ${statusBadgeColor}; color: white; font-weight: 600; font-size: 14px;">${escapeHtml(newStatus)}</span></p>
-		</div>
-		
-		${statusContent}
-		
-		<p style="margin-top: 20px;">If you have any questions about this update, please don't hesitate to contact the institution directly or reach out to our support team.</p>
-	`;
+		const bodyHtml = `
+			<p>You have received a new application for <strong>${escapeHtml(programName)}</strong>.</p>
+			
+			<div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+				<p style="margin: 0 0 12px; font-weight: 600;">Application Details:</p>
+				<p style="margin: 4px 0;"><strong>Program:</strong> ${escapeHtml(programName)}</p>
+				${applicantName ? `<p style="margin: 4px 0;"><strong>Applicant:</strong> ${escapeHtml(applicantName)}</p>` : ""}
+				<p style="margin: 4px 0;"><strong>Status:</strong> <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; background: #2196F3; color: white; font-weight: 600; font-size: 14px;">Submitted</span></p>
+			</div>
+			
+			<p>Please review the application and take appropriate action.</p>
+		`;
 
-	const html = renderCompanyEmail({
-		title: "Application Status Update",
-		preheader: "Your application status has changed",
-		bodyHtml,
-		primaryCta: {
-			label: "View Application",
-			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view?tab=application`,
-		},
-		brandingColor: "#2196F3",
-	});
+		const html = renderCompanyEmail({
+			title: "New Application Received",
+			preheader: "A new application has been submitted",
+			bodyHtml,
+			primaryCta: {
+				label: "Review Application",
+				url: `${baseUrl}/institution/dashboard/applications/${applicationId || ""}`,
+			},
+			brandingColor: "#2196F3",
+		});
 
-	return { subject, html };
+		return { subject, html };
+	} else {
+		// Email template for applicant
+		const subject =
+			newStatus.toUpperCase() === "SUBMITTED"
+				? `Application Submitted - ${escapeHtml(programName)}`
+				: `Application Status Update - ${escapeHtml(programName)}`;
+
+		const statusBadgeColor = getStatusColor(newStatus);
+		const statusContent = getStatusSpecificContent(newStatus, message);
+
+		const bodyHtml =
+			newStatus.toUpperCase() === "SUBMITTED"
+				? `
+			<p>Thank you for your interest! Your application to <strong>${escapeHtml(programName)}</strong> at <strong>${escapeHtml(institutionName)}</strong> has been successfully submitted.</p>
+			
+			<div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+				<p style="margin: 0 0 12px; font-weight: 600;">Application Details:</p>
+				<p style="margin: 4px 0;"><strong>Program:</strong> ${escapeHtml(programName)}</p>
+				<p style="margin: 4px 0;"><strong>Institution:</strong> ${escapeHtml(institutionName)}</p>
+				<p style="margin: 4px 0;"><strong>Status:</strong> <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; background: #4CAF50; color: white; font-weight: 600; font-size: 14px;">Submitted</span></p>
+			</div>
+			
+			<p>Your application is now under review. We'll notify you as soon as there are any updates from the institution.</p>
+		`
+				: `
+			<p>We have an update regarding your application to <strong>${escapeHtml(programName)}</strong> at <strong>${escapeHtml(institutionName)}</strong>.</p>
+			
+			<div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+				<p style="margin: 0 0 12px; font-weight: 600;">Application Details:</p>
+				<p style="margin: 4px 0;"><strong>Program:</strong> ${escapeHtml(programName)}</p>
+				<p style="margin: 4px 0;"><strong>Institution:</strong> ${escapeHtml(institutionName)}</p>
+				${oldStatus ? `<p style="margin: 4px 0;"><strong>Previous Status:</strong> ${escapeHtml(oldStatus)}</p>` : ""}
+				<p style="margin: 4px 0;"><strong>New Status:</strong> <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; background: ${statusBadgeColor}; color: white; font-weight: 600; font-size: 14px;">${escapeHtml(newStatus)}</span></p>
+			</div>
+			
+			${statusContent}
+			
+			<p style="margin-top: 20px;">If you have any questions about this update, please don't hesitate to contact the institution directly or reach out to our support team.</p>
+		`;
+
+		const html = renderCompanyEmail({
+			title:
+				newStatus.toUpperCase() === "SUBMITTED"
+					? "Application Submitted"
+					: "Application Status Update",
+			preheader:
+				newStatus.toUpperCase() === "SUBMITTED"
+					? "Your application has been submitted"
+					: "Your application status has changed",
+			bodyHtml,
+			primaryCta: {
+				label: "View Application",
+				url: `${baseUrl}/applications`,
+			},
+			brandingColor: "#2196F3",
+		});
+
+		return { subject, html };
+	}
 }
 
 /**

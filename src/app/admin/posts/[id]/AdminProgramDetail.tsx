@@ -1159,8 +1159,13 @@ const AdminProgramDetail = () => {
 					src={currentProgram?.institution?.coverImage || CoverImage}
 					alt={currentProgram?.institution?.name || 'University'}
 					fill
+					unoptimized
 					className="object-cover"
 					priority
+					onError={(e) => {
+						const target = e.currentTarget as HTMLImageElement
+						target.src = CoverImage.src
+					}}
 				/>
 
 				<div className="container mx-auto px-4 h-full relative">

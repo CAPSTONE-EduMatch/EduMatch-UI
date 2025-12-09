@@ -135,32 +135,20 @@ export function ProgramCard({
 			className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
 		>
 			{/* Header with logo and wishlist */}
-			<div className="flex justify-between items-start mb-4 gap-10">
-				{/* <div className="flex items-center gap-3">
-					<div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center">
-						<span className="text-white text-xl font-bold">{program.logo}</span>
-					</div>
-					<div>
-						<div className="text-xl font-bold text-gray-900">HARVARD</div>
-						<div className="text-sm text-gray-600 tracking-wider">
-							UNIVERSITY
-						</div>
-					</div>
-				</div> */}
-
-				<div className="">
+			<div className="flex justify-between items-start mb-4 gap-4">
+				<div className="flex-shrink-0 relative w-[150px] h-[90px] flex items-center justify-start bg-white rounded-lg">
 					{program.logo ? (
 						isProtectedS3Url(program.logo) ? (
 							<ProtectedImage
 								src={program.logo}
 								alt={program.university}
-								width={140}
-								height={140}
-								className="rounded-lg h-[124px] w-[124px] object-cover"
+								width={150}
+								height={90}
+								className="rounded-lg max-w-[150px] max-h-[90px] w-auto h-auto object-contain"
 								expiresIn={7200}
 								autoRefresh={true}
 								errorFallback={
-									<div className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center">
+									<div className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center">
 										<span className="text-gray-400 text-xs text-center px-2">
 											{program.university.substring(0, 2).toUpperCase()}
 										</span>
@@ -172,8 +160,9 @@ export function ProgramCard({
 								src={program.logo}
 								alt={program.university}
 								width={140}
-								height={140}
-								className="rounded-lg h-[124px] w-[124px] object-cover"
+								height={80}
+								unoptimized
+								className="rounded-lg max-w-[140px] max-h-[80px] w-auto h-auto object-contain"
 								onError={(e) => {
 									const target = e.currentTarget
 									target.style.display = 'none'
@@ -182,10 +171,16 @@ export function ProgramCard({
 								}}
 							/>
 						)
-					) : null}
+					) : (
+						<div className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center">
+							<span className="text-gray-400 text-xs text-center px-2">
+								{program.university.substring(0, 2).toUpperCase()}
+							</span>
+						</div>
+					)}
 					{/* Fallback that shows when image fails to load */}
 					<div
-						className="w-[124px] h-[124px] bg-gray-200 rounded-lg items-center justify-center"
+						className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center absolute"
 						style={{ display: 'none' }}
 					>
 						<span className="text-gray-400 text-xs text-center px-2">

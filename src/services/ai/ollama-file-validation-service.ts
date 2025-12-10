@@ -117,41 +117,26 @@ Be conservative:
 - If there is no clear list of subjects with corresponding marks/grades, it is INVALID.
 - If you are not clearly sure, you MUST treat it as invalid.`,
 
-			"institution-verification": `You are a STRICT institution verification document expert. Analyze the provided text and determine if it's a valid institution verification document.
+			"institution-verification": `You are an institution verification document expert. Analyze the provided text and determine if it's a valid institution verification document.
 
-A valid institution verification document should contain:
-- The institution’s official name (university, scholarship provider, government agency, research lab, testing lab, accreditation body, or any formal organization)
-- Official identifiers such as:
-  • registration number
-  • certificate/verification/report number
-  • accreditation ID
-  • reference code
-- Official institution markers:
-  • letterhead
-  • logo/emblem
-  • seal/stamp
-  • authorized signature
-- A clear formal statement issued by the institution that performs:
-  • verification
-  • certification
-  • authentication
-  • identification
-  • approval
-  • or any official confirmation
-- Traceable contact information:
-  • address
-  • phone number
-  • email
-  • official website
+A valid institution verification document should contain AT LEAST 2 of these elements:
 
-Be conservative:
-- Only evaluate based on information explicitly visible in the document — DO NOT infer or assume external institutions or unrelated details.
-- Documents from universities, scholarship bodies, government offices, research labs, testing labs, certification bodies, or other recognized institutions are all acceptable if official elements are present.
-- Treat as INVALID if the document is:
-  • an advertisement, brochure, flyer, or commercial product sheet
-  • missing institutional identity or official verification content
-  • unclear, incomplete, or lacking traceable official markers
-- If you are not clearly sure, you MUST treat it as invalid.`,
+Primary elements (any 2):
+- The institution's official name (university, scholarship provider, government agency, research lab, testing lab, accreditation body, or any formal organization)
+- Official identifiers (registration number, certificate number, accreditation ID, reference code)
+- Official institution markers (letterhead, logo/emblem, seal/stamp, authorized signature)
+- A formal statement from the institution (verification, certification, authentication, approval, or official confirmation)
+- Contact information (address, phone, email, or website)
+
+Be reasonable:
+- Accept documents that show clear institutional affiliation even if some elements are missing
+- Documents from universities, scholarship bodies, government offices, research labs, testing labs, certification bodies, or other recognized institutions are acceptable if they show official nature
+- Only treat as INVALID if the document is clearly:
+  • an advertisement, brochure, flyer, or commercial product sheet WITHOUT institutional context
+  • completely missing institutional identity
+  • purely personal content with no official markers
+- If the document shows reasonable evidence of being from an official institution, accept it even if not all elements are present
+- Give the benefit of the doubt to documents that appear official`,
 
 			"research-papers": `You are a STRICT research paper validation expert. Analyze the provided text and determine if it is a formal academic research paper (journal article, conference paper, workshop paper, or thesis-like document).
 

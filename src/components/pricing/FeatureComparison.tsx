@@ -22,6 +22,55 @@ export function FeatureComparison() {
 		return <FeatureComparisonError error={error} />
 	}
 
+	// Helper function to normalize feature text for translation lookup
+	const normalizeFeatureText = (text: string): string => {
+		// Remove extra whitespace, normalize line breaks, and trim
+		return text
+			.replace(/\s+/g, ' ') // Replace multiple spaces/newlines with single space
+			.trim()
+	}
+
+	// Helper function to translate plan name
+	const translatePlanName = (planName: string): string => {
+		const planNames = t.raw('comparison.plan_names') as
+			| Record<string, string>
+			| undefined
+
+		if (planNames && typeof planNames === 'object' && planNames[planName]) {
+			return planNames[planName]
+		}
+
+		return planName
+	}
+
+	// Helper function to translate feature
+	const translateFeature = (featureName: string): string => {
+		const normalized = normalizeFeatureText(featureName)
+
+		// Get the entire feature_map object
+		const featureMap = t.raw('comparison.feature_map') as
+			| Record<string, string>
+			| undefined
+
+		if (featureMap && typeof featureMap === 'object') {
+			// Direct lookup
+			if (featureMap[normalized]) {
+				return featureMap[normalized]
+			}
+
+			// Try finding with case-insensitive match
+			const key = Object.keys(featureMap).find(
+				(k) => k.toLowerCase() === normalized.toLowerCase()
+			)
+			if (key && featureMap[key]) {
+				return featureMap[key]
+			}
+		}
+
+		// Fallback to original text
+		return featureName
+	}
+
 	// Generate unique features across all plans
 	const allFeatures = Array.from(
 		new Set(plans.flatMap((plan) => plan.features))
@@ -74,17 +123,14 @@ export function FeatureComparison() {
 								style={{ animationDelay: `${800 + index * 100}ms` }}
 							>
 								<h3 className="text-xl font-bold text-black mb-2">
-									{plan.name}
-									{plan.popular && (
-										<span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">
-											Popular
-										</span>
-									)}
-								</h3>
+									{translatePlanName(plans[index].name)}
+								</h3>{' '}
 								<div className="text-2xl font-bold text-black">
 									${plans[index].month_price / 100}
 								</div>
-								<div className="text-sm text-[#A2A2A2]">/monthly</div>
+								<div className="text-sm text-[#A2A2A2]">
+									/{t('comparison.monthly')}
+								</div>
 							</div>
 						))}
 					</div>
@@ -102,7 +148,7 @@ export function FeatureComparison() {
 							>
 								<div className="flex items-center">
 									<span className="text-sm text-black font-medium">
-										{featureName}
+										{translateFeature(featureName)}
 									</span>
 								</div>
 								{plans.map((plan, planIndex) => (
@@ -129,17 +175,19 @@ export function FeatureComparison() {
 						<div key={planIndex} className="bg-[#FBFBFB] rounded-3xl p-6">
 							<div className="text-center mb-6 pb-6 border-b border-gray-200">
 								<h3 className="text-xl font-bold text-black mb-2">
-									{plan.name}
+									{translatePlanName(plans[planIndex].name)}
 									{plan.popular && (
 										<span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">
 											Popular
 										</span>
 									)}
-								</h3>
+								</h3>{' '}
 								<div className="text-2xl font-bold text-black">
 									${plans[planIndex].month_price / 100}
 								</div>
-								<div className="text-sm text-[#A2A2A2]">/monthly</div>
+								<div className="text-sm text-[#A2A2A2]">
+									/{t('comparison.monthly')}
+								</div>
 							</div>
 							<div className="space-y-4">
 								{allFeatures.map((featureName, featureIndex) => {
@@ -151,7 +199,7 @@ export function FeatureComparison() {
 											className="flex items-center justify-between"
 										>
 											<span className="text-sm text-black font-medium flex-1 pr-4">
-												{featureName}
+												{translateFeature(featureName)}
 											</span>
 											{included ? (
 												<div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">

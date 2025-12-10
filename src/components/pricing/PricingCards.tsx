@@ -70,14 +70,82 @@ export function PricingCards() {
 		return planHierarchy < currentPlanData.hierarchy
 	}
 
+	// Helper function to normalize feature text for translation lookup
+	const normalizeFeatureText = (text: string): string => {
+		// Remove extra whitespace, normalize line breaks, and trim
+		return text
+			.replace(/\s+/g, ' ') // Replace multiple spaces/newlines with single space
+			.trim()
+	}
+
+	// Helper function to translate plan name
+	const translatePlanName = (planName: string): string => {
+		const planNames = t.raw('comparison.plan_names') as
+			| Record<string, string>
+			| undefined
+
+		if (planNames && typeof planNames === 'object' && planNames[planName]) {
+			return planNames[planName]
+		}
+
+		return planName
+	}
+
+	// Helper function to translate plan description
+	const translatePlanDescription = (description: string): string => {
+		const planDescriptions = t.raw('comparison.plan_descriptions') as
+			| Record<string, string>
+			| undefined
+
+		if (
+			planDescriptions &&
+			typeof planDescriptions === 'object' &&
+			planDescriptions[description]
+		) {
+			return planDescriptions[description]
+		}
+
+		return description
+	}
+
+	// Helper function to translate feature
+	const translateFeature = (featureName: string): string => {
+		const normalized = normalizeFeatureText(featureName)
+
+		// Get the entire feature_map object
+		const featureMap = t.raw('comparison.feature_map') as
+			| Record<string, string>
+			| undefined
+
+		if (featureMap && typeof featureMap === 'object') {
+			// Direct lookup
+			if (featureMap[normalized]) {
+				return featureMap[normalized]
+			}
+
+			// Try finding with case-insensitive match
+			const key = Object.keys(featureMap).find(
+				(k) => k.toLowerCase() === normalized.toLowerCase()
+			)
+			if (key && featureMap[key]) {
+				return featureMap[key]
+			}
+		}
+
+		// Fallback to original text
+		return featureName
+	}
+
 	// Map database plans to component structure
 	const plans = dbPlans.map((plan) => ({
 		name: plan.name,
+		translatedName: translatePlanName(plan.name),
 		planId: plan.plan_id,
 		planNameKey: getPlanNameKey(plan.hierarchy), // For canUpgradeTo
 		price: plan.month_price / 100, // Convert cents to dollars
 		period: 'MONTHLY',
 		description: plan.description || '',
+		translatedDescription: translatePlanDescription(plan.description || ''),
 		features: plan.features,
 		buttonText:
 			plan.hierarchy === 0
@@ -323,17 +391,19 @@ export function PricingCards() {
 								{/* Plan Header */}
 								<div className="mb-8">
 									<h3 className="text-2xl lg:text-3xl font-bold text-black mb-4">
-										{plan.name}
+										{plan.translatedName}
 									</h3>
 									<div className="mb-4">
 										<span className="text-3xl lg:text-4xl font-bold text-black">
 											${plan.price}
 										</span>
 										<span className="text-lg text-black ml-2">
-											/ {plan.period}
+											/ {t('comparison.monthly')}
 										</span>
 									</div>
-									<p className="text-[#A2A2A2] text-base">{plan.description}</p>
+									<p className="text-[#A2A2A2] text-base">
+										{plan.translatedDescription}
+									</p>
 								</div>
 
 								{/* Features */}
@@ -342,6 +412,7 @@ export function PricingCards() {
 										{t('includes')}
 									</h4>
 									<ul className="space-y-4">
+										{' '}
 										{plan.features.map((feature, featureIndex) => (
 											<li
 												key={featureIndex}
@@ -354,7 +425,7 @@ export function PricingCards() {
 													<div className="w-2 h-2 bg-black rounded-full"></div>
 												</div>
 												<span className="text-sm text-[#A2A2A2] leading-relaxed">
-													{feature}
+													{translateFeature(feature)}
 												</span>
 											</li>
 										))}

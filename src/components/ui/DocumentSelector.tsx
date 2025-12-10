@@ -33,6 +33,28 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 	const t = useTranslations('document_selector')
 	const { documents, loading, error } = useApplicantDocuments()
 
+	// Helper function to convert document type name to translation key
+	const getDocumentTypeKey = (typeName: string): string => {
+		// Map common document type names to translation keys
+		const typeMap: Record<string, string> = {
+			'Research Proposal': 'research_proposal',
+			'CV/Resume': 'cv_resume',
+			Portfolio: 'portfolio',
+			'Academic Transcript': 'academic_transcript',
+			'Personal Statement': 'personal_statement',
+			'Recommendation Letter': 'recommendation_letter',
+			'Language Certificate': 'language_certificate',
+			'Passport Copy': 'passport_copy',
+			'Degree Certificate': 'degree_certificate',
+			'Research Paper': 'research_paper',
+			'Institution Verification': 'institution_verification',
+			'Required Documents': 'required_documents',
+		}
+
+		// Return mapped key or convert to snake_case as fallback
+		return typeMap[typeName] || typeName.toLowerCase().replace(/[\/\s]+/g, '_')
+	}
+
 	// Group documents by type for better organization
 	const groupedDocuments = documents.reduce(
 		(acc, doc) => {
@@ -142,8 +164,15 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
 										className="bg-white border border-gray-200 rounded-lg p-6"
 									>
 										<h4 className="font-medium text-gray-700 mb-4 pb-2 border-b border-gray-200">
-											{documentType?.name || t('folder.other_documents')} (
-											{docs.length})
+											{documentType?.name
+												? t(
+														`document_types.${getDocumentTypeKey(documentType.name)}`,
+														{
+															default: documentType.name,
+														}
+													)
+												: t('folder.other_documents')}{' '}
+											({docs.length})
 										</h4>
 										<div className="grid gap-3">
 											{docs.map((document) => {

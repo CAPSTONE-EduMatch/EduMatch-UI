@@ -528,6 +528,21 @@
 		"folder": {
 			"other_documents": "Tài Liệu Khác"
 		},
+		"document_types": {
+			"research_proposal": "Đề xuất nghiên cứu",
+			"cv_resume": "Sơ yếu lý lịch",
+			"portfolio": "Hồ sơ năng lực",
+			"academic_transcript": "Bảng điểm học tập",
+			"personal_statement": "Thư động lực",
+			"recommendation_letter": "Thư giới thiệu",
+			"language_certificate": "Chứng chỉ ngoại ngữ",
+			"passport_copy": "Bản sao hộ chiếu",
+			"degree_certificate": "Bằng cấp",
+			"research_paper": "Bài báo nghiên cứu",
+			"institution_verification": "Xác nhận cơ sở giáo dục",
+			"required_documents": "Tài liệu bắt buộc",
+			"other": "Khác"
+		},
 		"loading": "Đang tải tài liệu...",
 		"error": "Không thể tải tài liệu"
 	},
@@ -1332,7 +1347,7 @@
 		"hero": {
 			"badge": "Gói dịch vụ",
 			"title": "Chọn gói phù hợp với bạn",
-			"description": "Chọn gói dịch vụ phù hợp với nhu cầu tìm kiếm học bổng của bạn. Từ tìm kiếm cơ bản đến khớp nối AI, chúng tôi đều có."
+			"description": "Chọn gói dịch vụ phù hợp với nhu cầu tìm kiếm học bổng của bạn. Từ tìm kiếm cơ bản đến kết hợp AI, chúng tôi đều có."
 		},
 		"plans": {
 			"free": {
@@ -1441,6 +1456,58 @@
 			"title": "So Sánh Các Gói",
 			"description": "Chọn gói phù hợp nhất với nhu cầu săn học bổng và ngân sách của bạn.",
 			"features_header": "Tính Năng",
+			"monthly": "tháng",
+			"feature_map": {
+				"Account registration & OTP verification": "Đăng ký tài khoản & xác thực OTP",
+				"Create & update personal profile (GPA, skills, research topic, etc.)": "Tạo & cập nhật hồ sơ cá nhân (GPA, kỹ năng, chủ đề nghiên cứu, v.v.)",
+				"Basic scholarship, program & research group search": "Tìm kiếm học bổng, chương trình & nhóm nghiên cứu cơ bản",
+				"View scholarship details & requirements": "Xem chi tiết học bổng & yêu cầu",
+				"Receive deadline reminders for saved scholarships/programs": "Nhận nhắc nhở deadline cho học bổng/chương trình đã lưu",
+				"Send messages to scholarship staff / professors": "Gửi tin nhắn cho nhân viên học bổng / giáo sư",
+				"See matching score for scholarships / research groups": "Xem điểm khớp cho học bổng / nhóm nghiên cứu",
+				"Basic recommendations (rule-based)": "Đề xuất cơ bản (dựa trên quy tắc)",
+				"Advanced AI Matching": "Khớp Nối AI Nâng Cao",
+				"Search scholarships with natural language input": "Tìm kiếm học bổng bằng ngôn ngữ tự nhiên",
+				"Unlimited applications": "Đơn ứng tuyển không giới hạn",
+				"Unlimited messaging": "Nhắn tin không giới hạn",
+				"All Free Plan features": "Tất cả tính năng Gói Miễn Phí",
+				"All Standard Plan features": "Tất cả tính năng Gói Tiêu Chuẩn",
+				"Everything in Free": "Tất cả tính năng Gói Miễn Phí",
+				"Everything in Standard": "Tất cả tính năng Gói Tiêu Chuẩn",
+				"Advanced scholarship matching algorithms": "Thuật toán khớp học bổng nâng cao",
+				"Priority application tracking": "Theo dõi đơn ứng tuyển ưu tiên",
+				"Extended program database access": "Truy cập cơ sở dữ liệu chương trình mở rộng",
+				"Email notifications & reminders": "Thông báo & nhắc nhở qua email",
+				"Direct messaging with admissions staff": "Nhắn tin trực tiếp với nhân viên tuyển sinh",
+				"Application deadline calendar sync": "Đồng bộ lịch deadline đơn ứng tuyển",
+				"Basic analytics dashboard": "Bảng phân tích cơ bản",
+				"AI-powered essay review & suggestions": "Đánh giá & gợi ý bài luận bằng AI",
+				"One-on-one consultation calls": "Cuộc gọi tư vấn một-kèm-một",
+				"Custom scholarship recommendations": "Đề xuất học bổng tùy chỉnh",
+				"Application document templates": "Mẫu tài liệu ứng tuyển",
+				"Interview preparation resources": "Tài liệu chuẩn bị phỏng vấn",
+				"Exclusive webinars & workshops": "Hội thảo & workshop độc quyền",
+				"Priority customer support": "Hỗ trợ khách hàng ưu tiên",
+				"Create and manage comprehensive institutional profiles with branding and details.": "Tạo và quản lý hồ sơ tổ chức toàn diện với thương hiệu và chi tiết",
+				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines.": "Đăng cơ hội chi tiết với mô tả, tiêu chí đủ điều kiện và hạn chót",
+				"Access intelligent matching algorithms to find the best candidates.": "Truy cập thuật toán khớp thông minh để tìm ứng viên tốt nhất",
+				"View detailed applicant profiles with matching scores and analytics.": "Xem hồ sơ ứng viên chi tiết với điểm khớp và phân tích",
+				"Invite applicants for interviews and update selection results seamlessly.": "Mời ứng viên phỏng vấn và cập nhật kết quả tuyển chọn liền mạch",
+				"Communicate with applicants via built-in chat and email systems.": "Giao tiếp với ứng viên qua hệ thống chat và email tích hợp",
+				"Monitor engagement statistics, views, and applications through web dashboards.": "Theo dõi thống kê tương tác, lượt xem và đơn ứng tuyển qua bảng điều khiển web"
+			},
+			"plan_names": {
+				"Free Plan": "Gói Miễn Phí",
+				"Standard Plan": "Gói Tiêu Chuẩn",
+				"Premium Plan": "Gói Cao Cấp",
+				"Institution Plan": "Gói Tổ Chức"
+			},
+			"plan_descriptions": {
+				"Basic plan for students": "Gói cơ bản cho sinh viên",
+				"Perfect for active scholarship hunters and applicants": "Hoàn hảo cho người săn học bổng và ứng viên tích cực",
+				"Unlimited and unlock all functions": "Không giới hạn và mở khóa tất cả chức năng",
+				"Institution plan for Education Group": "Gói tổ chức cho Nhóm Giáo dục"
+			},
 			"features": [
 				"Đăng ký tài khoản & xác thực OTP",
 				"Tạo & cập nhật hồ sơ cá nhân (GPA, kỹ năng, chủ đề nghiên cứu, v.v.)",
@@ -1471,7 +1538,7 @@
 				},
 				{
 					"question": "Điều gì làm cho Gói Cao Cấp đáng giá?",
-					"answer": "Gói Cao Cấp bao gồm khớp nối AI nâng cao, đơn ứng tuyển không giới hạn, tìm kiếm ngôn ngữ tự nhiên và hỗ trợ khách hàng ưu tiên cho những người săn học bổng nghiêm túc."
+					"answer": "Gói Cao Cấp bao gồm kết hợp AI nâng cao, đơn ứng tuyển không giới hạn, tìm kiếm ngôn ngữ tự nhiên và hỗ trợ khách hàng ưu tiên cho những người săn học bổng nghiêm túc."
 				},
 				{
 					"question": "Các bạn có hoàn tiền không?",

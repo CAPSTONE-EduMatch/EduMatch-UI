@@ -27,61 +27,64 @@ which checks user notification preferences before sending.
 
 **Email Types:**
 
-1. **WELCOME** - Welcome email on signup
+1. **WELCOME** - Welcome email on signup (Working)
    - Template: `generateWelcomeEmailTemplate`
    - Always sent (not user-configurable)
 
-2. **PROFILE_CREATED** - Profile creation confirmation
+2. **PROFILE_CREATED** - Profile creation confirmation (Working)
    - Template: `generateProfileCreatedEmailTemplate`
    - Always sent (not user-configurable)
 
 3. **APPLICATION_STATUS_UPDATE** - Application status changes
    - Template: `generateApplicationStatusEmailTemplate`
    - User-configurable: `application` notification setting
-   - Statuses: accepted, rejected, require_update, submitted, updated
+   - Statuses: accepted, rejected, require_update, submitted, updated Current
+     Output: When applicant apply, there is no email sent to confirm that you
+     have applied, just on institution they receive the email. The template sent
+     to institution and applicant should be different, the URL on the view.
+     Every push notification is coming with something like new notification -
+     you have a new notification from EduMatch. on insitution site it should be
+     something like you receive new application for the posts, when click on it
+     will go to that application.
 
-4. **DOCUMENT_UPDATED** - Document upload/update notifications
-   - Template: `generateDocumentUpdatedEmailTemplate`
-   - User-configurable: `wishlist` notification setting
-
-5. **PAYMENT_DEADLINE** - Payment due reminders
+4. **PAYMENT_DEADLINE** - Payment due reminders
    - Template: `generatePaymentDeadlineEmailTemplate`
    - User-configurable: `subscription` notification setting
 
-6. **PAYMENT_SUCCESS** - Successful payment confirmation
+5. **PAYMENT_SUCCESS** - Successful payment confirmation
    - Template: `generatePaymentSuccessEmailTemplate`
    - Always sent
 
-7. **PAYMENT_FAILED** - Failed payment notification
+6. **PAYMENT_FAILED** - Failed payment notification
    - Template: `generatePaymentFailedEmailTemplate`
    - Always sent
 
-8. **SUBSCRIPTION_EXPIRING** - Subscription expiration warning
+7. **SUBSCRIPTION_EXPIRING** - Subscription expiration warning
    - Template: `generateSubscriptionExpiringEmailTemplate`
    - Always sent
 
-9. **WISHLIST_DEADLINE** - Wishlist item deadline approaching
+8. **WISHLIST_DEADLINE** - Wishlist item deadline approaching
    - Template: `generateWishlistDeadlineEmailTemplate`
    - User-configurable: `wishlist` notification setting
 
-10. **PASSWORD_CHANGED** - Password change confirmation
-    - Template: `generatePasswordChangedEmailTemplate`
-    - Always sent
+9. **PASSWORD_CHANGED** - Password change confirmation
+   - Template: `generatePasswordChangedEmailTemplate`
+   - Always sent
 
-11. **ACCOUNT_DELETED** - Account deletion confirmation
+10. **ACCOUNT_DELETED** - Account deletion confirmation
     - Template: `generateAccountDeletedEmailTemplate`
     - Always sent
 
-12. **SUPPORT_REPLY** - Support ticket reply
+11. **SUPPORT_REPLY** - Support ticket reply
     - Template: `generateSupportReplyEmailTemplate`
     - Always sent (important for customer service)
 
-13. **POST_STATUS_UPDATE** - Post (program/scholarship/research lab) status
+12. **POST_STATUS_UPDATE** - Post (program/scholarship/research lab) status
     changes
     - Template: `generatePostStatusUpdateEmailTemplate`
     - Always sent
 
-14. **INSTITUTION_PROFILE_STATUS_UPDATE** - Institution profile
+13. **INSTITUTION_PROFILE_STATUS_UPDATE** - Institution profile
     approval/rejection
     - Template: `generateInstitutionProfileStatusUpdateEmailTemplate`
     - Always sent

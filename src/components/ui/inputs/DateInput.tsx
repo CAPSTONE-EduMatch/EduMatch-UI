@@ -191,6 +191,24 @@ export const DateInput: React.FC<DateInputProps> = ({
 				(_, i) => minYear + i
 			)
 		}
+		if (maxDate) {
+			// If only maxDate is set, show years from 100 years ago to maxDate
+			const maxYear = new Date(maxDate).getFullYear()
+			const minYear = maxYear - 100 // Show last 100 years
+			return Array.from(
+				{ length: maxYear - minYear + 1 },
+				(_, i) => minYear + i
+			)
+		}
+		if (minDate) {
+			// If only minDate is set, show years from minDate to 2030
+			const minYear = new Date(minDate).getFullYear()
+			const maxYear = 2030
+			return Array.from(
+				{ length: maxYear - minYear + 1 },
+				(_, i) => minYear + i
+			)
+		}
 		// Default: current year to 2030 for future dates
 		const currentYear = new Date().getFullYear()
 		return Array.from(

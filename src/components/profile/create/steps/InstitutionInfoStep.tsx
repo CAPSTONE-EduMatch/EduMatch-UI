@@ -202,9 +202,10 @@ export function InstitutionInfoStep({
 		const file = event.target.files?.[0]
 		if (!file) return
 
-		// Validate file type
-		if (!file.type.startsWith('image/')) {
-			setErrorMessage('Please select an image file')
+		// Validate file type - only PNG and JPG allowed
+		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+		if (!allowedTypes.includes(file.type)) {
+			setErrorMessage('Please select a PNG or JPG image file')
 			setShowErrorModal(true)
 			return
 		}
@@ -295,13 +296,13 @@ export function InstitutionInfoStep({
 						{isUploading ? 'Uploading...' : 'Upload institution logo'}
 					</Button>
 					<p className="text-xs text-muted-foreground">
-						Must be PNG, JPG, or WebP file (max 5MB)
+						Must be PNG or JPG file (max 5MB)
 					</p>
 				</div>
 				<input
 					ref={fileInputRef}
 					type="file"
-					accept="image/*"
+					accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
 					onChange={handleFileSelect}
 					className="hidden"
 				/>

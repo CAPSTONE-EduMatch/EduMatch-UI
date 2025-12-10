@@ -392,9 +392,10 @@ export const InstitutionProfileSection: React.FC<
 		const file = event.target.files?.[0]
 		if (!file) return
 
-		// Validate file type
-		if (!file.type.startsWith('image/')) {
-			setErrorMessage('Please select an image file')
+		// Validate file type - only PNG and JPG allowed
+		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+		if (!allowedTypes.includes(file.type)) {
+			setErrorMessage('Please select a PNG or JPG image file')
 			setShowErrorModal(true)
 			return
 		}
@@ -1587,7 +1588,7 @@ export const InstitutionProfileSection: React.FC<
 					<input
 						ref={fileInputRef}
 						type="file"
-						accept="image/*"
+						accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
 						onChange={handleFileSelect}
 						className="hidden"
 					/>

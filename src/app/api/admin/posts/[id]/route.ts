@@ -389,9 +389,8 @@ export async function PATCH(
 
 			// Send email notification via SQS using utility function
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const baseUrl =
 					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||

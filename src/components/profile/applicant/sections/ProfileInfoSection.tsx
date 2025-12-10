@@ -228,9 +228,10 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 		const file = event.target.files?.[0]
 		if (!file) return
 
-		// Validate file type
-		if (!file.type.startsWith('image/')) {
-			setErrorMessage(t('errors.invalid_image'))
+		// Validate file type - only PNG and JPG allowed
+		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+		if (!allowedTypes.includes(file.type)) {
+			setErrorMessage('Please select a PNG or JPG image file')
 			setShowErrorModal(true)
 			return
 		}
@@ -374,7 +375,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 							<input
 								ref={fileInputRef}
 								type="file"
-								accept="image/*"
+								accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
 								onChange={handleFileSelect}
 								className="hidden"
 							/>

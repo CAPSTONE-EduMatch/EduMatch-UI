@@ -101,9 +101,10 @@ export function BasicInfoStep({
 		const file = event.target.files?.[0]
 		if (!file) return
 
-		// Validate file type
-		if (!file.type.startsWith('image/')) {
-			setErrorMessage('Please select an image file')
+		// Validate file type - only PNG and JPG allowed
+		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+		if (!allowedTypes.includes(file.type)) {
+			setErrorMessage('Please select a PNG or JPG image file')
 			setShowErrorModal(true)
 			return
 		}
@@ -117,7 +118,7 @@ export function BasicInfoStep({
 					setErrorMessage(error)
 					setShowErrorModal(true)
 				},
-				maxSize: 10 * 1024 * 1024, // 10MB
+				maxSize: 5 * 1024 * 1024, // 5MB
 			})
 		} catch (error) {
 			// Error is already handled by onError callback
@@ -259,14 +260,14 @@ export function BasicInfoStep({
 							{isUploading ? 'Uploading...' : 'Upload your photo'}
 						</Button>
 						<p className="text-xs text-muted-foreground">
-							Must be PNG, JPG, or WebP file (max 10MB)
+							Must be PNG or JPG file (max 5MB)
 						</p>
 					</div>
 					{/* Hidden file input */}
 					<input
 						ref={fileInputRef}
 						type="file"
-						accept="image/*"
+						accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
 						onChange={handleFileSelect}
 						className="hidden"
 					/>
@@ -394,6 +395,7 @@ export function BasicInfoStep({
 							onChange={(value) => onInputChange('birthday', value)}
 							label="Birthday"
 							placeholder="dd/mm/yyyy"
+							maxDate={new Date().toISOString().split('T')[0]} // Restrict to today (no future dates)
 						/>
 					</div>
 					<div className="space-y-2">

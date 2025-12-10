@@ -354,13 +354,98 @@ export async function GET(request: NextRequest) {
 								fileOwner?.role === "applicant" ||
 								fileOwner?.applicant
 							) {
-								// Allow access - institution/admin can access applicant files
-								// eslint-disable-next-line no-console
-								console.log(
-									`[Protected Image] ✅ Allowed: Authorized role accessing applicant file`
-								);
-								// Cache the permission result (allowed)
-								setCachedPermission(user.id, s3Key, true);
+								// For institutions, check if there's an application relationship
+								if (
+									user.role === "institution" &&
+									fileOwner?.applicant
+								) {
+									// Get the institution for the current user
+									const institution =
+										await prismaClient.institution.findUnique(
+											{
+												where: { user_id: user.id },
+												select: {
+													institution_id: true,
+												},
+											}
+										);
+
+									if (institution) {
+										// Check if there's an application between this institution and applicant
+										const hasApplication =
+											await prismaClient.application.findFirst(
+												{
+													where: {
+														applicant_id:
+															fileOwner.applicant
+																.applicant_id,
+														post: {
+															institution_id:
+																institution.institution_id,
+														},
+													},
+													select: {
+														application_id: true,
+													},
+												}
+											);
+
+										if (hasApplication) {
+											// eslint-disable-next-line no-console
+											console.log(
+												`[Protected Image] ✅ Allowed: Institution has application relationship with applicant`
+											);
+											// Cache the permission result (allowed)
+											setCachedPermission(
+												user.id,
+												s3Key,
+												true
+											);
+										} else {
+											// eslint-disable-next-line no-console
+											console.warn(
+												`[Protected Image] 🚫 Denied: Institution ${user.id} tried to access applicant ${fileOwnerId} file but no application relationship exists`
+											);
+											// Cache the denial
+											setCachedPermission(
+												user.id,
+												s3Key,
+												false
+											);
+											return NextResponse.json(
+												{
+													error: "You don't have permission to access this file",
+												},
+												{ status: 403 }
+											);
+										}
+									} else {
+										// User claims to be institution but no institution record found
+										// eslint-disable-next-line no-console
+										console.warn(
+											`[Protected Image] 🚫 Denied: User ${user.id} claims to be institution but no institution record found`
+										);
+										setCachedPermission(
+											user.id,
+											s3Key,
+											false
+										);
+										return NextResponse.json(
+											{
+												error: "You don't have permission to access this file",
+											},
+											{ status: 403 }
+										);
+									}
+								} else {
+									// For admin/moderator, allow access to applicant files
+									// eslint-disable-next-line no-console
+									console.log(
+										`[Protected Image] ✅ Allowed: Admin/Moderator accessing applicant file`
+									);
+									// Cache the permission result (allowed)
+									setCachedPermission(user.id, s3Key, true);
+								}
 							} else {
 								// eslint-disable-next-line no-console
 								console.warn(

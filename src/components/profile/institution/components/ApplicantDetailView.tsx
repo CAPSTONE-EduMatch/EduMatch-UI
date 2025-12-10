@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { Button } from '@/components/ui'
-import { Download, User, FileText, ArrowLeft, Loader2 } from 'lucide-react'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+import { Download, User, FileText, ArrowLeft } from 'lucide-react'
 import {
 	InfoSection,
 	ProfileCard,
@@ -241,6 +241,50 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		})
 	}
 
+	// Helper function to fetch a protected file and return its blob
+	const fetchProtectedFile = async (fileUrl: string): Promise<Blob | null> => {
+		try {
+			// Get protected URL first
+			const protectedUrl = `/api/files/protected-image?url=${encodeURIComponent(fileUrl)}&expiresIn=3600`
+			const response = await fetch(protectedUrl, {
+				method: 'GET',
+				credentials: 'include',
+			})
+
+			if (!response.ok) {
+				// eslint-disable-next-line no-console
+				console.warn(`Failed to get protected URL for: ${fileUrl}`)
+				return null
+			}
+
+			const data = await response.json()
+			const presignedUrl = data.url
+
+			if (!presignedUrl) {
+				// eslint-disable-next-line no-console
+				console.warn(`No presigned URL returned for: ${fileUrl}`)
+				return null
+			}
+
+			// Fetch the actual file using the presigned URL
+			const fileResponse = await fetch(presignedUrl, {
+				method: 'GET',
+			})
+
+			if (!fileResponse.ok) {
+				// eslint-disable-next-line no-console
+				console.warn(`Failed to fetch file from presigned URL: ${fileUrl}`)
+				return null
+			}
+
+			return await fileResponse.blob()
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.warn(`Error fetching protected file ${fileUrl}:`, error)
+			return null
+		}
+	}
+
 	const createZipFromDocuments = async (
 		docs: Document[],
 		zipName: string,
@@ -327,16 +371,17 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 						for (const doc of papers) {
 							try {
-								const response = await fetch(doc.url)
-								if (!response.ok) {
+								const blob = await fetchProtectedFile(doc.url)
+								if (!blob) {
+									// eslint-disable-next-line no-console
 									console.warn(`Failed to fetch document: ${doc.name}`)
 									continue
 								}
 
-								const blob = await response.blob()
 								const arrayBuffer = await blob.arrayBuffer()
 								titleFolder.file(doc.name, arrayBuffer)
 							} catch (error) {
+								// eslint-disable-next-line no-console
 								console.warn(`Error adding document ${doc.name} to zip:`, error)
 							}
 						}
@@ -345,16 +390,17 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					// For other categories, add documents directly to category folder
 					for (const doc of categoryDocs) {
 						try {
-							const response = await fetch(doc.url)
-							if (!response.ok) {
+							const blob = await fetchProtectedFile(doc.url)
+							if (!blob) {
+								// eslint-disable-next-line no-console
 								console.warn(`Failed to fetch document: ${doc.name}`)
 								continue
 							}
 
-							const blob = await response.blob()
 							const arrayBuffer = await blob.arrayBuffer()
 							categoryFolder.file(doc.name, arrayBuffer)
 						} catch (error) {
+							// eslint-disable-next-line no-console
 							console.warn(`Error adding document ${doc.name} to zip:`, error)
 						}
 					}
@@ -364,16 +410,17 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			// Original behavior: add all documents to root folder
 			for (const doc of docs) {
 				try {
-					const response = await fetch(doc.url)
-					if (!response.ok) {
+					const blob = await fetchProtectedFile(doc.url)
+					if (!blob) {
+						// eslint-disable-next-line no-console
 						console.warn(`Failed to fetch document: ${doc.name}`)
 						continue
 					}
 
-					const blob = await response.blob()
 					const arrayBuffer = await blob.arrayBuffer()
 					rootFolder.file(doc.name, arrayBuffer)
 				} catch (error) {
+					// eslint-disable-next-line no-console
 					console.warn(`Error adding document ${doc.name} to zip:`, error)
 				}
 			}
@@ -885,7 +932,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 						{loading ? (
 							<div className="flex items-center justify-center py-20">
 								<div className="flex flex-col items-center gap-3">
-									<Loader2 className="h-8 w-8 animate-spin text-primary" />
+									<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
 									<p className="text-gray-600 text-sm">Loading...</p>
 								</div>
 							</div>
@@ -980,7 +1027,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 														className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 													>
 														{downloadingZip === category && (
-															<Loader2 className="h-3 w-3 animate-spin" />
+															<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
 														)}
 														Download folder
 													</button>
@@ -1086,7 +1133,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 													className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 												>
 													{downloadingZip === category && (
-														<Loader2 className="h-3 w-3 animate-spin" />
+														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
 													)}
 													Download folder
 												</button>
@@ -1151,7 +1198,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 								className="w-full text-primary hover:text-primary/80 text-sm font-medium underline text-center py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 							>
 								{downloadingZip === 'all' && (
-									<Loader2 className="h-3 w-3 animate-spin" />
+									<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
 								)}
 								Download all documents
 							</button>
@@ -1170,7 +1217,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 						{loading ? (
 							<div className="flex items-center justify-center py-20">
 								<div className="flex flex-col items-center gap-3">
-									<Loader2 className="h-8 w-8 animate-spin text-primary" />
+									<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
 									<p className="text-gray-600 text-sm">Loading...</p>
 								</div>
 							</div>
@@ -1221,9 +1268,9 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 												className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 											>
 												{downloadingZip === 'application' && (
-													<Loader2 className="h-3 w-3 animate-spin" />
+													<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
 												)}
-												Download all
+												Download folder
 											</button>
 										</div>
 
@@ -1241,7 +1288,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 																<p className="font-medium text-sm">
 																	{doc.name}
 																</p>
-																<p className="text-xs text-muted-foreground">
+																<p className="text-sm text-muted-foreground">
 																	{formatFileSize(doc.size)} •{' '}
 																	{formatDate(
 																		doc.uploadDate || doc.updatedAt || ''
@@ -1301,7 +1348,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 				</div>
 				<div className="flex items-center justify-center py-20">
 					<div className="flex flex-col items-center gap-3">
-						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
 						<p className="text-gray-600 text-sm">Loading...</p>
 					</div>
 				</div>
@@ -1356,12 +1403,19 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					<ProfileCard
 						header={{
 							avatar: applicationDetails?.applicant?.image ? (
-								<Image
+								<ProtectedImage
 									src={applicationDetails.applicant.image}
 									alt={applicantName}
 									width={64}
 									height={64}
 									className="w-16 h-16 rounded-full object-cover"
+									expiresIn={7200}
+									autoRefresh={true}
+									errorFallback={
+										<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+											<User className="w-8 h-8 text-gray-400" />
+										</div>
+									}
 								/>
 							) : (
 								<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
@@ -1425,7 +1479,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											>
 												{processingStatus === 'approve' ? (
 													<>
-														<Loader2 className="h-3 w-3 mr-1 animate-spin" />
+														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
 														Processing...
 													</>
 												) : (
@@ -1442,7 +1496,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											>
 												{processingStatus === 'reject' ? (
 													<>
-														<Loader2 className="h-3 w-3 mr-1 animate-spin" />
+														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500 mr-1"></div>
 														Processing...
 													</>
 												) : (

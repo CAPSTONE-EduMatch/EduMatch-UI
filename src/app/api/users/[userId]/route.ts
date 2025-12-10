@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
 
+// Configuration - same as status route
+const ONLINE_STATUS_THRESHOLD_MS =
+	parseInt(process.env.ONLINE_STATUS_THRESHOLD_MINUTES || "5") * 60 * 1000;
+
 // Get specific user by ID
 export async function GET(
 	request: NextRequest,
@@ -9,7 +13,7 @@ export async function GET(
 ) {
 	try {
 		// Authenticate user
-		const { user: currentUser } = await requireAuth();
+		await requireAuth();
 
 		const { userId } = params;
 
@@ -24,6 +28,7 @@ export async function GET(
 				email: true,
 				image: true,
 				createdAt: true,
+				updatedAt: true, // Include updatedAt for online status calculation
 				applicant: {
 					select: {
 						first_name: true,
@@ -78,12 +83,23 @@ export async function GET(
 			? user.institution?.logo || null // For institutions, only use logo, never Google image
 			: user.image; // For applicants, use user image (Google profile image)
 
+		// Calculate online status based on updatedAt timestamp (same logic as /api/users/status)
+		const now = new Date();
+		const thresholdTime = new Date(
+			now.getTime() - ONLINE_STATUS_THRESHOLD_MS
+		);
+		const isOnline =
+			user.updatedAt && user.updatedAt > thresholdTime
+				? "online"
+				: "offline";
+
 		const transformedUser = {
 			id: user.id,
 			name: displayName,
 			email: user.email || "",
 			image: imageToUse,
-			status: "offline", // You can implement real-time status later
+			status: isOnline, // Real-time status based on updatedAt
+			lastSeen: user.updatedAt, // Include last seen timestamp
 			// Include applicant data if available
 			degreeLevel: user.applicant?.level || null,
 			subDiscipline: user.applicant?.subdiscipline?.name || null,

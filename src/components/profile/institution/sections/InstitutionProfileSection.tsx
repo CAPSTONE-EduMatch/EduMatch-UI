@@ -71,6 +71,7 @@ export const InstitutionProfileSection: React.FC<
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [showAdminReviewModal, setShowAdminReviewModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [successMessage, setSuccessMessage] = useState('')
 	const [hasPendingInfoRequests, setHasPendingInfoRequests] = useState(false)
 
 	// Check for pending info requests on mount and when profile changes
@@ -347,6 +348,7 @@ export const InstitutionProfileSection: React.FC<
 			setIsEditing(false)
 
 			// Show success message
+			setSuccessMessage('Your profile has been updated successfully.')
 			setShowSuccessModal(true)
 		} catch (error: any) {
 			setErrorMessage(
@@ -409,8 +411,12 @@ export const InstitutionProfileSection: React.FC<
 			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
-			// Update the profile photo with the S3 URL
+			// Update the profile photo with the S3 URL in editedProfile
+			// This will be saved when user clicks Save button
 			handleFieldChange('profilePhoto', result.url)
+			setSuccessMessage(
+				'Logo uploaded successfully. Click "Confirm" to save your changes.'
+			)
 			setShowSuccessModal(true)
 		} catch (error) {
 			setErrorMessage('Failed to upload image. Please try again.')
@@ -584,16 +590,12 @@ export const InstitutionProfileSection: React.FC<
 			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
-			// Update the cover image with the S3 URL
+			// Update the cover image with the S3 URL in editedProfile
+			// This will be saved when user clicks Save button
 			handleFieldChange('institutionCoverImage', result.url)
-
-			// Save the cover image to the profile immediately
-			const profileData = {
-				role: profile.role, // Required field for API
-				institutionCoverImage: result.url,
-			}
-			await ApiService.updateProfile(profileData)
-
+			setSuccessMessage(
+				'Cover image uploaded successfully. Click "Confirm" to save your changes.'
+			)
 			setShowSuccessModal(true)
 		} catch (error) {
 			setErrorMessage('Failed to upload cover image. Please try again.')
@@ -1614,9 +1616,11 @@ export const InstitutionProfileSection: React.FC<
 						isOpen={showSuccessModal}
 						onClose={async () => {
 							setShowSuccessModal(false)
-							// Call the onProfileUpdate callback after modal is closed
-							// This ensures the modal is visible before any context updates
-							if (onProfileUpdate) {
+							// Only call onProfileUpdate if profile was actually saved (not just logo uploaded)
+							if (
+								successMessage.includes('updated successfully') &&
+								onProfileUpdate
+							) {
 								try {
 									await onProfileUpdate()
 								} catch (error) {
@@ -1627,7 +1631,9 @@ export const InstitutionProfileSection: React.FC<
 							}
 						}}
 						title="Success!"
-						message="Your profile has been updated successfully."
+						message={
+							successMessage || 'Your profile has been updated successfully.'
+						}
 						buttonText="Continue"
 					/>
 

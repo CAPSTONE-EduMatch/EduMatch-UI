@@ -221,9 +221,11 @@ const Signup = () => {
 			setIsOTPLoading(true)
 
 			// Send OTP for email verification
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = email.toLowerCase().trim()
 			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
 				{
-					email: email,
+					email: normalizedEmail,
 					type: 'email-verification',
 				}
 			)
@@ -241,10 +243,10 @@ const Signup = () => {
 				setResendCountdown(60)
 				// Update global cooldown
 				setGlobalOtpCooldown(60)
-				setLastOtpRequestEmail(email)
+				setLastOtpRequestEmail(normalizedEmail)
 				// Store in localStorage for persistence
 				localStorage.setItem('otpCooldownEnd', (Date.now() + 60000).toString())
-				localStorage.setItem('otpCooldownEmail', email)
+				localStorage.setItem('otpCooldownEmail', normalizedEmail)
 			}
 		} catch (err) {
 			setOTPError('An unexpected error occurred. Please try again.')
@@ -320,9 +322,11 @@ const Signup = () => {
 
 			// If user doesn't exist, send OTP for email verification during signup
 			// Use 'sign-in' type for new users - Better Auth requires this to call sendVerificationOTP
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = email.toLowerCase().trim()
 			const { error: otpError } = await authClient.emailOtp.sendVerificationOtp(
 				{
-					email: email,
+					email: normalizedEmail,
 					type: 'sign-in', // Must use 'sign-in' for new users, otherwise Better Auth returns early
 				}
 			)
@@ -341,10 +345,10 @@ const Signup = () => {
 				setResendCountdown(60)
 				// Start global cooldown to prevent bypassing
 				setGlobalOtpCooldown(60)
-				setLastOtpRequestEmail(email)
+				setLastOtpRequestEmail(normalizedEmail)
 				// Store in localStorage for persistence
 				localStorage.setItem('otpCooldownEnd', (Date.now() + 60000).toString())
-				localStorage.setItem('otpCooldownEmail', email)
+				localStorage.setItem('otpCooldownEmail', normalizedEmail)
 			}
 		} catch (err) {
 			// Handle both API errors and OTP errors
@@ -368,9 +372,14 @@ const Signup = () => {
 		}
 		setIsOTPLoading(true)
 		try {
+			// Normalize email to lowercase and trim OTP to ensure consistent comparison
+			const normalizedEmail = email.toLowerCase().trim()
+			const trimmedOtp = otp.trim()
+
 			// Check if user already exists and is verified (edge case)
+			// Use normalized email for consistency
 			const response = await axios.get(
-				`/api/user?email=${encodeURIComponent(email)}`
+				`/api/user?email=${encodeURIComponent(normalizedEmail)}`
 			)
 
 			// Check if account is deleted (status = false) during OTP verification
@@ -381,26 +390,59 @@ const Signup = () => {
 
 			// Since we sent OTP with type 'sign-in', we must verify using signIn.emailOtp
 			// This works for both new and existing users
-			const trimmedOtp = otp.trim()
-			const { error: signInError } = await authClient.signIn.emailOtp({
-				email,
-				otp: trimmedOtp,
-			})
+			// eslint-disable-next-line no-console
+			console.log(
+				'Verifying OTP for email:',
+				normalizedEmail,
+				'OTP length:',
+				trimmedOtp.length
+			)
 
-			if (signInError) {
-				setOTPError(
-					t('errors.verification_failed', {
-						error: signInError.message || 'Invalid OTP',
-					})
-				)
-				return
+			try {
+				const { error: signInError } = await authClient.signIn.emailOtp({
+					email: normalizedEmail,
+					otp: trimmedOtp,
+				})
+
+				if (signInError) {
+					// eslint-disable-next-line no-console
+					console.error('Sign-in OTP error:', signInError)
+					setOTPError(
+						t('errors.verification_failed', {
+							error: signInError.message || 'Invalid OTP',
+						})
+					)
+					return
+				}
+			} catch (err: any) {
+				// eslint-disable-next-line no-console
+				console.error('Sign-in OTP exception:', err)
+				// If signIn.emailOtp fails, try using emailOtp.verifyEmail as fallback
+				// eslint-disable-next-line no-console
+				console.log('Trying fallback verification method...')
+				const fallbackResult = await authClient.emailOtp.verifyEmail({
+					email: normalizedEmail,
+					otp: trimmedOtp,
+				})
+
+				if (fallbackResult.error) {
+					// eslint-disable-next-line no-console
+					console.error('Fallback verification error:', fallbackResult.error)
+					setOTPError(
+						t('errors.verification_failed', {
+							error: fallbackResult.error.message || 'Invalid OTP',
+						})
+					)
+					return
+				}
 			}
 
 			// If user didn't exist, account was created automatically
 			if (!response.data.exists) {
 				// Get the user ID after account creation
+				// Use normalized email for consistency
 				const updatedResponse = await axios.get(
-					`/api/user?email=${encodeURIComponent(email)}`
+					`/api/user?email=${encodeURIComponent(normalizedEmail)}`
 				)
 
 				if (!updatedResponse.data.exists || !updatedResponse.data.userId) {

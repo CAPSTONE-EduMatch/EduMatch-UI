@@ -418,11 +418,13 @@ const SignIn: React.FC = () => {
 				} else if (isEmailVerificationError) {
 					try {
 						// Send OTP for email verification
+						// Normalize email to lowercase to ensure consistent comparison
+						const normalizedEmail = email.toLowerCase().trim()
 						await authClient.emailOtp.sendVerificationOtp({
-							email,
+							email: normalizedEmail,
 							type: 'email-verification',
 						})
-						setPendingEmail(email)
+						setPendingEmail(normalizedEmail)
 						setShowOTPPopup(true)
 					} catch (otpError) {
 						setErrors({
@@ -444,8 +446,10 @@ const SignIn: React.FC = () => {
 					// For any other error, try email verification as fallback
 					try {
 						// Attempt to send verification OTP as fallback
+						// Normalize email to lowercase to ensure consistent comparison
+						const normalizedEmail = email.toLowerCase().trim()
 						await authClient.emailOtp.sendVerificationOtp({
-							email,
+							email: normalizedEmail,
 							type: 'email-verification',
 						})
 						setPendingEmail(email)
@@ -679,7 +683,7 @@ const SignIn: React.FC = () => {
 	}
 
 	const handleVerifyOTP = async () => {
-		const otpCode = otpDigits.join('')
+		const otpCode = otpDigits.join('').trim()
 		if (otpCode.length !== 6) {
 			setOTPError(t('errors.otp_incomplete'))
 			return
@@ -689,13 +693,16 @@ const SignIn: React.FC = () => {
 		setOTPError('')
 
 		try {
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = pendingEmail.toLowerCase().trim()
 			const result = await authClient.emailOtp.verifyEmail({
-				email: pendingEmail,
+				email: normalizedEmail,
 				otp: otpCode,
 			})
 
 			if (result.error) {
-				setOTPError(t('errors.otp_failed'))
+				console.error('OTP verification error:', result.error)
+				setOTPError(result.error.message || t('errors.otp_failed'))
 			} else {
 				// Success - close modal and check profile
 				handleCloseOTPModal()
@@ -703,6 +710,7 @@ const SignIn: React.FC = () => {
 				await checkProfileAndRedirect()
 			}
 		} catch (err) {
+			console.error('OTP verification exception:', err)
 			setOTPError('Verification failed. Please try again.')
 		} finally {
 			setIsOTPLoading(false)
@@ -716,8 +724,10 @@ const SignIn: React.FC = () => {
 		setOTPError('')
 
 		try {
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = pendingEmail.toLowerCase().trim()
 			const result = await authClient.emailOtp.sendVerificationOtp({
-				email: pendingEmail,
+				email: normalizedEmail,
 				type: 'email-verification',
 			})
 

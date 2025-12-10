@@ -37,23 +37,49 @@ export async function PUT(request: Request) {
 			);
 		}
 		// First find the account to get its ID
-		const account = await prismaClient.account.findFirst({
+		let account = await prismaClient.account.findFirst({
 			where: {
 				providerId: "credential",
 				userId: userIdToUpdate,
 			},
 		});
 
+		// If account doesn't exist (e.g., user signed up via OTP), create it
 		if (!account) {
-			return new Response(
-				JSON.stringify({
-					error: "Account not found",
-				}),
-				{
-					status: 404,
-					headers: { "Content-Type": "application/json" },
-				}
-			);
+			// Verify the user exists
+			const user = await prismaClient.user.findUnique({
+				where: { id: userIdToUpdate },
+				select: { id: true, email: true },
+			});
+
+			if (!user) {
+				return new Response(
+					JSON.stringify({
+						error: "User not found",
+					}),
+					{
+						status: 404,
+						headers: { "Content-Type": "application/json" },
+					}
+				);
+			}
+
+			// Create credential account for the user
+			const hashedPassword = await hashPassword(newPassword);
+			account = await prismaClient.account.create({
+				data: {
+					userId: userIdToUpdate,
+					accountId: user.email, // Use email as accountId for credential provider
+					providerId: "credential",
+					password: hashedPassword,
+				},
+			});
+
+			// Return success since password is already set during account creation
+			return new Response(null, {
+				status: 204,
+				headers: { "Content-Type": "application/json" },
+			});
 		}
 
 		if (

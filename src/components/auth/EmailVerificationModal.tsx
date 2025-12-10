@@ -59,7 +59,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 	}
 
 	const handleVerifyOtp = async () => {
-		const otpCode = otp.join('')
+		const otpCode = otp.join('').trim()
 		if (otpCode.length !== 6) {
 			setError('Please enter the complete 6-digit code')
 			return
@@ -69,18 +69,22 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 		setError('')
 
 		try {
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = email.toLowerCase().trim()
 			const result = await authClient.emailOtp.verifyEmail({
-				email,
+				email: normalizedEmail,
 				otp: otpCode,
 			})
 
 			if (result.error) {
+				console.error('OTP verification error:', result.error)
 				setError(result.error.message || 'Invalid verification code')
 			} else {
 				onVerificationSuccess()
 				onClose()
 			}
 		} catch (err) {
+			console.error('OTP verification exception:', err)
 			setError('Verification failed. Please try again.')
 		} finally {
 			setIsLoading(false)
@@ -94,8 +98,10 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 		setError('')
 
 		try {
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = email.toLowerCase().trim()
 			const result = await authClient.emailOtp.sendVerificationOtp({
-				email,
+				email: normalizedEmail,
 				type: 'email-verification',
 			})
 

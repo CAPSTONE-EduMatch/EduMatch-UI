@@ -54,32 +54,36 @@ export class SimilarityService {
 	/**
 	 * Calculate match percentage from cosine similarity
 	 *
-	 * For dense embedding models (like all-minilm), similarity scores typically range from 0.5 to 1.0
-	 * We map this realistic range to a more intuitive 0-100% scale:
+	 * For dense embedding models (embeddinggemma:300m, all-minilm), similarity scores
+	 * typically range from 0.5 to 1.0. We map this realistic range to 0-100% scale:
 	 *
-	 * Cosine similarity mapping (adjusted for embedding model behavior):
-	 * < 0.5 = very poor match → 0%
+	 * Cosine similarity mapping (adjusted for dense embedding behavior):
+	 * < 0.5 = very poor match / unrelated → 0%
 	 * 0.5 = baseline/random match → 0%
-	 * 0.6-0.7 = weak match → 20-40%
-	 * 0.7-0.8 = moderate match → 40-60%
-	 * 0.8-0.9 = good match → 60-80%
-	 * 0.9-0.95 = strong match → 80-90%
-	 * > 0.95 = excellent match → 90-100%
+	 * 0.55 = weak match → 10%
+	 * 0.6 = moderate match → 20%
+	 * 0.7 = fair match → 40%
+	 * 0.75 = good match → 50%
+	 * 0.8 = strong match → 60%
+	 * 0.85 = very strong match → 70%
+	 * 0.9 = excellent match → 80%
+	 * 0.95 = near perfect match → 90%
+	 * 1.0 = perfect match → 100%
 	 */
 	static similarityToMatchPercentage(similarity: number): string {
 		// Clamp similarity to [0, 1] range (negative values are rare with embeddings)
 		const clampedSimilarity = Math.max(0, Math.min(1, similarity));
 
-		// Adjust the range: map [0.5, 1.0] to [0, 100]
+		// Adjust the range: map [0.5, 1.0] to [0, 100] for dense embeddings
 		// Anything below 0.5 is considered 0% match
 		if (clampedSimilarity < 0.5) {
 			return "0%";
 		}
 
 		// Linear mapping from [0.5, 1.0] to [0, 100]
-		// Formula: (similarity - 0.5) * 200
+		// Formula: (similarity - 0.5) / 0.5 * 100
 		// 0.5 → 0%, 0.75 → 50%, 1.0 → 100%
-		const percentage = (clampedSimilarity - 0.5) * 200;
+		const percentage = ((clampedSimilarity - 0.5) / 0.5) * 100;
 
 		// Round to nearest integer
 		return `${Math.round(percentage)}%`;

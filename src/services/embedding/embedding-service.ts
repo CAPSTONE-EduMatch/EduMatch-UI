@@ -38,7 +38,7 @@ export class EmbeddingService {
 			console.log("🌐 Making request to:", this.API_URL);
 
 			const request: EmbeddingRequest = {
-				model: "all-minilm",
+				model: "embeddinggemma:300m",
 				prompt: text,
 			};
 

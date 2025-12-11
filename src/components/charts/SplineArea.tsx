@@ -19,6 +19,10 @@ interface SplineAreaProps {
 		rejected: number
 		accepted: number
 	}>
+	paymentBreakdown?: Array<{
+		revenue: number
+		transactions: number
+	}>
 }
 
 export const SplineArea: React.FC<SplineAreaProps> = ({
@@ -43,6 +47,7 @@ export const SplineArea: React.FC<SplineAreaProps> = ({
 		'2018-09-19T06:30:00.000Z',
 	],
 	statusBreakdown,
+	paymentBreakdown,
 }) => {
 	// Determine if we should show all labels or group them
 	// Check the time difference between first and last category
@@ -130,14 +135,11 @@ export const SplineArea: React.FC<SplineAreaProps> = ({
 			theme: 'light',
 			shared: true,
 			intersect: false,
-			custom: statusBreakdown
+			custom: paymentBreakdown
 				? (function (breakdownData, catData) {
 						return function ({ dataPointIndex }) {
 							const breakdown = breakdownData[dataPointIndex]
 							if (!breakdown) return ''
-
-							const total =
-								breakdown.underReview + breakdown.rejected + breakdown.accepted
 
 							// Get date from categories array (ISO string)
 							const dateStr = catData[dataPointIndex]
@@ -152,25 +154,59 @@ export const SplineArea: React.FC<SplineAreaProps> = ({
 								year: 'numeric',
 							})
 
-							let html = `<div style="padding: 8px;">
+							const revenue = breakdown.revenue.toFixed(2)
+							const transactions = breakdown.transactions
+
+							return `<div style="padding: 8px;">
 								<div style="font-weight: 600; margin-bottom: 8px;">${formattedDate}</div>
-								<div style="font-weight: 600; margin-bottom: 4px;">Total: ${total}</div>`
-
-							if (breakdown.underReview > 0) {
-								html += `<div style="margin-bottom: 2px;">Under Review: ${breakdown.underReview}</div>`
-							}
-							if (breakdown.rejected > 0) {
-								html += `<div style="margin-bottom: 2px;">Rejected: ${breakdown.rejected}</div>`
-							}
-							if (breakdown.accepted > 0) {
-								html += `<div style="margin-bottom: 2px;">Accepted: ${breakdown.accepted}</div>`
-							}
-
-							html += `</div>`
-							return html
+								<div style="margin-bottom: 4px;">Revenue: $${revenue}</div>
+								<div>Transactions: ${transactions}</div>
+							</div>`
 						}
-					})(statusBreakdown, categories)
-				: undefined,
+					})(paymentBreakdown, categories)
+				: statusBreakdown
+					? (function (breakdownData, catData) {
+							return function ({ dataPointIndex }) {
+								const breakdown = breakdownData[dataPointIndex]
+								if (!breakdown) return ''
+
+								const total =
+									breakdown.underReview +
+									breakdown.rejected +
+									breakdown.accepted
+
+								// Get date from categories array (ISO string)
+								const dateStr = catData[dataPointIndex]
+								if (!dateStr) return ''
+
+								const date = new Date(dateStr)
+								if (isNaN(date.getTime())) return ''
+
+								const formattedDate = date.toLocaleDateString('en-GB', {
+									day: '2-digit',
+									month: '2-digit',
+									year: 'numeric',
+								})
+
+								let html = `<div style="padding: 8px;">
+									<div style="font-weight: 600; margin-bottom: 8px;">${formattedDate}</div>
+									<div style="font-weight: 600; margin-bottom: 4px;">Total: ${total}</div>`
+
+								if (breakdown.underReview > 0) {
+									html += `<div style="margin-bottom: 2px;">Under Review: ${breakdown.underReview}</div>`
+								}
+								if (breakdown.rejected > 0) {
+									html += `<div style="margin-bottom: 2px;">Rejected: ${breakdown.rejected}</div>`
+								}
+								if (breakdown.accepted > 0) {
+									html += `<div style="margin-bottom: 2px;">Accepted: ${breakdown.accepted}</div>`
+								}
+
+								html += `</div>`
+								return html
+							}
+						})(statusBreakdown, categories)
+					: undefined,
 		},
 		colors: ['#3B82F6'],
 		fill: {

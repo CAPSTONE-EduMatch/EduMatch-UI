@@ -26,6 +26,8 @@ import { getSessionProtectedFileUrl } from '@/utils/files/getSessionProtectedFil
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import SuccessModal from '@/components/ui/modals/SuccessModal'
 import ErrorModal from '@/components/ui/modals/ErrorModal'
+import Modal from '@/components/ui/modals/Modal'
+import { Button, Input } from '@/components/ui'
 
 // API function to fetch institution details
 const fetchInstitutionDetails = async (
@@ -65,6 +67,12 @@ export default function InstitutionDetailPage() {
 	const [errorMessage, setErrorMessage] = useState('')
 	const [infoRequests, setInfoRequests] = useState<any[]>([])
 	const [loadingInfoRequests, setLoadingInfoRequests] = useState(false)
+	const [showContactModal, setShowContactModal] = useState(false)
+	const [emailSubject, setEmailSubject] = useState('')
+	const [emailMessage, setEmailMessage] = useState('')
+	const [emailSending, setEmailSending] = useState(false)
+	const [emailError, setEmailError] = useState('')
+	const [emailSuccess, setEmailSuccess] = useState('')
 	const router = useRouter()
 	const params = useParams()
 	const { isAdmin, isLoading: adminLoading } = useAdminAuth()
@@ -118,32 +126,88 @@ export default function InstitutionDetailPage() {
 		}
 	}, [activeTab, params?.id])
 
-	const handleContactInstitution = async () => {
-		if (!params?.id) return
+	const handleContactInstitution = () => {
+		if (!institutionData?.email && !institutionData?.userEmail) {
+			alert('Institution email not available')
+			return
+		}
+		// Set default subject and message
+		const institutionEmail = institutionData.email || institutionData.userEmail
+		setEmailSubject(`Contact from EduMatch Admin`)
+		setEmailMessage(
+			`Hello ${institutionData.name},\n\nI am contacting you from EduMatch administration.\n\nBest regards,\nEduMatch Admin Team`
+		)
+		setShowContactModal(true)
+		setEmailError('')
+		setEmailSuccess('')
+	}
 
-		setActionLoading(true)
+	const handleSendEmail = async (e: React.FormEvent) => {
+		e.preventDefault()
+		const institutionEmail =
+			institutionData?.email || institutionData?.userEmail
+		if (!institutionEmail) {
+			setEmailError('Institution email not available')
+			return
+		}
+
+		if (!emailSubject.trim() || !emailMessage.trim()) {
+			setEmailError('Please fill in both subject and message')
+			return
+		}
+
+		setEmailSending(true)
+		setEmailError('')
+		setEmailSuccess('')
+
 		try {
-			const response = await fetch(
-				`/api/admin/institutions/${params.id}/actions`,
-				{
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ action: 'contact' }),
-				}
-			)
+			// Convert message to HTML format
+			const htmlMessage = emailMessage.replace(/\n/g, '<br>')
 
-			if (response.ok) {
-				setSuccessMessage('Contact request sent successfully!')
-				setShowSuccessModal(true)
+			const response = await fetch('/api/send-email', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					to: institutionEmail,
+					subject: emailSubject,
+					html: `
+						<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+							<div style="background-color: #126E64; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+								<h2 style="margin: 0;">EduMatch Admin</h2>
+							</div>
+							<div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px;">
+								<p style="color: #333; line-height: 1.6;">${htmlMessage}</p>
+								<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+								<p style="color: #666; font-size: 12px; margin: 0;">
+									This email was sent from EduMatch administration system.
+								</p>
+							</div>
+						</div>
+					`,
+				}),
+			})
+
+			const result = await response.json()
+
+			if (response.ok && result.success) {
+				setEmailSuccess('Email sent successfully!')
+				// Clear form after 2 seconds and close modal
+				setTimeout(() => {
+					setEmailSubject('')
+					setEmailMessage('')
+					setShowContactModal(false)
+					setEmailSuccess('')
+				}, 2000)
 			} else {
-				setErrorMessage('Failed to send contact request')
-				setShowErrorModal(true)
+				setEmailError(result.error || 'Failed to send email')
 			}
 		} catch (error) {
-			setErrorMessage('An error occurred while sending contact request')
-			setShowErrorModal(true)
+			setEmailError('An error occurred while sending the email')
+			console.error('Error sending email:', error)
 		} finally {
-			setActionLoading(false)
+			setEmailSending(false)
 		}
 	}
 
@@ -606,11 +670,14 @@ export default function InstitutionDetailPage() {
 						<div className="space-y-3">
 							<button
 								onClick={handleContactInstitution}
-								disabled={actionLoading}
+								disabled={
+									(!institutionData?.email && !institutionData?.userEmail) ||
+									actionLoading
+								}
 								className="w-full bg-[#F0A227] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#e6921f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 							>
 								<MessageCircle className="w-4 h-4" />
-								{actionLoading ? 'Sending...' : 'Contact Institution'}
+								Contact Institution
 							</button>
 							<button
 								onClick={handleDeactivateInstitution}
@@ -957,6 +1024,138 @@ export default function InstitutionDetailPage() {
 				title="Error"
 				message={errorMessage}
 			/>
+
+			{/* Contact Institution Modal */}
+			<Modal
+				isOpen={showContactModal}
+				onClose={() => {
+					setShowContactModal(false)
+					setEmailSubject('')
+					setEmailMessage('')
+					setEmailError('')
+					setEmailSuccess('')
+				}}
+				title="Contact Institution"
+				maxWidth="md"
+			>
+				<form onSubmit={handleSendEmail} className="space-y-6">
+					{/* Success Message */}
+					{emailSuccess && (
+						<div className="bg-green-50 border border-green-200 rounded-lg p-4">
+							<div className="flex items-center">
+								<svg
+									className="w-5 h-5 text-green-500 mr-2"
+									fill="none"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path d="M5 13l4 4L19 7"></path>
+								</svg>
+								<p className="text-green-700">{emailSuccess}</p>
+							</div>
+						</div>
+					)}
+
+					{/* Error Message */}
+					{emailError && (
+						<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+							<div className="flex items-center">
+								<svg
+									className="w-5 h-5 text-red-500 mr-2"
+									fill="none"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+								<p className="text-red-700">{emailError}</p>
+							</div>
+						</div>
+					)}
+
+					{/* Recipient Info */}
+					<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+						<p className="text-sm text-gray-600 mb-1">To:</p>
+						<p className="text-sm font-medium text-gray-900">
+							{institutionData?.name} (
+							{institutionData?.email || institutionData?.userEmail})
+						</p>
+					</div>
+
+					{/* Subject Field */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-2">
+							Subject <span className="text-red-500">*</span>
+						</label>
+						<Input
+							type="text"
+							value={emailSubject}
+							onChange={(e) => setEmailSubject(e.target.value)}
+							placeholder="Enter email subject"
+							required
+							className="w-full"
+							disabled={emailSending}
+						/>
+					</div>
+
+					{/* Message Field */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-2">
+							Message <span className="text-red-500">*</span>
+						</label>
+						<textarea
+							value={emailMessage}
+							onChange={(e) => setEmailMessage(e.target.value)}
+							placeholder="Enter your message..."
+							rows={8}
+							required
+							className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent resize-none"
+							disabled={emailSending}
+						/>
+					</div>
+
+					{/* Action Buttons */}
+					<div className="flex gap-3 pt-4">
+						<Button
+							type="button"
+							onClick={() => {
+								setShowContactModal(false)
+								setEmailSubject('')
+								setEmailMessage('')
+								setEmailError('')
+								setEmailSuccess('')
+							}}
+							variant="outline"
+							className="flex-1"
+							disabled={emailSending}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							className="flex-1 bg-[#126E64] hover:bg-[#0f5a52] text-white"
+							disabled={
+								emailSending || !emailSubject.trim() || !emailMessage.trim()
+							}
+						>
+							{emailSending ? (
+								<div className="flex items-center gap-2">
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+									Sending...
+								</div>
+							) : (
+								'Send Email'
+							)}
+						</Button>
+					</div>
+				</form>
+			</Modal>
 		</>
 	)
 }

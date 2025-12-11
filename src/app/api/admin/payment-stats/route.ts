@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
 
 		const url = new URL(request.url);
 		const period = url.searchParams.get("period") || "all"; // all, 7d, 1m, 3m, 6m
+		const groupBy = url.searchParams.get("groupBy") || "month"; // day, month
 
 		// Calculate date range based on period
 		const now = new Date();
@@ -73,6 +74,8 @@ export async function GET(request: NextRequest) {
 			pendingInvoices,
 			failedInvoices,
 			subscriptions,
+			activeSubscriptionsCount,
+			totalSubscriptionsCount,
 		] = await Promise.all([
 			// Total transactions
 			prismaClient.invoice.count({ where: whereClause }),
@@ -121,6 +124,16 @@ export async function GET(request: NextRequest) {
 					status: true,
 				},
 			}),
+
+			// Get active subscriptions from subscription table (not filtered by period)
+			prismaClient.subscription.count({
+				where: {
+					status: "active",
+				},
+			}),
+
+			// Get total subscriptions count
+			prismaClient.subscription.count(),
 		]);
 
 		// Calculate revenue
@@ -137,34 +150,52 @@ export async function GET(request: NextRequest) {
 			.filter((inv) => inv.createdAt >= oneMonthAgo)
 			.reduce((sum, invoice) => sum + invoice.amount, 0);
 
-		// Active subscriptions (those with recent paid invoices)
-		const activeSubscriptions = subscriptions.filter(
-			(sub) => sub.status === "paid"
-		).length;
+		// Active subscriptions from subscription table (already calculated above)
+		const activeSubscriptions = activeSubscriptionsCount;
 
-		// Group invoices by month for chart data
-		const monthlyData: {
+		// Group invoices by day or month for chart data
+		const groupedData: {
 			[key: string]: { revenue: number; count: number };
 		} = {};
 
 		paidInvoices.forEach((invoice) => {
-			const monthKey = new Date(invoice.createdAt)
-				.toISOString()
-				.slice(0, 7); // YYYY-MM
-			if (!monthlyData[monthKey]) {
-				monthlyData[monthKey] = { revenue: 0, count: 0 };
+			const invoiceDate = new Date(invoice.createdAt);
+			let key: string;
+
+			if (groupBy === "day") {
+				// Group by day: YYYY-MM-DD
+				key = invoiceDate.toISOString().slice(0, 10);
+			} else {
+				// Group by month: YYYY-MM
+				key = invoiceDate.toISOString().slice(0, 7);
 			}
-			monthlyData[monthKey].revenue += invoice.amount;
-			monthlyData[monthKey].count += 1;
+
+			if (!groupedData[key]) {
+				groupedData[key] = { revenue: 0, count: 0 };
+			}
+			groupedData[key].revenue += invoice.amount;
+			groupedData[key].count += 1;
 		});
 
 		// Convert to array and sort by date
-		const chartData = Object.entries(monthlyData)
-			.map(([month, data]) => ({
-				month: new Date(month + "-01").toISOString(),
-				revenue: data.revenue / 100, // Convert cents to dollars
-				transactions: data.count,
-			}))
+		const chartData = Object.entries(groupedData)
+			.map(([dateKey, data]) => {
+				let date: Date;
+				if (groupBy === "day") {
+					// For daily grouping, use the date directly
+					date = new Date(dateKey);
+					date.setHours(12, 0, 0, 0); // Set to noon for consistent display
+				} else {
+					// For monthly grouping, use the first day of the month
+					date = new Date(dateKey + "-01");
+				}
+
+				return {
+					month: date.toISOString(),
+					revenue: data.revenue / 100, // Convert cents to dollars
+					transactions: data.count,
+				};
+			})
 			.sort(
 				(a, b) =>
 					new Date(a.month).getTime() - new Date(b.month).getTime()
@@ -181,8 +212,8 @@ export async function GET(request: NextRequest) {
 					successfulTransactions: paidInvoices.length,
 					pendingTransactions: pendingInvoices,
 					failedTransactions: failedInvoices,
-					totalSubscriptions: subscriptions.length,
-					activeSubscriptions,
+					totalSubscriptions: totalSubscriptionsCount,
+					activeSubscriptions: activeSubscriptionsCount,
 				},
 				chartData,
 				period,

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 		// Build where clause for filtering
 		const whereClause: any = {};
 
-		// Search across name and email
+		// Search across name, email, and profile names
 		if (filters.search) {
 			whereClause.OR = [
 				{
@@ -58,6 +58,34 @@ export async function GET(request: NextRequest) {
 					email: {
 						contains: filters.search,
 						mode: "insensitive",
+					},
+				},
+				// Search in applicant profile names
+				{
+					applicant: {
+						OR: [
+							{
+								first_name: {
+									contains: filters.search,
+									mode: "insensitive",
+								},
+							},
+							{
+								last_name: {
+									contains: filters.search,
+									mode: "insensitive",
+								},
+							},
+						],
+					},
+				},
+				// Search in institution profile name
+				{
+					institution: {
+						name: {
+							contains: filters.search,
+							mode: "insensitive",
+						},
 					},
 				},
 			];
@@ -263,6 +291,8 @@ export async function GET(request: NextRequest) {
 					role_id: true,
 					institution: {
 						select: {
+							name: true,
+							type: true,
 							verification_status: true,
 							submitted_at: true,
 							verified_at: true,
@@ -273,6 +303,8 @@ export async function GET(request: NextRequest) {
 					applicant: {
 						select: {
 							applicant_id: true,
+							first_name: true,
+							last_name: true,
 							status: true,
 						},
 					},
@@ -291,6 +323,26 @@ export async function GET(request: NextRequest) {
 			// Determine user type based on profile records (source of truth)
 			const isInstitution = !!user.institution;
 			const isApplicant = !!user.applicant;
+
+			// Determine display name based on user type
+			let displayName = "Unknown User";
+			if (isApplicant && user.applicant) {
+				// For applicants: use first_name + last_name from applicant profile
+				const firstName = user.applicant.first_name || "";
+				const lastName = user.applicant.last_name || "";
+				displayName = `${firstName} ${lastName}`.trim();
+				// Fallback to user.name if profile names are empty
+				if (!displayName) {
+					displayName = user.name || "Unknown User";
+				}
+			} else if (isInstitution && user.institution) {
+				// For institutions: use name from institution profile
+				displayName =
+					user.institution.name || user.name || "Unknown User";
+			} else {
+				// Fallback to user.name for admins or users without profiles
+				displayName = user.name || "Unknown User";
+			}
 
 			let status = "active";
 			if (user.banned) {
@@ -331,9 +383,26 @@ export async function GET(request: NextRequest) {
 				displayRole = "user";
 			}
 
+			// Format institution type for display
+			let institutionType: string | undefined = undefined;
+			if (isInstitution && user.institution?.type) {
+				const type = user.institution.type;
+				if (type === "university") {
+					institutionType = "University";
+				} else if (type === "scholarship-provider") {
+					institutionType = "Scholarship Provider";
+				} else if (type === "research-lab") {
+					institutionType = "Research Lab";
+				} else {
+					institutionType =
+						type.charAt(0).toUpperCase() +
+						type.slice(1).replace(/-/g, " ");
+				}
+			}
+
 			return {
 				id: user.id,
-				name: user.name || "Unknown User",
+				name: displayName,
 				email: user.email || "",
 				image: user.image,
 				banned: user.banned || false,
@@ -342,7 +411,7 @@ export async function GET(request: NextRequest) {
 				role: displayRole,
 				createdAt: user.createdAt.toISOString(),
 				status: status,
-				type: isInstitution ? "University" : undefined,
+				type: institutionType,
 				verification_status:
 					user.institution?.verification_status || null,
 				submitted_at:

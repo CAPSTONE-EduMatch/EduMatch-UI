@@ -3,6 +3,7 @@
 import { SplineArea } from '@/components/charts/SplineArea'
 import { PaymentHistoryTable } from '@/components/payment/PaymentHistoryTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
+import { CustomSelect } from '@/components/ui/inputs/custom-select'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
 import { useAdminPaymentStats, type Period } from '@/hooks/admin'
 import { motion } from 'framer-motion'
@@ -82,6 +83,7 @@ const PaymentStatCard = ({
 export default function PaymentsPage() {
 	const [isClient, setIsClient] = useState(false)
 	const [selectedPeriod, setSelectedPeriod] = useState<Period>('all')
+	const [chartGroupBy, setChartGroupBy] = useState<'day' | 'month'>('day')
 	const [exporting, setExporting] = useState<
 		'transactions' | 'statistics' | null
 	>(null)
@@ -92,9 +94,18 @@ export default function PaymentsPage() {
 		isLoading: loading,
 		error: queryError,
 		refetch,
-	} = useAdminPaymentStats(selectedPeriod)
+	} = useAdminPaymentStats(selectedPeriod, chartGroupBy)
 
-	const stats = data?.stats ?? null
+	const stats = data?.stats ?? {
+		totalRevenue: 0,
+		monthlyRevenue: 0,
+		totalTransactions: 0,
+		successfulTransactions: 0,
+		pendingTransactions: 0,
+		failedTransactions: 0,
+		totalSubscriptions: 0,
+		activeSubscriptions: 0,
+	}
 	const chartData = data?.chartData ?? []
 	const error = queryError?.message ?? null
 
@@ -171,34 +182,55 @@ export default function PaymentsPage() {
 	const prepareChartData = () => {
 		if (!chartData || chartData.length === 0) {
 			return {
-				series: [
-					{ name: 'Revenue ($)', data: [] },
-					{ name: 'Transactions', data: [] },
-				],
+				series: [{ name: 'Revenue ($)', data: [] }],
 				categories: [],
+				paymentBreakdown: [],
 			}
 		}
 
-		const categories = chartData.map((item) => item.month)
+		// Ensure categories are valid ISO date strings
+		const categories = chartData
+			.map((item) => {
+				if (!item.month) return null
+				// If it's already an ISO string, use it; otherwise convert
+				if (typeof item.month === 'string' && item.month.includes('T')) {
+					return item.month
+				}
+				// Try to parse and convert to ISO
+				try {
+					const date = new Date(item.month)
+					return isNaN(date.getTime()) ? null : date.toISOString()
+				} catch {
+					return null
+				}
+			})
+			.filter((cat): cat is string => cat !== null)
+
+		// Only show revenue line
 		const series = [
 			{
 				name: 'Revenue ($)',
-				data: chartData.map((item) => item.revenue),
-			},
-			{
-				name: 'Transactions',
-				data: chartData.map((item) => item.transactions),
+				data: chartData.map((item) => item.revenue || 0),
 			},
 		]
 
-		return { series, categories }
+		// Create payment breakdown for tooltip
+		const paymentBreakdown = chartData.map((item) => ({
+			revenue: item.revenue || 0,
+			transactions: item.transactions || 0,
+		}))
+
+		return { series, categories, paymentBreakdown }
 	}
 
-	const { series: chartSeries, categories: chartCategories } =
-		prepareChartData()
+	const {
+		series: chartSeries,
+		categories: chartCategories,
+		paymentBreakdown,
+	} = prepareChartData()
 
-	// Show loading while client is hydrating or fetching data
-	if (!isClient || loading) {
+	// Show loading only on initial client hydration
+	if (!isClient) {
 		return (
 			<div className="min-h-screen bg-[#F5F7FB] flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
@@ -206,8 +238,8 @@ export default function PaymentsPage() {
 		)
 	}
 
-	// Show error state
-	if (error || !stats) {
+	// Show error state only on initial load with no data
+	if (error && !data && !isClient) {
 		return (
 			<div className="min-h-screen bg-[#F5F7FB]">
 				<div className="flex-1">
@@ -318,31 +350,73 @@ export default function PaymentsPage() {
 											<CardTitle className="text-lg font-semibold">
 												Revenue Overview
 											</CardTitle>
-											{/* Period Filter */}
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-gray-600">Period:</span>
-												<select
-													value={selectedPeriod}
-													onChange={(e) =>
-														setSelectedPeriod(e.target.value as Period)
-													}
-													className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
-												>
-													{PERIOD_OPTIONS.map((option) => (
-														<option key={option.value} value={option.value}>
-															{option.label}
-														</option>
-													))}
-												</select>
+											{/* Period and Group By Filters */}
+											<div className="flex items-center gap-3">
+												<div className="flex items-center gap-2">
+													<span className="text-sm text-gray-600">
+														Group by:
+													</span>
+													<div className="w-32">
+														<CustomSelect
+															value={{
+																value: chartGroupBy,
+																label: chartGroupBy === 'day' ? 'Day' : 'Month',
+															}}
+															onChange={(selected: any) =>
+																setChartGroupBy(
+																	(selected?.value as 'day' | 'month') || 'day'
+																)
+															}
+															options={[
+																{ value: 'day', label: 'Day' },
+																{ value: 'month', label: 'Month' },
+															]}
+															variant="default"
+															isClearable={false}
+															className="w-full"
+														/>
+													</div>
+												</div>
+												<div className="flex items-center gap-2">
+													<span className="text-sm text-gray-600">Period:</span>
+													<div className="w-40">
+														<CustomSelect
+															value={{
+																value: selectedPeriod,
+																label:
+																	PERIOD_OPTIONS.find(
+																		(opt) => opt.value === selectedPeriod
+																	)?.label || 'All Time',
+															}}
+															onChange={(selected: any) =>
+																setSelectedPeriod(
+																	(selected?.value as Period) || 'all'
+																)
+															}
+															options={PERIOD_OPTIONS.map((opt) => ({
+																value: opt.value,
+																label: opt.label,
+															}))}
+															variant="default"
+															isClearable={false}
+															className="w-full"
+														/>
+													</div>
+												</div>
 											</div>
 										</div>
 									</CardHeader>
 									<CardContent>
-										{chartData.length > 0 ? (
+										{loading ? (
+											<div className="h-[350px] flex items-center justify-center">
+												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64]"></div>
+											</div>
+										) : chartData.length > 0 && chartCategories.length > 0 ? (
 											<SplineArea
 												height={350}
 												series={chartSeries}
 												categories={chartCategories}
+												paymentBreakdown={paymentBreakdown}
 											/>
 										) : (
 											<div className="h-[350px] flex items-center justify-center text-gray-500">

@@ -24,6 +24,14 @@ export interface UserDetailsFromDB {
 		level: string | null;
 		gpa: any;
 		university: string | null;
+		subdiscipline?: {
+			subdiscipline_id: string;
+			name: string;
+			discipline: {
+				discipline_id: string;
+				name: string;
+			};
+		} | null;
 		documents: {
 			document_id: string;
 			name: string;
@@ -36,6 +44,10 @@ export interface UserDetailsFromDB {
 				description: string | null;
 			};
 		}[];
+	} | null;
+	institution?: {
+		name: string;
+		logo: string | null;
 	} | null;
 }
 
@@ -64,13 +76,38 @@ export class AdminUserService {
 					applicant: {
 						include: {
 							documents: {
+								where: {
+									status: true, // Only fetch active documents
+								},
 								include: {
-									documentType: true,
+									documentType: {
+										select: {
+											document_type_id: true,
+											name: true,
+											description: true,
+										},
+									},
 								},
 								orderBy: {
 									upload_at: "desc",
 								},
 							},
+							subdiscipline: {
+								include: {
+									discipline: {
+										select: {
+											discipline_id: true,
+											name: true,
+										},
+									},
+								},
+							},
+						},
+					},
+					institution: {
+						select: {
+							name: true,
+							logo: true,
 						},
 					},
 				},
@@ -324,6 +361,7 @@ export class AdminUserService {
 		if (!dbUser) return null;
 
 		const applicant = dbUser.applicant;
+		const institution = dbUser.institution;
 
 		// Group documents by type
 		const groupedDocuments = {
@@ -341,7 +379,7 @@ export class AdminUserService {
 					size: this.formatFileSize(doc.size),
 					date: doc.upload_at.toISOString(),
 					document_id: doc.document_id,
-					url: doc.url,
+					url: doc.url || undefined, // Include URL for protected file access
 				};
 
 				// Categorize documents based on document type name
@@ -376,13 +414,33 @@ export class AdminUserService {
 			});
 		}
 
+		// Format subdisciplines - subdiscipline is a single relation, not an array
+		const subdisciplines = applicant?.subdiscipline
+			? [
+					{
+						id: applicant.subdiscipline.subdiscipline_id,
+						name: applicant.subdiscipline.name,
+						disciplineName: applicant.subdiscipline.discipline.name,
+					},
+				]
+			: [];
+
+		// Determine name based on user type
+		let displayName = "Unknown";
+		if (applicant) {
+			displayName =
+				`${applicant.first_name || ""} ${applicant.last_name || ""}`.trim() ||
+				dbUser.name ||
+				"Unknown";
+		} else if (institution) {
+			displayName = institution.name || dbUser.name || "Unknown";
+		} else {
+			displayName = dbUser.name || "Unknown";
+		}
+
 		return {
 			id: dbUser.id,
-			name: applicant
-				? `${applicant.first_name || ""} ${applicant.last_name || ""}`.trim() ||
-					dbUser.name ||
-					"Unknown"
-				: dbUser.name || "Unknown",
+			name: displayName,
 			email: dbUser.email,
 			phone: applicant?.phone_number || "Not provided",
 			nationality: applicant?.nationality || "Not specified",
@@ -390,17 +448,22 @@ export class AdminUserService {
 				? applicant.birthday.toLocaleDateString()
 				: "Not provided",
 			gender:
-				applicant?.gender === null
+				applicant?.gender === null || applicant?.gender === undefined
 					? "Not specified"
-					: applicant?.gender
+					: applicant.gender
 						? "Male"
 						: "Female",
 			profileImage: dbUser.image || "/profile.svg",
 			program: applicant?.level || "Not specified",
+			subdisciplines: subdisciplines,
 			gpa: applicant?.gpa ? applicant.gpa.toString() : "Not provided",
 			status: dbUser.status ? "Active" : "Inactive",
 			university: applicant?.university || "Not specified",
-			role: dbUser.role || "student",
+			role: applicant
+				? "student"
+				: institution
+					? "institution"
+					: dbUser.role || "unknown",
 			documents: groupedDocuments,
 			banned: dbUser.banned || false,
 			banReason: dbUser.banReason || null,

@@ -12,6 +12,12 @@ export interface UserDocuments {
 	cvResume: Document[];
 }
 
+export interface Subdiscipline {
+	id: string;
+	name: string;
+	disciplineName: string;
+}
+
 export interface UserDetails {
 	id: string;
 	name: string;
@@ -22,6 +28,7 @@ export interface UserDetails {
 	gender: string;
 	profileImage: string;
 	program: string;
+	subdisciplines?: Subdiscipline[];
 	gpa: string;
 	status: string;
 	university: string;

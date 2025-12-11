@@ -30,9 +30,23 @@ export async function GET(
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console
 			console.error("Error fetching user details:", error);
+			// eslint-disable-next-line no-console
+			console.error(
+				"Error details:",
+				error instanceof Error ? error.message : String(error)
+			);
+			// eslint-disable-next-line no-console
+			if (error instanceof Error && error.stack) {
+				// eslint-disable-next-line no-console
+				console.error("Error stack:", error.stack);
+			}
 		}
 		return NextResponse.json(
-			{ error: "Internal server error" },
+			{
+				error: "Internal server error",
+				message:
+					error instanceof Error ? error.message : "Unknown error",
+			},
 			{ status: 500 }
 		);
 	}

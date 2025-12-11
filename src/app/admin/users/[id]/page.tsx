@@ -6,10 +6,12 @@ import { RevokeSessionsModal } from '@/components/admin/RevokeSessionsModal'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/domain/user-details'
 import { motion } from 'framer-motion'
-import { Download, LogOut, MessageCircle } from 'lucide-react'
-import Image from 'next/image'
+import { Download, LogOut, MessageCircle, User } from 'lucide-react'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Modal from '@/components/ui/modals/Modal'
+import { Button, Input } from '@/components/ui'
 
 // API function to fetch user details
 const fetchUserDetails = async (
@@ -40,6 +42,12 @@ export default function UserDetailPage() {
 	const [actionLoading, setActionLoading] = useState(false)
 	const [showBanModal, setShowBanModal] = useState(false)
 	const [showRevokeModal, setShowRevokeModal] = useState(false)
+	const [showContactModal, setShowContactModal] = useState(false)
+	const [emailSubject, setEmailSubject] = useState('')
+	const [emailMessage, setEmailMessage] = useState('')
+	const [emailSending, setEmailSending] = useState(false)
+	const [emailError, setEmailError] = useState('')
+	const [emailSuccess, setEmailSuccess] = useState('')
 	const router = useRouter()
 	const params = useParams()
 	const { isLoading: adminLoading } = useAdminAuth()
@@ -72,26 +80,85 @@ export default function UserDetailPage() {
 		}
 	}
 
-	const handleContactUser = async () => {
-		if (!params?.id) return
+	const handleContactUser = () => {
+		if (!userData?.email) {
+			alert('User email not available')
+			return
+		}
+		// Set default subject and message
+		setEmailSubject(`Contact from EduMatch Admin`)
+		setEmailMessage(
+			`Hello ${userData.name},\n\nI am contacting you from EduMatch administration.\n\nBest regards,\nEduMatch Admin Team`
+		)
+		setShowContactModal(true)
+		setEmailError('')
+		setEmailSuccess('')
+	}
 
-		setActionLoading(true)
+	const handleSendEmail = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!userData?.email) {
+			setEmailError('User email not available')
+			return
+		}
+
+		if (!emailSubject.trim() || !emailMessage.trim()) {
+			setEmailError('Please fill in both subject and message')
+			return
+		}
+
+		setEmailSending(true)
+		setEmailError('')
+		setEmailSuccess('')
+
 		try {
-			const response = await fetch(`/api/admin/users/${params.id}/actions`, {
+			// Convert message to HTML format
+			const htmlMessage = emailMessage.replace(/\n/g, '<br>')
+
+			const response = await fetch('/api/send-email', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'contact' }),
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					to: userData.email,
+					subject: emailSubject,
+					html: `
+						<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+							<div style="background-color: #126E64; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+								<h2 style="margin: 0;">EduMatch Admin</h2>
+							</div>
+							<div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px;">
+								<p style="color: #333; line-height: 1.6;">${htmlMessage}</p>
+								<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+								<p style="color: #666; font-size: 12px; margin: 0;">
+									This email was sent from EduMatch administration system.
+								</p>
+							</div>
+						</div>
+					`,
+				}),
 			})
 
-			if (response.ok) {
-				alert('Contact request sent successfully!')
+			const result = await response.json()
+
+			if (response.ok && result.success) {
+				setEmailSuccess('Email sent successfully!')
+				// Clear form after 2 seconds and close modal
+				setTimeout(() => {
+					setEmailSubject('')
+					setEmailMessage('')
+					setShowContactModal(false)
+					setEmailSuccess('')
+				}, 2000)
 			} else {
-				alert('Failed to send contact request')
+				setEmailError(result.error || 'Failed to send email')
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setEmailError('An error occurred while sending the email')
+			console.error('Error sending email:', error)
 		} finally {
-			setActionLoading(false)
+			setEmailSending(false)
 		}
 	}
 
@@ -240,90 +307,129 @@ export default function UserDetailPage() {
 						{/* Profile Image and Basic Info */}
 						<div className="text-center mb-6">
 							<div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
-								<Image
-									src={userData.profileImage}
-									alt={userData.name}
-									width={128}
-									height={128}
-									className="w-full h-full object-cover"
-								/>
+								{userData.profileImage &&
+								userData.profileImage !== '/profile.svg' ? (
+									<ProtectedImage
+										src={userData.profileImage}
+										alt={userData.name}
+										width={128}
+										height={128}
+										className="w-full h-full object-cover"
+										expiresIn={7200}
+										autoRefresh={true}
+										errorFallback={
+											<div className="w-full h-full bg-gray-200 flex items-center justify-center">
+												<User className="w-12 h-12 text-gray-400" />
+											</div>
+										}
+									/>
+								) : (
+									<div className="w-full h-full bg-gray-200 flex items-center justify-center">
+										<User className="w-12 h-12 text-gray-400" />
+									</div>
+								)}
 							</div>
 							<h2 className="text-xl font-semibold text-black mb-1">
 								{userData.name}
 							</h2>
 							<p className="text-sm text-[#A2A2A2]">
-								{userData.birthDate} - {userData.gender}
+								{userData.birthDate !== 'Not provided'
+									? userData.birthDate
+									: ''}{' '}
+								{userData.birthDate !== 'Not provided' &&
+								userData.gender !== 'Not specified'
+									? '- '
+									: ''}
+								{userData.gender !== 'Not specified' ? userData.gender : ''}
 							</p>
 						</div>
 
 						{/* Academic Information */}
-						<div className="mb-6">
-							<div className="border-b border-[#DEDEDE] mb-4"></div>
-							<div className="space-y-3">
-								<div>
-									<span className="text-sm text-black">Program: </span>
-									<span className="text-sm font-medium text-black">
-										{userData.program}
-									</span>
-								</div>
-								<div>
-									<span className="text-sm text-black">GPA: </span>
-									<span className="text-sm font-medium text-black">
-										{userData.gpa}
-									</span>
-								</div>
-								<div>
-									<span className="text-sm font-semibold text-black">
-										Status:{' '}
-									</span>
-									<span className="text-sm font-semibold text-black">
-										{userData.status}
-									</span>
-								</div>
-								<div>
-									<span className="text-sm font-semibold text-black">
-										University:{' '}
-									</span>
-									<span className="text-sm font-semibold text-black">
-										{userData.university}
-									</span>
-								</div>
-								{/* Ban Status */}
-								{userData.banned && (
-									<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-										<div className="flex items-center gap-2 mb-2">
-											<span className="w-2 h-2 bg-red-500 rounded-full"></span>
-											<span className="text-sm font-semibold text-red-700">
-												User is Banned
-											</span>
-										</div>
-										{userData.banReason && (
-											<div className="text-xs text-red-600 mb-1">
-												<strong>Reason:</strong> {userData.banReason}
+						{userData.role === 'student' && (
+							<div className="mb-6">
+								<div className="border-b border-[#DEDEDE] mb-4"></div>
+								<div className="space-y-3">
+									<div>
+										<span className="text-sm text-black">Program: </span>
+										<span className="text-sm font-medium text-black">
+											{userData.program}
+										</span>
+									</div>
+									{userData.subdisciplines &&
+										userData.subdisciplines.length > 0 && (
+											<div>
+												<span className="text-sm text-black">
+													Subdisciplines:{' '}
+												</span>
+												<div className="flex flex-wrap gap-2 mt-1">
+													{userData.subdisciplines.map((sub, index) => (
+														<span
+															key={index}
+															className="inline-flex items-center gap-1 bg-[#126E64]/10 text-[#126E64] px-2 py-1 rounded-full text-xs font-medium"
+														>
+															{sub.name}
+														</span>
+													))}
+												</div>
 											</div>
 										)}
-										{userData.banExpires && (
-											<div className="text-xs text-red-600">
-												<strong>Expires:</strong>{' '}
-												{new Date(userData.banExpires).toLocaleDateString(
-													'en-US',
-													{
-														year: 'numeric',
-														month: 'long',
-														day: 'numeric',
-													}
-												)}
-											</div>
-										)}
-										{!userData.banExpires && (
-											<div className="text-xs text-red-600">
-												<strong>Status:</strong> Permanent ban
-											</div>
-										)}
+									<div>
+										<span className="text-sm text-black">GPA: </span>
+										<span className="text-sm font-medium text-black">
+											{userData.gpa}
+										</span>
+									</div>
+									<div>
+										<span className="text-sm font-semibold text-black">
+											Status:{' '}
+										</span>
+										<span className="text-sm font-semibold text-black">
+											{userData.status}
+										</span>
+									</div>
+									<div>
+										<span className="text-sm font-semibold text-black">
+											University:{' '}
+										</span>
+										<span className="text-sm font-semibold text-black">
+											{userData.university}
+										</span>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{/* Ban Status */}
+						{userData.banned && (
+							<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+								<div className="flex items-center gap-2 mb-2">
+									<span className="w-2 h-2 bg-red-500 rounded-full"></span>
+									<span className="text-sm font-semibold text-red-700">
+										User is Banned
+									</span>
+								</div>
+								{userData.banReason && (
+									<div className="text-xs text-red-600 mb-1">
+										<strong>Reason:</strong> {userData.banReason}
+									</div>
+								)}
+								{userData.banExpires && (
+									<div className="text-xs text-red-600">
+										<strong>Expires:</strong>{' '}
+										{new Date(userData.banExpires).toLocaleDateString('en-US', {
+											year: 'numeric',
+											month: 'long',
+											day: 'numeric',
+										})}
+									</div>
+								)}
+								{!userData.banExpires && (
+									<div className="text-xs text-red-600">
+										<strong>Status:</strong> Permanent ban
 									</div>
 								)}
 							</div>
-						</div>
+						)}
 
 						{/* Contact Information */}
 						<div className="mb-6">
@@ -350,11 +456,13 @@ export default function UserDetailPage() {
 						<div className="space-y-3">
 							<button
 								onClick={handleContactUser}
-								disabled={actionLoading}
+								disabled={!userData?.email || actionLoading}
 								className="w-full bg-[#F0A227] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#e6921f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 							>
 								<MessageCircle className="w-4 h-4" />
-								{actionLoading ? 'Sending...' : 'Contact Applicant'}
+								{userData?.role === 'institution'
+									? 'Contact Institution'
+									: 'Contact Applicant'}
 							</button>
 							<button
 								onClick={handleDeactivateUser}
@@ -441,31 +549,6 @@ export default function UserDetailPage() {
 							files={userData.documents.cvResume}
 							userId={params?.id as string}
 						/>
-
-						{/* Download All Button */}
-						<div className="flex justify-center mt-6">
-							<button
-								disabled={
-									userData.documents.researchPapers.length === 0 &&
-									userData.documents.transcripts.length === 0 &&
-									userData.documents.degrees.length === 0 &&
-									userData.documents.languageCertificates.length === 0 &&
-									userData.documents.cvResume.length === 0
-								}
-								className={`px-6 py-2.5 rounded-[20px] flex items-center gap-2 text-sm font-semibold transition-colors ${
-									userData.documents.researchPapers.length === 0 &&
-									userData.documents.transcripts.length === 0 &&
-									userData.documents.degrees.length === 0 &&
-									userData.documents.languageCertificates.length === 0 &&
-									userData.documents.cvResume.length === 0
-										? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-										: 'bg-[#126E64] text-white hover:bg-[#0f5a52]'
-								}`}
-							>
-								<Download className="w-4 h-4" />
-								Download all
-							</button>
-						</div>
 					</motion.div>
 				</div>
 			</div>
@@ -494,6 +577,141 @@ export default function UserDetailPage() {
 				userEmail={userData?.email || 'Unknown Email'}
 				isLoading={actionLoading}
 			/>
+
+			{/* Contact User Modal */}
+			<Modal
+				isOpen={showContactModal}
+				onClose={() => {
+					setShowContactModal(false)
+					setEmailSubject('')
+					setEmailMessage('')
+					setEmailError('')
+					setEmailSuccess('')
+				}}
+				title={
+					userData?.role === 'institution'
+						? 'Contact Institution'
+						: 'Contact Applicant'
+				}
+				maxWidth="md"
+			>
+				<form onSubmit={handleSendEmail} className="space-y-6">
+					{/* Success Message */}
+					{emailSuccess && (
+						<div className="bg-green-50 border border-green-200 rounded-lg p-4">
+							<div className="flex items-center">
+								<svg
+									className="w-5 h-5 text-green-500 mr-2"
+									fill="none"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path d="M5 13l4 4L19 7"></path>
+								</svg>
+								<p className="text-green-700">{emailSuccess}</p>
+							</div>
+						</div>
+					)}
+
+					{/* Error Message */}
+					{emailError && (
+						<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+							<div className="flex items-center">
+								<svg
+									className="w-5 h-5 text-red-500 mr-2"
+									fill="none"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+								<p className="text-red-700">{emailError}</p>
+							</div>
+						</div>
+					)}
+
+					{/* Recipient Info */}
+					<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+						<p className="text-sm text-gray-600 mb-1">To:</p>
+						<p className="text-sm font-medium text-gray-900">
+							{userData?.name} ({userData?.email})
+						</p>
+					</div>
+
+					{/* Subject Field */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-2">
+							Subject <span className="text-red-500">*</span>
+						</label>
+						<Input
+							type="text"
+							value={emailSubject}
+							onChange={(e) => setEmailSubject(e.target.value)}
+							placeholder="Enter email subject"
+							required
+							className="w-full"
+							disabled={emailSending}
+						/>
+					</div>
+
+					{/* Message Field */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-2">
+							Message <span className="text-red-500">*</span>
+						</label>
+						<textarea
+							value={emailMessage}
+							onChange={(e) => setEmailMessage(e.target.value)}
+							placeholder="Enter your message..."
+							rows={8}
+							required
+							className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#126E64] focus:border-transparent resize-none"
+							disabled={emailSending}
+						/>
+					</div>
+
+					{/* Action Buttons */}
+					<div className="flex gap-3 pt-4">
+						<Button
+							type="button"
+							onClick={() => {
+								setShowContactModal(false)
+								setEmailSubject('')
+								setEmailMessage('')
+								setEmailError('')
+								setEmailSuccess('')
+							}}
+							variant="outline"
+							className="flex-1"
+							disabled={emailSending}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							className="flex-1 bg-[#126E64] hover:bg-[#0f5a52] text-white"
+							disabled={
+								emailSending || !emailSubject.trim() || !emailMessage.trim()
+							}
+						>
+							{emailSending ? (
+								<div className="flex items-center gap-2">
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+									Sending...
+								</div>
+							) : (
+								'Send Email'
+							)}
+						</Button>
+					</div>
+				</form>
+			</Modal>
 		</>
 	)
 }

@@ -253,11 +253,19 @@ const UserManagementTable = memo(function UserManagementTable({
 						</div>
 					)}
 					<div className="w-full">
-						<div className="bg-[#126E64] text-white grid grid-cols-6 px-8 py-5 text-center font-bold text-base">
+						<div
+							className="bg-[#126E64] text-white grid px-8 py-5 text-center font-bold text-base"
+							style={{
+								gridTemplateColumns:
+									userType === 'institution'
+										? '2fr 1.5fr 1fr 1.2fr 1fr 1fr'
+										: '2fr 1.5fr 1fr 1fr 1fr 1fr',
+							}}
+						>
 							<div className="text-left">Name</div>
 							<div>Email</div>
 							<div>Status</div>
-							<div>Role</div>
+							<div>{userType === 'institution' ? 'Type' : 'Role'}</div>
 							<div>Created</div>
 							<div className="pl-8">Actions</div>
 						</div>
@@ -284,13 +292,19 @@ const UserManagementTable = memo(function UserManagementTable({
 											initial={{ opacity: 0, y: 10 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: index * 0.05 }}
-											className={`${rowBg} grid grid-cols-6 px-8 py-5 items-center`}
+											className={`${rowBg} grid px-8 py-5 items-center`}
+											style={{
+												gridTemplateColumns:
+													userType === 'institution'
+														? '2fr 1.5fr 1fr 1.2fr 1fr 1fr'
+														: '2fr 1.5fr 1fr 1fr 1fr 1fr',
+											}}
 										>
 											{/* Name with tooltip for long text */}
 											<div className="font-semibold text-base text-black text-left group relative">
-												<div className="truncate">{user.name}</div>
-												{user.name.length > 20 && (
-													<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
+												<div className="break-words">{user.name}</div>
+												{user.name.length > 30 && (
+													<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap max-w-xs">
 														{user.name}
 													</div>
 												)}
@@ -337,7 +351,9 @@ const UserManagementTable = memo(function UserManagementTable({
 											</div>
 
 											<div className="text-gray-700 text-sm text-center">
-												{user.role || 'User'}
+												{userType === 'institution'
+													? user.type || 'N/A'
+													: user.role || 'User'}
 											</div>
 
 											<div className="text-gray-700 text-sm text-center">

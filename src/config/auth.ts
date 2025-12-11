@@ -830,25 +830,48 @@ async function sendEmail(to: string, url: string, token: string) {
 	} else if (isReset) {
 		subject = "Reset Your Password";
 		html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #126E64; margin: 0; font-size: 28px; font-weight: 600;">Password Reset Request</h1>
-        </div>
-        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 30px; margin-bottom: 30px;">
-          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hello,</p>
-          <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">We received a request to reset your password. Click the button below to create a new password:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${url}" style="background-color: #126E64; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 16px; font-weight: 500; box-shadow: 0 2px 4px rgba(18, 110, 100, 0.2);">Reset Password</a>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f5f7fb;">
+        <!-- Header with gradient background -->
+        <div style="background: linear-gradient(135deg, #126E64 0%, #0f5a52 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <div style="background-color: rgba(255, 255, 255, 0.1); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15V17M6 21H18C19.1046 21 20 20.1046 20 19V13C20 11.8954 19.1046 11 18 11H17V7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7V11H6C4.89543 11 4 11.8954 4 13V19C4 20.1046 4.89543 21 6 21Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </div>
-          <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="color: #126E64; font-size: 13px; word-break: break-all; margin: 10px 0; padding: 10px; background-color: #ffffff; border-radius: 4px; border: 1px solid #e0e0e0;">${url}</p>
+          <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">Password Reset Request</h1>
         </div>
-        <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 30px;">
-          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0 0 10px 0;">⏱️ This link will expire in 1 hour for security reasons.</p>
-          <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+        
+        <!-- Main content -->
+        <div style="background-color: #ffffff; padding: 40px 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+          <p style="color: #333333; font-size: 18px; line-height: 1.6; margin: 0 0 16px 0; font-weight: 500;">Hello,</p>
+          <p style="color: #666666; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">We received a request to reset your password. Click the button below to create a new password:</p>
+          
+          <!-- CTA Button -->
+          <div style="text-align: center; margin: 40px 0;">
+            <a href="${url}" style="background: linear-gradient(135deg, #126E64 0%, #0f5a52 100%); color: #ffffff; padding: 16px 48px; text-decoration: none; border-radius: 8px; display: inline-block; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(18, 110, 100, 0.3); transition: all 0.3s ease;">Reset Password</a>
+          </div>
+          
+          <!-- Security notice -->
+          <div style="background-color: #f8f9fa; border-left: 4px solid #126E64; padding: 16px 20px; margin: 32px 0; border-radius: 4px;">
+            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0; display: flex; align-items: center;">
+              <span style="font-size: 18px; margin-right: 8px;">⏱️</span>
+              <span>This link will expire in 15 minutes for security reasons.</span>
+            </p>
+          </div>
+          
+          <!-- Warning message -->
+          <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 16px 20px; margin-top: 24px;">
+            <p style="color: #856404; font-size: 14px; line-height: 1.6; margin: 0; display: flex; align-items: start;">
+              <span style="font-size: 18px; margin-right: 8px; margin-top: 2px;">⚠️</span>
+              <span>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</span>
+            </p>
+          </div>
         </div>
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
-          <p style="color: #999; font-size: 12px; margin: 0;">Need help? Contact our support team.</p>
+        
+        <!-- Footer -->
+        <div style="text-align: center; padding: 24px 20px; color: #999999; font-size: 12px;">
+          <p style="margin: 0 0 8px 0;">Need help? Contact our support team.</p>
+          <p style="margin: 0; color: #126E64;">© ${new Date().getFullYear()} EduMatch. All rights reserved.</p>
         </div>
       </div>
     `;

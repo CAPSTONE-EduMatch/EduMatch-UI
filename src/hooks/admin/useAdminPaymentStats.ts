@@ -27,9 +27,12 @@ interface PaymentStatsResponse {
 }
 
 const fetchPaymentStats = async (
-	period: Period
+	period: Period,
+	groupBy: "day" | "month" = "month"
 ): Promise<PaymentStatsResponse> => {
-	const response = await fetch(`/api/admin/payment-stats?period=${period}`);
+	const response = await fetch(
+		`/api/admin/payment-stats?period=${period}&groupBy=${groupBy}`
+	);
 
 	if (!response.ok) {
 		throw new Error("Failed to fetch payment statistics");
@@ -44,10 +47,13 @@ const fetchPaymentStats = async (
 	return result.data;
 };
 
-export function useAdminPaymentStats(period: Period) {
+export function useAdminPaymentStats(
+	period: Period,
+	groupBy: "day" | "month" = "month"
+) {
 	return useQuery({
-		queryKey: ["admin-payment-stats", period],
-		queryFn: () => fetchPaymentStats(period),
+		queryKey: ["admin-payment-stats", period, groupBy],
+		queryFn: () => fetchPaymentStats(period, groupBy),
 		staleTime: 0, // Always refetch when data becomes stale
 		refetchOnMount: "always", // Always refetch when component mounts
 	});

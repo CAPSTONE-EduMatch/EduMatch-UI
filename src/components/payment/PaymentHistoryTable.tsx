@@ -1,6 +1,13 @@
 'use client'
 
-import { Button, Card, CardContent, Input } from '@/components/ui'
+import {
+	Button,
+	Card,
+	CardContent,
+	Input,
+	CustomSelect,
+	CheckboxSelect,
+} from '@/components/ui'
 import { Badge } from '@/components/ui/cards/badge'
 import { useInvoices } from '@/hooks/subscription/useInvoices'
 import { formatUTCDateToLocal, formatUTCDate } from '@/utils/date'
@@ -16,6 +23,7 @@ import {
 	Loader2,
 	Search,
 } from 'lucide-react'
+import { ShortIdWithCopy } from '@/components/ui/ShortIdWithCopy'
 import { useEffect, useMemo, useState } from 'react'
 
 type SortField = 'date' | 'amount' | 'status' | 'method'
@@ -111,6 +119,9 @@ export function PaymentHistoryTable() {
 		return filtered
 	}, [invoices, searchTerm, sortField, sortDirection])
 
+	// Track initial load
+	const [isInitialLoad, setIsInitialLoad] = useState(true)
+
 	// Reset page when search term changes
 	useEffect(() => {
 		if (searchTerm) {
@@ -118,8 +129,15 @@ export function PaymentHistoryTable() {
 		}
 	}, [searchTerm])
 
-	// Show loading state
-	if (loading) {
+	// Mark initial load as complete after first data fetch
+	useEffect(() => {
+		if (!loading && invoices.length >= 0) {
+			setIsInitialLoad(false)
+		}
+	}, [loading, invoices.length])
+
+	// Show full loading state only on initial load
+	if (isInitialLoad && loading) {
 		return (
 			<div className="flex items-center justify-center p-8">
 				<Loader2 className="h-6 w-6 animate-spin" />
@@ -128,8 +146,8 @@ export function PaymentHistoryTable() {
 		)
 	}
 
-	// Show error state
-	if (error) {
+	// Show error state only if no data and it's not initial load
+	if (error && !isInitialLoad && invoices.length === 0) {
 		return (
 			<div className="flex items-center justify-center p-8">
 				<p className="text-red-600">Error: {error}</p>
@@ -158,8 +176,8 @@ export function PaymentHistoryTable() {
 	}
 
 	return (
-		<Card className="bg-white rounded-[40px] shadow-sm border-gray-200">
-			<CardContent className="p-8">
+		<Card className="bg-white rounded-[40px] shadow-sm border-gray-200 w-full">
+			<CardContent className="p-8 w-full">
 				{/* Header */}
 				<div className="mb-8">
 					<h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -169,88 +187,103 @@ export function PaymentHistoryTable() {
 				</div>
 
 				{/* Search and Filter Controls */}
-				<div className="mb-6 space-y-4">
-					{/* Search Bar */}
-					<div className="flex items-center gap-4">
-						<div className="relative flex-1">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-							<Input
-								placeholder="Search by invoice ID, email, or receipt number..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64]"
-							/>
+				<div className="pb-6">
+					<div className="flex flex-col sm:flex-row gap-4">
+						{/* Search Bar */}
+						<div className="flex-1">
+							<div className="relative">
+								<input
+									type="text"
+									placeholder="Search by invoice ID, email, or receipt number..."
+									value={searchTerm}
+									onChange={(e) => setSearchTerm(e.target.value)}
+									className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+								/>
+								<button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors">
+									<Search className="w-4 h-4" />
+								</button>
+							</div>
 						</div>
-						<Button
-							onClick={() => setShowFilters(!showFilters)}
-							variant="outline"
-							className="flex items-center gap-2"
-						>
-							<Filter className="w-4 h-4" />
-							Filters
-							<ChevronDown
-								className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
-							/>
-						</Button>
-					</div>
 
-					{/* Filter Controls */}
-					{showFilters && (
-						<div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg">
-							<div className="flex items-center gap-2">
-								<label className="text-sm font-medium text-gray-700">
-									Status:
-								</label>
-								<select
-									value={statusFilter}
-									onChange={(e) => {
-										setStatusFilter(e.target.value)
+						{/* Filter Dropdowns */}
+						<div className="flex gap-2">
+							{/* Status Filter */}
+							<div className="w-48">
+								<CustomSelect
+									value={
+										statusFilter
+											? {
+													value: statusFilter,
+													label:
+														statusFilter.charAt(0).toUpperCase() +
+														statusFilter.slice(1),
+												}
+											: null
+									}
+									onChange={(selected) => {
+										setStatusFilter(selected?.value || '')
 										setCurrentPage(1)
 									}}
-									className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
-								>
-									<option value="">All Statuses</option>
-									<option value="paid">Paid</option>
-									<option value="open">Open</option>
-									<option value="void">Void</option>
-									<option value="draft">Draft</option>
-								</select>
+									placeholder="All Statuses"
+									options={[
+										{ value: 'paid', label: 'Paid' },
+										{ value: 'open', label: 'Open' },
+										{ value: 'void', label: 'Void' },
+										{ value: 'draft', label: 'Draft' },
+										{ value: 'uncollectible', label: 'Uncollectible' },
+									]}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
 							</div>
 
-							<div className="flex items-center gap-2">
-								<label className="text-sm font-medium text-gray-700">
-									User Type:
-								</label>
-								<select
-									value={userTypeFilter}
-									onChange={(e) => {
-										setUserTypeFilter(e.target.value)
+							{/* User Type Filter */}
+							<div className="w-48">
+								<CustomSelect
+									value={
+										userTypeFilter
+											? {
+													value: userTypeFilter,
+													label:
+														userTypeFilter.charAt(0).toUpperCase() +
+														userTypeFilter.slice(1),
+												}
+											: null
+									}
+									onChange={(selected) => {
+										setUserTypeFilter(selected?.value || '')
 										setCurrentPage(1)
 									}}
-									className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
-								>
-									<option value="">All Users</option>
-									<option value="applicant">Applicant</option>
-									<option value="institution">Institution</option>
-								</select>
+									placeholder="All Users"
+									options={[
+										{ value: 'applicant', label: 'Applicant' },
+										{ value: 'institution', label: 'Institution' },
+									]}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
 							</div>
 
-							{(statusFilter || userTypeFilter) && (
+							{/* Clear Filters Button */}
+							{(statusFilter || userTypeFilter || searchTerm) && (
 								<Button
 									onClick={() => {
 										setStatusFilter('')
 										setUserTypeFilter('')
+										setSearchTerm('')
 										setCurrentPage(1)
 									}}
 									variant="outline"
 									size="sm"
-									className="text-gray-600"
+									className="px-4 py-2 text-gray-600 hover:bg-gray-50"
 								>
-									Clear Filters
+									Clear
 								</Button>
 							)}
 						</div>
-					)}
+					</div>
 				</div>
 
 				{/* Results Info */}
@@ -268,11 +301,31 @@ export function PaymentHistoryTable() {
 					</p>
 				</div>
 
+				{/* Error Message */}
+				{error && invoices.length > 0 && (
+					<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+						<p className="text-sm text-red-600">Error: {error}</p>
+						<Button
+							onClick={() => refetch()}
+							variant="outline"
+							size="sm"
+							className="text-red-600 border-red-300 hover:bg-red-50"
+						>
+							Retry
+						</Button>
+					</div>
+				)}
+
 				{/* Table Container */}
-				<div className="bg-gray-50 rounded-[20px] p-6">
+				<div className="bg-gray-50 rounded-[20px] p-6 w-full">
 					{/* Table Header */}
-					<div className="bg-[#126E64] rounded-t-[20px] px-6 py-4">
-						<div className="grid grid-cols-6 gap-4 text-white font-semibold">
+					<div className="bg-[#126E64] rounded-t-[20px] px-6 py-4 w-full">
+						<div
+							className="grid gap-4 text-white font-semibold text-sm w-full"
+							style={{
+								gridTemplateColumns: '1.2fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.2fr',
+							}}
+						>
 							<div
 								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
 								onClick={() => handleSort('date')}
@@ -280,14 +333,9 @@ export function PaymentHistoryTable() {
 								Date
 								{getSortIcon('date')}
 							</div>
-							<div>Period</div>
-							<div
-								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
-								onClick={() => handleSort('method')}
-							>
-								Payment Method
-								{getSortIcon('method')}
-							</div>
+							<div className="flex items-center">Invoice ID</div>
+							<div className="flex items-center">User ID</div>
+							<div className="flex items-center">Type</div>
 							<div
 								className="flex items-center gap-2 cursor-pointer hover:text-gray-200 transition-colors"
 								onClick={() => handleSort('amount')}
@@ -302,13 +350,41 @@ export function PaymentHistoryTable() {
 								Status
 								{getSortIcon('status')}
 							</div>
-							<div>Actions</div>
+							<div className="flex items-center">Actions</div>
 						</div>
 					</div>
 
 					{/* Table Body */}
 					<div className="space-y-0">
-						{filteredAndSortedInvoices.length === 0 ? (
+						{loading && !isInitialLoad ? (
+							// Skeleton Loading Rows
+							<div className="animate-pulse">
+								{[1, 2, 3, 4, 5].map((i) => (
+									<div
+										key={i}
+										className={`px-6 py-4 border-b border-gray-200 last:border-b-0 w-full ${
+											i % 2 === 0 ? 'bg-gray-100' : 'bg-white'
+										}`}
+									>
+										<div
+											className="grid gap-4 items-center w-full"
+											style={{
+												gridTemplateColumns:
+													'1.2fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.2fr',
+											}}
+										>
+											<div className="h-4 bg-gray-200 rounded w-24"></div>
+											<div className="h-4 bg-gray-200 rounded w-32"></div>
+											<div className="h-4 bg-gray-200 rounded w-28"></div>
+											<div className="h-4 bg-gray-200 rounded w-20"></div>
+											<div className="h-4 bg-gray-200 rounded w-16"></div>
+											<div className="h-6 bg-gray-200 rounded-full w-16"></div>
+											<div className="h-4 bg-gray-200 rounded w-20"></div>
+										</div>
+									</div>
+								))}
+							</div>
+						) : filteredAndSortedInvoices.length === 0 ? (
 							<div className="px-6 py-12 text-center">
 								<p className="text-gray-500">
 									{searchTerm
@@ -320,35 +396,70 @@ export function PaymentHistoryTable() {
 							filteredAndSortedInvoices.map((invoice, index) => (
 								<div
 									key={invoice.id}
-									className={`px-6 py-4 border-b border-gray-200 last:border-b-0 ${
+									className={`px-6 py-4 border-b border-gray-200 last:border-b-0 w-full ${
 										index % 2 === 0 ? 'bg-gray-100' : 'bg-white'
 									}`}
 								>
-									<div className="grid grid-cols-6 gap-4 items-center">
+									<div
+										className="grid gap-4 items-center w-full"
+										style={{
+											gridTemplateColumns:
+												'1.2fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.2fr',
+										}}
+									>
 										{/* Date */}
 										<div className="text-sm font-medium text-gray-900">
 											{invoice.paidAt
-												? formatUTCDateToLocal(invoice.paidAt)
-												: 'N/A'}
+												? new Date(invoice.paidAt).toLocaleDateString('en-GB', {
+														day: '2-digit',
+														month: '2-digit',
+														year: 'numeric',
+													})
+												: invoice.createdAt
+													? new Date(invoice.createdAt).toLocaleDateString(
+															'en-GB',
+															{
+																day: '2-digit',
+																month: '2-digit',
+																year: 'numeric',
+															}
+														)
+													: 'N/A'}
 										</div>
 
-										{/* Description/Period */}
-										<div className="text-sm text-gray-900">
-											{invoice.periodStart && invoice.periodEnd
-												? `${formatUTCDateToLocal(invoice.periodStart)} - ${formatUTCDateToLocal(invoice.periodEnd)}`
-												: `Invoice ${invoice.stripeInvoiceId}`}
-										</div>
-
-										{/* Payment Method */}
+										{/* Invoice ID */}
 										<div className="flex items-center">
-											{getPaymentMethodLogo(invoice.paymentMethod || 'card')}
+											<ShortIdWithCopy
+												id={invoice.stripeInvoiceId || invoice.id}
+											/>
+										</div>
+
+										{/* User ID */}
+										<div className="flex items-center">
+											{invoice.user?.id ? (
+												<ShortIdWithCopy id={invoice.user.id} />
+											) : (
+												<span className="text-sm text-gray-500">N/A</span>
+											)}
+										</div>
+
+										{/* Type */}
+										<div className="text-sm text-gray-900">
+											{invoice.userType ? (
+												<span className="capitalize">{invoice.userType}</span>
+											) : (
+												<span className="text-gray-500">N/A</span>
+											)}
 										</div>
 
 										{/* Amount */}
 										<div className="text-sm font-medium text-gray-900">
-											{invoice.currency.toUpperCase()}{' '}
-											{/* {(invoice.amount / 100).toFixed(2)} */}
-											{invoice.amount}
+											$
+											{typeof invoice.amount === 'number'
+												? (invoice.amount / 100).toFixed(2)
+												: typeof invoice.amount === 'string'
+													? parseFloat(invoice.amount).toFixed(2)
+													: '0.00'}
 										</div>
 
 										{/* Status */}
@@ -379,13 +490,6 @@ export function PaymentHistoryTable() {
 													View Details
 												</a>
 											)}
-											{/* <button
-											onClick={() => handleMoreDetail(invoice.id)}
-											className="flex items-center gap-2 text-sm text-gray-900 hover:text-[#126E64] transition-colors"
-										>
-											Details
-											<ChevronRight className="w-4 h-4" />
-										</button> */}
 										</div>
 									</div>
 								</div>

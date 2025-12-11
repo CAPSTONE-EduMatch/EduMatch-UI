@@ -1055,7 +1055,7 @@ export function AcademicInfoStep({
 							onFilesUploaded={(files) =>
 								handleCategoryFilesUploaded('transcriptFiles', files)
 							}
-							category="transcripts"
+							category="academic-transcripts"
 							acceptedTypes={[
 								'application/pdf',
 								'image/jpeg',

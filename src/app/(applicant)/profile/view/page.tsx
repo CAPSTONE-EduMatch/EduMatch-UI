@@ -13,6 +13,7 @@ import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 // Import applicant layout and section components
 import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
 import { ApplicationSection } from '@/components/profile/applicant/sections/ApplicationSection'
+import { PaymentSection } from '@/components/profile/applicant/sections/PaymentSection'
 import { ProfileInfoSection } from '@/components/profile/applicant/sections/ProfileInfoSection'
 import { SettingsSection } from '@/components/profile/applicant/sections/SettingsSection'
 import { WishlistSection } from '@/components/profile/applicant/sections/WishlistSection'
@@ -20,12 +21,6 @@ import {
 	ApplicantProfileLayout,
 	ApplicantProfileSection,
 } from '@/components/profile/layouts/ApplicantProfileLayout'
-
-// Payment components
-import { BillingPortalCard } from '@/components/payment/BillingPortalCard'
-import { SubscriptionFeaturesCard } from '@/components/payment/SubscriptionFeaturesCard'
-import { SubscriptionInfoCard } from '@/components/payment/SubscriptionInfoCard'
-import { SubscriptionProgressWidget } from '@/components/ui'
 
 interface ProfileData {
 	id: string
@@ -380,24 +375,7 @@ function ApplicantProfileView({
 			case 'application':
 				return <ApplicationSection profile={profile} />
 			case 'payment':
-				return (
-					<div className="space-y-8">
-						<div>
-							<h1 className="text-3xl font-bold text-gray-900 mb-2">
-								{t('payment.title')}
-							</h1>
-							<p className="text-gray-600">{t('payment.description')}</p>
-						</div>
-						<SubscriptionProgressWidget
-							applicantId={profile.id}
-							variant="detailed"
-							className="mb-8"
-						/>
-						<SubscriptionInfoCard />
-						<SubscriptionFeaturesCard />
-						<BillingPortalCard />
-					</div>
-				)
+				return <PaymentSection profile={profile} />
 			case 'settings':
 				return <SettingsSection profile={profile} />
 			default:

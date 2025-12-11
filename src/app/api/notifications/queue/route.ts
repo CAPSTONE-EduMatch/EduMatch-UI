@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NotificationMessage, SQSService } from "@/config/sqs-config";
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { EmailService } from "@/services/email/email-service";
 
 /**
  * Unified API endpoint for sending notification messages to SQS
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
 			"PAYMENT_SUCCESS",
 			"PAYMENT_FAILED",
 			"SUBSCRIPTION_EXPIRING",
+			"SUBSCRIPTION_CANCELED",
 		];
 
 		if (!systemNotificationTypes.includes(message.type)) {
@@ -56,7 +58,20 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Send message to SQS
-		await SQSService.sendEmailMessage(message);
+		try {
+			await SQSService.sendEmailMessage(message);
+			// eslint-disable-next-line no-console
+			console.log(
+				`✅ Successfully queued ${message.type} notification for ${message.userEmail}`
+			);
+		} catch (sqsError) {
+			// eslint-disable-next-line no-console
+			console.error(
+				`❌ Failed to queue notification to SQS:`,
+				sqsError instanceof Error ? sqsError.message : sqsError
+			);
+			throw sqsError;
+		}
 
 		return NextResponse.json({
 			success: true,

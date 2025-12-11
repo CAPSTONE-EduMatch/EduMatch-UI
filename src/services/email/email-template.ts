@@ -443,7 +443,7 @@ export function generateApplicationStatusEmailTemplate(
 			bodyHtml,
 			primaryCta: {
 				label: "View Application",
-				url: `${baseUrl}/applications`,
+				url: `${baseUrl}/profile/view?tab=application`,
 			},
 			brandingColor: "#2196F3",
 		});
@@ -609,6 +609,65 @@ export function generateSubscriptionExpiringEmailTemplate(
 		primaryCta: {
 			label: "Renew Subscription",
 			url: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "https://dev.d1jaxpbx3axxsh.amplifyapp.com"}/profile/view?tab=payment`,
+		},
+		brandingColor: "#ff9800",
+	});
+
+	return { subject, html };
+}
+
+/**
+ * Template: Subscription Canceled Email
+ * Used for: Subscription cancellation confirmation
+ * Trigger: When subscription is canceled
+ */
+export function generateSubscriptionCanceledEmailTemplate(
+	planName: string,
+	canceledAt: string,
+	accessUntil?: string
+): { subject: string; html: string } {
+	const canceledDateFormatted = new Date(canceledAt).toLocaleDateString();
+	const baseUrl =
+		process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+		"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+
+	const subject = `Subscription Canceled - ${escapeHtml(planName)}`;
+
+	const bodyHtml = accessUntil
+		? `
+		<p>Your <strong>${escapeHtml(planName)}</strong> subscription has been canceled.</p>
+		
+		<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+			<p style="margin: 0 0 12px; font-weight: 600;">Subscription Details:</p>
+			<p style="margin: 4px 0;"><strong>Plan:</strong> ${escapeHtml(planName)}</p>
+			<p style="margin: 4px 0;"><strong>Canceled On:</strong> ${escapeHtml(canceledDateFormatted)}</p>
+			<p style="margin: 4px 0;"><strong>Access Until:</strong> ${escapeHtml(new Date(accessUntil).toLocaleDateString())}</p>
+		</div>
+		
+		<p>You'll continue to have access to all EduMatch premium features until <strong>${escapeHtml(new Date(accessUntil).toLocaleDateString())}</strong>.</p>
+		<p style="margin-top: 16px;">After this date, your subscription will end and you'll be moved to the free plan.</p>
+		<p style="margin-top: 16px;">If you change your mind, you can resubscribe at any time before your access ends.</p>
+	`
+		: `
+		<p>Your <strong>${escapeHtml(planName)}</strong> subscription has been canceled.</p>
+		
+		<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+			<p style="margin: 0 0 12px; font-weight: 600;">Subscription Details:</p>
+			<p style="margin: 4px 0;"><strong>Plan:</strong> ${escapeHtml(planName)}</p>
+			<p style="margin: 4px 0;"><strong>Canceled On:</strong> ${escapeHtml(canceledDateFormatted)}</p>
+		</div>
+		
+		<p>Your subscription has been canceled and you no longer have access to premium features.</p>
+		<p style="margin-top: 16px;">If you change your mind, you can resubscribe at any time to regain access to all premium features.</p>
+	`;
+
+	const html = renderCompanyEmail({
+		title: "Subscription Canceled",
+		preheader: "Your subscription has been canceled",
+		bodyHtml,
+		primaryCta: {
+			label: accessUntil ? "Resubscribe" : "View Plans",
+			url: `${baseUrl}/profile/view?tab=payment`,
 		},
 		brandingColor: "#ff9800",
 	});

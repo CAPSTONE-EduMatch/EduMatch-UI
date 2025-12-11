@@ -13,6 +13,7 @@ import {
 	ProfileCreatedMessage,
 	SessionRevokedMessage,
 	SubscriptionExpiringMessage,
+	SubscriptionCanceledMessage,
 	SupportReplyMessage,
 	UserBannedMessage,
 	WelcomeMessage,
@@ -35,6 +36,7 @@ import {
 	generateProfileCreatedEmailTemplate,
 	generateRevokeSessionEmailTemplate,
 	generateSubscriptionExpiringEmailTemplate,
+	generateSubscriptionCanceledEmailTemplate,
 	generateWelcomeEmailTemplate,
 	generateWishlistDeadlineEmailTemplate,
 	renderCompanyEmail,
@@ -224,6 +226,21 @@ export class EmailTemplates {
 			metadata.planName,
 			metadata.expiryDate,
 			metadata.daysRemaining
+		);
+	}
+
+	/**
+	 * Generate subscription canceled email template
+	 * Used for: Subscription cancellation confirmation
+	 */
+	static generateSubscriptionCanceledEmail(
+		message: SubscriptionCanceledMessage
+	): { subject: string; html: string } {
+		const { metadata } = message;
+		return generateSubscriptionCanceledEmailTemplate(
+			metadata.planName,
+			metadata.canceledAt,
+			metadata.accessUntil
 		);
 	}
 
@@ -521,6 +538,12 @@ export class EmailService {
 					emailContent =
 						EmailTemplates.generateSubscriptionExpiringEmail(
 							message as SubscriptionExpiringMessage
+						);
+					break;
+				case NotificationType.SUBSCRIPTION_CANCELED:
+					emailContent =
+						EmailTemplates.generateSubscriptionCanceledEmail(
+							message as SubscriptionCanceledMessage
 						);
 					break;
 				case NotificationType.USER_BANNED:

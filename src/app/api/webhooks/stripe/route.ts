@@ -959,7 +959,51 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 			}
 		}
 
-		// If subscription is being canceled at period end, send notification
+		// Check if subscription was just canceled
+		const isNowCanceled =
+			subscription.status === "canceled" ||
+			subscription.cancel_at_period_end;
+
+		// Check if this is a new cancellation (wasn't canceled before)
+		const wasPreviouslyCanceled =
+			existingSubscription.cancelAtPeriodEnd === true ||
+			existingSubscription.status === "canceled";
+
+		// If subscription is being canceled (either immediately or at period end), send cancellation email
+		if (isNowCanceled && !wasPreviouslyCanceled) {
+			// Find user by Stripe customer ID
+			const userForNotification = await prismaClient.user.findFirst({
+				where: { stripeCustomerId: subscription.customer as string },
+			});
+
+			if (userForNotification) {
+				const accessUntil = currentPeriodEnd
+					? new Date(currentPeriodEnd * 1000).toISOString()
+					: undefined;
+
+				// Send cancellation confirmation email
+				// eslint-disable-next-line no-console
+				console.log(
+					"📧 Sending subscription canceled notification to SQS for:",
+					userForNotification.email
+				);
+				await NotificationUtils.sendSubscriptionCanceledNotification(
+					userForNotification.id,
+					userForNotification.email,
+					subscription.id,
+					planName,
+					new Date().toISOString(),
+					accessUntil
+				);
+
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Subscription canceled notification queued to SQS successfully"
+				);
+			}
+		}
+
+		// If subscription is being canceled at period end, also send expiring notification
 		if (subscription.cancel_at_period_end && currentPeriodEnd) {
 			// Find user by Stripe customer ID instead of referenceId
 			const userForNotification = await prismaClient.user.findFirst({
@@ -1025,6 +1069,16 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 		// Determine user type
 		const userType = await getUserType(user.id);
+
+		// Get plan name from subscription
+		const planName = getPlanNameFromSubscription(subscription);
+
+		// Get subscription period end date if available (for access until date)
+		const currentPeriodEnd = (subscription as any).current_period_end;
+		const accessUntil = currentPeriodEnd
+			? new Date(currentPeriodEnd * 1000).toISOString()
+			: undefined;
+
 		if (!userType) {
 			// eslint-disable-next-line no-console
 			console.error("Could not determine user type for user:", user.id);
@@ -1041,6 +1095,21 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 					cancelAtPeriodEnd: false,
 				},
 			});
+
+			// Send subscription canceled notification even without profile
+			// eslint-disable-next-line no-console
+			console.log(
+				"📧 Sending subscription canceled notification to SQS for:",
+				user.email
+			);
+			await NotificationUtils.sendSubscriptionCanceledNotification(
+				user.id,
+				user.email,
+				subscription.id,
+				planName,
+				new Date().toISOString(),
+				accessUntil
+			);
 
 			// eslint-disable-next-line no-console
 			console.log(
@@ -1092,6 +1161,26 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 				});
 			}
 		}
+
+		// Send subscription canceled notification via SQS
+		// eslint-disable-next-line no-console
+		console.log(
+			"📧 Sending subscription canceled notification to SQS for:",
+			user.email
+		);
+		await NotificationUtils.sendSubscriptionCanceledNotification(
+			user.id,
+			user.email,
+			subscription.id,
+			planName,
+			new Date().toISOString(),
+			accessUntil
+		);
+
+		// eslint-disable-next-line no-console
+		console.log(
+			"✅ Subscription canceled notification queued to SQS successfully"
+		);
 
 		if (process.env.NODE_ENV === "development") {
 			// eslint-disable-next-line no-console
@@ -1505,19 +1594,99 @@ async function handleCheckoutSessionCompleted(
 	}
 
 	try {
-		// If this is a subscription checkout
-		if (session.mode === "subscription" && session.subscription) {
-			// The subscription will be handled by the subscription.created event
-			if (process.env.NODE_ENV === "development") {
+		// If this is a subscription checkout with successful payment
+		if (
+			session.mode === "subscription" &&
+			session.subscription &&
+			session.payment_status === "paid"
+		) {
+			// For initial subscription checkout, send payment success email immediately
+			// The invoice.payment_succeeded event may not fire immediately for initial checkout
+			// eslint-disable-next-line no-console
+			console.log(
+				"Subscription checkout completed with paid status - sending payment success notification"
+			);
+
+			// Find user by customer ID
+			const user = await prismaClient.user.findFirst({
+				where: { stripeCustomerId: session.customer as string },
+			});
+
+			if (user) {
+				// Retry logic: subscription might not be created in database yet
+				// Wait and retry up to 3 times with 1 second delay
+				let subscription = null;
+				let retries = 0;
+				const maxRetries = 3;
+
+				while (!subscription && retries < maxRetries) {
+					subscription = await prismaClient.subscription.findFirst({
+						where: {
+							stripeSubscriptionId:
+								session.subscription as string,
+						},
+					});
+
+					if (!subscription && retries < maxRetries - 1) {
+						// eslint-disable-next-line no-console
+						console.log(
+							`⏳ Subscription not found yet, retrying... (${retries + 1}/${maxRetries})`
+						);
+						await new Promise((resolve) =>
+							setTimeout(resolve, 1000)
+						); // Wait 1 second
+						retries++;
+					} else {
+						break;
+					}
+				}
+
+				if (subscription) {
+					// Get plan name from subscription
+					const planName = subscription.plan || "unknown";
+
+					// Get amount from session
+					const amount = session.amount_total
+						? session.amount_total / 100
+						: 0;
+					const currency = session.currency?.toUpperCase() || "USD";
+
+					// Send payment success notification via SQS
+					// eslint-disable-next-line no-console
+					console.log(
+						"📧 Sending payment success notification to SQS for initial checkout:",
+						user.email
+					);
+					await NotificationUtils.sendPaymentSuccessNotification(
+						user.id,
+						user.email,
+						session.subscription as string,
+						planName,
+						amount,
+						currency,
+						session.id || "checkout-session"
+					);
+
+					// eslint-disable-next-line no-console
+					console.log(
+						"✅ Payment success notification queued to SQS successfully for initial checkout"
+					);
+				} else {
+					// eslint-disable-next-line no-console
+					console.warn(
+						"⚠️ Subscription not found in database after retries - payment success email will be sent by invoice.payment_succeeded event"
+					);
+				}
+			} else {
 				// eslint-disable-next-line no-console
-				console.log(
-					"Subscription checkout completed - will be handled by subscription.created event"
+				console.warn(
+					"⚠️ User not found for checkout session - payment success email will be sent by invoice.payment_succeeded event"
 				);
 			}
 		}
 
 		// If this is a one-time payment
-		if (session.mode === "payment") {
+		if (session.mode === "payment" && session.payment_status === "paid") {
 			// Handle one-time payment if needed
 			if (process.env.NODE_ENV === "development") {
 				// eslint-disable-next-line no-console

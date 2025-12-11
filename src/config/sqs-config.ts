@@ -29,6 +29,7 @@ export enum NotificationType {
 	PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
 	PAYMENT_FAILED = "PAYMENT_FAILED",
 	SUBSCRIPTION_EXPIRING = "SUBSCRIPTION_EXPIRING",
+	SUBSCRIPTION_CANCELED = "SUBSCRIPTION_CANCELED",
 	WELCOME = "WELCOME",
 	USER_BANNED = "USER_BANNED",
 	SESSION_REVOKED = "SESSION_REVOKED",
@@ -128,6 +129,16 @@ export interface SubscriptionExpiringMessage extends BaseNotificationMessage {
 	};
 }
 
+export interface SubscriptionCanceledMessage extends BaseNotificationMessage {
+	type: NotificationType.SUBSCRIPTION_CANCELED;
+	metadata: {
+		subscriptionId: string;
+		planName: string;
+		canceledAt: string;
+		accessUntil?: string; // If subscription ends at period end
+	};
+}
+
 export interface WelcomeMessage extends BaseNotificationMessage {
 	type: NotificationType.WELCOME;
 	metadata: {
@@ -218,8 +229,7 @@ export interface PostStatusUpdateMessage extends BaseNotificationMessage {
 	};
 }
 
-export interface InstitutionProfileStatusUpdateMessage
-	extends BaseNotificationMessage {
+export interface InstitutionProfileStatusUpdateMessage extends BaseNotificationMessage {
 	type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE;
 	metadata: {
 		institutionId: string;
@@ -240,6 +250,7 @@ export type NotificationMessage =
 	| PaymentSuccessMessage
 	| PaymentFailedMessage
 	| SubscriptionExpiringMessage
+	| SubscriptionCanceledMessage
 	| WelcomeMessage
 	| UserBannedMessage
 	| SessionRevokedMessage

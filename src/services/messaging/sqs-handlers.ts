@@ -1002,6 +1002,77 @@ export class NotificationUtils {
 	}
 
 	/**
+	 * Send a subscription canceled notification
+	 */
+	static async sendSubscriptionCanceledNotification(
+		userId: string,
+		userEmail: string,
+		subscriptionId: string,
+		planName: string,
+		canceledAt: string,
+		accessUntil?: string
+	): Promise<void> {
+		try {
+			console.log(
+				`📧 Sending subscription canceled notification for user ${userId} (${userEmail})`
+			);
+
+			const message: NotificationMessage = {
+				id: `subscription-canceled-${userId}-${Date.now()}`,
+				type: NotificationType.SUBSCRIPTION_CANCELED,
+				userId,
+				userEmail,
+				timestamp: new Date().toISOString(),
+				metadata: {
+					subscriptionId,
+					planName,
+					canceledAt,
+					...(accessUntil && { accessUntil }),
+				},
+			};
+
+			console.log(
+				`📋 Subscription canceled message created: ${JSON.stringify(message, null, 2)}`
+			);
+
+			// Use unified API endpoint for consistency
+			const baseUrl =
+				process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+				process.env.NEXT_PUBLIC_APP_URL ||
+				"http://localhost:3000";
+
+			const response = await fetch(`${baseUrl}/api/notifications/queue`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(message),
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(
+					`Failed to queue subscription canceled notification: ${errorText}`
+				);
+			}
+
+			console.log(
+				`✅ Subscription canceled notification queued successfully for ${userEmail}`
+			);
+		} catch (error) {
+			console.error(
+				`❌ Error sending subscription canceled notification for user ${userId}:`,
+				error
+			);
+			if (error instanceof Error) {
+				console.error(`❌ Error details: ${error.message}`);
+				console.error(`❌ Error stack: ${error.stack}`);
+			}
+			throw error;
+		}
+	}
+
+	/**
 	 * Send a document updated notification
 	 */
 	static async sendDocumentUpdateNotification(

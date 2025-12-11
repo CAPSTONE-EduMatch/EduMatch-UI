@@ -342,9 +342,7 @@ export const auth = betterAuth({
 						// This is crucial - Better Auth doesn't create invoices automatically
 						try {
 							const { createInvoiceFromSubscription } =
-								await import(
-									"@/services/payments/invoice-service"
-								);
+								await import("@/services/payments/invoice-service");
 							await createInvoiceFromSubscription(
 								stripeSubscription.stripeSubscriptionId
 							);
@@ -466,16 +464,98 @@ export const auth = betterAuth({
 					try {
 						const stripeSubscription = subscription as any;
 
-						await prismaClient.subscription.updateMany({
-							where: {
-								stripeSubscriptionId:
-									stripeSubscription.stripeSubscriptionId,
-							},
-							data: {
-								status: "canceled",
-								cancelAtPeriodEnd: false,
-							},
-						});
+						// Find the subscription to get user info
+						const existingSubscription =
+							await prismaClient.subscription.findFirst({
+								where: {
+									stripeSubscriptionId:
+										stripeSubscription.stripeSubscriptionId,
+								},
+								include: {
+									applicantSubscription: {
+										include: {
+											plan: true,
+										},
+									},
+									institutionSubscription: {
+										include: {
+											plan: true,
+										},
+									},
+								},
+							});
+
+						if (existingSubscription) {
+							// Update subscription status
+							await prismaClient.subscription.updateMany({
+								where: {
+									stripeSubscriptionId:
+										stripeSubscription.stripeSubscriptionId,
+								},
+								data: {
+									status: "canceled",
+									cancelAtPeriodEnd: false,
+								},
+							});
+
+							// Get user for email notification
+							const user = await prismaClient.user.findFirst({
+								where: {
+									id: existingSubscription.referenceId!,
+								},
+							});
+
+							if (user) {
+								// Get plan name
+								const planName =
+									existingSubscription.plan ||
+									existingSubscription.applicantSubscription
+										?.plan?.name ||
+									existingSubscription.institutionSubscription
+										?.plan?.name ||
+									"unknown";
+
+								// Get access until date
+								const accessUntil =
+									existingSubscription.periodEnd
+										? existingSubscription.periodEnd.toISOString()
+										: undefined;
+
+								// Send cancellation email notification
+								try {
+									const { NotificationUtils } =
+										await import("@/services/messaging/sqs-handlers");
+
+									// eslint-disable-next-line no-console
+									console.log(
+										"📧 Sending subscription canceled notification from onSubscriptionCancel for:",
+										user.email
+									);
+
+									await NotificationUtils.sendSubscriptionCanceledNotification(
+										user.id,
+										user.email,
+										stripeSubscription.stripeSubscriptionId ||
+											existingSubscription.id,
+										planName,
+										new Date().toISOString(),
+										accessUntil
+									);
+
+									// eslint-disable-next-line no-console
+									console.log(
+										"✅ Subscription canceled notification queued from onSubscriptionCancel"
+									);
+								} catch (emailError) {
+									// eslint-disable-next-line no-console
+									console.error(
+										"❌ Error sending cancellation email from onSubscriptionCancel:",
+										emailError
+									);
+									// Don't throw - subscription update should still succeed
+								}
+							}
+						}
 					} catch (error) {
 						// eslint-disable-next-line no-console
 						console.error(

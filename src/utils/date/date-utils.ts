@@ -25,8 +25,16 @@ export const formatDateForDisplay = (dateString: string): string => {
 			return dateString; // Return original if invalid
 		}
 
-		// Use timezone-aware formatting
-		return formatUTCDateToLocal(date);
+		// Use timezone-aware formatting - get date components in user's timezone
+		// and manually format as DD/MM/YYYY to ensure consistent format
+		const timezone = getUserTimezone();
+		const dateComponents = getDateInTimezone(date, timezone);
+
+		const day = dateComponents.day.toString().padStart(2, "0");
+		const month = dateComponents.month.toString().padStart(2, "0");
+		const year = dateComponents.year;
+
+		return `${day}/${month}/${year}`;
 	} catch (error) {
 		// Fallback to original behavior if timezone utils not available
 		const date = new Date(dateString);

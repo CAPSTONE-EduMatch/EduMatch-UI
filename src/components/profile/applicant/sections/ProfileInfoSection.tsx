@@ -12,42 +12,12 @@ import { CustomSelect } from '@/components/ui'
 import { DateInput } from '@/components/ui'
 import { Upload, User, Edit3, Save, X } from 'lucide-react'
 import { Country, getCountriesWithSvgFlags } from '@/data/countries'
-import { formatDateForDisplay } from '@/utils/date/date-utils'
+import {
+	formatDateForDisplay,
+	formatDateForDatabase,
+} from '@/utils/date/date-utils'
 import { useTranslations } from 'next-intl'
 
-// Helper function to convert YYYY-MM-DD to DD/MM/YYYY for DateInput
-const convertDateForInput = (dateString: string | undefined | null): string => {
-	if (!dateString) return ''
-
-	// If already in DD/MM/YYYY format, return as is
-	if (dateString.includes('/')) {
-		return dateString
-	}
-
-	// If in YYYY-MM-DD format, convert to DD/MM/YYYY
-	if (dateString.includes('-') && !dateString.includes('/')) {
-		const parts = dateString.split('-')
-		if (parts.length === 3) {
-			const [year, month, day] = parts
-			return `${day}/${month}/${year}`
-		}
-	}
-
-	// Try to parse as ISO date and convert
-	try {
-		const date = new Date(dateString)
-		if (!isNaN(date.getTime())) {
-			const day = date.getDate().toString().padStart(2, '0')
-			const month = (date.getMonth() + 1).toString().padStart(2, '0')
-			const year = date.getFullYear()
-			return `${day}/${month}/${year}`
-		}
-	} catch (error) {
-		// If parsing fails, return empty string
-	}
-
-	return ''
-}
 import { SuccessModal } from '@/components/ui'
 import { ErrorModal } from '@/components/ui'
 import { WarningModal } from '@/components/ui'
@@ -97,13 +67,18 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 	const handleSave = async () => {
 		setIsSaving(true)
 		try {
+			// Convert birthday from DD/MM/YYYY to YYYY-MM-DD format for API
+			const birthdayForApi = editedProfile?.birthday
+				? formatDateForDatabase(editedProfile.birthday)
+				: ''
+
 			// Only send basic profile data
 			const basicData = {
 				role: profile.role,
 				firstName: editedProfile?.firstName || '',
 				lastName: editedProfile?.lastName || '',
 				gender: editedProfile?.gender || '',
-				birthday: editedProfile?.birthday || '',
+				birthday: birthdayForApi,
 				email: editedProfile?.user?.email || profile?.user?.email || '',
 				nationality: editedProfile?.nationality || '',
 				phoneNumber: editedProfile?.phoneNumber || '',
@@ -482,7 +457,7 @@ export const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
 								{isEditing ? (
 									<DateInput
 										id="birthday"
-										value={convertDateForInput(editedProfile?.birthday)}
+										value={editedProfile?.birthday || ''}
 										onChange={(value) => handleFieldChange('birthday', value)}
 										placeholder={t('fields.birthday.placeholder')}
 										minDate="1900-01-01"

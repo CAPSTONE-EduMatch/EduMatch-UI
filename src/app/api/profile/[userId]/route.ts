@@ -1,5 +1,5 @@
-import { authClient } from "@/config/auth-client";
 import { ProfileService } from "@/services/profile/profile-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/profile/[userId] - Get user profile
@@ -18,17 +18,11 @@ export async function GET(
 		}
 
 		// Verify the requesting user is authenticated and matches the userId
-		const { data: session } = await authClient.getSession();
-		if (!session?.user) {
-			return NextResponse.json(
-				{ error: "Unauthorized" },
-				{ status: 401 }
-			);
-		}
+		const { user } = await requireAuth();
 
 		// SECURITY FIX: Verify the authenticated user matches the userId parameter
 		// This prevents users from accessing other users' profiles
-		if (session.user.id !== userId) {
+		if (user.id !== userId) {
 			return NextResponse.json(
 				{ error: "Forbidden: You can only access your own profile" },
 				{ status: 403 }
@@ -75,6 +69,7 @@ export async function GET(
 		//   hasProfile: true
 		// });
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("Error fetching profile:", error);
 		return NextResponse.json(
 			{ error: "Failed to fetch profile" },
@@ -100,8 +95,8 @@ export async function PUT(
 		}
 
 		// Verify the requesting user is authenticated and matches the userId
-		const { data: session } = await authClient.getSession();
-		if (!session?.user || session.user.id !== userId) {
+		const { user } = await requireAuth();
+		if (user.id !== userId) {
 			return NextResponse.json(
 				{ error: "Unauthorized" },
 				{ status: 401 }
@@ -140,6 +135,7 @@ export async function PUT(
 		//
 		// return NextResponse.json({ profile });
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("Error updating profile:", error);
 		return NextResponse.json(
 			{ error: "Failed to update profile" },

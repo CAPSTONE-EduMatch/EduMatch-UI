@@ -37,13 +37,35 @@ export default function AdminSettingsPage() {
 
 				// eslint-disable-next-line no-console
 				console.log('Fetching profile for user:', session.data.user.id)
-				const response = await fetch(`/api/profile/${session.data.user.id}`)
+				const response = await fetch(`/api/profile/${session.data.user.id}`, {
+					credentials: 'include',
+				})
 
 				if (response.ok) {
 					const data = await response.json()
 					// eslint-disable-next-line no-console
 					console.log('Profile data received:', data)
-					setProfile(data)
+
+					// Ensure the profile structure includes user object with id
+					// PasswordChangeSection expects profile.user.id
+					const profileWithUser = data.profile || {
+						user: {
+							id: session.data.user.id,
+							email: session.data.user.email,
+							name: session.data.user.name,
+						},
+					}
+
+					// If profile exists but doesn't have user object, add it
+					if (data.profile && !data.profile.user) {
+						profileWithUser.user = {
+							id: session.data.user.id,
+							email: session.data.user.email,
+							name: session.data.user.name,
+						}
+					}
+
+					setProfile(profileWithUser)
 				} else {
 					// eslint-disable-next-line no-console
 					console.error('Profile fetch failed with status:', response.status)

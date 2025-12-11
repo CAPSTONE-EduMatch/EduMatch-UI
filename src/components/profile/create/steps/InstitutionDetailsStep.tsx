@@ -13,6 +13,7 @@ import { FileValidationNotification } from '@/components/validation/FileValidati
 import { Info } from 'lucide-react'
 import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 import { ProtectedImg } from '@/components/ui/ProtectedImage'
+import { useTranslations } from 'next-intl'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData
@@ -33,6 +34,7 @@ export function InstitutionDetailsStep({
 	onNext,
 	onShowManageModal,
 }: InstitutionDetailsStepProps) {
+	const t = useTranslations('create_profile.institution_details')
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const {
 		subdisciplines: disciplines = [],
@@ -171,11 +173,9 @@ export function InstitutionDetailsStep({
 			{/* Header */}
 			<div className="text-center">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
-					Institution Details
+					{t('title')}
 				</h2>
-				<p className="text-muted-foreground">
-					Select disciplines and upload verification documents
-				</p>
+				<p className="text-muted-foreground">{t('subtitle')}</p>
 			</div>
 
 			{/* Validation Notifications */}
@@ -203,20 +203,20 @@ export function InstitutionDetailsStep({
 				!formData.institutionType) && (
 				<div className="space-y-4">
 					<Label className="text-sm font-medium text-foreground">
-						Institution Sub-Disciplines <span className="text-red-500">*</span>
+						{t('subdisciplines.label')} <span className="text-red-500">*</span>
 					</Label>
 
 					{isLoadingDisciplines ? (
 						<div className="flex items-center justify-center p-4 border border-gray-200 rounded-lg">
 							<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2"></div>
 							<span className="text-sm text-muted-foreground">
-								Loading disciplines...
+								{t('subdisciplines.loading')}
 							</span>
 						</div>
 					) : disciplinesError ? (
 						<div className="p-4 border border-red-200 rounded-lg bg-red-50">
 							<p className="text-sm text-red-600">
-								{disciplinesError?.message || 'Failed to load disciplines'}
+								{disciplinesError?.message || t('subdisciplines.error')}
 							</p>
 							<Button
 								variant="outline"
@@ -226,7 +226,7 @@ export function InstitutionDetailsStep({
 								}}
 								className="mt-2"
 							>
-								Retry
+								{t('subdisciplines.retry')}
 							</Button>
 						</div>
 					) : (
@@ -244,7 +244,7 @@ export function InstitutionDetailsStep({
 									: []
 								onMultiSelectChange('institutionDisciplines')(values)
 							}}
-							placeholder="Select sub-disciplines..."
+							placeholder={t('subdisciplines.placeholder')}
 							isMulti
 							isClearable
 							className="w-full"
@@ -263,7 +263,7 @@ export function InstitutionDetailsStep({
 				!formData.institutionType) && (
 				<div className="space-y-4">
 					<Label className="text-sm font-medium text-foreground">
-						Institution Cover Image
+						{t('cover_image.label')}
 					</Label>
 
 					{/* Display uploaded cover image */}
@@ -279,7 +279,7 @@ export function InstitutionDetailsStep({
 									fallback={
 										<div className="w-full h-full bg-gray-200 flex items-center justify-center">
 											<div className="text-gray-400 text-sm">
-												Failed to load image
+												{t('cover_image.failed_to_load')}
 											</div>
 										</div>
 									}
@@ -297,7 +297,7 @@ export function InstitutionDetailsStep({
 									size="sm"
 									onClick={() => onInputChange('institutionCoverImage', '')}
 								>
-									Remove Image
+									{t('cover_image.remove')}
 								</Button>
 							</div>
 						</div>
@@ -322,10 +322,11 @@ export function InstitutionDetailsStep({
 			<div className="space-y-4">
 				<div className="flex items-center gap-1">
 					<Label className="text-sm font-medium text-foreground">
-						Verification Documents <span className="text-red-500">*</span>
+						{t('verification_documents.label')}{' '}
+						<span className="text-red-500">*</span>
 					</Label>
 					<Tooltip
-						content="Upload institution verification documents in PDF, DOC, DOCX, JPG, or PNG format (max 10MB per file). Required: Institution name and official details, registration numbers or accreditation information, official letterhead/logo/seal/certification marks, statement of legal status/authorization/recognition, contact information. Must be formal verification documents, not brochures."
+						content={t('verification_documents.tooltip')}
 						maxWidth={350}
 						align="left"
 					>
@@ -359,8 +360,9 @@ export function InstitutionDetailsStep({
 				{formData.institutionVerificationDocuments &&
 					formData.institutionVerificationDocuments.length > 0 && (
 						<div className="text-xs text-green-600">
-							{formData.institutionVerificationDocuments.length} file(s)
-							uploaded
+							{t('verification_documents.uploaded', {
+								count: formData.institutionVerificationDocuments.length,
+							})}
 						</div>
 					)}
 				{verificationError && (
@@ -372,7 +374,7 @@ export function InstitutionDetailsStep({
 			{getAllFiles().length > 0 && (
 				<div className="flex justify-center pt-6">
 					<Button variant="outline" onClick={onShowManageModal} size="sm">
-						Manage Files ({getAllFiles().length})
+						{t('manage_files', { count: getAllFiles().length })}
 					</Button>
 				</div>
 			)}
@@ -380,10 +382,10 @@ export function InstitutionDetailsStep({
 			{/* Navigation Buttons */}
 			<div className="flex justify-between pt-8">
 				<Button size="sm" variant="outline" onClick={onBack}>
-					Back
+					{t('back')}
 				</Button>
 				<Button size="sm" onClick={handleNext}>
-					Next
+					{t('next')}
 				</Button>
 			</div>
 		</div>

@@ -5,8 +5,10 @@ import { prismaClient } from "../../../../../../prisma/index";
 
 // Status transition rules for admin
 const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
-	SUBMITTED: ["PUBLISHED", "REJECTED"],
-	UPDATED: ["PUBLISHED", "REJECTED"],
+	DRAFT: ["PROGRESSING", "PUBLISHED", "REJECTED"],
+	SUBMITTED: ["PROGRESSING", "PUBLISHED", "REJECTED"],
+	UPDATED: ["PROGRESSING", "PUBLISHED", "REJECTED"],
+	PROGRESSING: ["PUBLISHED", "REJECTED"],
 	PUBLISHED: ["CLOSED"],
 	REJECTED: ["SUBMITTED", "PUBLISHED"],
 	CLOSED: ["SUBMITTED", "PUBLISHED"],
@@ -267,6 +269,7 @@ export async function PATCH(
 			"SUBMITTED",
 			"UPDATED",
 			"DELETED",
+			"PROGRESSING",
 		];
 		if (status && !validStatuses.includes(status)) {
 			return NextResponse.json(
@@ -306,18 +309,22 @@ export async function PATCH(
 		}
 
 		// Validate status transition
+		// Allow PROGRESSING transition from any status (admin workflow)
+		// Skip validation for PROGRESSING status as it's an internal workflow status
 		const currentStatus = currentPost.status;
-		const allowedTransitions =
-			ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+		if (status && status !== "PROGRESSING") {
+			const allowedTransitions =
+				ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
 
-		if (status && !allowedTransitions.includes(status)) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: `Cannot change status from ${currentStatus} to ${status}. Allowed transitions: ${allowedTransitions.join(", ") || "none"}`,
-				},
-				{ status: 400 }
-			);
+			if (!allowedTransitions.includes(status)) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: `Cannot change status from ${currentStatus} to ${status}. Allowed transitions: ${allowedTransitions.join(", ") || "none"}`,
+					},
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Require rejection reason when status is REJECTED
@@ -350,7 +357,13 @@ export async function PATCH(
 		});
 
 		// Create notification for institution user
-		if (status && currentPost.institution?.user) {
+		// Only send notifications/emails for status changes that matter to institutions
+		// PROGRESSING is an internal workflow status and shouldn't trigger notifications
+		if (
+			status &&
+			status !== "PROGRESSING" &&
+			currentPost.institution?.user
+		) {
 			const institutionUser = currentPost.institution.user;
 
 			// Determine post type
@@ -365,6 +378,7 @@ export async function PATCH(
 				CLOSED: "Closed",
 				REJECTED: "Rejected",
 				SUBMITTED: "Submitted",
+				PROGRESSING: "In Progress",
 			};
 			const statusLabel = statusLabels[status] || status;
 
@@ -389,9 +403,8 @@ export async function PATCH(
 
 			// Send email notification via SQS using utility function
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const baseUrl =
 					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||

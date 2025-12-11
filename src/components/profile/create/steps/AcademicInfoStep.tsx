@@ -15,6 +15,7 @@ import { getCountriesWithSvgFlags } from '@/data/countries'
 import { Info } from 'lucide-react'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
+import { useTranslations } from 'next-intl'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData
@@ -44,6 +45,7 @@ export function AcademicInfoStep({
 	onNext,
 	onShowManageModal,
 }: AcademicInfoStepProps) {
+	const t = useTranslations('create_profile.academic_info')
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 
@@ -106,7 +108,7 @@ export function AcademicInfoStep({
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Error in handleCategoryFilesUploaded:', error)
-			setErrorMessage('Failed to process uploaded files. Please try again.')
+			setErrorMessage(t('errors.message'))
 			setShowErrorModal(true)
 		}
 	}
@@ -466,11 +468,9 @@ export function AcademicInfoStep({
 	return (
 		<div className="space-y-6 relative">
 			<div className="text-center">
-				<h2 className="text-2xl font-bold text-primary mb-2">
-					Academic Information
-				</h2>
+				<h2 className="text-2xl font-bold text-primary mb-2">{t('title')}</h2>
 				<p className="text-muted-foreground max-w-md mx-auto">
-					Tell us about your educational background and academic achievements.
+					{t('subtitle')}
 				</p>
 			</div>
 
@@ -493,7 +493,9 @@ export function AcademicInfoStep({
 				{/* Graduated Section */}
 				<div className="space-y-4">
 					<div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-						<h3 className="text-lg font-semibold text-foreground">Graduated</h3>
+						<h3 className="text-lg font-semibold text-foreground">
+							{t('graduated.label')}
+						</h3>
 
 						{/* Graduation Status Radio Buttons */}
 						<div className="flex items-center gap-4 sm:gap-6">
@@ -513,7 +515,7 @@ export function AcademicInfoStep({
 									htmlFor="not-yet"
 									className="text-sm font-normal cursor-pointer"
 								>
-									Not yet
+									{t('graduated.options.no')}
 								</Label>
 							</div>
 							<div className="flex items-center space-x-2">
@@ -534,7 +536,7 @@ export function AcademicInfoStep({
 									htmlFor="graduated"
 									className="text-sm font-normal cursor-pointer"
 								>
-									Graduated
+									{t('graduated.options.yes')}
 								</Label>
 							</div>
 						</div>
@@ -554,14 +556,20 @@ export function AcademicInfoStep({
 									onChange={(option) =>
 										onSelectChange('degree')(option?.value || '')
 									}
-									placeholder="Level"
+									placeholder={t('level.placeholder')}
 									options={[
-										{ value: 'High School', label: 'High School' },
-										{ value: 'Associate', label: 'Associate' },
-										{ value: "Bachelor's", label: "Bachelor's" },
-										{ value: "Master's", label: "Master's" },
-										{ value: 'PhD', label: 'PhD' },
-										{ value: 'Professional', label: 'Professional' },
+										{
+											value: 'High School',
+											label: t('level.options.high_school'),
+										},
+										{ value: 'Associate', label: t('level.options.associate') },
+										{ value: "Bachelor's", label: t('level.options.bachelor') },
+										{ value: "Master's", label: t('level.options.master') },
+										{ value: 'PhD', label: t('level.options.phd') },
+										{
+											value: 'Professional',
+											label: t('level.options.professional'),
+										},
 									]}
 									variant="green"
 									menuPortalTarget={document.body}
@@ -585,7 +593,7 @@ export function AcademicInfoStep({
 									onChange={(option) =>
 										onSelectChange('fieldOfStudy')(option?.value || '')
 									}
-									placeholder="Choose discipline"
+									placeholder={t('discipline.placeholder')}
 									options={subdisciplines}
 									variant="default"
 									menuPortalTarget={document.body}
@@ -598,13 +606,13 @@ export function AcademicInfoStep({
 							<div className="flex flex-col sm:flex-row sm:items-center gap-4">
 								<div className="flex items-center gap-2">
 									<div className="bg-[rgba(17,110,99,0.7)] text-white px-3 py-2 rounded-full text-sm font-medium">
-										GPA
+										{t('gpa.label')}
 									</div>
 									<span className="hidden sm:block text-gray-400 text-xl">
 										|
 									</span>
 									<Input
-										placeholder="0.0-4.0"
+										placeholder={t('gpa.placeholder')}
 										value={formData.gpa || ''}
 										onChange={handleGpaInput}
 										inputSize="select"
@@ -618,10 +626,10 @@ export function AcademicInfoStep({
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<Label className="text-sm font-medium text-foreground">
-									University
+									{t('university.label')}
 								</Label>
 								<Input
-									placeholder="e.g., Harvard University"
+									placeholder={t('university.placeholder')}
 									value={formData.university || ''}
 									onChange={(e) => onInputChange('university', e.target.value)}
 									inputSize="select"
@@ -629,7 +637,7 @@ export function AcademicInfoStep({
 							</div>
 							<div>
 								<Label className="text-sm font-medium text-foreground">
-									Country of Study
+									{t('country_of_study.label')}
 								</Label>
 								<CustomSelect
 									value={
@@ -642,7 +650,7 @@ export function AcademicInfoStep({
 									onChange={(option) =>
 										onSelectChange('countryOfStudy')(option?.name || '')
 									}
-									placeholder="Select country"
+									placeholder={t('country_of_study.placeholder')}
 									options={getCountriesWithSvgFlags()}
 									formatOptionLabel={(option: any) => (
 										<div className="flex items-center space-x-2">
@@ -670,7 +678,7 @@ export function AcademicInfoStep({
 				<div className="space-y-4">
 					<div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
 						<h3 className="text-lg font-semibold text-foreground">
-							Foreign Language
+							{t('foreign_language.title')}
 						</h3>
 
 						{/* Foreign Language Status Radio Buttons */}
@@ -691,7 +699,7 @@ export function AcademicInfoStep({
 									htmlFor="language-yes"
 									className="text-sm font-normal cursor-pointer"
 								>
-									Yes
+									{t('foreign_language.yes')}
 								</Label>
 							</div>
 							<div className="flex items-center space-x-2">
@@ -710,7 +718,7 @@ export function AcademicInfoStep({
 									htmlFor="language-no"
 									className="text-sm font-normal cursor-pointer"
 								>
-									No
+									{t('foreign_language.no')}
 								</Label>
 							</div>
 						</div>
@@ -723,7 +731,7 @@ export function AcademicInfoStep({
 								<div key={index} className="flex flex-col lg:flex-row gap-2">
 									<div className="space-y-1 flex-1">
 										<Label className="text-sm font-medium text-foreground">
-											Language
+											{t('foreign_language.language.label')}
 										</Label>
 										<CustomSelect
 											value={
@@ -769,46 +777,50 @@ export function AcademicInfoStep({
 												}
 												onInputChange('languages', newLanguages)
 											}}
-											placeholder="Language"
+											placeholder={t('foreign_language.language.placeholder')}
 											options={[
 												{
 													value: 'Vietnamese',
-													label: 'Vietnamese',
+													label: t(
+														'foreign_language.language.options.vietnamese'
+													),
 													flag: '🇻🇳',
 												},
 												{
 													value: 'English',
-													label: 'English',
+													label: t('foreign_language.language.options.english'),
 													flag: '🇺🇸',
 												},
 												{
 													value: 'Spanish',
-													label: 'Spanish',
+													label: t('foreign_language.language.options.spanish'),
 													flag: '🇪🇸',
 												},
 												{
 													value: 'French',
-													label: 'French',
+													label: t('foreign_language.language.options.french'),
 													flag: '🇫🇷',
 												},
 												{
 													value: 'German',
-													label: 'German',
+													label: t('foreign_language.language.options.german'),
 													flag: '🇩🇪',
 												},
 												{
 													value: 'Chinese',
-													label: 'Chinese',
+													label: t('foreign_language.language.options.chinese'),
 													flag: '🇨🇳',
 												},
 												{
 													value: 'Japanese',
-													label: 'Japanese',
+													label: t(
+														'foreign_language.language.options.japanese'
+													),
 													flag: '🇯🇵',
 												},
 												{
 													value: 'Korean',
-													label: 'Korean',
+													label: t('foreign_language.language.options.korean'),
 													flag: '🇰🇷',
 												},
 											]}
@@ -831,7 +843,7 @@ export function AcademicInfoStep({
 									</div>
 									<div className="space-y-1 flex-1">
 										<Label className="text-sm font-medium text-foreground">
-											Certificate
+											{t('foreign_language.certificate.label')}
 										</Label>
 										<CustomSelect
 											key={`certificate-${index}-${lang.language}`}
@@ -848,7 +860,9 @@ export function AcademicInfoStep({
 												}
 												onInputChange('languages', newLanguages)
 											}}
-											placeholder="Select certificate"
+											placeholder={t(
+												'foreign_language.certificate.placeholder'
+											)}
 											variant="green"
 											className="w-full"
 											options={getCertificateOptions(lang.language)}
@@ -864,11 +878,11 @@ export function AcademicInfoStep({
 									</div>
 									<div className="space-y-1 flex-1">
 										<Label className="text-sm font-medium text-foreground">
-											Score
+											{t('foreign_language.score.label')}
 										</Label>
 										<Input
 											key={`score-${index}-${lang.language}`}
-											placeholder="Score"
+											placeholder={t('foreign_language.score.placeholder')}
 											value={lang.score || ''}
 											onChange={(e) => {
 												const newLanguages = [...formData.languages]
@@ -901,7 +915,7 @@ export function AcademicInfoStep({
 										className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
 									>
 										<span className="underline">
-											Add language certification
+											{t('foreign_language.add')}
 										</span>
 										<div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
 											<span className="text-white text-sm font-bold">+</span>
@@ -921,10 +935,10 @@ export function AcademicInfoStep({
 					<div className="space-y-3">
 						<div className="flex items-center gap-1">
 							<Label className="text-sm font-medium text-foreground">
-								CV / Resume
+								{t('files.cv.label')}
 							</Label>
 							<Tooltip
-								content="Upload your CV/Resume in PDF, DOC, or DOCX format (max 10MB). Required: Personal information (name, contact details), work experience or education background, skills/competencies. Must be clearly structured as a CV/Resume, not an essay or article."
+								content={t('files.cv.tooltip')}
 								maxWidth={320}
 								align="left"
 							>
@@ -951,7 +965,7 @@ export function AcademicInfoStep({
 						/>
 						{formData.cvFiles && formData.cvFiles.length > 0 && (
 							<div className="text-xs text-green-600">
-								{formData.cvFiles.length} file(s) uploaded
+								{t('files.uploaded', { count: formData.cvFiles.length })}
 							</div>
 						)}
 					</div>
@@ -960,10 +974,10 @@ export function AcademicInfoStep({
 					<div className="space-y-3">
 						<div className="flex items-center gap-1">
 							<Label className="text-sm font-medium text-foreground ">
-								Foreign Language Certificate
+								{t('files.language_cert.label')}
 							</Label>
 							<Tooltip
-								content="Upload language proficiency certificates in PDF, JPG, or PNG format (max 10MB). Required: Test name (IELTS, TOEFL, TOEIC, HSK, JLPT, etc.), test scores, test date, candidate name, official certification. Must be an official certificate."
+								content={t('files.language_cert.tooltip')}
 								maxWidth={5700}
 								align="left"
 							>
@@ -1001,10 +1015,10 @@ export function AcademicInfoStep({
 					<div className="space-y-3">
 						<div className="flex items-center gap-1">
 							<Label className="text-sm font-medium text-foreground">
-								Degree Certificate
+								{t('files.degree.label')}
 							</Label>
 							<Tooltip
-								content="Upload degree/diploma certificates in PDF, JPG, or PNG format (max 10MB). Required: Degree type (Bachelor's, Master's, PhD), field of study, institution name, graduation date, student name, official status (seal/signature/stamp). Must be a certificate, not transcript."
+								content={t('files.degree.tooltip')}
 								maxWidth={370}
 								align="left"
 							>
@@ -1032,7 +1046,7 @@ export function AcademicInfoStep({
 						/>
 						{formData.degreeFiles && formData.degreeFiles.length > 0 && (
 							<div className="text-xs text-green-600">
-								{formData.degreeFiles.length} file(s) uploaded
+								{t('files.uploaded', { count: formData.degreeFiles.length })}
 							</div>
 						)}
 					</div>
@@ -1041,10 +1055,10 @@ export function AcademicInfoStep({
 					<div className="space-y-3">
 						<div className="flex items-center gap-1">
 							<Label className="text-sm font-medium text-foreground">
-								Academic Transcript
+								{t('files.transcript.label')}
 							</Label>
 							<Tooltip
-								content="Upload academic transcripts in PDF, JPG, or PNG format (max 10MB). Required: List of courses/subjects, grades for each course, academic periods/terms, overall GPA (if applicable), student name and ID, institution name. Must show detailed course and grade information."
+								content={t('files.transcript.tooltip')}
 								maxWidth={370}
 								align="left"
 							>
@@ -1073,7 +1087,9 @@ export function AcademicInfoStep({
 						{formData.transcriptFiles &&
 							formData.transcriptFiles.length > 0 && (
 								<div className="text-xs text-green-600">
-									{formData.transcriptFiles.length} file(s) uploaded
+									{t('files.uploaded', {
+										count: formData.transcriptFiles.length,
+									})}
 								</div>
 							)}
 					</div>
@@ -1082,7 +1098,7 @@ export function AcademicInfoStep({
 			<div className="space-y-4">
 				<div className="flex items-center gap-8">
 					<h3 className="text-lg font-semibold text-foreground">
-						Research Papers
+						{t('research_papers.title')}
 					</h3>
 				</div>
 
@@ -1093,10 +1109,10 @@ export function AcademicInfoStep({
 							<div className="space-y-4">
 								<div className="space-y-2">
 									<Label className="text-sm font-medium text-foreground">
-										Paper Title
+										{t('research_papers.paper_title.label')}
 									</Label>
 									<Input
-										placeholder="Enter research paper title"
+										placeholder={t('research_papers.paper_title.placeholder')}
 										value={paper.title}
 										onChange={(e) => {
 											const newPapers = [...(formData.researchPapers || [])]
@@ -1110,7 +1126,7 @@ export function AcademicInfoStep({
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label>Disciplines</Label>
+									<Label>{t('research_papers.disciplines.label')}</Label>
 									<CustomSelect
 										value={
 											paper.discipline
@@ -1134,7 +1150,7 @@ export function AcademicInfoStep({
 											}
 											onInputChange('researchPapers', newPapers)
 										}}
-										placeholder="Choose disciplines"
+										placeholder={t('research_papers.disciplines.placeholder')}
 										options={subdisciplines}
 										isMulti
 										isSearchable
@@ -1148,10 +1164,10 @@ export function AcademicInfoStep({
 							<div className="space-y-3">
 								<div className="flex items-center gap-1">
 									<Label className="text-sm font-medium text-foreground">
-										Research Paper Files
+										{t('research_papers.files.label')}
 									</Label>
 									<Tooltip
-										content="Upload formal academic research papers in PDF format (max 10MB per file). Required: Clear title, author name(s) and affiliation, abstract, structured sections (Introduction, Methods, Results, Conclusion), references with citations, academic writing style. Must be formal research papers, not blog posts or essays."
+										content={t('research_papers.files.tooltip')}
 										maxWidth={370}
 										align="left"
 									>
@@ -1192,9 +1208,7 @@ export function AcademicInfoStep({
 											// Update the research papers
 											onInputChange('researchPapers', newPapers)
 										} catch (error) {
-											setErrorMessage(
-												'Failed to upload research paper files. Please try again.'
-											)
+											setErrorMessage(t('errors.research_paper_upload_failed'))
 											setShowErrorModal(true)
 										}
 									}}
@@ -1210,7 +1224,9 @@ export function AcademicInfoStep({
 								/>
 								{paper.files && paper.files.length > 0 && (
 									<div className="text-xs text-green-600">
-										{paper.files.length} file(s) uploaded
+										{t('research_papers.uploaded', {
+											count: paper.files.length,
+										})}
 									</div>
 								)}
 							</div>
@@ -1230,7 +1246,7 @@ export function AcademicInfoStep({
 							}}
 							className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
 						>
-							<span className="underline">Add research paper</span>
+							<span className="underline">{t('research_papers.add')}</span>
 							<div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
 								<span className="text-white text-sm font-bold">+</span>
 							</div>
@@ -1242,7 +1258,7 @@ export function AcademicInfoStep({
 				{getAllFiles().length > 0 && (
 					<div className="flex justify-center pt-6">
 						<Button variant="outline" onClick={onShowManageModal} size="sm">
-							Manage Files ({getAllFiles().length})
+							{t('manage_files', { count: getAllFiles().length })}
 						</Button>
 					</div>
 				)}
@@ -1254,7 +1270,7 @@ export function AcademicInfoStep({
 					size="sm"
 					className="w-full sm:w-auto"
 				>
-					Back
+					{t('back')}
 				</Button>
 				<Button
 					onClick={() => {
@@ -1273,7 +1289,7 @@ export function AcademicInfoStep({
 					size="sm"
 					className="w-full sm:w-auto"
 				>
-					Next
+					{t('next')}
 				</Button>
 			</div>
 
@@ -1283,9 +1299,9 @@ export function AcademicInfoStep({
 					<ErrorModal
 						isOpen={showErrorModal}
 						onClose={() => setShowErrorModal(false)}
-						title="Upload Failed"
+						title={t('errors.upload_failed')}
 						message={errorMessage}
-						buttonText="Try Again"
+						buttonText={t('errors.try_again')}
 					/>,
 					document.body
 				)}

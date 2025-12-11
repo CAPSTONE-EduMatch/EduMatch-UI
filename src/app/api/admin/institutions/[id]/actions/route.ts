@@ -207,9 +207,8 @@ export async function POST(
 
 				// Send notification and email via SQS
 				try {
-					const { NotificationUtils } = await import(
-						"@/services/messaging/sqs-handlers"
-					);
+					const { NotificationUtils } =
+						await import("@/services/messaging/sqs-handlers");
 
 					const baseUrl =
 						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
@@ -253,9 +252,8 @@ export async function POST(
 
 				// Send notification and email via SQS
 				try {
-					const { NotificationUtils } = await import(
-						"@/services/messaging/sqs-handlers"
-					);
+					const { NotificationUtils } =
+						await import("@/services/messaging/sqs-handlers");
 
 					const baseUrl =
 						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
@@ -364,9 +362,8 @@ export async function POST(
 
 					// Send notification and email via SQS after transaction
 					try {
-						const { NotificationUtils } = await import(
-							"@/services/messaging/sqs-handlers"
-						);
+						const { NotificationUtils } =
+							await import("@/services/messaging/sqs-handlers");
 
 						const baseUrl =
 							process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||

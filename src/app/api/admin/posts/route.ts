@@ -6,7 +6,12 @@ import { prismaClient } from "../../../../../prisma/index";
 interface PostFilters {
 	search?: string;
 	status?: "all" | PostStatus;
-	type?: "all" | "Program" | "Scholarship" | "Job";
+	type?:
+		| "all"
+		| "Program"
+		| "Scholarship"
+		| "Job"
+		| ("Program" | "Scholarship" | "Job")[];
 	sortBy?: "title" | "create_at" | "start_date";
 	sortDirection?: "asc" | "desc";
 	page?: number;
@@ -22,15 +27,19 @@ export async function GET(request: NextRequest) {
 		const { searchParams } = new URL(request.url);
 
 		// Parse query parameters
+		// Handle multiple type filters
+		const typeParams = searchParams.getAll("type");
+		const typeFilter: "all" | ("Program" | "Scholarship" | "Job")[] =
+			typeParams.length === 0
+				? "all"
+				: typeParams.length === 1 && typeParams[0] === "all"
+					? "all"
+					: (typeParams as ("Program" | "Scholarship" | "Job")[]);
+
 		const filters: PostFilters = {
 			search: searchParams.get("search") || undefined,
 			status: (searchParams.get("status") as "all" | PostStatus) || "all",
-			type:
-				(searchParams.get("type") as
-					| "all"
-					| "Program"
-					| "Scholarship"
-					| "Job") || "all",
+			type: typeFilter,
 			sortBy:
 				(searchParams.get("sortBy") as
 					| "title"
@@ -45,9 +54,10 @@ export async function GET(request: NextRequest) {
 		// Build where clause for filtering
 		const whereClause: any = {};
 
-		// Search across title
+		// Search conditions
+		const searchConditions: any[] = [];
 		if (filters.search) {
-			whereClause.OR = [
+			searchConditions.push(
 				{
 					title: {
 						contains: filters.search,
@@ -61,8 +71,8 @@ export async function GET(request: NextRequest) {
 							mode: "insensitive",
 						},
 					},
-				},
-			];
+				}
+			);
 		}
 
 		// Filter by status
@@ -70,15 +80,38 @@ export async function GET(request: NextRequest) {
 			whereClause.status = filters.status;
 		}
 
-		// Filter by post type
+		// Filter by post type (support multiple types)
+		const typeConditions: any[] = [];
 		if (filters.type && filters.type !== "all") {
-			if (filters.type === "Program") {
-				whereClause.programPost = { isNot: null };
-			} else if (filters.type === "Scholarship") {
-				whereClause.scholarshipPost = { isNot: null };
-			} else if (filters.type === "Job") {
-				whereClause.jobPost = { isNot: null };
-			}
+			const types = Array.isArray(filters.type)
+				? filters.type
+				: [filters.type];
+			types.forEach((type) => {
+				if (type === "Program") {
+					typeConditions.push({ programPost: { isNot: null } });
+				} else if (type === "Scholarship") {
+					typeConditions.push({
+						scholarshipPost: { isNot: null },
+					});
+				} else if (type === "Job") {
+					typeConditions.push({ jobPost: { isNot: null } });
+				}
+			});
+		}
+
+		// Combine search and type conditions properly
+		// If we have both search and type filters, use AND with OR groups
+		if (searchConditions.length > 0 && typeConditions.length > 0) {
+			whereClause.AND = [
+				{ OR: searchConditions },
+				{ OR: typeConditions },
+			];
+		} else if (searchConditions.length > 0) {
+			// Only search filter
+			whereClause.OR = searchConditions;
+		} else if (typeConditions.length > 0) {
+			// Only type filter
+			whereClause.OR = typeConditions;
 		}
 
 		// Calculate pagination
@@ -268,9 +301,8 @@ export async function PATCH(request: NextRequest) {
 			currentPost.institution?.user
 		) {
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const institutionUser = currentPost.institution.user;
 

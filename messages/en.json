@@ -3,6 +3,18 @@
 	"about-us": "About us",
 	"program": "Program",
 
+	"phone_input": {
+		"select_country": "Select country",
+		"placeholder": {
+			"default": "Enter your phone number",
+			"vietnam": "Nhập số điện thoại của bạn"
+		},
+		"errors": {
+			"invalid_country": "Please enter a valid {country} phone number",
+			"invalid_format": "Invalid phone number format"
+		}
+	},
+
 	"header": {
 		"navigation": {
 			"about_us": "About us",
@@ -2147,6 +2159,7 @@
 		}
 	},
 	"create_profile": {
+		"page_title": "Create Profile",
 		"role_selection": {
 			"title": "Choose your role",
 			"subtitle": "Select whether you're looking for educational opportunities or representing an educational institution.",
@@ -2161,12 +2174,13 @@
 			"next": "Next"
 		},
 		"basic_info": {
-			"title": "Basic Information",
-			"subtitle": "Tell us about yourself",
+			"title": "Basic information",
+			"subtitle": "Please provide your basic personal information to create your profile.",
 			"profile_photo": {
 				"label": "Profile Photo",
-				"upload": "Upload Photo",
-				"uploading": "Uploading..."
+				"upload": "Upload your photo",
+				"uploading": "Uploading...",
+				"requirements": "Must be PNG, JPG, or WebP file (max 10MB)"
 			},
 			"first_name": {
 				"label": "First Name",
@@ -2180,38 +2194,50 @@
 			},
 			"email": {
 				"label": "Email",
-				"placeholder": "your.email@example.com",
+				"placeholder": "example123@gmail.com",
 				"required": "Email is required",
-				"invalid": "Please enter a valid email"
+				"invalid": "Please enter a valid email",
+				"tooltip": "Email is pre-filled from your account and cannot be changed"
 			},
 			"phone": {
-				"label": "Phone Number (Optional)",
-				"placeholder": "Enter phone number",
+				"label": "Phone Number",
+				"placeholder": "Your phone number (numbers only)",
 				"min_length": "Phone number must be at least 7 digits",
 				"max_length": "Phone number cannot exceed 15 digits"
 			},
+			"birthday": {
+				"label": "Birthday",
+				"placeholder": "dd/mm/yyyy"
+			},
 			"gender": {
 				"label": "Gender",
-				"placeholder": "Select gender",
+				"placeholder": "Choose gender",
 				"required": "Gender is required",
 				"options": {
 					"male": "Male",
-					"female": "Female",
-					"other": "Other"
+					"female": "Female"
 				}
 			},
 			"nationality": {
 				"label": "Nationality",
-				"placeholder": "Select nationality",
+				"placeholder": "Choose your nationality",
 				"required": "Nationality is required"
 			},
 			"interests": {
-				"label": "Interests (Optional)",
-				"placeholder": "Select your interests"
+				"label": "Interest",
+				"placeholder": "Choose subject(s)/field(s) you interested in",
+				"loading": "Loading disciplines...",
+				"error": "Failed to load disciplines. Please refresh the page."
 			},
 			"favorite_countries": {
-				"label": "Favorite Countries (Optional)",
-				"placeholder": "Select countries"
+				"label": "Favorite country",
+				"placeholder": "Choose your favorite country"
+			},
+			"errors": {
+				"upload_failed": "Upload Failed",
+				"invalid_file": "Please select a PNG or JPG image file",
+				"file_requirements": "Must be PNG or JPG file (max 5MB)",
+				"try_again": "Try Again"
 			},
 			"back": "Back",
 			"next": "Next"
@@ -2219,25 +2245,155 @@
 		"academic_info": {
 			"title": "Academic Information",
 			"subtitle": "Share your educational background",
-			"back": "Back",
-			"next": "Next"
-		},
-		"institution_info": {
-			"title": "Institution Information",
-			"subtitle": "Tell us about your institution",
+			"graduated": {
+				"label": "Graduated",
+				"options": {
+					"yes": "Yes",
+					"no": "Not yet"
+				}
+			},
+			"level": {
+				"label": "Level",
+				"placeholder": "Level",
+				"options": {
+					"high_school": "High School",
+					"associate": "Associate",
+					"bachelor": "Bachelor's",
+					"master": "Master's",
+					"phd": "PhD",
+					"professional": "Professional"
+				}
+			},
+			"discipline": {
+				"label": "Subdiscipline",
+				"placeholder": "Choose Subdiscipline"
+			},
+			"gpa": {
+				"label": "GPA",
+				"placeholder": "0.0-4.0"
+			},
+			"university": {
+				"label": "University",
+				"placeholder": "e.g., Harvard University"
+			},
+			"country_of_study": {
+				"label": "Country of Study",
+				"placeholder": "Select country"
+			},
+			"foreign_language": {
+				"title": "Foreign Language",
+				"yes": "Yes",
+				"no": "No",
+				"language": {
+					"label": "Language",
+					"placeholder": "Language",
+					"options": {
+						"vietnamese": "Vietnamese",
+						"english": "English",
+						"spanish": "Spanish",
+						"french": "French",
+						"german": "German",
+						"chinese": "Chinese",
+						"japanese": "Japanese",
+						"korean": "Korean"
+					}
+				},
+				"certificate": {
+					"label": "Certificate",
+					"placeholder": "Certificate",
+					"ielts": "IELTS",
+					"toefl": "TOEFL",
+					"toeic": "TOEIC",
+					"delf": "DELF",
+					"dalf": "DALF",
+					"testdaf": "TestDaF",
+					"goethe": "Goethe-Zertifikat",
+					"hsk": "HSK",
+					"jlpt": "JLPT",
+					"topik": "TOPIK",
+					"dele": "DELE"
+				},
+				"score": {
+					"label": "Score",
+					"placeholder": "Score"
+				},
+				"add": "Add language certification",
+				"delete": "Delete language certification"
+			},
+			"files": {
+				"cv": {
+					"label": "CV / Resume",
+					"tooltip": "Upload CV/Resume in PDF, DOC, DOCX format (max 10MB). Required: Personal info, education, work experience, skills, contact details. Must be a CV/Resume, not a cover letter or personal statement."
+				},
+				"language_cert": {
+					"label": "Foreign Language Certificate",
+					"tooltip": "Upload language certificates in PDF, JPG, or PNG format (max 10MB). Required: Test name (IELTS/TOEFL/etc.), test scores, test date, candidate name and info, issuing organization logo/seal. Must be official certificates, not practice tests."
+				},
+				"degree": {
+					"label": "Degree Certificate",
+					"tooltip": "Upload degree/diploma certificates in PDF, JPG, or PNG format (max 10MB). Required: Degree type (Bachelor's, Master's, PhD), field of study, institution name, graduation date, student name, official status (seal/signature/stamp). Must be a certificate, not transcript."
+				},
+				"transcript": {
+					"label": "Academic Transcript",
+					"tooltip": "Upload academic transcripts in PDF, JPG, or PNG format (max 10MB). Required: List of courses/subjects, grades for each course, academic periods/terms, overall GPA (if applicable), student name and ID, institution name. Must show detailed course and grade information."
+				},
+				"uploaded": "{count} file(s) uploaded"
+			},
+			"research_papers": {
+				"title": "Research Papers",
+				"paper_title": {
+					"label": "Paper Title",
+					"placeholder": "Enter research paper title"
+				},
+				"disciplines": {
+					"label": "Disciplines",
+					"placeholder": "Choose disciplines"
+				},
+				"files": {
+					"label": "Research Paper Files",
+					"tooltip": "Upload formal academic research papers in PDF format (max 10MB per file). Required: Clear title, author name(s) and affiliation, abstract, structured sections (Introduction, Methods, Results, Conclusion), references with citations, academic writing style. Must be formal research papers, not blog posts or essays."
+				},
+				"add": "Add research paper",
+				"uploaded": "{count} file(s) uploaded"
+			},
+			"manage_files": "Manage Files ({count})",
+			"errors": {
+				"upload_failed": "Upload Failed",
+				"message": "Failed to upload files. Please try again.",
+				"research_paper_upload_failed": "Failed to upload research paper files. Please try again.",
+				"try_again": "Try Again"
+			},
 			"back": "Back",
 			"next": "Next"
 		},
 		"institution_details": {
 			"title": "Institution Details",
-			"subtitle": "Additional information about your institution",
-			"verification_error": "Please upload at least one verification document to continue.",
+			"subtitle": "Select disciplines and upload verification documents",
+			"subdisciplines": {
+				"label": "Institution Sub-Disciplines",
+				"placeholder": "Select sub-disciplines...",
+				"loading": "Loading disciplines...",
+				"error": "Failed to load disciplines",
+				"retry": "Retry"
+			},
+			"cover_image": {
+				"label": "Institution Cover Image",
+				"remove": "Remove Image",
+				"failed_to_load": "Failed to load image"
+			},
+			"verification_documents": {
+				"label": "Verification Documents",
+				"tooltip": "Upload institution verification documents in PDF, DOC, DOCX, JPG, or PNG format (max 10MB per file). Required: Institution name and official details, registration numbers or accreditation information, official letterhead/logo/seal/certification marks, statement of legal status/authorization/recognition, contact information. Must be formal verification documents, not brochures.",
+				"uploaded": "{count} file(s) uploaded",
+				"error": "Please upload at least one verification document to continue."
+			},
+			"manage_files": "Manage Files ({count})",
 			"back": "Back",
 			"next": "Next"
 		},
 		"completion": {
 			"title": "Profile Complete!",
-			"message": "Your profile has been successfully created. You can now start using EduMatch.",
+			"subtitle": "Your profile has been successfully created. You can now start using EduMatch.",
 			"button": "Get Started"
 		}
 	}

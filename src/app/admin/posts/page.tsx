@@ -5,7 +5,8 @@ import { SearchAndFilter } from '@/components/profile/institution/components/Sea
 import { Card, CardContent } from '@/components/ui'
 import { useAdminPostManagement } from '@/hooks/admin'
 import { PostStatus } from '@prisma/client'
-import { ChevronRight, Users } from 'lucide-react'
+import { ChevronRight, Users, Copy, Check } from 'lucide-react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Post {
@@ -29,7 +30,7 @@ const getStatusColor = (status: PostStatus) => {
 			return 'bg-[#F0A227] text-white'
 		case 'SUBMITTED':
 			return 'bg-[#3B82F6] text-white'
-		case 'UPDATED':
+		case 'PROGRESSING':
 			return 'bg-[#10B981] text-white'
 		case 'REJECTED':
 			return 'bg-[#EF4444] text-white'
@@ -50,8 +51,8 @@ const getStatusLabel = (status: PostStatus) => {
 			return 'Draft'
 		case 'SUBMITTED':
 			return 'Submitted'
-		case 'UPDATED':
-			return 'Updated'
+		case 'PROGRESSING':
+			return 'Progressing'
 		case 'REJECTED':
 			return 'Rejected'
 		default:
@@ -71,12 +72,48 @@ export default function AdminPostsPage() {
 		changePage,
 	} = useAdminPostManagement()
 
+	// Component for ID cell with copy functionality
+	const IdCell = ({ id }: { id: string }) => {
+		const [copied, setCopied] = useState(false)
+
+		const shortId = id.length > 8 ? `${id.substring(0, 8)}...` : id
+
+		const handleCopy = async () => {
+			try {
+				await navigator.clipboard.writeText(id)
+				setCopied(true)
+				setTimeout(() => setCopied(false), 2000)
+			} catch (err) {
+				console.error('Failed to copy:', err)
+			}
+		}
+
+		return (
+			<div className="flex items-center gap-2">
+				<span className="text-sm text-gray-700 font-mono">{shortId}</span>
+				<button
+					onClick={handleCopy}
+					className="p-1 hover:bg-gray-100 rounded transition-colors"
+					title="Copy full ID"
+				>
+					{copied ? (
+						<Check className="w-4 h-4 text-green-600" />
+					) : (
+						<Copy className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+					)}
+				</button>
+			</div>
+		)
+	}
+
 	// Define table columns
 	const columns = [
 		{
 			header: 'ID',
-			accessor: 'id' as keyof Post,
-			className: '70px',
+			accessor: ((post: Post) => <IdCell id={post.id} />) as (
+				post: Post
+			) => React.ReactNode,
+			className: '150px',
 		},
 		{
 			header: 'Title',
@@ -235,12 +272,32 @@ export default function AdminPostsPage() {
 						})
 					}}
 					// Custom props for admin posts filtering
-					typeFilter={filters.type || 'all'}
-					onTypeFilterChange={(type: string) =>
-						updateFilters({
-							type: type as 'all' | 'Program' | 'Scholarship' | 'Job',
-						})
+					typeFilter={
+						filters.type && filters.type !== 'all'
+							? Array.isArray(filters.type)
+								? filters.type
+								: [filters.type]
+							: []
 					}
+					onTypeFilterChange={(types: string | string[]) => {
+						const typeArray = Array.isArray(types) ? types : [types]
+						updateFilters({
+							type:
+								typeArray.length === 0 ||
+								(typeArray.length === 1 && typeArray[0] === 'all')
+									? 'all'
+									: (typeArray as ('Program' | 'Scholarship' | 'Job')[]),
+						})
+					}}
+					statusOptions={[
+						{ value: 'DRAFT', label: 'Draft' },
+						{ value: 'PUBLISHED', label: 'Published' },
+						{ value: 'CLOSED', label: 'Closed' },
+						{ value: 'SUBMITTED', label: 'Submitted' },
+						{ value: 'PROGRESSING', label: 'Progressing' },
+						{ value: 'REJECTED', label: 'Rejected' },
+						{ value: 'DELETED', label: 'Deleted' },
+					]}
 					searchPlaceholder="Search by title or institution..."
 				/>
 

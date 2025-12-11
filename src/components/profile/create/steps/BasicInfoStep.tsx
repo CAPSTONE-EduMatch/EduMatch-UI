@@ -15,6 +15,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { usePresignedUpload } from '@/hooks/files/usePresignedUpload'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { useTranslations } from 'next-intl'
 
 interface BasicInfoStepProps {
 	formData: ProfileFormData
@@ -41,6 +42,7 @@ export function BasicInfoStep({
 	onNext,
 	user,
 }: BasicInfoStepProps) {
+	const t = useTranslations('create_profile.basic_info')
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const {
 		subdisciplines = [],
@@ -104,7 +106,7 @@ export function BasicInfoStep({
 		// Validate file type - only PNG and JPG allowed
 		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
 		if (!allowedTypes.includes(file.type)) {
-			setErrorMessage('Please select a PNG or JPG image file')
+			setErrorMessage(t('errors.invalid_file'))
 			setShowErrorModal(true)
 			return
 		}
@@ -143,13 +145,13 @@ export function BasicInfoStep({
 
 		// Check if phone number has at least 7 digits (minimum valid phone number)
 		if (formData.phoneNumber.length < 7) {
-			setPhoneValidationError('Phone number must be at least 7 digits')
+			setPhoneValidationError(t('phone.min_length'))
 			return false
 		}
 
 		// Check if phone number has more than 15 digits (maximum valid phone number)
 		if (formData.phoneNumber.length > 15) {
-			setPhoneValidationError('Phone number cannot exceed 15 digits')
+			setPhoneValidationError(t('phone.max_length'))
 			return false
 		}
 
@@ -223,12 +225,8 @@ export function BasicInfoStep({
 	return (
 		<div className="space-y-6">
 			<div className="">
-				<h2 className="text-2xl font-bold text-primary mb-2">
-					Basic information
-				</h2>
-				<p className="text-muted-foreground">
-					Please provide your basic personal information to create your profile.
-				</p>
+				<h2 className="text-2xl font-bold text-primary mb-2">{t('title')}</h2>
+				<p className="text-muted-foreground">{t('subtitle')}</p>
 			</div>
 
 			<div className="space-y-6">
@@ -257,10 +255,12 @@ export function BasicInfoStep({
 							onClick={handleUploadClick}
 							disabled={isUploading}
 						>
-							{isUploading ? 'Uploading...' : 'Upload your photo'}
+							{isUploading
+								? t('profile_photo.uploading')
+								: t('profile_photo.upload')}
 						</Button>
 						<p className="text-xs text-muted-foreground">
-							Must be PNG or JPG file (max 5MB)
+							{t('errors.file_requirements')}
 						</p>
 					</div>
 					{/* Hidden file input */}
@@ -277,11 +277,11 @@ export function BasicInfoStep({
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div className="space-y-2">
 						<Label htmlFor="firstName">
-							First Name <span className="text-red-500">*</span>
+							{t('first_name.label')} <span className="text-red-500">*</span>
 						</Label>
 						<Input
 							id="firstName"
-							placeholder="Enter your first name"
+							placeholder={t('first_name.placeholder')}
 							value={formData.firstName}
 							onChange={handleNameInput('firstName')}
 							inputSize="select"
@@ -294,11 +294,11 @@ export function BasicInfoStep({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="lastName">
-							Last Name <span className="text-red-500">*</span>
+							{t('last_name.label')} <span className="text-red-500">*</span>
 						</Label>
 						<Input
 							id="lastName"
-							placeholder="Enter your last name"
+							placeholder={t('last_name.placeholder')}
 							value={formData.lastName}
 							onChange={handleNameInput('lastName')}
 							inputSize="select"
@@ -311,16 +311,14 @@ export function BasicInfoStep({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="gender">
-							Gender <span className="text-red-500">*</span>
+							{t('gender.label')} <span className="text-red-500">*</span>
 						</Label>
 						<CustomSelect
 							value={
 								formData.gender
 									? {
 											value: formData.gender,
-											label:
-												formData.gender.charAt(0).toUpperCase() +
-												formData.gender.slice(1),
+											label: t(`gender.options.${formData.gender}`),
 										}
 									: null
 							}
@@ -335,10 +333,10 @@ export function BasicInfoStep({
 									})
 								}
 							}}
-							placeholder="Choose gender"
+							placeholder={t('gender.placeholder')}
 							options={[
-								{ value: 'male', label: 'Male' },
-								{ value: 'female', label: 'Female' },
+								{ value: 'male', label: t('gender.options.male') },
+								{ value: 'female', label: t('gender.options.female') },
 							]}
 							isClearable={false}
 							className="w-full"
@@ -401,10 +399,10 @@ export function BasicInfoStep({
 					<div className="space-y-2">
 						<div className="flex items-center gap-2">
 							<Label htmlFor="email">
-								Email <span className="text-red-500">*</span>
+								{t('email.label')} <span className="text-red-500">*</span>
 							</Label>
 							{user?.email && formData.email === user.email && (
-								<Tooltip content="Email is pre-filled from your account and cannot be changed">
+								<Tooltip content={t('email.tooltip')}>
 									<Info className="w-3 h-3" />
 								</Tooltip>
 							)}
@@ -412,7 +410,7 @@ export function BasicInfoStep({
 						<Input
 							id="email"
 							type="email"
-							placeholder="example123@gmail.com"
+							placeholder={t('email.placeholder')}
 							value={formData.email}
 							onChange={(e) => {
 								onInputChangeEvent('email')(e)
@@ -442,7 +440,7 @@ export function BasicInfoStep({
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div className="space-y-2">
 						<Label htmlFor="nationality">
-							Nationality <span className="text-red-500">*</span>
+							{t('nationality.label')} <span className="text-red-500">*</span>
 						</Label>
 						<CustomSelect
 							value={
@@ -465,7 +463,7 @@ export function BasicInfoStep({
 									})
 								}
 							}}
-							placeholder="Choose your nationality"
+							placeholder={t('nationality.placeholder')}
 							options={getCountriesWithSvgFlags()}
 							formatOptionLabel={(option: any) => (
 								<div className="flex items-center space-x-2">
@@ -526,7 +524,7 @@ export function BasicInfoStep({
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="phone">Phone Number</Label>
+						<Label htmlFor="phone">{t('phone.label')}</Label>
 						<div className="w-full">
 							<PhoneInput
 								value={formData.phoneNumber}
@@ -547,7 +545,7 @@ export function BasicInfoStep({
 										setPhoneValidationError('')
 									}
 								}}
-								placeholder="Your phone number (numbers only)"
+								placeholder={t('phone.placeholder')}
 								className="w-full"
 								hasError={!!phoneValidationError}
 							/>
@@ -557,14 +555,14 @@ export function BasicInfoStep({
 
 				<div className="space-y-4">
 					<div className="space-y-2">
-						<Label>Interest</Label>
+						<Label>{t('interests.label')}</Label>
 						{isLoadingSubdisciplines ? (
 							<div className="text-sm text-muted-foreground py-2">
-								Loading disciplines...
+								{t('interests.loading')}
 							</div>
 						) : subdisciplinesError ? (
 							<div className="text-sm text-red-600 py-2">
-								Failed to load disciplines. Please refresh the page.
+								{t('interests.error')}
 							</div>
 						) : (
 							<CustomSelect
@@ -577,7 +575,7 @@ export function BasicInfoStep({
 										options ? options.map((option: any) => option.value) : []
 									)
 								}
-								placeholder="Choose subject(s)/field(s) you interested in"
+								placeholder={t('interests.placeholder')}
 								options={subdisciplines}
 								isMulti
 								isSearchable
@@ -588,7 +586,7 @@ export function BasicInfoStep({
 					</div>
 
 					<div className="space-y-2">
-						<Label>Favorite country</Label>
+						<Label>{t('favorite_countries.label')}</Label>
 						<CustomSelect
 							value={formData.favoriteCountries.map((country) => {
 								const countryData = getCountriesWithSvgFlags().find(
@@ -605,7 +603,7 @@ export function BasicInfoStep({
 									options ? options.map((option: any) => option.value) : []
 								)
 							}
-							placeholder="Choose your favorite countries"
+							placeholder={t('favorite_countries.placeholder')}
 							options={getCountriesWithSvgFlags().map((country) => ({
 								value: country.name,
 								label: country.name,
@@ -634,10 +632,10 @@ export function BasicInfoStep({
 
 			<div className="flex justify-between">
 				<Button variant="outline" onClick={onBack} size="sm">
-					Back
+					{t('back')}
 				</Button>
 				<Button onClick={handleNext} size="sm">
-					Next
+					{t('next')}
 				</Button>
 			</div>
 
@@ -647,9 +645,9 @@ export function BasicInfoStep({
 					<ErrorModal
 						isOpen={showErrorModal}
 						onClose={() => setShowErrorModal(false)}
-						title="Upload Failed"
+						title={t('errors.upload_failed')}
 						message={errorMessage}
-						buttonText="Try Again"
+						buttonText={t('errors.try_again')}
 					/>,
 					document.body
 				)}

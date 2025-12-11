@@ -3,6 +3,18 @@
 	"about-us": "Về chúng tôi",
 	"program": "Chương trình",
 
+	"phone_input": {
+		"select_country": "Chọn quốc gia",
+		"placeholder": {
+			"default": "Nhập số điện thoại của bạn",
+			"vietnam": "Nhập số điện thoại của bạn"
+		},
+		"errors": {
+			"invalid_country": "Vui lòng nhập số điện thoại {country} hợp lệ",
+			"invalid_format": "Định dạng số điện thoại không hợp lệ"
+		}
+	},
+
 	"header": {
 		"navigation": {
 			"about_us": "Về chúng tôi",
@@ -1549,7 +1561,7 @@
 		"includes": "Bao gồm"
 	},
 	"file_upload": {
-		"drag_drop": "Kéo và thả tệp vào đây, hoặc",
+		"drag_drop": "Kéo và thả tệp vào đây",
 		"browse": "chọn tệp",
 		"max_size": "{size}MB mỗi tệp",
 		"processing": {
@@ -1817,7 +1829,7 @@
 			"delete_research_paper": "Xóa Bài Nghiên Cứu"
 		},
 		"graduated": {
-			"title": "Đã Tốt Nghiệp",
+			"label": "Đã Tốt Nghiệp",
 			"not_yet": "Chưa",
 			"graduated": "Đã Tốt Nghiệp",
 			"level": "Cấp Độ",
@@ -2286,6 +2298,7 @@
 		}
 	},
 	"create_profile": {
+		"page_title": "Tạo Hồ Sơ",
 		"role_selection": {
 			"title": "Chọn vai trò của bạn",
 			"subtitle": "Chọn xem bạn đang tìm kiếm cơ hội giáo dục hay đại diện cho một tổ chức giáo dục.",
@@ -2305,7 +2318,8 @@
 			"profile_photo": {
 				"label": "Ảnh Hồ Sơ",
 				"upload": "Tải Ảnh Lên",
-				"uploading": "Đang tải lên..."
+				"uploading": "Đang tải lên...",
+				"requirements": "Phải là file PNG, JPG hoặc WebP (tối đa 10MB)"
 			},
 			"first_name": {
 				"label": "Tên",
@@ -2321,13 +2335,18 @@
 				"label": "Email",
 				"placeholder": "email.cua.ban@example.com",
 				"required": "Email là bắt buộc",
-				"invalid": "Vui lòng nhập email hợp lệ"
+				"invalid": "Vui lòng nhập email hợp lệ",
+				"tooltip": "Email được điền tự động từ tài khoản của bạn và không thể thay đổi"
 			},
 			"phone": {
 				"label": "Số Điện Thoại (Tùy Chọn)",
 				"placeholder": "Nhập số điện thoại",
 				"min_length": "Số điện thoại phải có ít nhất 7 chữ số",
 				"max_length": "Số điện thoại không được vượt quá 15 chữ số"
+			},
+			"birthday": {
+				"label": "Ngày Sinh",
+				"placeholder": "dd/mm/yyyy"
 			},
 			"gender": {
 				"label": "Giới Tính",
@@ -2346,18 +2365,144 @@
 			},
 			"interests": {
 				"label": "Sở Thích (Tùy Chọn)",
-				"placeholder": "Chọn sở thích của bạn"
+				"placeholder": "Chọn sở thích của bạn",
+				"loading": "Đang tải danh sách ngành học...",
+				"error": "Không thể tải danh sách ngành học. Vui lòng tải lại trang."
 			},
 			"favorite_countries": {
 				"label": "Quốc Gia Yêu Thích (Tùy Chọn)",
 				"placeholder": "Chọn quốc gia"
 			},
+			"errors": {
+				"upload_failed": "Tải Lên Thất Bại",
+				"invalid_file": "Vui lòng chọn file ảnh PNG hoặc JPG",
+				"file_requirements": "Phải là file PNG hoặc JPG (tối đa 5MB)",
+				"try_again": "Thử Lại"
+			},
 			"back": "Quay Lại",
 			"next": "Tiếp Theo"
 		},
 		"academic_info": {
-			"title": "Thông Tin Học Tập",
+			"title": "Thông Tin Học Vấn",
 			"subtitle": "Chia sẻ nền tảng giáo dục của bạn",
+			"graduated": {
+				"label": "Đã Tốt Nghiệp",
+				"options": {
+					"yes": "Rồi",
+					"no": "Chưa"
+				}
+			},
+			"level": {
+				"label": "Bậc Học",
+				"placeholder": "Chọn bậc học",
+				"options": {
+					"high_school": "Trung Học Phổ Thông",
+					"associate": "Cao Đẳng",
+					"bachelor": "Cử Nhân",
+					"master": "Thạc Sĩ",
+					"phd": "Tiến Sĩ",
+					"professional": "Chuyên Nghiệp"
+				}
+			},
+			"discipline": {
+				"label": "Ngành Học Chi Tiết",
+				"placeholder": "Chọn ngành học chi tiết"
+			},
+			"gpa": {
+				"label": "GPA",
+				"placeholder": "0.0-4.0"
+			},
+			"university": {
+				"label": "Trường Đại Học",
+				"placeholder": "VD: Đại học Harvard"
+			},
+			"country_of_study": {
+				"label": "Quốc Gia Học Tập",
+				"placeholder": "Chọn quốc gia"
+			},
+			"foreign_language": {
+				"title": "Ngoại Ngữ",
+				"yes": "Có",
+				"no": "Không",
+				"language": {
+					"label": "Ngôn Ngữ",
+					"placeholder": "Chọn ngôn ngữ",
+					"options": {
+						"vietnamese": "Tiếng Việt",
+						"english": "Tiếng Anh",
+						"spanish": "Tiếng Tây Ban Nha",
+						"french": "Tiếng Pháp",
+						"german": "Tiếng Đức",
+						"chinese": "Tiếng Trung",
+						"japanese": "Tiếng Nhật",
+						"korean": "Tiếng Hàn"
+					}
+				},
+				"certificate": {
+					"label": "Chứng Chỉ",
+					"placeholder": "Chọn chứng chỉ",
+					"ielts": "IELTS",
+					"toefl": "TOEFL",
+					"toeic": "TOEIC",
+					"delf": "DELF",
+					"dalf": "DALF",
+					"testdaf": "TestDaF",
+					"goethe": "Goethe-Zertifikat",
+					"hsk": "HSK",
+					"jlpt": "JLPT",
+					"topik": "TOPIK",
+					"dele": "DELE"
+				},
+				"score": {
+					"label": "Điểm Số",
+					"placeholder": "Nhập điểm"
+				},
+				"add": "Thêm chứng chỉ ngoại ngữ",
+				"delete": "Xóa chứng chỉ ngoại ngữ"
+			},
+			"files": {
+				"cv": {
+					"label": "CV / Sơ Yếu Lý Lịch",
+					"tooltip": "Tải lên CV/Sơ yếu lý lịch định dạng PDF, DOC, DOCX (tối đa 10MB). Yêu cầu: Thông tin cá nhân, học vấn, kinh nghiệm làm việc, kỹ năng, thông tin liên hệ. Phải là CV/Sơ yếu lý lịch, không phải thư xin việc hay bản tự thuật."
+				},
+				"language_cert": {
+					"label": "Chứng Chỉ Ngoại Ngữ",
+					"tooltip": "Tải lên chứng chỉ ngoại ngữ định dạng PDF, JPG hoặc PNG (tối đa 10MB). Yêu cầu: Tên kỳ thi (IELTS/TOEFL/v.v.), điểm số, ngày thi, thông tin thí sinh, logo/con dấu tổ chức cấp. Phải là chứng chỉ chính thức, không phải bài thi thử."
+				},
+				"degree": {
+					"label": "Bằng Cấp",
+					"tooltip": "Tải lên bằng tốt nghiệp định dạng PDF, JPG hoặc PNG (tối đa 10MB). Yêu cầu: Loại bằng (Cử nhân, Thạc sĩ, Tiến sĩ), ngành học, tên trường, ngày tốt nghiệp, tên sinh viên, xác thực chính thức (con dấu/chữ ký). Phải là bằng cấp, không phải bảng điểm."
+				},
+				"transcript": {
+					"label": "Bảng Điểm Học Tập",
+					"tooltip": "Tải lên bảng điểm học tập định dạng PDF, JPG hoặc PNG (tối đa 10MB). Yêu cầu: Danh sách môn học/khóa học, điểm từng môn, kỳ học/học kỳ, GPA tổng (nếu có), tên và mã sinh viên, tên trường. Phải hiển thị thông tin chi tiết về môn học và điểm số."
+				},
+				"uploaded": "{count} tệp đã tải lên"
+			},
+			"research_papers": {
+				"title": "Bài Nghiên Cứu",
+				"paper_title": {
+					"label": "Tiêu Đề Bài Nghiên Cứu",
+					"placeholder": "Nhập tiêu đề bài nghiên cứu"
+				},
+				"disciplines": {
+					"label": "Ngành Học",
+					"placeholder": "Chọn ngành học"
+				},
+				"files": {
+					"label": "Tệp Bài Nghiên Cứu",
+					"tooltip": "Tải lên bài nghiên cứu học thuật chính thức định dạng PDF (tối đa 10MB mỗi tệp). Yêu cầu: Tiêu đề rõ ràng, tên tác giả và đơn vị, tóm tắt, các phần có cấu trúc (Giới thiệu, Phương pháp, Kết quả, Kết luận), tài liệu tham khảo với trích dẫn, phong cách viết học thuật. Phải là bài nghiên cứu chính thức, không phải bài blog hay tiểu luận."
+				},
+				"add": "Thêm bài nghiên cứu",
+				"uploaded": "{count} tệp đã tải lên"
+			},
+			"manage_files": "Quản Lý Tệp ({count})",
+			"errors": {
+				"upload_failed": "Tải Lên Thất Bại",
+				"message": "Không thể tải lên tệp. Vui lòng thử lại.",
+				"research_paper_upload_failed": "Không thể tải lên tệp bài nghiên cứu. Vui lòng thử lại.",
+				"try_again": "Thử Lại"
+			},
 			"back": "Quay Lại",
 			"next": "Tiếp Theo"
 		},
@@ -2376,7 +2521,7 @@
 		},
 		"completion": {
 			"title": "Hồ Sơ Hoàn Tất!",
-			"message": "Hồ sơ của bạn đã được tạo thành công. Bạn có thể bắt đầu sử dụng EduMatch ngay bây giờ.",
+			"subtitle": "Chúc mừng bạn đã hoàn thành hồ sơ! Bạn có thể sử dụng EduMatch ngay bây giờ.",
 			"button": "Bắt Đầu"
 		}
 	}

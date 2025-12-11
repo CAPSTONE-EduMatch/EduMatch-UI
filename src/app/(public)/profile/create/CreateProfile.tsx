@@ -15,9 +15,11 @@ import { Button } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export default function CreateProfile() {
 	const router = useRouter()
+	const t = useTranslations('create_profile')
 	const [currentStep, setCurrentStep] = useState(1)
 	const [isTransitioning, setIsTransitioning] = useState(false)
 	const [showManageModal, setShowManageModal] = useState(false)
@@ -266,12 +268,12 @@ export default function CreateProfile() {
 			pageTitle="Create Profile"
 			pageDescription="Please sign in to create your profile"
 		>
-			<div className="profile-background flex items-center justify-center p-4 overflow-x-hidden">
+			<div className="profile-background flex items-center justify-center p-4 pt-24 overflow-x-hidden">
 				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
 					<CardContent className="p-8">
 						<div className="text-center mb-6">
 							<h1 className="text-3xl font-bold text-primary">
-								Create Profile
+								{t('page_title')}
 							</h1>
 						</div>
 

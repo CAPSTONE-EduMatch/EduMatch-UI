@@ -23,7 +23,12 @@ export interface Post {
 export interface PostFilters {
 	search?: string
 	status?: 'all' | PostStatus
-	type?: 'all' | 'Program' | 'Scholarship' | 'Job'
+	type?:
+		| 'all'
+		| 'Program'
+		| 'Scholarship'
+		| 'Job'
+		| ('Program' | 'Scholarship' | 'Job')[]
 	sortBy?: 'title' | 'create_at' | 'start_date'
 	sortDirection?: 'asc' | 'desc'
 	page?: number

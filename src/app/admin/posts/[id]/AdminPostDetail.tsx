@@ -18,15 +18,25 @@ const AdminPostDetail = () => {
 
 			setIsLoading(true)
 			try {
-				// TODO: Replace with actual API call to get post type
-				// const response = await fetch(`/api/admin/posts/${params.id}/type`)
-				// const data = await response.json()
-				// setPostType(data.type)
+				const response = await fetch(`/api/admin/posts/${params.id}`)
+				const data = await response.json()
 
-				// Mock data for now - you can test different types by changing this
-				setPostType('Program') // Change to 'Scholarship' or 'Job' to test other types
+				if (data.success && data.data?.type) {
+					// Map API response type to component type
+					const apiType = data.data.type
+					if (apiType === 'Program') {
+						setPostType('Program')
+					} else if (apiType === 'Scholarship') {
+						setPostType('Scholarship')
+					} else if (apiType === 'Research Lab') {
+						setPostType('Research Lab')
+					} else {
+						setPostType('Program') // Default fallback
+					}
+				} else {
+					setPostType('Program') // Default to Program on error
+				}
 			} catch (error) {
-				console.error('Error fetching post type:', error)
 				setPostType('Program') // Default to Program on error
 			} finally {
 				setIsLoading(false)
@@ -50,7 +60,6 @@ const AdminPostDetail = () => {
 			return <AdminProgramDetail />
 		case 'Scholarship':
 			return <AdminScholarshipDetail />
-		case 'Job':
 		case 'Research Lab':
 			return <AdminResearchLabDetail />
 		default:

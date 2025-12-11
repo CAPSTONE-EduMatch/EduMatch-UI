@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, CustomSelect, Modal } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 import { useNotification } from '@/contexts/NotificationContext'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -13,6 +13,7 @@ export type PostStatus =
 	| 'SUBMITTED'
 	| 'UPDATED'
 	| 'DELETED'
+	| 'PROGRESSING'
 
 interface PostStatusManagerProps {
 	postId: string
@@ -53,12 +54,17 @@ const POST_STATUS_OPTIONS = [
 		label: 'Deleted',
 		color: 'bg-[#9CA3AF] text-white',
 	},
+	{
+		value: 'PROGRESSING' as const,
+		label: 'Progressing',
+		color: 'bg-[#8B5CF6] text-white',
+	},
 ]
 
 /**
  * Get allowed status transitions based on current status
  * Rules:
- * - SUBMITTED/UPDATED → PUBLISHED, REJECTED
+ * - SUBMITTED/UPDATED/PROGRESSING → PUBLISHED, REJECTED
  * - PUBLISHED → CLOSED
  * - REJECTED → SUBMITTED, PUBLISHED
  */
@@ -66,6 +72,7 @@ const getAllowedStatusOptions = (currentStatus: PostStatus): PostStatus[] => {
 	switch (currentStatus) {
 		case 'SUBMITTED':
 		case 'UPDATED':
+		case 'PROGRESSING':
 			return ['PUBLISHED', 'REJECTED']
 		case 'PUBLISHED':
 			return ['CLOSED']
@@ -107,9 +114,15 @@ const PostStatusManager = ({
 	const router = useRouter()
 
 	// Get available options based on current status
+	// For admin, we only show Published and Rejected buttons
 	const allowedStatuses = getAllowedStatusOptions(currentStatus)
 	const availableOptions = POST_STATUS_OPTIONS.filter((opt) =>
 		allowedStatuses.includes(opt.value)
+	)
+
+	// Filter to only show Published and Rejected buttons
+	const actionButtons = availableOptions.filter(
+		(opt) => opt.value === 'PUBLISHED' || opt.value === 'REJECTED'
 	)
 
 	const handleStatusChange = (newStatus: PostStatus) => {
@@ -212,6 +225,8 @@ const PostStatusManager = ({
 				return `This ${postType.toLowerCase()} will be marked as submitted for review.`
 			case 'UPDATED':
 				return `This ${postType.toLowerCase()} will be marked as updated.`
+			case 'PROGRESSING':
+				return `This ${postType.toLowerCase()} will be marked as in progress.`
 			default:
 				return `Are you sure you want to change the status?`
 		}
@@ -240,29 +255,29 @@ const PostStatusManager = ({
 				</div>
 			</div>
 
-			{/* Status Selection */}
-			{availableOptions.length > 0 ? (
+			{/* Status Selection - Two Buttons: Published and Rejected */}
+			{actionButtons.length > 0 ? (
 				<div className="mb-6">
-					<label className="block text-sm font-medium text-gray-700 mb-2">
+					<label className="block text-sm font-medium text-gray-700 mb-3">
 						Change Status To
 					</label>
-					<CustomSelect
-						value={
-							selectedStatus !== currentStatus
-								? POST_STATUS_OPTIONS.find(
-										(opt) => opt.value === selectedStatus
-									)
-								: null
-						}
-						onChange={(selected) =>
-							selected && handleStatusChange(selected.value as PostStatus)
-						}
-						options={availableOptions}
-						placeholder="Select new status..."
-						className="w-full"
-						isSearchable={false}
-						isClearable={false}
-					/>
+					<div className="flex gap-3">
+						{actionButtons.map((option) => (
+							<Button
+								key={option.value}
+								type="button"
+								onClick={() => handleStatusChange(option.value)}
+								className={`flex-1 py-3 px-6 font-medium transition-all ${
+									option.value === 'PUBLISHED'
+										? 'bg-[#126E64] hover:bg-[#0f5a52] text-white'
+										: 'bg-[#EF4444] hover:bg-[#dc2626] text-white'
+								}`}
+								disabled={isUpdating}
+							>
+								{option.label}
+							</Button>
+						))}
+					</div>
 				</div>
 			) : (
 				<div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui'
 import Image from 'next/image'
 import { ProfileFormData } from '@/services/profile/profile-service'
+import { useTranslations } from 'next-intl'
 
 interface RoleSelectionStepProps {
 	formData: ProfileFormData
@@ -13,15 +14,14 @@ export function RoleSelectionStep({
 	onRoleSelect,
 	onNext,
 }: RoleSelectionStepProps) {
+	const t = useTranslations('create_profile.role_selection')
+
 	return (
 		<div className="space-y-6">
 			<div className="text-center">
-				<h2 className="text-2xl font-bold text-primary mb-2">
-					Choose your role
-				</h2>
+				<h2 className="text-2xl font-bold text-primary mb-2">{t('title')}</h2>
 				<p className="text-muted-foreground max-w-md mx-auto">
-					Select whether you&apos;re looking for educational opportunities or
-					representing an educational institution.
+					{t('subtitle')}
 				</p>
 			</div>
 
@@ -44,10 +44,9 @@ export function RoleSelectionStep({
 							/>
 						</div>
 						<div>
-							<h3 className="font-semibold">Applicant</h3>
+							<h3 className="font-semibold">{t('applicant.title')}</h3>
 							<p className="text-sm text-muted-foreground">
-								I&apos;m a student or professional looking for educational
-								opportunities, courses, or programs.
+								{t('applicant.description')}
 							</p>
 						</div>
 					</div>
@@ -71,10 +70,9 @@ export function RoleSelectionStep({
 							/>
 						</div>
 						<div>
-							<h3 className="font-semibold">Institution</h3>
+							<h3 className="font-semibold">{t('institution.title')}</h3>
 							<p className="text-sm text-muted-foreground">
-								I represent a school, university, or educational organization
-								offering programs and courses.
+								{t('institution.description')}
 							</p>
 						</div>
 					</div>
@@ -83,7 +81,7 @@ export function RoleSelectionStep({
 
 			<div className="flex justify-end">
 				<Button onClick={onNext} disabled={!formData.role} size="sm">
-					Next
+					{t('next')}
 				</Button>
 			</div>
 		</div>

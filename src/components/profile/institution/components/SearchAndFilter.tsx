@@ -12,8 +12,8 @@ interface SearchAndFilterProps {
 	sortBy: string
 	onSortChange: (sort: string) => void
 	// Optional props for admin posts page
-	typeFilter?: string
-	onTypeFilterChange?: (type: string) => void
+	typeFilter?: string | string[]
+	onTypeFilterChange?: (type: string | string[]) => void
 	// Custom status options for different contexts
 	statusOptions?: Array<{ value: string; label: string }>
 	// Custom placeholder for search
@@ -49,13 +49,13 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 	]
 
 	// Admin posts status options
-	// PostStatus enum: DRAFT, PUBLISHED, CLOSED, SUBMITTED, UPDATED, REJECTED, DELETED
+	// PostStatus enum: DRAFT, PUBLISHED, CLOSED, SUBMITTED, PROGRESSING, REJECTED, DELETED
 	const adminPostStatusOptions = [
 		{ value: 'DRAFT', label: 'Draft' },
 		{ value: 'PUBLISHED', label: 'Published' },
 		{ value: 'CLOSED', label: 'Closed' },
 		{ value: 'SUBMITTED', label: 'Submitted' },
-		{ value: 'UPDATED', label: 'Updated' },
+		{ value: 'PROGRESSING', label: 'Progressing' },
 		{ value: 'REJECTED', label: 'Rejected' },
 		{ value: 'DELETED', label: 'Deleted' },
 	]
@@ -94,29 +94,50 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 					{/* Type Filter (only for admin posts) */}
 					{typeFilter !== undefined && onTypeFilterChange && (
 						<div className="w-48">
-							<CustomSelect
-								value={
-									typeFilter === 'all'
-										? null
-										: {
-												value: typeFilter,
-												label:
-													typeFilter === 'Job' ? 'Research Lab' : typeFilter,
-											}
-								}
-								onChange={(selected) =>
-									onTypeFilterChange(selected?.value || 'all')
-								}
-								placeholder="All Types"
-								options={[
-									{ value: 'Program', label: 'Program' },
-									{ value: 'Scholarship', label: 'Scholarship' },
-									{ value: 'Job', label: 'Research Lab' },
-								]}
-								variant="default"
-								isClearable
-								className="w-full"
-							/>
+							{Array.isArray(typeFilter) ? (
+								<CheckboxSelect
+									value={typeFilter.map((type) => ({
+										value: type,
+										label: type === 'Job' ? 'Research Lab' : type,
+									}))}
+									onChange={(selected) =>
+										onTypeFilterChange(selected.map((item: any) => item.value))
+									}
+									placeholder="All Types"
+									options={[
+										{ value: 'Program', label: 'Program' },
+										{ value: 'Scholarship', label: 'Scholarship' },
+										{ value: 'Job', label: 'Research Lab' },
+									]}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
+							) : (
+								<CustomSelect
+									value={
+										typeFilter === 'all'
+											? null
+											: {
+													value: typeFilter,
+													label:
+														typeFilter === 'Job' ? 'Research Lab' : typeFilter,
+												}
+									}
+									onChange={(selected) =>
+										onTypeFilterChange(selected?.value || 'all')
+									}
+									placeholder="All Types"
+									options={[
+										{ value: 'Program', label: 'Program' },
+										{ value: 'Scholarship', label: 'Scholarship' },
+										{ value: 'Job', label: 'Research Lab' },
+									]}
+									variant="default"
+									isClearable
+									className="w-full"
+								/>
+							)}
 						</div>
 					)}
 

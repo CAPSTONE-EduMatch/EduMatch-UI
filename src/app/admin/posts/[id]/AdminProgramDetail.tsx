@@ -1,11 +1,6 @@
 'use client'
 
 import { Button } from '@/components/ui'
-import {
-	ApplicantsTable,
-	SuggestedApplicantsTable,
-	type Applicant,
-} from '@/components/profile/institution/components'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
@@ -14,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
 import CoverImage from '../../../../../public/EduMatch_Default.png'
-import { Users, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modals/Modal'
 
 const AdminProgramDetail = () => {
@@ -23,13 +18,6 @@ const AdminProgramDetail = () => {
 	const [activeTab, setActiveTab] = useState('overview')
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
-	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
-	const [transformedApplicants, setTransformedApplicants] = useState<
-		Applicant[]
-	>([])
-	const [suggestedApplicants, setSuggestedApplicants] = useState<Applicant[]>(
-		[]
-	)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 	const [showRejectModal, setShowRejectModal] = useState(false)
@@ -71,11 +59,13 @@ const AdminProgramDetail = () => {
 		},
 	]
 
-	// Fetch program details from admin API
+	// Fetch program details from explore API (same as institution dashboard)
 	const fetchProgramDetail = async (programId: string) => {
 		try {
 			setIsLoadingProgram(true)
-			const response = await fetch(`/api/admin/posts/${programId}`)
+			const response = await fetch(
+				`/api/explore/programs/program-detail?id=${programId}`
+			)
 			const data = await response.json()
 
 			if (data.success && data.data) {
@@ -133,97 +123,6 @@ const AdminProgramDetail = () => {
 		}
 	}
 
-	// Helper function to format date
-	const formatDate = (dateString: string | Date) => {
-		if (!dateString) return 'N/A'
-		const date = new Date(dateString)
-		const day = date.getDate().toString().padStart(2, '0')
-		const month = (date.getMonth() + 1).toString().padStart(2, '0')
-		const year = date.getFullYear()
-		return `${day}/${month}/${year}`
-	}
-
-	// Transform applications to match Applicant interface
-	const transformApplications = (apps: any[]): Applicant[] => {
-		if (!Array.isArray(apps)) {
-			return []
-		}
-
-		return apps.map((app) => {
-			return {
-				id: app.id || app.application_id || '',
-				postId: app.postId || app.post_id || (params?.id as string),
-				name: app.name || 'Unknown',
-				appliedDate:
-					app.appliedDate || app.applied_date || formatDate(new Date()),
-				degreeLevel: app.degreeLevel || app.degree_level || 'Unknown',
-				subDiscipline:
-					app.subDiscipline ||
-					app.sub_discipline ||
-					app.subdiscipline ||
-					'Unknown',
-				status: (app.status?.toLowerCase() || 'submitted') as
-					| 'submitted'
-					| 'under_review'
-					| 'accepted'
-					| 'rejected'
-					| 'new_request',
-				matchingScore: app.matchingScore,
-				userId: app.userId || app.user_id,
-				gpa: app.snapshotData?.gpa || app.gpa || undefined,
-				postType: app.postType || 'Program', // Preserve postType from API
-				subscriptionTier:
-					app.subscriptionTier || app.subscription_tier || 'free',
-			}
-		})
-	}
-
-	// Fetch applications for this program
-	const fetchApplications = async (programId: string) => {
-		try {
-			setIsLoadingApplications(true)
-			const response = await fetch(
-				`/api/applications/institution?postId=${programId}&page=1&limit=100`
-			)
-
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`)
-			}
-
-			const data = await response.json()
-
-			// The API returns applications in data.data, not data.applications
-			const applications = data.data || []
-
-			if (
-				data.success &&
-				Array.isArray(applications) &&
-				applications.length > 0
-			) {
-				const transformed = transformApplications(applications)
-				setTransformedApplicants(transformed)
-				// For suggested applicants, filter by high matching score (80+) AND Premium subscription tier
-				const suggested = transformed
-					.filter(
-						(app) =>
-							app.matchingScore >= 80 && app.subscriptionTier === 'premium'
-					)
-					.sort((a, b) => b.matchingScore - a.matchingScore)
-					.slice(0, 10)
-				setSuggestedApplicants(suggested)
-			} else {
-				setTransformedApplicants([])
-				setSuggestedApplicants([])
-			}
-		} catch (error) {
-			// Failed to fetch applications
-			setTransformedApplicants([])
-			setSuggestedApplicants([])
-		} finally {
-			setIsLoadingApplications(false)
-		}
-	}
-
 	// Load program data when component mounts
 	useEffect(() => {
 		const loadProgramData = async () => {
@@ -236,35 +135,12 @@ const AdminProgramDetail = () => {
 			}
 
 			// Fetch program data from API
-			const programData = await fetchProgramDetail(programId)
-
-			if (programData) {
-				// Fetch applications for this program
-				await fetchApplications(programId)
-			}
+			await fetchProgramDetail(programId)
 		}
 
 		loadProgramData()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params?.id])
-
-	const handleEditProgram = () => {
-		// Navigate to edit program page
-		router.push(
-			`/institution/dashboard/programs?action=edit&type=Program&id=${params?.id}`
-		)
-	}
-
-	const handleViewApplications = () => {
-		// Navigate to applications section with filter for this post
-		router.push(`/institution/dashboard/applications?postId=${params?.id}`)
-	}
-
-	const handleApplicantDetail = (applicant: Applicant) => {
-		// Navigate to applicant detail view
-		router.push(`/institution/dashboard/applications/${applicant.id}`)
-	}
-
 	const handleDeleteProgram = async () => {
 		try {
 			setIsDeleting(true)
@@ -802,22 +678,13 @@ const AdminProgramDetail = () => {
 
 							<div className="flex items-center gap-3 flex-wrap justify-center">
 								{currentProgram?.status === 'DRAFT' && (
-									<>
-										<Button
-											onClick={handleEditProgram}
-											variant="outline"
-											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-										>
-											Edit Program
-										</Button>
-										<Button
-											onClick={() => setIsDeleteModalOpen(true)}
-											variant="outline"
-											className="text-red-600 border-red-600 hover:bg-red-50"
-										>
-											Delete
-										</Button>
-									</>
+									<Button
+										onClick={() => setIsDeleteModalOpen(true)}
+										variant="outline"
+										className="text-red-600 border-red-600 hover:bg-red-50"
+									>
+										Delete
+									</Button>
 								)}
 								{currentProgram?.status?.toUpperCase() === 'PUBLISHED' && (
 									<Button
@@ -835,11 +702,6 @@ const AdminProgramDetail = () => {
 								</span>
 							</div>
 						</div>
-
-						<p className="text-sm text-gray-500">
-							Number of applications:{' '}
-							{currentProgram?.statistics?.applications?.total || 0}
-						</p>
 					</motion.div>
 				</div>
 			</motion.div>
@@ -941,77 +803,6 @@ const AdminProgramDetail = () => {
 						</AnimatePresence>
 					</motion.div>
 				</div>
-
-				{/* Applications Table Section - Only show for CLOSED or PUBLISHED status */}
-				{(currentProgram?.status?.toUpperCase() === 'CLOSED' ||
-					currentProgram?.status?.toUpperCase() === 'PUBLISHED') && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.6 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<div className="flex items-center justify-between mb-6">
-							<h2 className="text-3xl font-bold">Applications</h2>
-							<Button
-								onClick={handleViewApplications}
-								className="bg-[#126E64] hover:bg-teal-700 text-white"
-								size="sm"
-							>
-								View All Applications
-							</Button>
-						</div>
-						{/* Applicants Table */}
-						{isLoadingApplications ? (
-							<div className="text-center py-8">
-								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
-								<p className="mt-2 text-gray-600">Loading applications...</p>
-							</div>
-						) : transformedApplicants.length > 0 ? (
-							<div className="border bg-white border-gray-200 rounded-xl">
-								<ApplicantsTable
-									applicants={transformedApplicants}
-									onMoreDetail={handleApplicantDetail}
-									hidePostId={true}
-								/>
-							</div>
-						) : (
-							<div className="text-center py-8 bg-gray-50 rounded-lg">
-								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No applications yet</p>
-							</div>
-						)}
-					</motion.div>
-				)}
-
-				{/* Suggested Applicants Section - Always show for PUBLISHED status */}
-				{currentProgram?.status?.toUpperCase() === 'PUBLISHED' && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.7 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
-						<p className="text-gray-600 mb-6">
-							These applicants have high matching scores (80%+) and may be a
-							good fit for this program.
-						</p>
-						{suggestedApplicants.length > 0 ? (
-							<div className="border bg-white border-gray-200 rounded-xl">
-								<SuggestedApplicantsTable
-									applicants={suggestedApplicants}
-									onMoreDetail={handleApplicantDetail}
-								/>
-							</div>
-						) : (
-							<div className="text-center py-8 bg-gray-50 rounded-lg">
-								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No suggested applicants yet</p>
-							</div>
-						)}
-					</motion.div>
-				)}
 			</motion.div>
 
 			{/* Delete Confirmation Modal */}

@@ -9,6 +9,7 @@ import {
 interface UseWishlistOptions {
 	autoFetch?: boolean;
 	initialParams?: WishlistQueryParams;
+	isAuthenticated?: boolean;
 }
 
 interface UseWishlistReturn {
@@ -47,7 +48,11 @@ interface UseWishlistReturn {
 export const useWishlist = (
 	options: UseWishlistOptions = {}
 ): UseWishlistReturn => {
-	const { autoFetch = true, initialParams = {} } = options;
+	const {
+		autoFetch = true,
+		initialParams = {},
+		isAuthenticated = false,
+	} = options;
 
 	// Default params for better UX - fetch more items by default
 	const defaultParams: WishlistQueryParams = {
@@ -285,9 +290,9 @@ export const useWishlist = (
 		[fetchWishlist]
 	);
 
-	// Auto-fetch on mount and when params change
+	// Auto-fetch on mount and when params change (only if authenticated)
 	useEffect(() => {
-		if (autoFetch) {
+		if (autoFetch && isAuthenticated) {
 			// Add a small delay to prevent rapid successive calls
 			const timeoutId = setTimeout(() => {
 				fetchWishlist();
@@ -296,7 +301,7 @@ export const useWishlist = (
 
 			return () => clearTimeout(timeoutId);
 		}
-	}, [autoFetch, fetchWishlist, fetchStats]);
+	}, [autoFetch, isAuthenticated, fetchWishlist, fetchStats]);
 
 	return {
 		// Data

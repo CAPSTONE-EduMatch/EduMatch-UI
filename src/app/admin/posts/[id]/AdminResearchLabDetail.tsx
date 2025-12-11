@@ -1,11 +1,6 @@
 'use client'
 
 import { Button } from '@/components/ui'
-import {
-	ApplicantsTable,
-	SuggestedApplicantsTable,
-	type Applicant,
-} from '@/components/profile/institution/components'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
@@ -14,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
 import CoverImage from '../../../../../public/EduMatch_Default.png'
-import { Users, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modals/Modal'
 
 const AdminResearchLabDetail = () => {
@@ -23,13 +18,6 @@ const AdminResearchLabDetail = () => {
 	const [activeTab, setActiveTab] = useState('job-description')
 	const [currentResearchLab, setCurrentResearchLab] = useState<any>(null)
 	const [isLoadingResearchLab, setIsLoadingResearchLab] = useState(true)
-	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
-	const [transformedApplicants, setTransformedApplicants] = useState<
-		Applicant[]
-	>([])
-	const [suggestedApplicants, setSuggestedApplicants] = useState<Applicant[]>(
-		[]
-	)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 	const [showRejectModal, setShowRejectModal] = useState(false)
@@ -67,53 +55,22 @@ const AdminResearchLabDetail = () => {
 		},
 	]
 
-	// Fetch research lab details from admin API
+	// Fetch research lab details from explore API (same as institution dashboard)
 	const fetchResearchLabDetail = async (researchLabId: string) => {
 		try {
 			setIsLoadingResearchLab(true)
-			const response = await fetch(`/api/admin/posts/${researchLabId}`)
+			const response = await fetch(
+				`/api/explore/research/research-detail?id=${researchLabId}`
+			)
 			const data = await response.json()
 
 			if (data.success && data.data) {
-				// Map the data to match expected structure
-				const labData = {
-					...data.data,
-					// Map admin API response to expected structure
-					researchFields:
-						data.data.researchLab?.researchAreas?.split(',') || [],
-					technicalSkills: data.data.researchLab?.technicalSkills || '',
-					academicBackground: data.data.researchLab?.academicBackground || '',
-					benefit: data.data.researchLab?.benefit || '',
-					salaryDescription: data.data.researchLab?.salaryDescription || '',
-					mainResponsibility: data.data.researchLab?.mainResponsibility || '',
-					qualificationRequirement:
-						data.data.researchLab?.qualificationRequirement || '',
-					experienceRequirement:
-						data.data.researchLab?.experienceRequirement || '',
-					assessmentCriteria: data.data.researchLab?.assessmentCriteria || '',
-					otherRequirement: data.data.researchLab?.otherRequirement || '',
-					applicationDocuments:
-						data.data.researchLab?.applicationDocuments || '',
-					contractType: data.data.researchLab?.contractType || '',
-					attendance: data.data.researchLab?.attendance || '',
-					jobType: data.data.researchLab?.jobType || '',
-					salary:
-						data.data.researchLab?.minSalary && data.data.researchLab?.maxSalary
-							? `$${data.data.researchLab.minSalary} - $${data.data.researchLab.maxSalary}`
-							: data.data.researchLab?.salaryDescription || 'N/A',
-					subdisciplines: data.data.subdisciplines || [],
-					requiredDocuments: data.data.documents || [],
-					labFacilities: data.data.researchLab?.labFacilities || '',
-					labType: data.data.researchLab?.labType || '',
-					labDirector: data.data.researchLab?.labDirector || '',
-					labCapacity: data.data.researchLab?.labCapacity || '',
-					labWebsite: data.data.researchLab?.labWebsite || '',
-					labContactEmail: data.data.researchLab?.labContactEmail || '',
-				}
-				setCurrentResearchLab(labData)
+				// Use the data directly from explore API (same structure as institution dashboard)
+				// The explore API already includes status and all other fields
+				setCurrentResearchLab(data.data)
 
 				// Auto-update status to PROGRESSING when admin views a SUBMITTED post
-				if (labData.status === 'SUBMITTED') {
+				if (data.data.status === 'SUBMITTED') {
 					// Use setTimeout to avoid blocking the initial render
 					setTimeout(async () => {
 						try {
@@ -146,7 +103,7 @@ const AdminResearchLabDetail = () => {
 					}, 500) // Small delay to ensure initial render completes
 				}
 
-				return labData
+				return data.data
 			} else {
 				showError('Error', 'Failed to load research lab details')
 				return null
@@ -156,92 +113,6 @@ const AdminResearchLabDetail = () => {
 			return null
 		} finally {
 			setIsLoadingResearchLab(false)
-		}
-	}
-
-	// Helper function to format date
-	const formatDate = (dateString: string | Date) => {
-		if (!dateString) return 'N/A'
-		const date = new Date(dateString)
-		const day = date.getDate().toString().padStart(2, '0')
-		const month = (date.getMonth() + 1).toString().padStart(2, '0')
-		const year = date.getFullYear()
-		return `${day}/${month}/${year}`
-	}
-
-	// Transform applications to match Applicant interface
-	const transformApplications = (apps: any[]): Applicant[] => {
-		if (!Array.isArray(apps)) {
-			return []
-		}
-
-		return apps.map((app) => {
-			return {
-				id: app.id || app.application_id || '',
-				postId: app.postId || app.post_id || (params?.id as string),
-				name: app.name || 'Unknown',
-				appliedDate:
-					app.appliedDate || app.applied_date || formatDate(new Date()),
-				degreeLevel: app.degreeLevel || app.degree_level || 'Unknown',
-				subDiscipline:
-					app.subDiscipline ||
-					app.sub_discipline ||
-					app.subdiscipline ||
-					'Unknown',
-				status: (app.status?.toLowerCase() || 'submitted') as
-					| 'submitted'
-					| 'under_review'
-					| 'accepted'
-					| 'rejected'
-					| 'new_request',
-				matchingScore: app.matchingScore || app.matching_score || 0,
-				userId: app.userId || app.user_id,
-				gpa: app.snapshotData?.gpa || app.gpa || undefined,
-				postType: app.postType || 'Research Lab', // Preserve postType from API
-			}
-		})
-	}
-
-	// Fetch applications for this research lab
-	const fetchApplications = async (researchLabId: string) => {
-		try {
-			setIsLoadingApplications(true)
-			const response = await fetch(
-				`/api/applications/institution?postId=${researchLabId}&page=1&limit=100`
-			)
-
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`)
-			}
-
-			const data = await response.json()
-
-			// The API returns applications in data.data, not data.applications
-			const applications = data.data || []
-
-			if (
-				data.success &&
-				Array.isArray(applications) &&
-				applications.length > 0
-			) {
-				const transformed = transformApplications(applications)
-				setTransformedApplicants(transformed)
-				// For suggested applicants, filter by high matching score (80+)
-				const suggested = transformed
-					.filter((app) => app.matchingScore >= 80)
-					.sort((a, b) => b.matchingScore - a.matchingScore)
-					.slice(0, 10)
-				setSuggestedApplicants(suggested)
-			} else {
-				setTransformedApplicants([])
-				setSuggestedApplicants([])
-			}
-		} catch (error) {
-			// Failed to fetch applications
-			setTransformedApplicants([])
-			setSuggestedApplicants([])
-		} finally {
-			setIsLoadingApplications(false)
 		}
 	}
 
@@ -257,34 +128,12 @@ const AdminResearchLabDetail = () => {
 			}
 
 			// Fetch research lab data from API
-			const researchLabData = await fetchResearchLabDetail(researchLabId)
-
-			if (researchLabData) {
-				// Fetch applications for this research lab
-				await fetchApplications(researchLabId)
-			}
+			await fetchResearchLabDetail(researchLabId)
 		}
 
 		loadResearchLabData()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params?.id])
-
-	const handleEditResearchLab = () => {
-		// Navigate to edit research lab page
-		router.push(
-			`/institution/dashboard/programs?action=edit&type=Research Lab&id=${params?.id}`
-		)
-	}
-
-	const handleViewApplications = () => {
-		// Navigate to applications section with filter for this post
-		router.push(`/institution/dashboard/applications?postId=${params?.id}`)
-	}
-
-	const handleApplicantDetail = (applicant: Applicant) => {
-		// Navigate to applicant detail view
-		router.push(`/institution/dashboard/applications/${applicant.id}`)
-	}
 
 	const handleDeleteResearchLab = async () => {
 		try {
@@ -780,22 +629,13 @@ const AdminResearchLabDetail = () => {
 
 							<div className="flex items-center gap-3 flex-wrap justify-center">
 								{currentResearchLab?.status === 'DRAFT' && (
-									<>
-										<Button
-											onClick={handleEditResearchLab}
-											variant="outline"
-											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-										>
-											Edit Research Lab
-										</Button>
-										<Button
-											onClick={() => setIsDeleteModalOpen(true)}
-											variant="outline"
-											className="text-red-600 border-red-600 hover:bg-red-50"
-										>
-											Delete
-										</Button>
-									</>
+									<Button
+										onClick={() => setIsDeleteModalOpen(true)}
+										variant="outline"
+										className="text-red-600 border-red-600 hover:bg-red-50"
+									>
+										Delete
+									</Button>
 								)}
 								{currentResearchLab?.status?.toUpperCase() === 'PUBLISHED' && (
 									<Button
@@ -813,10 +653,6 @@ const AdminResearchLabDetail = () => {
 								</span>
 							</div>
 						</div>
-
-						<p className="text-sm text-gray-500">
-							Number of applications: {transformedApplicants.length}
-						</p>
 					</motion.div>
 				</div>
 			</motion.div>
@@ -836,7 +672,7 @@ const AdminResearchLabDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="bg-white py-6 shadow-xl border"
+					className="bg-white py-6 shadow-xl border mt-6"
 				>
 					<div className="container mx-auto px-4">
 						<div className="grid grid-cols-2 md:grid-cols-6 gap-6">
@@ -918,78 +754,6 @@ const AdminResearchLabDetail = () => {
 						</AnimatePresence>
 					</motion.div>
 				</div>
-
-				{/* Applications Table Section - Only show for CLOSED or PUBLISHED status */}
-				{(currentResearchLab?.status?.toUpperCase() === 'CLOSED' ||
-					currentResearchLab?.status?.toUpperCase() === 'PUBLISHED') && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.6 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<div className="flex items-center justify-between mb-6">
-							<h2 className="text-3xl font-bold">Applications</h2>
-							<Button
-								onClick={handleViewApplications}
-								className="bg-[#126E64] hover:bg-teal-700 text-white"
-								size="sm"
-							>
-								View All Applications
-							</Button>
-						</div>
-
-						{/* Applicants Table */}
-						{isLoadingApplications ? (
-							<div className="text-center py-8">
-								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
-								<p className="mt-2 text-gray-600">Loading applications...</p>
-							</div>
-						) : transformedApplicants.length > 0 ? (
-							<div className="border bg-white border-gray-200 rounded-xl p-6">
-								<ApplicantsTable
-									applicants={transformedApplicants}
-									onMoreDetail={handleApplicantDetail}
-									hidePostId={true}
-								/>
-							</div>
-						) : (
-							<div className="text-center py-8 bg-gray-50 rounded-lg">
-								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No applications yet</p>
-							</div>
-						)}
-					</motion.div>
-				)}
-
-				{/* Suggested Applicants Section - Always show for PUBLISHED status */}
-				{currentResearchLab?.status?.toUpperCase() === 'PUBLISHED' && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.7 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
-						<p className="text-gray-600 mb-6">
-							These applicants have high matching scores (80%+) and may be a
-							good fit for this research lab.
-						</p>
-						{suggestedApplicants.length > 0 ? (
-							<div className="border bg-white border-gray-200 rounded-xl p-6">
-								<SuggestedApplicantsTable
-									applicants={suggestedApplicants}
-									onMoreDetail={handleApplicantDetail}
-								/>
-							</div>
-						) : (
-							<div className="text-center py-8 bg-gray-50 rounded-lg">
-								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No suggested applicants yet</p>
-							</div>
-						)}
-					</motion.div>
-				)}
 			</motion.div>
 
 			{/* Delete Confirmation Modal */}

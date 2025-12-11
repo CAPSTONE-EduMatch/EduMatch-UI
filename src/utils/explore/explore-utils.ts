@@ -190,7 +190,7 @@ export function transformToProgram(
 		title: post.title,
 		description: post.other_info || "No description available",
 		university: institution.name,
-		logo: institution.image || "/logos/default.png",
+		logo: institution.image || null,
 		field: fieldName,
 		country: institution.country || "Unknown",
 		date: post.create_at.toISOString().split("T")[0],

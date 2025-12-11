@@ -137,7 +137,7 @@ export function ProgramCard({
 			{/* Header with logo and wishlist */}
 			<div className="flex justify-between items-start mb-4 gap-4">
 				<div className="flex-shrink-0 relative w-[150px] h-[90px] flex items-center justify-start bg-white rounded-lg">
-					{program.logo ? (
+					{program.logo && program.logo !== '/logos/default.png' ? (
 						isProtectedS3Url(program.logo) ? (
 							<ProtectedImage
 								src={program.logo}
@@ -156,20 +156,37 @@ export function ProgramCard({
 								}
 							/>
 						) : (
-							<Image
-								src={program.logo}
-								alt={program.university}
-								width={140}
-								height={80}
-								unoptimized
-								className="rounded-lg max-w-[140px] max-h-[80px] w-auto h-auto object-contain"
-								onError={(e) => {
-									const target = e.currentTarget
-									target.style.display = 'none'
-									const fallback = target.nextElementSibling as HTMLElement
-									if (fallback) fallback.style.display = 'flex'
-								}}
-							/>
+							<>
+								<Image
+									src={program.logo}
+									alt={program.university}
+									width={140}
+									height={80}
+									unoptimized
+									className="rounded-lg max-w-[140px] max-h-[80px] object-contain"
+									style={{
+										width: 'auto',
+										height: 'auto',
+										maxWidth: '140px',
+										maxHeight: '80px',
+									}}
+									onError={(e) => {
+										const target = e.currentTarget
+										target.style.display = 'none'
+										const fallback = target.nextElementSibling as HTMLElement
+										if (fallback) fallback.style.display = 'flex'
+									}}
+								/>
+								{/* Fallback that shows when image fails to load */}
+								<div
+									className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center"
+									style={{ display: 'none' }}
+								>
+									<span className="text-gray-400 text-xs text-center px-2">
+										{program.university.substring(0, 2).toUpperCase()}
+									</span>
+								</div>
+							</>
 						)
 					) : (
 						<div className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center">
@@ -178,15 +195,6 @@ export function ProgramCard({
 							</span>
 						</div>
 					)}
-					{/* Fallback that shows when image fails to load */}
-					<div
-						className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center absolute"
-						style={{ display: 'none' }}
-					>
-						<span className="text-gray-400 text-xs text-center px-2">
-							{program.university.substring(0, 2).toUpperCase()}
-						</span>
-					</div>
 				</div>
 
 				<motion.button

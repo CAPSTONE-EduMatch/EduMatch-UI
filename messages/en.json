@@ -1418,7 +1418,7 @@
 			"monthly": "month",
 			"feature_map": {
 				"Account registration & OTP verification": "Account registration & OTP verification",
-				"Create & update personal profile (GPA, skills, research topic, etc.)": "Create & update personal profile (GPA, skills, research topic, etc.)",
+				"Create & update personal profile (GPA, skills, research topic, etc)": "Create & update personal profile (GPA, skills, research topic, etc.)",
 				"Basic scholarship, program & research group search": "Basic scholarship, program & research group search",
 				"View scholarship details & requirements": "View scholarship details & requirements",
 				"Receive deadline reminders for saved scholarships/programs": "Receive deadline reminders for saved scholarships/programs",
@@ -1447,13 +1447,13 @@
 				"Interview preparation resources": "Interview preparation resources",
 				"Exclusive webinars & workshops": "Exclusive webinars & workshops",
 				"Priority customer support": "Priority customer support",
-				"Create and manage comprehensive institutional profiles with branding and details.": "Create and manage comprehensive institutional profiles with branding and details",
-				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines.": "Post detailed opportunities with descriptions, eligibility criteria, and deadlines",
-				"Access intelligent matching algorithms to find the best candidates.": "Access intelligent matching algorithms to find the best candidates",
-				"View detailed applicant profiles with matching scores and analytics.": "View detailed applicant profiles with matching scores and analytics",
-				"Invite applicants for interviews and update selection results seamlessly.": "Invite applicants for interviews and update selection results seamlessly",
-				"Communicate with applicants via built-in chat and email systems.": "Communicate with applicants via built-in chat and email systems",
-				"Monitor engagement statistics, views, and applications through web dashboards.": "Monitor engagement statistics, views, and applications through web dashboards"
+				"Create and manage comprehensive institutional profiles with branding and details": "Create and manage comprehensive institutional profiles with branding and details",
+				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines": "Post detailed opportunities with descriptions, eligibility criteria, and deadlines",
+				"Access intelligent matching algorithms to find the best candidates": "Access intelligent matching algorithms to find the best candidates",
+				"View detailed applicant profiles with matching scores and analytics": "View detailed applicant profiles with matching scores and analytics",
+				"Invite applicants for interviews and update selection results seamlessly": "Invite applicants for interviews and update selection results seamlessly",
+				"Communicate with applicants via built-in chat and email systems": "Communicate with applicants via built-in chat and email systems",
+				"Monitor engagement statistics, views, and applications through web dashboards": "Monitor engagement statistics, views, and applications through web dashboards"
 			},
 			"plan_names": {
 				"Free Plan": "Free Plan",

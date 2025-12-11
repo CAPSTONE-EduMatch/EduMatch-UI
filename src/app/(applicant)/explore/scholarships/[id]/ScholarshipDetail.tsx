@@ -54,6 +54,7 @@ const ScholarshipDetail = () => {
 	// Wishlist functionality
 	const { isInWishlist, toggleWishlistItem } = useWishlist({
 		autoFetch: true,
+		isAuthenticated: isAuthenticated,
 		initialParams: {
 			page: 1,
 			limit: 100,

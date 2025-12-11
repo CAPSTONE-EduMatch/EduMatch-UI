@@ -162,16 +162,24 @@ export function ScholarshipCard({
 								}}
 							/>
 						)
-					) : null}
+					) : (
+						<div className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center">
+							<span className="text-gray-400 text-xs text-center px-2">
+								{scholarship.university.substring(0, 2).toUpperCase()}
+							</span>
+						</div>
+					)}
 					{/* Fallback that shows when image fails to load */}
-					<div
-						className="w-[124px] h-[124px] bg-gray-200 rounded-lg items-center justify-center"
-						style={{ display: 'none' }}
-					>
-						<span className="text-gray-400 text-xs text-center px-2">
-							{scholarship.university.substring(0, 2).toUpperCase()}
-						</span>
-					</div>
+					{scholarship.logo && (
+						<div
+							className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center"
+							style={{ display: 'none' }}
+						>
+							<span className="text-gray-400 text-xs text-center px-2">
+								{scholarship.university.substring(0, 2).toUpperCase()}
+							</span>
+						</div>
+					)}
 				</div>
 				<div className="flex flex-col items-end gap-2">
 					<span className="text-sm text-gray-500">{scholarship.provider}</span>

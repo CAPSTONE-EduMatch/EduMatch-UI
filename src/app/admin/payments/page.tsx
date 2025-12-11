@@ -12,7 +12,6 @@ import {
 	Clock,
 	CreditCard,
 	DollarSign,
-	Download,
 	Info,
 	Users,
 	XCircle,
@@ -84,9 +83,6 @@ export default function PaymentsPage() {
 	const [isClient, setIsClient] = useState(false)
 	const [selectedPeriod, setSelectedPeriod] = useState<Period>('all')
 	const [chartGroupBy, setChartGroupBy] = useState<'day' | 'month'>('day')
-	const [exporting, setExporting] = useState<
-		'transactions' | 'statistics' | null
-	>(null)
 
 	// Use React Query hook for payment stats
 	const {
@@ -112,71 +108,6 @@ export default function PaymentsPage() {
 	useEffect(() => {
 		setIsClient(true)
 	}, [])
-
-	// Export handlers
-	const handleExportTransactions = async () => {
-		try {
-			setExporting('transactions')
-			const response = await fetch(
-				`/api/admin/export-transactions?period=${selectedPeriod}`
-			)
-
-			if (!response.ok) {
-				throw new Error('Failed to export transactions')
-			}
-
-			// Create blob from response
-			const blob = await response.blob()
-			const url = window.URL.createObjectURL(blob)
-			const a = document.createElement('a')
-			a.href = url
-			a.download = `transactions-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`
-			document.body.appendChild(a)
-			a.click()
-			window.URL.revokeObjectURL(url)
-			document.body.removeChild(a)
-		} catch (err) {
-			alert(
-				err instanceof Error
-					? err.message
-					: 'Failed to export transactions. Please try again.'
-			)
-		} finally {
-			setExporting(null)
-		}
-	}
-
-	const handleExportStatistics = async () => {
-		try {
-			setExporting('statistics')
-			const response = await fetch(
-				`/api/admin/export-statistics?period=${selectedPeriod}`
-			)
-
-			if (!response.ok) {
-				throw new Error('Failed to export statistics')
-			}
-
-			// Create blob from response
-			const blob = await response.blob()
-			const url = window.URL.createObjectURL(blob)
-			const a = document.createElement('a')
-			a.href = url
-			a.download = `payment-statistics-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.txt`
-			document.body.appendChild(a)
-			a.click()
-			window.URL.revokeObjectURL(url)
-			document.body.removeChild(a)
-		} catch (err) {
-			alert(
-				err instanceof Error
-					? err.message
-					: 'Failed to export statistics. Please try again.'
-			)
-		} finally {
-			setExporting(null)
-		}
-	}
 
 	// Prepare data for SplineArea chart
 	const prepareChartData = () => {
@@ -341,9 +272,9 @@ export default function PaymentsPage() {
 						</div>
 
 						{/* Revenue Chart and Analytics */}
-						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+						<div className="grid grid-cols-1 gap-6">
 							{/* Revenue Chart */}
-							<div className="lg:col-span-2">
+							<div>
 								<Card className="bg-white border shadow-sm">
 									<CardHeader>
 										<div className="flex items-center justify-between">
@@ -423,53 +354,6 @@ export default function PaymentsPage() {
 												No data available for the selected period
 											</div>
 										)}
-									</CardContent>
-								</Card>
-							</div>
-
-							{/* Operations Panel */}
-							<div className="space-y-4">
-								<Card className="bg-white border shadow-sm">
-									<CardHeader>
-										<CardTitle className="text-lg font-semibold">
-											Operations
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="space-y-3">
-										<button
-											onClick={handleExportTransactions}
-											disabled={exporting !== null}
-											className="w-full px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-										>
-											{exporting === 'transactions' ? (
-												<>
-													<div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-													Exporting...
-												</>
-											) : (
-												<>
-													<Download className="w-4 h-4" />
-													Export Transactions
-												</>
-											)}
-										</button>
-										<button
-											onClick={handleExportStatistics}
-											disabled={exporting !== null}
-											className="w-full px-4 py-2 bg-[#126E64] text-white rounded-lg hover:bg-[#0E5B52] transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-										>
-											{exporting === 'statistics' ? (
-												<>
-													<div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-													Exporting...
-												</>
-											) : (
-												<>
-													<Download className="w-4 h-4" />
-													Export Statistics Report
-												</>
-											)}
-										</button>
 									</CardContent>
 								</Card>
 							</div>

@@ -301,9 +301,8 @@ export async function PATCH(request: NextRequest) {
 			currentPost.institution?.user
 		) {
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const institutionUser = currentPost.institution.user;
 
@@ -313,10 +312,22 @@ export async function PATCH(request: NextRequest) {
 				else if (currentPost.scholarshipPost) postType = "Scholarship";
 				else if (currentPost.jobPost) postType = "Research Lab";
 
-				const baseUrl =
-					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-					"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
-				const postUrl = `${baseUrl}/institution/posts/${postId}`;
+				// Generate correct URL based on post type
+				const getPostUrl = (type: string, id: string) => {
+					const baseUrl =
+						process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+						"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+					if (type === "Program") {
+						return `${baseUrl}/institution/dashboard/programmes/${id}`;
+					} else if (type === "Scholarship") {
+						return `${baseUrl}/institution/dashboard/scholarships/${id}`;
+					} else if (type === "Research Lab") {
+						return `${baseUrl}/institution/dashboard/reseach-labs/${id}`;
+					}
+					return `${baseUrl}/institution/posts/${id}`; // fallback
+				};
+
+				const postUrl = getPostUrl(postType, postId);
 
 				await NotificationUtils.sendPostStatusUpdateNotification(
 					institutionUser.id,

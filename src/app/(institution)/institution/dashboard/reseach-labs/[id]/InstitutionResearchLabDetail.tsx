@@ -665,7 +665,7 @@ const InstitutionResearchLabDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="bg-white py-6 shadow-xl border"
+					className="bg-white py-6 shadow-xl border mt-6"
 				>
 					<div className="container mx-auto px-4">
 						<div className="grid grid-cols-2 md:grid-cols-6 gap-6">

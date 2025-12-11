@@ -372,6 +372,25 @@ export async function PATCH(
 			else if (currentPost.scholarshipPost) postType = "Scholarship";
 			else if (currentPost.jobPost) postType = "Research Lab";
 
+			// Generate correct URL based on post type
+			const getPostUrl = (type: string, id: string) => {
+				if (type === "Program") {
+					return `/institution/dashboard/programmes/${id}`;
+				} else if (type === "Scholarship") {
+					return `/institution/dashboard/scholarships/${id}`;
+				} else if (type === "Research Lab") {
+					return `/institution/dashboard/reseach-labs/${id}`;
+				}
+				return `/institution/posts/${id}`; // fallback
+			};
+
+			const getPostUrlFull = (type: string, id: string) => {
+				const baseUrl =
+					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+					"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
+				return `${baseUrl}${getPostUrl(type, id)}`;
+			};
+
 			// Get status label
 			const statusLabels: Record<string, string> = {
 				PUBLISHED: "Published",
@@ -395,7 +414,7 @@ export async function PATCH(
 					type: "POST_STATUS_UPDATE",
 					title: `${postType} ${statusLabel}`,
 					body: notificationBody,
-					url: `/institution/posts/${postId}`,
+					url: getPostUrl(postType, postId),
 					send_at: new Date(),
 					create_at: new Date(),
 				},
@@ -403,14 +422,10 @@ export async function PATCH(
 
 			// Send email notification via SQS using utility function
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
-				const baseUrl =
-					process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-					"https://dev.d1jaxpbx3axxsh.amplifyapp.com";
-				const postUrl = `${baseUrl}/institution/posts/${postId}`;
+				const postUrl = getPostUrlFull(postType, postId);
 
 				await NotificationUtils.sendPostStatusUpdateNotification(
 					institutionUser.id,

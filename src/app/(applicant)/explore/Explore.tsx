@@ -208,7 +208,10 @@ const Explore = () => {
 		},
 		[filtersInitialized]
 	)
-	const { isInWishlist, toggleWishlistItem } = useWishlist()
+	const { isInWishlist, toggleWishlistItem } = useWishlist({
+		autoFetch: true,
+		isAuthenticated: isAuthenticated,
+	})
 
 	// Application functionality - track applied/applying posts
 	const [appliedPosts] = useState<Set<string>>(new Set())

@@ -151,25 +151,21 @@ const ProgramDetail = () => {
 	const [loadingSelectedApplication, setLoadingSelectedApplication] =
 		useState(false)
 
-	// Wishlist functionality
-	const {
-		isInWishlist,
-		toggleWishlistItem,
-		loading: wishlistLoading,
-		items: wishlistItems,
-	} = useWishlist({
-		autoFetch: true,
-		initialParams: {
-			page: 1,
-			limit: 100, // Fetch more items to ensure we get all wishlisted items
-			status: 1, // Only active wishlist items
-		},
-	})
-
 	// Notification system
 	const { showSuccess, showError } = useNotification()
 	const apiWrapper = useApiWrapper()
 	const { isAuthenticated } = useAuthCheck()
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist({
+		autoFetch: true,
+		isAuthenticated: isAuthenticated,
+		initialParams: {
+			page: 1,
+			limit: 100,
+			status: 1,
+		},
+	})
 	const { currentPlan } = useSubscription()
 	const [showAuthModal, setShowAuthModal] = useState(false)
 

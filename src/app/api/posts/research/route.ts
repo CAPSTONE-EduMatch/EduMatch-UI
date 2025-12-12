@@ -38,7 +38,6 @@ interface CreateResearchLabRequest {
 	labDescription: string;
 	labType: string;
 	researchFocus: string;
-	labCapacity: string;
 
 	// Research Areas
 	researchAreas: string;
@@ -58,13 +57,6 @@ interface CreateResearchLabRequest {
 		documents: string;
 		researchProposal: string;
 		recommendations: string;
-	};
-
-	// Lab Information
-	labInformation: {
-		director: string;
-		contactEmail: string;
-		website: string;
 	};
 
 	// File Requirements - optional
@@ -264,40 +256,6 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Validate lab capacity
-		let labCapacity: number | null = null;
-		if (body.labCapacity) {
-			const capacityValue = parseInt(body.labCapacity);
-			if (isNaN(capacityValue)) {
-				// eslint-disable-next-line no-console
-				console.error("Invalid lab_capacity value:", body.labCapacity);
-				return NextResponse.json(
-					{ error: "Invalid lab capacity value" },
-					{ status: 400 }
-				);
-			}
-			if (capacityValue <= 0) {
-				// eslint-disable-next-line no-console
-				console.error(
-					"Lab capacity must be greater than 0:",
-					capacityValue
-				);
-				return NextResponse.json(
-					{ error: "Lab capacity must be greater than 0" },
-					{ status: 400 }
-				);
-			}
-			if (capacityValue > 10000) {
-				// eslint-disable-next-line no-console
-				console.error("Lab capacity exceeds maximum:", capacityValue);
-				return NextResponse.json(
-					{ error: "Lab capacity must be less than 10,000" },
-					{ status: 400 }
-				);
-			}
-			labCapacity = capacityValue;
-		}
-
 		// Generate embedding for the research lab post
 		let embeddingData: any = null;
 		try {
@@ -348,12 +306,12 @@ export async function POST(request: NextRequest) {
 				other_requirement: body.otherRequirement,
 				lab_type: body.labType,
 				research_focus: body.researchFocus,
-				lab_capacity: labCapacity,
+				lab_capacity: null,
 				research_areas: body.researchAreas,
 				lab_facilities: body.labFacilities,
-				lab_director: body.labInformation.director,
-				lab_contact_email: body.labInformation.contactEmail,
-				lab_website: body.labInformation.website,
+				lab_director: null,
+				lab_contact_email: null,
+				lab_website: null,
 				academic_background:
 					body.researchRequirements.academicBackground,
 				research_experience:
@@ -756,43 +714,6 @@ export async function PUT(request: NextRequest) {
 			);
 		}
 
-		// Validate lab capacity
-		let labCapacity: number | null = null;
-		if (updateData.labCapacity) {
-			const capacityValue = parseInt(updateData.labCapacity);
-			if (isNaN(capacityValue)) {
-				// eslint-disable-next-line no-console
-				console.error(
-					"Invalid lab_capacity value:",
-					updateData.labCapacity
-				);
-				return NextResponse.json(
-					{ error: "Invalid lab capacity value" },
-					{ status: 400 }
-				);
-			}
-			if (capacityValue <= 0) {
-				// eslint-disable-next-line no-console
-				console.error(
-					"Lab capacity must be greater than 0:",
-					capacityValue
-				);
-				return NextResponse.json(
-					{ error: "Lab capacity must be greater than 0" },
-					{ status: 400 }
-				);
-			}
-			if (capacityValue > 10000) {
-				// eslint-disable-next-line no-console
-				console.error("Lab capacity exceeds maximum:", capacityValue);
-				return NextResponse.json(
-					{ error: "Lab capacity must be less than 10,000" },
-					{ status: 400 }
-				);
-			}
-			labCapacity = capacityValue;
-		}
-
 		// Generate embedding for the updated research lab post
 		let embeddingData: any = null;
 		try {
@@ -843,12 +764,12 @@ export async function PUT(request: NextRequest) {
 				other_requirement: updateData.otherRequirement,
 				lab_type: updateData.labType,
 				research_focus: updateData.researchFocus,
-				lab_capacity: labCapacity,
+				lab_capacity: null,
 				research_areas: updateData.researchAreas,
 				lab_facilities: updateData.labFacilities,
-				lab_director: updateData.labInformation.director,
-				lab_contact_email: updateData.labInformation.contactEmail,
-				lab_website: updateData.labInformation.website,
+				lab_director: null,
+				lab_contact_email: null,
+				lab_website: null,
 				academic_background:
 					updateData.researchRequirements.academicBackground,
 				research_experience:

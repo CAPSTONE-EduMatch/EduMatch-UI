@@ -7,6 +7,7 @@ declare module "axios" {
 		metadata?: {
 			cacheKey: string;
 			startTime: number;
+			deduplicated?: boolean;
 		};
 	}
 }
@@ -15,6 +16,9 @@ declare module "axios" {
  * Centralized Axios configuration with Redis caching
  * Provides consistent API calls across the entire application
  */
+
+// Request deduplication: Track in-flight requests to prevent duplicate calls
+const pendingRequests = new Map<string, Promise<any>>();
 
 // Create axios instance with base configuration
 const createAxiosInstance = (): AxiosInstance => {
@@ -26,33 +30,80 @@ const createAxiosInstance = (): AxiosInstance => {
 		},
 	});
 
-	// Request interceptor for caching
+	// Request interceptor for caching and deduplication
 	instance.interceptors.request.use(
 		async (config) => {
 			// Add cache key to request config
 			const cacheKey = generateCacheKey(config);
 			config.metadata = { cacheKey, startTime: Date.now() };
 
-			// Check cache first for GET requests
-			if (config.method === "get" && shouldCache(config)) {
-				try {
-					const cachedData = await cacheManager.get(cacheKey);
-					if (cachedData) {
-						// Return cached response
-						return Promise.reject({
-							isCached: true,
-							data: cachedData,
-							config,
-						});
-					}
-				} catch (error) {
-					console.warn("Cache read error:", error);
+			// Request deduplication: If same request is already in flight, reuse it
+			// Only for GET requests to avoid issues with POST/PUT
+			if (config.method === "get") {
+				const requestKey = `${config.method}:${config.url}:${JSON.stringify(config.params || {})}`;
+
+				// Check if there's already a pending request with the same key
+				if (pendingRequests.has(requestKey)) {
+					const pendingRequest = pendingRequests.get(requestKey);
+					// Mark this config as deduplicated and return the pending request
+					config.metadata.deduplicated = true;
+					// Throw a special error that will be caught by response interceptor
+					throw {
+						isDeduplicated: true,
+						pendingRequest,
+						config,
+					};
 				}
+
+				// Check cache first for GET requests
+				if (shouldCache(config)) {
+					try {
+						const cachedData = await cacheManager.get(cacheKey);
+						if (cachedData) {
+							// Return cached response
+							throw {
+								isCached: true,
+								data: cachedData,
+								config,
+							};
+						}
+					} catch (error) {
+						// If it's our special error, re-throw it
+						if (
+							error &&
+							typeof error === "object" &&
+							("isCached" in error || "isDeduplicated" in error)
+						) {
+							throw error;
+						}
+						console.warn("Cache read error:", error);
+					}
+				}
+
+				// Create a new request promise and store it
+				// The actual request will be made by axios, we just track it
+				const requestPromise = instance.request(config).finally(() => {
+					// Remove from pending requests after completion
+					setTimeout(() => {
+						pendingRequests.delete(requestKey);
+					}, 100);
+				});
+				pendingRequests.set(requestKey, requestPromise);
 			}
 
 			return config;
 		},
-		(error) => Promise.reject(error)
+		(error) => {
+			// Handle deduplicated requests - return the pending request
+			if (error?.isDeduplicated) {
+				return error.pendingRequest;
+			}
+			// Handle cached responses
+			if (error?.isCached) {
+				return Promise.reject(error);
+			}
+			return Promise.reject(error);
+		}
 	);
 
 	// Response interceptor for caching and error handling
@@ -86,7 +137,7 @@ const createAxiosInstance = (): AxiosInstance => {
 		},
 		(error) => {
 			// Handle cached responses
-			if (error.isCached) {
+			if (error?.isCached) {
 				return Promise.resolve({
 					data: error.data,
 					status: 200,

@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui'
 import { useAdminPostManagement } from '@/hooks/admin'
 import { PostStatus } from '@prisma/client'
 import { ChevronRight, Users, Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Post {
@@ -71,6 +71,76 @@ export default function AdminPostsPage() {
 		updateFilters,
 		changePage,
 	} = useAdminPostManagement()
+
+	// Local state for filters with debouncing
+	const [localStatusFilter, setLocalStatusFilter] = useState<string[]>([])
+	const [localTypeFilter, setLocalTypeFilter] = useState<string[]>([])
+	const [localSearchQuery, setLocalSearchQuery] = useState<string>('')
+	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+	// Initialize local state from filters
+	useEffect(() => {
+		if (filters.status && filters.status !== 'all') {
+			setLocalStatusFilter(
+				Array.isArray(filters.status) ? filters.status : [filters.status]
+			)
+		} else {
+			setLocalStatusFilter([])
+		}
+	}, [filters.status])
+
+	useEffect(() => {
+		if (filters.type && filters.type !== 'all') {
+			setLocalTypeFilter(
+				Array.isArray(filters.type) ? filters.type : [filters.type]
+			)
+		} else {
+			setLocalTypeFilter([])
+		}
+	}, [filters.type])
+
+	useEffect(() => {
+		setLocalSearchQuery(filters.search || '')
+	}, [filters.search])
+
+	// Debounced filter update function
+	const debouncedUpdateFilters = (
+		statusArray: string[],
+		typeArray: string[],
+		searchQuery: string
+	) => {
+		// Clear existing timer
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current)
+		}
+
+		// Set new timer for 3 seconds
+		debounceTimerRef.current = setTimeout(() => {
+			updateFilters({
+				status:
+					statusArray.length > 0
+						? statusArray.length === 1
+							? (statusArray[0] as PostStatus)
+							: (statusArray as PostStatus[])
+						: 'all',
+				type:
+					typeArray.length === 0 ||
+					(typeArray.length === 1 && typeArray[0] === 'all')
+						? 'all'
+						: (typeArray as ('Program' | 'Scholarship' | 'Job')[]),
+				search: searchQuery || undefined,
+			})
+		}, 3000)
+	}
+
+	// Cleanup timer on unmount
+	useEffect(() => {
+		return () => {
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current)
+			}
+		}
+	}, [])
 
 	// Component for ID cell with copy functionality
 	const IdCell = ({ id }: { id: string }) => {
@@ -247,16 +317,19 @@ export default function AdminPostsPage() {
 			<div className="px-8">
 				{/* Search and Filters */}
 				<SearchAndFilter
-					searchQuery={filters.search || ''}
-					onSearchChange={(query) => updateFilters({ search: query })}
-					statusFilter={
-						filters.status && filters.status !== 'all' ? [filters.status] : []
-					}
+					searchQuery={localSearchQuery}
+					onSearchChange={(query) => {
+						setLocalSearchQuery(query)
+						debouncedUpdateFilters(localStatusFilter, localTypeFilter, query)
+					}}
+					statusFilter={localStatusFilter}
 					onStatusFilterChange={(statusArray: string[]) => {
-						updateFilters({
-							status:
-								statusArray.length > 0 ? (statusArray[0] as PostStatus) : 'all',
-						})
+						setLocalStatusFilter(statusArray)
+						debouncedUpdateFilters(
+							statusArray,
+							localTypeFilter,
+							localSearchQuery
+						)
 					}}
 					sortBy={
 						filters.sortDirection === 'desc'
@@ -272,22 +345,15 @@ export default function AdminPostsPage() {
 						})
 					}}
 					// Custom props for admin posts filtering
-					typeFilter={
-						filters.type && filters.type !== 'all'
-							? Array.isArray(filters.type)
-								? filters.type
-								: [filters.type]
-							: []
-					}
+					typeFilter={localTypeFilter}
 					onTypeFilterChange={(types: string | string[]) => {
 						const typeArray = Array.isArray(types) ? types : [types]
-						updateFilters({
-							type:
-								typeArray.length === 0 ||
-								(typeArray.length === 1 && typeArray[0] === 'all')
-									? 'all'
-									: (typeArray as ('Program' | 'Scholarship' | 'Job')[]),
-						})
+						setLocalTypeFilter(typeArray)
+						debouncedUpdateFilters(
+							localStatusFilter,
+							typeArray,
+							localSearchQuery
+						)
 					}}
 					statusOptions={[
 						{ value: 'PUBLISHED', label: 'Published' },

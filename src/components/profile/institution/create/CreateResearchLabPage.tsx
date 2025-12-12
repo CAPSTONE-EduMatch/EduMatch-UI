@@ -14,6 +14,9 @@ import {
 } from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui'
+import { Crown, CreditCard } from 'lucide-react'
 
 interface CreateResearchLabPageProps {
 	onBack?: () => void
@@ -32,6 +35,14 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	const router = useRouter()
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const { subdisciplines = [] } = useDisciplinesContext()
+
+	// Check subscription status
+	const { subscriptions, loading: subscriptionLoading } = useSubscription()
+	const hasActiveInstitutionSubscription = subscriptions.some(
+		(sub) =>
+			sub.status === 'active' &&
+			(sub.plan === 'institution_monthly' || sub.plan === 'institution_yearly')
+	)
 
 	// Populate form with initialData when in edit mode
 	useEffect(() => {
@@ -86,7 +97,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				labDescription: initialData.description || '',
 				labType: initialData.labType || '',
 				researchFocus: initialData.researchFocus || '',
-				labCapacity: initialData.labCapacity?.toString() || '',
 				labFacilities: initialData.labFacilities || '',
 				researchAreas: initialData.researchAreas || '',
 				researchRequirements: {
@@ -98,11 +108,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 					documents: initialData.applicationDocuments || '',
 					researchProposal: initialData.researchProposal || '',
 					recommendations: initialData.recommendations || '',
-				},
-				labInformation: {
-					director: initialData.labDirector || '',
-					contactEmail: initialData.labContactEmail || '',
-					website: initialData.labWebsite || '',
 				},
 				fileRequirements: {
 					fileName:
@@ -148,7 +153,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		labDescription: '',
 		labType: '',
 		researchFocus: '',
-		labCapacity: '',
 
 		// Research Areas
 		researchAreas: '',
@@ -168,13 +172,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 			documents: '',
 			researchProposal: '',
 			recommendations: '',
-		},
-
-		// Lab Information
-		labInformation: {
-			director: '',
-			contactEmail: '',
-			website: '',
 		},
 
 		// File Requirements
@@ -257,34 +254,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 		return null
 	}
 
-	const handleLabCapacityChange = (value: string) => {
-		// Only allow positive integers
-		const numericValue = value.replace(/[^0-9]/g, '')
-		setFormData((prev) => ({
-			...prev,
-			labCapacity: numericValue,
-		}))
-	}
-
-	const getLabCapacityError = (): string | null => {
-		if (!formData.labCapacity) return null
-
-		const capacity = parseInt(formData.labCapacity)
-		if (isNaN(capacity)) {
-			return 'Lab capacity must be a valid number'
-		}
-
-		if (capacity <= 0) {
-			return 'Lab capacity must be greater than 0'
-		}
-
-		if (capacity > 10000) {
-			return 'Lab capacity must be less than 10,000'
-		}
-
-		return null
-	}
-
 	const handleResearchRequirementChange = (field: string, value: string) => {
 		setFormData((prev) => ({
 			...prev,
@@ -300,16 +269,6 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 			...prev,
 			applicationRequirements: {
 				...prev.applicationRequirements,
-				[field]: value,
-			},
-		}))
-	}
-
-	const handleLabInformationChange = (field: string, value: string) => {
-		setFormData((prev) => ({
-			...prev,
-			labInformation: {
-				...prev.labInformation,
 				[field]: value,
 			},
 		}))
@@ -336,18 +295,24 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 	}
 
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
+		// Check subscription before submitting (only for new posts, not drafts)
+		if (
+			!isEditMode &&
+			status === 'SUBMITTED' &&
+			!hasActiveInstitutionSubscription
+		) {
+			setErrorMessage(
+				'You need an active subscription to publish posts. Please upgrade your plan to continue.'
+			)
+			setShowErrorModal(true)
+			return
+		}
+
 		try {
 			// Validate form data before submitting
 			const salaryError = getSalaryError()
 			if (salaryError) {
 				setErrorMessage(salaryError)
-				setShowErrorModal(true)
-				return
-			}
-
-			const labCapacityError = getLabCapacityError()
-			if (labCapacityError) {
-				setErrorMessage(labCapacityError)
 				setShowErrorModal(true)
 				return
 			}
@@ -442,6 +407,35 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 					</Button>
 				)}
 			</div>
+
+			{/* Subscription Warning */}
+			{!subscriptionLoading &&
+				!hasActiveInstitutionSubscription &&
+				!isEditMode && (
+					<Alert className="border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+						<Crown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+						<AlertTitle className="text-amber-900 dark:text-amber-100 font-semibold mb-2">
+							Subscription Required to Publish Posts
+						</AlertTitle>
+						<AlertDescription className="text-amber-800 dark:text-amber-200 space-y-3">
+							<p>
+								To publish and share your research labs with applicants, you
+								need an active institution subscription. You can still save
+								drafts without a subscription.
+							</p>
+							<div className="flex items-center gap-3 pt-2">
+								<Button
+									onClick={() => router.push('/institution/dashboard/payment')}
+									variant="primary"
+									size="sm"
+									className="bg-amber-600 hover:bg-amber-700 text-white"
+								>
+									Upgrade Now
+								</Button>
+							</div>
+						</AlertDescription>
+					</Alert>
+				)}
 
 			{/* Overview Section */}
 			<div className="border bg-white border-gray-200 rounded-xl p-6 space-y-6">
@@ -906,9 +900,12 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 				<Button onClick={() => handleSubmit('DRAFT')} variant="outline">
 					Save as Draft
 				</Button>
-				<Button onClick={() => handleSubmit('SUBMITTED')} variant="primary">
-					Submit
-				</Button>
+				{/* Only show Submit button if user has active subscription or is editing */}
+				{(hasActiveInstitutionSubscription || isEditMode) && (
+					<Button onClick={() => handleSubmit('SUBMITTED')} variant="primary">
+						Submit
+					</Button>
+				)}
 			</div>
 			{/* Success Modal */}
 			<SuccessModal

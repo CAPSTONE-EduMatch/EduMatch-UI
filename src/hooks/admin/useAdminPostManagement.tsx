@@ -22,7 +22,7 @@ export interface Post {
 
 export interface PostFilters {
 	search?: string
-	status?: 'all' | PostStatus
+	status?: 'all' | PostStatus | PostStatus[]
 	type?:
 		| 'all'
 		| 'Program'
@@ -76,7 +76,14 @@ const fetchPosts = async (filters: PostFilters): Promise<ApiResponse> => {
 	// Add all filter parameters to the URL
 	Object.entries(filters).forEach(([key, value]) => {
 		if (value !== undefined && value !== null && value !== '') {
-			params.append(key, value.toString())
+			// Handle arrays (for type and status filters)
+			if (Array.isArray(value)) {
+				value.forEach((item) => {
+					params.append(key, item.toString())
+				})
+			} else {
+				params.append(key, value.toString())
+			}
 		}
 	})
 

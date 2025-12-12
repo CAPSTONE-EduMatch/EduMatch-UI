@@ -5,7 +5,7 @@ import { prismaClient } from "../../../../../prisma/index";
 
 interface PostFilters {
 	search?: string;
-	status?: "all" | PostStatus;
+	status?: "all" | PostStatus | PostStatus[];
 	type?:
 		| "all"
 		| "Program"
@@ -36,9 +36,20 @@ export async function GET(request: NextRequest) {
 					? "all"
 					: (typeParams as ("Program" | "Scholarship" | "Job")[]);
 
+		// Handle multiple status filters
+		const statusParams = searchParams.getAll("status");
+		const statusFilter: "all" | PostStatus | PostStatus[] =
+			statusParams.length === 0
+				? "all"
+				: statusParams.length === 1 && statusParams[0] === "all"
+					? "all"
+					: statusParams.length === 1
+						? (statusParams[0] as PostStatus)
+						: (statusParams as PostStatus[]);
+
 		const filters: PostFilters = {
 			search: searchParams.get("search") || undefined,
-			status: (searchParams.get("status") as "all" | PostStatus) || "all",
+			status: statusFilter,
 			type: typeFilter,
 			sortBy:
 				(searchParams.get("sortBy") as
@@ -75,9 +86,17 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Filter by status - exclude DRAFT and DELETED posts
+		// Filter by status - support multiple statuses
 		if (filters.status && filters.status !== "all") {
-			whereClause.status = filters.status;
+			if (Array.isArray(filters.status)) {
+				// Multiple statuses selected
+				whereClause.status = {
+					in: filters.status,
+				};
+			} else {
+				// Single status
+				whereClause.status = filters.status;
+			}
 		} else {
 			// Exclude DRAFT and DELETED posts by default
 			whereClause.status = {
@@ -306,9 +325,8 @@ export async function PATCH(request: NextRequest) {
 			currentPost.institution?.user
 		) {
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const institutionUser = currentPost.institution.user;
 

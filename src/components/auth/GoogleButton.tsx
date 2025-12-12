@@ -23,12 +23,18 @@ const GoogleButton: React.FC<GoogleButtonProps> = ({
 	const handleClick = async () => {
 		setLoading(true)
 		try {
+			// Set post-login initialization flag before redirecting to Google
+			// This ensures loading state is shown when user returns from OAuth
+			localStorage.setItem('postLoginInit', 'true')
+
 			await authClient.signIn.social({
 				provider: 'google',
 				callbackURL,
 				requestSignUp: action === 'signup',
 			})
 		} catch (err) {
+			// If sign-in fails, clear the flag
+			localStorage.removeItem('postLoginInit')
 			// Let callers handle errors via authClient state or redirect; we just stop loading
 			// eslint-disable-next-line no-console
 			console.error('Google social sign-in failed', err)

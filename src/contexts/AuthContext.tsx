@@ -51,6 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [showAuthModal, setShowAuthModal] = useState(false)
 	const hasInitialized = useRef(false)
 
+	// Check for post-login initialization flag
+	const [isPostLoginInit, setIsPostLoginInit] = useState(() => {
+		if (typeof window !== 'undefined') {
+			return localStorage.getItem('postLoginInit') === 'true'
+		}
+		return false
+	})
+
 	// Single authentication check on mount - leveraging Better Auth's built-in caching
 	useEffect(() => {
 		// Prevent double calls in React Strict Mode
@@ -86,7 +94,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 					setIsAuthenticated(isAuth)
 					setUser(hasUser)
-					setIsLoading(false)
+
+					// If we're in post-login initialization and session is established, clear the flag
+					if (isPostLoginInit && isAuth) {
+						localStorage.removeItem('postLoginInit')
+						setIsPostLoginInit(false)
+					}
+
+					// Keep loading true during post-login initialization until session is confirmed
+					setIsLoading(isPostLoginInit && !isAuth)
 					setShowAuthModal(!hasUser)
 					return
 				}
@@ -99,7 +115,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 				setIsAuthenticated(isAuth)
 				setUser(hasUser)
-				setIsLoading(false)
+
+				// If we're in post-login initialization and session is established, clear the flag
+				if (isPostLoginInit && isAuth) {
+					localStorage.removeItem('postLoginInit')
+					setIsPostLoginInit(false)
+				}
+
+				// Keep loading true during post-login initialization until session is confirmed
+				setIsLoading(isPostLoginInit && !isAuth)
 				setShowAuthModal(!hasUser)
 				return
 			}
@@ -116,7 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 					setIsAuthenticated(isAuth)
 					setUser(hasUser)
-					setIsLoading(false)
+
+					// If we're in post-login initialization and session is established, clear the flag
+					if (isPostLoginInit && isAuth) {
+						localStorage.removeItem('postLoginInit')
+						setIsPostLoginInit(false)
+					}
+
+					// Keep loading true during post-login initialization until session is confirmed
+					setIsLoading(isPostLoginInit && !isAuth)
 					setShowAuthModal(!hasUser)
 				}
 				return
@@ -137,7 +169,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 				setIsAuthenticated(isAuth)
 				setUser(hasUser)
-				setIsLoading(false)
+
+				// If we're in post-login initialization and session is established, clear the flag
+				if (isPostLoginInit && isAuth) {
+					localStorage.removeItem('postLoginInit')
+					setIsPostLoginInit(false)
+				}
+
+				// Keep loading true during post-login initialization until session is confirmed
+				setIsLoading(isPostLoginInit && !isAuth)
 				setShowAuthModal(!hasUser)
 				return
 			}
@@ -165,7 +205,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 				setIsAuthenticated(isAuth)
 				setUser(hasUser)
-				setIsLoading(false)
+
+				// If we're in post-login initialization and session is established, clear the flag
+				if (isPostLoginInit && isAuth) {
+					localStorage.removeItem('postLoginInit')
+					setIsPostLoginInit(false)
+				}
+
+				// Keep loading true during post-login initialization until session is confirmed
+				setIsLoading(isPostLoginInit && !isAuth)
 				setShowAuthModal(!hasUser)
 			} catch (error: any) {
 				// Check if this is a rate limit error (429)
@@ -197,14 +245,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 						setIsAuthenticated(false)
 						setUser(null)
 					}
-					setIsLoading(false)
+
+					// Keep loading true during post-login initialization
+					setIsLoading(isPostLoginInit)
 					setShowAuthModal(!lastSession?.data?.user)
 				} else {
 					// For other errors, set unauthenticated but don't clear cache immediately
 					// This prevents rapid retries
 					setIsAuthenticated(false)
 					setUser(null)
-					setIsLoading(false)
+
+					// Keep loading true during post-login initialization
+					setIsLoading(isPostLoginInit)
 					setShowAuthModal(true)
 
 					// Only clear cache if it's been a while since last successful check
@@ -226,7 +278,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		checkAuth()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
+
+	// Monitor post-login initialization flag and refresh auth when needed
+	useEffect(() => {
+		if (isPostLoginInit && !isAuthenticated) {
+			// If we're in post-login init but not authenticated yet, refresh auth
+			refreshAuth()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isPostLoginInit])
 
 	const refreshAuth = async () => {
 		if (isCheckingAuth) return
@@ -260,6 +322,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			setIsAuthenticated(isAuth)
 			setUser(hasUser)
+
+			// If we're in post-login initialization and session is established, clear the flag
+			if (isPostLoginInit && isAuth) {
+				localStorage.removeItem('postLoginInit')
+				setIsPostLoginInit(false)
+			}
+
 			setShowAuthModal(!hasUser)
 		} catch (error: any) {
 			// Check if this is a rate limit error (429)
@@ -296,7 +365,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setUser(null)
 			setShowAuthModal(true)
 		} finally {
-			setIsLoading(false)
+			// Keep loading true during post-login initialization
+			setIsLoading(isPostLoginInit)
 			isCheckingAuth = false
 		}
 	}

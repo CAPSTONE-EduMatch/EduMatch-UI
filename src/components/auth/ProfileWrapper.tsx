@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { ErrorModal } from '@/components/ui'
-import { useState, useEffect } from 'react'
+import { useContext } from 'react'
+import { ApplicantProfileContext } from '@/contexts/ApplicantProfileContext'
 
 interface ProfileWrapperProps {
 	children: React.ReactNode
@@ -19,85 +20,16 @@ export function ProfileWrapper({
 	redirectTo = '/profile/create',
 }: ProfileWrapperProps) {
 	const router = useRouter()
-	const { isAuthenticated, user, isLoading: authLoading } = useAuthCheck()
-	const [isCheckingProfile, setIsCheckingProfile] = useState(true)
-	const [hasProfile, setHasProfile] = useState<boolean | null>(null)
+	const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
 
-	// Check if user has a profile
-	useEffect(() => {
-		const checkProfile = async (retryCount = 0) => {
-			const maxRetries = 2
-			const retryDelay = 500
+	// Use shared profile context if available (only in applicant routes)
+	// Use useContext directly to check if provider exists without throwing
+	// This allows ProfileWrapper to work in both applicant and institution contexts
+	const context = useContext(ApplicantProfileContext)
+	const hasProfile = context?.hasProfile ?? null
+	const profileLoading = context?.isLoading ?? false
 
-			// Wait for authentication to complete
-			if (authLoading) {
-				return
-			}
-
-			if (!isAuthenticated || !user?.id) {
-				setIsCheckingProfile(false)
-				return
-			}
-
-			try {
-				// Wait a bit for session to be fully established on first attempt
-				if (retryCount === 0) {
-					await new Promise((resolve) => setTimeout(resolve, 300))
-				}
-
-				const response = await fetch('/api/profile', {
-					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					credentials: 'include',
-				})
-
-				if (response.ok) {
-					const data = await response.json()
-					// Check if profile actually exists in the response
-					if (data?.profile) {
-						setHasProfile(true)
-					} else {
-						setHasProfile(false)
-					}
-				} else if (response.status === 404) {
-					// Profile doesn't exist
-					setHasProfile(false)
-				} else if (response.status === 500 && retryCount < maxRetries) {
-					// Server error, retry
-					// eslint-disable-next-line no-console
-					console.warn(
-						`Profile check failed with 500, retrying... (${retryCount + 1}/${maxRetries})`
-					)
-					await new Promise((resolve) =>
-						setTimeout(resolve, retryDelay * (retryCount + 1))
-					)
-					return checkProfile(retryCount + 1)
-				} else {
-					// Other errors - assume profile might exist to avoid false negatives
-					// Only set to false if it's a clear 404
-					setHasProfile(null) // Set to null to indicate uncertainty
-				}
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.error('Error checking profile:', error)
-				// On network errors, don't assume no profile - set to null
-				if (retryCount < maxRetries) {
-					await new Promise((resolve) =>
-						setTimeout(resolve, retryDelay * (retryCount + 1))
-					)
-					return checkProfile(retryCount + 1)
-				}
-				// After max retries, set to null (uncertain) rather than false
-				setHasProfile(null)
-			} finally {
-				setIsCheckingProfile(false)
-			}
-		}
-
-		checkProfile()
-	}, [isAuthenticated, user?.id, authLoading])
+	const isCheckingProfile = profileLoading || authLoading
 
 	// Show profile creation modal if user doesn't have a profile
 	// Only show if we're certain the profile doesn't exist (hasProfile === false)

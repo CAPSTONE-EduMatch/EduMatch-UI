@@ -23,16 +23,10 @@ export function AuthWrapper({
 		isLoading: authLoading,
 	} = useAuthCheck()
 
-	// Show loading state while checking authentication
+	// Don't show loading here - let Dashboard handle it to avoid double loading screens
+	// Just return null or children while loading to prevent flash
 	if (authLoading) {
-		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">Loading...</p>
-				</div>
-			</div>
-		)
+		return null
 	}
 
 	// Show authentication modal if user is not authenticated

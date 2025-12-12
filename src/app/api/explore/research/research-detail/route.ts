@@ -233,11 +233,8 @@ export async function GET(request: NextRequest) {
 
 			// Lab Information
 			labType: jobData?.lab_type || "",
-			labDirector: jobData?.lab_director || "",
 			labCapacity: jobData?.lab_capacity || 0,
 			labFacilities: jobData?.lab_facilities || "",
-			labWebsite: jobData?.lab_website || "",
-			labContactEmail: jobData?.lab_contact_email || "",
 			recommendations: jobData?.recommendations || "",
 			applicationDocuments: jobData?.application_documents || "",
 

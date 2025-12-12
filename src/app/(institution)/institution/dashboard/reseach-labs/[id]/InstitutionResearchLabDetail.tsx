@@ -290,75 +290,101 @@ const InstitutionResearchLabDetail = () => {
 
 	const menuItems = [
 		{ id: 'job-description', label: 'Job Description' },
-		{ id: 'requirements', label: 'Requirements' },
-		{ id: 'offer', label: 'Offer Information' },
-		{ id: 'lab-info', label: 'Lab Information' },
+		{ id: 'offer-information', label: 'Offer Information' },
+		{ id: 'job-requirements', label: 'Job Requirements' },
 	]
 
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'job-description':
 				return (
-					<div className="space-y-6">
-						{currentResearchLab?.description && (
-							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Description:
-								</h3>
+					<div className="space-y-4">
+						<ol className="space-y-4">
+							{currentResearchLab?.researchFields &&
+								(currentResearchLab.researchFields.length > 0 ||
+									typeof currentResearchLab.researchFields === 'string') && (
+									<li className="text-base">
+										<span className="font-bold text-gray-900">
+											Research Fields:
+										</span>
+										<div
+											className="mt-2 prose prose-content max-w-none"
+											dangerouslySetInnerHTML={{
+												__html: Array.isArray(currentResearchLab.researchFields)
+													? currentResearchLab.researchFields.join(', ')
+													: currentResearchLab.researchFields,
+											}}
+										/>
+									</li>
+								)}
+							<li className="text-base">
+								<span className="font-bold text-gray-900">Start Date:</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.startDate || 'Not specified'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">
+									Application Deadline:
+								</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.applicationDeadline || 'Not specified'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">Country:</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.country || 'Not specified'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">Contract Type:</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.contractType || 'Not specified'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">Attendance:</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.attendance || 'Not specified'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">Job Type:</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.jobType || 'Researcher'}
+								</span>
+							</li>
+							<li className="text-base">
+								<span className="font-bold text-gray-900">
+									Detail Description:
+								</span>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="mt-2 text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
-										__html: currentResearchLab.description,
+										__html:
+											currentResearchLab?.description ||
+											currentResearchLab?.mainResponsibility ||
+											'No description available',
 									}}
 								/>
-							</div>
-						)}
-
-						{currentResearchLab?.researchFocus && (
-							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Research Focus:
-								</h3>
-								<div
-									className="text-gray-700 prose max-w-none"
-									dangerouslySetInnerHTML={{
-										__html: currentResearchLab.researchFocus,
-									}}
-								/>
-							</div>
-						)}
-
-						{currentResearchLab?.researchFields &&
-							currentResearchLab.researchFields.length > 0 && (
-								<div>
-									<h3 className="text-xl font-bold text-gray-900 mb-4">
-										Research Fields:
-									</h3>
-									<div className="flex flex-wrap gap-2">
-										{currentResearchLab.researchFields.map((field: string) => (
-											<span
-												key={field}
-												className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-sm"
-											>
-												{field}
-											</span>
-										))}
-									</div>
-								</div>
-							)}
+							</li>
+						</ol>
 					</div>
 				)
 
-			case 'requirements':
+			case 'job-requirements':
 				return (
 					<div className="space-y-6">
 						{currentResearchLab?.mainResponsibility && (
 							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Main Responsibility:
-								</h3>
+								<p className="text-base mb-4">
+									<span className="font-bold text-gray-900">
+										Main Responsibilities:
+									</span>
+								</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentResearchLab.mainResponsibility,
 									}}
@@ -368,11 +394,11 @@ const InstitutionResearchLabDetail = () => {
 
 						{currentResearchLab?.qualificationRequirement && (
 							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
+								<p className="font-bold text-gray-900 mb-3">
 									Qualification Requirements:
-								</h3>
+								</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentResearchLab.qualificationRequirement,
 									}}
@@ -382,11 +408,11 @@ const InstitutionResearchLabDetail = () => {
 
 						{currentResearchLab?.experienceRequirement && (
 							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
+								<p className="font-bold text-gray-900 mb-3">
 									Experience Requirements:
-								</h3>
+								</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentResearchLab.experienceRequirement,
 									}}
@@ -394,135 +420,86 @@ const InstitutionResearchLabDetail = () => {
 							</div>
 						)}
 
-						{currentResearchLab?.requiredDocuments &&
-							currentResearchLab.requiredDocuments.length > 0 && (
-								<div>
-									<h3 className="text-xl font-bold text-gray-900 mb-4">
-										Required Documents:
-									</h3>
-									<ul className="list-disc pl-5 space-y-2 text-gray-700">
-										{currentResearchLab.requiredDocuments.map((doc: any) => (
-											<li key={doc.id}>
-												<span className="font-semibold">{doc.name}</span>
-												{doc.description && <span>: {doc.description}</span>}
-											</li>
-										))}
-									</ul>
-								</div>
-							)}
-					</div>
-				)
-
-			case 'offer':
-				return (
-					<div className="space-y-6">
-						{currentResearchLab?.salaryDescription && (
+						{currentResearchLab?.assessmentCriteria && (
 							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Salary Description:
-								</h3>
+								<p className="font-bold text-gray-900 mb-3">
+									Assessment Criteria:
+								</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
-										__html: currentResearchLab.salaryDescription,
+										__html: currentResearchLab.assessmentCriteria,
 									}}
 								/>
 							</div>
 						)}
 
+						{currentResearchLab?.otherRequirement && (
+							<div>
+								<p className="text-base">
+									<span className="font-bold text-gray-900">
+										Other Requirements:
+									</span>
+								</p>
+								<div
+									className="mt-2 text-gray-700 whitespace-pre-line prose prose-content max-w-none"
+									dangerouslySetInnerHTML={{
+										__html: currentResearchLab.otherRequirement,
+									}}
+								/>
+							</div>
+						)}
+
+						{currentResearchLab?.technicalSkills && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									Technical Skills:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{currentResearchLab.technicalSkills}
+								</div>
+							</div>
+						)}
+
+						{currentResearchLab?.academicBackground && (
+							<div>
+								<p className="font-bold text-gray-900 mb-3">
+									Academic Background:
+								</p>
+								<div className="text-gray-700 whitespace-pre-line">
+									{currentResearchLab.academicBackground}
+								</div>
+							</div>
+						)}
+					</div>
+				)
+
+			case 'offer-information':
+				return (
+					<div className="space-y-6">
+						<div>
+							<p className="text-base mb-2">
+								<span className="font-bold text-gray-900">Salary:</span>{' '}
+								<span className="text-gray-700">
+									{currentResearchLab?.salary || 'N/A'}
+								</span>
+							</p>
+							{currentResearchLab?.salaryDescription && (
+								<p className="text-sm text-gray-600">
+									{currentResearchLab.salaryDescription}
+								</p>
+							)}
+						</div>
+
 						{currentResearchLab?.benefit && (
 							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Benefits:
-								</h3>
+								<p className="font-bold text-gray-900 mb-3">Benefits:</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 whitespace-pre-line prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentResearchLab.benefit,
 									}}
 								/>
-							</div>
-						)}
-
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<p className="font-bold text-gray-900">Contract Type:</p>
-								<p className="text-gray-700">
-									{currentResearchLab?.contractType || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Attendance:</p>
-								<p className="text-gray-700">
-									{currentResearchLab?.attendance || 'N/A'}
-								</p>
-							</div>
-						</div>
-					</div>
-				)
-
-			case 'lab-info':
-				return (
-					<div className="space-y-6">
-						{currentResearchLab?.labFacilities && (
-							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Lab Facilities:
-								</h3>
-								<div
-									className="text-gray-700 prose max-w-none"
-									dangerouslySetInnerHTML={{
-										__html: currentResearchLab.labFacilities,
-									}}
-								/>
-							</div>
-						)}
-
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<p className="font-bold text-gray-900">Lab Type:</p>
-								<p className="text-gray-700">
-									{currentResearchLab?.labType || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Lab Director:</p>
-								<p className="text-gray-700">
-									{currentResearchLab?.labDirector || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Lab Capacity:</p>
-								<p className="text-gray-700">
-									{currentResearchLab?.labCapacity || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Lab Website:</p>
-								{currentResearchLab?.labWebsite ? (
-									<a
-										href={currentResearchLab.labWebsite}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="text-[#126E64] hover:underline"
-									>
-										{currentResearchLab.labWebsite}
-									</a>
-								) : (
-									<p className="text-gray-700">N/A</p>
-								)}
-							</div>
-						</div>
-
-						{currentResearchLab?.labContactEmail && (
-							<div>
-								<p className="font-bold text-gray-900">Contact Email:</p>
-								<a
-									href={`mailto:${currentResearchLab.labContactEmail}`}
-									className="text-[#126E64] hover:underline"
-								>
-									{currentResearchLab.labContactEmail}
-								</a>
 							</div>
 						)}
 					</div>

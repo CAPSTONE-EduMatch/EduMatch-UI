@@ -190,7 +190,10 @@ const SignIn: React.FC = () => {
 				const session = await authClient.getSession()
 
 				if (session?.data?.user) {
-					// User is already authenticated, check their profile
+					// User is already authenticated (e.g., returning from Google OAuth)
+					// Set post-login flag to ensure loading state is shown during redirect
+					localStorage.setItem('postLoginInit', 'true')
+
 					// Use a longer delay for Google OAuth to ensure session is fully established
 					await new Promise((resolve) => setTimeout(resolve, 800))
 					await checkProfileAndRedirect()
@@ -347,6 +350,9 @@ const SignIn: React.FC = () => {
 
 			// If successful signin, handle redirect
 			if (res?.data && !res?.error) {
+				// Set post-login initialization flag to keep loading state active
+				localStorage.setItem('postLoginInit', 'true')
+
 				// Set redirecting state immediately
 				setIsRedirecting(true)
 
@@ -740,6 +746,9 @@ const SignIn: React.FC = () => {
 				console.error('OTP verification error:', result.error)
 				setOTPError(result.error.message || t('errors.otp_failed'))
 			} else {
+				// Set post-login initialization flag to keep loading state active
+				localStorage.setItem('postLoginInit', 'true')
+
 				// Success - close modal and check profile
 				handleCloseOTPModal()
 				// After successful verification, navigate immediately and check profile
@@ -836,17 +845,6 @@ const SignIn: React.FC = () => {
 
 	return (
 		<div className="relative">
-			{/* Loading Overlay - Only show during sign-in, not during redirect */}
-			{isLoading && !isRedirecting && (
-				<div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
-					<div className="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center gap-4 min-w-[280px]">
-						<Loader2 className="w-8 h-8 animate-spin text-[#126E64]" />
-						<p className="text-gray-700 font-medium">
-							{t('buttons.submitting')}...
-						</p>
-					</div>
-				</div>
-			)}
 			{/* <AuthRedirect redirectTo="/dashboard"> */}
 			<AuthLayout imageSrc={LEFT_IMAGE}>
 				<motion.div
@@ -1008,7 +1006,7 @@ const SignIn: React.FC = () => {
 								whileTap={!isLoading ? { scale: 0.98 } : {}}
 							>
 								{isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-								{isLoading ? t('buttons.submitting') : t('buttons.submit')}
+								{t('buttons.submit')}
 							</motion.button>
 						</motion.div>
 

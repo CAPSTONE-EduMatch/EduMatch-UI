@@ -14,6 +14,9 @@ import {
 } from '@/components/ui'
 import { getCountriesWithSvgFlags, Country } from '@/data/countries'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui'
+import { Crown, CreditCard } from 'lucide-react'
 
 interface CreateProgramPageProps {
 	onBack?: () => void
@@ -33,6 +36,14 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const { subdisciplines = [] } = useDisciplinesContext()
+
+	// Check subscription status
+	const { subscriptions, loading: subscriptionLoading } = useSubscription()
+	const hasActiveInstitutionSubscription = subscriptions.some(
+		(sub) =>
+			sub.status === 'active' &&
+			(sub.plan === 'institution_monthly' || sub.plan === 'institution_yearly')
+	)
 
 	// Modal states
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
@@ -462,6 +473,19 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 	}
 
 	const handleSubmit = async (status: 'DRAFT' | 'SUBMITTED') => {
+		// Check subscription before submitting (only for new posts, not drafts)
+		if (
+			!isEditMode &&
+			status === 'SUBMITTED' &&
+			!hasActiveInstitutionSubscription
+		) {
+			setErrorMessage(
+				'You need an active subscription to publish posts. Please upgrade your plan to continue.'
+			)
+			setShowErrorModal(true)
+			return
+		}
+
 		setIsSubmitting(true)
 		try {
 			// Convert dates from dd/mm/yyyy to yyyy-mm-dd format
@@ -558,6 +582,35 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 					</Button>
 				)}
 			</div>
+
+			{/* Subscription Warning */}
+			{!subscriptionLoading &&
+				!hasActiveInstitutionSubscription &&
+				!isEditMode && (
+					<Alert className="border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+						<Crown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+						<AlertTitle className="text-amber-900 dark:text-amber-100 font-semibold mb-2">
+							Subscription Required to Publish Posts
+						</AlertTitle>
+						<AlertDescription className="text-amber-800 dark:text-amber-200 space-y-3">
+							<p>
+								To publish and share your programs with applicants, you need an
+								active institution subscription. You can still save drafts
+								without a subscription.
+							</p>
+							<div className="flex items-center gap-3 pt-2">
+								<Button
+									onClick={() => router.push('/institution/dashboard/payment')}
+									variant="primary"
+									size="sm"
+									className="bg-amber-600 hover:bg-amber-700 text-white"
+								>
+									Upgrade Now
+								</Button>
+							</div>
+						</AlertDescription>
+					</Alert>
+				)}
 
 			{/* Overview Section */}
 			<div className="border bg-white border-gray-200 rounded-xl p-6 space-y-6">
@@ -1228,13 +1281,16 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 				>
 					{isSubmitting ? 'Processing...' : 'Save as Draft'}
 				</Button>
-				<Button
-					onClick={() => handleSubmit('SUBMITTED')}
-					variant="primary"
-					disabled={isSubmitting}
-				>
-					{isSubmitting ? 'Processing...' : 'Submit'}
-				</Button>
+				{/* Only show Submit button if user has active subscription or is editing */}
+				{(hasActiveInstitutionSubscription || isEditMode) && (
+					<Button
+						onClick={() => handleSubmit('SUBMITTED')}
+						variant="primary"
+						disabled={isSubmitting}
+					>
+						{isSubmitting ? 'Processing...' : 'Submit'}
+					</Button>
+				)}
 			</div>
 
 			{/* Success Modal */}

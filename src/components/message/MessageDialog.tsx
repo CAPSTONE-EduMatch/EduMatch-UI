@@ -15,6 +15,7 @@ import {
 	Lock,
 	Building2,
 	MapPin,
+	Loader2,
 } from 'lucide-react'
 import { useAppSyncMessaging } from '@/hooks/messaging/useAppSyncMessaging'
 import { FileUpload } from './FileUpload'
@@ -1202,6 +1203,41 @@ export function MessageDialog({
 		)
 	}
 
+	// Check if we're still loading initial data
+	// Show loading screen if:
+	// 1. Threads are still loading, OR
+	// 2. Users haven't loaded yet and we have threads that need user data, OR
+	// 3. Any thread still shows "Loading..." as the name
+	// Only show loading screen when NOT in a specific thread (threadId) to allow thread content to show
+	const hasThreadsWithLoadingNames = formattedThreads.some(
+		(t) => t.title === 'Loading...' || t.title === 'User'
+	)
+	const isInitialLoading =
+		!threadId && // Don't show loading screen when viewing a specific thread
+		(threadsLoading ||
+			(user?.id &&
+				!usersLoaded &&
+				appSyncThreads.length > 0 &&
+				hasThreadsWithLoadingNames) ||
+			(user?.id && threadsLoading && appSyncThreads.length === 0))
+
+	// Show loading screen during initial load
+	if (isInitialLoading) {
+		return (
+			<div className="flex h-full bg-white items-center justify-center">
+				<div className="text-center">
+					<Loader2 className="w-8 h-8 text-[#126E64] animate-spin mx-auto mb-4" />
+					<p className="text-gray-600 text-lg font-medium">
+						Loading messages...
+					</p>
+					<p className="text-gray-400 text-sm mt-2">
+						Please wait while we load your conversations
+					</p>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="flex h-full bg-white">
 			{/* Sidebar */}
@@ -1348,7 +1384,7 @@ export function MessageDialog({
 					/* Loading State - only show when not already in a thread and not transitioning */
 					<div className="flex-1 flex items-center justify-center">
 						<div className="text-center">
-							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+							<Loader2 className="w-8 h-8 text-[#126E64] animate-spin mx-auto mb-4" />
 							<p className="text-gray-600">
 								{isLoadingThread
 									? 'Loading conversation...'
@@ -1634,7 +1670,7 @@ export function MessageDialog({
 								// Loading state - disable while checking subscription
 								<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
 									<div className="flex items-center gap-3">
-										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+										<Loader2 className="w-4 h-4 text-[#126E64] animate-spin" />
 										<p className="text-sm text-gray-600">
 											Checking subscription...
 										</p>

@@ -298,69 +298,90 @@ const InstitutionScholarshipDetail = () => {
 	const menuItems = [
 		{ id: 'detail', label: 'Detail' },
 		{ id: 'eligibility', label: 'Eligibility' },
-		{ id: 'requirements', label: 'Requirements' },
+		{ id: 'other', label: 'Other' },
 	]
 
 	const renderTabContent = () => {
 		switch (activeTab) {
 			case 'detail':
 				return (
-					<div className="space-y-6">
-						{currentScholarship?.description && (
-							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Description:
-								</h3>
-								<div
-									className="text-gray-700 prose max-w-none"
-									dangerouslySetInnerHTML={{
-										__html: currentScholarship.description,
-									}}
-								/>
-							</div>
-						)}
+					<div className="space-y-4">
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Description:
+							</h3>
+							<p
+								className="text-gray-700 mb-6 prose prose-content"
+								dangerouslySetInnerHTML={{
+									__html:
+										currentScholarship?.description ||
+										'No description available',
+								}}
+							/>
+						</div>
 
-						{currentScholarship?.scholarshipCoverage && (
-							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Scholarship Coverage:
-								</h3>
-								<div
-									className="text-gray-700 prose max-w-none"
-									dangerouslySetInnerHTML={{
-										__html: currentScholarship.scholarshipCoverage,
-									}}
-								/>
-							</div>
-						)}
-
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<p className="font-bold text-gray-900">Amount:</p>
-								<p className="text-gray-700">
-									{currentScholarship?.amount || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Type:</p>
-								<p className="text-gray-700">
-									{currentScholarship?.type || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Number Available:</p>
-								<p className="text-gray-700">
-									{currentScholarship?.number || 'N/A'}
-								</p>
-							</div>
-							<div>
-								<p className="font-bold text-gray-900">Days Left:</p>
-								<p className="text-gray-700">
-									{currentScholarship?.daysLeft !== undefined
-										? `${currentScholarship.daysLeft} days`
-										: 'N/A'}
-								</p>
-							</div>
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">Details:</h3>
+							<ol className="space-y-4">
+								<li className="text-base">
+									<span className="font-bold text-gray-900">Amount:</span>{' '}
+									<span
+										className="text-gray-700 prose prose-content"
+										dangerouslySetInnerHTML={{
+											__html: currentScholarship?.amount || 'Not available',
+										}}
+									/>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">Type:</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.type || 'Not available'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">Coverage:</span>{' '}
+									<span
+										className="text-gray-700 prose prose-content"
+										dangerouslySetInnerHTML={{
+											__html:
+												currentScholarship?.scholarshipCoverage ||
+												'Not available',
+										}}
+									/>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										Essay Required:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.essayRequired || 'Not available'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										Number Available:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.number || 'Not available'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">Days Left:</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.daysLeft !== undefined
+											? `${currentScholarship.daysLeft} days`
+											: 'Not available'}
+									</span>
+								</li>
+								<li className="text-base">
+									<span className="font-bold text-gray-900">
+										Match Percentage:
+									</span>{' '}
+									<span className="text-gray-700">
+										{currentScholarship?.match || 'Not available'}
+									</span>
+								</li>
+							</ol>
 						</div>
 					</div>
 				)
@@ -368,67 +389,89 @@ const InstitutionScholarshipDetail = () => {
 			case 'eligibility':
 				return (
 					<div className="space-y-6">
-						{currentScholarship?.eligibility && (
-							<div>
-								<h3 className="text-xl font-bold text-gray-900 mb-4">
-									Eligibility Requirements:
-								</h3>
-								<div
-									className="text-gray-700 prose max-w-none"
-									dangerouslySetInnerHTML={{
-										__html: currentScholarship.eligibility,
-									}}
-								/>
-							</div>
-						)}
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Eligibility Requirements:
+							</h3>
+							<p className="text-gray-700 mb-6">
+								{currentScholarship?.eligibility ||
+									'No eligibility requirements specified'}
+							</p>
+						</div>
 
 						{currentScholarship?.subdisciplines &&
 							currentScholarship.subdisciplines.length > 0 && (
 								<div>
-									<p className="font-bold text-gray-900 mb-2">
+									<p className="font-bold text-gray-900 mb-3">
 										Subdisciplines:
 									</p>
-									<div className="flex flex-wrap gap-2">
-										{currentScholarship.subdisciplines.map((sub: any) => (
-											<span
-												key={sub.id}
-												className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-sm"
-											>
-												{sub.name}
-											</span>
-										))}
-									</div>
+									<ul className="list-disc pl-5 space-y-2 text-gray-700">
+										{currentScholarship.subdisciplines.map(
+											(subdiscipline: any) => (
+												<li key={subdiscipline.id}>{subdiscipline.name}</li>
+											)
+										)}
+									</ul>
 								</div>
 							)}
-					</div>
-				)
 
-			case 'requirements':
-				return (
-					<div className="space-y-6">
 						{currentScholarship?.requiredDocuments &&
 							currentScholarship.requiredDocuments.length > 0 && (
 								<div>
-									<h3 className="text-xl font-bold text-gray-900 mb-4">
+									<p className="font-bold text-gray-900 mb-3">
 										Required Documents:
-									</h3>
+									</p>
 									<ul className="list-disc pl-5 space-y-2 text-gray-700">
 										{currentScholarship.requiredDocuments.map((doc: any) => (
 											<li key={doc.id}>
-												<span className="font-semibold">{doc.name}</span>
-												{doc.description && <span>: {doc.description}</span>}
+												<strong>{doc.name}</strong>
+												{doc.description && ` - ${doc.description}`}
 											</li>
 										))}
 									</ul>
 								</div>
 							)}
+					</div>
+				)
 
-						<div>
-							<p className="font-bold text-gray-900 mb-2">Essay Required:</p>
-							<p className="text-gray-700">
-								{currentScholarship?.essayRequired || 'No'}
-							</p>
-						</div>
+			case 'other':
+				return (
+					<div className="space-y-6">
+						{currentScholarship?.institution && (
+							<div>
+								<h3 className="text-xl font-bold text-gray-900 mb-4">
+									Institution:
+								</h3>
+								<div className="space-y-2">
+									<p className="text-gray-700">
+										<strong>Name:</strong> {currentScholarship.institution.name}
+									</p>
+									{currentScholarship.institution.abbreviation && (
+										<p className="text-gray-700">
+											<strong>Abbreviation:</strong>{' '}
+											{currentScholarship.institution.abbreviation}
+										</p>
+									)}
+									<p className="text-gray-700">
+										<strong>Country:</strong>{' '}
+										{currentScholarship.institution.country}
+									</p>
+									{currentScholarship.institution.website && (
+										<p className="text-gray-700">
+											<strong>Website:</strong>{' '}
+											<a
+												href={currentScholarship.institution.website}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-blue-600 hover:underline"
+											>
+												{currentScholarship.institution.website}
+											</a>
+										</p>
+									)}
+								</div>
+							</div>
+						)}
 					</div>
 				)
 

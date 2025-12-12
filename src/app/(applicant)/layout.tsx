@@ -1,5 +1,6 @@
 import { ConditionalLayout } from '@/components/layout/conditional-layout'
 import { SubscriptionProgressProvider } from '@/contexts/SubscriptionProgressContext'
+import { ApplicantProfileProvider } from '@/contexts/ApplicantProfileContext'
 
 export default function ApplicantLayout({
 	children,
@@ -9,7 +10,9 @@ export default function ApplicantLayout({
 	return (
 		<>
 			<ConditionalLayout>
-				<SubscriptionProgressProvider>{children}</SubscriptionProgressProvider>
+				<SubscriptionProgressProvider>
+					<ApplicantProfileProvider>{children}</ApplicantProfileProvider>
+				</SubscriptionProgressProvider>
 			</ConditionalLayout>
 		</>
 	)

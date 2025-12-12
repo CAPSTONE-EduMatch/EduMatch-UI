@@ -421,7 +421,7 @@ const InstitutionProgramDetail = () => {
 							<div>
 								<p className="font-bold text-gray-900 mb-3">Courses include:</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.program.courseInclude,
 									}}
@@ -533,7 +533,7 @@ const InstitutionProgramDetail = () => {
 							<div>
 								<p className="font-bold text-gray-900 mb-2">Fee description:</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.program.feeDescription,
 									}}
@@ -575,13 +575,62 @@ const InstitutionProgramDetail = () => {
 									Other Information:
 								</h3>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.otherInfo,
 									}}
 								/>
 							</div>
 						)}
+
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Contact Information:
+							</h3>
+							{currentProgram?.institution && (
+								<div className="space-y-3 text-gray-700">
+									{currentProgram.institution.email && (
+										<p>
+											<span className="font-semibold">Email:</span>{' '}
+											<a
+												href={`mailto:${currentProgram.institution.email}`}
+												className="text-[#126E64] hover:underline"
+											>
+												{currentProgram.institution.email}
+											</a>
+										</p>
+									)}
+									{currentProgram.institution.hotline && (
+										<p>
+											<span className="font-semibold">Hotline:</span>{' '}
+											{currentProgram.institution.hotlineCode && (
+												<span>{currentProgram.institution.hotlineCode} </span>
+											)}
+											{currentProgram.institution.hotline}
+										</p>
+									)}
+									{currentProgram.institution.website && (
+										<p>
+											<span className="font-semibold">Website:</span>{' '}
+											<a
+												href={currentProgram.institution.website}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-[#126E64] hover:underline"
+											>
+												{currentProgram.institution.website}
+											</a>
+										</p>
+									)}
+									{currentProgram.institution.address && (
+										<p>
+											<span className="font-semibold">Address:</span>{' '}
+											{currentProgram.institution.address}
+										</p>
+									)}
+								</div>
+							)}
+						</div>
 					</div>
 				)
 

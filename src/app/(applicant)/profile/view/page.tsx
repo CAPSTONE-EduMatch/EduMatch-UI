@@ -4,13 +4,13 @@ import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
 import { Button, Card, CardContent } from '@/components/ui'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
-import { ApiService, cacheUtils } from '@/services/api/axios-config'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 import { motion } from 'framer-motion'
 import { User, Loader2 } from 'lucide-react'
+import { useApplicantProfileContext } from '@/contexts/ApplicantProfileContext'
 
 // Import applicant layout and section components
 import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
@@ -147,59 +147,23 @@ export default function ProfileView() {
 	const t = useTranslations('profile_view')
 	const searchParams = useSearchParams()
 	const router = useRouter()
-	const [profile, setProfile] = useState<ProfileData | null>(null)
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
 	const [subdisciplines, setSubdisciplines] = useState<
 		Array<{ value: string; label: string; discipline: string }>
 	>([])
 
 	// Use the authentication check hook
-	const { isAuthenticated, user } = useAuthCheck()
-	const previousUserIdRef = useRef<string | undefined>(undefined)
+	const { isLoading: authLoading } = useAuthCheck()
 
-	// Load full profile data when authenticated
-	useEffect(() => {
-		const loadFullProfile = async () => {
-			// Clear profile when user logs out
-			if (!isAuthenticated || !user) {
-				setProfile(null)
-				setLoading(false)
-				setError(null)
-				previousUserIdRef.current = undefined
-				return
-			}
+	// Use shared profile context instead of fetching separately
+	const {
+		profile,
+		isLoading: profileLoading,
+		error: profileError,
+		refreshProfile,
+	} = useApplicantProfileContext()
 
-			// Clear profile if user ID changed (different user logged in)
-			if (previousUserIdRef.current && previousUserIdRef.current !== user.id) {
-				setProfile(null)
-			}
-			previousUserIdRef.current = user.id
-
-			setLoading(true)
-			setError(null)
-
-			try {
-				console.log('🔍 Loading full profile data for applicant profile...')
-				const data = await ApiService.getProfile()
-				console.log('✅ Full profile data loaded:', data.profile)
-				setProfile(data.profile)
-			} catch (error: any) {
-				console.error('❌ Failed to load full profile:', error)
-				if (error?.response?.status === 404 || error?.status === 404) {
-					// Profile doesn't exist - ProfileWrapper will handle redirect
-					setProfile(null)
-					return
-				}
-				setError(t('errors.load_failed'))
-				setProfile(null) // Clear profile on error
-			} finally {
-				setLoading(false)
-			}
-		}
-
-		loadFullProfile()
-	}, [isAuthenticated, user?.id, t])
+	const loading = profileLoading
+	const error = profileError
 
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const { subdisciplines: contextSubdisciplines = [] } = useDisciplinesContext()
@@ -211,22 +175,7 @@ export default function ProfileView() {
 		}
 	}, [contextSubdisciplines])
 
-	const refreshProfile = async () => {
-		if (!isAuthenticated) return
-
-		setLoading(true)
-		setError(null)
-
-		try {
-			await cacheUtils.clearProfileCache(user?.id || '')
-			const data = await ApiService.getProfile()
-			setProfile(data.profile)
-		} catch (error: any) {
-			setError(t('errors.refresh_failed'))
-		} finally {
-			setLoading(false)
-		}
-	}
+	// refreshProfile is now provided by the context
 
 	// Redirect institutions to their dashboard immediately after profile loads
 	useEffect(() => {
@@ -235,8 +184,9 @@ export default function ProfileView() {
 		}
 	}, [profile, router])
 
-	// Show loading state
-	if (loading) {
+	// Show loading state if auth is loading OR profile is loading
+	// This prevents the flash of multiple loading screens
+	if (authLoading || loading) {
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-[#F5F7FB] via-white to-[#F5F7FB] flex items-center justify-center">
 				<motion.div
@@ -337,11 +287,85 @@ export default function ProfileView() {
 	// (router.replace will handle the redirect, but show loading during transition)
 	if (profile && profile.role !== 'applicant') {
 		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">{t('redirecting')}</p>
-				</div>
+			<div className="min-h-screen bg-gradient-to-br from-[#F5F7FB] via-white to-[#F5F7FB] flex items-center justify-center">
+				<motion.div
+					initial={{ opacity: 0, scale: 0.9 }}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{ duration: 0.3 }}
+					className="text-center"
+				>
+					{/* Logo/Icon with animation */}
+					<motion.div
+						initial={{ y: -20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.1, duration: 0.5 }}
+						className="mb-6 flex justify-center"
+					>
+						<div className="relative">
+							<div className="absolute inset-0 bg-[#126E64]/20 rounded-full blur-xl animate-pulse"></div>
+							<div className="relative bg-white rounded-full p-6 shadow-xl border-4 border-[#126E64]/10">
+								<User className="w-12 h-12 text-[#126E64]" />
+							</div>
+						</div>
+					</motion.div>
+
+					{/* Spinner */}
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ delay: 0.2, duration: 0.5 }}
+						className="mb-6 flex justify-center"
+					>
+						<Loader2 className="w-8 h-8 text-[#126E64] animate-spin" />
+					</motion.div>
+
+					{/* Text with animation */}
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.3, duration: 0.5 }}
+					>
+						<h2 className="text-2xl font-bold text-gray-900 mb-2">
+							Redirecting...
+						</h2>
+						<p className="text-gray-600 text-sm">
+							This page is for applicants only. Redirecting you to your
+							dashboard.
+						</p>
+					</motion.div>
+
+					{/* Progress bar */}
+					<motion.div
+						initial={{ width: 0 }}
+						animate={{ width: '100%' }}
+						transition={{
+							delay: 0.4,
+							duration: 1.5,
+							repeat: Infinity,
+							repeatType: 'reverse',
+						}}
+						className="mt-8 mx-auto max-w-xs h-1.5 bg-gray-200 rounded-full overflow-hidden"
+					>
+						<div
+							className="h-full bg-gradient-to-r from-[#126E64] via-[#0D504A] to-[#126E64] rounded-full"
+							style={{
+								backgroundSize: '200% 100%',
+								animation: 'shimmer 1.5s ease-in-out infinite',
+							}}
+						/>
+					</motion.div>
+
+					<style jsx>{`
+						@keyframes shimmer {
+							0% {
+								background-position: -200% 0;
+							}
+							100% {
+								background-position: 200% 0;
+							}
+						}
+					`}</style>
+				</motion.div>
 			</div>
 		)
 	}

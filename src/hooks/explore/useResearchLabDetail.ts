@@ -41,11 +41,8 @@ export interface ResearchLabDetail {
 
 	// Lab Information
 	labType: string;
-	labDirector: string;
 	labCapacity: number;
 	labFacilities: string;
-	labWebsite: string;
-	labContactEmail: string;
 	recommendations: string;
 	applicationDocuments: string;
 

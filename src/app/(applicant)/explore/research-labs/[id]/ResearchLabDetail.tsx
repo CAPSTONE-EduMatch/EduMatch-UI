@@ -1154,6 +1154,7 @@ const ResearchLabDetail = () => {
 		// Preserve current URL parameters to maintain filter state
 		const currentParams = new URLSearchParams(searchParams?.toString())
 		currentParams.delete('from') // Remove 'from' as it will be added back
+		currentParams.delete('applicationId') // Remove 'applicationId' as it's specific to the previous post
 		const paramsString = currentParams.toString()
 
 		// Navigate to research lab detail page

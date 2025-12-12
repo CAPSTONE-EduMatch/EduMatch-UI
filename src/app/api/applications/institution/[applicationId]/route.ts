@@ -158,8 +158,9 @@ export async function GET(
 
 			// Send notification to applicant about status change to PROGRESSING
 			try {
-				const { NotificationUtils } =
-					await import("@/services/messaging/sqs-handlers");
+				const { NotificationUtils } = await import(
+					"@/services/messaging/sqs-handlers"
+				);
 
 				if (application.applicant?.user) {
 					await NotificationUtils.sendApplicationStatusNotification(
@@ -764,8 +765,9 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } =
-				await import("@/services/messaging/sqs-handlers");
+			const { NotificationUtils } = await import(
+				"@/services/messaging/sqs-handlers"
+			);
 
 			if (application.applicant?.user) {
 				await NotificationUtils.sendApplicationStatusNotification(

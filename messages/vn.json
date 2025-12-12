@@ -2173,7 +2173,8 @@
 			"other": "Thông tin khác"
 		},
 		"faq": {
-			"title": "Câu hỏi thường gặp"
+			"title": "Câu hỏi thường gặp",
+			"no_faqs_available": "Không có câu hỏi thường gặp"
 		},
 		"divider": {
 			"icon_label": "Cần thêm trợ giúp?"

@@ -1977,6 +1977,10 @@ const ProgramDetail = () => {
 						alt={currentProgram?.institution?.name || 'University'}
 						fill
 						className="object-cover"
+						quality={100}
+						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
+						priority
+						unoptimized={false}
 						expiresIn={7200}
 						autoRefresh={true}
 						errorFallback={
@@ -1985,6 +1989,8 @@ const ProgramDetail = () => {
 								alt={currentProgram?.institution?.name || 'University'}
 								fill
 								className="object-cover"
+								quality={100}
+								sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
 								priority
 							/>
 						}
@@ -1995,6 +2001,8 @@ const ProgramDetail = () => {
 						alt={currentProgram?.institution?.name || 'University'}
 						fill
 						className="object-cover"
+						quality={100}
+						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
 						priority
 					/>
 				)}

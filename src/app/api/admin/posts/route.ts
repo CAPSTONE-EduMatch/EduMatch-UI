@@ -306,9 +306,8 @@ export async function PATCH(request: NextRequest) {
 			currentPost.institution?.user
 		) {
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const institutionUser = currentPost.institution.user;
 

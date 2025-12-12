@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui'
 import { Button } from '@/components/ui'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui'
+import { Avatar, AvatarFallback } from '@/components/ui'
+import { ProtectedAvatarImage } from '@/components/ui/ProtectedAvatarImage'
 import { Building2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ProgramCard } from '@/components/ui/cards/ProgramCard'
 import { ScholarshipCard } from '@/components/ui/cards/ScholarshipCard'
@@ -159,7 +160,12 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 								<div className="flex items-center gap-4">
 									<div className="relative">
 										<Avatar className="w-16 h-16">
-											<AvatarImage src={institution.logo} />
+											<ProtectedAvatarImage
+												src={institution.logo}
+												alt={institution.name || 'Institution logo'}
+												expiresIn={7200}
+												autoRefresh={true}
+											/>
 											<AvatarFallback className="bg-blue-500 text-white">
 												<Building2 className="w-8 h-8" />
 											</AvatarFallback>

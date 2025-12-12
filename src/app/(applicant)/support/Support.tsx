@@ -204,45 +204,59 @@ const Support = () => {
 
 	const renderTabContent = () => {
 		// Get translated FAQs for the active tab
-		const currentFaqs =
-			(tFaqs.raw(activeTab) as Array<{ question: string; answer: string }>) ||
-			[]
+		const faqsData = tFaqs.raw(activeTab)
+
+		// Ensure we have an array, even if translation is missing
+		const currentFaqs = Array.isArray(faqsData) ? faqsData : []
+
+		// If no FAQs are available, show a message
+		if (currentFaqs.length === 0) {
+			return (
+				<div className="text-center py-8 text-gray-500">
+					<p>{tFaq('no_faqs_available') || 'No FAQs available'}</p>
+				</div>
+			)
+		}
 
 		return (
 			<div className="space-y-4">
-				{currentFaqs.map((faq, index) => (
-					<div
-						key={index}
-						className="border border-gray-200 rounded-lg overflow-hidden"
-					>
-						<button
-							onClick={() => toggleFaq(index)}
-							className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+				{currentFaqs.map(
+					(faq: { question: string; answer: string }, index: number) => (
+						<div
+							key={index}
+							className="border border-gray-200 rounded-lg overflow-hidden"
 						>
-							<span className="text-gray-900 font-medium">{faq.question}</span>
-							{expandedFaqs[activeTab] === index ? (
-								<ChevronUp className="w-5 h-5 text-gray-500" />
-							) : (
-								<ChevronDown className="w-5 h-5 text-gray-500" />
-							)}
-						</button>
-						<AnimatePresence>
-							{expandedFaqs[activeTab] === index && (
-								<motion.div
-									initial={{ height: 0, opacity: 0 }}
-									animate={{ height: 'auto', opacity: 1 }}
-									exit={{ height: 0, opacity: 0 }}
-									transition={{ duration: 0.2 }}
-									className="overflow-hidden"
-								>
-									<div className="px-6 pb-4 text-gray-700 leading-relaxed bg-gray-50">
-										{faq.answer}
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</div>
-				))}
+							<button
+								onClick={() => toggleFaq(index)}
+								className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+							>
+								<span className="text-gray-900 font-medium">
+									{faq.question}
+								</span>
+								{expandedFaqs[activeTab] === index ? (
+									<ChevronUp className="w-5 h-5 text-gray-500" />
+								) : (
+									<ChevronDown className="w-5 h-5 text-gray-500" />
+								)}
+							</button>
+							<AnimatePresence>
+								{expandedFaqs[activeTab] === index && (
+									<motion.div
+										initial={{ height: 0, opacity: 0 }}
+										animate={{ height: 'auto', opacity: 1 }}
+										exit={{ height: 0, opacity: 0 }}
+										transition={{ duration: 0.2 }}
+										className="overflow-hidden"
+									>
+										<div className="px-6 pb-4 text-gray-700 leading-relaxed bg-gray-50">
+											{faq.answer}
+										</div>
+									</motion.div>
+								)}
+							</AnimatePresence>
+						</div>
+					)
+				)}
 			</div>
 		)
 	}

@@ -58,6 +58,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
 		closed: 0,
 		draft: 0,
 		submitted: 0,
+		progressing: 0,
 	})
 	const [paginationMeta, setPaginationMeta] = useState({
 		total: 0,

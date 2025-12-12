@@ -1117,7 +1117,8 @@
 		"breadcrumb": {
 			"home": "Home",
 			"explore": "Explore",
-			"scholarships": "Scholarships"
+			"scholarships": "Scholarships",
+			"detail": "Scholarship Detail"
 		},
 		"header": {
 			"institution_detail_button": "View Institution Detail",

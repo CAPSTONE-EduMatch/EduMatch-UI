@@ -44,9 +44,8 @@ export async function PUT(
 		}
 
 		// Check subscription eligibility - user must have active paid plan to edit
-		const { canApplyToOpportunity } = await import(
-			"@/services/authorization"
-		);
+		const { canApplyToOpportunity } =
+			await import("@/services/authorization");
 		const eligibility = await canApplyToOpportunity(applicant.applicant_id);
 
 		if (!eligibility.canApply) {

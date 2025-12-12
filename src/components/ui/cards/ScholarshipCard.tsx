@@ -170,7 +170,7 @@ export function ScholarshipCard({
 						</div>
 					)}
 					{/* Fallback that shows when image fails to load */}
-					{scholarship.logo && (
+					{scholarship.logo && scholarship.university && (
 						<div
 							className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center"
 							style={{ display: 'none' }}

@@ -715,24 +715,28 @@ const InstitutionProgramDetail = () => {
 						</p>
 
 						<div className="flex items-center gap-3 mb-4">
-							{currentProgram?.status === 'DRAFT' && (
-								<>
-									<Button
-										onClick={handleEditProgram}
-										variant="outline"
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										Edit Program
-									</Button>
-									<Button
-										onClick={() => setIsDeleteModalOpen(true)}
-										variant="outline"
-										className="text-red-600 border-red-600 hover:bg-red-50"
-									>
-										Delete
-									</Button>
-								</>
-							)}
+							{(currentProgram?.status?.toUpperCase() === 'DRAFT' ||
+								currentProgram?.status?.toUpperCase() === 'SUBMITTED') &&
+								currentProgram?.status?.toUpperCase() !== 'PROGRESSING' && (
+									<>
+										<Button
+											onClick={handleEditProgram}
+											variant="outline"
+											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										>
+											Edit Program
+										</Button>
+										{currentProgram?.status?.toUpperCase() === 'DRAFT' && (
+											<Button
+												onClick={() => setIsDeleteModalOpen(true)}
+												variant="outline"
+												className="text-red-600 border-red-600 hover:bg-red-50"
+											>
+												Delete
+											</Button>
+										)}
+									</>
+								)}
 							{currentProgram?.status?.toUpperCase() === 'PUBLISHED' && (
 								<Button
 									onClick={handleCloseProgram}

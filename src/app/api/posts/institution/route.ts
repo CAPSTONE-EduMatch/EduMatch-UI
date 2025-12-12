@@ -252,6 +252,9 @@ export async function GET(request: NextRequest) {
 			submitted: transformedPosts.filter(
 				(post) => post.status === "submitted"
 			).length,
+			progressing: transformedPosts.filter(
+				(post) => post.status === "progressing"
+			).length,
 			closed: transformedPosts.filter((post) => post.status === "closed")
 				.length,
 		};

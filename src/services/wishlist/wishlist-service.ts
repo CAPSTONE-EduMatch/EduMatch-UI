@@ -30,28 +30,14 @@ class WishlistService {
 		};
 
 		try {
-			console.log("🚀 Making wishlist request to:", url);
-			console.log("🔧 Request config:", {
-				method: config.method || "GET",
-				credentials: config.credentials,
-				headers: config.headers,
-			});
-
 			const response = await fetch(url, config);
-			console.log("📡 Response status:", response.status);
-			console.log(
-				"📡 Response headers:",
-				Object.fromEntries(response.headers.entries())
-			);
 
 			const data = await response.json();
 
 			if (!response.ok) {
-				console.error("❌ Wishlist API Error:", data);
 				throw new Error(data.error || "Request failed");
 			}
 
-			console.log("✅ Wishlist API Success:", data);
 			return data;
 		} catch (error) {
 			console.error(`Wishlist API Error (${endpoint}):`, error);

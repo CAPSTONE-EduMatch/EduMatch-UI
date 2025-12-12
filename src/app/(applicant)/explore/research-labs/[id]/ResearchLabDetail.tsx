@@ -1667,7 +1667,8 @@ const ResearchLabDetail = () => {
 								)}
 								{researchLab?.institution?.userId &&
 									currentPlan !== 'free' &&
-									hasApplied && (
+									lastFetchedPostId === researchLab?.id &&
+									applications.length > 0 && (
 										<Button
 											onClick={() => {
 												const contactUrl = `/messages?contact=${(researchLab.institution as any).userId}`
@@ -2342,6 +2343,12 @@ const ResearchLabDetail = () => {
 														setApplicationId(null)
 														setUploadedFiles([])
 														setSelectedDocuments([])
+														// Remove applicationId from URL to show apply section
+														const newUrl = new URL(window.location.href)
+														newUrl.searchParams.delete('applicationId')
+														router.replace(newUrl.pathname + newUrl.search, {
+															scroll: false,
+														})
 														// Scroll to the apply section
 														setTimeout(() => {
 															const applySection = document.getElementById(

@@ -2049,7 +2049,8 @@ const ProgramDetail = () => {
 							)}
 							{currentProgram?.institution?.userId &&
 								currentPlan !== 'free' &&
-								hasApplied && (
+								lastFetchedPostId === currentProgram?.id &&
+								applications.length > 0 && (
 									<Button
 										onClick={() => {
 											const contactUrl = `/messages?contact=${currentProgram.institution.userId}`
@@ -2382,6 +2383,12 @@ const ProgramDetail = () => {
 															setApplicationId(null)
 															setUploadedFiles([])
 															setSelectedDocuments([])
+															// Remove applicationId from URL to show apply section
+															const newUrl = new URL(window.location.href)
+															newUrl.searchParams.delete('applicationId')
+															router.replace(newUrl.pathname + newUrl.search, {
+																scroll: false,
+															})
 															// Scroll to the apply section
 															setTimeout(() => {
 																const applySection = document.getElementById(

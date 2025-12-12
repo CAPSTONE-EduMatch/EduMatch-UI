@@ -77,6 +77,7 @@ const AdminProgramDetail = () => {
 				setCurrentProgram(programData)
 
 				// Auto-update status to PROGRESSING when admin views a SUBMITTED post
+				// Only if not already PROGRESSING (to avoid re-triggering)
 				if (programData.status === 'SUBMITTED') {
 					// Use setTimeout to avoid blocking the initial render
 					setTimeout(async () => {
@@ -319,9 +320,9 @@ const AdminProgramDetail = () => {
 									4. Subdiscipline:
 								</span>{' '}
 								<span className="text-gray-700">
-									{currentProgram?.subdisciplines &&
-									currentProgram.subdisciplines.length > 0
-										? currentProgram.subdisciplines
+									{currentProgram?.subdiscipline &&
+									currentProgram.subdiscipline.length > 0
+										? currentProgram.subdiscipline
 												.map((s: any) => s.name || s.subdisciplineName)
 												.join(', ')
 										: 'N/A'}
@@ -366,9 +367,9 @@ const AdminProgramDetail = () => {
 							<p className="text-base mb-2">
 								<span className="font-bold text-gray-900">Subdiscipline:</span>{' '}
 								<span className="text-gray-700">
-									{currentProgram?.subdisciplines &&
-									currentProgram.subdisciplines.length > 0
-										? currentProgram.subdisciplines
+									{currentProgram?.subdiscipline &&
+									currentProgram.subdiscipline.length > 0
+										? currentProgram.subdiscipline
 												.map((s: any) => s.name || s.subdisciplineName)
 												.join(', ')
 										: 'N/A'}
@@ -380,7 +381,7 @@ const AdminProgramDetail = () => {
 							<div>
 								<p className="font-bold text-gray-900 mb-3">Courses include:</p>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.program.courseInclude,
 									}}
@@ -388,15 +389,15 @@ const AdminProgramDetail = () => {
 							</div>
 						)}
 
-						{currentProgram?.subdisciplines &&
-							currentProgram.subdisciplines.length > 0 && (
+						{currentProgram?.subdiscipline &&
+							currentProgram.subdiscipline.length > 0 && (
 								<div>
 									<p className="text-base">
 										<span className="font-bold text-gray-900">
 											Discipline area:
 										</span>{' '}
 										<span className="text-gray-700">
-											{currentProgram.subdisciplines
+											{currentProgram.subdiscipline
 												.map(
 													(s: any) =>
 														s.disciplineName || s.discipline?.name || 'N/A'
@@ -534,13 +535,62 @@ const AdminProgramDetail = () => {
 									Other Information:
 								</h3>
 								<div
-									className="text-gray-700 prose max-w-none"
+									className="text-gray-700 prose prose-content max-w-none"
 									dangerouslySetInnerHTML={{
 										__html: currentProgram.otherInfo,
 									}}
 								/>
 							</div>
 						)}
+
+						<div>
+							<h3 className="text-xl font-bold text-gray-900 mb-4">
+								Contact Information:
+							</h3>
+							{currentProgram?.institution && (
+								<div className="space-y-3 text-gray-700">
+									{currentProgram.institution.email && (
+										<p>
+											<span className="font-semibold">Email:</span>{' '}
+											<a
+												href={`mailto:${currentProgram.institution.email}`}
+												className="text-[#126E64] hover:underline"
+											>
+												{currentProgram.institution.email}
+											</a>
+										</p>
+									)}
+									{currentProgram.institution.hotline && (
+										<p>
+											<span className="font-semibold">Hotline:</span>{' '}
+											{currentProgram.institution.hotlineCode && (
+												<span>{currentProgram.institution.hotlineCode} </span>
+											)}
+											{currentProgram.institution.hotline}
+										</p>
+									)}
+									{currentProgram.institution.website && (
+										<p>
+											<span className="font-semibold">Website:</span>{' '}
+											<a
+												href={currentProgram.institution.website}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-[#126E64] hover:underline"
+											>
+												{currentProgram.institution.website}
+											</a>
+										</p>
+									)}
+									{currentProgram.institution.address && (
+										<p>
+											<span className="font-semibold">Address:</span>{' '}
+											{currentProgram.institution.address}
+										</p>
+									)}
+								</div>
+							)}
+						</div>
 					</div>
 				)
 
@@ -648,7 +698,6 @@ const AdminProgramDetail = () => {
 														'Success',
 														'Program approved and published successfully'
 													)
-													await fetchProgramDetail(params?.id as string)
 													router.push('/admin/posts')
 												} else {
 													showError(
@@ -677,11 +726,16 @@ const AdminProgramDetail = () => {
 									>
 										Reject
 									</Button>
+									<span
+										className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
+									>
+										{currentProgram?.status || 'PROGRESSING'}
+									</span>
 								</div>
 							)}
 
 							{currentProgram?.status === 'PUBLISHED' && (
-								<div className="flex gap-3 w-full">
+								<div className="flex items-center justify-center gap-3 w-full">
 									<Button
 										onClick={async () => {
 											try {
@@ -716,11 +770,16 @@ const AdminProgramDetail = () => {
 												setIsProcessing(false)
 											}
 										}}
-										className="flex-1 bg-[#6EB6FF] hover:bg-[#5aa3e6] text-black"
+										className="py-2.5 px-5 text-sm bg-[#6EB6FF] hover:bg-[#5aa3e6] text-black"
 										disabled={isProcessing}
 									>
 										{isProcessing ? 'Processing...' : 'Close'}
 									</Button>
+									<span
+										className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
+									>
+										{currentProgram?.status || 'PUBLISHED'}
+									</span>
 								</div>
 							)}
 
@@ -731,7 +790,7 @@ const AdminProgramDetail = () => {
 										content={
 											currentProgram?.status === 'REJECTED'
 												? 'Change status to Submitted - Post will be resubmitted for review'
-												: 'Change status to Progressing - Post will be under review again'
+												: 'Change status to Submitted - Post will be resubmitted for review'
 										}
 										maxWidth={250}
 									>
@@ -739,10 +798,7 @@ const AdminProgramDetail = () => {
 											onClick={async () => {
 												try {
 													setIsProcessing(true)
-													const newStatus =
-														currentProgram?.status === 'REJECTED'
-															? 'SUBMITTED'
-															: 'PROGRESSING'
+													const newStatus = 'SUBMITTED'
 													const response = await fetch(
 														`/api/admin/posts/${params?.id}`,
 														{
@@ -757,9 +813,8 @@ const AdminProgramDetail = () => {
 													if (response.ok && data.success) {
 														showSuccess(
 															'Success',
-															`Program status updated to ${newStatus}`
+															'Program status updated to Submitted'
 														)
-														await fetchProgramDetail(params?.id as string)
 														router.push('/admin/posts')
 													} else {
 														showError(
@@ -780,11 +835,7 @@ const AdminProgramDetail = () => {
 											style={{ backgroundColor: '#8B5CF6' }}
 											disabled={isProcessing}
 										>
-											{isProcessing
-												? 'Processing...'
-												: currentProgram?.status === 'REJECTED'
-													? 'Submitted'
-													: 'Progressing'}
+											{isProcessing ? 'Processing...' : 'Submitted'}
 										</Button>
 									</Tooltip>
 									<Tooltip
@@ -811,7 +862,6 @@ const AdminProgramDetail = () => {
 															'Success',
 															'Program published successfully'
 														)
-														await fetchProgramDetail(params?.id as string)
 														router.push('/admin/posts')
 													} else {
 														showError(
@@ -844,7 +894,9 @@ const AdminProgramDetail = () => {
 							)}
 
 							{currentProgram?.status !== 'REJECTED' &&
-								currentProgram?.status !== 'CLOSED' && (
+								currentProgram?.status !== 'CLOSED' &&
+								currentProgram?.status !== 'PUBLISHED' &&
+								currentProgram?.status !== 'PROGRESSING' && (
 									<div className="flex items-center gap-3 flex-wrap justify-center">
 										{currentProgram?.status === 'DRAFT' && (
 											<Button

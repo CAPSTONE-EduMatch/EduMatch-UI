@@ -67,14 +67,13 @@ export const ProtectedImage: React.FC<ProtectedImageProps> = ({
 		return (
 			<>
 				{placeholder || (
-					<div className="flex items-center justify-center bg-gray-100 animate-pulse">
-						<Image
-							{...imageProps}
-							src="/placeholder-image.png" // You can replace with your placeholder
-							alt={alt}
-							className="opacity-0"
-						/>
-					</div>
+					<div
+						className="flex items-center justify-center bg-gray-100 animate-pulse"
+						style={{
+							width: imageProps.width || '100%',
+							height: imageProps.height || '100%',
+						}}
+					/>
 				)}
 			</>
 		)
@@ -112,8 +111,10 @@ export const ProtectedImage: React.FC<ProtectedImageProps> = ({
 /**
  * Simple img tag version for cases where Next.js Image is not needed
  */
-interface ProtectedImgProps
-	extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
+interface ProtectedImgProps extends Omit<
+	React.ImgHTMLAttributes<HTMLImageElement>,
+	'src'
+> {
 	/**
 	 * The S3 URL or key of the image
 	 */

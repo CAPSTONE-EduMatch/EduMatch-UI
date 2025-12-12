@@ -1640,7 +1640,8 @@ const ScholarshipDetail = () => {
 								)}
 								{currentScholarship?.institution?.userId &&
 									currentPlan !== 'free' &&
-									hasApplied && (
+									lastFetchedPostId === currentScholarship?.id &&
+									applications.length > 0 && (
 										<Button
 											onClick={() => {
 												const contactUrl = `/messages?contact=${(currentScholarship.institution as any).userId}`
@@ -2391,6 +2392,12 @@ const ScholarshipDetail = () => {
 														setApplicationId(null)
 														setUploadedFiles([])
 														setSelectedDocuments([])
+														// Remove applicationId from URL to show apply section
+														const newUrl = new URL(window.location.href)
+														newUrl.searchParams.delete('applicationId')
+														router.replace(newUrl.pathname + newUrl.search, {
+															scroll: false,
+														})
 														// Scroll to the apply section
 														setTimeout(() => {
 															const applySection = document.getElementById(

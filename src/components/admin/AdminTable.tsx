@@ -65,57 +65,53 @@ export function AdminTable<T extends { id: string }>({
 		<div className="space-y-6">
 			<Card className="bg-white rounded-[24px] shadow-xl overflow-hidden border-0">
 				<CardContent className="p-0">
-					<div className="overflow-x-auto">
-						<div className="w-full min-w-full">
-							{/* Table Header */}
-							<div
-								className="bg-[#126E64] text-white px-8 py-5 text-center font-bold text-base grid gap-4"
-								style={{
-									gridTemplateColumns: columns
-										.map((col) => col.className || '1fr')
-										.join(' '),
-								}}
-							>
-								{columns.map((column, index) => (
-									<div key={index}>{column.header}</div>
-								))}
-							</div>
+					{/* Table Header */}
+					<div
+						className="bg-[#126E64] text-white px-8 py-5 text-center font-bold text-base grid gap-4"
+						style={{
+							gridTemplateColumns: columns
+								.map((col) => col.className || '1fr')
+								.join(' '),
+						}}
+					>
+						{columns.map((column, index) => (
+							<div key={index}>{column.header}</div>
+						))}
+					</div>
 
-							{/* Table Body */}
-							<div className="divide-y divide-gray-100">
-								{data.length === 0 ? (
-									<div className="text-center py-12 text-gray-500">
-										{emptyMessage}
-									</div>
-								) : (
-									data.map((item, index) => {
-										const isEven = index % 2 === 0
-										const rowBg = isEven ? 'bg-[#EAEDF3]' : 'bg-white'
-
-										return (
-											<motion.div
-												key={item.id}
-												initial={{ opacity: 0, y: 10 }}
-												animate={{ opacity: 1, y: 0 }}
-												transition={{ delay: index * 0.05 }}
-												className={`${rowBg} px-8 py-5 items-center grid gap-4`}
-												style={{
-													gridTemplateColumns: columns
-														.map((col) => col.className || '1fr')
-														.join(' '),
-												}}
-											>
-												{columns.map((column, colIndex) => (
-													<div key={colIndex} className="text-center">
-														{getCellContent(item, column)}
-													</div>
-												))}
-											</motion.div>
-										)
-									})
-								)}
+					{/* Table Body */}
+					<div className="divide-y divide-gray-100">
+						{data.length === 0 ? (
+							<div className="text-center py-12 text-gray-500">
+								{emptyMessage}
 							</div>
-						</div>
+						) : (
+							data.map((item, index) => {
+								const isEven = index % 2 === 0
+								const rowBg = isEven ? 'bg-[#EAEDF3]' : 'bg-white'
+
+								return (
+									<motion.div
+										key={item.id}
+										initial={{ opacity: 0, y: 10 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ delay: index * 0.05 }}
+										className={`${rowBg} px-8 py-5 items-center grid gap-4`}
+										style={{
+											gridTemplateColumns: columns
+												.map((col) => col.className || '1fr')
+												.join(' '),
+										}}
+									>
+										{columns.map((column, colIndex) => (
+											<div key={colIndex} className="text-center">
+												{getCellContent(item, column)}
+											</div>
+										))}
+									</motion.div>
+								)
+							})
+						)}
 					</div>
 				</CardContent>
 			</Card>

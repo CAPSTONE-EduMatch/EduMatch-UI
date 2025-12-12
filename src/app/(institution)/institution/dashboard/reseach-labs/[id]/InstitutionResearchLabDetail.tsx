@@ -586,24 +586,28 @@ const InstitutionResearchLabDetail = () => {
 						</p>
 
 						<div className="flex items-center gap-3 mb-4">
-							{currentResearchLab?.status === 'DRAFT' && (
-								<>
-									<Button
-										onClick={handleEditResearchLab}
-										variant="outline"
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										Edit Research Lab
-									</Button>
-									<Button
-										onClick={() => setIsDeleteModalOpen(true)}
-										variant="outline"
-										className="text-red-600 border-red-600 hover:bg-red-50"
-									>
-										Delete
-									</Button>
-								</>
-							)}
+							{(currentResearchLab?.status?.toUpperCase() === 'DRAFT' ||
+								currentResearchLab?.status?.toUpperCase() === 'SUBMITTED') &&
+								currentResearchLab?.status?.toUpperCase() !== 'PROGRESSING' && (
+									<>
+										<Button
+											onClick={handleEditResearchLab}
+											variant="outline"
+											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										>
+											Edit Research Lab
+										</Button>
+										{currentResearchLab?.status?.toUpperCase() === 'DRAFT' && (
+											<Button
+												onClick={() => setIsDeleteModalOpen(true)}
+												variant="outline"
+												className="text-red-600 border-red-600 hover:bg-red-50"
+											>
+												Delete
+											</Button>
+										)}
+									</>
+								)}
 							{currentResearchLab?.status?.toUpperCase() === 'PUBLISHED' && (
 								<Button
 									onClick={handleCloseResearchLab}

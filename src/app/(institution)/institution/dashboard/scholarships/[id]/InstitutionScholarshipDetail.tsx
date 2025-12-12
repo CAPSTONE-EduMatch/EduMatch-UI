@@ -556,24 +556,28 @@ const InstitutionScholarshipDetail = () => {
 						</p>
 
 						<div className="flex items-center gap-3 mb-4">
-							{currentScholarship?.status === 'DRAFT' && (
-								<>
-									<Button
-										onClick={handleEditScholarship}
-										variant="outline"
-										className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-									>
-										Edit Scholarship
-									</Button>
-									<Button
-										onClick={() => setIsDeleteModalOpen(true)}
-										variant="outline"
-										className="text-red-600 border-red-600 hover:bg-red-50"
-									>
-										Delete
-									</Button>
-								</>
-							)}
+							{(currentScholarship?.status?.toUpperCase() === 'DRAFT' ||
+								currentScholarship?.status?.toUpperCase() === 'SUBMITTED') &&
+								currentScholarship?.status?.toUpperCase() !== 'PROGRESSING' && (
+									<>
+										<Button
+											onClick={handleEditScholarship}
+											variant="outline"
+											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
+										>
+											Edit Scholarship
+										</Button>
+										{currentScholarship?.status?.toUpperCase() === 'DRAFT' && (
+											<Button
+												onClick={() => setIsDeleteModalOpen(true)}
+												variant="outline"
+												className="text-red-600 border-red-600 hover:bg-red-50"
+											>
+												Delete
+											</Button>
+										)}
+									</>
+								)}
 							{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' && (
 								<Button
 									onClick={handleCloseScholarship}

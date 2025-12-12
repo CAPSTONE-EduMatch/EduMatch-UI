@@ -128,6 +128,7 @@ export const PostsSearchAndFilter: React.FC<PostsSearchAndFilterProps> = ({
 								{ value: 'published', label: 'Published' },
 								{ value: 'draft', label: 'Draft' },
 								{ value: 'submitted', label: 'Submitted' },
+								{ value: 'progressing', label: 'Progressing' },
 								{ value: 'closed', label: 'Closed' },
 							]}
 							variant="default"

@@ -1,6 +1,7 @@
 'use client'
 
 import { useSubscription } from '@/hooks/subscription/useSubscription'
+import { useInstitutionPricing } from '@/hooks/pricing/useInstitutionPricing'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
@@ -21,9 +22,14 @@ export const InstitutionPaymentSection: React.FC<
 		cancelSubscription,
 		subscriptions,
 		currentPlan,
-		loading,
+		loading: subscriptionLoading,
 		isAuthenticated,
 	} = useSubscription()
+	const {
+		plan: institutionPlan,
+		loading: pricingLoading,
+		error: pricingError,
+	} = useInstitutionPricing()
 	const [upgrading, setUpgrading] = useState(false)
 	const [cancelling, setCancelling] = useState(false)
 	const [showCancelModal, setShowCancelModal] = useState(false)
@@ -31,7 +37,22 @@ export const InstitutionPaymentSection: React.FC<
 
 	const institutionPlanId =
 		billingCycle === 'yearly' ? 'institution_yearly' : 'institution_monthly'
-	const price = billingCycle === 'yearly' ? '99' : '12'
+
+	// Get price from database and convert from cents to dollars with 2 decimal places
+	const getPrice = () => {
+		if (!institutionPlan) return billingCycle === 'yearly' ? '99.00' : '12.00'
+
+		const priceInCents =
+			billingCycle === 'yearly'
+				? institutionPlan.year_price
+				: institutionPlan.month_price
+
+		if (!priceInCents) return billingCycle === 'yearly' ? '99.00' : '12.00'
+
+		return (priceInCents / 100).toFixed(2)
+	}
+
+	const price = getPrice()
 
 	// Check if user has any active institution subscription (monthly or yearly)
 	const hasActiveInstitutionSubscription = subscriptions.some(
@@ -43,39 +64,15 @@ export const InstitutionPaymentSection: React.FC<
 	// If user has any institution subscription, both cards should show "Current Plan"
 	const isCurrentPlan = hasActiveInstitutionSubscription
 
-	const features = [
-		{
-			description:
-				'Create and manage comprehensive institutional profiles with branding and details',
-		},
-		{
-			description:
-				'Post detailed opportunities with descriptions, eligibility criteria, and deadlines',
-		},
-		{
-			description:
-				'Create and manage comprehensive institutional profiles with branding and details',
-		},
-		{
-			description:
-				'Access intelligent matching algorithms to find the best candidates',
-		},
-		{
-			description:
-				'View detailed applicant profiles with matching scores and analytics',
-		},
-		{
-			description:
-				'Invite applicants for interviews and update selection results seamlessly',
-		},
-		{
-			description:
-				'Communicate with applicants via built-in chat and email systems',
-		},
-		{
-			description:
-				'Monitor engagement statistics, views, and applications through web dashboards',
-		},
+	const features = institutionPlan?.features || [
+		'Create and manage comprehensive institutional profiles with branding and details',
+		'Post detailed opportunities with descriptions, eligibility criteria, and deadlines',
+		'Create and manage comprehensive institutional profiles with branding and details',
+		'Access intelligent matching algorithms to find the best candidates',
+		'View detailed applicant profiles with matching scores and analytics',
+		'Invite applicants for interviews and update selection results seamlessly',
+		'Communicate with applicants via built-in chat and email systems',
+		'Monitor engagement statistics, views, and applications through web dashboards',
 	]
 
 	const handleStartPlan = async () => {
@@ -167,7 +164,7 @@ export const InstitutionPaymentSection: React.FC<
 		// Default upgrade text
 		return {
 			text: 'Start Institution Plan',
-			disabled: loading,
+			disabled: subscriptionLoading,
 			showCancelButton: false,
 		}
 	}
@@ -192,6 +189,37 @@ export const InstitutionPaymentSection: React.FC<
 						below.
 					</p>
 				</motion.div>
+
+				{/* Error Message */}
+				{pricingError && (
+					<motion.div
+						className="max-w-lg mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+					>
+						<div className="flex items-start gap-3">
+							<svg
+								className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0"
+								fill="none"
+								viewBox="0 0 24 24"
+								strokeWidth="1.5"
+								stroke="currentColor"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+								/>
+							</svg>
+							<div>
+								<h3 className="text-sm font-semibold text-red-800 mb-1">
+									Failed to load pricing
+								</h3>
+								<p className="text-sm text-red-700">{pricingError}</p>
+							</div>
+						</div>
+					</motion.div>
+				)}
 
 				{/* Billing Cycle Toggle */}
 				<motion.div
@@ -262,12 +290,21 @@ export const InstitutionPaymentSection: React.FC<
 								Institution Plan
 							</h3>
 							<div className="mb-4">
-								<span className="text-3xl lg:text-4xl font-bold text-black">
-									${price}
-								</span>
-								<span className="text-lg text-black ml-2">
-									/ {billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY'}
-								</span>
+								{pricingLoading ? (
+									<div className="flex items-baseline gap-2">
+										<div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+										<div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+									</div>
+								) : (
+									<>
+										<span className="text-3xl lg:text-4xl font-bold text-black">
+											${price}
+										</span>
+										<span className="text-lg text-black ml-2">
+											/ {billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY'}
+										</span>
+									</>
+								)}
 							</div>
 							<p className="text-[#A2A2A2] text-base">
 								All-in-one solution for institutions to post opportunities,
@@ -295,8 +332,8 @@ export const InstitutionPaymentSection: React.FC<
 											<div className="w-2 h-2 bg-black rounded-full"></div>
 										</div>
 										<div className="flex-1">
-											<span className="text-sm text-sm font-medium text-black leading-relaxed">
-												{feature.description}
+											<span className="text-sm font-medium text-black leading-relaxed">
+												{typeof feature === 'string' ? feature : feature}
 											</span>
 										</div>
 									</motion.li>
@@ -317,9 +354,8 @@ export const InstitutionPaymentSection: React.FC<
 										onClick={handleStartPlan}
 										disabled={buttonState.disabled}
 									>
-										{buttonState.text}
-									</button>
-
+										{pricingLoading ? 'Loading...' : buttonState.text}
+									</button>{' '}
 									{/* Cancel Button - Only show for current plan */}
 									{buttonState.showCancelButton && (
 										<button

@@ -9,6 +9,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { motion } from 'framer-motion'
+import { User, Loader2 } from 'lucide-react'
 
 // Import applicant layout and section components
 import { AcademicSection } from '@/components/profile/applicant/sections/AcademicSection'
@@ -236,11 +238,82 @@ export default function ProfileView() {
 	// Show loading state
 	if (loading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-					<p className="mt-4 text-muted-foreground">{t('loading')}</p>
-				</div>
+			<div className="min-h-screen bg-gradient-to-br from-[#F5F7FB] via-white to-[#F5F7FB] flex items-center justify-center">
+				<motion.div
+					initial={{ opacity: 0, scale: 0.9 }}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{ duration: 0.3 }}
+					className="text-center"
+				>
+					{/* Logo/Icon with animation */}
+					<motion.div
+						initial={{ y: -20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.1, duration: 0.5 }}
+						className="mb-6 flex justify-center"
+					>
+						<div className="relative">
+							<div className="absolute inset-0 bg-[#126E64]/20 rounded-full blur-xl animate-pulse"></div>
+							<div className="relative bg-white rounded-full p-6 shadow-xl border-4 border-[#126E64]/10">
+								<User className="w-12 h-12 text-[#126E64]" />
+							</div>
+						</div>
+					</motion.div>
+
+					{/* Spinner */}
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ delay: 0.2, duration: 0.5 }}
+						className="mb-6 flex justify-center"
+					>
+						<Loader2 className="w-8 h-8 text-[#126E64] animate-spin" />
+					</motion.div>
+
+					{/* Text with animation */}
+					<motion.div
+						initial={{ y: 20, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.3, duration: 0.5 }}
+					>
+						<h2 className="text-2xl font-bold text-gray-900 mb-2">
+							Loading Profile
+						</h2>
+						<p className="text-gray-600 text-sm">Preparing your profile...</p>
+					</motion.div>
+
+					{/* Progress bar */}
+					<motion.div
+						initial={{ width: 0 }}
+						animate={{ width: '100%' }}
+						transition={{
+							delay: 0.4,
+							duration: 1.5,
+							repeat: Infinity,
+							repeatType: 'reverse',
+						}}
+						className="mt-8 mx-auto max-w-xs h-1.5 bg-gray-200 rounded-full overflow-hidden"
+					>
+						<div
+							className="h-full bg-gradient-to-r from-[#126E64] via-[#0D504A] to-[#126E64] rounded-full"
+							style={{
+								backgroundSize: '200% 100%',
+								animation: 'shimmer 1.5s ease-in-out infinite',
+							}}
+						/>
+					</motion.div>
+
+					<style jsx>{`
+						@keyframes shimmer {
+							0% {
+								background-position: -200% 0;
+							}
+							100% {
+								background-position: 200% 0;
+							}
+						}
+					`}</style>
+				</motion.div>
 			</div>
 		)
 	}

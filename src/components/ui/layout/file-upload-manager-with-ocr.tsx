@@ -37,6 +37,9 @@ interface FileUploadManagerWithOCRProps {
 		// eslint-disable-next-line no-unused-vars
 		validation: FileValidationResult
 	) => void
+	// Authentication props
+	isAuthenticated?: boolean
+	onAuthRequired?: () => void
 }
 
 interface ProcessingFile {
@@ -61,6 +64,8 @@ export function FileUploadManagerWithOCR({
 	enableOCR = true,
 	onOCRComplete,
 	onValidationComplete,
+	isAuthenticated = true, // Default to true for backward compatibility
+	onAuthRequired,
 }: FileUploadManagerWithOCRProps) {
 	const t = useTranslations()
 	const [dragActive, setDragActive] = useState(false)
@@ -392,6 +397,16 @@ export function FileUploadManagerWithOCR({
 
 	const handleFileSelection = useCallback(
 		async (files: File[]) => {
+			// Check authentication first
+			if (!isAuthenticated) {
+				if (onAuthRequired) {
+					onAuthRequired()
+				} else {
+					alert(t('auth.required.message') || 'Please sign in to upload files.')
+				}
+				return
+			}
+
 			// eslint-disable-next-line no-console
 			console.log('handleFileSelection called with files:', files)
 
@@ -601,6 +616,8 @@ export function FileUploadManagerWithOCR({
 			saveExtractedText,
 			onOCRComplete,
 			onValidationComplete,
+			isAuthenticated,
+			onAuthRequired,
 		]
 	)
 
@@ -724,43 +741,93 @@ export function FileUploadManagerWithOCR({
 					dragActive
 						? 'border-primary bg-primary/5 cursor-pointer'
 						: 'border-border hover:border-primary/50 cursor-pointer',
-					isUploading && 'opacity-50 pointer-events-none'
+					(isUploading || !isAuthenticated) && 'opacity-50 pointer-events-none'
 				)}
 				role="button"
 				tabIndex={0}
-				aria-disabled={isUploading}
+				aria-disabled={isUploading || !isAuthenticated}
 				onClick={() => {
+					if (!isAuthenticated) {
+						if (onAuthRequired) {
+							onAuthRequired()
+						}
+						return
+					}
 					if (!isUploading) fileInputRef.current?.click()
 				}}
 				onKeyDown={(e: React.KeyboardEvent) => {
+					if (!isAuthenticated) {
+						if (onAuthRequired) {
+							onAuthRequired()
+						}
+						return
+					}
 					if (isUploading) return
 					if (e.key === 'Enter' || e.key === ' ') {
 						e.preventDefault()
 						fileInputRef.current?.click()
 					}
 				}}
-				onDragEnter={handleDrag}
+				onDragEnter={(e) => {
+					if (!isAuthenticated) {
+						e.preventDefault()
+						e.stopPropagation()
+						return
+					}
+					handleDrag(e)
+				}}
 				onDragLeave={handleDrag}
-				onDragOver={handleDrag}
-				onDrop={handleDrop}
+				onDragOver={(e) => {
+					if (!isAuthenticated) {
+						e.preventDefault()
+						e.stopPropagation()
+						return
+					}
+					handleDrag(e)
+				}}
+				onDrop={(e) => {
+					if (!isAuthenticated) {
+						e.preventDefault()
+						e.stopPropagation()
+						if (onAuthRequired) {
+							onAuthRequired()
+						}
+						return
+					}
+					handleDrop(e)
+				}}
 			>
 				{' '}
 				{!isUploading ? (
 					<div className="space-y-2">
 						<div className="text-4xl">📁</div>
-						<p className="text-sm text-muted-foreground">
-							{t('file_upload.drag_drop')}{' '}
-							{/* <button
-								type="button"
-								onClick={() => fileInputRef.current?.click()}
-								className="text-primary hover:underline"
-							>
-								{t('file_upload.browse')}
-							</button> */}
-						</p>
-						<p className="text-xs text-muted-foreground">
-							{t('file_upload.max_size', { size: maxSize })}
-						</p>
+						{!isAuthenticated ? (
+							<>
+								<p className="text-sm font-medium text-gray-900">
+									{t('auth.required.title') || 'Sign In Required'}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{t('auth.required.message') ||
+										'Please sign in or sign up to upload documents.'}
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-sm text-muted-foreground">
+									{t('file_upload.drag_drop')}{' '}
+									{/* <button
+										type="button"
+										onClick={() => fileInputRef.current?.click()}
+										className="text-primary hover:underline"
+									>
+										{t('file_upload.browse')}
+									</button> */}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{t('file_upload.max_size', { size: maxSize })}
+								</p>
+							</>
+						)}
 						{enableOCR && (
 							<div className="text-xs text-primary flex flex-col items-center gap-1">
 								<div className="flex items-center gap-1">

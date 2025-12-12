@@ -113,7 +113,7 @@
 		"auth": {
 			"required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
 			}
 		},
 		"buttons": {
@@ -249,7 +249,7 @@
 	"auth": {
 		"required": {
 			"title": "Yêu cầu xác thực",
-			"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
+			"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
 		},
 		"signup": {
 			"title": "Đăng ký",
@@ -759,7 +759,7 @@
 			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
@@ -1100,7 +1100,7 @@
 			},
 			"auth_required": {
 				"title": "Yêu Cầu Xác Thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
@@ -1344,7 +1344,7 @@
 			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}

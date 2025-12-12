@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/ui'
+import { Button, Tooltip } from '@/components/ui'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
@@ -249,6 +249,12 @@ const AdminScholarshipDetail = () => {
 				return 'bg-gray-100 text-gray-800'
 			case 'CLOSED':
 				return 'bg-blue-100 text-blue-800'
+			case 'REJECTED':
+				return 'bg-red-100 text-red-800'
+			case 'PROGRESSING':
+				return 'bg-purple-100 text-purple-800'
+			case 'SUBMITTED':
+				return 'bg-blue-100 text-blue-800'
 			default:
 				return 'bg-gray-100 text-gray-800'
 		}
@@ -472,11 +478,9 @@ const AdminScholarshipDetail = () => {
 						</p>
 
 						<div className="flex flex-col items-center gap-3 mb-4 w-full">
-							{/* Approve/Reject Buttons - Show for SUBMITTED, UPDATED, or PROGRESSING status */}
-							{(currentScholarship?.status === 'SUBMITTED' ||
-								currentScholarship?.status === 'UPDATED' ||
-								currentScholarship?.status === 'PROGRESSING') && (
-								<div className="flex gap-3 w-full">
+							{/* Status Action Buttons based on current status */}
+							{currentScholarship?.status === 'PROGRESSING' && (
+								<div className="flex items-center justify-center gap-3 w-full">
 									<Button
 										onClick={async () => {
 											try {
@@ -514,14 +518,14 @@ const AdminScholarshipDetail = () => {
 												setIsProcessing(false)
 											}
 										}}
-										className="flex-1 bg-[#126E64] hover:bg-[#0f5a52] text-white"
+										className="py-2.5 px-5 text-sm bg-[#126E64] hover:bg-[#0f5a52] text-white"
 										disabled={isProcessing}
 									>
-										{isProcessing ? 'Processing...' : 'Approve'}
+										{isProcessing ? 'Processing...' : 'Publish'}
 									</Button>
 									<Button
 										onClick={() => setShowRejectModal(true)}
-										className="flex-1 bg-[#EF4444] hover:bg-[#dc2626] text-white"
+										className="py-2.5 px-5 text-sm bg-[#EF4444] hover:bg-[#dc2626] text-white"
 										disabled={isProcessing}
 									>
 										Reject
@@ -529,31 +533,192 @@ const AdminScholarshipDetail = () => {
 								</div>
 							)}
 
-							<div className="flex items-center gap-3 flex-wrap justify-center">
-								{currentScholarship?.status === 'DRAFT' && (
+							{currentScholarship?.status === 'PUBLISHED' && (
+								<div className="flex gap-3 w-full">
 									<Button
-										onClick={() => setIsDeleteModalOpen(true)}
-										variant="outline"
-										className="text-red-600 border-red-600 hover:bg-red-50"
+										onClick={async () => {
+											try {
+												setIsProcessing(true)
+												const response = await fetch(
+													`/api/admin/posts/${params?.id}`,
+													{
+														method: 'PATCH',
+														headers: {
+															'Content-Type': 'application/json',
+														},
+														body: JSON.stringify({ status: 'CLOSED' }),
+													}
+												)
+												const data = await response.json()
+												if (response.ok && data.success) {
+													showSuccess(
+														'Success',
+														'Scholarship closed successfully'
+													)
+													await fetchScholarshipDetail(params?.id as string)
+													router.push('/admin/posts')
+												} else {
+													showError(
+														'Error',
+														data.error || 'Failed to close scholarship'
+													)
+												}
+											} catch (error) {
+												showError(
+													'Error',
+													'Failed to close scholarship. Please try again.'
+												)
+											} finally {
+												setIsProcessing(false)
+											}
+										}}
+										className="flex-1 bg-[#6EB6FF] hover:bg-[#5aa3e6] text-black"
+										disabled={isProcessing}
 									>
-										Delete
+										{isProcessing ? 'Processing...' : 'Close'}
 									</Button>
-								)}
-								{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' && (
-									<Button
-										onClick={handleCloseScholarship}
-										variant="outline"
-										className="text-orange-600 border-orange-600 hover:bg-orange-50"
+								</div>
+							)}
+
+							{(currentScholarship?.status === 'REJECTED' ||
+								currentScholarship?.status === 'CLOSED') && (
+								<div className="flex items-center justify-center gap-3 w-full">
+									<Tooltip
+										content={
+											currentScholarship?.status === 'REJECTED'
+												? 'Change status to Submitted - Post will be resubmitted for review'
+												: 'Change status to Progressing - Post will be under review again'
+										}
+										maxWidth={250}
 									>
-										Close Scholarship
-									</Button>
+										<Button
+											onClick={async () => {
+												try {
+													setIsProcessing(true)
+													const newStatus =
+														currentScholarship?.status === 'REJECTED'
+															? 'SUBMITTED'
+															: 'PROGRESSING'
+													const response = await fetch(
+														`/api/admin/posts/${params?.id}`,
+														{
+															method: 'PATCH',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ status: newStatus }),
+														}
+													)
+													const data = await response.json()
+													if (response.ok && data.success) {
+														showSuccess(
+															'Success',
+															`Scholarship status updated to ${newStatus}`
+														)
+														await fetchScholarshipDetail(params?.id as string)
+														router.push('/admin/posts')
+													} else {
+														showError(
+															'Error',
+															data.error ||
+																'Failed to update scholarship status'
+														)
+													}
+												} catch (error) {
+													showError(
+														'Error',
+														'Failed to update scholarship status. Please try again.'
+													)
+												} finally {
+													setIsProcessing(false)
+												}
+											}}
+											className="py-2.5 px-5 text-sm !bg-[#8B5CF6] hover:!bg-[#7c3aed] !text-white"
+											style={{ backgroundColor: '#8B5CF6' }}
+											disabled={isProcessing}
+										>
+											{isProcessing
+												? 'Processing...'
+												: currentScholarship?.status === 'REJECTED'
+													? 'Submitted'
+													: 'Progressing'}
+										</Button>
+									</Tooltip>
+									<Tooltip
+										content="Publish this post - Make it visible to all users immediately"
+										maxWidth={250}
+									>
+										<Button
+											onClick={async () => {
+												try {
+													setIsProcessing(true)
+													const response = await fetch(
+														`/api/admin/posts/${params?.id}`,
+														{
+															method: 'PATCH',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ status: 'PUBLISHED' }),
+														}
+													)
+													const data = await response.json()
+													if (response.ok && data.success) {
+														showSuccess(
+															'Success',
+															'Scholarship published successfully'
+														)
+														await fetchScholarshipDetail(params?.id as string)
+														router.push('/admin/posts')
+													} else {
+														showError(
+															'Error',
+															data.error || 'Failed to publish scholarship'
+														)
+													}
+												} catch (error) {
+													showError(
+														'Error',
+														'Failed to publish scholarship. Please try again.'
+													)
+												} finally {
+													setIsProcessing(false)
+												}
+											}}
+											className="py-2.5 px-5 text-sm !bg-[#10B981] hover:!bg-[#059669] !text-white"
+											style={{ backgroundColor: '#10B981' }}
+											disabled={isProcessing}
+										>
+											{isProcessing ? 'Processing...' : 'Publish'}
+										</Button>
+									</Tooltip>
+									<span
+										className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
+									>
+										{currentScholarship?.status || 'DRAFT'}
+									</span>
+								</div>
+							)}
+
+							{currentScholarship?.status !== 'REJECTED' &&
+								currentScholarship?.status !== 'CLOSED' && (
+									<div className="flex items-center gap-3 flex-wrap justify-center">
+										{currentScholarship?.status === 'DRAFT' && (
+											<Button
+												onClick={() => setIsDeleteModalOpen(true)}
+												variant="outline"
+												className="text-red-600 border-red-600 hover:bg-red-50"
+											>
+												Delete
+											</Button>
+										)}
+										<span
+											className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
+										>
+											{currentScholarship?.status || 'DRAFT'}
+										</span>
+									</div>
 								)}
-								<span
-									className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
-								>
-									{currentScholarship?.status || 'DRAFT'}
-								</span>
-							</div>
 						</div>
 					</motion.div>
 				</div>

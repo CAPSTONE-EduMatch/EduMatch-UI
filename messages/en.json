@@ -113,7 +113,7 @@
 		"auth": {
 			"required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
 			}
 		},
 		"buttons": {
@@ -249,7 +249,7 @@
 	"auth": {
 		"required": {
 			"title": "Authentication Required",
-			"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+			"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
 		},
 		"signup": {
 			"title": "Sign up",
@@ -765,7 +765,7 @@
 			},
 			"auth_required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
 				"sign_in": "Sign In",
 				"sign_up": "Sign Up"
 			}
@@ -1066,7 +1066,7 @@
 			},
 			"auth_required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
 				"sign_in": "Sign in",
 				"sign_up": "Sign up"
 			}
@@ -1291,7 +1291,7 @@
 			},
 			"auth_required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
 				"sign_in": "Sign In",
 				"sign_up": "Sign Up"
 			}

@@ -75,9 +75,14 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Filter by status
+		// Filter by status - exclude DRAFT and DELETED posts
 		if (filters.status && filters.status !== "all") {
 			whereClause.status = filters.status;
+		} else {
+			// Exclude DRAFT and DELETED posts by default
+			whereClause.status = {
+				notIn: ["DRAFT", "DELETED"],
+			};
 		}
 
 		// Filter by post type (support multiple types)

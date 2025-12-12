@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/ui'
+import { Button, Tooltip } from '@/components/ui'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
@@ -252,6 +252,12 @@ const AdminProgramDetail = () => {
 			case 'DRAFT':
 				return 'bg-gray-100 text-gray-800'
 			case 'CLOSED':
+				return 'bg-blue-100 text-blue-800'
+			case 'REJECTED':
+				return 'bg-red-100 text-red-800'
+			case 'PROGRESSING':
+				return 'bg-purple-100 text-purple-800'
+			case 'SUBMITTED':
 				return 'bg-blue-100 text-blue-800'
 			default:
 				return 'bg-gray-100 text-gray-800'
@@ -619,11 +625,9 @@ const AdminProgramDetail = () => {
 						</p>
 
 						<div className="flex flex-col items-center gap-3 mb-4 w-full">
-							{/* Approve/Reject Buttons - Show for SUBMITTED, UPDATED, or PROGRESSING status */}
-							{(currentProgram?.status === 'SUBMITTED' ||
-								currentProgram?.status === 'UPDATED' ||
-								currentProgram?.status === 'PROGRESSING') && (
-								<div className="flex gap-3 w-full">
+							{/* Status Action Buttons based on current status */}
+							{currentProgram?.status === 'PROGRESSING' && (
+								<div className="flex items-center justify-center gap-3 w-full">
 									<Button
 										onClick={async () => {
 											try {
@@ -661,14 +665,14 @@ const AdminProgramDetail = () => {
 												setIsProcessing(false)
 											}
 										}}
-										className="flex-1 bg-[#126E64] hover:bg-[#0f5a52] text-white"
+										className="py-2.5 px-5 text-sm bg-[#126E64] hover:bg-[#0f5a52] text-white"
 										disabled={isProcessing}
 									>
-										{isProcessing ? 'Processing...' : 'Approve'}
+										{isProcessing ? 'Processing...' : 'Publish'}
 									</Button>
 									<Button
 										onClick={() => setShowRejectModal(true)}
-										className="flex-1 bg-[#EF4444] hover:bg-[#dc2626] text-white"
+										className="py-2.5 px-5 text-sm bg-[#EF4444] hover:bg-[#dc2626] text-white"
 										disabled={isProcessing}
 									>
 										Reject
@@ -676,31 +680,188 @@ const AdminProgramDetail = () => {
 								</div>
 							)}
 
-							<div className="flex items-center gap-3 flex-wrap justify-center">
-								{currentProgram?.status === 'DRAFT' && (
+							{currentProgram?.status === 'PUBLISHED' && (
+								<div className="flex gap-3 w-full">
 									<Button
-										onClick={() => setIsDeleteModalOpen(true)}
-										variant="outline"
-										className="text-red-600 border-red-600 hover:bg-red-50"
+										onClick={async () => {
+											try {
+												setIsProcessing(true)
+												const response = await fetch(
+													`/api/admin/posts/${params?.id}`,
+													{
+														method: 'PATCH',
+														headers: {
+															'Content-Type': 'application/json',
+														},
+														body: JSON.stringify({ status: 'CLOSED' }),
+													}
+												)
+												const data = await response.json()
+												if (response.ok && data.success) {
+													showSuccess('Success', 'Program closed successfully')
+													await fetchProgramDetail(params?.id as string)
+													router.push('/admin/posts')
+												} else {
+													showError(
+														'Error',
+														data.error || 'Failed to close program'
+													)
+												}
+											} catch (error) {
+												showError(
+													'Error',
+													'Failed to close program. Please try again.'
+												)
+											} finally {
+												setIsProcessing(false)
+											}
+										}}
+										className="flex-1 bg-[#6EB6FF] hover:bg-[#5aa3e6] text-black"
+										disabled={isProcessing}
 									>
-										Delete
+										{isProcessing ? 'Processing...' : 'Close'}
 									</Button>
-								)}
-								{currentProgram?.status?.toUpperCase() === 'PUBLISHED' && (
-									<Button
-										onClick={handleCloseProgram}
-										variant="outline"
-										className="text-orange-600 border-orange-600 hover:bg-orange-50"
+								</div>
+							)}
+
+							{(currentProgram?.status === 'REJECTED' ||
+								currentProgram?.status === 'CLOSED') && (
+								<div className="flex items-center justify-center gap-3 w-full">
+									<Tooltip
+										content={
+											currentProgram?.status === 'REJECTED'
+												? 'Change status to Submitted - Post will be resubmitted for review'
+												: 'Change status to Progressing - Post will be under review again'
+										}
+										maxWidth={250}
 									>
-										Close Program
-									</Button>
+										<Button
+											onClick={async () => {
+												try {
+													setIsProcessing(true)
+													const newStatus =
+														currentProgram?.status === 'REJECTED'
+															? 'SUBMITTED'
+															: 'PROGRESSING'
+													const response = await fetch(
+														`/api/admin/posts/${params?.id}`,
+														{
+															method: 'PATCH',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ status: newStatus }),
+														}
+													)
+													const data = await response.json()
+													if (response.ok && data.success) {
+														showSuccess(
+															'Success',
+															`Program status updated to ${newStatus}`
+														)
+														await fetchProgramDetail(params?.id as string)
+														router.push('/admin/posts')
+													} else {
+														showError(
+															'Error',
+															data.error || 'Failed to update program status'
+														)
+													}
+												} catch (error) {
+													showError(
+														'Error',
+														'Failed to update program status. Please try again.'
+													)
+												} finally {
+													setIsProcessing(false)
+												}
+											}}
+											className="py-2.5 px-5 text-sm !bg-[#8B5CF6] hover:!bg-[#7c3aed] !text-white"
+											style={{ backgroundColor: '#8B5CF6' }}
+											disabled={isProcessing}
+										>
+											{isProcessing
+												? 'Processing...'
+												: currentProgram?.status === 'REJECTED'
+													? 'Submitted'
+													: 'Progressing'}
+										</Button>
+									</Tooltip>
+									<Tooltip
+										content="Publish this post - Make it visible to all users immediately"
+										maxWidth={250}
+									>
+										<Button
+											onClick={async () => {
+												try {
+													setIsProcessing(true)
+													const response = await fetch(
+														`/api/admin/posts/${params?.id}`,
+														{
+															method: 'PATCH',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ status: 'PUBLISHED' }),
+														}
+													)
+													const data = await response.json()
+													if (response.ok && data.success) {
+														showSuccess(
+															'Success',
+															'Program published successfully'
+														)
+														await fetchProgramDetail(params?.id as string)
+														router.push('/admin/posts')
+													} else {
+														showError(
+															'Error',
+															data.error || 'Failed to publish program'
+														)
+													}
+												} catch (error) {
+													showError(
+														'Error',
+														'Failed to publish program. Please try again.'
+													)
+												} finally {
+													setIsProcessing(false)
+												}
+											}}
+											className="py-2.5 px-5 text-sm !bg-[#10B981] hover:!bg-[#059669] !text-white"
+											style={{ backgroundColor: '#10B981' }}
+											disabled={isProcessing}
+										>
+											{isProcessing ? 'Processing...' : 'Publish'}
+										</Button>
+									</Tooltip>
+									<span
+										className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
+									>
+										{currentProgram?.status || 'DRAFT'}
+									</span>
+								</div>
+							)}
+
+							{currentProgram?.status !== 'REJECTED' &&
+								currentProgram?.status !== 'CLOSED' && (
+									<div className="flex items-center gap-3 flex-wrap justify-center">
+										{currentProgram?.status === 'DRAFT' && (
+											<Button
+												onClick={() => setIsDeleteModalOpen(true)}
+												variant="outline"
+												className="text-red-600 border-red-600 hover:bg-red-50"
+											>
+												Delete
+											</Button>
+										)}
+										<span
+											className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
+										>
+											{currentProgram?.status || 'DRAFT'}
+										</span>
+									</div>
 								)}
-								<span
-									className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentProgram?.status || '')}`}
-								>
-									{currentProgram?.status || 'DRAFT'}
-								</span>
-							</div>
 						</div>
 					</motion.div>
 				</div>

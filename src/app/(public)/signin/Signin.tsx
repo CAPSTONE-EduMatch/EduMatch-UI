@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import React, { useCallback, useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
 const LEFT_IMAGE =
 	'https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg'
@@ -64,6 +65,7 @@ const SignIn: React.FC = () => {
 		forgotEmail?: string
 	}>({})
 	const [isLoading, setIsLoading] = useState(false)
+	const [isRedirecting, setIsRedirecting] = useState(false)
 	const [showForgotPassword, setShowForgotPassword] = useState(false)
 	const [forgotPasswordStatus, setForgotPasswordStatus] = useState<{
 		success?: string
@@ -95,7 +97,7 @@ const SignIn: React.FC = () => {
 			try {
 				// Wait a bit for session to be fully established
 				if (retryCount === 0) {
-					await new Promise((resolve) => setTimeout(resolve, 300))
+					await new Promise((resolve) => setTimeout(resolve, 200))
 				}
 
 				const profileResponse = await axios.get('/api/profile')
@@ -103,25 +105,38 @@ const SignIn: React.FC = () => {
 
 				if (profile) {
 					// User has a profile, redirect based on role
+					// Use replace to avoid adding to history
+					const currentPath = window.location.pathname
+
 					if (profile.role === 'admin') {
-						router.push('/admin')
+						if (!currentPath.includes('/admin')) {
+							router.replace('/admin')
+						}
 					} else if (profile.role === 'institution') {
-						router.push('/institution/dashboard')
+						// Already on institution dashboard, no need to redirect
+						if (!currentPath.includes('/institution/dashboard')) {
+							router.replace('/institution/dashboard')
+						}
 					} else if (profile.role === 'applicant') {
-						router.push('/profile/view')
+						// Redirect applicants to their profile view
+						if (!currentPath.includes('/profile/view')) {
+							router.replace('/profile/view')
+						}
 					} else {
-						router.push('/explore')
+						if (!currentPath.includes('/explore')) {
+							router.replace('/explore')
+						}
 					}
 				} else {
 					// Profile response exists but no profile data
-					router.push('/profile/create')
+					router.replace('/profile/create')
 				}
 			} catch (error: any) {
 				const status = error?.response?.status
 
 				// If profile doesn't exist (404), redirect to profile creation
 				if (status === 404) {
-					router.push('/profile/create')
+					router.replace('/profile/create')
 				} else if (status === 500 && retryCount < maxRetries) {
 					// Retry on server errors (might be temporary)
 					// eslint-disable-next-line no-console
@@ -143,16 +158,16 @@ const SignIn: React.FC = () => {
 							// If it's a server error, assume profile might exist
 							if (status === 500) {
 								// For institution users, try profile/view, for others explore
-								router.push('/explore')
+								router.replace('/explore')
 							} else {
-								router.push('/profile/create')
+								router.replace('/profile/create')
 							}
 						} else {
-							router.push('/profile/create')
+							router.replace('/profile/create')
 						}
 					} catch (sessionError) {
 						// Can't verify session, redirect to profile creation
-						router.push('/profile/create')
+						router.replace('/profile/create')
 					}
 				}
 			}
@@ -332,10 +347,27 @@ const SignIn: React.FC = () => {
 
 			// If successful signin, handle redirect
 			if (res?.data && !res?.error) {
-				// Wait a moment for session to be established
-				await new Promise((resolve) => setTimeout(resolve, 100))
-				// Check if user has a profile and redirect accordingly
-				await checkProfileAndRedirect()
+				// Set redirecting state immediately
+				setIsRedirecting(true)
+
+				// Navigate immediately to institution dashboard to show loading screen
+				// We'll check profile and redirect to correct route if needed
+				// Use replace to avoid back button issues
+				router.replace('/institution/dashboard')
+
+				// Check profile in background and redirect if needed
+				// This happens after navigation so dashboard loading screen shows immediately
+				// Small delay to let navigation start
+				setTimeout(async () => {
+					try {
+						await checkProfileAndRedirect()
+					} catch (error) {
+						// If redirect fails, stay on institution dashboard
+						// The dashboard will handle showing appropriate content or redirect
+					}
+				}, 150)
+
+				// Keep loading state active - it will be cleared when page redirects
 				return
 			}
 
@@ -465,7 +497,11 @@ const SignIn: React.FC = () => {
 		} catch (err) {
 			// eslint-disable-next-line no-console
 		} finally {
-			setIsLoading(false)
+			// Only stop loading if we're not redirecting
+			// If redirecting, keep loading state active until page changes
+			if (!isRedirecting) {
+				setIsLoading(false)
+			}
 		}
 	}
 
@@ -706,12 +742,23 @@ const SignIn: React.FC = () => {
 			} else {
 				// Success - close modal and check profile
 				handleCloseOTPModal()
-				// After successful verification, check profile and redirect
-				await checkProfileAndRedirect()
+				// After successful verification, navigate immediately and check profile
+				setIsRedirecting(true)
+				// Navigate immediately to show loading screen
+				router.replace('/institution/dashboard')
+				// Check profile in background and redirect if needed
+				setTimeout(async () => {
+					try {
+						await checkProfileAndRedirect()
+					} catch (error) {
+						// If redirect fails, stay on institution dashboard
+					}
+				}, 150)
 			}
 		} catch (err) {
 			console.error('OTP verification exception:', err)
 			setOTPError('Verification failed. Please try again.')
+			setIsRedirecting(false)
 		} finally {
 			setIsOTPLoading(false)
 		}
@@ -788,7 +835,18 @@ const SignIn: React.FC = () => {
 	}, [])
 
 	return (
-		<div>
+		<div className="relative">
+			{/* Loading Overlay - Only show during sign-in, not during redirect */}
+			{isLoading && !isRedirecting && (
+				<div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+					<div className="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center gap-4 min-w-[280px]">
+						<Loader2 className="w-8 h-8 animate-spin text-[#126E64]" />
+						<p className="text-gray-700 font-medium">
+							{t('buttons.submitting')}...
+						</p>
+					</div>
+				</div>
+			)}
 			{/* <AuthRedirect redirectTo="/dashboard"> */}
 			<AuthLayout imageSrc={LEFT_IMAGE}>
 				<motion.div
@@ -838,6 +896,7 @@ const SignIn: React.FC = () => {
 									aria-label={t('form.email.label')}
 									variant="signin"
 									error={errors.email}
+									disabled={isLoading}
 								/>
 							</div>
 						</motion.div>
@@ -937,13 +996,18 @@ const SignIn: React.FC = () => {
 							<motion.button
 								type="submit"
 								disabled={isLoading}
-								className="w-full bg-[#126E64] text-white py-3 rounded-full shadow-md hover:opacity-90 transition-all duration-100 hover:shadow-lg transform hover:-translate-y-1"
-								whileHover={{
-									scale: 1.02,
-									boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-								}}
-								whileTap={{ scale: 0.98 }}
+								className="w-full bg-[#126E64] text-white py-3 rounded-full shadow-md hover:opacity-90 transition-all duration-100 hover:shadow-lg transform hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+								whileHover={
+									!isLoading
+										? {
+												scale: 1.02,
+												boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+											}
+										: {}
+								}
+								whileTap={!isLoading ? { scale: 0.98 } : {}}
 							>
+								{isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
 								{isLoading ? t('buttons.submitting') : t('buttons.submit')}
 							</motion.button>
 						</motion.div>

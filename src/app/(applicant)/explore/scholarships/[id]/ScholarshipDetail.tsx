@@ -550,6 +550,11 @@ const ScholarshipDetail = () => {
 	// Fetch applications for a specific post
 	const fetchApplicationsForPost = useCallback(
 		async (postId: string) => {
+			// Don't fetch if user is not authenticated
+			if (!isAuthenticated) {
+				return
+			}
+
 			// Only show loading if we don't have applications for this post yet
 			if (lastFetchedPostId !== postId) {
 				setLoadingApplications(true)
@@ -576,7 +581,7 @@ const ScholarshipDetail = () => {
 				setLoadingApplications(false)
 			}
 		},
-		[lastFetchedPostId]
+		[lastFetchedPostId, isAuthenticated]
 	)
 
 	// Fetch applications for this post when application tab is active
@@ -584,6 +589,7 @@ const ScholarshipDetail = () => {
 		if (
 			activeTab === 'application' &&
 			currentScholarship?.id &&
+			isAuthenticated &&
 			lastFetchedPostId !== currentScholarship.id &&
 			!isAutoLoadingApplication
 		) {
@@ -591,6 +597,7 @@ const ScholarshipDetail = () => {
 		}
 	}, [
 		activeTab,
+		isAuthenticated,
 		currentScholarship?.id,
 		lastFetchedPostId,
 		isAutoLoadingApplication,
@@ -664,6 +671,11 @@ const ScholarshipDetail = () => {
 	// Check if user has already applied to this post
 	const checkExistingApplication = useCallback(
 		async (scholarshipId: string) => {
+			// Don't check if user is not authenticated
+			if (!isAuthenticated) {
+				return false
+			}
+
 			try {
 				setIsCheckingApplication(true)
 				const response = await applicationService.getApplications({
@@ -795,6 +807,7 @@ const ScholarshipDetail = () => {
 			fetchApplicationsForPost,
 			applicationIdFromUrl,
 			currentScholarship?.id,
+			isAuthenticated,
 		]
 	)
 
@@ -2052,14 +2065,24 @@ const ScholarshipDetail = () => {
 											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
 											<div className="text-center">
 												<Button
-													onClick={() => setShowDocumentSelector(true)}
+													onClick={() => {
+														if (!isAuthenticated) {
+															setShowAuthModal(true)
+															return
+														}
+														setShowDocumentSelector(true)
+													}}
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
+													disabled={!isAuthenticated}
 												>
 													{t('scholarship_detail.apply.select_profile_button')}
 												</Button>
 												<p className="text-sm text-gray-500 mt-2">
-													{t('scholarship_detail.apply.select_profile_hint')}
+													{!isAuthenticated
+														? t('auth.required.message') ||
+															'Please sign in to select documents from your profile.'
+														: t('scholarship_detail.apply.select_profile_hint')}
 												</p>
 											</div>
 
@@ -2076,6 +2099,8 @@ const ScholarshipDetail = () => {
 											<div className="">
 												<FileUploadManagerWithOCR
 													category="application-documents"
+													isAuthenticated={isAuthenticated}
+													onAuthRequired={() => setShowAuthModal(true)}
 													onFilesUploaded={(uploadedFileData: any[]) => {
 														if (
 															!uploadedFileData ||

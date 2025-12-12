@@ -296,6 +296,7 @@ export async function GET() {
 						profile.subdisciplines?.map(
 							(s: any) => s.subdiscipline?.name || ""
 						) || [],
+					institutionLogo: profile.logo || "",
 					institutionCoverImage: profile.cover_image || "",
 					verificationDocuments:
 						profile.documents?.map((doc: any) => ({

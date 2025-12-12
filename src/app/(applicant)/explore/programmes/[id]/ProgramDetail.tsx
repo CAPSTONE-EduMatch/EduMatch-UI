@@ -151,25 +151,21 @@ const ProgramDetail = () => {
 	const [loadingSelectedApplication, setLoadingSelectedApplication] =
 		useState(false)
 
-	// Wishlist functionality
-	const {
-		isInWishlist,
-		toggleWishlistItem,
-		loading: wishlistLoading,
-		items: wishlistItems,
-	} = useWishlist({
-		autoFetch: true,
-		initialParams: {
-			page: 1,
-			limit: 100, // Fetch more items to ensure we get all wishlisted items
-			status: 1, // Only active wishlist items
-		},
-	})
-
 	// Notification system
 	const { showSuccess, showError } = useNotification()
 	const apiWrapper = useApiWrapper()
 	const { isAuthenticated } = useAuthCheck()
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist({
+		autoFetch: true,
+		isAuthenticated: isAuthenticated,
+		initialParams: {
+			page: 1,
+			limit: 100,
+			status: 1,
+		},
+	})
 	const { currentPlan } = useSubscription()
 	const [showAuthModal, setShowAuthModal] = useState(false)
 
@@ -446,7 +442,13 @@ const ProgramDetail = () => {
 	useEffect(() => {
 		const programId = currentProgram?.id || params?.id
 		// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
-		if (programId && !isCheckingApplication && !applicationIdFromUrl) {
+		// Only check if user is authenticated
+		if (
+			programId &&
+			isAuthenticated &&
+			!isCheckingApplication &&
+			!applicationIdFromUrl
+		) {
 			// Add a small delay to prevent rapid successive calls
 			const timeoutId = setTimeout(() => {
 				checkExistingApplication(programId as string)
@@ -454,7 +456,7 @@ const ProgramDetail = () => {
 
 			return () => clearTimeout(timeoutId)
 		}
-	}, [currentProgram?.id, params?.id, applicationIdFromUrl]) // Added applicationIdFromUrl to prevent duplicate loads
+	}, [currentProgram?.id, params?.id, applicationIdFromUrl, isAuthenticated]) // Added applicationIdFromUrl and isAuthenticated to prevent duplicate loads
 
 	// Fetch all update requests when application is loaded
 	useEffect(() => {
@@ -562,6 +564,11 @@ const ProgramDetail = () => {
 	// Fetch applications for a specific post
 	const fetchApplicationsForPost = useCallback(
 		async (postId: string) => {
+			// Don't fetch if user is not authenticated
+			if (!isAuthenticated) {
+				return
+			}
+
 			// Only show loading if we don't have applications for this post yet
 			if (lastFetchedPostId !== postId) {
 				setLoadingApplications(true)
@@ -588,7 +595,7 @@ const ProgramDetail = () => {
 				setLoadingApplications(false)
 			}
 		},
-		[lastFetchedPostId]
+		[lastFetchedPostId, isAuthenticated]
 	)
 
 	// Fetch applications for this post when application tab is active
@@ -596,6 +603,7 @@ const ProgramDetail = () => {
 		if (
 			activeTab === 'application' &&
 			currentProgram?.id &&
+			isAuthenticated &&
 			lastFetchedPostId !== currentProgram.id &&
 			!isAutoLoadingApplication
 		) {
@@ -603,6 +611,7 @@ const ProgramDetail = () => {
 		}
 	}, [
 		activeTab,
+		isAuthenticated,
 		currentProgram?.id,
 		lastFetchedPostId,
 		isAutoLoadingApplication,
@@ -898,7 +907,7 @@ const ProgramDetail = () => {
 		const paramsString = currentParams.toString()
 
 		router.push(
-			`/explore/${programId}?from=${fromTab}${paramsString ? `&${paramsString}` : ''}`
+			`/explore/programmes/${programId}?from=${fromTab}${paramsString ? `&${paramsString}` : ''}`
 		)
 	}
 
@@ -915,6 +924,11 @@ const ProgramDetail = () => {
 
 	// Check if user has already applied to this post
 	const checkExistingApplication = async (programId: string) => {
+		// Don't check if user is not authenticated
+		if (!isAuthenticated) {
+			return false
+		}
+
 		try {
 			setIsCheckingApplication(true)
 			const response = await applicationService.getApplications({
@@ -1963,6 +1977,10 @@ const ProgramDetail = () => {
 						alt={currentProgram?.institution?.name || 'University'}
 						fill
 						className="object-cover"
+						quality={100}
+						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
+						priority
+						unoptimized={false}
 						expiresIn={7200}
 						autoRefresh={true}
 						errorFallback={
@@ -1971,6 +1989,8 @@ const ProgramDetail = () => {
 								alt={currentProgram?.institution?.name || 'University'}
 								fill
 								className="object-cover"
+								quality={100}
+								sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
 								priority
 							/>
 						}
@@ -1981,6 +2001,8 @@ const ProgramDetail = () => {
 						alt={currentProgram?.institution?.name || 'University'}
 						fill
 						className="object-cover"
+						quality={100}
+						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
 						priority
 					/>
 				)}
@@ -2452,14 +2474,24 @@ const ProgramDetail = () => {
 											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
 											<div className="text-center">
 												<Button
-													onClick={() => setShowDocumentSelector(true)}
+													onClick={() => {
+														if (!isAuthenticated) {
+															setShowAuthModal(true)
+															return
+														}
+														setShowDocumentSelector(true)
+													}}
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
+													disabled={!isAuthenticated}
 												>
 													{t('program_detail.apply.select_profile_button')}
 												</Button>
 												<p className="text-sm text-gray-500 mt-2">
-													{t('program_detail.apply.select_profile_hint')}
+													{!isAuthenticated
+														? t('auth.required.message') ||
+															'Please sign in to select documents from your profile.'
+														: t('program_detail.apply.select_profile_hint')}
 												</p>
 											</div>
 
@@ -2477,6 +2509,8 @@ const ProgramDetail = () => {
 												<FileUploadManagerWithOCR
 													category="application-documents"
 													enableOCR={true}
+													isAuthenticated={isAuthenticated}
+													onAuthRequired={() => setShowAuthModal(true)}
 													onFilesUploaded={async (files) => {
 														// Map uploaded files to application document shape (temp ids)
 														const newDocuments = files.map((file) => ({

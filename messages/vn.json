@@ -113,7 +113,7 @@
 		"auth": {
 			"required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
 			}
 		},
 		"buttons": {
@@ -249,7 +249,7 @@
 	"auth": {
 		"required": {
 			"title": "Yêu cầu xác thực",
-			"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
+			"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới."
 		},
 		"signup": {
 			"title": "Đăng ký",
@@ -759,7 +759,7 @@
 			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
@@ -1100,7 +1100,7 @@
 			},
 			"auth_required": {
 				"title": "Yêu Cầu Xác Thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
@@ -1344,7 +1344,7 @@
 			},
 			"auth_required": {
 				"title": "Yêu cầu xác thực",
-				"message": "Bạn cần đăng nhập để thêm mục vào danh sách yêu thích. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
+				"message": "Bạn cần đăng nhập để truy cập tính năng này. Vui lòng đăng nhập vào tài khoản của bạn hoặc tạo tài khoản mới.",
 				"sign_in": "Đăng nhập",
 				"sign_up": "Đăng ký"
 			}
@@ -1471,7 +1471,7 @@
 			"monthly": "tháng",
 			"feature_map": {
 				"Account registration & OTP verification": "Đăng ký tài khoản & xác thực OTP",
-				"Create & update personal profile (GPA, skills, research topic, etc.)": "Tạo & cập nhật hồ sơ cá nhân (GPA, kỹ năng, chủ đề nghiên cứu, v.v.)",
+				"Create & update personal profile (GPA, skills, research topic, etc)": "Tạo & cập nhật hồ sơ cá nhân (GPA, kỹ năng, chủ đề nghiên cứu, v.v.)",
 				"Basic scholarship, program & research group search": "Tìm kiếm học bổng, chương trình & nhóm nghiên cứu cơ bản",
 				"View scholarship details & requirements": "Xem chi tiết học bổng & yêu cầu",
 				"Receive deadline reminders for saved scholarships/programs": "Nhận nhắc nhở deadline cho học bổng/chương trình đã lưu",
@@ -1500,13 +1500,13 @@
 				"Interview preparation resources": "Tài liệu chuẩn bị phỏng vấn",
 				"Exclusive webinars & workshops": "Hội thảo & workshop độc quyền",
 				"Priority customer support": "Hỗ trợ khách hàng ưu tiên",
-				"Create and manage comprehensive institutional profiles with branding and details.": "Tạo và quản lý hồ sơ tổ chức toàn diện với thương hiệu và chi tiết",
-				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines.": "Đăng cơ hội chi tiết với mô tả, tiêu chí đủ điều kiện và hạn chót",
-				"Access intelligent matching algorithms to find the best candidates.": "Truy cập thuật toán khớp thông minh để tìm ứng viên tốt nhất",
-				"View detailed applicant profiles with matching scores and analytics.": "Xem hồ sơ ứng viên chi tiết với điểm khớp và phân tích",
-				"Invite applicants for interviews and update selection results seamlessly.": "Mời ứng viên phỏng vấn và cập nhật kết quả tuyển chọn liền mạch",
-				"Communicate with applicants via built-in chat and email systems.": "Giao tiếp với ứng viên qua hệ thống chat và email tích hợp",
-				"Monitor engagement statistics, views, and applications through web dashboards.": "Theo dõi thống kê tương tác, lượt xem và đơn ứng tuyển qua bảng điều khiển web"
+				"Create and manage comprehensive institutional profiles with branding and details": "Tạo và quản lý hồ sơ tổ chức toàn diện với thương hiệu và chi tiết",
+				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines": "Đăng cơ hội chi tiết với mô tả, tiêu chí đủ điều kiện và hạn chót",
+				"Access intelligent matching algorithms to find the best candidates": "Truy cập thuật toán khớp thông minh để tìm ứng viên tốt nhất",
+				"View detailed applicant profiles with matching scores and analytics": "Xem hồ sơ ứng viên chi tiết với điểm khớp và phân tích",
+				"Invite applicants for interviews and update selection results seamlessly": "Mời ứng viên phỏng vấn và cập nhật kết quả tuyển chọn liền mạch",
+				"Communicate with applicants via built-in chat and email systems": "Giao tiếp với ứng viên qua hệ thống chat và email tích hợp",
+				"Monitor engagement statistics, views, and applications through web dashboards": "Theo dõi thống kê tương tác, lượt xem và đơn ứng tuyển qua bảng điều khiển web"
 			},
 			"plan_names": {
 				"Free Plan": "Gói Miễn Phí",
@@ -2173,7 +2173,8 @@
 			"other": "Thông tin khác"
 		},
 		"faq": {
-			"title": "Câu hỏi thường gặp"
+			"title": "Câu hỏi thường gặp",
+			"no_faqs_available": "Không có câu hỏi thường gặp"
 		},
 		"divider": {
 			"icon_label": "Cần thêm trợ giúp?"

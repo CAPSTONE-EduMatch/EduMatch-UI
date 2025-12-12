@@ -1,14 +1,14 @@
 'use client'
 
-import { authClient } from '@/config/auth-client'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { LogOut, LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect } from 'react'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
-import { clearSessionCache } from '@/services/messaging/appsync-client'
 import { useTranslations } from 'next-intl'
+import { useLogout } from '@/hooks/auth/useLogout'
+import { LogoutConfirmModal } from '@/components/auth/LogoutConfirmModal'
 
 export type ProfileSection = string
 
@@ -104,28 +104,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 	const isInstitution = profile?.role === 'institution'
 	const planInfo = getPlanInfo(currentPlan || 'free', isInstitution)
 
-	// Handle logout
-	const handleLogout = async () => {
-		try {
-			// Clear AppSync session cache
-			clearSessionCache()
-
-			// Clear Better Auth session
-			await authClient.signOut()
-
-			// Clear browser storage
-			localStorage.clear()
-			sessionStorage.clear()
-
-			// Force full page reload to ensure all state is cleared
-			window.location.href = '/'
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to logout:', error)
-			// Still redirect even if logout fails
-			window.location.href = '/'
-		}
-	}
+	// Handle logout with confirmation modal
+	const {
+		handleLogoutClick,
+		handleConfirmLogout,
+		handleCancelLogout,
+		showConfirmModal,
+		isLoggingOut,
+	} = useLogout({ redirectTo: '/' })
 
 	// Default sidebar styles
 	const {
@@ -283,7 +269,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 				{profile?.role === 'institution' && (
 					<div className="mt-auto pt-4 border-t border-white/20">
 						<button
-							onClick={handleLogout}
+							onClick={handleLogoutClick}
 							className={`w-full flex items-center gap-3 text-left transition-all duration-200 ${itemPadding} ${itemBorderRadius} ${inactiveItemTextColor} hover:bg-white/10 hover:text-white`}
 						>
 							<LogOut className="w-4 h-4" />
@@ -292,6 +278,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 					</div>
 				)}
 			</nav>
+
+			{/* Logout Confirmation Modal */}
+			<LogoutConfirmModal
+				isOpen={showConfirmModal}
+				onClose={handleCancelLogout}
+				onConfirm={handleConfirmLogout}
+				isLoggingOut={isLoggingOut}
+			/>
 		</div>
 	)
 }

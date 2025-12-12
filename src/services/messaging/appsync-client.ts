@@ -368,7 +368,7 @@ export const clearThreadUnreadCount = async (threadId: string) => {
 
 // Session cache to prevent excessive API calls
 let sessionCache: { user: any; timestamp: number } | null = null;
-const SESSION_CACHE_DURATION = 30000; // 30 seconds
+const SESSION_CACHE_DURATION = 60000; // 60 seconds - increased to reduce API calls
 
 // Helper function to get user context for AppSync requests
 const getUserContext = async (retryCount = 0): Promise<any> => {
@@ -418,7 +418,21 @@ const getUserContext = async (retryCount = 0): Promise<any> => {
 			userName: user.name,
 			userImage: user.image,
 		};
-	} catch (error) {
+	} catch (error: any) {
+		// Handle rate limiting errors gracefully
+		if (error?.status === 429 || error?.response?.status === 429) {
+			console.warn(
+				"Rate limited on get-session, using cached session if available"
+			);
+			// Try to use cached session even if expired
+			if (sessionCache?.user) {
+				return {
+					userId: sessionCache.user.id,
+					userName: sessionCache.user.name,
+					userImage: sessionCache.user.image,
+				};
+			}
+		}
 		// Error getting session
 	}
 	return null;
@@ -539,9 +553,13 @@ export const subscribeToAllMessages = (callback: () => void) => {
 
 	// Use a simple polling mechanism to refresh threads periodically
 	// This ensures thread updates are reflected even when user is on different thread
+	// Increased interval to 30 seconds to match throttling and prevent rate limiting
 	const interval = setInterval(() => {
-		callback();
-	}, 3000); // Refresh every 3 seconds
+		// Only poll if tab is visible to save resources
+		if (typeof document !== "undefined" && !document.hidden) {
+			callback();
+		}
+	}, 30000); // Refresh every 30 seconds (matching loadThreads throttling)
 
 	return () => {
 		clearInterval(interval);

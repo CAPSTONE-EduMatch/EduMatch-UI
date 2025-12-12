@@ -293,6 +293,7 @@ export const InstitutionProfileSection: React.FC<
 				// Overview fields
 				aboutInstitution: editedProfile?.aboutInstitution || '',
 				institutionDisciplines: editedProfile?.institutionDisciplines || [],
+				institutionLogo: editedProfile?.institutionLogo || '',
 				institutionCoverImage: editedProfile?.institutionCoverImage || '',
 				// Include verification documents - they will be saved when profile is confirmed
 				// The API will check for duplicates by URL before saving
@@ -412,9 +413,9 @@ export const InstitutionProfileSection: React.FC<
 			const { ApiService } = await import('@/services/api/axios-config')
 			const result = await ApiService.uploadFile(file)
 
-			// Update the profile photo with the S3 URL in editedProfile
+			// Update the institution logo with the S3 URL in editedProfile
 			// This will be saved when user clicks Save button
-			handleFieldChange('profilePhoto', result.url)
+			handleFieldChange('institutionLogo', result.url)
 			setSuccessMessage(
 				'Logo uploaded successfully. Click "Confirm" to save your changes.'
 			)
@@ -441,12 +442,12 @@ export const InstitutionProfileSection: React.FC<
 			// Update the profile to remove logo
 			const profileData = {
 				role: profile.role,
-				profilePhoto: '',
+				institutionLogo: '',
 			}
 			await ApiService.updateProfile(profileData)
 
 			// Update local state
-			handleFieldChange('profilePhoto', '')
+			handleFieldChange('institutionLogo', '')
 			setShowSuccessModal(true)
 		} catch (error) {
 			setErrorMessage('Failed to delete logo. Please try again.')
@@ -698,7 +699,7 @@ export const InstitutionProfileSection: React.FC<
 										<div className="relative group">
 											<Avatar className="w-16 h-16">
 												<ProtectedAvatarImage
-													src={editedProfile?.profilePhoto}
+													src={editedProfile?.institutionLogo}
 													alt="Institution logo"
 													expiresIn={7200}
 													autoRefresh={true}
@@ -716,7 +717,7 @@ export const InstitutionProfileSection: React.FC<
 													>
 														<Upload className="w-3 h-3 text-primary-foreground" />
 													</div>
-													{editedProfile?.profilePhoto && (
+													{editedProfile?.institutionLogo && (
 														<button
 															onClick={handleDeleteLogo}
 															className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"

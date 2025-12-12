@@ -1,11 +1,6 @@
 'use client'
 
-import { Button } from '@/components/ui'
-import {
-	ApplicantsTable,
-	SuggestedApplicantsTable,
-	type Applicant,
-} from '@/components/profile/institution/components'
+import { Button, Tooltip } from '@/components/ui'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
@@ -14,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
 import CoverImage from '../../../../../public/EduMatch_Default.png'
-import { Users, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modals/Modal'
 
 const AdminScholarshipDetail = () => {
@@ -23,13 +18,6 @@ const AdminScholarshipDetail = () => {
 	const [activeTab, setActiveTab] = useState('detail')
 	const [currentScholarship, setCurrentScholarship] = useState<any>(null)
 	const [isLoadingScholarship, setIsLoadingScholarship] = useState(true)
-	const [isLoadingApplications, setIsLoadingApplications] = useState(false)
-	const [transformedApplicants, setTransformedApplicants] = useState<
-		Applicant[]
-	>([])
-	const [suggestedApplicants, setSuggestedApplicants] = useState<Applicant[]>(
-		[]
-	)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 	const [showRejectModal, setShowRejectModal] = useState(false)
@@ -71,11 +59,13 @@ const AdminScholarshipDetail = () => {
 		},
 	]
 
-	// Fetch scholarship details from admin API
+	// Fetch scholarship details from explore API (same as institution dashboard)
 	const fetchScholarshipDetail = async (scholarshipId: string) => {
 		try {
 			setIsLoadingScholarship(true)
-			const response = await fetch(`/api/admin/posts/${scholarshipId}`)
+			const response = await fetch(
+				`/api/explore/scholarships/scholarship-detail?id=${scholarshipId}`
+			)
 			const data = await response.json()
 
 			if (data.success && data.data) {
@@ -128,92 +118,6 @@ const AdminScholarshipDetail = () => {
 		}
 	}
 
-	// Helper function to format date
-	const formatDate = (dateString: string | Date) => {
-		if (!dateString) return 'N/A'
-		const date = new Date(dateString)
-		const day = date.getDate().toString().padStart(2, '0')
-		const month = (date.getMonth() + 1).toString().padStart(2, '0')
-		const year = date.getFullYear()
-		return `${day}/${month}/${year}`
-	}
-
-	// Transform applications to match Applicant interface
-	const transformApplications = (apps: any[]): Applicant[] => {
-		if (!Array.isArray(apps)) {
-			return []
-		}
-
-		return apps.map((app) => {
-			return {
-				id: app.id || app.application_id || '',
-				postId: app.postId || app.post_id || (params?.id as string),
-				name: app.name || 'Unknown',
-				appliedDate:
-					app.appliedDate || app.applied_date || formatDate(new Date()),
-				degreeLevel: app.degreeLevel || app.degree_level || 'Unknown',
-				subDiscipline:
-					app.subDiscipline ||
-					app.sub_discipline ||
-					app.subdiscipline ||
-					'Unknown',
-				status: (app.status?.toLowerCase() || 'submitted') as
-					| 'submitted'
-					| 'under_review'
-					| 'accepted'
-					| 'rejected'
-					| 'new_request',
-				matchingScore: app.matchingScore || app.matching_score || 0,
-				userId: app.userId || app.user_id,
-				gpa: app.snapshotData?.gpa || app.gpa || undefined,
-				postType: app.postType || 'Scholarship', // Preserve postType from API
-			}
-		})
-	}
-
-	// Fetch applications for this scholarship
-	const fetchApplications = async (scholarshipId: string) => {
-		try {
-			setIsLoadingApplications(true)
-			const response = await fetch(
-				`/api/applications/institution?postId=${scholarshipId}&page=1&limit=100`
-			)
-
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`)
-			}
-
-			const data = await response.json()
-
-			// The API returns applications in data.data, not data.applications
-			const applications = data.data || []
-
-			if (
-				data.success &&
-				Array.isArray(applications) &&
-				applications.length > 0
-			) {
-				const transformed = transformApplications(applications)
-				setTransformedApplicants(transformed)
-				// For suggested applicants, filter by high matching score (80+)
-				const suggested = transformed
-					.filter((app) => app.matchingScore >= 80)
-					.sort((a, b) => b.matchingScore - a.matchingScore)
-					.slice(0, 10)
-				setSuggestedApplicants(suggested)
-			} else {
-				setTransformedApplicants([])
-				setSuggestedApplicants([])
-			}
-		} catch (error) {
-			// Failed to fetch applications
-			setTransformedApplicants([])
-			setSuggestedApplicants([])
-		} finally {
-			setIsLoadingApplications(false)
-		}
-	}
-
 	// Load scholarship data when component mounts
 	useEffect(() => {
 		const loadScholarshipData = async () => {
@@ -226,34 +130,12 @@ const AdminScholarshipDetail = () => {
 			}
 
 			// Fetch scholarship data from API
-			const scholarshipData = await fetchScholarshipDetail(scholarshipId)
-
-			if (scholarshipData) {
-				// Fetch applications for this scholarship
-				await fetchApplications(scholarshipId)
-			}
+			await fetchScholarshipDetail(scholarshipId)
 		}
 
 		loadScholarshipData()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params?.id])
-
-	const handleEditScholarship = () => {
-		// Navigate to edit scholarship page
-		router.push(
-			`/institution/dashboard/programs?action=edit&type=Scholarship&id=${params?.id}`
-		)
-	}
-
-	const handleViewApplications = () => {
-		// Navigate to applications section
-		router.push(`/institution/dashboard/applications?postId=${params?.id}`)
-	}
-
-	const handleApplicantDetail = (applicant: Applicant) => {
-		// Navigate to applicant detail view
-		router.push(`/institution/dashboard/applications/${applicant.id}`)
-	}
 
 	const handleDeleteScholarship = async () => {
 		try {
@@ -366,6 +248,12 @@ const AdminScholarshipDetail = () => {
 			case 'DRAFT':
 				return 'bg-gray-100 text-gray-800'
 			case 'CLOSED':
+				return 'bg-blue-100 text-blue-800'
+			case 'REJECTED':
+				return 'bg-red-100 text-red-800'
+			case 'PROGRESSING':
+				return 'bg-purple-100 text-purple-800'
+			case 'SUBMITTED':
 				return 'bg-blue-100 text-blue-800'
 			default:
 				return 'bg-gray-100 text-gray-800'
@@ -590,11 +478,9 @@ const AdminScholarshipDetail = () => {
 						</p>
 
 						<div className="flex flex-col items-center gap-3 mb-4 w-full">
-							{/* Approve/Reject Buttons - Show for SUBMITTED, UPDATED, or PROGRESSING status */}
-							{(currentScholarship?.status === 'SUBMITTED' ||
-								currentScholarship?.status === 'UPDATED' ||
-								currentScholarship?.status === 'PROGRESSING') && (
-								<div className="flex gap-3 w-full">
+							{/* Status Action Buttons based on current status */}
+							{currentScholarship?.status === 'PROGRESSING' && (
+								<div className="flex items-center justify-center gap-3 w-full">
 									<Button
 										onClick={async () => {
 											try {
@@ -632,14 +518,14 @@ const AdminScholarshipDetail = () => {
 												setIsProcessing(false)
 											}
 										}}
-										className="flex-1 bg-[#126E64] hover:bg-[#0f5a52] text-white"
+										className="py-2.5 px-5 text-sm bg-[#126E64] hover:bg-[#0f5a52] text-white"
 										disabled={isProcessing}
 									>
-										{isProcessing ? 'Processing...' : 'Approve'}
+										{isProcessing ? 'Processing...' : 'Publish'}
 									</Button>
 									<Button
 										onClick={() => setShowRejectModal(true)}
-										className="flex-1 bg-[#EF4444] hover:bg-[#dc2626] text-white"
+										className="py-2.5 px-5 text-sm bg-[#EF4444] hover:bg-[#dc2626] text-white"
 										disabled={isProcessing}
 									>
 										Reject
@@ -647,45 +533,193 @@ const AdminScholarshipDetail = () => {
 								</div>
 							)}
 
-							<div className="flex items-center gap-3 flex-wrap justify-center">
-								{currentScholarship?.status === 'DRAFT' && (
-									<>
-										<Button
-											onClick={handleEditScholarship}
-											variant="outline"
-											className="text-[#126E64] border-[#126E64] hover:bg-teal-50"
-										>
-											Edit Scholarship
-										</Button>
-										<Button
-											onClick={() => setIsDeleteModalOpen(true)}
-											variant="outline"
-											className="text-red-600 border-red-600 hover:bg-red-50"
-										>
-											Delete
-										</Button>
-									</>
-								)}
-								{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' && (
+							{currentScholarship?.status === 'PUBLISHED' && (
+								<div className="flex gap-3 w-full">
 									<Button
-										onClick={handleCloseScholarship}
-										variant="outline"
-										className="text-orange-600 border-orange-600 hover:bg-orange-50"
+										onClick={async () => {
+											try {
+												setIsProcessing(true)
+												const response = await fetch(
+													`/api/admin/posts/${params?.id}`,
+													{
+														method: 'PATCH',
+														headers: {
+															'Content-Type': 'application/json',
+														},
+														body: JSON.stringify({ status: 'CLOSED' }),
+													}
+												)
+												const data = await response.json()
+												if (response.ok && data.success) {
+													showSuccess(
+														'Success',
+														'Scholarship closed successfully'
+													)
+													await fetchScholarshipDetail(params?.id as string)
+													router.push('/admin/posts')
+												} else {
+													showError(
+														'Error',
+														data.error || 'Failed to close scholarship'
+													)
+												}
+											} catch (error) {
+												showError(
+													'Error',
+													'Failed to close scholarship. Please try again.'
+												)
+											} finally {
+												setIsProcessing(false)
+											}
+										}}
+										className="flex-1 bg-[#6EB6FF] hover:bg-[#5aa3e6] text-black"
+										disabled={isProcessing}
 									>
-										Close Scholarship
+										{isProcessing ? 'Processing...' : 'Close'}
 									</Button>
-								)}
-								<span
-									className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
-								>
-									{currentScholarship?.status || 'DRAFT'}
-								</span>
-							</div>
-						</div>
+								</div>
+							)}
 
-						<p className="text-sm text-gray-500">
-							Number of applications: {transformedApplicants.length}
-						</p>
+							{(currentScholarship?.status === 'REJECTED' ||
+								currentScholarship?.status === 'CLOSED') && (
+								<div className="flex items-center justify-center gap-3 w-full">
+									<Tooltip
+										content={
+											currentScholarship?.status === 'REJECTED'
+												? 'Change status to Submitted - Post will be resubmitted for review'
+												: 'Change status to Progressing - Post will be under review again'
+										}
+										maxWidth={250}
+									>
+										<Button
+											onClick={async () => {
+												try {
+													setIsProcessing(true)
+													const newStatus =
+														currentScholarship?.status === 'REJECTED'
+															? 'SUBMITTED'
+															: 'PROGRESSING'
+													const response = await fetch(
+														`/api/admin/posts/${params?.id}`,
+														{
+															method: 'PATCH',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ status: newStatus }),
+														}
+													)
+													const data = await response.json()
+													if (response.ok && data.success) {
+														showSuccess(
+															'Success',
+															`Scholarship status updated to ${newStatus}`
+														)
+														await fetchScholarshipDetail(params?.id as string)
+														router.push('/admin/posts')
+													} else {
+														showError(
+															'Error',
+															data.error ||
+																'Failed to update scholarship status'
+														)
+													}
+												} catch (error) {
+													showError(
+														'Error',
+														'Failed to update scholarship status. Please try again.'
+													)
+												} finally {
+													setIsProcessing(false)
+												}
+											}}
+											className="py-2.5 px-5 text-sm !bg-[#8B5CF6] hover:!bg-[#7c3aed] !text-white"
+											style={{ backgroundColor: '#8B5CF6' }}
+											disabled={isProcessing}
+										>
+											{isProcessing
+												? 'Processing...'
+												: currentScholarship?.status === 'REJECTED'
+													? 'Submitted'
+													: 'Progressing'}
+										</Button>
+									</Tooltip>
+									<Tooltip
+										content="Publish this post - Make it visible to all users immediately"
+										maxWidth={250}
+									>
+										<Button
+											onClick={async () => {
+												try {
+													setIsProcessing(true)
+													const response = await fetch(
+														`/api/admin/posts/${params?.id}`,
+														{
+															method: 'PATCH',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ status: 'PUBLISHED' }),
+														}
+													)
+													const data = await response.json()
+													if (response.ok && data.success) {
+														showSuccess(
+															'Success',
+															'Scholarship published successfully'
+														)
+														await fetchScholarshipDetail(params?.id as string)
+														router.push('/admin/posts')
+													} else {
+														showError(
+															'Error',
+															data.error || 'Failed to publish scholarship'
+														)
+													}
+												} catch (error) {
+													showError(
+														'Error',
+														'Failed to publish scholarship. Please try again.'
+													)
+												} finally {
+													setIsProcessing(false)
+												}
+											}}
+											className="py-2.5 px-5 text-sm !bg-[#10B981] hover:!bg-[#059669] !text-white"
+											style={{ backgroundColor: '#10B981' }}
+											disabled={isProcessing}
+										>
+											{isProcessing ? 'Processing...' : 'Publish'}
+										</Button>
+									</Tooltip>
+									<span
+										className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
+									>
+										{currentScholarship?.status || 'DRAFT'}
+									</span>
+								</div>
+							)}
+
+							{currentScholarship?.status !== 'REJECTED' &&
+								currentScholarship?.status !== 'CLOSED' && (
+									<div className="flex items-center gap-3 flex-wrap justify-center">
+										{currentScholarship?.status === 'DRAFT' && (
+											<Button
+												onClick={() => setIsDeleteModalOpen(true)}
+												variant="outline"
+												className="text-red-600 border-red-600 hover:bg-red-50"
+											>
+												Delete
+											</Button>
+										)}
+										<span
+											className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(currentScholarship?.status || '')}`}
+										>
+											{currentScholarship?.status || 'DRAFT'}
+										</span>
+									</div>
+								)}
+						</div>
 					</motion.div>
 				</div>
 			</motion.div>
@@ -705,7 +739,7 @@ const AdminScholarshipDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="bg-white py-6 shadow-xl border"
+					className="bg-white py-6 shadow-xl border mt-6"
 				>
 					<div className="container mx-auto px-4">
 						<div className="grid grid-cols-2 md:grid-cols-6 gap-6">
@@ -787,78 +821,6 @@ const AdminScholarshipDetail = () => {
 						</AnimatePresence>
 					</motion.div>
 				</div>
-
-				{/* Applications Table Section - Only show for CLOSED or PUBLISHED status */}
-				{(currentScholarship?.status?.toUpperCase() === 'CLOSED' ||
-					currentScholarship?.status?.toUpperCase() === 'PUBLISHED') && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.6 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<div className="flex items-center justify-between mb-6">
-							<h2 className="text-3xl font-bold">Applications</h2>
-							<Button
-								onClick={handleViewApplications}
-								className="bg-[#126E64] hover:bg-teal-700 text-white"
-								size="sm"
-							>
-								View All Applications
-							</Button>
-						</div>
-
-						{/* Applicants Table */}
-						{isLoadingApplications ? (
-							<div className="text-center py-8">
-								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
-								<p className="mt-2 text-gray-600">Loading applications...</p>
-							</div>
-						) : transformedApplicants.length > 0 ? (
-							<div className="border bg-white border-gray-200 rounded-xl p-6">
-								<ApplicantsTable
-									applicants={transformedApplicants}
-									onMoreDetail={handleApplicantDetail}
-									hidePostId={true}
-								/>
-							</div>
-						) : (
-							<div className="text-center py-8 bg-gray-50 rounded-lg">
-								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No applications yet</p>
-							</div>
-						)}
-					</motion.div>
-				)}
-
-				{/* Suggested Applicants Section - Always show for PUBLISHED status */}
-				{currentScholarship?.status?.toUpperCase() === 'PUBLISHED' && (
-					<motion.div
-						initial={{ y: 20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						transition={{ delay: 0.7 }}
-						className="p-8 bg-white py-6 shadow-xl border"
-					>
-						<h2 className="text-3xl font-bold mb-6">Suggested Applicants</h2>
-						<p className="text-gray-600 mb-6">
-							These applicants have high matching scores (80%+) and may be a
-							good fit for this scholarship.
-						</p>
-						{suggestedApplicants.length > 0 ? (
-							<div className="border bg-white border-gray-200 rounded-xl p-6">
-								<SuggestedApplicantsTable
-									applicants={suggestedApplicants}
-									onMoreDetail={handleApplicantDetail}
-								/>
-							</div>
-						) : (
-							<div className="text-center py-8 bg-gray-50 rounded-lg">
-								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No suggested applicants yet</p>
-							</div>
-						)}
-					</motion.div>
-				)}
 			</motion.div>
 
 			{/* Delete Confirmation Modal */}

@@ -290,13 +290,11 @@ export default function AdminPostsPage() {
 						})
 					}}
 					statusOptions={[
-						{ value: 'DRAFT', label: 'Draft' },
 						{ value: 'PUBLISHED', label: 'Published' },
 						{ value: 'CLOSED', label: 'Closed' },
 						{ value: 'SUBMITTED', label: 'Submitted' },
 						{ value: 'PROGRESSING', label: 'Progressing' },
 						{ value: 'REJECTED', label: 'Rejected' },
-						{ value: 'DELETED', label: 'Deleted' },
 					]}
 					searchPlaceholder="Search by title or institution..."
 				/>

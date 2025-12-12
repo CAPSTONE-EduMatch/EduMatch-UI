@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 						(inst) => inst.name && inst.country
 					) || {
 						name: "University",
-						logo: "/logos/default.png",
+						logo: null,
 						country: "Unknown",
 					};
 
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 						(inst) => inst.name && inst.country
 					) || {
 						name: "University",
-						logo: "/logos/default.png",
+						logo: null,
 						country: "Unknown",
 					};
 
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
 						(inst) => inst.name && inst.country
 					) || {
 						name: "University",
-						logo: "/logos/default.png",
+						logo: null,
 						country: "Unknown",
 					};
 

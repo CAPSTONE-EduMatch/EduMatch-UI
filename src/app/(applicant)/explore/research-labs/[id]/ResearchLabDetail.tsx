@@ -50,6 +50,7 @@ const ResearchLabDetail = () => {
 	// Wishlist functionality
 	const { isInWishlist, toggleWishlistItem } = useWishlist({
 		autoFetch: true,
+		isAuthenticated: isAuthenticated,
 		initialParams: {
 			page: 1,
 			limit: 100,
@@ -396,6 +397,11 @@ const ResearchLabDetail = () => {
 	// Fetch applications for a specific post
 	const fetchApplicationsForPost = useCallback(
 		async (postId: string) => {
+			// Don't fetch if user is not authenticated
+			if (!isAuthenticated) {
+				return
+			}
+
 			// Only show loading if we don't have applications for this post yet
 			if (lastFetchedPostId !== postId) {
 				setLoadingApplications(true)
@@ -422,7 +428,7 @@ const ResearchLabDetail = () => {
 				setLoadingApplications(false)
 			}
 		},
-		[lastFetchedPostId]
+		[lastFetchedPostId, isAuthenticated]
 	)
 
 	// Fetch applications for this post when application tab is active
@@ -430,6 +436,7 @@ const ResearchLabDetail = () => {
 		if (
 			activeTab === 'application' &&
 			researchLab?.id &&
+			isAuthenticated &&
 			lastFetchedPostId !== researchLab.id &&
 			!isAutoLoadingApplication
 		) {
@@ -437,6 +444,7 @@ const ResearchLabDetail = () => {
 		}
 	}, [
 		activeTab,
+		isAuthenticated,
 		researchLab?.id,
 		lastFetchedPostId,
 		isAutoLoadingApplication,
@@ -447,7 +455,13 @@ const ResearchLabDetail = () => {
 	useEffect(() => {
 		const researchLabId = researchLab?.id || params?.id
 		// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
-		if (researchLabId && !isCheckingApplication && !applicationIdFromUrl) {
+		// Only check if user is authenticated
+		if (
+			researchLabId &&
+			isAuthenticated &&
+			!isCheckingApplication &&
+			!applicationIdFromUrl
+		) {
 			// Add a small delay to prevent rapid successive calls
 			const timeoutId = setTimeout(() => {
 				checkExistingApplication(researchLabId as string)
@@ -455,7 +469,7 @@ const ResearchLabDetail = () => {
 
 			return () => clearTimeout(timeoutId)
 		}
-	}, [researchLab?.id, params?.id, applicationIdFromUrl]) // Added applicationIdFromUrl to prevent duplicate loads
+	}, [researchLab?.id, params?.id, applicationIdFromUrl, isAuthenticated]) // Added applicationIdFromUrl and isAuthenticated to prevent duplicate loads
 
 	// Handle applicationId from URL - update Application Status section
 	useEffect(() => {
@@ -633,6 +647,11 @@ const ResearchLabDetail = () => {
 
 	// Check if user has already applied to this post
 	const checkExistingApplication = async (researchLabId: string) => {
+		// Don't check if user is not authenticated
+		if (!isAuthenticated) {
+			return false
+		}
+
 		try {
 			setIsCheckingApplication(true)
 			const response = await applicationService.getApplications({
@@ -2005,14 +2024,26 @@ const ResearchLabDetail = () => {
 											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
 											<div className="text-center">
 												<Button
-													onClick={() => setShowDocumentSelector(true)}
+													onClick={() => {
+														if (!isAuthenticated) {
+															setShowAuthModal(true)
+															return
+														}
+														setShowDocumentSelector(true)
+													}}
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
+													disabled={!isAuthenticated}
 												>
 													{t('research_lab_detail.apply.select_profile_button')}
 												</Button>
 												<p className="text-sm text-gray-500 mt-2">
-													{t('research_lab_detail.apply.select_profile_hint')}
+													{!isAuthenticated
+														? t('auth.required.message') ||
+															'Please sign in to select documents from your profile.'
+														: t(
+																'research_lab_detail.apply.select_profile_hint'
+															)}
 												</p>
 											</div>
 
@@ -2029,6 +2060,8 @@ const ResearchLabDetail = () => {
 											<div className="">
 												<FileUploadManagerWithOCR
 													category="application-documents"
+													isAuthenticated={isAuthenticated}
+													onAuthRequired={() => setShowAuthModal(true)}
 													onFilesUploaded={(uploadedFileData: any[]) => {
 														if (
 															!uploadedFileData ||

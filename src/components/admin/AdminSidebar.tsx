@@ -1,9 +1,9 @@
 'use client'
 
 import { ProfileSidebar } from '@/components/profile/layouts/ProfileSidebar'
-import { authClient } from '@/config/auth-client'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
-import { clearSessionCache } from '@/services/messaging/appsync-client'
+import { useLogout } from '@/hooks/auth/useLogout'
+import { LogoutConfirmModal } from '@/components/auth/LogoutConfirmModal'
 import {
 	Building2,
 	CreditCard,
@@ -56,6 +56,15 @@ export function AdminSidebar({
 	const router = useRouter()
 	const { isAdmin, isLoading } = useAdminAuth()
 
+	// Handle logout with confirmation modal
+	const {
+		handleLogoutClick,
+		handleConfirmLogout,
+		handleCancelLogout,
+		showConfirmModal,
+		isLoggingOut,
+	} = useLogout({ redirectTo: '/signin' })
+
 	const handleSectionChange = (sectionId: string) => {
 		switch (sectionId) {
 			case 'dashboard':
@@ -95,28 +104,8 @@ export function AdminSidebar({
 				router.push('/admin/settings')
 				break
 			case 'logout':
-				// Handle logout logic here
-				;(async () => {
-					try {
-						// Clear AppSync session cache
-						clearSessionCache()
-
-						// Clear Better Auth session
-						await authClient.signOut()
-
-						// Clear browser storage
-						localStorage.clear()
-						sessionStorage.clear()
-
-						// Force full page reload to ensure all state is cleared
-						window.location.href = '/signin'
-					} catch (error) {
-						// eslint-disable-next-line no-console
-						console.error('Failed to logout:', error)
-						// Still redirect even if logout fails
-						window.location.href = '/signin'
-					}
-				})()
+				// Show logout confirmation modal
+				handleLogoutClick()
 				break
 			default:
 				// For other sections, you can add more routes as needed
@@ -157,6 +146,13 @@ export function AdminSidebar({
 					itemPadding: 'px-4 py-3',
 					itemSpacing: 'mb-2',
 				}}
+			/>
+			{/* Logout Confirmation Modal */}
+			<LogoutConfirmModal
+				isOpen={showConfirmModal}
+				onClose={handleCancelLogout}
+				onConfirm={handleConfirmLogout}
+				isLoggingOut={isLoggingOut}
 			/>
 		</div>
 	)

@@ -112,9 +112,8 @@ export async function GET(request: NextRequest) {
 			});
 
 			if (applicant) {
-				const { canSeeRecommendations } = await import(
-					"@/services/authorization/authorization-service"
-				);
+				const { canSeeRecommendations } =
+					await import("@/services/authorization/authorization-service");
 				const recommendationPermission = await canSeeRecommendations(
 					applicant.applicant_id
 				);
@@ -264,7 +263,7 @@ export async function GET(request: NextRequest) {
 					title: post.title,
 					description: post.description || "No description available",
 					university: institution.name,
-					logo: institution.logo || "/logos/default.png",
+					logo: institution.logo || null,
 					field: fieldName,
 					country: institution.country || "Unknown",
 					date: deadlineDate.toISOString().split("T")[0],

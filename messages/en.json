@@ -113,7 +113,7 @@
 		"auth": {
 			"required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
 			}
 		},
 		"buttons": {
@@ -249,7 +249,7 @@
 	"auth": {
 		"required": {
 			"title": "Authentication Required",
-			"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one."
+			"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
 		},
 		"signup": {
 			"title": "Sign up",
@@ -489,7 +489,14 @@
 			}
 		},
 		"blog_section": {
-			"title": "Latest Posts"
+			"title": "Latest Posts",
+			"empty": {
+				"title": "No posts yet",
+				"description_programmes": "No programmes available at the moment. Check back later for new opportunities!",
+				"description_scholarships": "No scholarships available at the moment. Check back later for new opportunities!",
+				"description_research_labs": "No research labs available at the moment. Check back later for new opportunities!",
+				"try_other_button": "Try other category"
+			}
 		},
 		"cta_section": {
 			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
@@ -765,7 +772,7 @@
 			},
 			"auth_required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
 				"sign_in": "Sign In",
 				"sign_up": "Sign Up"
 			}
@@ -1066,7 +1073,7 @@
 			},
 			"auth_required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
 				"sign_in": "Sign in",
 				"sign_up": "Sign up"
 			}
@@ -1291,7 +1298,7 @@
 			},
 			"auth_required": {
 				"title": "Authentication Required",
-				"message": "You need to sign in to add items to your wishlist. Please sign in to your account or create a new one.",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
 				"sign_in": "Sign In",
 				"sign_up": "Sign Up"
 			}
@@ -1418,7 +1425,7 @@
 			"monthly": "month",
 			"feature_map": {
 				"Account registration & OTP verification": "Account registration & OTP verification",
-				"Create & update personal profile (GPA, skills, research topic, etc.)": "Create & update personal profile (GPA, skills, research topic, etc.)",
+				"Create & update personal profile (GPA, skills, research topic, etc)": "Create & update personal profile (GPA, skills, research topic, etc.)",
 				"Basic scholarship, program & research group search": "Basic scholarship, program & research group search",
 				"View scholarship details & requirements": "View scholarship details & requirements",
 				"Receive deadline reminders for saved scholarships/programs": "Receive deadline reminders for saved scholarships/programs",
@@ -1447,13 +1454,13 @@
 				"Interview preparation resources": "Interview preparation resources",
 				"Exclusive webinars & workshops": "Exclusive webinars & workshops",
 				"Priority customer support": "Priority customer support",
-				"Create and manage comprehensive institutional profiles with branding and details.": "Create and manage comprehensive institutional profiles with branding and details",
-				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines.": "Post detailed opportunities with descriptions, eligibility criteria, and deadlines",
-				"Access intelligent matching algorithms to find the best candidates.": "Access intelligent matching algorithms to find the best candidates",
-				"View detailed applicant profiles with matching scores and analytics.": "View detailed applicant profiles with matching scores and analytics",
-				"Invite applicants for interviews and update selection results seamlessly.": "Invite applicants for interviews and update selection results seamlessly",
-				"Communicate with applicants via built-in chat and email systems.": "Communicate with applicants via built-in chat and email systems",
-				"Monitor engagement statistics, views, and applications through web dashboards.": "Monitor engagement statistics, views, and applications through web dashboards"
+				"Create and manage comprehensive institutional profiles with branding and details": "Create and manage comprehensive institutional profiles with branding and details",
+				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines": "Post detailed opportunities with descriptions, eligibility criteria, and deadlines",
+				"Access intelligent matching algorithms to find the best candidates": "Access intelligent matching algorithms to find the best candidates",
+				"View detailed applicant profiles with matching scores and analytics": "View detailed applicant profiles with matching scores and analytics",
+				"Invite applicants for interviews and update selection results seamlessly": "Invite applicants for interviews and update selection results seamlessly",
+				"Communicate with applicants via built-in chat and email systems": "Communicate with applicants via built-in chat and email systems",
+				"Monitor engagement statistics, views, and applications through web dashboards": "Monitor engagement statistics, views, and applications through web dashboards"
 			},
 			"plan_names": {
 				"Free Plan": "Free Plan",
@@ -2110,8 +2117,8 @@
 	},
 	"support_page": {
 		"header": {
-			"title": "How can we help?",
-			"subtitle": "Get answers to your questions or contact our support team"
+			"title": "Support Center",
+			"subtitle": "Get help using the EduMatch platform, find answers to frequently asked questions, and contact our support team for personalized assistance."
 		},
 		"tabs": {
 			"account": "Account",
@@ -2119,43 +2126,130 @@
 			"subscription": "Subscription",
 			"other": "Other information"
 		},
-		"form": {
-			"title": "Still need help?",
-			"subtitle": "Send us a message and we'll get back to you as soon as possible",
-			"problem_type": {
-				"label": "What is your problem about?",
-				"placeholder": "Select problem type",
-				"options": {
-					"application": "Application",
-					"account": "Account",
-					"payment": "Payment",
-					"technical": "Technical Issue",
-					"other": "Other"
-				}
+		"faq": {
+			"title": "Frequently Asked Questions",
+			"no_faqs_available": "No FAQs available"
+		},
+		"divider": {
+			"icon_label": "Need more help?"
+		},
+		"contact": {
+			"title": "Contact Us",
+			"subtitle": "Have an issue not covered in the FAQs? You can ask us a question here, and we'll get back to you to help.",
+			"email_label": "Your Email",
+			"email_placeholder": "you@example.com",
+			"problem_type_label": "Problem Type",
+			"problem_type_placeholder": "Select problem type",
+			"problem_types": {
+				"application": "Application",
+				"account": "Account",
+				"subscription": "Subscription",
+				"technical": "Technical",
+				"other": "Other"
 			},
-			"question": {
-				"label": "Your Question",
-				"placeholder": "Please describe your issue in detail..."
-			},
-			"email": {
-				"label": "Email Address",
-				"placeholder": "your.email@example.com"
-			},
-			"attach_files": {
-				"button": "Attach Files",
-				"hint": "PNG, JPEG (max 5MB) • PDF, DOC, DOCX (max 10MB)"
-			},
-			"manage_files": "Manage Files ({count})",
-			"submit": "Send Message",
-			"submitting": "Sending...",
-			"success": "Your request has been submitted. We will contact you soon.",
-			"error": "Failed to submit request. Please try again."
+			"question_placeholder": "Enter your question here",
+			"note": "You can attach files to help us better understand your issue. Supported formats: PNG, JPEG (max 5MB), PDF, DOC, DOCX (max 10MB).",
+			"note_label": "Note:",
+			"uploaded_files_label": "Uploaded Files ({count}):",
+			"manage_files_button": "Manage Files",
+			"more_files_text": "... and {count} more files. Click \"Manage Files\" to view all.",
+			"sending": "Sending your request...",
+			"submit_success": "Your request has been submitted. We will contact you soon.",
+			"submit_error": "Please enter your question",
+			"email_required": "Please provide your email",
+			"generic_error": "An error occurred"
+		},
+		"file_validation": {
+			"image_too_large": "{filename} is too large. Image files must be under 5MB.",
+			"document_too_large": "{filename} is too large. Document files must be under 10MB.",
+			"unsupported_type": "{filename} is not supported. Only PNG, JPEG, PDF, and DOC files are accepted."
 		},
 		"file_modal": {
-			"title": "Manage Attached Files",
-			"empty": "No files attached",
-			"remove": "Remove",
-			"close": "Close"
+			"title": "Manage Files",
+			"close_button": "✕",
+			"uploaded_section_title": "Uploaded Files ({count})",
+			"delete_button": "Delete",
+			"empty_state": "No files uploaded yet",
+			"empty_icon": "📁",
+			"file_icons": {
+				"pdf": "📄",
+				"image": "🖼️",
+				"default": "📎"
+			}
+		},
+		"faqs": {
+			"account": [
+				{
+					"question": "How do I create an EduMatch account?",
+					"answer": "Click the \"Sign Up\" button on the homepage, fill in your information including email, password, and basic profile information. You'll receive a verification email to activate your account."
+				},
+				{
+					"question": "I forgot my password. How do I reset it?",
+					"answer": "Click \"Forgot Password\" on the login page, enter your email address, and we'll send you a password reset link. Follow the instructions in the email to create a new password."
+				},
+				{
+					"question": "How can I update my profile information?",
+					"answer": "Navigate to the Profile section after logging in. You can edit your personal information, academic background, research interests, and upload documents."
+				},
+				{
+					"question": "Can I delete my account?",
+					"answer": "Yes, you can delete your account by going to Account Settings and clicking \"Delete Account\". Note that this action is irreversible and all your data will be permanently removed."
+				}
+			],
+			"application": [
+				{
+					"question": "How do I apply for scholarships and research opportunities?",
+					"answer": "Navigate to the Explore section, filter by your preferences, and click on any opportunity you're interested in. Each listing has detailed application instructions and required documents."
+				},
+				{
+					"question": "Can I apply to multiple opportunities at once?",
+					"answer": "Yes, you can apply to as many opportunities as you're eligible for. We recommend tailoring each application to the specific requirements."
+				},
+				{
+					"question": "How do I track my application status?",
+					"answer": "Visit your profile dashboard where you can view all submitted applications, their current status, and any updates from the institutions."
+				},
+				{
+					"question": "What documents do I need for applications?",
+					"answer": "Common documents include CV/Resume, transcripts, letters of recommendation, personal statements, and research proposals. Each opportunity specifies its exact requirements."
+				}
+			],
+			"subscription": [
+				{
+					"question": "What subscription plans are available?",
+					"answer": "We offer Basic (free), Premium, and Professional subscription plans. Each plan provides different levels of access to opportunities, application tracking, and premium features."
+				},
+				{
+					"question": "How do I upgrade my subscription?",
+					"answer": "Go to Account Settings and click \"Subscription\". Select your desired plan and complete the payment process. Your upgrade will be activated immediately."
+				},
+				{
+					"question": "Can I cancel my subscription anytime?",
+					"answer": "Yes, you can cancel your subscription at any time from your Account Settings. Your premium features will remain active until the end of your current billing cycle."
+				},
+				{
+					"question": "Do you offer refunds?",
+					"answer": "We offer a 30-day money-back guarantee for new subscriptions. Contact our support team within 30 days of purchase for a full refund."
+				}
+			],
+			"other": [
+				{
+					"question": "How does the matching algorithm work?",
+					"answer": "Our algorithm analyzes your academic background, research interests, location preferences, and career goals to match you with the most suitable opportunities."
+				},
+				{
+					"question": "Is my personal information secure?",
+					"answer": "Yes, we use industry-standard encryption and security measures to protect your data. We never share your personal information with third parties without your consent."
+				},
+				{
+					"question": "How do I contact support?",
+					"answer": "You can reach our support team via email, phone, or live chat. We also have an extensive help center with articles and tutorials."
+				},
+				{
+					"question": "Do you have a mobile app?",
+					"answer": "Currently, EduMatch is available as a mobile-optimized web application. We're working on native mobile apps that will be available soon."
+				}
+			]
 		}
 	},
 	"create_profile": {

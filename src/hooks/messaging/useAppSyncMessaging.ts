@@ -71,13 +71,24 @@ export const useAppSyncMessaging = () => {
 				return;
 			}
 
+			// Don't load if tab is not visible (save resources)
+			if (typeof document !== "undefined" && document.hidden) {
+				return;
+			}
+
 			try {
 				setLoading(true);
 				setError(null);
 				const threadsData = await getThreads();
 				setThreads(threadsData);
 				setLastThreadsLoad(now);
-			} catch (err) {
+			} catch (err: any) {
+				// Handle rate limiting errors gracefully
+				if (err?.status === 429 || err?.response?.status === 429) {
+					// Rate limited - will retry later automatically
+					// Don't set error for rate limiting to avoid user confusion
+					return;
+				}
 				setError("Failed to load threads");
 			} finally {
 				setLoading(false);
@@ -229,9 +240,15 @@ export const useAppSyncMessaging = () => {
 		[loadMessages]
 	);
 
-	// Set up subscriptions
+	// Set up subscriptions - only when authenticated
 	useEffect(() => {
+		// Don't set up subscriptions if not authenticated or AppSync not configured
 		if (!process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
+			return;
+		}
+
+		// Only set up subscriptions if user is authenticated
+		if (!isAuthenticated || !user?.id) {
 			return;
 		}
 
@@ -248,7 +265,10 @@ export const useAppSyncMessaging = () => {
 		// This ensures that when user is on a different thread, they still see updates to other threads
 		const unsubscribeAllMessages = subscribeToAllMessages(() => {
 			// Just refresh threads when any message is sent - simpler approach
-			loadThreads();
+			// Only load if authenticated
+			if (isAuthenticated && user?.id) {
+				loadThreads();
+			}
 		});
 
 		// Subscribe to messages for selected thread
@@ -274,7 +294,8 @@ export const useAppSyncMessaging = () => {
 			unsubscribeAllMessages();
 			unsubscribeMessages();
 		};
-	}, [selectedThreadId, user?.id]); // Removed loadThreads from dependencies
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedThreadId, user?.id, isAuthenticated]); // Only depend on auth state, not loadThreads to avoid loops
 
 	// Initialize user and load threads when authentication state changes
 	useEffect(() => {
@@ -306,7 +327,8 @@ export const useAppSyncMessaging = () => {
 		};
 
 		initUserAndLoadThreads();
-	}, [isAuthenticated, authUser?.id, authLoading, user?.id]); // Only depend on user ID, not full objects
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated, authUser?.id, authLoading, user?.id]); // Only depend on user ID, not full objects to avoid loops
 
 	return {
 		messages,

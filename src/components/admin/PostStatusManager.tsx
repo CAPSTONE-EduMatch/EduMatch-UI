@@ -64,21 +64,21 @@ const POST_STATUS_OPTIONS = [
 /**
  * Get allowed status transitions based on current status
  * Rules:
- * - SUBMITTED/UPDATED/PROGRESSING → PUBLISHED, REJECTED
+ * - PROGRESSING → PUBLISHED, REJECTED
  * - PUBLISHED → CLOSED
  * - REJECTED → SUBMITTED, PUBLISHED
+ * - CLOSED → PROGRESSING, PUBLISHED
  */
 const getAllowedStatusOptions = (currentStatus: PostStatus): PostStatus[] => {
 	switch (currentStatus) {
-		case 'SUBMITTED':
-		case 'UPDATED':
 		case 'PROGRESSING':
 			return ['PUBLISHED', 'REJECTED']
 		case 'PUBLISHED':
 			return ['CLOSED']
 		case 'REJECTED':
-		case 'CLOSED':
 			return ['SUBMITTED', 'PUBLISHED']
+		case 'CLOSED':
+			return ['PROGRESSING', 'PUBLISHED']
 		default:
 			return []
 	}
@@ -114,16 +114,13 @@ const PostStatusManager = ({
 	const router = useRouter()
 
 	// Get available options based on current status
-	// For admin, we only show Published and Rejected buttons
 	const allowedStatuses = getAllowedStatusOptions(currentStatus)
 	const availableOptions = POST_STATUS_OPTIONS.filter((opt) =>
 		allowedStatuses.includes(opt.value)
 	)
 
-	// Filter to only show Published and Rejected buttons
-	const actionButtons = availableOptions.filter(
-		(opt) => opt.value === 'PUBLISHED' || opt.value === 'REJECTED'
-	)
+	// Show all available status options as action buttons
+	const actionButtons = availableOptions
 
 	const handleStatusChange = (newStatus: PostStatus) => {
 		setSelectedStatus(newStatus)
@@ -262,21 +259,33 @@ const PostStatusManager = ({
 						Change Status To
 					</label>
 					<div className="flex gap-3">
-						{actionButtons.map((option) => (
-							<Button
-								key={option.value}
-								type="button"
-								onClick={() => handleStatusChange(option.value)}
-								className={`flex-1 py-3 px-6 font-medium transition-all ${
-									option.value === 'PUBLISHED'
-										? 'bg-[#126E64] hover:bg-[#0f5a52] text-white'
-										: 'bg-[#EF4444] hover:bg-[#dc2626] text-white'
-								}`}
-								disabled={isUpdating}
-							>
-								{option.label}
-							</Button>
-						))}
+						{actionButtons.map((option) => {
+							// Determine button color based on status
+							let buttonClass = 'flex-1 py-3 px-6 font-medium transition-all '
+							if (option.value === 'PUBLISHED') {
+								buttonClass += 'bg-[#126E64] hover:bg-[#0f5a52] text-white'
+							} else if (option.value === 'REJECTED') {
+								buttonClass += 'bg-[#EF4444] hover:bg-[#dc2626] text-white'
+							} else if (option.value === 'CLOSED') {
+								buttonClass += 'bg-[#6EB6FF] hover:bg-[#5aa3e6] text-black'
+							} else if (option.value === 'PROGRESSING') {
+								buttonClass += 'bg-[#8B5CF6] hover:bg-[#7c3aed] text-white'
+							} else {
+								buttonClass += 'bg-gray-600 hover:bg-gray-700 text-white'
+							}
+
+							return (
+								<Button
+									key={option.value}
+									type="button"
+									onClick={() => handleStatusChange(option.value)}
+									className={buttonClass}
+									disabled={isUpdating}
+								>
+									{option.label}
+								</Button>
+							)
+						})}
 					</div>
 				</div>
 			) : (

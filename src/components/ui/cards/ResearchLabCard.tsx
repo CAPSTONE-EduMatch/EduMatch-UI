@@ -169,16 +169,24 @@ export function ResearchLabCard({
 								}}
 							/>
 						)
-					) : null}
+					) : (
+						<div className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center">
+							<span className="text-gray-400 text-xs text-center px-2">
+								{lab.institution.substring(0, 2).toUpperCase()}
+							</span>
+						</div>
+					)}
 					{/* Fallback that shows when image fails to load */}
-					<div
-						className="w-[124px] h-[124px] bg-gray-200 rounded-lg items-center justify-center"
-						style={{ display: 'none' }}
-					>
-						<span className="text-gray-400 text-xs text-center px-2">
-							{lab.institution.substring(0, 2).toUpperCase()}
-						</span>
-					</div>
+					{lab.logo && (
+						<div
+							className="w-[124px] h-[124px] bg-gray-200 rounded-lg flex items-center justify-center"
+							style={{ display: 'none' }}
+						>
+							<span className="text-gray-400 text-xs text-center px-2">
+								{lab.institution.substring(0, 2).toUpperCase()}
+							</span>
+						</div>
+					)}
 				</div>
 				<motion.button
 					onClick={(e) => {

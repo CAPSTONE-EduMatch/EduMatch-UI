@@ -301,8 +301,8 @@ const UserManagementTable = memo(function UserManagementTable({
 											}}
 										>
 											{/* Name with tooltip for long text */}
-											<div className="font-semibold text-base text-black text-left group relative">
-												<div className="break-words">{user.name}</div>
+											<div className="font-semibold text-base text-black text-left group relative min-w-0">
+												<div className="truncate pr-2">{user.name}</div>
 												{user.name.length > 30 && (
 													<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap max-w-xs">
 														{user.name}
@@ -311,10 +311,10 @@ const UserManagementTable = memo(function UserManagementTable({
 											</div>
 
 											{/* Email with tooltip for long text */}
-											<div className="text-gray-700 text-sm text-center group relative">
-												<div className="truncate">{user.email}</div>
+											<div className="text-gray-700 text-sm text-center group relative min-w-0">
+												<div className="truncate px-2">{user.email}</div>
 												{user.email.length > 25 && (
-													<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
+													<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap max-w-md">
 														{user.email}
 													</div>
 												)}

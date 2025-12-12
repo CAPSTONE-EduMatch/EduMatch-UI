@@ -10,7 +10,7 @@ interface Program {
 	title: string;
 	description: string;
 	university: string;
-	logo: string;
+	logo: string | null;
 	field: string;
 	country: string;
 	date: string;
@@ -61,9 +61,8 @@ async function calculateMatchPercentages(
 
 		// PLAN-BASED AUTHORIZATION: Check if user can see matching scores FIRST
 		// Only Premium plan users can see matching scores
-		const { canSeeMatchingScore } = await import(
-			"@/services/authorization"
-		);
+		const { canSeeMatchingScore } =
+			await import("@/services/authorization");
 		const matchingPermission = await canSeeMatchingScore(
 			applicant.applicant_id
 		);
@@ -316,7 +315,7 @@ export async function GET(request: NextRequest) {
 					title: post.title,
 					description: post.description || "No description available",
 					university: institution.name,
-					logo: institution.logo || "/logos/default.png",
+					logo: institution.logo || null,
 					field: fieldName, // Use the mapped discipline/subdiscipline name
 					country: institution.country || "Unknown",
 					date: deadlineDate.toISOString().split("T")[0], // Use deadline date instead of create_at

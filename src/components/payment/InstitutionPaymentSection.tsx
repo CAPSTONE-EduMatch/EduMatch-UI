@@ -46,35 +46,35 @@ export const InstitutionPaymentSection: React.FC<
 	const features = [
 		{
 			description:
-				'Create and manage comprehensive institutional profiles with branding and details.',
+				'Create and manage comprehensive institutional profiles with branding and details',
 		},
 		{
 			description:
-				'Post detailed opportunities with descriptions, eligibility criteria, and deadlines.',
+				'Post detailed opportunities with descriptions, eligibility criteria, and deadlines',
 		},
 		{
 			description:
-				'Create and manage comprehensive institutional profiles with branding and details.',
+				'Create and manage comprehensive institutional profiles with branding and details',
 		},
 		{
 			description:
-				'Access intelligent matching algorithms to find the best candidates.',
+				'Access intelligent matching algorithms to find the best candidates',
 		},
 		{
 			description:
-				'View detailed applicant profiles with matching scores and analytics.',
+				'View detailed applicant profiles with matching scores and analytics',
 		},
 		{
 			description:
-				'Invite applicants for interviews and update selection results seamlessly.',
+				'Invite applicants for interviews and update selection results seamlessly',
 		},
 		{
 			description:
-				'Communicate with applicants via built-in chat and email systems.',
+				'Communicate with applicants via built-in chat and email systems',
 		},
 		{
 			description:
-				'Monitor engagement statistics, views, and applications through web dashboards.',
+				'Monitor engagement statistics, views, and applications through web dashboards',
 		},
 	]
 

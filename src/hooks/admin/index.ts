@@ -1,3 +1,9 @@
+export { useAdminApplications } from "./useAdminApplications";
+export type {
+	AdminApplication,
+	ApplicationFilters,
+	ApplicationStats,
+} from "./useAdminApplications";
 export { useAdminDisciplines } from "./useAdminDisciplines";
 export type {
 	Discipline,

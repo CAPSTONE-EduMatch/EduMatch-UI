@@ -1,0 +1,386 @@
+'use client'
+
+import { AdminTable } from '@/components/admin/AdminTable'
+import { Card, CardContent } from '@/components/ui'
+import { useAdminApplications } from '@/hooks/admin'
+import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
+import { ApplicationStatus } from '@prisma/client'
+import {
+	Check,
+	CheckCircle2,
+	ChevronRight,
+	Clock,
+	Copy,
+	FileText,
+	XCircle,
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+
+interface Application {
+	id: string
+	applicantName: string
+	postTitle: string
+	institutionName: string
+	appliedDate: Date
+	status: ApplicationStatus
+	reapplyCount: number
+}
+
+const getStatusColor = (status: ApplicationStatus) => {
+	switch (status) {
+		case 'SUBMITTED':
+			return 'bg-blue-100 text-blue-800'
+		case 'PROGRESSING':
+			return 'bg-yellow-100 text-yellow-800'
+		case 'ACCEPTED':
+			return 'bg-green-100 text-green-800'
+		case 'REJECTED':
+			return 'bg-red-100 text-red-800'
+		default:
+			return 'bg-gray-100 text-gray-800'
+	}
+}
+
+const getStatusLabel = (status: ApplicationStatus) => {
+	switch (status) {
+		case 'SUBMITTED':
+			return 'Submitted'
+		case 'PROGRESSING':
+			return 'Progressing'
+		case 'ACCEPTED':
+			return 'Accepted'
+		case 'REJECTED':
+			return 'Rejected'
+		default:
+			return status
+	}
+}
+
+export default function AdminApplicationsPage() {
+	const router = useRouter()
+	const { isAdmin, isLoading: authLoading } = useAdminAuth()
+	const {
+		applications,
+		stats,
+		pagination,
+		filters,
+		isLoading,
+		setSearch,
+		setStatus,
+		setPage,
+	} = useAdminApplications()
+
+	const [searchInput, setSearchInput] = useState(filters.search || '')
+
+	// Component for ID cell with copy functionality
+	const IdCell = ({ id }: { id: string }) => {
+		const [copied, setCopied] = useState(false)
+
+		const shortId = id.length > 8 ? `${id.substring(0, 8)}...` : id
+
+		const handleCopy = async () => {
+			try {
+				await navigator.clipboard.writeText(id)
+				setCopied(true)
+				setTimeout(() => setCopied(false), 2000)
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to copy:', err)
+			}
+		}
+
+		return (
+			<div className="flex items-center gap-2">
+				<span className="text-sm text-gray-700 font-mono">{shortId}</span>
+				<button
+					onClick={handleCopy}
+					className="p-1 hover:bg-gray-100 rounded transition-colors"
+					title="Copy full ID"
+				>
+					{copied ? (
+						<Check className="w-4 h-4 text-green-600" />
+					) : (
+						<Copy className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+					)}
+				</button>
+			</div>
+		)
+	}
+
+	// Handle search with debounce
+	const handleSearchChange = (value: string) => {
+		setSearchInput(value)
+		const timeoutId = setTimeout(() => {
+			setSearch(value)
+		}, 500)
+		return () => clearTimeout(timeoutId)
+	}
+
+	// Define table columns
+	const columns = [
+		{
+			header: 'Application ID',
+			accessor: ((app: Application) => <IdCell id={app.id} />) as (
+				_app: Application
+			) => React.ReactNode,
+			className: '150px',
+		},
+		{
+			header: 'Applicant Name',
+			accessor: ((app: Application) => (
+				<div className="text-left font-medium text-sm text-gray-900">
+					{app.applicantName}
+				</div>
+			)) as (_app: Application) => React.ReactNode,
+			className: 'minmax(150px, 1fr)',
+		},
+		{
+			header: 'Post Name',
+			accessor: ((app: Application) => (
+				<div className="text-left text-sm text-gray-700 group relative">
+					<div className="truncate">{app.postTitle}</div>
+					<div className="absolute left-0 top-full mt-1 px-3 py-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-normal max-w-xs pointer-events-none">
+						{app.postTitle}
+					</div>
+				</div>
+			)) as (_app: Application) => React.ReactNode,
+			className: 'minmax(200px, 1.5fr)',
+		},
+		{
+			header: 'Institution',
+			accessor: ((app: Application) => (
+				<div className="text-left text-sm text-gray-700 group relative">
+					<div className="truncate">{app.institutionName}</div>
+					<div className="absolute left-0 top-full mt-1 px-3 py-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap pointer-events-none">
+						{app.institutionName}
+					</div>
+				</div>
+			)) as (_app: Application) => React.ReactNode,
+			className: 'minmax(150px, 1fr)',
+		},
+		{
+			header: 'Applied Date',
+			accessor: ((app: Application) => (
+				<div className="text-gray-700 text-sm text-center">
+					{new Date(app.appliedDate).toLocaleDateString()}
+				</div>
+			)) as (_app: Application) => React.ReactNode,
+			className: '110px',
+		},
+		{
+			header: 'Status',
+			accessor: ((app: Application) => (
+				<span
+					className={`inline-block px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(
+						app.status
+					)}`}
+				>
+					{getStatusLabel(app.status)}
+				</span>
+			)) as (_app: Application) => React.ReactNode,
+			className: '120px',
+		},
+		{
+			header: 'Reapply Count',
+			accessor: ((app: Application) => (
+				<div className="text-gray-700 text-sm text-center">
+					{app.reapplyCount}
+				</div>
+			)) as (_app: Application) => React.ReactNode,
+			className: '110px',
+		},
+		{
+			header: 'Actions',
+			accessor: ((app: Application) => (
+				<button
+					onClick={() => router.push(`/admin/applications/${app.id}`)}
+					className="flex items-center justify-center gap-1 text-[#126E64] hover:underline text-sm mx-auto"
+				>
+					<span>View Details</span>
+					<ChevronRight className="w-4 h-4" />
+				</button>
+			)) as (_app: Application) => React.ReactNode,
+			className: '130px',
+		},
+	]
+
+	// Loading state
+	if (authLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen bg-[#F5F7FB]">
+				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
+			</div>
+		)
+	}
+
+	// Redirect if not admin
+	if (!isAdmin) {
+		router.push('/signin')
+		return null
+	}
+
+	return (
+		<div className="min-h-screen bg-[#F5F7FB] pb-12">
+			{/* Header Section */}
+			<div className="px-8 pt-[135px] pb-6">
+				<h1 className="text-2xl font-bold text-[#126E64]">Administrator</h1>
+			</div>
+
+			{/* Statistics Cards */}
+			<div className="px-8 mb-8">
+				<div className="grid grid-cols-4 gap-6">
+					{/* Submitted Applications Card */}
+					<Card className="bg-white rounded-[20px] shadow-sm border-0">
+						<CardContent className="p-5 flex items-center gap-4">
+							<div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
+								<FileText className="w-7 h-7 text-blue-600" />
+							</div>
+							<div className="text-right flex-1">
+								<p className="text-sm text-gray-600 mb-1">Submitted</p>
+								<p className="text-2xl font-semibold text-gray-900">
+									{stats.submitted}
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Progressing Applications Card */}
+					<Card className="bg-white rounded-[20px] shadow-sm border-0">
+						<CardContent className="p-5 flex items-center gap-4">
+							<div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
+								<Clock className="w-7 h-7 text-yellow-600" />
+							</div>
+							<div className="text-right flex-1">
+								<p className="text-sm text-gray-600 mb-1">Progressing</p>
+								<p className="text-2xl font-semibold text-gray-900">
+									{stats.progressing}
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Accepted Applications Card */}
+					<Card className="bg-white rounded-[20px] shadow-sm border-0">
+						<CardContent className="p-5 flex items-center gap-4">
+							<div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+								<CheckCircle2 className="w-7 h-7 text-green-600" />
+							</div>
+							<div className="text-right flex-1">
+								<p className="text-sm text-gray-600 mb-1">Accepted</p>
+								<p className="text-2xl font-semibold text-gray-900">
+									{stats.accepted}
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Rejected Applications Card */}
+					<Card className="bg-white rounded-[20px] shadow-sm border-0">
+						<CardContent className="p-5 flex items-center gap-4">
+							<div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+								<XCircle className="w-7 h-7 text-red-600" />
+							</div>
+							<div className="text-right flex-1">
+								<p className="text-sm text-gray-600 mb-1">Rejected</p>
+								<p className="text-2xl font-semibold text-gray-900">
+									{stats.rejected}
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+
+			{/* Main Content */}
+			<div className="px-8">
+				{/* Search Bar */}
+				<div className="mb-4">
+					<input
+						type="text"
+						placeholder="Search by applicant name, post title, institution name, or application ID..."
+						value={searchInput}
+						onChange={(e) => handleSearchChange(e.target.value)}
+						className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] focus:border-transparent"
+					/>
+				</div>
+
+				{/* Status Filter Chips */}
+				<div className="flex gap-3 mb-6">
+					<button
+						onClick={() => setStatus('all')}
+						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+							filters.status === 'all'
+								? 'bg-[#126E64] text-white'
+								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+						}`}
+					>
+						All ({stats.total})
+					</button>
+					<button
+						onClick={() => setStatus('SUBMITTED')}
+						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+							filters.status === 'SUBMITTED'
+								? 'bg-blue-600 text-white'
+								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+						}`}
+					>
+						Submitted ({stats.submitted})
+					</button>
+					<button
+						onClick={() => setStatus('PROGRESSING')}
+						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+							filters.status === 'PROGRESSING'
+								? 'bg-yellow-600 text-white'
+								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+						}`}
+					>
+						Progressing ({stats.progressing})
+					</button>
+					<button
+						onClick={() => setStatus('ACCEPTED')}
+						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+							filters.status === 'ACCEPTED'
+								? 'bg-green-600 text-white'
+								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+						}`}
+					>
+						Accepted ({stats.accepted})
+					</button>
+					<button
+						onClick={() => setStatus('REJECTED')}
+						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+							filters.status === 'REJECTED'
+								? 'bg-red-600 text-white'
+								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+						}`}
+					>
+						Rejected ({stats.rejected})
+					</button>
+				</div>
+
+				{/* Applications Table */}
+				<div>
+					<h2 className="text-2xl font-bold text-black mb-6 mt-4">
+						Applications ({pagination.totalCount} total)
+					</h2>
+
+					<AdminTable
+						data={applications}
+						columns={columns}
+						currentPage={pagination.currentPage}
+						totalPages={pagination.totalPages}
+						totalItems={pagination.totalCount}
+						itemsPerPage={pagination.limit}
+						onPageChange={setPage}
+						emptyMessage={
+							isLoading
+								? 'Loading applications...'
+								: 'No applications found matching your criteria.'
+						}
+					/>
+				</div>
+			</div>
+		</div>
+	)
+}

@@ -7,6 +7,7 @@ import { clearSessionCache } from '@/services/messaging/appsync-client'
 import {
 	Building2,
 	CreditCard,
+	FileText,
 	// GraduationCap,
 	KeyRound,
 	Users,
@@ -18,6 +19,7 @@ const sidebarItems = [
 	{ id: 'dashboard', icon: Users, label: 'Dashboard' },
 	// { id: 'certifications', icon: GraduationCap, label: 'Certifications' },
 	{ id: 'posts', icon: Building2, label: 'Posts' },
+	{ id: 'applications', icon: FileText, label: 'Applications' },
 	{ id: 'disciplines', icon: Building2, label: 'Disciplines' },
 	{ id: 'user', icon: Users, label: 'User' },
 	// { id: 'institution', icon: Building2, label: 'Institution' },
@@ -67,6 +69,9 @@ export function AdminSidebar({
 				break
 			case 'posts':
 				router.push('/admin/posts')
+				break
+			case 'applications':
+				router.push('/admin/applications')
 				break
 			case 'disciplines':
 				router.push('/admin/disciplines')

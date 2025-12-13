@@ -14,6 +14,7 @@ import {
 	SubscriptionProgressWidget,
 	TabSelector,
 } from '@/components/ui'
+import { useApplicationEligibility } from '@/hooks/application/useApplicationEligibility'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useUserProfile } from '@/hooks/profile/useUserProfile'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
@@ -45,6 +46,7 @@ const Explore = () => {
 	const router = useRouter()
 	const { isAuthenticated } = useAuthCheck()
 	const { profile: userProfile } = useUserProfile()
+	const { planName } = useApplicationEligibility(userProfile?.id)
 	// const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: 'Explore' }]
 
 	const categories = [
@@ -94,8 +96,11 @@ const Explore = () => {
 		) {
 			setSortBy(sortFromUrl)
 		} else {
-			// Always set explicit default if no sort in URL
-			setSortBy('most-popular')
+			// Set default sort based on user's subscription plan
+			// Premium users get match-score by default, others get most-popular
+			const defaultSort =
+				planName?.toLowerCase() === 'premium' ? 'match-score' : 'most-popular'
+			setSortBy(defaultSort)
 		}
 
 		// Get page from URL
@@ -168,7 +173,7 @@ const Explore = () => {
 		setTimeout(() => {
 			setFiltersInitialized(true)
 		}, 10) // Small delay to ensure all state updates are processed
-	}, [searchParams]) // Remove activeTab from dependencies to prevent infinite loop
+	}, [searchParams, planName]) // planName needed for premium user default sort
 
 	// Update URL when tab, sort, or page changes
 	useEffect(() => {
@@ -756,7 +761,13 @@ const Explore = () => {
 							<div className="text-sm text-gray-600">
 								{currentTabData.totalItems} {t('results')}
 							</div>
-							<SortDropdown value={sortBy} onChange={handleSortChange} />
+							<SortDropdown
+								value={sortBy}
+								onChange={handleSortChange}
+								excludeOptions={
+									planName?.toLowerCase() !== 'premium' ? ['match-score'] : []
+								}
+							/>
 						</motion.div>
 						<div className="flex gap-6 h-full">
 							<div className=" top-4 self-start  flex flex-col gap-6">

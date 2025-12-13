@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
 		);
 		const degreeLevel = currentProgram.degree_level;
 
-		// Find recommended programs that share discipline OR degree level
+		// Find recommended programs that share BOTH discipline AND degree level
 		// Exclude the current program and only get published posts
 		const recommendedPosts = await prismaClient.opportunityPost.findMany({
 			where: {
@@ -176,27 +176,23 @@ export async function GET(request: NextRequest) {
 					{ post_id: { not: programId } }, // Exclude current program
 					{ status: "PUBLISHED" }, // Only published programs
 					{ programPost: { isNot: null } }, // Only program posts
+					// Same discipline (required)
 					{
-						OR: [
-							// Same discipline
-							{
-								subdisciplines: {
-									some: {
-										subdiscipline: {
-											discipline: {
-												discipline_id: {
-													in: disciplineIds,
-												},
-											},
+						subdisciplines: {
+							some: {
+								subdiscipline: {
+									discipline: {
+										discipline_id: {
+											in: disciplineIds,
 										},
 									},
 								},
 							},
-							// Same degree level
-							{
-								degree_level: degreeLevel,
-							},
-						],
+						},
+					},
+					// Same degree level (required)
+					{
+						degree_level: degreeLevel,
 					},
 				],
 			},

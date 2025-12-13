@@ -15,7 +15,7 @@ import {
 	XCircle,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 interface Application {
 	id: string
@@ -72,6 +72,7 @@ export default function AdminApplicationsPage() {
 	} = useAdminApplications()
 
 	const [searchInput, setSearchInput] = useState(filters.search || '')
+	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
 	// Component for ID cell with copy functionality
 	const IdCell = ({ id }: { id: string }) => {
@@ -111,10 +112,16 @@ export default function AdminApplicationsPage() {
 	// Handle search with debounce
 	const handleSearchChange = (value: string) => {
 		setSearchInput(value)
-		const timeoutId = setTimeout(() => {
+
+		// Clear previous timeout
+		if (searchTimeoutRef.current) {
+			clearTimeout(searchTimeoutRef.current)
+		}
+
+		// Set new timeout
+		searchTimeoutRef.current = setTimeout(() => {
 			setSearch(value)
 		}, 500)
-		return () => clearTimeout(timeoutId)
 	}
 
 	// Define table columns

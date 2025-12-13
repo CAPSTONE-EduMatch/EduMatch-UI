@@ -156,16 +156,23 @@ export async function GET(request: NextRequest) {
 			reapplyCount: app.reapply_count,
 		}));
 
-		// Calculate statistics by status
+		// Calculate statistics by status (GLOBAL - not filtered)
 		const statusCounts = await prismaClient.application.groupBy({
 			by: ["status"],
 			_count: {
 				status: true,
 			},
+			// No where clause - always show global stats
 		});
 
+		// Calculate global total from groupBy results
+		const globalTotal = statusCounts.reduce(
+			(sum, item) => sum + item._count.status,
+			0
+		);
+
 		const stats = {
-			total: totalCount,
+			total: globalTotal,
 			submitted:
 				statusCounts.find((s) => s.status === "SUBMITTED")?._count
 					.status || 0,

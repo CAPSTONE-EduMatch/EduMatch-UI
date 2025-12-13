@@ -2,10 +2,11 @@
 
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Button, Card, CardContent } from '@/components/ui'
+import { useDebouncedValue } from '@/hooks'
 import { useAdminUserManagement } from '@/hooks/admin/useAdminUserManagement'
 import { motion } from 'framer-motion'
 import { Eye, Plus } from 'lucide-react'
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 
 interface UserManagementTableProps {
 	userType: 'applicant' | 'institution' | 'admin'
@@ -39,17 +40,13 @@ const UserManagementTable = memo(function UserManagementTable({
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
 		filters.sortDirection || 'desc'
 	)
-	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+	// Debounce search with 500ms delay
+	const debouncedSearchInput = useDebouncedValue(searchInput, 500)
 
 	// Set userType filter when component mounts or userType changes
 	// Also reset search and other filters when switching tabs
 	useEffect(() => {
-		// Clear any pending debounced search
-		if (searchTimeoutRef.current) {
-			clearTimeout(searchTimeoutRef.current)
-			searchTimeoutRef.current = null
-		}
-
 		// Reset search input when switching tabs
 		setSearchInput('')
 		setStatusFilter([])
@@ -57,30 +54,12 @@ const UserManagementTable = memo(function UserManagementTable({
 		updateFilters({ userType, search: '', status: 'all', page: 1 })
 	}, [userType, updateFilters])
 
-	// Debounced search to prevent excessive API calls
-	const debouncedSearch = useCallback(
-		(value: string) => {
-			if (searchTimeoutRef.current) {
-				clearTimeout(searchTimeoutRef.current)
-			}
-
-			searchTimeoutRef.current = setTimeout(() => {
-				updateFilters({
-					search: value.trim(),
-				})
-			}, 500) // 500ms delay
-		},
-		[updateFilters]
-	)
-
-	// Clean up timeout on unmount
+	// Update search filter when debounced value changes
 	useEffect(() => {
-		return () => {
-			if (searchTimeoutRef.current) {
-				clearTimeout(searchTimeoutRef.current)
-			}
-		}
-	}, [])
+		updateFilters({
+			search: debouncedSearchInput.trim(),
+		})
+	}, [debouncedSearchInput, updateFilters])
 
 	// Handle status filter with new admin API - supports multiple statuses
 	const handleStatusFilter = useCallback(
@@ -177,10 +156,7 @@ const UserManagementTable = memo(function UserManagementTable({
 			{/* Search and Filters */}
 			<SearchAndFilter
 				searchQuery={searchInput}
-				onSearchChange={(query) => {
-					setSearchInput(query)
-					debouncedSearch(query)
-				}}
+				onSearchChange={setSearchInput}
 				statusFilter={statusFilter}
 				onStatusFilterChange={handleStatusFilter}
 				sortBy={sortBy}

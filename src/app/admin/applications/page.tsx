@@ -2,6 +2,7 @@
 
 import { AdminTable } from '@/components/admin/AdminTable'
 import { Card, CardContent } from '@/components/ui'
+import { useDebouncedValue } from '@/hooks'
 import { useAdminApplications } from '@/hooks/admin'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import { ApplicationStatus } from '@prisma/client'
@@ -15,7 +16,7 @@ import {
 	XCircle,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Application {
 	id: string
@@ -72,7 +73,14 @@ export default function AdminApplicationsPage() {
 	} = useAdminApplications()
 
 	const [searchInput, setSearchInput] = useState(filters.search || '')
-	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+	// Debounce search with 500ms delay
+	const debouncedSearchInput = useDebouncedValue(searchInput, 500)
+
+	// Update search filter when debounced value changes
+	useEffect(() => {
+		setSearch(debouncedSearchInput)
+	}, [debouncedSearchInput, setSearch])
 
 	// Component for ID cell with copy functionality
 	const IdCell = ({ id }: { id: string }) => {
@@ -107,21 +115,6 @@ export default function AdminApplicationsPage() {
 				</button>
 			</div>
 		)
-	}
-
-	// Handle search with debounce
-	const handleSearchChange = (value: string) => {
-		setSearchInput(value)
-
-		// Clear previous timeout
-		if (searchTimeoutRef.current) {
-			clearTimeout(searchTimeoutRef.current)
-		}
-
-		// Set new timeout
-		searchTimeoutRef.current = setTimeout(() => {
-			setSearch(value)
-		}, 500)
 	}
 
 	// Define table columns
@@ -307,7 +300,7 @@ export default function AdminApplicationsPage() {
 						type="text"
 						placeholder="Search by applicant name, post title, institution name, or application ID..."
 						value={searchInput}
-						onChange={(e) => handleSearchChange(e.target.value)}
+						onChange={(e) => setSearchInput(e.target.value)}
 						className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] focus:border-transparent"
 					/>
 				</div>

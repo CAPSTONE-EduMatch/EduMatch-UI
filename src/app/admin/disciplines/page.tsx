@@ -4,6 +4,7 @@ import { AdminTable } from '@/components/admin/AdminTable'
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import Modal from '@/components/ui/modals/Modal'
+import { useDebouncedValue } from '@/hooks'
 import type { Discipline } from '@/hooks/admin/useAdminDisciplines'
 import { useAdminDisciplines } from '@/hooks/admin/useAdminDisciplines'
 import {
@@ -57,7 +58,10 @@ export default function AdminDisciplinesPage() {
 		'Active'
 	)
 
-	// Update filters when search/status/sort changes
+	// Debounce search with 500ms delay
+	const debouncedSearchQuery = useDebouncedValue(searchQuery, 500)
+
+	// Update filters when debounced search/status/sort changes
 	useEffect(() => {
 		const statusValue =
 			statusFilter.length === 0
@@ -70,12 +74,12 @@ export default function AdminDisciplinesPage() {
 		const sortField = sortBy.includes('name') ? 'name' : 'name'
 
 		updateFilters({
-			search: searchQuery,
+			search: debouncedSearchQuery,
 			status: statusValue as 'all' | 'active' | 'inactive',
 			sortBy: sortField,
 			sortDirection,
 		})
-	}, [searchQuery, statusFilter, sortBy, updateFilters])
+	}, [debouncedSearchQuery, statusFilter, sortBy, updateFilters])
 
 	const handleEdit = (discipline: Discipline) => {
 		setSelectedDiscipline(discipline)

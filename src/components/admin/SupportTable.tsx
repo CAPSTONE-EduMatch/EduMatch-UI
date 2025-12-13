@@ -2,6 +2,7 @@
 
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
+import { useDebouncedValue } from '@/hooks'
 import { motion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -50,6 +51,9 @@ const SupportTable = ({
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
 	const [sortBy, setSortBy] = useState('newest')
 
+	// Debounce search with 500ms delay
+	const debouncedSearchQuery = useDebouncedValue(searchQuery, 500)
+
 	// Use server-side pagination data
 	const currentPage = pagination?.currentPage || 1
 	const totalPages = pagination?.totalPages || 1
@@ -61,53 +65,25 @@ const SupportTable = ({
 
 	const handleFiltersChange = useCallback(() => {
 		const filters = {
-			search: searchQuery || undefined,
+			search: debouncedSearchQuery || undefined,
 			status: statusFilter.length === 1 ? statusFilter[0].toLowerCase() : 'all',
 			sortBy: sortBy,
 		}
 		onFiltersChange?.(filters)
-	}, [searchQuery, statusFilter, sortBy, onFiltersChange])
-
-	// Trigger filter changes when inputs change
-	const handleSearchChange = (value: string) => {
-		setSearchQuery(value)
-		// Search will be handled by debounced useEffect
-	}
+	}, [debouncedSearchQuery, statusFilter, sortBy, onFiltersChange])
 
 	const handleStatusFilterChange = (value: string[]) => {
 		setStatusFilter(value)
-		// Use React.startTransition for better performance
-		const filters = {
-			search: searchQuery || undefined,
-			status: value.length === 1 ? value[0].toLowerCase() : 'all',
-			sortBy: sortBy,
-		}
-		onFiltersChange?.(filters)
 	}
 
 	const handleSortChange = (value: string) => {
 		setSortBy(value)
-		// Use React.startTransition for better performance
-		const filters = {
-			search: searchQuery || undefined,
-			status: statusFilter.length === 1 ? statusFilter[0].toLowerCase() : 'all',
-			sortBy: value,
-		}
-		onFiltersChange?.(filters)
 	}
 
-	// No automatic useEffect for status/sort - handled directly in handlers
-
-	// useEffect for debounced search
+	// Update filters when debounced search or other filters change
 	useEffect(() => {
-		if (searchQuery.trim() !== '') {
-			const timeoutId = setTimeout(() => {
-				handleFiltersChange()
-			}, 500)
-			return () => clearTimeout(timeoutId)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [searchQuery])
+		handleFiltersChange()
+	}, [handleFiltersChange])
 
 	const getStatusBadge = (status: string) => {
 		const baseClasses = 'px-3 py-1 rounded-full text-sm font-medium'
@@ -132,7 +108,7 @@ const SupportTable = ({
 			{/* Search and Filter */}
 			<SearchAndFilter
 				searchQuery={searchQuery}
-				onSearchChange={handleSearchChange}
+				onSearchChange={setSearchQuery}
 				statusFilter={statusFilter}
 				onStatusFilterChange={handleStatusFilterChange}
 				sortBy={sortBy}

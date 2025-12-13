@@ -175,15 +175,36 @@ const SupportTable = ({
 											index % 2 === 0 ? 'bg-[#EAEDF3]' : 'bg-white'
 										} hover:bg-gray-50 transition-colors duration-200`}
 									>
-										<div className="font-medium text-gray-900 text-left">
-											{request.name}
+										{/* Name with tooltip */}
+										<div className="font-medium text-gray-900 text-left group relative min-w-0">
+											<div className="truncate pr-2">{request.name}</div>
+											{request.name.length > 30 && (
+												<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] whitespace-nowrap max-w-xs pointer-events-none">
+													{request.name}
+												</div>
+											)}
 										</div>
-										<div className="text-gray-700 text-center">
-											{request.email}
+
+										{/* Email with tooltip */}
+										<div className="text-gray-700 text-center group relative min-w-0">
+											<div className="truncate px-2">{request.email}</div>
+											{request.email.length > 25 && (
+												<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] whitespace-nowrap max-w-md pointer-events-none">
+													{request.email}
+												</div>
+											)}
 										</div>
-										<div className="text-gray-700 text-center">
-											{request.contact}
+
+										{/* Contact with tooltip */}
+										<div className="text-gray-700 text-center group relative min-w-0">
+											<div className="truncate px-2">{request.contact}</div>
+											{request.contact.length > 20 && (
+												<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] whitespace-nowrap max-w-xs pointer-events-none">
+													{request.contact}
+												</div>
+											)}
 										</div>
+
 										<div className="text-gray-700 text-center">
 											{request.sendDate}
 										</div>

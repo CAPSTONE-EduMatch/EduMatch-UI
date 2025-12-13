@@ -21,6 +21,7 @@ export default function AdminLayout({
 		if (pathname?.includes('/admin/institutions')) return 'institution'
 		if (pathname?.includes('/admin/certifications')) return 'certifications'
 		if (pathname?.includes('/admin/applications')) return 'applications'
+		if (pathname?.includes('/admin/support')) return 'supports'
 		if (pathname?.includes('/admin/posts')) return 'posts'
 		if (pathname?.includes('/admin/settings')) return 'change-password'
 		return 'dashboard'

@@ -85,19 +85,19 @@ export async function GET(request: NextRequest) {
 			});
 		}
 
-		// Build query conditions - match either discipline OR degree level
+		// Build query conditions - match BOTH discipline AND degree level
 		const whereConditions: any = {
-			post_id: { not: researchLabId }, // Exclude current research lab
-			status: "PUBLISHED",
-			jobPost: { isNot: null }, // Must have JobPost relation
-			// end_date: { gte: new Date() }, // Only active posts
+			AND: [
+				{ post_id: { not: researchLabId } }, // Exclude current research lab
+				{ status: "PUBLISHED" },
+				{ jobPost: { isNot: null } }, // Must have JobPost relation
+				// { end_date: { gte: new Date() } }, // Only active posts
+			],
 		};
 
-		// Create OR condition for discipline OR degree level match
-		const orConditions: any[] = [];
-
+		// Require both discipline AND degree level to match
 		if (currentDiscipline) {
-			orConditions.push({
+			whereConditions.AND.push({
 				subdisciplines: {
 					some: {
 						subdiscipline: {
@@ -111,14 +111,9 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (currentDegreeLevel) {
-			orConditions.push({
+			whereConditions.AND.push({
 				degree_level: currentDegreeLevel,
 			});
-		}
-
-		// Only add OR condition if we have at least one criteria
-		if (orConditions.length > 0) {
-			whereConditions.OR = orConditions;
 		}
 
 		// Fetch recommended research labs
@@ -274,7 +269,7 @@ export async function GET(request: NextRequest) {
 			criteria: {
 				discipline: currentDiscipline,
 				degreeLevel: currentDegreeLevel,
-				matchType: "OR", // Either discipline OR degree level
+				matchType: "AND", // Both discipline AND degree level must match
 			},
 		});
 	} catch (error) {

@@ -17,6 +17,7 @@ export type SortOption =
 interface SortDropdownProps {
 	value: SortOption
 	onChange: (value: SortOption) => void
+	excludeOptions?: SortOption[] // Options to exclude from the dropdown
 }
 
 interface SortOptionItem {
@@ -25,11 +26,15 @@ interface SortOptionItem {
 	separator?: boolean
 }
 
-export function SortDropdown({ value, onChange }: SortDropdownProps) {
+export function SortDropdown({
+	value,
+	onChange,
+	excludeOptions = [],
+}: SortDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false)
 	const t = useTranslations('sort')
 
-	const sortOptions: SortOptionItem[] = [
+	const allSortOptions: SortOptionItem[] = [
 		{ value: 'most-popular' as SortOption, label: t('most_popular') },
 		{ value: 'newest' as SortOption, label: t('newest') },
 		{ value: 'oldest' as SortOption, label: t('oldest') },
@@ -37,6 +42,11 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
 		{ value: 'deadline' as SortOption, label: t('deadline') },
 		// { value: 'default' as SortOption, label: 'Clear sort', separator: true },
 	]
+
+	// Filter out excluded options
+	const sortOptions = allSortOptions.filter(
+		(option) => !excludeOptions.includes(option.value)
+	)
 
 	const currentOption = sortOptions.find((option) => option.value === value)
 

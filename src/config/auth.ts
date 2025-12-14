@@ -342,9 +342,7 @@ export const auth = betterAuth({
 						// This is crucial - Better Auth doesn't create invoices automatically
 						try {
 							const { createInvoiceFromSubscription } =
-								await import(
-									"@/services/payments/invoice-service"
-								);
+								await import("@/services/payments/invoice-service");
 							await createInvoiceFromSubscription(
 								stripeSubscription.stripeSubscriptionId
 							);
@@ -525,9 +523,8 @@ export const auth = betterAuth({
 
 								// Send cancellation email notification
 								try {
-									const { NotificationUtils } = await import(
-										"@/services/messaging/sqs-handlers"
-									);
+									const { NotificationUtils } =
+										await import("@/services/messaging/sqs-handlers");
 
 									// eslint-disable-next-line no-console
 									console.log(

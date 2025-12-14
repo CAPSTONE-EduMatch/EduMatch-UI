@@ -24,7 +24,7 @@ export interface Subdiscipline {
 export interface DisciplineFilters {
 	search?: string;
 	status?: "all" | "active" | "inactive";
-	sortBy?: "name" | "createdAt";
+	sortBy?: "name" | "createdAt" | "subdisciplineCount";
 	sortDirection?: "asc" | "desc";
 	page?: number;
 	limit?: number;

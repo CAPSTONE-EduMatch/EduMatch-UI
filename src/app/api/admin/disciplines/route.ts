@@ -5,7 +5,7 @@ import { prismaClient } from "../../../../../prisma/index";
 interface DisciplineFilters {
 	search?: string;
 	status?: "all" | "active" | "inactive";
-	sortBy?: "name" | "createdAt";
+	sortBy?: "name" | "createdAt" | "subdisciplineCount";
 	sortDirection?: "asc" | "desc";
 	page?: number;
 	limit?: number;
@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
 				(searchParams.get("status") as "all" | "active" | "inactive") ||
 				"all",
 			sortBy:
-				(searchParams.get("sortBy") as "name" | "createdAt") || "name",
+				(searchParams.get("sortBy") as
+					| "name"
+					| "createdAt"
+					| "subdisciplineCount") || "name",
 			sortDirection:
 				(searchParams.get("sortDirection") as "asc" | "desc") || "asc",
 			page: parseInt(searchParams.get("page") || "1"),
@@ -47,18 +50,56 @@ export async function GET(request: NextRequest) {
 			};
 		}
 
-		// Fetch all disciplines
-		const disciplines = await prismaClient.discipline.findMany({
+		// Get total count for pagination (disciplines)
+		const totalCount = await prismaClient.discipline.count({
 			where: disciplineWhere,
-			include: {
-				subdisciplines: {
-					orderBy: { name: "asc" },
-				},
-			},
-			orderBy: {
-				[filters.sortBy || "name"]: filters.sortDirection || "asc",
-			},
 		});
+
+		// Calculate pagination
+		const skip = (filters.page! - 1) * filters.limit!;
+		const take = filters.limit!;
+
+		// Fetch disciplines with pagination
+		let disciplines;
+
+		if (filters.sortBy === "subdisciplineCount") {
+			// For subdiscipline count sorting, we need to fetch all, sort, then paginate
+			const allDisciplines = await prismaClient.discipline.findMany({
+				where: disciplineWhere,
+				include: {
+					subdisciplines: {
+						orderBy: { name: "asc" },
+					},
+				},
+			});
+
+			// Sort by subdiscipline count
+			const sortedDisciplines = allDisciplines.sort((a, b) => {
+				const countA = a.subdisciplines.length;
+				const countB = b.subdisciplines.length;
+				return filters.sortDirection === "asc"
+					? countA - countB
+					: countB - countA;
+			});
+
+			// Apply pagination
+			disciplines = sortedDisciplines.slice(skip, skip + take);
+		} else {
+			// For regular sorting, use database orderBy
+			disciplines = await prismaClient.discipline.findMany({
+				where: disciplineWhere,
+				include: {
+					subdisciplines: {
+						orderBy: { name: "asc" },
+					},
+				},
+				orderBy: {
+					[filters.sortBy || "name"]: filters.sortDirection || "asc",
+				},
+				skip,
+				take,
+			});
+		}
 
 		// Build where clause for subdisciplines (for the main list view)
 		const subdisciplineWhere: any = {};
@@ -88,16 +129,7 @@ export async function GET(request: NextRequest) {
 			];
 		}
 
-		// Get total count for pagination
-		const totalCount = await prismaClient.subdiscipline.count({
-			where: subdisciplineWhere,
-		});
-
-		// Calculate pagination
-		const skip = (filters.page! - 1) * filters.limit!;
-		const take = filters.limit!;
-
-		// Fetch subdisciplines with pagination
+		// Fetch subdisciplines
 		const subdisciplines = await prismaClient.subdiscipline.findMany({
 			where: subdisciplineWhere,
 			include: {
@@ -109,11 +141,14 @@ export async function GET(request: NextRequest) {
 					},
 				},
 			},
-			orderBy: {
-				[filters.sortBy || "name"]: filters.sortDirection || "asc",
-			},
-			skip,
-			take,
+			orderBy:
+				// For subdisciplines, default to name sorting if subdisciplineCount is selected
+				filters.sortBy === "subdisciplineCount"
+					? { name: "asc" }
+					: {
+							[filters.sortBy || "name"]:
+								filters.sortDirection || "asc",
+						},
 		});
 
 		// Transform subdisciplines for response
@@ -130,12 +165,12 @@ export async function GET(request: NextRequest) {
 			}),
 		}));
 
-		// Calculate stats
-		const allSubdisciplines = await prismaClient.subdiscipline.findMany();
+		// Calculate stats for disciplines (not subdisciplines)
+		const allDisciplines = await prismaClient.discipline.findMany();
 		const stats = {
-			total: allSubdisciplines.length,
-			active: allSubdisciplines.filter((s) => s.status).length,
-			inactive: allSubdisciplines.filter((s) => !s.status).length,
+			total: allDisciplines.length,
+			active: allDisciplines.filter((d) => d.status).length,
+			inactive: allDisciplines.filter((d) => !d.status).length,
 		};
 
 		const totalPages = Math.ceil(totalCount / filters.limit!);

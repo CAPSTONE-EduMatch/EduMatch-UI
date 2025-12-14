@@ -1,21 +1,13 @@
 'use client'
 
 import { AdminTable } from '@/components/admin/AdminTable'
-import { Card, CardContent } from '@/components/ui'
+import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import Modal from '@/components/ui/modals/Modal'
+import { useDebouncedValue } from '@/hooks'
 import { useDisciplineDetails } from '@/hooks/admin/useAdminDisciplines'
-import {
-	ArrowLeft,
-	BookOpen,
-	Building2,
-	Loader2,
-	Pencil,
-	Plus,
-	Trash2,
-	Users,
-} from 'lucide-react'
+import { ArrowLeft, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 const getStatusColor = (status: 'Active' | 'Inactive') => {
 	switch (status) {
@@ -51,6 +43,14 @@ export default function DisciplineDetailPage() {
 		isDeleting,
 	} = useDisciplineDetails(disciplineId)
 
+	// Search, filter, and sort states
+	const [searchQuery, setSearchQuery] = useState('')
+	const [statusFilter, setStatusFilter] = useState<string[]>([])
+	const [sortBy, setSortBy] = useState('name-asc')
+
+	// Debounce search with 500ms delay
+	const debouncedSearchQuery = useDebouncedValue(searchQuery, 500)
+
 	// Modal states
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -64,6 +64,35 @@ export default function DisciplineDetailPage() {
 	const [editedStatus, setEditedStatus] = useState<'Active' | 'Inactive'>(
 		'Active'
 	)
+
+	// Filter and sort subdisciplines
+	const filteredSubdisciplines = useMemo(() => {
+		if (!discipline) return []
+
+		let filtered = [...discipline.subdisciplines]
+
+		// Apply search filter
+		if (debouncedSearchQuery) {
+			filtered = filtered.filter((sub) =>
+				sub.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+			)
+		}
+
+		// Apply status filter
+		if (statusFilter.length > 0 && statusFilter.length < 2) {
+			const status = statusFilter[0]
+			filtered = filtered.filter((sub) => sub.status === status)
+		}
+
+		// Apply sorting
+		const sortDirection = sortBy.includes('desc') ? 'desc' : 'asc'
+		filtered.sort((a, b) => {
+			const compareResult = a.name.localeCompare(b.name)
+			return sortDirection === 'asc' ? compareResult : -compareResult
+		})
+
+		return filtered
+	}, [discipline, debouncedSearchQuery, statusFilter, sortBy])
 
 	const handleAddSubdiscipline = async () => {
 		if (!newSubdisciplineName.trim()) return
@@ -108,8 +137,11 @@ export default function DisciplineDetailPage() {
 	const columns = [
 		{
 			header: 'ID',
-			accessor: 'id' as keyof Subdiscipline,
+			accessor: ((subdiscipline: Subdiscipline) => (
+				<div className="text-center">{subdiscipline.id}</div>
+			)) as (_subdiscipline: Subdiscipline) => React.ReactNode,
 			className: '70px',
+			headerClassName: 'text-center',
 		},
 		{
 			header: 'Subdiscipline name',
@@ -122,19 +154,23 @@ export default function DisciplineDetailPage() {
 				</div>
 			)) as (_subdiscipline: Subdiscipline) => React.ReactNode,
 			className: 'minmax(200px, 1.5fr)',
+			headerClassName: 'text-left',
 		},
 		{
 			header: 'Status',
 			accessor: ((subdiscipline: Subdiscipline) => (
-				<span
-					className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(
-						subdiscipline.status
-					)}`}
-				>
-					{subdiscipline.status}
-				</span>
+				<div className="flex justify-center">
+					<span
+						className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(
+							subdiscipline.status
+						)}`}
+					>
+						{subdiscipline.status}
+					</span>
+				</div>
 			)) as (_subdiscipline: Subdiscipline) => React.ReactNode,
 			className: '110px',
+			headerClassName: 'text-center',
 		},
 		{
 			header: 'Created at',
@@ -144,6 +180,7 @@ export default function DisciplineDetailPage() {
 				</div>
 			)) as (_subdiscipline: Subdiscipline) => React.ReactNode,
 			className: '100px',
+			headerClassName: 'text-center',
 		},
 		{
 			header: 'Actions',
@@ -166,6 +203,7 @@ export default function DisciplineDetailPage() {
 				</div>
 			)) as (_subdiscipline: Subdiscipline) => React.ReactNode,
 			className: '100px',
+			headerClassName: 'text-center',
 		},
 	]
 
@@ -207,117 +245,32 @@ export default function DisciplineDetailPage() {
 				<h1 className="text-2xl font-bold text-[#126E64]">{discipline.name}</h1>
 			</div>
 
-			{/* Statistics Cards */}
-			<div className="px-8 mb-8">
-				<div className="grid grid-cols-3 gap-6 mb-6">
-					{/* Total Subdisciplines Card */}
-					<Card className="bg-white rounded-[20px] shadow-sm border-0">
-						<CardContent className="p-5 flex items-center gap-4">
-							<div className="w-14 h-14 rounded-full bg-[#F0A227]/20 flex items-center justify-center">
-								<BookOpen className="w-7 h-7 text-[#F0A227]" />
-							</div>
-							<div className="text-right flex-1">
-								<p className="text-base text-black mb-1">
-									Total subdisciplines
-								</p>
-								<p className="text-2xl font-semibold text-[#989898]">
-									{discipline.stats.totalSubdisciplines}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-
-					{/* Active Subdisciplines Card */}
-					<Card className="bg-white rounded-[20px] shadow-sm border-0">
-						<CardContent className="p-5 flex items-center gap-4">
-							<div className="w-14 h-14 rounded-full bg-[#126E64]/20 flex items-center justify-center">
-								<BookOpen className="w-7 h-7 text-[#126E64]" />
-							</div>
-							<div className="text-right flex-1">
-								<p className="text-base text-black mb-1">
-									Active subdisciplines
-								</p>
-								<p className="text-2xl font-semibold text-[#989898]">
-									{discipline.stats.activeSubdisciplines}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-
-					{/* Inactive Subdisciplines Card */}
-					<Card className="bg-white rounded-[20px] shadow-sm border-0">
-						<CardContent className="p-5 flex items-center gap-4">
-							<div className="w-14 h-14 rounded-full bg-[#D5D5D5]/20 flex items-center justify-center">
-								<BookOpen className="w-7 h-7 text-[#D5D5D5]" />
-							</div>
-							<div className="text-right flex-1">
-								<p className="text-base text-black mb-1">
-									Inactive subdisciplines
-								</p>
-								<p className="text-2xl font-semibold text-[#989898]">
-									{discipline.stats.inactiveSubdisciplines}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-				</div>
-
-				{/* Usage Statistics */}
-				<div className="grid grid-cols-3 gap-6">
-					{/* Linked Posts */}
-					<Card className="bg-white rounded-[20px] shadow-sm border-0">
-						<CardContent className="p-5 flex items-center gap-4">
-							<div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
-								<BookOpen className="w-7 h-7 text-blue-600" />
-							</div>
-							<div className="text-right flex-1">
-								<p className="text-base text-black mb-1">Linked posts</p>
-								<p className="text-2xl font-semibold text-[#989898]">
-									{discipline.stats.linkedPosts}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-
-					{/* Linked Institutions */}
-					<Card className="bg-white rounded-[20px] shadow-sm border-0">
-						<CardContent className="p-5 flex items-center gap-4">
-							<div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center">
-								<Building2 className="w-7 h-7 text-purple-600" />
-							</div>
-							<div className="text-right flex-1">
-								<p className="text-base text-black mb-1">Linked institutions</p>
-								<p className="text-2xl font-semibold text-[#989898]">
-									{discipline.stats.linkedInstitutions}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-
-					{/* Linked Applicants */}
-					<Card className="bg-white rounded-[20px] shadow-sm border-0">
-						<CardContent className="p-5 flex items-center gap-4">
-							<div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-								<Users className="w-7 h-7 text-green-600" />
-							</div>
-							<div className="text-right flex-1">
-								<p className="text-base text-black mb-1">Linked applicants</p>
-								<p className="text-2xl font-semibold text-[#989898]">
-									{discipline.stats.linkedApplicants}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-				</div>
-			</div>
-
 			{/* Main Content */}
 			<div className="px-8">
-				{/* Add New Button */}
-				<div className="mb-6 flex justify-end">
+				{/* Search, Filters and Add New Button in Same Row */}
+				<div className="flex items-start gap-4">
+					<div className="flex-1">
+						<SearchAndFilter
+							searchQuery={searchQuery}
+							onSearchChange={setSearchQuery}
+							statusFilter={statusFilter}
+							onStatusFilterChange={setStatusFilter}
+							sortBy={sortBy}
+							onSortChange={setSortBy}
+							statusOptions={[
+								{ value: 'Active', label: 'Active' },
+								{ value: 'Inactive', label: 'Inactive' },
+							]}
+							sortOptions={[
+								{ value: 'name-asc', label: 'Name A-Z' },
+								{ value: 'name-desc', label: 'Name Z-A' },
+							]}
+							searchPlaceholder="Search by subdiscipline name..."
+						/>
+					</div>
 					<button
 						onClick={() => setIsAddModalOpen(true)}
-						className="bg-[#126E64] hover:bg-[#0f5850] text-white rounded-full px-6 py-3 flex items-center gap-2 text-base font-semibold transition-colors shadow-sm"
+						className="bg-[#126E64] hover:bg-[#0f5850] text-white rounded-full px-6 py-3 flex items-center gap-2 text-base font-semibold transition-colors shadow-sm whitespace-nowrap"
 					>
 						<Plus className="w-5 h-5" />
 						Add Subdiscipline
@@ -327,18 +280,18 @@ export default function DisciplineDetailPage() {
 				{/* Subdisciplines Table */}
 				<div>
 					<h2 className="text-2xl font-bold text-black mb-6">
-						Subdisciplines ({discipline.subdisciplines.length} total)
+						Subdisciplines ({filteredSubdisciplines.length} total)
 					</h2>
 
 					<AdminTable
-						data={discipline.subdisciplines}
+						data={filteredSubdisciplines}
 						columns={columns}
 						currentPage={1}
 						totalPages={1}
-						totalItems={discipline.subdisciplines.length}
-						itemsPerPage={discipline.subdisciplines.length}
+						totalItems={filteredSubdisciplines.length}
+						itemsPerPage={filteredSubdisciplines.length}
 						onPageChange={() => {}}
-						emptyMessage="No subdisciplines found for this discipline."
+						emptyMessage="No subdisciplines found matching your criteria."
 					/>
 				</div>
 			</div>

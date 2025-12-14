@@ -8,12 +8,12 @@ import { useDebouncedValue } from '@/hooks'
 import type { Discipline } from '@/hooks/admin/useAdminDisciplines'
 import { useAdminDisciplines } from '@/hooks/admin/useAdminDisciplines'
 import {
+	BookOpen,
 	ChevronRight,
 	Loader2,
 	Pencil,
 	Plus,
 	Trash2,
-	Users,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -71,11 +71,14 @@ export default function AdminDisciplinesPage() {
 					: 'all'
 
 		const sortDirection = sortBy.includes('desc') ? 'desc' : 'asc'
+		const sortField = sortBy.includes('subdisciplineCount')
+			? 'subdisciplineCount'
+			: 'name'
 
 		updateFilters({
 			search: debouncedSearchQuery,
 			status: statusValue as 'all' | 'active' | 'inactive',
-			sortBy: 'name',
+			sortBy: sortField,
 			sortDirection,
 		})
 	}, [debouncedSearchQuery, statusFilter, sortBy, updateFilters])
@@ -119,8 +122,11 @@ export default function AdminDisciplinesPage() {
 	const columns = [
 		{
 			header: 'ID',
-			accessor: 'id' as keyof Discipline,
+			accessor: ((discipline: Discipline) => (
+				<div className="text-center">{discipline.id}</div>
+			)) as (_discipline: Discipline) => React.ReactNode,
 			className: '70px',
+			headerClassName: 'text-center',
 		},
 		{
 			header: 'Discipline name',
@@ -133,6 +139,7 @@ export default function AdminDisciplinesPage() {
 				</div>
 			)) as (_discipline: Discipline) => React.ReactNode,
 			className: 'minmax(200px, 1.5fr)',
+			headerClassName: 'text-left',
 		},
 		{
 			header: 'Subdisciplines',
@@ -142,19 +149,23 @@ export default function AdminDisciplinesPage() {
 				</div>
 			)) as (_discipline: Discipline) => React.ReactNode,
 			className: '120px',
+			headerClassName: 'text-center',
 		},
 		{
 			header: 'Status',
 			accessor: ((discipline: Discipline) => (
-				<span
-					className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(
-						discipline.status
-					)}`}
-				>
-					{discipline.status}
-				</span>
+				<div className="flex justify-center">
+					<span
+						className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(
+							discipline.status
+						)}`}
+					>
+						{discipline.status}
+					</span>
+				</div>
 			)) as (_discipline: Discipline) => React.ReactNode,
 			className: '110px',
+			headerClassName: 'text-center',
 		},
 		{
 			header: 'Actions',
@@ -184,6 +195,7 @@ export default function AdminDisciplinesPage() {
 				</div>
 			)) as (_discipline: Discipline) => React.ReactNode,
 			className: 'minmax(200px, 1fr)',
+			headerClassName: 'text-center',
 		},
 	]
 
@@ -203,7 +215,7 @@ export default function AdminDisciplinesPage() {
 					<Card className="bg-white rounded-[20px] shadow-sm border-0 flex-1">
 						<CardContent className="p-5 flex items-center gap-4">
 							<div className="w-14 h-14 rounded-full bg-[#F0A227]/20 flex items-center justify-center">
-								<Users className="w-7 h-7 text-[#F0A227]" />
+								<BookOpen className="w-7 h-7 text-[#F0A227]" />
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Total disciplines</p>
@@ -222,7 +234,7 @@ export default function AdminDisciplinesPage() {
 					<Card className="bg-white rounded-[20px] shadow-sm border-0 flex-1">
 						<CardContent className="p-5 flex items-center gap-4">
 							<div className="w-14 h-14 rounded-full bg-[#126E64]/20 flex items-center justify-center">
-								<Users className="w-7 h-7 text-[#126E64]" />
+								<BookOpen className="w-7 h-7 text-[#126E64]" />
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Active disciplines</p>
@@ -241,7 +253,7 @@ export default function AdminDisciplinesPage() {
 					<Card className="bg-white rounded-[20px] shadow-sm border-0 flex-1">
 						<CardContent className="p-5 flex items-center gap-4">
 							<div className="w-14 h-14 rounded-full bg-[#D5D5D5]/20 flex items-center justify-center">
-								<Users className="w-7 h-7 text-[#D5D5D5]" />
+								<BookOpen className="w-7 h-7 text-[#D5D5D5]" />
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">
@@ -262,30 +274,38 @@ export default function AdminDisciplinesPage() {
 
 			{/* Main Content */}
 			<div className="px-8">
-				{/* Search and Filters */}
-				<SearchAndFilter
-					searchQuery={searchQuery}
-					onSearchChange={setSearchQuery}
-					statusFilter={statusFilter}
-					onStatusFilterChange={setStatusFilter}
-					sortBy={sortBy}
-					onSortChange={setSortBy}
-					statusOptions={[
-						{ value: 'Active', label: 'Active' },
-						{ value: 'Inactive', label: 'Inactive' },
-					]}
-					sortOptions={[
-						{ value: 'name-asc', label: 'Name A-Z' },
-						{ value: 'name-desc', label: 'Name Z-A' },
-					]}
-					searchPlaceholder="Search by discipline name..."
-				/>
-
-				{/* Add New Button */}
-				<div className="mb-6 flex justify-end">
+				{/* Search, Filters and Add New Button in Same Row */}
+				<div className="flex items-start gap-4">
+					<div className="flex-1">
+						<SearchAndFilter
+							searchQuery={searchQuery}
+							onSearchChange={setSearchQuery}
+							statusFilter={statusFilter}
+							onStatusFilterChange={setStatusFilter}
+							sortBy={sortBy}
+							onSortChange={setSortBy}
+							statusOptions={[
+								{ value: 'Active', label: 'Active' },
+								{ value: 'Inactive', label: 'Inactive' },
+							]}
+							sortOptions={[
+								{ value: 'name-asc', label: 'Name A-Z' },
+								{ value: 'name-desc', label: 'Name Z-A' },
+								{
+									value: 'subdisciplineCount-asc',
+									label: 'Subdisciplines: Low to High',
+								},
+								{
+									value: 'subdisciplineCount-desc',
+									label: 'Subdisciplines: High to Low',
+								},
+							]}
+							searchPlaceholder="Search by discipline name..."
+						/>
+					</div>
 					<button
 						onClick={() => router.push('/admin/disciplines/create')}
-						className="bg-[#126E64] hover:bg-[#0f5850] text-white rounded-full px-6 py-3 flex items-center gap-2 text-base font-semibold transition-colors shadow-sm"
+						className="bg-[#126E64] hover:bg-[#0f5850] text-white rounded-full px-6 py-3 flex items-center gap-2 text-base font-semibold transition-colors shadow-sm whitespace-nowrap"
 					>
 						<Plus className="w-5 h-5" />
 						Add New

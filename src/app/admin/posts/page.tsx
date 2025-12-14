@@ -73,40 +73,16 @@ export default function AdminPostsPage() {
 		changePage,
 	} = useAdminPostManagement()
 
-	// Local state for filters
+	// Local state for filters (UI-only, not synced with hook)
 	const [localStatusFilter, setLocalStatusFilter] = useState<string[]>([])
 	const [localTypeFilter, setLocalTypeFilter] = useState<string[]>([])
 	const [localSearchQuery, setLocalSearchQuery] = useState<string>('')
 
-	// Debounce search with 500ms delay (reduced from 3000ms)
+	// Debounce search with 500ms delay
 	const debouncedSearchQuery = useDebouncedValue(localSearchQuery, 500)
 
-	// Initialize local state from filters
-	useEffect(() => {
-		if (filters.status && filters.status !== 'all') {
-			setLocalStatusFilter(
-				Array.isArray(filters.status) ? filters.status : [filters.status]
-			)
-		} else {
-			setLocalStatusFilter([])
-		}
-	}, [filters.status])
-
-	useEffect(() => {
-		if (filters.type && filters.type !== 'all') {
-			setLocalTypeFilter(
-				Array.isArray(filters.type) ? filters.type : [filters.type]
-			)
-		} else {
-			setLocalTypeFilter([])
-		}
-	}, [filters.type])
-
-	useEffect(() => {
-		setLocalSearchQuery(filters.search || '')
-	}, [filters.search])
-
 	// Update filters when debounced search or other filters change
+	// Unidirectional flow: UI → debounce → updateFilters (no sync back)
 	useEffect(() => {
 		updateFilters({
 			status:

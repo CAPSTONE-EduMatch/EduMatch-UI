@@ -71,12 +71,11 @@ export default function AdminDisciplinesPage() {
 					: 'all'
 
 		const sortDirection = sortBy.includes('desc') ? 'desc' : 'asc'
-		const sortField = sortBy.includes('name') ? 'name' : 'name'
 
 		updateFilters({
 			search: debouncedSearchQuery,
 			status: statusValue as 'all' | 'active' | 'inactive',
-			sortBy: sortField,
+			sortBy: 'name',
 			sortDirection,
 		})
 	}, [debouncedSearchQuery, statusFilter, sortBy, updateFilters])

@@ -40,19 +40,23 @@ const UserManagementTable = memo(function UserManagementTable({
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
 		filters.sortDirection || 'desc'
 	)
+	const [prevUserType, setPrevUserType] = useState(userType)
 
 	// Debounce search with 500ms delay
 	const debouncedSearchInput = useDebouncedValue(searchInput, 500)
 
 	// Set userType filter when component mounts or userType changes
-	// Also reset search and other filters when switching tabs
+	// Only reset filters on actual tab change, not initial mount
 	useEffect(() => {
-		// Reset search input when switching tabs
-		setSearchInput('')
-		setStatusFilter([])
-		// Update filters with new userType and reset search
-		updateFilters({ userType, search: '', status: 'all', page: 1 })
-	}, [userType, updateFilters])
+		if (prevUserType !== userType) {
+			// Reset search and filters only when switching tabs
+			setSearchInput('')
+			setStatusFilter([])
+			setPrevUserType(userType)
+		}
+		// Always update userType filter
+		updateFilters({ userType, page: 1 })
+	}, [userType, prevUserType, updateFilters])
 
 	// Update search filter when debounced value changes
 	useEffect(() => {

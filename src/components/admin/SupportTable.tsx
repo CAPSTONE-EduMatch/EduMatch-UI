@@ -4,7 +4,7 @@ import { SearchAndFilter } from '@/components/profile/institution/components/Sea
 import { Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
 import { motion } from 'framer-motion'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface SupportRequest {
 	id: string
@@ -63,27 +63,15 @@ const SupportTable = ({
 		onPageChange?.(page)
 	}
 
-	const handleFiltersChange = useCallback(() => {
-		const filters = {
+	// Update filters when debounced search or other filters change
+	// Direct call to parent, no intermediate callback
+	useEffect(() => {
+		onFiltersChange?.({
 			search: debouncedSearchQuery || undefined,
 			status: statusFilter.length === 1 ? statusFilter[0].toLowerCase() : 'all',
 			sortBy: sortBy,
-		}
-		onFiltersChange?.(filters)
+		})
 	}, [debouncedSearchQuery, statusFilter, sortBy, onFiltersChange])
-
-	const handleStatusFilterChange = (value: string[]) => {
-		setStatusFilter(value)
-	}
-
-	const handleSortChange = (value: string) => {
-		setSortBy(value)
-	}
-
-	// Update filters when debounced search or other filters change
-	useEffect(() => {
-		handleFiltersChange()
-	}, [handleFiltersChange])
 
 	const getStatusBadge = (status: string) => {
 		const baseClasses = 'px-3 py-1 rounded-full text-sm font-medium'
@@ -110,9 +98,9 @@ const SupportTable = ({
 				searchQuery={searchQuery}
 				onSearchChange={setSearchQuery}
 				statusFilter={statusFilter}
-				onStatusFilterChange={handleStatusFilterChange}
+				onStatusFilterChange={setStatusFilter}
 				sortBy={sortBy}
-				onSortChange={handleSortChange}
+				onSortChange={setSortBy}
 				searchPlaceholder="Enter name, email..."
 				statusOptions={[
 					{ value: 'Pending', label: 'Pending' },

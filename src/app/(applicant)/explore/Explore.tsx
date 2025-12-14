@@ -56,7 +56,7 @@ const Explore = () => {
 	]
 
 	const breadcrumbItems = [
-		{ label: t('breadcrumb.home'), href: '/' },
+		// { label: t('breadcrumb.home'), href: '/' },
 		{ label: t('breadcrumb.explore') },
 	]
 

@@ -95,10 +95,7 @@ const ProgramDetail = () => {
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([
-		{ label: t('breadcrumb.explore'), href: '/explore' },
-		{ label: t('program_detail.breadcrumb.programmes') },
-	])
+	>([{ label: t('program_detail.breadcrumb.programmes') }])
 	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [scholarships, setScholarships] = useState<any[]>([])
@@ -361,9 +358,7 @@ const ProgramDetail = () => {
 				const queryString = paramsString ? `?${paramsString}` : ''
 
 				const programName = currentProgram?.title || 'Information Technology'
-				let items: Array<{ label: string; href?: string }> = [
-					{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
-				]
+				let items: Array<{ label: string; href?: string }> = []
 
 				if (fromTab === 'scholarships') {
 					items.push({
@@ -401,9 +396,7 @@ const ProgramDetail = () => {
 
 			const programName = programData?.title || 'Information Technology'
 
-			let items: Array<{ label: string; href?: string }> = [
-				{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
-			]
+			let items: Array<{ label: string; href?: string }> = []
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'scholarships') {

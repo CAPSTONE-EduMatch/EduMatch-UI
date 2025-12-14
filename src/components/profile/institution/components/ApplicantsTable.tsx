@@ -23,12 +23,14 @@ interface ApplicantsTableProps {
 	applicants: Applicant[]
 	onMoreDetail: (applicant: Applicant) => void
 	hidePostId?: boolean // Hide Post ID column for detail pages
+	showMatchScore?: boolean // Show Match Score column (requires active subscription)
 }
 
 export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 	applicants,
 	onMoreDetail,
 	hidePostId = false,
+	showMatchScore = true, // Default to true for backward compatibility
 }) => {
 	const router = useRouter()
 
@@ -97,9 +99,20 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 	}
 
 	// Use custom grid template columns for better space distribution
-	const gridCols = hidePostId
-		? 'grid-cols-[minmax(140px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
-		: 'grid-cols-[180px_140px_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
+	// Adjust grid columns based on hidePostId and showMatchScore
+	const getGridCols = () => {
+		if (hidePostId && !showMatchScore) {
+			return 'grid-cols-[minmax(140px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_80px]'
+		} else if (!hidePostId && !showMatchScore) {
+			return 'grid-cols-[180px_140px_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_80px]'
+		} else if (hidePostId && showMatchScore) {
+			return 'grid-cols-[minmax(140px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
+		} else {
+			return 'grid-cols-[180px_140px_minmax(120px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(120px,1fr)_minmax(100px,1fr)_minmax(140px,1fr)_80px]'
+		}
+	}
+
+	const gridCols = getGridCols()
 
 	return (
 		<div className="overflow-x-auto">
@@ -114,7 +127,7 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 					<div>Degree Level</div>
 					<div>Sub-discipline</div>
 					<div>Status</div>
-					<div>Matching Score</div>
+					{showMatchScore && <div>Matching Score</div>}
 					<div>Actions</div>
 				</div>
 
@@ -192,22 +205,24 @@ export const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
 									</span>
 								</div>
 
-								{/* Matching Score */}
-								<div className="text-center">
-									<div className="flex items-center space-x-3">
-										<div className="flex-1">
-											<div className="w-full bg-gray-200 rounded-full h-2">
-												<div
-													className={`${getScoreColor(applicant.matchingScore)} h-2 rounded-full transition-all duration-300`}
-													style={{ width: `${applicant.matchingScore}%` }}
-												></div>
+								{/* Matching Score - Only show if institution has active subscription */}
+								{showMatchScore && (
+									<div className="text-center">
+										<div className="flex items-center space-x-3">
+											<div className="flex-1">
+												<div className="w-full bg-gray-200 rounded-full h-2">
+													<div
+														className={`${getScoreColor(applicant.matchingScore)} h-2 rounded-full transition-all duration-300`}
+														style={{ width: `${applicant.matchingScore}%` }}
+													></div>
+												</div>
 											</div>
+											<span className="text-sm font-medium text-gray-900 min-w-[3rem]">
+												{applicant.matchingScore}%
+											</span>
 										</div>
-										<span className="text-sm font-medium text-gray-900 min-w-[3rem]">
-											{applicant.matchingScore}%
-										</span>
 									</div>
-								</div>
+								)}
 
 								{/* Actions */}
 								<div className="flex justify-center">

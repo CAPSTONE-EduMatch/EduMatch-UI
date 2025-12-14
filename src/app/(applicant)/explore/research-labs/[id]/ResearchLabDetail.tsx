@@ -1028,7 +1028,7 @@ const ResearchLabDetail = () => {
 			const labName = researchLab?.title || 'AI Research Lab'
 
 			let items: Array<{ label: string; href?: string }> = [
-				{ label: 'Explore', href: '/explore' },
+				// { label: 'Explore', href: '/explore' },
 			]
 
 			// Add intermediate breadcrumb based on where we came from

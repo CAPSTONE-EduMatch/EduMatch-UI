@@ -220,10 +220,7 @@ const ScholarshipDetail = () => {
 
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([
-		{ label: t('scholarship_detail.breadcrumb.home'), href: '/explore' },
-		{ label: t('scholarship_detail.breadcrumb.scholarships') },
-	])
+	>([{ label: t('scholarship_detail.breadcrumb.scholarships') }])
 
 	// Fetch recommended scholarships based on current scholarship's characteristics
 	const fetchRecommendedScholarships = async (scholarship: any) => {
@@ -332,12 +329,7 @@ const ScholarshipDetail = () => {
 			const scholarshipName =
 				currentScholarship?.title || t('scholarship_detail.breadcrumb.detail')
 
-			let items: Array<{ label: string; href?: string }> = [
-				{
-					label: t('scholarship_detail.breadcrumb.home'),
-					href: `/explore${queryString}`,
-				},
-			]
+			let items: Array<{ label: string; href?: string }> = []
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'programmes') {

@@ -9,6 +9,7 @@ import {
 	Pagination,
 	type Applicant,
 } from '../components'
+import { useSubscription } from '@/hooks/subscription/useSubscription'
 
 interface InstitutionApplicationSectionProps {
 	profile: any
@@ -19,6 +20,7 @@ export const InstitutionApplicationSection: React.FC<
 > = ({ profile }) => {
 	const router = useRouter()
 	const searchParams = useSearchParams()
+	const { subscriptions } = useSubscription()
 	const [searchInput, setSearchInput] = useState('') // What user types
 	const [searchQuery, setSearchQuery] = useState('') // Actual search query sent to API
 	const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -43,6 +45,13 @@ export const InstitutionApplicationSection: React.FC<
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const itemsPerPage = 10
+
+	// Check if institution has an active subscription
+	const hasActiveInstitutionSubscription = subscriptions.some(
+		(sub) =>
+			sub.status === 'active' &&
+			(sub.plan === 'institution_monthly' || sub.plan === 'institution_yearly')
+	)
 
 	// Populate search bar when postId comes from URL
 	useEffect(() => {
@@ -253,6 +262,7 @@ export const InstitutionApplicationSection: React.FC<
 							<ApplicantsTable
 								applicants={applicants}
 								onMoreDetail={handleMoreDetail}
+								showMatchScore={hasActiveInstitutionSubscription}
 							/>
 						</div>
 					)}

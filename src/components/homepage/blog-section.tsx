@@ -2,21 +2,56 @@
 
 import { Button } from '@/components/ui'
 import { TabSelector } from '@/components/ui'
-import { Card, CardContent } from '@/components/ui'
-import Image from 'next/image'
+import { ProgramCard } from '@/components/ui/cards/ProgramCard'
+import { ScholarshipCard } from '@/components/ui/cards/ScholarshipCard'
+import { ResearchLabCard } from '@/components/ui/cards/ResearchLabCard'
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
 
-interface Post {
+interface Program {
 	id: string
 	title: string
-	institution: string
 	description: string
-	createdAt: string
+	university: string
+	logo: string
+	field: string
+	country: string
+	date: string
+	daysLeft: number
+	price: string
+	match: string
+	attendance: string
+}
+
+interface Scholarship {
+	id: string
+	title: string
+	description: string
+	provider: string
+	university: string
 	logo?: string
+	essayRequired: string
+	country: string
+	date: string
+	daysLeft: number
+	amount: string
+	match: string
+}
+
+interface ResearchLab {
+	id: string
+	title: string
+	description: string
+	professor: string
+	institution: string
+	logo?: string
+	field: string
+	country: string
+	position: string
+	date: string
+	daysLeft: number
+	match: string
 }
 
 const categories = [
@@ -27,7 +62,9 @@ const categories = [
 
 export function BlogSection() {
 	const [activeCategory, setActiveCategory] = useState('programmes')
-	const [posts, setPosts] = useState<Post[]>([])
+	const [programs, setPrograms] = useState<Program[]>([])
+	const [scholarships, setScholarships] = useState<Scholarship[]>([])
+	const [researchLabs, setResearchLabs] = useState<ResearchLab[]>([])
 	const [loading, setLoading] = useState(true)
 	const t = useTranslations()
 	const router = useRouter()
@@ -36,31 +73,47 @@ export function BlogSection() {
 		const fetchPosts = async () => {
 			setLoading(true)
 			try {
-				const endpoint =
-					activeCategory === 'programmes'
-						? '/api/explore/programs'
-						: activeCategory === 'scholarships'
-							? '/api/explore/scholarships'
-							: '/api/explore/research'
-
-				const response = await fetch(`${endpoint}?page=1&limit=3&sort=newest`)
-				const data = await response.json()
-
-				if (data.success && data.data) {
-					const formattedPosts = data.data.map((item: any) => ({
-						id: item.id,
-						title: item.institution || item.institutionName || 'Institution',
-						institution: item.institutionName || item.institution || '',
-						description: item.description || item.details || '',
-						createdAt:
-							item.createdAt || item.created_at || new Date().toISOString(),
-						logo: item.logo || item.institutionLogo,
-					}))
-					setPosts(formattedPosts)
+				if (activeCategory === 'programmes') {
+					const response = await fetch(
+						'/api/explore/programs?page=1&limit=3&sortBy=newest'
+					)
+					const data = await response.json()
+					if (data.data && Array.isArray(data.data)) {
+						setPrograms(data.data)
+					} else {
+						setPrograms([])
+					}
+				} else if (activeCategory === 'scholarships') {
+					const response = await fetch(
+						'/api/explore/scholarships?page=1&limit=3&sortBy=newest'
+					)
+					const data = await response.json()
+					if (data.data && Array.isArray(data.data)) {
+						setScholarships(data.data)
+					} else {
+						setScholarships([])
+					}
+				} else if (activeCategory === 'research_labs') {
+					const response = await fetch(
+						'/api/explore/research?page=1&limit=3&sortBy=newest'
+					)
+					const data = await response.json()
+					if (data.data && Array.isArray(data.data)) {
+						setResearchLabs(data.data)
+					} else {
+						setResearchLabs([])
+					}
 				}
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('Error fetching posts:', error)
-				setPosts([])
+				if (activeCategory === 'programmes') {
+					setPrograms([])
+				} else if (activeCategory === 'scholarships') {
+					setScholarships([])
+				} else {
+					setResearchLabs([])
+				}
 			} finally {
 				setLoading(false)
 			}
@@ -72,6 +125,24 @@ export function BlogSection() {
 	const handleShowMore = () => {
 		router.push(`/explore?tab=${activeCategory}`)
 	}
+
+	const handleCardClick = (id: string) => {
+		if (activeCategory === 'programmes') {
+			router.push(`/explore/programmes/${id}`)
+		} else if (activeCategory === 'scholarships') {
+			router.push(`/explore/scholarships/${id}`)
+		} else if (activeCategory === 'research_labs') {
+			router.push(`/explore/research-labs/${id}`)
+		}
+	}
+
+	const getCurrentData = () => {
+		if (activeCategory === 'programmes') return programs
+		if (activeCategory === 'scholarships') return scholarships
+		return researchLabs
+	}
+
+	const currentData = getCurrentData()
 
 	return (
 		<section className="py-20 bg-gray-50">
@@ -91,9 +162,12 @@ export function BlogSection() {
 
 				{loading ? (
 					<div className="text-center py-12 text-muted-foreground">
-						Loading...
+						<div className="flex items-center justify-center gap-3">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#116E63]"></div>
+							<p>Loading...</p>
+						</div>
 					</div>
-				) : posts.length === 0 ? (
+				) : currentData.length === 0 ? (
 					<div className="text-center py-12">
 						<div className="max-w-md mx-auto">
 							<div className="text-6xl mb-4">📭</div>
@@ -127,60 +201,51 @@ export function BlogSection() {
 					</div>
 				) : (
 					<>
-						<div className="space-y-6 mb-12">
-							{posts.map((post, index) => (
-								<motion.div
-									key={post.id}
-									initial={{ opacity: 0, y: 50 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{
-										duration: 0.8,
-										ease: 'easeOut',
-										delay: index * 0.1,
-									}}
-								>
-									<Card className="p-6 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-										<CardContent className="p-0">
-											<div className="flex items-start gap-4">
-												<div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded flex items-center justify-center flex-shrink-0 relative overflow-hidden bg-gray-100">
-													{post.logo ? (
-														<Image
-															src={post.logo}
-															alt={post.institution}
-															width={144}
-															height={144}
-															className="w-full h-full object-contain rounded"
-														/>
-													) : (
-														<div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
-															{post.institution.charAt(0)}
-														</div>
-													)}
-												</div>
-												<div className="flex-1">
-													<div className="mb-2">
-														<h3 className="font-bold text-xl text-card-foreground">
-															{post.title}
-														</h3>
-														<p className="text-sm text-muted-foreground">
-															{post.institution}
-														</p>
-													</div>
-													<p className="text-muted-foreground text-sm leading-relaxed mb-3 line-clamp-2">
-														{post.description}
-													</p>
-													<p className="text-sm text-primary font-medium">
-														Added{' '}
-														{formatDistanceToNow(new Date(post.createdAt), {
-															addSuffix: true,
-														})}
-													</p>
-												</div>
-											</div>
-										</CardContent>
-									</Card>
-								</motion.div>
-							))}
+						<div className="mb-12">
+							{activeCategory === 'programmes' && (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+									{programs.map((program, index) => (
+										<ProgramCard
+											key={program.id}
+											program={program}
+											index={index}
+											isWishlisted={false}
+											onWishlistToggle={() => {}}
+											onClick={handleCardClick}
+										/>
+									))}
+								</div>
+							)}
+
+							{activeCategory === 'scholarships' && (
+								<div className="space-y-6">
+									{scholarships.map((scholarship, index) => (
+										<ScholarshipCard
+											key={scholarship.id}
+											scholarship={scholarship}
+											index={index}
+											isWishlisted={false}
+											onWishlistToggle={() => {}}
+											onClick={handleCardClick}
+										/>
+									))}
+								</div>
+							)}
+
+							{activeCategory === 'research_labs' && (
+								<div className="space-y-6">
+									{researchLabs.map((lab, index) => (
+										<ResearchLabCard
+											key={lab.id}
+											lab={lab}
+											index={index}
+											isWishlisted={false}
+											onWishlistToggle={() => {}}
+											onClick={handleCardClick}
+										/>
+									))}
+								</div>
+							)}
 						</div>
 
 						<div className="text-center">

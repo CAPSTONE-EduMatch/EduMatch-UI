@@ -10,6 +10,7 @@ interface Column<T> {
 	// eslint-disable-next-line no-unused-vars
 	accessor: keyof T | ((row: T) => ReactNode)
 	className?: string
+	headerClassName?: string
 }
 
 interface AdminTableProps<T> {
@@ -75,7 +76,9 @@ export function AdminTable<T extends { id: string }>({
 						}}
 					>
 						{columns.map((column, index) => (
-							<div key={index}>{column.header}</div>
+							<div key={index} className={column.headerClassName}>
+								{column.header}
+							</div>
 						))}
 					</div>
 

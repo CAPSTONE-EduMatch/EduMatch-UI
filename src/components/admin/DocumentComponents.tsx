@@ -171,53 +171,37 @@ export const FileCard = ({
 	}
 
 	return (
-		<div className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-[#126E64] hover:shadow-md transition-all duration-200">
-			<div className="flex items-start gap-4">
-				{/* File Icon */}
-				<div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#F5F7FB] to-[#E8ECF1] rounded-lg flex items-center justify-center group-hover:from-[#126E64]/10 group-hover:to-[#126E64]/5 transition-colors">
-					{getFileIcon(file.name)}
+		<div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+			<div className="flex items-center gap-3">
+				<span className="text-2xl">📄</span>
+				<div>
+					<p className="font-medium text-sm">{file.name}</p>
+					<p className="text-sm text-muted-foreground">
+						{file.size} • {formatDate(file.date)}
+					</p>
 				</div>
-
-				{/* File Info */}
-				<div className="flex-1 min-w-0">
-					<h4 className="text-sm font-semibold text-gray-900 truncate mb-1 group-hover:text-[#126E64] transition-colors">
-						{file.name}
-					</h4>
-					<div className="flex items-center gap-3 text-xs text-gray-500">
-						<span className="flex items-center gap-1">
-							<File className="w-3 h-3" />
-							{file.size}
-						</span>
-						<span className="flex items-center gap-1">
-							<FileText className="w-3 h-3" />
-							{formatDate(file.date)}
-						</span>
-					</div>
-				</div>
-
-				{/* Action Buttons */}
-				<div className="flex items-center gap-2 flex-shrink-0">
-					<button
-						onClick={handlePreview}
-						disabled={previewing}
-						className="p-2 text-gray-400 hover:text-[#126E64] hover:bg-[#126E64]/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-						title="Preview file"
-					>
-						<Eye className="w-4 h-4" />
-					</button>
-					<button
-						onClick={handleDownload}
-						disabled={downloading}
-						className="p-2 text-gray-400 hover:text-[#126E64] hover:bg-[#126E64]/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-						title="Download file"
-					>
-						{downloading ? (
-							<div className="w-4 h-4 border-2 border-[#126E64] border-t-transparent rounded-full animate-spin" />
-						) : (
-							<Download className="w-4 h-4" />
-						)}
-					</button>
-				</div>
+			</div>
+			<div className="flex items-center gap-2">
+				<button
+					onClick={handlePreview}
+					disabled={previewing}
+					className="text-primary hover:text-primary/80 text-sm font-medium disabled:opacity-50"
+					title="Preview file"
+				>
+					View
+				</button>
+				<button
+					onClick={handleDownload}
+					disabled={downloading}
+					className="text-gray-400 hover:text-gray-600 p-1 disabled:opacity-50"
+					title="Download file"
+				>
+					{downloading ? (
+						<div className="w-4 h-4 border-2 border-[#126E64] border-t-transparent rounded-full animate-spin" />
+					) : (
+						<Download className="h-4 w-4" />
+					)}
+				</button>
 			</div>
 		</div>
 	)
@@ -382,10 +366,10 @@ export const DocumentSection = ({
 	}
 
 	return (
-		<div className={containerClassName}>
+		<div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
 			<div className="flex items-center justify-between mb-4">
 				<div>
-					<h3 className={titleClassName}>{title}</h3>
+					<h3 className="text-lg font-semibold text-gray-900">{title}</h3>
 					{files.length > 0 && (
 						<p className="text-sm text-gray-500 mt-1">
 							{files.length} {files.length === 1 ? 'file' : 'files'}
@@ -401,23 +385,16 @@ export const DocumentSection = ({
 							handleDownloadAll()
 						}}
 						disabled={downloadingAll}
-						className="px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium bg-[#126E64] text-white hover:bg-[#0f5a52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 					>
-						{downloadingAll ? (
-							<>
-								<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-								<span>Downloading...</span>
-							</>
-						) : (
-							<>
-								<Download className="w-4 h-4" />
-								<span>{downloadButtonText}</span>
-							</>
+						{downloadingAll && (
+							<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
 						)}
+						Download folder
 					</button>
 				)}
 			</div>
-			<div className="space-y-3">
+			<div className="space-y-3 max-h-64 overflow-y-auto">
 				{files.length > 0 ? (
 					files.map((file, index) => (
 						<FileCard
@@ -430,16 +407,11 @@ export const DocumentSection = ({
 						/>
 					))
 				) : (
-					<div className="bg-white border border-gray-200 rounded-xl p-12">
-						<div className="text-center">
-							<div className="w-16 h-16 bg-gradient-to-br from-[#F5F7FB] to-[#E8ECF1] rounded-full flex items-center justify-center mx-auto mb-4">
-								<FileText className="w-8 h-8 text-gray-400" />
-							</div>
-							<p className="text-sm font-medium text-gray-700 mb-1">
-								{emptyStateMessage || `No ${title.toLowerCase()} uploaded yet`}
-							</p>
-							<p className="text-xs text-gray-500">{emptyStateSubMessage}</p>
-						</div>
+					<div className="text-center py-8">
+						<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+						<p className="text-gray-500">
+							{emptyStateMessage || `No ${title.toLowerCase()} uploaded`}
+						</p>
 					</div>
 				)}
 			</div>

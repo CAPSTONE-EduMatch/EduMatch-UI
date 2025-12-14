@@ -246,17 +246,38 @@ export async function GET(request: NextRequest) {
 		for (let i = days - 1; i >= 0; i--) {
 			const date = new Date();
 			date.setDate(date.getDate() - i);
+			date.setHours(0, 0, 0, 0);
 
-			// Get data for this specific date (simplified for demo)
-			const dayApplications = Math.floor(Math.random() * 20) + 5;
-			const dayUsers = Math.floor(Math.random() * 10) + 2;
-			const dayRevenue = Math.floor(Math.random() * 500) + 100;
+			const nextDate = new Date(date);
+			nextDate.setDate(date.getDate() + 1);
+
+			// Get actual data for this specific date from database
+			const [dayApplications, dayUsers] = await Promise.all([
+				// Count applications created on this date
+				prismaClient.application.count({
+					where: {
+						apply_at: {
+							gte: date,
+							lt: nextDate,
+						},
+					},
+				}),
+				// Count users created on this date
+				prismaClient.user.count({
+					where: {
+						createdAt: {
+							gte: date,
+							lt: nextDate,
+						},
+					},
+				}),
+			]);
 
 			chartData.push({
 				date: date.toISOString(),
 				applications: dayApplications,
 				users: dayUsers,
-				revenue: dayRevenue,
+				revenue: 0, // Not implemented yet
 			});
 		}
 

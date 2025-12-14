@@ -338,37 +338,103 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 		})
 	}
 
-	// Get current tab data with filtering
+	// Sort function for applications
+	const sortApplications = <
+		T extends {
+			match?: string | number
+			daysLeft?: number
+			date?: string
+		},
+	>(
+		items: T[]
+	): T[] => {
+		const sortedItems = [...items]
+
+		switch (sortBy) {
+			case 'newest':
+				return sortedItems.sort((a, b) => {
+					const dateA = new Date(a.date || 0).getTime()
+					const dateB = new Date(b.date || 0).getTime()
+					return dateB - dateA
+				})
+			case 'oldest':
+				return sortedItems.sort((a, b) => {
+					const dateA = new Date(a.date || 0).getTime()
+					const dateB = new Date(b.date || 0).getTime()
+					return dateA - dateB
+				})
+			case 'match-score':
+				return sortedItems.sort((a, b) => {
+					const matchA =
+						typeof a.match === 'string'
+							? parseFloat(a.match) || 0
+							: a.match || 0
+					const matchB =
+						typeof b.match === 'string'
+							? parseFloat(b.match) || 0
+							: b.match || 0
+					return matchB - matchA
+				})
+			case 'deadline':
+				return sortedItems.sort((a, b) => {
+					const daysLeftA = a.daysLeft || Infinity
+					const daysLeftB = b.daysLeft || Infinity
+					return daysLeftA - daysLeftB
+				})
+			case 'most-popular':
+			case 'default':
+			default:
+				return sortedItems
+		}
+	}
+
+	// Get current tab data with filtering and sorting
 	const getCurrentTabData = () => {
 		switch (activeTab) {
 			case 'programmes':
 				const filteredPrograms = filterApplications(programs)
+				const sortedPrograms = sortApplications(filteredPrograms)
 				return {
-					data: filteredPrograms,
-					totalItems: filteredPrograms.length,
+					data: sortedPrograms,
+					totalItems: sortedPrograms.length,
 				}
 			case 'scholarships':
 				const filteredScholarships = filterApplications(scholarships)
+				const sortedScholarships = sortApplications(filteredScholarships)
 				return {
-					data: filteredScholarships,
-					totalItems: filteredScholarships.length,
+					data: sortedScholarships,
+					totalItems: sortedScholarships.length,
 				}
 			case 'research':
 				const filteredResearchLabs = filterApplications(researchLabs)
+				const sortedResearchLabs = sortApplications(filteredResearchLabs)
 				return {
-					data: filteredResearchLabs,
-					totalItems: filteredResearchLabs.length,
+					data: sortedResearchLabs,
+					totalItems: sortedResearchLabs.length,
 				}
 			default:
 				const defaultFilteredPrograms = filterApplications(programs)
+				const defaultSortedPrograms = sortApplications(defaultFilteredPrograms)
 				return {
-					data: defaultFilteredPrograms,
-					totalItems: defaultFilteredPrograms.length,
+					data: defaultSortedPrograms,
+					totalItems: defaultSortedPrograms.length,
 				}
 		}
 	}
 
-	const currentTabData = getCurrentTabData()
+	const currentTabData = React.useMemo(() => {
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		return getCurrentTabData()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [
+		activeTab,
+		programs,
+		scholarships,
+		researchLabs,
+		selectedFilters,
+		searchQuery,
+		sortBy,
+	])
 
 	// Handle filter toggle
 	const toggleFilter = (filterId: string) => {

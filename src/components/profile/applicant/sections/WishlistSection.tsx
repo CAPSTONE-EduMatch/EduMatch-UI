@@ -460,22 +460,82 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		showExpired,
 	])
 
-	// Get current tab data with filters applied
-	const getCurrentTabData = () => {
-		return {
-			data: filteredData,
-			totalItems: filteredData.length,
-		}
-	}
+	// Sort function for wishlist items
+	const sortWishlistItems = useCallback(
+		<
+			T extends {
+				match?: string | number
+				daysLeft?: number
+				date?: string
+				applicationCount?: number
+			},
+		>(
+			items: T[]
+		): T[] => {
+			const sortedItems = [...items]
 
-	const currentTabData = getCurrentTabData()
+			switch (sortBy) {
+				case 'newest':
+					return sortedItems.sort((a, b) => {
+						const dateA = new Date(a.date || 0).getTime()
+						const dateB = new Date(b.date || 0).getTime()
+						return dateB - dateA
+					})
+				case 'oldest':
+					return sortedItems.sort((a, b) => {
+						const dateA = new Date(a.date || 0).getTime()
+						const dateB = new Date(b.date || 0).getTime()
+						return dateA - dateB
+					})
+				case 'match-score':
+					return sortedItems.sort((a, b) => {
+						const matchA =
+							typeof a.match === 'string'
+								? parseFloat(a.match) || 0
+								: a.match || 0
+						const matchB =
+							typeof b.match === 'string'
+								? parseFloat(b.match) || 0
+								: b.match || 0
+						return matchB - matchA
+					})
+				case 'deadline':
+					return sortedItems.sort((a, b) => {
+						const daysLeftA = a.daysLeft || Infinity
+						const daysLeftB = b.daysLeft || Infinity
+						return daysLeftA - daysLeftB
+					})
+				case 'most-popular':
+					return sortedItems.sort((a, b) => {
+						const countA = a.applicationCount || 0
+						const countB = b.applicationCount || 0
+						return countB - countA
+					})
+				case 'default':
+				default:
+					return sortedItems
+			}
+		},
+		[sortBy]
+	)
+
+	// Get current tab data with filters and sorting applied
+	const currentTabData = useMemo(() => {
+		const sortedData = sortWishlistItems(filteredData)
+		return {
+			data: sortedData,
+			totalItems: sortedData.length,
+		}
+	}, [filteredData, sortWishlistItems])
 
 	// Render tab content based on active tab
 	const renderTabContent = () => {
-		const filteredPrograms = activeTab === 'programmes' ? filteredData : []
+		const filteredPrograms =
+			activeTab === 'programmes' ? currentTabData.data : []
 		const filteredScholarships =
-			activeTab === 'scholarships' ? filteredData : []
-		const filteredResearchLabs = activeTab === 'research' ? filteredData : []
+			activeTab === 'scholarships' ? currentTabData.data : []
+		const filteredResearchLabs =
+			activeTab === 'research' ? currentTabData.data : []
 
 		switch (activeTab) {
 			case 'programmes':

@@ -32,11 +32,14 @@ export async function GET(request: NextRequest) {
 		// Calculate date range based on time filter
 		const now = new Date();
 		let startDate: Date;
-		let endDate: Date = now;
+		let endDate: Date = new Date(now); // Create a new Date object to avoid mutation
 
 		switch (timeFilter) {
 			case "today":
-				startDate = new Date(now.setHours(0, 0, 0, 0));
+				startDate = new Date(now);
+				startDate.setHours(0, 0, 0, 0);
+				endDate = new Date(now);
+				endDate.setHours(23, 59, 59, 999);
 				break;
 			case "yesterday":
 				startDate = new Date(now);
@@ -46,9 +49,16 @@ export async function GET(request: NextRequest) {
 				endDate.setHours(23, 59, 59, 999);
 				break;
 			case "this-week":
+				// Get Monday of current week (week starts on Monday)
 				startDate = new Date(now);
-				startDate.setDate(startDate.getDate() - now.getDay());
+				const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+				const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday (0) to 6 days back
+				startDate.setDate(startDate.getDate() - daysToMonday);
 				startDate.setHours(0, 0, 0, 0);
+				// End date is end of Sunday (complete week: Monday to Sunday)
+				endDate = new Date(startDate);
+				endDate.setDate(endDate.getDate() + 6); // Add 6 days to get Sunday
+				endDate.setHours(23, 59, 59, 999);
 				break;
 			case "last-week":
 				startDate = new Date(now);
@@ -113,8 +123,13 @@ export async function GET(request: NextRequest) {
 		const allApplications = allPosts.flatMap((post) => post.applications);
 
 		// Filter applications by date range
+		// Ensure we're comparing dates correctly, accounting for timezone
 		const filteredApplications = allApplications.filter((app) => {
+			if (!app.apply_at) return false;
 			const applyDate = new Date(app.apply_at);
+			// Ensure date is valid
+			if (isNaN(applyDate.getTime())) return false;
+			// Compare dates (inclusive range)
 			return applyDate >= startDate && applyDate <= endDate;
 		});
 
@@ -172,15 +187,19 @@ export async function GET(request: NextRequest) {
 			for (let hour = 0; hour < 24; hour++) {
 				const hourDate = new Date(startOfDay);
 				hourDate.setHours(hour, 0, 0, 0);
+				const hourEnd = new Date(hourDate);
+				hourEnd.setMinutes(59, 59, 999);
 				const dateStr = hourDate.toISOString().split("T")[0];
 
 				// Count applications by status for this hour
+				// Use time range comparison instead of hour matching to avoid timezone issues
+				// This ensures all applications within the hour range are counted correctly
 				const hourApps = filteredApplications.filter((app) => {
+					if (!app.apply_at) return false;
 					const appDate = new Date(app.apply_at);
-					return (
-						appDate.getHours() === hour &&
-						appDate.toISOString().split("T")[0] === dateStr
-					);
+					if (isNaN(appDate.getTime())) return false;
+					// Check if application is within this hour's time range (inclusive)
+					return appDate >= hourDate && appDate <= hourEnd;
 				});
 
 				const underReview = hourApps.filter(
@@ -230,8 +249,8 @@ export async function GET(request: NextRequest) {
 					(app) => app.status === "ACCEPTED"
 				).length;
 
-				// Use the first day of the month at noon for consistent display
-				const isoDate = new Date(year, month, 15, 12, 0, 0, 0);
+				// Use the first day of the month at start of day for consistent display
+				const isoDate = new Date(year, month, 1, 0, 0, 0, 0);
 
 				chartData.push({
 					date: `${year}-${String(month + 1).padStart(2, "0")}`,
@@ -247,10 +266,20 @@ export async function GET(request: NextRequest) {
 		} else {
 			// For other filters (week, month), generate daily data points
 			const currentDate = new Date(startDate);
-			while (currentDate <= endDate) {
+			// Normalize currentDate to start of day for consistent comparison
+			currentDate.setHours(0, 0, 0, 0);
+			// Normalize endDate to start of day for comparison, but keep original for filtering
+			// IMPORTANT: Add 1 day to endDateForComparison to ensure we include the end date (today)
+			const endDateForComparison = new Date(endDate);
+			endDateForComparison.setHours(0, 0, 0, 0);
+			// Add 1 day to ensure the loop includes the final day (today)
+			endDateForComparison.setDate(endDateForComparison.getDate() + 1);
+
+			while (currentDate < endDateForComparison) {
 				const dateStr = currentDate.toISOString().split("T")[0];
 				const isoDate = new Date(currentDate);
-				isoDate.setHours(12, 0, 0, 0); // Set to noon for consistent display
+				// Set to start of day (00:00) to align with x-axis labels
+				isoDate.setHours(0, 0, 0, 0);
 
 				// Ensure the date is valid
 				if (isNaN(isoDate.getTime())) {
@@ -267,7 +296,9 @@ export async function GET(request: NextRequest) {
 				// Filter applications for this specific day directly from filteredApplications
 				// This ensures accuracy and matches the stats calculation
 				const dayApps = filteredApplications.filter((app) => {
+					if (!app.apply_at) return false;
 					const appDate = new Date(app.apply_at);
+					if (isNaN(appDate.getTime())) return false;
 					return appDate >= dayStart && appDate <= dayEnd;
 				});
 
@@ -385,10 +416,39 @@ export async function GET(request: NextRequest) {
 		// Ensure all dates are valid ISO strings
 		const categories = chartData
 			.map((d) => {
-				const date = new Date(d.isoDate);
-				return isNaN(date.getTime()) ? null : d.isoDate;
+				if (!d.isoDate) return null;
+				try {
+					const date = new Date(d.isoDate);
+					if (isNaN(date.getTime())) return null;
+					// Ensure it's a valid ISO string
+					return date.toISOString();
+				} catch {
+					return null;
+				}
 			})
 			.filter((d): d is string => d !== null);
+
+		// Ensure we have at least one valid category
+		// If all isoDate values are invalid, try using the date field as fallback
+		if (categories.length === 0 && chartData.length > 0) {
+			const fallbackCategories = chartData
+				.map((d) => {
+					if (!d.date) return null;
+					try {
+						const date = new Date(d.date);
+						date.setHours(12, 0, 0, 0); // Set to noon for consistent display
+						if (isNaN(date.getTime())) return null;
+						return date.toISOString();
+					} catch {
+						return null;
+					}
+				})
+				.filter((d): d is string => d !== null);
+
+			if (fallbackCategories.length > 0) {
+				categories.push(...fallbackCategories);
+			}
+		}
 
 		// Calculate post statistics
 		const totalPosts = allPosts.length;

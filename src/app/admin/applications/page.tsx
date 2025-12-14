@@ -182,15 +182,15 @@ export default function AdminApplicationsPage() {
 			)) as (_app: Application) => React.ReactNode,
 			className: '120px',
 		},
-		{
-			header: 'Reapply Count',
-			accessor: ((app: Application) => (
-				<div className="text-gray-700 text-sm text-center">
-					{app.reapplyCount}
-				</div>
-			)) as (_app: Application) => React.ReactNode,
-			className: '110px',
-		},
+		// {
+		// 	header: 'Reapply Count',
+		// 	accessor: ((app: Application) => (
+		// 		<div className="text-gray-700 text-sm text-center">
+		// 			{app.reapplyCount}
+		// 		</div>
+		// 	)) as (_app: Application) => React.ReactNode,
+		// 	className: '110px',
+		// },
 		{
 			header: 'Actions',
 			accessor: ((app: Application) => (

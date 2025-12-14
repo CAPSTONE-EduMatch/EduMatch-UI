@@ -100,6 +100,7 @@ export const useAdminApplications = () => {
 		queryKey: ["admin-applications", filters],
 		queryFn: () => fetchApplications(filters),
 		staleTime: 30000, // 30 seconds
+		refetchOnMount: false,
 	});
 
 	// Helper functions for filter management

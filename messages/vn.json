@@ -1596,6 +1596,19 @@
 			"accepted": "Đã Chấp Nhận",
 			"rejected": "Đã Từ Chối"
 		},
+		"wishlist": {
+			"added_title": "Đã Thêm vào Danh Sách Yêu Thích",
+			"added_message": "{type} này đã được thêm vào danh sách yêu thích của bạn.",
+			"added_message_default": "Mục này đã được thêm vào danh sách yêu thích của bạn.",
+			"removed_title": "Đã Xóa khỏi Danh Sách Yêu Thích",
+			"removed_message": "{type} này đã được xóa khỏi danh sách yêu thích của bạn.",
+			"removed_message_default": "Mục này đã được xóa khỏi danh sách yêu thích của bạn.",
+			"error_title": "Lỗi Danh Sách Yêu Thích",
+			"error_message": "Không thể cập nhật danh sách yêu thích. Vui lòng thử lại."
+		},
+		"buttons": {
+			"explore_more": "Khám phá thêm"
+		},
 		"status": {
 			"SUBMITTED": "Đã Nộp",
 			"REQUIRE_UPDATE": "Cần Cập Nhật",

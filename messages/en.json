@@ -1581,6 +1581,19 @@
 			"accepted": "Accepted",
 			"rejected": "Rejected"
 		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
+		"buttons": {
+			"explore_more": "Explore more"
+		},
 		"status": {
 			"SUBMITTED": "Submitted",
 			"REQUIRE_UPDATE": "Update Required",

@@ -1,22 +1,33 @@
 'use client'
 
 import { SplineArea } from '@/components/charts/SplineArea'
+import { SimplePieChart } from '@/components/charts/SimplePieChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
 import { motion } from 'framer-motion'
 import {
-	Building2,
-	Calendar,
-	GraduationCap,
 	Info,
-	TrendingUp,
 	Users,
+	GraduationCap,
+	Building2,
+	FileCheck,
+	CheckCircle,
+	XCircle,
+	FileText,
+	Ban,
+	Clock,
+	Send,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 
 interface DashboardStats {
-	totalUsers: number
+	totalUsers: {
+		total: number
+		applicants: number
+		institutions: number
+		systemManagers: number
+	}
 	applicants: {
 		total: number
 		activated: number
@@ -38,8 +49,10 @@ interface DashboardStats {
 	posts: {
 		total: number
 		published: number
-		draft: number
+		rejected: number
 		closed: number
+		submitted: number
+		progressing: number
 	}
 	revenue: {
 		total: number
@@ -65,74 +78,7 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
 	{ value: '1y', label: 'Last Year' },
 ]
 
-// Pie Chart Component for User Statistics
-const SimpleDonutChart = ({
-	data,
-	colors = ['#126E64', '#FFA500', '#E5E7EB'],
-	size = 80,
-}: {
-	data: Array<{ value: number; label: string }>
-	colors?: string[]
-	size?: number
-}) => {
-	const total = data.reduce((sum, item) => sum + item.value, 0)
-	let currentAngle = 0
-
-	const radius = size / 2 - 10
-	const centerX = size / 2
-	const centerY = size / 2
-
-	return (
-		<div className="flex items-center gap-4">
-			<svg width={size} height={size} className="transform -rotate-90">
-				{data.map((item, index) => {
-					const percentage = item.value / total
-					const angle = percentage * 360
-					const startAngle = currentAngle
-					const endAngle = currentAngle + angle
-
-					currentAngle += angle
-
-					const x1 = centerX + radius * Math.cos((startAngle * Math.PI) / 180)
-					const y1 = centerY + radius * Math.sin((startAngle * Math.PI) / 180)
-					const x2 = centerX + radius * Math.cos((endAngle * Math.PI) / 180)
-					const y2 = centerY + radius * Math.sin((endAngle * Math.PI) / 180)
-
-					const largeArcFlag = angle > 180 ? 1 : 0
-
-					const pathData = [
-						`M ${centerX} ${centerY}`,
-						`L ${x1} ${y1}`,
-						`A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-						'Z',
-					].join(' ')
-
-					return (
-						<path
-							key={index}
-							d={pathData}
-							fill={colors[index % colors.length]}
-						/>
-					)
-				})}
-				{/* Inner circle to make it donut */}
-				<circle cx={centerX} cy={centerY} r={radius * 0.6} fill="white" />
-			</svg>
-
-			<div className="flex flex-col gap-1">
-				{data.map((item, index) => (
-					<div key={index} className="flex items-center gap-2 text-xs">
-						<div
-							className="w-3 h-3 rounded-full"
-							style={{ backgroundColor: colors[index % colors.length] }}
-						/>
-						<span>{item.label}</span>
-					</div>
-				))}
-			</div>
-		</div>
-	)
-}
+// No longer needed - using bar charts instead
 
 // Stat Card Component
 const StatCard = ({
@@ -140,7 +86,6 @@ const StatCard = ({
 	value,
 	icon: Icon,
 	bgColor = 'bg-white',
-	iconBgColor = 'bg-[#126E64]',
 	subtitle,
 	tooltip,
 }: {
@@ -148,7 +93,6 @@ const StatCard = ({
 	value: string | number
 	icon: any
 	bgColor?: string
-	iconBgColor?: string
 	subtitle?: string
 	tooltip?: string
 }) => (
@@ -156,26 +100,24 @@ const StatCard = ({
 		className={`${bgColor} border shadow-sm hover:shadow-md transition-shadow`}
 	>
 		<CardContent className="p-6">
-			<div className="flex items-center justify-between mb-4">
-				<div className={`p-3 rounded-full ${iconBgColor}`}>
-					<Icon className="w-6 h-6 text-white" />
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-2">
+					<Icon className="w-5 h-5 text-[#126E64]" />
+					<p className="text-sm font-medium text-gray-600">{title}</p>
+					{tooltip && (
+						<Tooltip
+							content={tooltip}
+							maxWidth={280}
+							offsetX={24}
+							contentClassName="text-sm"
+						>
+							<Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+						</Tooltip>
+					)}
 				</div>
-				{tooltip && (
-					<Tooltip
-						content={tooltip}
-						maxWidth={280}
-						offsetX={24}
-						contentClassName="text-sm"
-					>
-						<Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-					</Tooltip>
-				)}
-			</div>
-			<div className="space-y-2">
-				<p className="text-sm font-medium text-gray-600">{title}</p>
 				<p className="text-2xl font-bold text-gray-900">{value}</p>
-				{subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
 			</div>
+			{subtitle && <p className="text-xs text-gray-500 mt-2">{subtitle}</p>}
 		</CardContent>
 	</Card>
 )
@@ -277,16 +219,48 @@ export default function AdminDashboard() {
 
 	const chartCategories = chartData.map((item) => item.date)
 
-	// Prepare donut chart data
-	const applicantData = [
-		{ value: stats.applicants.activated, label: 'Activated' },
-		{ value: stats.applicants.deactivated, label: 'Deactivated' },
+	// Prepare pie chart data for Total Users
+	const totalUsersPieData = [
+		{
+			name: 'Applicants',
+			value: stats.totalUsers.applicants,
+			color: '#FFA500',
+		},
+		{
+			name: 'Institutions',
+			value: stats.totalUsers.institutions,
+			color: '#3B82F6',
+		},
+		{
+			name: 'System Managers',
+			value: stats.totalUsers.systemManagers,
+			color: '#126E64',
+		},
 	]
 
-	const institutionData = [
-		{ value: stats.institutions.activated, label: 'Activated' },
-		{ value: stats.institutions.deactivated, label: 'Deactivated' },
-		{ value: stats.institutions.pending, label: 'Pending' },
+	// Prepare pie chart data for Applicants
+	const applicantPieData = [
+		{ name: 'Activated', value: stats.applicants.activated, color: '#126E64' },
+		{
+			name: 'Deactivated',
+			value: stats.applicants.deactivated,
+			color: '#EF4444',
+		},
+	]
+
+	// Prepare bar chart data for Institutions
+	const institutionPieData = [
+		{
+			name: 'Activated',
+			value: stats.institutions.activated,
+			color: '#126E64',
+		},
+		{
+			name: 'Deactivated',
+			value: stats.institutions.deactivated,
+			color: '#EF4444',
+		},
+		{ name: 'Pending', value: stats.institutions.pending, color: '#FBBF24' },
 	]
 
 	return (
@@ -294,19 +268,8 @@ export default function AdminDashboard() {
 			{/* Main Content */}
 			<div className="flex-1">
 				{/* Header */}
-				<div className="bg-white shadow-sm px-8 py-6 flex justify-between items-center">
+				<div className="bg-white shadow-sm px-8 py-6">
 					<h1 className="text-3xl font-bold text-[#126E64]">Administrator</h1>
-
-					{/* Header Icons */}
-					<div className="flex items-center gap-4">
-						<div className="p-2 bg-gray-100 rounded-full">
-							<Users className="w-5 h-5 text-gray-600" />
-						</div>
-						<div className="p-2 bg-gray-100 rounded-full">
-							<TrendingUp className="w-5 h-5 text-gray-600" />
-						</div>
-						<div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-					</div>
 				</div>
 
 				{/* Page Content */}
@@ -320,34 +283,45 @@ export default function AdminDashboard() {
 						{/* Top Stats Row */}
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{/* Total Users */}
-							<StatCard
-								title="Total Users"
-								value={(
-									stats.applicants.total + stats.institutions.total
-								).toLocaleString()}
-								icon={Users}
-								iconBgColor="bg-[#126E64]"
-							/>
+							<Card className="bg-white border shadow-sm">
+								<CardContent className="p-6">
+									<div className="flex items-center justify-between mb-4">
+										<div className="flex items-center gap-2">
+											<Users className="w-5 h-5 text-[#126E64]" />
+											<p className="text-sm font-medium text-gray-600">
+												Total Users
+											</p>
+										</div>
+										<p className="text-2xl font-bold text-gray-900">
+											{stats.totalUsers.total.toLocaleString()}
+										</p>
+									</div>
+									<SimplePieChart
+										data={totalUsersPieData}
+										height={180}
+										showLegendInside={true}
+									/>
+								</CardContent>
+							</Card>
 
 							{/* Applicants */}
 							<Card className="bg-white border shadow-sm">
 								<CardContent className="p-6">
-									<div className="flex items-start justify-between mb-4">
-										<div>
-											<p className="text-sm font-medium text-gray-600 mb-2">
+									<div className="flex items-center justify-between mb-4">
+										<div className="flex items-center gap-2">
+											<GraduationCap className="w-5 h-5 text-[#126E64]" />
+											<p className="text-sm font-medium text-gray-600">
 												Applicants
 											</p>
-											<p className="text-2xl font-bold text-gray-900">
-												{stats.applicants.total.toLocaleString()}
-											</p>
 										</div>
-										<div className="p-3 bg-orange-500 rounded-full">
-											<GraduationCap className="w-6 h-6 text-white" />
-										</div>
+										<p className="text-2xl font-bold text-gray-900">
+											{stats.applicants.total.toLocaleString()}
+										</p>
 									</div>
-									<SimpleDonutChart
-										data={applicantData}
-										colors={['#126E64', '#FFA500']}
+									<SimplePieChart
+										data={applicantPieData}
+										height={180}
+										showLegendInside={true}
 									/>
 								</CardContent>
 							</Card>
@@ -355,22 +329,21 @@ export default function AdminDashboard() {
 							{/* Institutions */}
 							<Card className="bg-white border shadow-sm">
 								<CardContent className="p-6">
-									<div className="flex items-start justify-between mb-4">
-										<div>
-											<p className="text-sm font-medium text-gray-600 mb-2">
+									<div className="flex items-center justify-between mb-4">
+										<div className="flex items-center gap-2">
+											<Building2 className="w-5 h-5 text-[#126E64]" />
+											<p className="text-sm font-medium text-gray-600">
 												Institutions
 											</p>
-											<p className="text-2xl font-bold text-gray-900">
-												{stats.institutions.total.toLocaleString()}
-											</p>
 										</div>
-										<div className="p-3 bg-blue-500 rounded-full">
-											<Building2 className="w-6 h-6 text-white" />
-										</div>
+										<p className="text-2xl font-bold text-gray-900">
+											{stats.institutions.total.toLocaleString()}
+										</p>
 									</div>
-									<SimpleDonutChart
-										data={institutionData}
-										colors={['#126E64', '#3B82F6', '#FFA500']}
+									<SimplePieChart
+										data={institutionPieData}
+										height={150}
+										showLegendInside={true}
 									/>
 								</CardContent>
 							</Card>
@@ -379,96 +352,90 @@ export default function AdminDashboard() {
 						{/* Application Statistics */}
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							<StatCard
-								title="New application(s)"
+								title="Submitted application(s)"
 								value={stats.applications.new.toLocaleString()}
-								icon={TrendingUp}
-								iconBgColor="bg-green-500"
-							/>
-							<StatCard
-								title="Under review application(s)"
-								value={stats.applications.underReview.toLocaleString()}
-								icon={Calendar}
-								iconBgColor="bg-yellow-500"
+								icon={Send}
+								tooltip="Total applications with status = SUBMITTED"
 							/>
 							<StatCard
 								title="Accepted application(s)"
 								value={stats.applications.accepted.toLocaleString()}
-								icon={TrendingUp}
-								iconBgColor="bg-blue-500"
+								icon={CheckCircle}
+								tooltip="Applications that have been reviewed and approved by institutions"
+							/>
+							<StatCard
+								title="Rejected Applications"
+								value={stats.applications.rejected.toLocaleString()}
+								icon={XCircle}
+								tooltip="Applications that have been reviewed and declined by institutions"
+							/>
+						</div>
+
+						{/* Posts Statistics Row */}
+						<div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+							<StatCard
+								title="Published Posts"
+								value={(stats.posts.published || 0).toLocaleString()}
+								icon={FileCheck}
+							/>
+							<StatCard
+								title="Rejected Posts"
+								value={(stats.posts.rejected || 0).toLocaleString()}
+								icon={XCircle}
+							/>
+							<StatCard
+								title="Closed Posts"
+								value={(stats.posts.closed || 0).toLocaleString()}
+								icon={Ban}
+							/>
+							<StatCard
+								title="Submitted Posts"
+								value={(stats.posts.submitted || 0).toLocaleString()}
+								icon={FileText}
+							/>
+							<StatCard
+								title="Progressing Posts"
+								value={(stats.posts.progressing || 0).toLocaleString()}
+								icon={Clock}
 							/>
 						</div>
 
 						{/* Analytics Section */}
-						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+						<div className="grid grid-cols-1 gap-6">
 							{/* Application Trends Chart */}
-							<div className="lg:col-span-2">
-								<Card className="bg-white border shadow-sm">
-									<CardHeader>
-										<div className="flex items-center justify-between">
-											<CardTitle className="text-lg font-semibold">
-												Application & User Trends
-											</CardTitle>
-											{/* Period Filter */}
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-gray-600">Period:</span>
-												<select
-													value={selectedPeriod}
-													onChange={(e) =>
-														setSelectedPeriod(e.target.value as Period)
-													}
-													className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
-												>
-													{PERIOD_OPTIONS.map((option) => (
-														<option key={option.value} value={option.value}>
-															{option.label}
-														</option>
-													))}
-												</select>
-											</div>
+							<Card className="bg-white border shadow-sm">
+								<CardHeader>
+									<div className="flex items-center justify-between">
+										<CardTitle className="text-lg font-semibold">
+											Application & User Trends
+										</CardTitle>
+										{/* Period Filter */}
+										<div className="flex items-center gap-2">
+											<span className="text-sm text-gray-600">Period:</span>
+											<select
+												value={selectedPeriod}
+												onChange={(e) =>
+													setSelectedPeriod(e.target.value as Period)
+												}
+												className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
+											>
+												{PERIOD_OPTIONS.map((option) => (
+													<option key={option.value} value={option.value}>
+														{option.label}
+													</option>
+												))}
+											</select>
 										</div>
-									</CardHeader>
-									<CardContent>
-										<SplineArea
-											series={chartSeries}
-											categories={chartCategories}
-											height={350}
-										/>
-									</CardContent>
-								</Card>
-							</div>
-
-							{/* Right Side Stats */}
-							<div className="space-y-6">
-								<StatCard
-									title="Published Posts"
-									value={stats.posts.published.toLocaleString()}
-									icon={TrendingUp}
-									iconBgColor="bg-[#126E64]"
-								/>
-								<StatCard
-									title="Draft Posts"
-									value={stats.posts.draft.toLocaleString()}
-									icon={TrendingUp}
-									iconBgColor="bg-yellow-500"
-								/>
-								<StatCard
-									title="Rejected Applications"
-									value={stats.applications.rejected.toLocaleString()}
-									icon={Users}
-									iconBgColor="bg-red-500"
-								/>
-								<StatCard
-									title="Conversion Rate"
-									value={
-										stats.applications.total > 0
-											? `${((stats.applications.accepted / stats.applications.total) * 100).toFixed(1)}%`
-											: '0%'
-									}
-									icon={TrendingUp}
-									iconBgColor="bg-[#126E64]"
-									subtitle={`${stats.applications.accepted} of ${stats.applications.total} accepted`}
-								/>
-							</div>
+									</div>
+								</CardHeader>
+								<CardContent>
+									<SplineArea
+										series={chartSeries}
+										categories={chartCategories}
+										height={350}
+									/>
+								</CardContent>
+							</Card>
 						</div>
 
 						{/* Bottom Section - User Management Link */}

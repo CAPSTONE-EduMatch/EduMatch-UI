@@ -3,7 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 
 interface DashboardStats {
-	totalUsers: number;
+	totalUsers: {
+		total: number;
+		applicants: number;
+		institutions: number;
+		systemManagers: number;
+	};
 	applicants: {
 		total: number;
 		activated: number;
@@ -25,8 +30,10 @@ interface DashboardStats {
 	posts: {
 		total: number;
 		published: number;
-		draft: number;
+		rejected: number;
 		closed: number;
+		submitted: number;
+		progressing: number;
 	};
 	revenue: {
 		total: number;
@@ -78,8 +85,10 @@ export async function GET(request: NextRequest) {
 			totalUsers,
 			applicantCount,
 			institutionCount,
+			systemManagerCount,
 			activeApplicants,
 			activeInstitutions,
+			pendingInstitutions,
 		] = await Promise.all([
 			// Total users count
 			prismaClient.user.count(),
@@ -98,6 +107,13 @@ export async function GET(request: NextRequest) {
 				},
 			}),
 
+			// System Manager count (role_id: "3" = system manager)
+			prismaClient.user.count({
+				where: {
+					role_id: "3",
+				},
+			}),
+
 			// Active applicants
 			prismaClient.user.count({
 				where: {
@@ -106,11 +122,20 @@ export async function GET(request: NextRequest) {
 				},
 			}),
 
-			// Active institutions
-			prismaClient.user.count({
+			// Active institutions (APPROVED verification status and active user status)
+			prismaClient.institution.count({
 				where: {
-					role_id: "2",
-					status: true,
+					verification_status: "APPROVED",
+					user: {
+						status: true,
+					},
+				},
+			}),
+
+			// Pending institutions (verification_status = PENDING)
+			prismaClient.institution.count({
+				where: {
+					verification_status: "PENDING",
 				},
 			}),
 		]);
@@ -135,19 +160,31 @@ export async function GET(request: NextRequest) {
 		]);
 
 		// Get posts statistics
-		const [totalPosts, publishedPosts, draftPosts, closedPosts] =
-			await Promise.all([
-				prismaClient.opportunityPost.count(),
-				prismaClient.opportunityPost.count({
-					where: { status: "PUBLISHED" },
-				}),
-				prismaClient.opportunityPost.count({
-					where: { status: "DRAFT" },
-				}),
-				prismaClient.opportunityPost.count({
-					where: { status: "CLOSED" },
-				}),
-			]);
+		const [
+			totalPosts,
+			publishedPosts,
+			rejectedPosts,
+			closedPosts,
+			submittedPosts,
+			progressingPosts,
+		] = await Promise.all([
+			prismaClient.opportunityPost.count(),
+			prismaClient.opportunityPost.count({
+				where: { status: "PUBLISHED" },
+			}),
+			prismaClient.opportunityPost.count({
+				where: { status: "REJECTED" },
+			}),
+			prismaClient.opportunityPost.count({
+				where: { status: "CLOSED" },
+			}),
+			prismaClient.opportunityPost.count({
+				where: { status: "SUBMITTED" },
+			}),
+			prismaClient.opportunityPost.count({
+				where: { status: "PROGRESSING" },
+			}),
+		]);
 
 		// Get revenue statistics (mock data for now since we don't have payment tables)
 		const revenueStats = {
@@ -159,7 +196,12 @@ export async function GET(request: NextRequest) {
 
 		// Build dashboard stats object
 		const stats: DashboardStats = {
-			totalUsers,
+			totalUsers: {
+				total: totalUsers,
+				applicants: applicantCount,
+				institutions: institutionCount,
+				systemManagers: systemManagerCount,
+			},
 			applicants: {
 				total: applicantCount,
 				activated: activeApplicants,
@@ -168,8 +210,9 @@ export async function GET(request: NextRequest) {
 			institutions: {
 				total: institutionCount,
 				activated: activeInstitutions,
-				deactivated: institutionCount - activeInstitutions,
-				pending: 0, // TODO: Add pending status logic when available
+				deactivated:
+					institutionCount - activeInstitutions - pendingInstitutions,
+				pending: pendingInstitutions,
 			},
 			applications: {
 				total: totalApplications,
@@ -181,8 +224,10 @@ export async function GET(request: NextRequest) {
 			posts: {
 				total: totalPosts,
 				published: publishedPosts,
-				draft: draftPosts,
+				rejected: rejectedPosts,
 				closed: closedPosts,
+				submitted: submittedPosts,
+				progressing: progressingPosts,
 			},
 			revenue: revenueStats,
 		};

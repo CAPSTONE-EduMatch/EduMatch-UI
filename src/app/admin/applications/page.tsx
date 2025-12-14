@@ -80,7 +80,8 @@ export default function AdminApplicationsPage() {
 	// Update search filter when debounced value changes
 	useEffect(() => {
 		setSearch(debouncedSearchInput)
-	}, [debouncedSearchInput, setSearch])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [debouncedSearchInput])
 
 	// Component for ID cell with copy functionality
 	const IdCell = ({ id }: { id: string }) => {

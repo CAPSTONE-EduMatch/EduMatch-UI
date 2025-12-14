@@ -63,15 +63,6 @@ const SupportTable = ({
 		onPageChange?.(page)
 	}
 
-	const handleFiltersChange = useCallback(() => {
-		const filters = {
-			search: debouncedSearchQuery || undefined,
-			status: statusFilter.length === 1 ? statusFilter[0].toLowerCase() : 'all',
-			sortBy: sortBy,
-		}
-		onFiltersChange?.(filters)
-	}, [debouncedSearchQuery, statusFilter, sortBy, onFiltersChange])
-
 	const handleStatusFilterChange = (value: string[]) => {
 		setStatusFilter(value)
 	}
@@ -82,8 +73,14 @@ const SupportTable = ({
 
 	// Update filters when debounced search or other filters change
 	useEffect(() => {
-		handleFiltersChange()
-	}, [handleFiltersChange])
+		const filters = {
+			search: debouncedSearchQuery || undefined,
+			status: statusFilter.length === 1 ? statusFilter[0].toLowerCase() : 'all',
+			sortBy: sortBy,
+		}
+		onFiltersChange?.(filters)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [debouncedSearchQuery, statusFilter, sortBy])
 
 	const getStatusBadge = (status: string) => {
 		const baseClasses = 'px-3 py-1 rounded-full text-sm font-medium'

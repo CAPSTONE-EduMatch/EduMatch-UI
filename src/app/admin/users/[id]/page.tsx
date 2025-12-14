@@ -1,17 +1,17 @@
 'use client'
 
-import { BanUnbanModal } from '@/components/admin/BanUnbanModal'
+import { DeactivateModal } from '@/components/admin/DeactivateModal'
 import { DocumentSection } from '@/components/admin/DocumentComponents'
-import { RevokeSessionsModal } from '@/components/admin/RevokeSessionsModal'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/domain/user-details'
 import { motion } from 'framer-motion'
-import { Download, LogOut, MessageCircle, User } from 'lucide-react'
+import { MessageCircle, User } from 'lucide-react'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/modals/Modal'
 import { Button, Input } from '@/components/ui'
+import Image from 'next/image'
 
 // API function to fetch user details
 const fetchUserDetails = async (
@@ -40,9 +40,13 @@ export default function UserDetailPage() {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [actionLoading, setActionLoading] = useState(false)
-	const [showBanModal, setShowBanModal] = useState(false)
-	const [showRevokeModal, setShowRevokeModal] = useState(false)
+	const [showDeactivateModal, setShowDeactivateModal] = useState(false)
 	const [showContactModal, setShowContactModal] = useState(false)
+	const [showResultModal, setShowResultModal] = useState(false)
+	const [resultModalType, setResultModalType] = useState<'success' | 'error'>(
+		'success'
+	)
+	const [resultModalMessage, setResultModalMessage] = useState('')
 	const [emailSubject, setEmailSubject] = useState('')
 	const [emailMessage, setEmailMessage] = useState('')
 	const [emailSending, setEmailSending] = useState(false)
@@ -163,73 +167,47 @@ export default function UserDetailPage() {
 	}
 
 	const handleDeactivateUser = async () => {
-		setShowBanModal(true)
+		if (!userData || userData.status !== 'Active') return
+		setShowDeactivateModal(true)
 	}
 
-	const handleRevokeSessions = async () => {
-		setShowRevokeModal(true)
-	}
-
-	const confirmRevokeSessions = async () => {
-		if (!params?.id) return
+	const confirmDeactivate = async (reason: string) => {
+		if (!params?.id || !userData) return
 
 		setActionLoading(true)
 		try {
-			const response = await fetch(`/api/admin/users/${params.id}/actions`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'revoke-sessions' }),
-			})
-
-			if (response.ok) {
-				alert('All user sessions revoked successfully!')
-				setShowRevokeModal(false)
-			} else {
-				const errorData = await response.json()
-				alert(
-					`Failed to revoke sessions: ${errorData.error || 'Unknown error'}`
-				)
-			}
-		} catch (error) {
-			alert('An error occurred while revoking sessions')
-		} finally {
-			setActionLoading(false)
-		}
-	}
-
-	const handleBanUnban = async (banReason: string, banDuration?: number) => {
-		if (!params?.id) return
-
-		setActionLoading(true)
-		try {
-			const action = userData?.banned ? 'unban' : 'ban'
 			const response = await fetch(`/api/admin/users/${params.id}/actions`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					action,
-					banReason,
-					banDuration,
+					action: 'deactivate',
+					reason: reason,
 				}),
 			})
 
 			if (response.ok) {
-				const message = userData?.banned
-					? 'User unbanned successfully!'
-					: 'User banned successfully!'
-				alert(message)
-
+				setShowDeactivateModal(false)
+				setResultModalType('success')
+				setResultModalMessage(
+					'User deactivated successfully! An email has been sent to the user.'
+				)
+				setShowResultModal(true)
 				// Reload user data to reflect changes
 				await loadUserData(params.id as string)
-				setShowBanModal(false)
 			} else {
 				const errorData = await response.json()
-				alert(
-					`Failed to ${userData?.banned ? 'unban' : 'ban'} user: ${errorData.error || 'Unknown error'}`
+				setShowDeactivateModal(false)
+				setResultModalType('error')
+				setResultModalMessage(
+					`Failed to deactivate user: ${errorData.error || 'Unknown error'}`
 				)
+				setShowResultModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setShowDeactivateModal(false)
+			setResultModalType('error')
+			setResultModalMessage('An error occurred while deactivating user')
+			setShowResultModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -250,15 +228,23 @@ export default function UserDetailPage() {
 			})
 
 			if (response.ok) {
-				alert(`User ${action}d successfully!`)
+				setResultModalType('success')
+				setResultModalMessage(`User ${action}d successfully!`)
+				setShowResultModal(true)
 				// Reload user data to reflect changes
 				await loadUserData(params.id as string)
 			} else {
 				const errorData = await response.json()
-				alert(`Failed to ${action} user: ${errorData.error || 'Unknown error'}`)
+				setResultModalType('error')
+				setResultModalMessage(
+					`Failed to ${action} user: ${errorData.error || 'Unknown error'}`
+				)
+				setShowResultModal(true)
 			}
 		} catch (error) {
-			alert('An error occurred')
+			setResultModalType('error')
+			setResultModalMessage('An error occurred')
+			setShowResultModal(true)
 		} finally {
 			setActionLoading(false)
 		}
@@ -297,31 +283,23 @@ export default function UserDetailPage() {
 		<>
 			<div className="flex gap-12 p-6 max-w-7xl mx-auto">
 				{/* Left Column - User Profile */}
-				<div className="w-[350px] flex-shrink-0">
+				<div className="w-[350px] flex-shrink-0 ">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.3 }}
-						className="bg-white rounded-lg p-6 shadow-sm"
+						className="bg-white rounded-lg p-6 shadow-sm  h-[800px]"
 					>
 						{/* Profile Image and Basic Info */}
 						<div className="text-center mb-6">
 							<div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
-								{userData.profileImage &&
-								userData.profileImage !== '/profile.svg' ? (
-									<ProtectedImage
+								{userData.profileImage ? (
+									<Image
 										src={userData.profileImage}
 										alt={userData.name}
+										className="w-full h-full object-cover"
 										width={128}
 										height={128}
-										className="w-full h-full object-cover"
-										expiresIn={7200}
-										autoRefresh={true}
-										errorFallback={
-											<div className="w-full h-full bg-gray-200 flex items-center justify-center">
-												<User className="w-12 h-12 text-gray-400" />
-											</div>
-										}
 									/>
 								) : (
 									<div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -329,6 +307,7 @@ export default function UserDetailPage() {
 									</div>
 								)}
 							</div>
+
 							<h2 className="text-xl font-semibold text-black mb-1">
 								{userData.name}
 							</h2>
@@ -350,15 +329,17 @@ export default function UserDetailPage() {
 								<div className="border-b border-[#DEDEDE] mb-4"></div>
 								<div className="space-y-3">
 									<div>
-										<span className="text-sm text-black">Program: </span>
-										<span className="text-sm font-medium text-black">
+										<span className="text-sm font-semibold text-black">
+											Program:{' '}
+										</span>
+										<span className="text-sm text-black">
 											{userData.program}
 										</span>
 									</div>
 									{userData.subdisciplines &&
 										userData.subdisciplines.length > 0 && (
 											<div>
-												<span className="text-sm text-black">
+												<span className="text-sm font-semibold text-black">
 													Subdisciplines:{' '}
 												</span>
 												<div className="flex flex-wrap gap-2 mt-1">
@@ -374,16 +355,16 @@ export default function UserDetailPage() {
 											</div>
 										)}
 									<div>
-										<span className="text-sm text-black">GPA: </span>
-										<span className="text-sm font-medium text-black">
-											{userData.gpa}
+										<span className="text-sm font-semibold text-black">
+											GPA:{' '}
 										</span>
+										<span className="text-sm text-black">{userData.gpa}</span>
 									</div>
 									<div>
 										<span className="text-sm font-semibold text-black">
 											Status:{' '}
 										</span>
-										<span className="text-sm font-semibold text-black">
+										<span className="text-sm text-black">
 											{userData.status}
 										</span>
 									</div>
@@ -391,7 +372,7 @@ export default function UserDetailPage() {
 										<span className="text-sm font-semibold text-black">
 											University:{' '}
 										</span>
-										<span className="text-sm font-semibold text-black">
+										<span className="text-sm text-black">
 											{userData.university}
 										</span>
 									</div>
@@ -436,15 +417,21 @@ export default function UserDetailPage() {
 							<div className="border-b border-[#DEDEDE] mb-4"></div>
 							<div className="space-y-3">
 								<div>
-									<span className="text-sm text-black">Email: </span>
+									<span className="text-sm font-semibold text-black">
+										Email:{' '}
+									</span>
 									<span className="text-sm text-black">{userData.email}</span>
 								</div>
 								<div>
-									<span className="text-sm text-black">Phone number: </span>
+									<span className="text-sm font-semibold text-black">
+										Phone:{' '}
+									</span>
 									<span className="text-sm text-black">{userData.phone}</span>
 								</div>
 								<div>
-									<span className="text-sm text-black">Nationality: </span>
+									<span className="text-sm font-semibold text-black">
+										Nationality:{' '}
+									</span>
 									<span className="text-sm text-black">
 										{userData.nationality}
 									</span>
@@ -464,44 +451,24 @@ export default function UserDetailPage() {
 									? 'Contact Institution'
 									: 'Contact Applicant'}
 							</button>
-							<button
-								onClick={handleDeactivateUser}
-								disabled={actionLoading}
-								className={`w-full py-2.5 px-4 rounded-[30px] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-									userData?.banned
-										? 'bg-[#22C55E] text-white hover:bg-[#16A34A]'
-										: 'bg-[#E20000] text-white hover:bg-[#cc0000]'
-								}`}
-							>
-								{actionLoading
-									? 'Processing...'
-									: userData?.banned
-										? 'Unban User'
-										: 'Ban User'}
-							</button>
-							<button
-								onClick={handleRevokeSessions}
-								disabled={actionLoading}
-								className="w-full bg-[#8B5CF6] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-							>
-								<LogOut className="w-4 h-4" />
-								{actionLoading ? 'Processing...' : 'Revoke All Sessions'}
-							</button>
-							<button
-								onClick={handleChangeStatus}
-								disabled={actionLoading}
-								className={`w-full py-2.5 px-4 rounded-[30px] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-									userData?.status === 'Active'
-										? 'bg-[#E20000] text-white hover:bg-[#cc0000]'
-										: 'bg-[#22C55E] text-white hover:bg-[#16A34A]'
-								}`}
-							>
-								{actionLoading
-									? 'Processing...'
-									: userData?.status === 'Active'
-										? 'Deactivate User'
-										: 'Activate User'}
-							</button>
+							{userData?.status === 'Active' && (
+								<button
+									onClick={handleDeactivateUser}
+									disabled={actionLoading}
+									className="w-full bg-[#E20000] text-white py-2.5 px-4 rounded-[30px] text-sm font-semibold hover:bg-[#cc0000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								>
+									{actionLoading ? 'Processing...' : 'Deactivate User'}
+								</button>
+							)}
+							{userData?.status !== 'Active' && (
+								<button
+									onClick={handleChangeStatus}
+									disabled={actionLoading}
+									className="w-full bg-[#22C55E] text-white py-2.5 px-4 rounded-[30px] text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								>
+									{actionLoading ? 'Processing...' : 'Activate User'}
+								</button>
+							)}
 						</div>
 					</motion.div>
 				</div>
@@ -512,72 +479,109 @@ export default function UserDetailPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.3, delay: 0.1 }}
+						className="bg-white rounded-lg shadow-sm flex flex-col sticky top-6 min-h-[400px] max-h-[800px]"
 					>
-						<div className="mb-6">
-							<h1 className="text-2xl font-bold text-[#116E63] mb-2">
+						<div className="p-6 border-b flex-shrink-0">
+							<h1 className="text-lg font-semibold text-[#116E63]">
 								Academic Profile
 							</h1>
-							<div className="border-b border-[#DEDEDE] mb-6"></div>
 						</div>
 
-						<DocumentSection
-							title="Research paper"
-							files={userData.documents.researchPapers}
-							userId={params?.id as string}
-						/>
+						<div className="flex-1 overflow-y-auto p-6">
+							<div className="space-y-6">
+								<DocumentSection
+									title="CV / Resume"
+									files={userData.documents.cvResume}
+									userId={params?.id as string}
+								/>
+								<DocumentSection
+									title="Research paper"
+									files={userData.documents.researchPapers}
+									userId={params?.id as string}
+								/>
 
-						<DocumentSection
-							title="Transcript"
-							files={userData.documents.transcripts}
-							userId={params?.id as string}
-						/>
+								<DocumentSection
+									title="Transcript"
+									files={userData.documents.transcripts}
+									userId={params?.id as string}
+								/>
 
-						<DocumentSection
-							title="Degrees"
-							files={userData.documents.degrees}
-							userId={params?.id as string}
-						/>
+								<DocumentSection
+									title="Degrees"
+									files={userData.documents.degrees}
+									userId={params?.id as string}
+								/>
 
-						<DocumentSection
-							title="Foreign Language Certificate"
-							files={userData.documents.languageCertificates}
-							userId={params?.id as string}
-						/>
-
-						<DocumentSection
-							title="CV / Resume"
-							files={userData.documents.cvResume}
-							userId={params?.id as string}
-						/>
+								<DocumentSection
+									title="Foreign Language Certificate"
+									files={userData.documents.languageCertificates}
+									userId={params?.id as string}
+								/>
+							</div>
+						</div>
 					</motion.div>
 				</div>
-			</div>
-
-			{/* Ban/Unban Modal */}
-			<BanUnbanModal
-				isOpen={showBanModal}
-				onClose={() => setShowBanModal(false)}
-				onConfirm={handleBanUnban}
-				userName={userData?.name || 'Unknown User'}
-				userEmail={userData?.email || 'Unknown Email'}
-				currentBanStatus={userData?.banned || false}
-				currentBanReason={userData?.banReason}
-				currentBanExpires={
-					userData?.banExpires ? new Date(userData.banExpires) : null
-				}
-				isLoading={actionLoading}
-			/>
-
-			{/* Revoke Sessions Modal */}
-			<RevokeSessionsModal
-				isOpen={showRevokeModal}
-				onClose={() => setShowRevokeModal(false)}
-				onConfirm={confirmRevokeSessions}
+			</div>{' '}
+			{/* Deactivate Modal */}
+			<DeactivateModal
+				isOpen={showDeactivateModal}
+				onClose={() => setShowDeactivateModal(false)}
+				onConfirm={confirmDeactivate}
 				userName={userData?.name || 'Unknown User'}
 				userEmail={userData?.email || 'Unknown Email'}
 				isLoading={actionLoading}
 			/>
-
+			{/* Result Modal */}
+			<Modal
+				isOpen={showResultModal}
+				onClose={() => setShowResultModal(false)}
+				title={resultModalType === 'success' ? 'Success' : 'Error'}
+				maxWidth="md"
+			>
+				<div className="text-center py-6">
+					{resultModalType === 'success' ? (
+						<div className="mb-6">
+							<div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<svg
+									className="w-10 h-10 text-green-500"
+									fill="none"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path d="M5 13l4 4L19 7"></path>
+								</svg>
+							</div>
+							<p className="text-gray-700 text-lg">{resultModalMessage}</p>
+						</div>
+					) : (
+						<div className="mb-6">
+							<div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<svg
+									className="w-10 h-10 text-red-500"
+									fill="none"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+							</div>
+							<p className="text-gray-700 text-lg">{resultModalMessage}</p>
+						</div>
+					)}
+					<Button
+						onClick={() => setShowResultModal(false)}
+						className="bg-[#126E64] hover:bg-[#0f5a52] text-white px-8"
+					>
+						OK
+					</Button>
+				</div>
+			</Modal>
 			{/* Contact User Modal */}
 			<Modal
 				isOpen={showContactModal}

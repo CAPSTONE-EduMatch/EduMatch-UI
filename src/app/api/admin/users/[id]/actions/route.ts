@@ -116,8 +116,66 @@ export async function POST(
 				);
 			}
 
+			// Get the reason from body
+			const { reason } = body;
+
 			// Deactivate the user
 			await AdminUserService.deactivateUser(userId);
+
+			// Send email notification to user
+			if (user.email && reason) {
+				try {
+					const emailResponse = await fetch(
+						`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/send-email`,
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								to: user.email,
+								subject:
+									"Account Deactivation Notice - EduMatch",
+								html: `
+									<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+										<div style="background-color: #126E64; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+											<h2 style="margin: 0;">EduMatch Admin</h2>
+										</div>
+										<div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px;">
+											<h3 style="color: #E20000; margin-top: 0;">Account Deactivation Notice</h3>
+											<p style="color: #333; line-height: 1.6;">Dear ${user.name || "User"},</p>
+											<p style="color: #333; line-height: 1.6;">
+												Your EduMatch account has been deactivated by our administration team.
+											</p>
+											<div style="background-color: #fff; padding: 15px; border-left: 4px solid #E20000; margin: 20px 0;">
+												<strong>Reason:</strong><br/>
+												<p style="margin: 10px 0 0 0; color: #555;">${reason}</p>
+											</div>
+											<p style="color: #333; line-height: 1.6;">
+												If you believe this action was taken in error or would like to discuss this matter, 
+												please contact our support team.
+											</p>
+											<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+											<p style="color: #666; font-size: 12px; margin: 0;">
+												This email was sent from EduMatch administration system.
+											</p>
+										</div>
+									</div>
+								`,
+							}),
+						}
+					);
+
+					if (!emailResponse.ok) {
+						console.error("Failed to send deactivation email");
+					}
+				} catch (emailError) {
+					console.error(
+						"Error sending deactivation email:",
+						emailError
+					);
+				}
+			}
 
 			return NextResponse.json({
 				success: true,

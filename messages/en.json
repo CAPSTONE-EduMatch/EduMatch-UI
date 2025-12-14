@@ -116,6 +116,16 @@
 				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
 			}
 		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
 		"buttons": {
 			"sign_in": "Sign in",
 			"sign_up": "Sign up",
@@ -1900,6 +1910,10 @@
 			"invalid_file": "Please select image, PDF, or document files",
 			"file_too_large": "File size must be less than 10MB"
 		},
+		"error": {
+			"title": "Error",
+			"button": "Close"
+		},
 		"success": {
 			"title": "Success!",
 			"message": "Your academic information has been updated successfully.",
@@ -1938,6 +1952,15 @@
 		"error": {
 			"message": "Failed to load wishlist data",
 			"button": "Retry"
+		},
+		"success": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"button": "Continue"
 		}
 	},
 	"settings_section": {

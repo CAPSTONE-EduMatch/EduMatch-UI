@@ -160,6 +160,7 @@ export default function ProfileView() {
 		isLoading: profileLoading,
 		error: profileError,
 		refreshProfile,
+		hasProfile,
 	} = useApplicantProfileContext()
 
 	const loading = profileLoading
@@ -268,7 +269,27 @@ export default function ProfileView() {
 		)
 	}
 
-	if (error) {
+	// Check if profile is missing first - show ProfileWrapper modal instead of error
+	// This handles the case where user doesn't have a profile yet
+	if (hasProfile === false && !loading) {
+		return (
+			<AuthWrapper
+				pageTitle="Profile"
+				pageDescription="Please sign in to view your profile"
+			>
+				<ProfileWrapper
+					pageTitle="Profile Required"
+					pageDescription="Please create your profile to view your profile page"
+					redirectTo="/profile/create"
+				>
+					<div></div>
+				</ProfileWrapper>
+			</AuthWrapper>
+		)
+	}
+
+	// Show error only if it's not a missing profile case
+	if (error && hasProfile !== false) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<Card className="w-full max-w-md">
@@ -417,7 +438,6 @@ function ApplicantProfileView({
 	refreshProfile: () => Promise<void>
 	subdisciplines: Array<{ value: string; label: string; discipline: string }>
 }) {
-	const t = useTranslations('profile_view')
 	const router = useRouter()
 	const [activeSection, setActiveSection] =
 		useState<ApplicantProfileSection>('profile')

@@ -76,9 +76,8 @@ export function useDisciplines() {
 		queryKey: ["disciplines"],
 		queryFn: async () => {
 			try {
-				const { apiClient } = await import(
-					"@/services/api/axios-config"
-				);
+				const { apiClient } =
+					await import("@/services/api/axios-config");
 				const response = await apiClient.get("/api/disciplines");
 				if (!response.data.success) {
 					throw new Error(

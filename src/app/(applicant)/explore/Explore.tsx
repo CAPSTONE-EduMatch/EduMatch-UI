@@ -13,6 +13,7 @@ import {
 	SortDropdown,
 	SubscriptionProgressWidget,
 	TabSelector,
+	SuccessModal,
 } from '@/components/ui'
 import { useApplicationEligibility } from '@/hooks/application/useApplicationEligibility'
 import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
@@ -69,6 +70,11 @@ const Explore = () => {
 	>({})
 	const [filtersInitialized, setFiltersInitialized] = useState(false)
 	const [showAuthModal, setShowAuthModal] = useState(false)
+	const [showWishlistSuccessModal, setShowWishlistSuccessModal] =
+		useState(false)
+	const [wishlistSuccessMessage, setWishlistSuccessMessage] = useState('')
+	const [wishlistSuccessTitle, setWishlistSuccessTitle] = useState('')
+	const [isWishlistProcessing, setIsWishlistProcessing] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [searchInput, setSearchInput] = useState('')
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -230,8 +236,41 @@ const Explore = () => {
 			return
 		}
 
+		// Prevent multiple simultaneous API calls
+		if (isWishlistProcessing) {
+			return
+		}
+
+		setIsWishlistProcessing(true)
 		try {
+			const wasInWishlist = isInWishlist(postId)
 			await toggleWishlistItem(postId)
+
+			// Determine the item type based on active tab
+			let itemType = 'item'
+			if (activeTab === 'programmes') {
+				itemType = t('tabs.programmes').toLowerCase()
+			} else if (activeTab === 'scholarships') {
+				itemType = t('tabs.scholarships').toLowerCase()
+			} else if (activeTab === 'research') {
+				itemType = t('tabs.research_labs').toLowerCase()
+			}
+
+			// Show success modal for both adding and removing
+			if (!wasInWishlist) {
+				// Item was added
+				setWishlistSuccessTitle(t('explore_page.wishlist.added_title'))
+				setWishlistSuccessMessage(
+					t('explore_page.wishlist.added_message', { type: itemType })
+				)
+			} else {
+				// Item was removed
+				setWishlistSuccessTitle(t('explore_page.wishlist.removed_title'))
+				setWishlistSuccessMessage(
+					t('explore_page.wishlist.removed_message', { type: itemType })
+				)
+			}
+			setShowWishlistSuccessModal(true)
 		} catch (error) {
 			// Check if error is due to authentication
 			const errorMessage =
@@ -247,6 +286,8 @@ const Explore = () => {
 				console.error('Failed to toggle wishlist item:', error)
 				// You could add a toast notification here
 			}
+		} finally {
+			setIsWishlistProcessing(false)
 		}
 	}
 
@@ -894,6 +935,18 @@ const Explore = () => {
 				secondButtonText={t('buttons.sign_up')}
 				onSecondButtonClick={handleSignUp}
 				showCloseButton={true}
+			/>
+
+			{/* Wishlist Success Modal */}
+			<SuccessModal
+				isOpen={showWishlistSuccessModal}
+				onClose={() => setShowWishlistSuccessModal(false)}
+				title={wishlistSuccessTitle || t('explore_page.wishlist.added_title')}
+				message={
+					wishlistSuccessMessage ||
+					t('explore_page.wishlist.added_message_default')
+				}
+				buttonText={t('buttons.explore_more')}
 			/>
 		</div>
 	)

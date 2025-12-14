@@ -169,7 +169,9 @@ export const useWishlist = (
 					setItems((prev) => [response.data, ...prev]);
 				}
 
-				await fetchStats(); // Refresh stats
+				// Refresh wishlist and stats to ensure consistency
+				await fetchWishlist();
+				await fetchStats();
 			} catch (err) {
 				const errorMessage =
 					err instanceof Error
@@ -179,7 +181,7 @@ export const useWishlist = (
 				throw err;
 			}
 		},
-		[fetchStats]
+		[fetchWishlist, fetchStats]
 	);
 
 	// Update wishlist item

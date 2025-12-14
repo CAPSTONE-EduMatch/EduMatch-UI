@@ -501,13 +501,17 @@
 		"cta_section": {
 			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
 			"description_1": "Join EduMatch now to start your journey to success.",
-			"description_2": "Find the perfect opportunities for you."
+			"description_2": "Find the perfect opportunities for you.",
+			"authenticated_title": "Continue Your Journey to Success",
+			"authenticated_description_1": "Discover more opportunities tailored to your profile.",
+			"authenticated_description_2": "Explore programs, scholarships, and research labs that match your interests."
 		}
 	},
 
 	"buttons": {
 		"explore_more": "Explore more",
 		"show_more": "Show more",
+		"show_less": "Show less",
 		"learn_more": "Learn more",
 		"sign_in": "Sign in",
 		"sign_up": "Sign up",

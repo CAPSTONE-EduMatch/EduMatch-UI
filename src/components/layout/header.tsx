@@ -1,10 +1,10 @@
 import {
 	Bell,
 	Book,
-	Bookmark,
 	Check,
 	CreditCard,
 	FileText,
+	Heart,
 	LogOut,
 	Menu,
 	MessageCircle,
@@ -565,7 +565,7 @@ export function EduMatchHeader() {
 																		setIsUserMenuOpen(false)
 																	}}
 																>
-																	<Bookmark className="w-4 h-4" />
+																	<Heart className="w-4 h-4" />
 																	<span className="text-sm">
 																		{th('menu.wishlist')}
 																	</span>

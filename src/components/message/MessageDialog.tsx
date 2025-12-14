@@ -104,6 +104,33 @@ export function MessageDialog({
 }: MessageDialogProps = {}) {
 	const searchParams = useSearchParams()
 	const router = useRouter()
+
+	// Helper function to filter Google images for institutions
+	// Returns null for institutions with no logo or Google images (to show Building icon)
+	const getImageForUser = (
+		image: string | null | undefined,
+		userType: 'applicant' | 'institution' | 'unknown'
+	): string | null | undefined => {
+		if (userType !== 'institution') {
+			return image // For applicants, return image as-is
+		}
+
+		// For institutions, reject Google images and null/undefined
+		if (!image) {
+			return null // No logo - use Building icon fallback
+		}
+
+		// Check if it's a Google image URL
+		const isGoogleImage =
+			image.includes('googleusercontent.com') || image.includes('google.com')
+
+		if (isGoogleImage) {
+			return null // Google image - use Building icon fallback
+		}
+
+		return image // Valid institution logo
+	}
+
 	const [user, setUser] = useState<any>(null)
 	const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
 	const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -140,6 +167,9 @@ export function MessageDialog({
 	const [users, setUsers] = useState<User[]>([])
 	const [usersLoaded, setUsersLoaded] = useState(false)
 	const [refreshingUsers, setRefreshingUsers] = useState(false)
+	const [isFullyInitialized, setIsFullyInitialized] = useState(false)
+	const fetchUsersPromiseRef = useRef<Promise<void> | null>(null)
+	const initializationCheckedRef = useRef(false)
 	const [contactApplicant, setContactApplicant] =
 		useState<ContactApplicant | null>(null)
 	const [showContactPreview, setShowContactPreview] = useState(false)
@@ -196,6 +226,49 @@ export function MessageDialog({
 		}
 	}, [appSyncUser])
 
+	// Unified initialization check - wait for all critical data to load
+	// This prevents multiple loading states and ensures everything is ready
+	useEffect(() => {
+		// Once initialized, never check again (prevent toggling)
+		if (initializationCheckedRef.current) {
+			return
+		}
+
+		// Wait for all critical data:
+		// 1. User must be loaded
+		// 2. Profile must be loaded (for role check)
+		// 3. Subscription must be loaded (for reply permission)
+		// 4. Threads loading must have completed (either loaded or failed)
+		// 5. Users must be loaded (for thread names) - but only if we have threads
+
+		// Don't initialize if critical auth data is still loading
+		if (!user?.id || profileLoading || subscriptionLoading) {
+			return
+		}
+
+		// If threads are actively loading, wait for them to complete
+		if (threadsLoading) {
+			return
+		}
+
+		// If we have threads, wait for users to load so names are available
+		// But if we have no threads, we don't need users loaded
+		if (appSyncThreads.length > 0 && !usersLoaded) {
+			return
+		}
+
+		// All critical data is loaded - mark as initialized (only once)
+		initializationCheckedRef.current = true
+		setIsFullyInitialized(true)
+	}, [
+		user?.id,
+		profileLoading,
+		subscriptionLoading,
+		threadsLoading,
+		appSyncThreads.length,
+		usersLoaded,
+	])
+
 	// Handle threadId - navigate to specific thread
 	// This effect only runs when threadId changes from URL/prop, not from manual selection
 	useEffect(() => {
@@ -225,9 +298,14 @@ export function MessageDialog({
 					await new Promise((resolve) => setTimeout(resolve, 300))
 				}
 
-				// Wait a bit for threads to load if they're still loading
+				// Wait for threads to load with timeout (max 10 seconds for slow connections)
 				let attempts = 0
-				while (appSyncThreads.length === 0 && threadsLoading && attempts < 15) {
+				const maxAttempts = 50 // 50 * 200ms = 10 seconds max
+				while (
+					appSyncThreads.length === 0 &&
+					threadsLoading &&
+					attempts < maxAttempts
+				) {
 					await new Promise((resolve) => setTimeout(resolve, 200))
 					attempts++
 				}
@@ -283,7 +361,14 @@ export function MessageDialog({
 								{
 									id: otherUser.id,
 									name: otherUser.name,
-									image: otherUser.image,
+									image:
+										getImageForUser(
+											otherUser.image,
+											(otherUser.userType || 'unknown') as
+												| 'applicant'
+												| 'institution'
+												| 'unknown'
+										) || undefined,
 									status: otherUser.status,
 									userType: otherUser.userType || 'unknown',
 								},
@@ -297,7 +382,13 @@ export function MessageDialog({
 							id: otherUser.id,
 							name: otherUser.name,
 							email: otherUser.email,
-							image: otherUser.image,
+							image: getImageForUser(
+								otherUser.image,
+								(otherUser.userType || 'unknown') as
+									| 'applicant'
+									| 'institution'
+									| 'unknown'
+							),
 							status: otherUser.status,
 							userType: otherUser.userType,
 						})
@@ -431,13 +522,17 @@ export function MessageDialog({
 								})
 								.then((userData) => {
 									if (userData?.user) {
+										const userType = (userData.user.userType || 'unknown') as
+											| 'applicant'
+											| 'institution'
+											| 'unknown'
 										setSelectedUser({
 											id: userId,
 											name: userData.user.name || 'User',
 											email: userData.user.email || '',
-											image: userData.user.image,
+											image: getImageForUser(userData.user.image, userType),
 											status: userData.user.status || 'offline',
-											userType: userData.user.userType || 'unknown',
+											userType,
 										})
 									}
 								})
@@ -468,11 +563,17 @@ export function MessageDialog({
 								const userResponse = await fetch(`/api/users/${userId}`)
 								if (userResponse.ok) {
 									const userData = await userResponse.json()
+									const userType = (userData.user.userType || 'unknown') as
+										| 'applicant'
+										| 'institution'
+										| 'unknown'
 									const contactData = {
 										id: userId,
 										name: userData.user.name || 'User',
 										email: userData.user.email || '',
-										image: userData.user.image,
+										image:
+											getImageForUser(userData.user.image, userType) ||
+											undefined, // Convert null to undefined for ContactApplicant type
 										degreeLevel: userData.user.degreeLevel || undefined,
 										subDiscipline: userData.user.subDiscipline || undefined,
 										status: userData.user.status || 'offline',
@@ -627,7 +728,13 @@ export function MessageDialog({
 						{
 							id: contactApplicant.id,
 							name: contactApplicant.name,
-							image: contactApplicant.image,
+							image: getImageForUser(
+								contactApplicant.image,
+								(contactApplicant.userType || 'unknown') as
+									| 'applicant'
+									| 'institution'
+									| 'unknown'
+							),
 						},
 					],
 					unreadCount: existingThread.unreadCount || 0,
@@ -640,36 +747,50 @@ export function MessageDialog({
 					const userResponse = await fetch(`/api/users/${contactApplicant.id}`)
 					if (userResponse.ok) {
 						const userData = await userResponse.json()
+						// For institutions, use logo (or null if no logo) - don't fall back to Google profile image
+						// For applicants, use image from API or fall back to contactApplicant image
+						const userType = (userData.user.userType ||
+							contactApplicant.userType ||
+							'unknown') as 'applicant' | 'institution' | 'unknown'
+						const imageToUse =
+							userType === 'institution'
+								? getImageForUser(userData.user.image, userType) // For institutions, filter Google images
+								: userData.user.image || contactApplicant.image // For applicants, can use fallback
+
 						setSelectedUser({
 							id: contactApplicant.id,
 							name: contactApplicant.name,
 							email: userData.user.email || contactApplicant.email,
-							image: userData.user.image || contactApplicant.image,
+							image: imageToUse,
 							status: userData.user.status || 'offline',
-							userType:
-								userData.user.userType ||
-								contactApplicant.userType ||
-								'unknown',
+							userType,
 						})
 					} else {
 						// Fallback to applicant data if user fetch fails
+						const fallbackUserType = (contactApplicant.userType ||
+							'unknown') as 'applicant' | 'institution' | 'unknown'
 						setSelectedUser({
 							id: contactApplicant.id,
 							name: contactApplicant.name,
 							email: contactApplicant.email,
-							image: contactApplicant.image,
+							image: getImageForUser(contactApplicant.image, fallbackUserType),
 							status: 'offline',
-							userType: contactApplicant.userType || 'unknown',
+							userType: fallbackUserType,
 						})
 					}
 				} catch (error) {
 					// Fallback to applicant data if user fetch fails
+					const fallbackUserType = (contactApplicant.userType || 'unknown') as
+						| 'applicant'
+						| 'institution'
+						| 'unknown'
 					setSelectedUser({
 						id: contactApplicant.id,
 						name: contactApplicant.name,
 						email: contactApplicant.email,
-						image: contactApplicant.image,
+						image: getImageForUser(contactApplicant.image, fallbackUserType),
 						status: 'offline',
+						userType: fallbackUserType,
 					})
 				}
 
@@ -850,8 +971,19 @@ export function MessageDialog({
 	// Typing indicator for 1-to-1 chat (not implemented in AppSync version yet)
 	const isOtherUserTyping = false
 
+	// Cache for individual user fetches to prevent duplicate requests
+	// Declared here so it can be used in formattedThreads useMemo
+	const userDataCacheRef = useRef<
+		Map<string, { data: User | null; timestamp: number }>
+	>(new Map())
+	const userDataFetchPromisesRef = useRef<Map<string, Promise<User | null>>>(
+		new Map()
+	)
+
 	// Convert AppSync threads to the expected format and sort by newest message
 	// Memoize to prevent unnecessary recalculations when selecting threads
+	// IMPORTANT: Use profile data from /api/users/[userId] (cached) instead of users list
+	// This ensures we get the correct institution logo, not Google images
 	const formattedThreads: Thread[] = useMemo(() => {
 		if (!Array.isArray(appSyncThreads)) {
 			return []
@@ -864,17 +996,42 @@ export function MessageDialog({
 					appSyncThread.user1Id === user?.id
 						? appSyncThread.user2Id
 						: appSyncThread.user1Id
+
+				// Try to get user data from cache (fetched from /api/users/[userId] which has correct profile data)
+				// This ensures we get institution.logo, not Google images
+				const cachedUserData = userDataCacheRef.current.get(
+					otherParticipantId || ''
+				)
+				const profileUser = cachedUserData?.data
+
+				// Fallback to users list for name/status if profile data not cached yet
 				const otherUser = users.find((u) => u.id === otherParticipantId)
 
+				// Determine user type - prefer profile data, fallback to users list
+				const userType =
+					(profileUser?.userType as 'applicant' | 'institution' | 'unknown') ||
+					(otherUser?.userType as 'applicant' | 'institution' | 'unknown') ||
+					'unknown'
+
+				// IMPORTANT: Use image from profile data (fetched from /api/users/[userId])
+				// This endpoint returns institution.logo || null for institutions (never Google images)
+				// For applicants, it returns user.image (which may be Google image, and that's OK)
+				// If profile data not available yet, use filtered image from users list
+				const imageToUse = profileUser
+					? getImageForUser(profileUser.image, userType) // Use profile data (correct institution logo)
+					: getImageForUser(otherUser?.image, userType) // Fallback to users list (filtered)
+
 				// Use the new flat structure from AppSync
+				// Prefer profile data for name (more accurate), fallback to users list
 				const otherParticipant = {
 					id: otherParticipantId || '',
-					name: otherUser?.name || (otherParticipantId ? 'Loading...' : 'User'),
-					image: otherUser?.image,
-					status: otherUser?.status || 'offline',
-					userType:
-						(otherUser?.userType as 'applicant' | 'institution' | 'unknown') ||
-						'unknown',
+					name:
+						profileUser?.name ||
+						otherUser?.name ||
+						(otherParticipantId ? 'Loading...' : 'User'),
+					image: imageToUse,
+					status: profileUser?.status || otherUser?.status || 'offline',
+					userType,
 				}
 
 				// Create a mock lastMessage object from the string
@@ -992,25 +1149,30 @@ export function MessageDialog({
 			if (otherParticipant) {
 				// Find the user in the users list to get their current status and correct image
 				const userWithStatus = users.find((u) => u.id === otherParticipant.id)
-				// Use image from users list (which has correct institution logo) if available,
-				// otherwise fall back to participant image
-				const imageToUse = userWithStatus?.image || otherParticipant.image
+				// Determine user type
+				const userType =
+					(otherParticipant.userType as
+						| 'applicant'
+						| 'institution'
+						| 'unknown') ||
+					(userWithStatus?.userType as
+						| 'applicant'
+						| 'institution'
+						| 'unknown') ||
+					'unknown'
+				// For institutions, use logo (or null if no logo) - don't fall back to Google profile image
+				// For applicants, use image from users list or fall back to participant image
+				const imageToUse =
+					userType === 'institution'
+						? userWithStatus?.image || null // For institutions, null means use Building icon fallback
+						: userWithStatus?.image || otherParticipant.image // For applicants, can use fallback
 				setSelectedUser({
 					id: otherParticipant.id,
 					name: otherParticipant.name,
 					email: userWithStatus?.email || '', // Get email from users list
 					image: imageToUse, // Use image from users list (has correct institution logo)
 					status: userWithStatus?.status || 'offline', // Get actual status
-					userType:
-						(otherParticipant.userType as
-							| 'applicant'
-							| 'institution'
-							| 'unknown') ||
-						(userWithStatus?.userType as
-							| 'applicant'
-							| 'institution'
-							| 'unknown') ||
-						'unknown',
+					userType,
 				})
 			}
 
@@ -1051,30 +1213,104 @@ export function MessageDialog({
 	}
 
 	// Fetch users when component mounts and poll periodically for real-time online status
+	// Use request deduplication to prevent multiple simultaneous requests
 	useEffect(() => {
 		if (!user?.id) return
 
-		const fetchUsers = async () => {
-			try {
-				const response = await fetch('/api/users/status', {
-					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-				})
+		const fetchUsers = async (isRefresh = false) => {
+			// Deduplicate requests - if a fetch is already in progress, wait for it
+			if (fetchUsersPromiseRef.current && !isRefresh) {
+				try {
+					await fetchUsersPromiseRef.current
+					return
+				} catch {
+					// If previous request failed, continue with new one
+				}
+			}
 
-				if (response.ok) {
-					const data = await response.json()
-					if (data.success && data.users) {
-						setUsers(data.users)
-						setUsersLoaded(true)
-						// Store timestamp for cache management
-						localStorage.setItem('usersLastLoad', Date.now().toString())
+			// Check cache first (only for initial load, not refresh)
+			if (!isRefresh) {
+				const cachedTimestamp = localStorage.getItem('usersLastLoad')
+				const cachedUsers = localStorage.getItem('usersCache')
+				if (cachedTimestamp && cachedUsers) {
+					const age = Date.now() - parseInt(cachedTimestamp, 10)
+					// Use cache if less than 5 minutes old
+					if (age < 300000) {
+						try {
+							const parsedUsers = JSON.parse(cachedUsers)
+							setUsers(parsedUsers)
+							setUsersLoaded(true)
+							// Still fetch in background to update cache
+							fetchUsers(true).catch(() => {
+								// Silently fail background update
+							})
+							return
+						} catch {
+							// Cache parse failed, continue with fetch
+						}
 					}
 				}
-			} catch (error) {
-				console.error('Failed to fetch users:', error)
 			}
+
+			// Create promise and store it for deduplication
+			const fetchPromise = (async () => {
+				try {
+					if (isRefresh) {
+						setRefreshingUsers(true)
+					}
+					// Create abort controller for timeout
+					const controller = new AbortController()
+					const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+					const response = await fetch('/api/users/status', {
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						signal: controller.signal,
+					})
+
+					clearTimeout(timeoutId)
+
+					if (response.ok) {
+						const data = await response.json()
+						if (data.success && data.users) {
+							setUsers(data.users)
+							setUsersLoaded(true)
+							// Store timestamp and cache for future use
+							const timestamp = Date.now().toString()
+							localStorage.setItem('usersLastLoad', timestamp)
+							localStorage.setItem('usersCache', JSON.stringify(data.users))
+						}
+					}
+				} catch (error: any) {
+					// Only log if not aborted (timeout)
+					if (error.name !== 'AbortError' && error.name !== 'TimeoutError') {
+						console.error('Failed to fetch users:', error)
+					}
+					// On error, try to use cache if available
+					if (!isRefresh) {
+						const cachedUsers = localStorage.getItem('usersCache')
+						if (cachedUsers) {
+							try {
+								const parsedUsers = JSON.parse(cachedUsers)
+								setUsers(parsedUsers)
+								setUsersLoaded(true)
+							} catch {
+								// Cache parse failed
+							}
+						}
+					}
+				} finally {
+					if (isRefresh) {
+						setRefreshingUsers(false)
+					}
+					fetchUsersPromiseRef.current = null
+				}
+			})()
+
+			fetchUsersPromiseRef.current = fetchPromise
+			await fetchPromise
 		}
 
 		// Fetch users immediately
@@ -1082,10 +1318,13 @@ export function MessageDialog({
 
 		// Poll for updated user statuses every 30 seconds for real-time updates
 		const usersInterval = setInterval(() => {
-			fetchUsers()
+			fetchUsers(true) // Pass true to indicate refresh
 		}, 30000) // 30 seconds
 
-		return () => clearInterval(usersInterval)
+		return () => {
+			clearInterval(usersInterval)
+			fetchUsersPromiseRef.current = null
+		}
 	}, [user?.id]) // Only depend on user ID
 
 	// Status updates are now handled globally in AuthContext
@@ -1095,26 +1334,67 @@ export function MessageDialog({
 
 	// Visibility change handler removed - will fetch individual users as needed
 
-	// Fetch individual user data only when needed
-	const fetchUserData = async (userId: string) => {
-		try {
-			const response = await fetch(`/api/users/${userId}`, {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			})
-
-			if (response.ok) {
-				const data = await response.json()
-				if (data.success && data.user) {
-					return data.user
-				}
+	// Fetch individual user data only when needed with caching and deduplication
+	const fetchUserData = async (userId: string): Promise<User | null> => {
+		// Check cache first (5 minute TTL)
+		const cached = userDataCacheRef.current.get(userId)
+		if (cached) {
+			const age = Date.now() - cached.timestamp
+			if (age < 300000) {
+				// 5 minutes
+				return cached.data
 			}
-		} catch (error) {
-			console.error('Failed to fetch user data:', error)
 		}
-		return null
+
+		// Check if a fetch is already in progress for this user
+		const existingPromise = userDataFetchPromisesRef.current.get(userId)
+		if (existingPromise) {
+			return existingPromise
+		}
+
+		// Create new fetch promise
+		const fetchPromise = (async (): Promise<User | null> => {
+			try {
+				// Create abort controller for timeout
+				const controller = new AbortController()
+				const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+				const response = await fetch(`/api/users/${userId}`, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					signal: controller.signal,
+				})
+
+				clearTimeout(timeoutId)
+
+				if (response.ok) {
+					const data = await response.json()
+					if (data.success && data.user) {
+						// Cache the result
+						userDataCacheRef.current.set(userId, {
+							data: data.user,
+							timestamp: Date.now(),
+						})
+						return data.user
+					}
+				}
+			} catch (error: any) {
+				// Only log if not aborted (timeout)
+				if (error.name !== 'AbortError' && error.name !== 'TimeoutError') {
+					console.error('Failed to fetch user data:', error)
+				}
+			} finally {
+				// Remove from in-progress map
+				userDataFetchPromisesRef.current.delete(userId)
+			}
+			return null
+		})()
+
+		// Store promise for deduplication
+		userDataFetchPromisesRef.current.set(userId, fetchPromise)
+		return fetchPromise
 	}
 
 	// Threads are now fetched by AppSync hook
@@ -1204,22 +1484,11 @@ export function MessageDialog({
 	}
 
 	// Check if we're still loading initial data
-	// Show loading screen if:
-	// 1. Threads are still loading, OR
-	// 2. Users haven't loaded yet and we have threads that need user data, OR
-	// 3. Any thread still shows "Loading..." as the name
+	// Show loading screen only during full initialization
 	// Only show loading screen when NOT in a specific thread (threadId) to allow thread content to show
-	const hasThreadsWithLoadingNames = formattedThreads.some(
-		(t) => t.title === 'Loading...' || t.title === 'User'
-	)
+	// Also check if we've already initialized to prevent showing loading again
 	const isInitialLoading =
-		!threadId && // Don't show loading screen when viewing a specific thread
-		(threadsLoading ||
-			(user?.id &&
-				!usersLoaded &&
-				appSyncThreads.length > 0 &&
-				hasThreadsWithLoadingNames) ||
-			(user?.id && threadsLoading && appSyncThreads.length === 0))
+		!threadId && !isFullyInitialized && !initializationCheckedRef.current
 
 	// Show loading screen during initial load
 	if (isInitialLoading) {
@@ -1296,12 +1565,44 @@ export function MessageDialog({
 												const otherParticipant = thread.participants.find(
 													(p) => p.id !== user?.id
 												)
-												// Use image from users list (which has correct institution logo) if available,
-												// otherwise fall back to participant image
+												// Try to get user data from cache (fetched from /api/users/[userId] which has correct profile data)
+												const cachedUserData = userDataCacheRef.current.get(
+													otherParticipant?.id || ''
+												)
+												const profileUser = cachedUserData?.data
+
+												// Fallback to users list if profile data not cached yet
 												const userWithStatus = users.find(
 													(u) => u.id === otherParticipant?.id
 												)
-												return userWithStatus?.image || otherParticipant?.image
+
+												// Determine user type - prefer profile data, fallback to users list
+												const userType =
+													(profileUser?.userType as
+														| 'applicant'
+														| 'institution'
+														| 'unknown') ||
+													(otherParticipant?.userType as
+														| 'applicant'
+														| 'institution'
+														| 'unknown') ||
+													(userWithStatus?.userType as
+														| 'applicant'
+														| 'institution'
+														| 'unknown') ||
+													'unknown'
+
+												// IMPORTANT: Use image from profile data (fetched from /api/users/[userId])
+												// This endpoint returns institution.logo || null for institutions (never Google images)
+												// If profile data not available yet, use filtered image from users list or participant
+												const imageToUse = profileUser
+													? getImageForUser(profileUser.image, userType) // Use profile data (correct institution logo)
+													: getImageForUser(
+															userWithStatus?.image || otherParticipant?.image,
+															userType
+														) // Fallback (filtered)
+
+												return imageToUse
 											})()}
 											alt={thread.title}
 											size="lg"

@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui'
 import { SortDropdown } from '@/components/ui'
 import type { SortOption } from '@/components/ui'
 import { TabSelector } from '@/components/ui'
 import { CheckboxSelect } from '@/components/ui'
+import { SuccessModal } from '@/components/ui'
 import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
@@ -14,6 +15,7 @@ import { Program, Scholarship, ResearchLab } from '@/types/api/explore-api'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { ExploreApiService } from '@/services/explore/explore-api'
 import { useTranslations } from 'next-intl'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 
 interface WishlistSectionProps {
 	profile: any
@@ -21,6 +23,7 @@ interface WishlistSectionProps {
 
 export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	const t = useTranslations('wishlist_section')
+	const { isAuthenticated } = useAuthCheck()
 	const [sortBy, setSortBy] = useState<SortOption>('newest')
 	const [activeTab, setActiveTab] = useState<string>('programmes')
 	const [searchQuery, setSearchQuery] = useState<string>('')
@@ -43,8 +46,14 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	]
 
 	// Get wishlist IDs only
-	const { items: wishlistItems, loading: wishlistLoading } = useWishlist({
+	const {
+		items: wishlistItems,
+		loading: wishlistLoading,
+		refresh: refreshWishlist,
+		refreshStats,
+	} = useWishlist({
 		autoFetch: true,
+		isAuthenticated: isAuthenticated,
 		initialParams: { page: 1, limit: 1000, status: 1 },
 	})
 
@@ -65,6 +74,11 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 
 	// Fetch explore data and filter by wishlist
 	const fetchWishlistData = useCallback(async () => {
+		// Don't fetch if we're in the middle of a removal operation
+		if (isRemovingRef.current) {
+			return
+		}
+
 		// Don't fetch if still loading wishlist
 		if (wishlistLoading) {
 			return
@@ -145,7 +159,115 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	}, [fetchWishlistData])
 
 	// Wishlist functionality for cards
-	const { isInWishlist, toggleWishlistItem } = useWishlist()
+	const { isInWishlist, toggleWishlistItem } = useWishlist({
+		autoFetch: true,
+		isAuthenticated: isAuthenticated,
+	})
+
+	// Success modal state
+	const [showWishlistSuccessModal, setShowWishlistSuccessModal] =
+		useState(false)
+	const [wishlistSuccessMessage, setWishlistSuccessMessage] = useState('')
+	const [wishlistSuccessTitle, setWishlistSuccessTitle] = useState('')
+	const [isWishlistProcessing, setIsWishlistProcessing] = useState(false)
+
+	// Ref to track if we're in a removal operation to prevent useEffect from refetching
+	const isRemovingRef = useRef(false)
+
+	// Custom wishlist toggle handler with success modal and optimistic updates
+	const handleWishlistToggle = useCallback(
+		async (postId: string) => {
+			// Prevent multiple simultaneous API calls
+			if (isWishlistProcessing) {
+				return
+			}
+
+			const wasInWishlist = isInWishlist(postId)
+			setIsWishlistProcessing(true)
+
+			try {
+				// If removing, optimistically remove from UI immediately
+				if (wasInWishlist) {
+					// Set flag to prevent useEffect from refetching during removal
+					isRemovingRef.current = true
+					// Remove from local state immediately for instant feedback
+					setPrograms((prev) => prev.filter((p) => p.id !== postId))
+					setScholarships((prev) => prev.filter((s) => s.id !== postId))
+					setResearchLabs((prev) => prev.filter((r) => r.id !== postId))
+				}
+
+				// Toggle wishlist item
+				await toggleWishlistItem(postId)
+
+				// Determine the item type based on active tab
+				let itemType = 'item'
+				if (activeTab === 'programmes') {
+					itemType = t('tabs.programmes').toLowerCase()
+				} else if (activeTab === 'scholarships') {
+					itemType = t('tabs.scholarships').toLowerCase()
+				} else if (activeTab === 'research') {
+					itemType = t('tabs.research_labs').toLowerCase()
+				}
+
+				// Show success modal for both adding and removing
+				if (!wasInWishlist) {
+					// Item was added
+					setWishlistSuccessTitle(t('success.added_title'))
+					setWishlistSuccessMessage(
+						t('success.added_message', { type: itemType })
+					)
+				} else {
+					// Item was removed
+					setWishlistSuccessTitle(t('success.removed_title'))
+					setWishlistSuccessMessage(
+						t('success.removed_message', { type: itemType })
+					)
+				}
+				setShowWishlistSuccessModal(true)
+
+				// Refresh wishlist and stats
+				await refreshWishlist()
+				await refreshStats()
+
+				// Only refetch explore data if item was added (to show the new item)
+				// For removal, we've already optimistically removed it from UI, so no need to refetch
+				// This prevents the flash where the item briefly reappears
+				if (!wasInWishlist) {
+					// Item was added - need to fetch to show it in the list
+					// Wait a bit for wishlist state to update, then fetch
+					await new Promise((resolve) => setTimeout(resolve, 100))
+					await fetchWishlistData()
+				} else {
+					// For removal: clear the flag after a short delay to allow state to settle
+					setTimeout(() => {
+						isRemovingRef.current = false
+					}, 500)
+				}
+			} catch (error) {
+				// If error occurred, revert optimistic update
+				if (wasInWishlist) {
+					// Clear the removal flag to allow refetch
+					isRemovingRef.current = false
+					// Re-fetch data to restore the item
+					await fetchWishlistData()
+				}
+				// eslint-disable-next-line no-console
+				console.error('Failed to toggle wishlist item:', error)
+			} finally {
+				setIsWishlistProcessing(false)
+			}
+		},
+		[
+			isInWishlist,
+			toggleWishlistItem,
+			activeTab,
+			t,
+			isWishlistProcessing,
+			refreshWishlist,
+			refreshStats,
+			fetchWishlistData,
+		]
+	)
 
 	// Handle search input
 	const handleSearchChange = useCallback(
@@ -338,22 +460,82 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		showExpired,
 	])
 
-	// Get current tab data with filters applied
-	const getCurrentTabData = () => {
-		return {
-			data: filteredData,
-			totalItems: filteredData.length,
-		}
-	}
+	// Sort function for wishlist items
+	const sortWishlistItems = useCallback(
+		<
+			T extends {
+				match?: string | number
+				daysLeft?: number
+				date?: string
+				applicationCount?: number
+			},
+		>(
+			items: T[]
+		): T[] => {
+			const sortedItems = [...items]
 
-	const currentTabData = getCurrentTabData()
+			switch (sortBy) {
+				case 'newest':
+					return sortedItems.sort((a, b) => {
+						const dateA = new Date(a.date || 0).getTime()
+						const dateB = new Date(b.date || 0).getTime()
+						return dateB - dateA
+					})
+				case 'oldest':
+					return sortedItems.sort((a, b) => {
+						const dateA = new Date(a.date || 0).getTime()
+						const dateB = new Date(b.date || 0).getTime()
+						return dateA - dateB
+					})
+				case 'match-score':
+					return sortedItems.sort((a, b) => {
+						const matchA =
+							typeof a.match === 'string'
+								? parseFloat(a.match) || 0
+								: a.match || 0
+						const matchB =
+							typeof b.match === 'string'
+								? parseFloat(b.match) || 0
+								: b.match || 0
+						return matchB - matchA
+					})
+				case 'deadline':
+					return sortedItems.sort((a, b) => {
+						const daysLeftA = a.daysLeft || Infinity
+						const daysLeftB = b.daysLeft || Infinity
+						return daysLeftA - daysLeftB
+					})
+				case 'most-popular':
+					return sortedItems.sort((a, b) => {
+						const countA = a.applicationCount || 0
+						const countB = b.applicationCount || 0
+						return countB - countA
+					})
+				case 'default':
+				default:
+					return sortedItems
+			}
+		},
+		[sortBy]
+	)
+
+	// Get current tab data with filters and sorting applied
+	const currentTabData = useMemo(() => {
+		const sortedData = sortWishlistItems(filteredData)
+		return {
+			data: sortedData,
+			totalItems: sortedData.length,
+		}
+	}, [filteredData, sortWishlistItems])
 
 	// Render tab content based on active tab
 	const renderTabContent = () => {
-		const filteredPrograms = activeTab === 'programmes' ? filteredData : []
+		const filteredPrograms =
+			activeTab === 'programmes' ? currentTabData.data : []
 		const filteredScholarships =
-			activeTab === 'scholarships' ? filteredData : []
-		const filteredResearchLabs = activeTab === 'research' ? filteredData : []
+			activeTab === 'scholarships' ? currentTabData.data : []
+		const filteredResearchLabs =
+			activeTab === 'research' ? currentTabData.data : []
 
 		switch (activeTab) {
 			case 'programmes':
@@ -362,7 +544,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 						programs={filteredPrograms as Program[]}
 						sortBy={sortBy}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={toggleWishlistItem}
+						onWishlistToggle={handleWishlistToggle}
 						hasApplied={() => false} // Wishlist items are not applied
 						isApplying={() => false}
 						onApply={() => {}} // No-op for wishlist
@@ -373,7 +555,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					<ScholarshipsTab
 						scholarships={filteredScholarships as Scholarship[]}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={toggleWishlistItem}
+						onWishlistToggle={handleWishlistToggle}
 						hasApplied={() => false} // Wishlist items are not applied
 						isApplying={() => false}
 						onApply={() => {}} // No-op for wishlist
@@ -384,7 +566,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 					<ResearchLabsTab
 						researchLabs={filteredResearchLabs as ResearchLab[]}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={toggleWishlistItem}
+						onWishlistToggle={handleWishlistToggle}
 						hasApplied={() => false} // Wishlist items are not applied
 						isApplying={() => false}
 						onApply={() => {}} // No-op for wishlist
@@ -396,7 +578,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 						programs={filteredPrograms as Program[]}
 						sortBy={sortBy}
 						isInWishlist={isInWishlist}
-						onWishlistToggle={toggleWishlistItem}
+						onWishlistToggle={handleWishlistToggle}
 						hasApplied={() => false}
 						isApplying={() => false}
 						onApply={() => {}}
@@ -681,6 +863,15 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 						)}
 					</div>
 				)}
+
+				{/* Wishlist Success Modal */}
+				<SuccessModal
+					isOpen={showWishlistSuccessModal}
+					onClose={() => setShowWishlistSuccessModal(false)}
+					title={wishlistSuccessTitle || t('success.added_title')}
+					message={wishlistSuccessMessage || t('success.added_message_default')}
+					buttonText={t('success.button')}
+				/>
 			</div>
 		</div>
 	)

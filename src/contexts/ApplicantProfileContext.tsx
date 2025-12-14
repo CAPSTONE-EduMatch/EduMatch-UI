@@ -147,9 +147,17 @@ export function ApplicantProfileProvider({
 					return null
 				}
 			} catch (error: any) {
-				if (error?.response?.status === 404 || error?.status === 404) {
+				// Check for 404 status or "Profile not found" message
+				const is404 =
+					error?.response?.status === 404 ||
+					error?.status === 404 ||
+					error?.message?.toLowerCase().includes('profile not found') ||
+					error?.message?.toLowerCase().includes('not found')
+
+				if (is404) {
 					setProfile(null)
 					setHasProfile(false)
+					setError(null) // Clear error for missing profile
 					return null
 				}
 				setError('Failed to load profile data')
@@ -164,7 +172,7 @@ export function ApplicantProfileProvider({
 
 		fetchInProgressRef.current = fetchPromise
 		return fetchPromise
-	}, [isAuthenticated, user?.id])
+	}, [isAuthenticated, user])
 
 	useEffect(() => {
 		if (!authLoading) {
@@ -192,9 +200,17 @@ export function ApplicantProfileProvider({
 				setHasProfile(false)
 			}
 		} catch (error: any) {
-			if (error?.response?.status === 404 || error?.status === 404) {
+			// Check for 404 status or "Profile not found" message
+			const is404 =
+				error?.response?.status === 404 ||
+				error?.status === 404 ||
+				error?.message?.toLowerCase().includes('profile not found') ||
+				error?.message?.toLowerCase().includes('not found')
+
+			if (is404) {
 				setProfile(null)
 				setHasProfile(false)
+				setError(null) // Clear error for missing profile
 			} else {
 				setError('Failed to refresh profile data')
 				setHasProfile(null)
@@ -202,7 +218,7 @@ export function ApplicantProfileProvider({
 		} finally {
 			setIsLoading(false)
 		}
-	}, [isAuthenticated, user?.id])
+	}, [isAuthenticated, user])
 
 	const value: ApplicantProfileContextType = {
 		profile,

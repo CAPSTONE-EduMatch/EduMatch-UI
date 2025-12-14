@@ -54,15 +54,17 @@ export const InstitutionPaymentSection: React.FC<
 
 	const price = getPrice()
 
-	// Check if user has any active institution subscription (monthly or yearly)
+	// Check if user has the specific institution subscription for current billing cycle
 	const hasActiveInstitutionSubscription = subscriptions.some(
 		(sub) =>
 			sub.status === 'active' &&
 			(sub.plan === 'institution_monthly' || sub.plan === 'institution_yearly')
 	)
 
-	// If user has any institution subscription, both cards should show "Current Plan"
-	const isCurrentPlan = hasActiveInstitutionSubscription
+	// Check if the current billing cycle matches the active subscription
+	const isCurrentPlan = subscriptions.some(
+		(sub) => sub.status === 'active' && sub.plan === institutionPlanId
+	)
 
 	const features = institutionPlan?.features || [
 		'Create and manage comprehensive institutional profiles with branding and details',
@@ -140,6 +142,7 @@ export const InstitutionPaymentSection: React.FC<
 				text: 'Sign Up to Continue',
 				disabled: false,
 				showCancelButton: false,
+				hideStartButton: false,
 			}
 		}
 
@@ -149,6 +152,25 @@ export const InstitutionPaymentSection: React.FC<
 				text: 'Current Plan',
 				disabled: true,
 				showCancelButton: true,
+				hideStartButton: false,
+			}
+		}
+
+		// If user has active institution subscription but different billing cycle
+		if (hasActiveInstitutionSubscription && !isCurrentPlan) {
+			const activePlan = subscriptions.find(
+				(sub) =>
+					sub.status === 'active' &&
+					(sub.plan === 'institution_monthly' ||
+						sub.plan === 'institution_yearly')
+			)
+			const otherCycle =
+				activePlan?.plan === 'institution_yearly' ? 'Yearly' : 'Monthly'
+			return {
+				text: `Cancel ${otherCycle} Subscription`,
+				disabled: false,
+				showCancelButton: false,
+				hideStartButton: true,
 			}
 		}
 
@@ -158,6 +180,7 @@ export const InstitutionPaymentSection: React.FC<
 				text: 'Processing...',
 				disabled: true,
 				showCancelButton: false,
+				hideStartButton: false,
 			}
 		}
 
@@ -166,6 +189,7 @@ export const InstitutionPaymentSection: React.FC<
 			text: 'Start Institution Plan',
 			disabled: subscriptionLoading,
 			showCancelButton: false,
+			hideStartButton: false,
 		}
 	}
 
@@ -345,21 +369,25 @@ export const InstitutionPaymentSection: React.FC<
 							const buttonState = getButtonState()
 							return (
 								<>
-									<button
-										className={`w-full py-3 px-6 rounded-[30px] font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
-											isCurrentPlan
-												? 'bg-green-100 text-green-700 cursor-not-allowed'
-												: 'bg-[#116E63] text-white hover:bg-[#0f5c54]'
-										}`}
-										onClick={handleStartPlan}
-										disabled={buttonState.disabled}
-									>
-										{pricingLoading ? 'Loading...' : buttonState.text}
-									</button>{' '}
-									{/* Cancel Button - Only show for current plan */}
-									{buttonState.showCancelButton && (
+									{/* Start/Current Plan Button - Hide if user has different billing cycle */}
+									{!buttonState.hideStartButton && (
 										<button
-											className={`w-full mt-3 py-2.5 px-6 rounded-[30px] font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+											className={`w-full py-3 px-6 rounded-[30px] font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+												isCurrentPlan
+													? 'bg-green-100 text-green-700 cursor-not-allowed'
+													: 'bg-[#116E63] text-white hover:bg-[#0f5c54]'
+											}`}
+											onClick={handleStartPlan}
+											disabled={buttonState.disabled}
+										>
+											{pricingLoading ? 'Loading...' : buttonState.text}
+										</button>
+									)}
+									{/* Cancel Button - Show for current plan or different billing cycle */}
+									{(buttonState.showCancelButton ||
+										buttonState.hideStartButton) && (
+										<button
+											className={`w-full ${buttonState.hideStartButton ? '' : 'mt-3'} py-2.5 px-6 rounded-[30px] font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
 												cancelling
 													? 'bg-gray-200 text-gray-600 cursor-not-allowed'
 													: 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
@@ -367,7 +395,11 @@ export const InstitutionPaymentSection: React.FC<
 											onClick={() => setShowCancelModal(true)}
 											disabled={cancelling}
 										>
-											{cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+											{cancelling
+												? 'Cancelling...'
+												: buttonState.hideStartButton
+													? buttonState.text
+													: 'Cancel Subscription'}
 										</button>
 									)}
 								</>

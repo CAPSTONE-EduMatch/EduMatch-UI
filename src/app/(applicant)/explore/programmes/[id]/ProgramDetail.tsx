@@ -43,6 +43,7 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import CoverImage from '../../../../../../public/EduMatch_Default.png'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
@@ -95,10 +96,7 @@ const ProgramDetail = () => {
 	const [currentProgram, setCurrentProgram] = useState<any>(null)
 	const [breadcrumbItems, setBreadcrumbItems] = useState<
 		Array<{ label: string; href?: string }>
-	>([
-		{ label: t('breadcrumb.explore'), href: '/explore' },
-		{ label: t('program_detail.breadcrumb.programmes') },
-	])
+	>([{ label: t('program_detail.breadcrumb.programmes') }])
 	const [isLoadingProgram, setIsLoadingProgram] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [scholarships, setScholarships] = useState<any[]>([])
@@ -117,6 +115,7 @@ const ProgramDetail = () => {
 	const [hasApplied, setHasApplied] = useState(false)
 	const [isApplying, setIsApplying] = useState(false)
 	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+	const [isResettingApplication, setIsResettingApplication] = useState(false)
 	const [applicationStatus, setApplicationStatus] = useState<string | null>(
 		null
 	)
@@ -361,9 +360,7 @@ const ProgramDetail = () => {
 				const queryString = paramsString ? `?${paramsString}` : ''
 
 				const programName = currentProgram?.title || 'Information Technology'
-				let items: Array<{ label: string; href?: string }> = [
-					{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
-				]
+				let items: Array<{ label: string; href?: string }> = []
 
 				if (fromTab === 'scholarships') {
 					items.push({
@@ -401,9 +398,7 @@ const ProgramDetail = () => {
 
 			const programName = programData?.title || 'Information Technology'
 
-			let items: Array<{ label: string; href?: string }> = [
-				{ label: t('breadcrumb.explore'), href: `/explore${queryString}` },
-			]
+			let items: Array<{ label: string; href?: string }> = []
 
 			// Add intermediate breadcrumb based on where we came from
 			if (fromTab === 'scholarships') {
@@ -440,6 +435,10 @@ const ProgramDetail = () => {
 
 	// Check for existing application when component loads
 	useEffect(() => {
+		// Skip if we're resetting application to prevent flash
+		if (isResettingApplication) {
+			return
+		}
 		const programId = currentProgram?.id || params?.id
 		// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
 		// Only check if user is authenticated
@@ -456,7 +455,13 @@ const ProgramDetail = () => {
 
 			return () => clearTimeout(timeoutId)
 		}
-	}, [currentProgram?.id, params?.id, applicationIdFromUrl, isAuthenticated]) // Added applicationIdFromUrl and isAuthenticated to prevent duplicate loads
+	}, [
+		currentProgram?.id,
+		params?.id,
+		applicationIdFromUrl,
+		isAuthenticated,
+		isResettingApplication,
+	]) // Added isResettingApplication to prevent checks during reset
 
 	// Fetch all update requests when application is loaded
 	useEffect(() => {
@@ -477,6 +482,10 @@ const ProgramDetail = () => {
 
 	// Handle applicationId from URL - update Application Status section
 	useEffect(() => {
+		// Skip if we're resetting application to prevent flash
+		if (isResettingApplication) {
+			return
+		}
 		if (applicationIdFromUrl) {
 			// Skip if we're handling a click (will be handled by handleApplicationClick)
 			if (isHandlingClickRef.current) {
@@ -529,7 +538,13 @@ const ProgramDetail = () => {
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [applicationIdFromUrl, fromParam, currentProgram?.id, hasApplied])
+	}, [
+		applicationIdFromUrl,
+		fromParam,
+		currentProgram?.id,
+		hasApplied,
+		isResettingApplication,
+	])
 
 	// Fetch all update requests for the application
 	const fetchUpdateRequests = async () => {
@@ -1879,6 +1894,77 @@ const ProgramDetail = () => {
 											</th>
 										</tr>
 									</thead>
+									{/* Warning banner for reapply limit */}
+									{applications.length > 0 &&
+										(() => {
+											const maxReapplyCount = Math.max(
+												...applications.map((app: any) => app.reapplyCount || 0)
+											)
+											// reapplyCount is the number of reapplies, so total applications = 1 + reapplyCount
+											// Remaining = 3 - (1 + maxReapplyCount) = 2 - maxReapplyCount
+											const totalApplications = 1 + maxReapplyCount
+											const remaining = 3 - totalApplications
+											return (
+												<thead className="bg-transparent">
+													<tr>
+														<td colSpan={3} className="px-6 py-3">
+															<div
+																className={`rounded-lg p-4 border ${
+																	remaining <= 0
+																		? 'bg-red-50 border-red-200'
+																		: remaining === 1
+																			? 'bg-amber-50 border-amber-200'
+																			: 'bg-blue-50 border-blue-200'
+																}`}
+															>
+																<div className="flex items-start gap-3">
+																	<div
+																		className={`text-xl ${
+																			remaining <= 0
+																				? 'text-red-600'
+																				: remaining === 1
+																					? 'text-amber-600'
+																					: 'text-blue-600'
+																		}`}
+																	>
+																		⚠️
+																	</div>
+																	<div className="flex-1">
+																		<p
+																			className={`text-sm font-medium ${
+																				remaining <= 0
+																					? 'text-red-800'
+																					: remaining === 1
+																						? 'text-amber-800'
+																						: 'text-blue-800'
+																			}`}
+																		>
+																			{remaining <= 0
+																				? t(
+																						'program_detail.apply.reapply_limit_reached'
+																					)
+																				: remaining === 1
+																					? t(
+																							'program_detail.apply.reapply_limit_warning',
+																							{
+																								remaining: remaining,
+																							}
+																						)
+																					: t(
+																							'program_detail.apply.reapply_limit_info',
+																							{
+																								remaining: remaining,
+																							}
+																						)}
+																		</p>
+																	</div>
+																</div>
+															</div>
+														</td>
+													</tr>
+												</thead>
+											)
+										})()}
 									<tbody className="bg-white divide-y divide-gray-200">
 										{applications.map((app) => (
 											<tr
@@ -2065,24 +2151,29 @@ const ProgramDetail = () => {
 									</Button>
 								)}
 
-							<motion.button
-								onClick={(e) => {
-									e.preventDefault()
-									e.stopPropagation()
-									handleWishlistToggle()
-								}}
-								className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
-							>
-								<Heart
-									className={`w-6 h-6 transition-all duration-200 ${
-										isInWishlist(currentProgram?.id || params?.id)
-											? 'fill-red-500 text-red-500'
-											: 'text-gray-400 hover:text-red-500'
-									}`}
-								/>
-							</motion.button>
+							{/* Hide wishlist button if post is closed, deleted, or rejected */}
+							{currentProgram?.status !== 'CLOSED' &&
+								currentProgram?.status !== 'DELETED' &&
+								currentProgram?.status !== 'REJECTED' && (
+									<motion.button
+										onClick={(e) => {
+											e.preventDefault()
+											e.stopPropagation()
+											handleWishlistToggle()
+										}}
+										className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
+										whileHover={{ scale: 1.1 }}
+										whileTap={{ scale: 0.9 }}
+									>
+										<Heart
+											className={`w-6 h-6 transition-all duration-200 ${
+												isInWishlist(currentProgram?.id || params?.id)
+													? 'fill-red-500 text-red-500'
+													: 'text-gray-400 hover:text-red-500'
+											}`}
+										/>
+									</motion.button>
+								)}
 						</div>{' '}
 						<p className="text-sm text-gray-500">
 							{t('program_detail.header.applications_count', {
@@ -2197,8 +2288,19 @@ const ProgramDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className=" p-8  bg-white py-6 shadow-xl border"
+					className="relative p-8 bg-white py-6 shadow-xl border"
 				>
+					{/* Loading overlay with blur to prevent flash */}
+					{isResettingApplication && (
+						<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
+							<div className="flex flex-col items-center gap-3">
+								<div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+								<p className="text-sm text-gray-600">
+									{t('program_detail.apply.resetting') || 'Resetting...'}
+								</p>
+							</div>
+						</div>
+					)}
 					{!(pendingApplication && !hasApplied) && (
 						<div className="flex items-center justify-between mb-6">
 							<h2 className="text-3xl font-bold">
@@ -2280,7 +2382,8 @@ const ProgramDetail = () => {
 					)}
 
 					{/* Application Status Message */}
-					{hasApplied &&
+					{!isResettingApplication &&
+						hasApplied &&
 						applicationStatus &&
 						applicationStatus !== 'ACCEPTED' &&
 						!isEditMode && (
@@ -2368,48 +2471,80 @@ const ProgramDetail = () => {
 																'program_detail.application_status.submitted.message'
 															)}
 										</p>
-										{applicationStatus === 'REJECTED' &&
-											// Only show reapply button if all applications for this post are REJECTED
-											// Check if applications list has been fetched for this post
-											lastFetchedPostId === currentProgram?.id &&
-											applications.length > 0 &&
-											applications.every(
-												(app) => app.status === 'REJECTED'
-											) && (
-												<div className="mt-4">
-													<Button
-														onClick={() => {
-															// Reset to allow new application
-															setHasApplied(false)
-															setApplicationStatus(null)
-															setApplicationId(null)
-															setUploadedFiles([])
-															setSelectedDocuments([])
-															// Remove applicationId from URL to show apply section
-															const newUrl = new URL(window.location.href)
-															newUrl.searchParams.delete('applicationId')
-															router.replace(newUrl.pathname + newUrl.search, {
-																scroll: false,
-															})
-															// Scroll to the apply section
-															setTimeout(() => {
-																const applySection = document.getElementById(
-																	'application-status-section'
-																)
-																if (applySection) {
-																	applySection.scrollIntoView({
-																		behavior: 'smooth',
-																		block: 'start',
-																	})
+										{applicationStatus === 'REJECTED' && (
+											<div className="mt-4">
+												{/* Check if post is closed, deleted, or rejected */}
+												{['CLOSED', 'DELETED', 'REJECTED'].includes(
+													currentProgram?.status || ''
+												) ? (
+													<div className="rounded-lg p-4">
+														<p className="text-sm text-red-800">
+															{t('program_detail.apply.post_closed_message')}
+														</p>
+													</div>
+												) : (
+													// Only show reapply button if all applications for this post are REJECTED
+													// and post is not closed
+													lastFetchedPostId === currentProgram?.id &&
+													applications.length > 0 &&
+													applications.every(
+														(app) => app.status === 'REJECTED'
+													) && (
+														<Button
+															onClick={async () => {
+																// Set loading state immediately to hide rejected section
+																setIsResettingApplication(true)
+																// Use flushSync to force immediate state updates and prevent flash
+																flushSync(() => {
+																	setHasApplied(false)
+																	setApplicationStatus(null)
+																	setApplicationId(null)
+																	setPendingApplication(null)
+																	setUploadedFiles([])
+																	setSelectedDocuments([])
+																})
+																// Switch to overview tab if on application tab
+																if (activeTab === 'application') {
+																	setActiveTab('overview')
 																}
-															}, 100)
-														}}
-														className="bg-[#126E64] hover:bg-teal-700 text-white"
-													>
-														{t('program_detail.apply.reapply_button')}
-													</Button>
-												</div>
-											)}
+																// Remove applicationId from URL to show apply section
+																const newUrl = new URL(window.location.href)
+																newUrl.searchParams.delete('applicationId')
+																// Use push instead of replace to ensure navigation happens
+																await router.push(
+																	newUrl.pathname + newUrl.search,
+																	{
+																		scroll: false,
+																	}
+																)
+																// Force a longer delay to ensure URL change is processed,
+																// all useEffects have run, and any fetches are blocked
+																await new Promise((resolve) =>
+																	setTimeout(resolve, 500)
+																)
+																// Clear loading state after everything is settled
+																setIsResettingApplication(false)
+																// Scroll to the apply section
+																setTimeout(() => {
+																	const applySection = document.getElementById(
+																		'application-status-section'
+																	)
+																	if (applySection) {
+																		applySection.scrollIntoView({
+																			behavior: 'smooth',
+																			block: 'start',
+																		})
+																	}
+																}, 150)
+															}}
+															className="bg-[#126E64] hover:bg-teal-700 text-white"
+														>
+															{t('program_detail.apply.reapply_button')}
+														</Button>
+													)
+												)}
+											</div>
+										)}
 									</div>
 								</div>
 							</div>
@@ -2492,7 +2627,6 @@ const ProgramDetail = () => {
 													}}
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
-													disabled={!isAuthenticated}
 												>
 													{t('program_detail.apply.select_profile_button')}
 												</Button>

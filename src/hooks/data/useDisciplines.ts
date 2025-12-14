@@ -36,13 +36,29 @@ export function useSubdisciplines() {
 	return useQuery<SubdisciplineOption[]>({
 		queryKey: ["subdisciplines"],
 		queryFn: async () => {
-			const response = await ApiService.getSubdisciplines();
-			if (!response.success || !response.subdisciplines) {
-				throw new Error(
-					response.error || "Failed to fetch subdisciplines"
-				);
+			try {
+				const response = await ApiService.getSubdisciplines();
+				if (!response.success || !response.subdisciplines) {
+					throw new Error(
+						response.error || "Failed to fetch subdisciplines"
+					);
+				}
+				return response.subdisciplines;
+			} catch (error) {
+				// Handle axios errors and provide meaningful error messages
+				if (error instanceof Error) {
+					throw error;
+				}
+				// Handle non-Error objects (e.g., axios errors)
+				const errorMessage =
+					typeof error === "object" &&
+					error !== null &&
+					"message" in error &&
+					typeof error.message === "string"
+						? error.message
+						: "Network error: Failed to fetch subdisciplines";
+				throw new Error(errorMessage);
 			}
-			return response.subdisciplines;
 		},
 		staleTime: 10 * 60 * 1000, // 10 minutes - disciplines don't change often
 		gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache longer
@@ -59,14 +75,32 @@ export function useDisciplines() {
 	return useQuery<DisciplineData>({
 		queryKey: ["disciplines"],
 		queryFn: async () => {
-			const { apiClient } = await import("@/services/api/axios-config");
-			const response = await apiClient.get("/api/disciplines");
-			if (!response.data.success) {
-				throw new Error(
-					response.data.error || "Failed to fetch disciplines"
+			try {
+				const { apiClient } = await import(
+					"@/services/api/axios-config"
 				);
+				const response = await apiClient.get("/api/disciplines");
+				if (!response.data.success) {
+					throw new Error(
+						response.data.error || "Failed to fetch disciplines"
+					);
+				}
+				return response.data;
+			} catch (error) {
+				// Handle axios errors and provide meaningful error messages
+				if (error instanceof Error) {
+					throw error;
+				}
+				// Handle non-Error objects (e.g., axios errors)
+				const errorMessage =
+					typeof error === "object" &&
+					error !== null &&
+					"message" in error &&
+					typeof error.message === "string"
+						? error.message
+						: "Network error: Failed to fetch disciplines";
+				throw new Error(errorMessage);
 			}
-			return response.data;
 		},
 		staleTime: 10 * 60 * 1000, // 10 minutes
 		gcTime: 30 * 60 * 1000, // 30 minutes

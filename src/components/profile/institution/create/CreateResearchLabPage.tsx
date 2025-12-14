@@ -679,6 +679,7 @@ export const CreateResearchLabPage: React.FC<CreateResearchLabPageProps> = ({
 								options={subdisciplines}
 								variant="default"
 								isMulti
+								isSearchable
 								isClearable={false}
 								className="w-full"
 							/>

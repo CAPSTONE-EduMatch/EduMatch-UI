@@ -8,28 +8,28 @@ import {
 	Building2,
 	CreditCard,
 	FileText,
-	// GraduationCap,
+	LayoutDashboard,
 	KeyRound,
 	Users,
+	BookOpen,
+	MessageSquare,
+	Wallet,
+	LogOut,
 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 const sidebarItems = [
-	{ id: 'dashboard', icon: Users, label: 'Dashboard' },
-	// { id: 'certifications', icon: GraduationCap, label: 'Certifications' },
-	{ id: 'posts', icon: Building2, label: 'Posts' },
-	{ id: 'applications', icon: FileText, label: 'Applications' },
-	{ id: 'disciplines', icon: Building2, label: 'Disciplines' },
+	{ id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+	{ id: 'posts', icon: FileText, label: 'Posts' },
+	{ id: 'applications', icon: Building2, label: 'Applications' },
+	{ id: 'disciplines', icon: BookOpen, label: 'Disciplines' },
 	{ id: 'user', icon: Users, label: 'User' },
-	// { id: 'institution', icon: Building2, label: 'Institution' },
 	{ id: 'payment', icon: CreditCard, label: 'Payment' },
-	{ id: 'plan', icon: Building2, label: 'Plan' },
-	// { id: 'transaction', icon: Building2, label: 'Transaction' },
-	{ id: 'supports', icon: Building2, label: 'Supports' },
-	// { id: 'track-user-log', icon: Building2, label: 'Track user log' },
+	{ id: 'plan', icon: Wallet, label: 'Plan' },
+	{ id: 'supports', icon: MessageSquare, label: 'Supports' },
 	{ id: 'change-password', icon: KeyRound, label: 'Change Password' },
-	{ id: 'logout', icon: Building2, label: 'Log out' },
+	{ id: 'logout', icon: LogOut, label: 'Log out' },
 ]
 
 // Logo section for admin sidebar
@@ -66,57 +66,37 @@ export function AdminSidebar({
 	} = useLogout({ redirectTo: '/signin' })
 
 	const handleSectionChange = (sectionId: string) => {
-		switch (sectionId) {
-			case 'dashboard':
-				router.push('/admin')
-				break
-			case 'user':
-				router.push('/admin/users')
-				break
-			case 'certifications':
-				router.push('/admin/certifications')
-				break
-			case 'posts':
-				router.push('/admin/posts')
-				break
-			case 'applications':
-				router.push('/admin/applications')
-				break
-			case 'disciplines':
-				router.push('/admin/disciplines')
-				break
-			case 'payment':
-				router.push('/admin/payments')
-				break
-			case 'plan':
-				router.push('/admin/payments/plans')
-				break
-			case 'institution':
-				router.push('/admin/institutions')
-				break
-			case 'supports':
-				router.push('/admin/support')
-				break
-			// case 'track-user-log':
-			// 	router.push('/admin/track-user-log')
-			// 	break
-			case 'change-password':
-				router.push('/admin/settings')
-				break
-			case 'logout':
-				// Show logout confirmation modal
-				handleLogoutClick()
-				break
-			default:
-				// For other sections, you can add more routes as needed
-				break
+		console.log('clicked section:', sectionId)
+
+		if (sectionId === 'logout') {
+			handleLogoutClick()
+			return
+		}
+
+		const routeMap: Record<string, string> = {
+			dashboard: '/admin',
+			user: '/admin/users',
+			posts: '/admin/posts',
+			applications: '/admin/applications',
+			disciplines: '/admin/disciplines',
+			payment: '/admin/payments',
+			plan: '/admin/payments/plans',
+			supports: '/admin/support',
+			'change-password': '/admin/settings',
+		}
+
+		const route = routeMap[sectionId]
+		console.log('route to push:', route)
+
+		if (route) {
+			router.push(route)
 		}
 	}
 
 	// Show loading state while checking authentication
 	if (isLoading) {
 		return (
-			<div className="w-[289px] bg-[#126E64] min-h-screen fixed left-0 top-0 z-10 flex items-center justify-center">
+			<div className="w-[289px] bg-[#126E64] min-h-screen fixed left-0 top-0 z-50 flex items-center justify-center">
 				<div className="text-white">Loading...</div>
 			</div>
 		)
@@ -136,6 +116,7 @@ export function AdminSidebar({
 				logoSection={<AdminLogoSection />}
 				showProfileSection={false}
 				containerPaddingTop="pt-0"
+				enableNavigationProtection={false}
 				sidebarStyle={{
 					bgColor: 'bg-[#126E64]',
 					activeItemBgColor: 'bg-white/10',

@@ -64,14 +64,14 @@ const SupportTable = ({
 	}
 
 	// Update filters when debounced search or other filters change
-	// Direct call to parent, no intermediate callback
 	useEffect(() => {
 		onFiltersChange?.({
 			search: debouncedSearchQuery || undefined,
 			status: statusFilter.length === 1 ? statusFilter[0].toLowerCase() : 'all',
 			sortBy: sortBy,
 		})
-	}, [debouncedSearchQuery, statusFilter, sortBy, onFiltersChange])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [debouncedSearchQuery, statusFilter, sortBy])
 
 	const getStatusBadge = (status: string) => {
 		const baseClasses = 'px-3 py-1 rounded-full text-sm font-medium'

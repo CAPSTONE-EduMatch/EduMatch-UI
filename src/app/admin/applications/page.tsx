@@ -80,7 +80,8 @@ export default function AdminApplicationsPage() {
 	// Update search filter when debounced value changes
 	useEffect(() => {
 		setSearch(debouncedSearchInput)
-	}, [debouncedSearchInput, setSearch])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [debouncedSearchInput])
 
 	// Component for ID cell with copy functionality
 	const IdCell = ({ id }: { id: string }) => {
@@ -181,15 +182,15 @@ export default function AdminApplicationsPage() {
 			)) as (_app: Application) => React.ReactNode,
 			className: '120px',
 		},
-		{
-			header: 'Reapply Count',
-			accessor: ((app: Application) => (
-				<div className="text-gray-700 text-sm text-center">
-					{app.reapplyCount}
-				</div>
-			)) as (_app: Application) => React.ReactNode,
-			className: '110px',
-		},
+		// {
+		// 	header: 'Reapply Count',
+		// 	accessor: ((app: Application) => (
+		// 		<div className="text-gray-700 text-sm text-center">
+		// 			{app.reapplyCount}
+		// 		</div>
+		// 	)) as (_app: Application) => React.ReactNode,
+		// 	className: '110px',
+		// },
 		{
 			header: 'Actions',
 			accessor: ((app: Application) => (

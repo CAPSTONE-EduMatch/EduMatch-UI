@@ -116,6 +116,16 @@
 				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
 			}
 		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
 		"buttons": {
 			"sign_in": "Sign in",
 			"sign_up": "Sign up",
@@ -380,6 +390,7 @@
 				"account_deleted": "Your account has been deleted. Please contact support if you believe this is an error.",
 				"user_not_found": "No account found with this email address.",
 				"forgot_password_cooldown": "Please wait {seconds} seconds before requesting another reset link.",
+				"google_account": "This account was created with Google. Please sign in with Google or check your email address.",
 				"otp_incomplete": "Please enter the complete 6-digit code",
 				"otp_failed": "Verification failed. Please try again.",
 				"otp_resend_failed": "Failed to resend verification code",
@@ -501,13 +512,17 @@
 		"cta_section": {
 			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
 			"description_1": "Join EduMatch now to start your journey to success.",
-			"description_2": "Find the perfect opportunities for you."
+			"description_2": "Find the perfect opportunities for you.",
+			"authenticated_title": "Continue Your Journey to Success",
+			"authenticated_description_1": "Discover more opportunities tailored to your profile.",
+			"authenticated_description_2": "Explore programs, scholarships, and research labs that match your interests."
 		}
 	},
 
 	"buttons": {
 		"explore_more": "Explore more",
 		"show_more": "Show more",
+		"show_less": "Show less",
 		"learn_more": "Learn more",
 		"sign_in": "Sign in",
 		"sign_up": "Sign up",
@@ -693,6 +708,11 @@
 			"application_submitted": "✓ Application Submitted",
 			"upload_warning": "📁 Please upload at least one document to submit your application",
 			"reapply_button": "Reapply Now",
+			"resetting": "Resetting...",
+			"post_closed_message": "This research lab is closed. You cannot reapply.",
+			"reapply_limit_info": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_warning": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_reached": "You have reached the maximum number of reapplication attempts (3 times). You cannot apply again.",
 			"uploading_progress": "Uploading files...",
 			"file_progress": "File {index}",
 			"file_size": "{size} KB",
@@ -991,6 +1011,11 @@
 			"edit_documents": "Edit Application Documents",
 			"cancel_edit": "Cancel Edit",
 			"reapply_button": "Reapply",
+			"resetting": "Resetting...",
+			"post_closed_message": "This program is closed. You cannot reapply.",
+			"reapply_limit_info": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_warning": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_reached": "You have reached the maximum number of reapplication attempts (3 times). You cannot apply again.",
 			"document_requirement": "Required Document(s)",
 			"select_profile_button": "Select Documents from Profile",
 			"select_profile_hint": "Choose documents you've already uploaded to your profile",
@@ -1237,7 +1262,12 @@
 			"upload_warning": "📁 Please upload at least one document to submit your application",
 			"uploading_progress": "Uploading files...",
 			"file_progress": "File {index}",
-			"reapply_button": "Reapply Now"
+			"reapply_button": "Reapply Now",
+			"resetting": "Resetting...",
+			"post_closed_message": "This scholarship is closed. You cannot reapply.",
+			"reapply_limit_info": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_warning": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_reached": "You have reached the maximum number of reapplication attempts (3 times). You cannot apply again."
 		},
 		"recommendations": {
 			"title": "Recommended Scholarships",
@@ -1896,6 +1926,10 @@
 			"invalid_file": "Please select image, PDF, or document files",
 			"file_too_large": "File size must be less than 10MB"
 		},
+		"error": {
+			"title": "Error",
+			"button": "Close"
+		},
 		"success": {
 			"title": "Success!",
 			"message": "Your academic information has been updated successfully.",
@@ -1934,6 +1968,15 @@
 		"error": {
 			"message": "Failed to load wishlist data",
 			"button": "Retry"
+		},
+		"success": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"button": "Continue"
 		}
 	},
 	"settings_section": {

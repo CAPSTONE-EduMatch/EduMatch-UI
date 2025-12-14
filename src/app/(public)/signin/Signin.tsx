@@ -534,7 +534,7 @@ const SignIn: React.FC = () => {
 
 		setIsLoading(true)
 		try {
-			// First check if user exists
+			// First check if user exists and get provider information
 			const userCheckResponse = await axios.get(
 				`/api/user?email=${encodeURIComponent(forgotEmail)}`
 			)
@@ -549,7 +549,20 @@ const SignIn: React.FC = () => {
 				return
 			}
 
-			// If user exists, proceed with password reset
+			// Check if user is a Google user
+			if (
+				userCheckResponse.data.isGoogleUser &&
+				!userCheckResponse.data.hasCredentialAccount
+			) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail: t('errors.google_account'),
+				}))
+				setIsLoading(false)
+				return
+			}
+
+			// If user exists and can reset password, proceed with password reset
 			const { error } = await authClient.requestPasswordReset({
 				email: forgotEmail,
 				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,

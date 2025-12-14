@@ -67,7 +67,7 @@ export function AdminTable<T extends { id: string }>({
 				<CardContent className="p-0">
 					{/* Table Header */}
 					<div
-						className="bg-[#126E64] text-white px-8 py-5 text-center font-bold text-base grid gap-4"
+						className="bg-[#126E64] text-white px-8 py-5 text-left font-bold text-base grid gap-4"
 						style={{
 							gridTemplateColumns: columns
 								.map((col) => col.className || '1fr')
@@ -132,36 +132,86 @@ export function AdminTable<T extends { id: string }>({
 						>
 							<ChevronLeft className="w-5 h-5" />
 						</button>
-
-						{[...Array(Math.min(6, totalPages))].map((_, i) => {
-							const pageNum = i + 1
-							return (
-								<button
-									key={pageNum}
-									onClick={() => onPageChange?.(pageNum)}
-									className={`w-8 h-8 rounded-full text-xs font-semibold transition-all ${
-										currentPage === pageNum
-											? 'bg-[#126E64] text-white shadow-md'
-											: 'text-gray-700 hover:bg-gray-100 hover:text-[#126E64]'
-									}`}
-								>
-									{pageNum}
-								</button>
+						{(() => {
+							const maxPagesToShow = 6
+							let startPage = Math.max(
+								1,
+								currentPage - Math.floor(maxPagesToShow / 2)
 							)
-						})}
+							let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1)
 
-						{totalPages > 6 && (
-							<>
-								<span className="text-gray-400 mx-1 text-xs">...</span>
-								<button
-									onClick={() => onPageChange?.(totalPages)}
-									className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
-								>
-									{totalPages}
-								</button>
-							</>
-						)}
+							// Adjust startPage if we're near the end
+							if (endPage - startPage < maxPagesToShow - 1) {
+								startPage = Math.max(1, endPage - maxPagesToShow + 1)
+							}
 
+							const pages = []
+
+							// Show first page if not in range
+							if (startPage > 1) {
+								pages.push(
+									<button
+										key={1}
+										onClick={() => onPageChange?.(1)}
+										className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
+									>
+										1
+									</button>
+								)
+								if (startPage > 2) {
+									pages.push(
+										<span
+											key="ellipsis-start"
+											className="text-gray-400 mx-1 text-xs"
+										>
+											...
+										</span>
+									)
+								}
+							}
+
+							// Show page numbers in range
+							for (let i = startPage; i <= endPage; i++) {
+								pages.push(
+									<button
+										key={i}
+										onClick={() => onPageChange?.(i)}
+										className={`w-8 h-8 rounded-full text-xs font-semibold transition-all ${
+											currentPage === i
+												? 'bg-[#126E64] text-white shadow-md'
+												: 'text-gray-700 hover:bg-gray-100 hover:text-[#126E64]'
+										}`}
+									>
+										{i}
+									</button>
+								)
+							}
+
+							// Show last page if not in range
+							if (endPage < totalPages) {
+								if (endPage < totalPages - 1) {
+									pages.push(
+										<span
+											key="ellipsis-end"
+											className="text-gray-400 mx-1 text-xs"
+										>
+											...
+										</span>
+									)
+								}
+								pages.push(
+									<button
+										key={totalPages}
+										onClick={() => onPageChange?.(totalPages)}
+										className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
+									>
+										{totalPages}
+									</button>
+								)
+							}
+
+							return pages
+						})()}{' '}
 						<button
 							onClick={() =>
 								onPageChange?.(Math.min(totalPages, currentPage + 1))

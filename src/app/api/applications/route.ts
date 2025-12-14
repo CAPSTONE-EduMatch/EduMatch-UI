@@ -234,6 +234,7 @@ export async function GET(request: NextRequest) {
 				endDate: app.post.end_date?.toISOString(),
 				location: app.post.location || undefined,
 				otherInfo: app.post.other_info || undefined,
+				status: app.post.status,
 				matchScore: matchScores[app.post_id] || "—",
 				subdisciplines:
 					app.post.subdisciplines?.map((sub: any) => ({

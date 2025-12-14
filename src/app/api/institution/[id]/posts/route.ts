@@ -33,14 +33,37 @@ function calculateDaysLeft(dateString: Date): number {
 // Helper function to calculate match score between posts and authenticated user's applicant profile
 async function calculateMatchScoresForPosts(
 	posts: any[],
-	applicantEmbedding: number[] | null
+	applicantEmbedding: number[] | null,
+	applicantId?: string
 ): Promise<Map<string, string>> {
 	const matchScores = new Map<string, string>();
 
-	if (!applicantEmbedding) {
-		// No applicant embedding, return 0% for all posts
+	if (!applicantEmbedding || !applicantId) {
+		// No applicant embedding or ID, show restricted indicator
 		posts.forEach((post) => {
-			matchScores.set(post.post_id, "0%");
+			matchScores.set(post.post_id, "—");
+		});
+		return matchScores;
+	}
+
+	// PLAN-BASED AUTHORIZATION: Check if user can see matching scores FIRST
+	// Only Premium plan users can see matching scores
+	try {
+		const { canSeeMatchingScore } =
+			await import("@/services/authorization");
+		const matchingPermission = await canSeeMatchingScore(applicantId);
+
+		if (!matchingPermission.authorized) {
+			// User cannot see matching scores, show restricted indicator
+			posts.forEach((post) => {
+				matchScores.set(post.post_id, "—"); // Use em dash to indicate premium feature
+			});
+			return matchScores;
+		}
+	} catch (error) {
+		// Error checking permission, show restricted indicator
+		posts.forEach((post) => {
+			matchScores.set(post.post_id, "—");
 		});
 		return matchScores;
 	}
@@ -119,14 +142,16 @@ export async function GET(request: NextRequest) {
 
 		// Try to get authenticated user (optional for this endpoint)
 		let applicantEmbedding: number[] | null = null;
+		let applicantId: string | undefined = undefined;
 		try {
 			const { user } = await requireAuth();
 			if (user?.id) {
 				const applicant = await prismaClient.applicant.findUnique({
 					where: { user_id: user.id },
-					select: { embedding: true },
+					select: { applicant_id: true, embedding: true },
 				});
 				applicantEmbedding = applicant?.embedding as number[] | null;
+				applicantId = applicant?.applicant_id;
 			}
 		} catch (authError) {
 			// No authenticated user - continue without match scores
@@ -200,7 +225,8 @@ export async function GET(request: NextRequest) {
 		// Calculate match scores for all posts
 		const matchScores = await calculateMatchScoresForPosts(
 			posts,
-			applicantEmbedding
+			applicantEmbedding,
+			applicantId
 		);
 
 		// Transform posts to the expected format

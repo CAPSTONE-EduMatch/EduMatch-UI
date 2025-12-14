@@ -2627,7 +2627,6 @@ const ProgramDetail = () => {
 													}}
 													variant="outline"
 													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
-													disabled={!isAuthenticated}
 												>
 													{t('program_detail.apply.select_profile_button')}
 												</Button>

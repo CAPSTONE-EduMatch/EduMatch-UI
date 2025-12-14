@@ -265,7 +265,56 @@ export class SQSMessageHandler {
 								bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
 								break;
 						}
-						url = "/applications";
+
+						// Fetch application to get postId and post type for correct URL
+						const applicationId = message.metadata?.applicationId;
+						if (applicationId) {
+							try {
+								const application =
+									await prismaClient.application.findUnique({
+										where: {
+											application_id: applicationId,
+										},
+										include: {
+											post: {
+												include: {
+													programPost: true,
+													scholarshipPost: true,
+													jobPost: true,
+												},
+											},
+										},
+									});
+
+								if (application?.post) {
+									const postId = application.post.post_id;
+									// Determine post type and construct URL
+									if (application.post.programPost) {
+										url = `/explore/programmes/${postId}?applicationId=${applicationId}&from=application`;
+									} else if (
+										application.post.scholarshipPost
+									) {
+										url = `/explore/scholarships/${postId}?applicationId=${applicationId}&from=application`;
+									} else if (application.post.jobPost) {
+										url = `/explore/research-labs/${postId}?applicationId=${applicationId}&from=application`;
+									} else {
+										// Fallback to applications page if post type cannot be determined
+										url = "/applications";
+									}
+								} else {
+									url = "/applications";
+								}
+							} catch (error) {
+								// Fallback to applications page on error
+								console.error(
+									"Error fetching application for notification URL:",
+									error
+								);
+								url = "/applications";
+							}
+						} else {
+							url = "/applications";
+						}
 					}
 					break;
 				case "DOCUMENT_UPDATED":
@@ -595,7 +644,56 @@ export class NotificationUtils {
 								bodyText = `Your application status for "${message.metadata?.programName || "the program"}" has been updated by ${institutionName}. Please check your application dashboard for more details.`;
 								break;
 						}
-						url = "/applications";
+
+						// Fetch application to get postId and post type for correct URL
+						const applicationId = message.metadata?.applicationId;
+						if (applicationId) {
+							try {
+								const application =
+									await prismaClient.application.findUnique({
+										where: {
+											application_id: applicationId,
+										},
+										include: {
+											post: {
+												include: {
+													programPost: true,
+													scholarshipPost: true,
+													jobPost: true,
+												},
+											},
+										},
+									});
+
+								if (application?.post) {
+									const postId = application.post.post_id;
+									// Determine post type and construct URL
+									if (application.post.programPost) {
+										url = `/explore/programmes/${postId}?applicationId=${applicationId}&from=application`;
+									} else if (
+										application.post.scholarshipPost
+									) {
+										url = `/explore/scholarships/${postId}?applicationId=${applicationId}&from=application`;
+									} else if (application.post.jobPost) {
+										url = `/explore/research-labs/${postId}?applicationId=${applicationId}&from=application`;
+									} else {
+										// Fallback to applications page if post type cannot be determined
+										url = "/applications";
+									}
+								} else {
+									url = "/applications";
+								}
+							} catch (error) {
+								// Fallback to applications page on error
+								console.error(
+									"Error fetching application for notification URL:",
+									error
+								);
+								url = "/applications";
+							}
+						} else {
+							url = "/applications";
+						}
 					}
 					break;
 				case "DOCUMENT_UPDATED":

@@ -390,6 +390,7 @@
 				"account_deleted": "Your account has been deleted. Please contact support if you believe this is an error.",
 				"user_not_found": "No account found with this email address.",
 				"forgot_password_cooldown": "Please wait {seconds} seconds before requesting another reset link.",
+				"google_account": "This account was created with Google. Please sign in with Google or check your email address.",
 				"otp_incomplete": "Please enter the complete 6-digit code",
 				"otp_failed": "Verification failed. Please try again.",
 				"otp_resend_failed": "Failed to resend verification code",

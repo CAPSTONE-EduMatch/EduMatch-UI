@@ -11,6 +11,10 @@ import { Building2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ProgramCard } from '@/components/ui/cards/ProgramCard'
 import { ScholarshipCard } from '@/components/ui/cards/ScholarshipCard'
 import { ResearchLabCard } from '@/components/ui/cards/ResearchLabCard'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { SuccessModal, ErrorModal } from '@/components/ui'
+import { useTranslations } from 'next-intl'
 
 interface InstitutionDetailProps {
 	institutionId: string
@@ -20,10 +24,29 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 	institutionId,
 }) => {
 	const router = useRouter()
+	const t = useTranslations('')
+	const { isAuthenticated } = useAuthCheck()
 	const [institution, setInstitution] = useState<any>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [activeTab, setActiveTab] = useState<'overview' | 'posts'>('overview')
+	const [showAuthModal, setShowAuthModal] = useState(false)
+	const [showWishlistSuccessModal, setShowWishlistSuccessModal] =
+		useState(false)
+	const [wishlistSuccessMessage, setWishlistSuccessMessage] = useState('')
+	const [wishlistSuccessTitle, setWishlistSuccessTitle] = useState('')
+	const [isWishlistProcessing, setIsWishlistProcessing] = useState(false)
+
+	// Wishlist functionality
+	const { isInWishlist, toggleWishlistItem } = useWishlist({
+		autoFetch: true,
+		isAuthenticated: isAuthenticated,
+		initialParams: {
+			page: 1,
+			limit: 100,
+			status: 1,
+		},
+	})
 
 	// Posts state for the Posts tab
 	const [posts, setPosts] = useState<any[]>([])
@@ -477,8 +500,108 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 																				)
 																			} else if (postType === 'research lab') {
 																				router.push(
-																					`/explore/research/${postId}`
+																					`/explore/research-labs/${postId}`
 																				)
+																			}
+																		}
+
+																		const handleWishlistToggle = async (
+																			postId: string
+																		) => {
+																			// Check if user is authenticated before attempting to toggle
+																			if (!isAuthenticated) {
+																				setShowAuthModal(true)
+																				return
+																			}
+
+																			// Prevent multiple simultaneous API calls
+																			if (isWishlistProcessing) {
+																				return
+																			}
+
+																			setIsWishlistProcessing(true)
+																			try {
+																				const wasInWishlist =
+																					isInWishlist(postId)
+																				await toggleWishlistItem(postId)
+
+																				// Determine the item type based on post type
+																				let itemType = 'item'
+																				if (post.type === 'Program') {
+																					itemType =
+																						t('tabs.programmes').toLowerCase()
+																				} else if (
+																					post.type === 'Scholarship'
+																				) {
+																					itemType =
+																						t('tabs.scholarships').toLowerCase()
+																				} else if (
+																					post.type === 'Research Lab'
+																				) {
+																					itemType =
+																						t(
+																							'tabs.research_labs'
+																						).toLowerCase()
+																				}
+
+																				// Show success modal for both adding and removing
+																				if (!wasInWishlist) {
+																					// Item was added
+																					setWishlistSuccessTitle(
+																						t(
+																							'explore_page.wishlist.added_title'
+																						)
+																					)
+																					setWishlistSuccessMessage(
+																						t(
+																							'explore_page.wishlist.added_message',
+																							{
+																								type: itemType,
+																							}
+																						)
+																					)
+																				} else {
+																					// Item was removed
+																					setWishlistSuccessTitle(
+																						t(
+																							'explore_page.wishlist.removed_title'
+																						)
+																					)
+																					setWishlistSuccessMessage(
+																						t(
+																							'explore_page.wishlist.removed_message',
+																							{
+																								type: itemType,
+																							}
+																						)
+																					)
+																				}
+																				setShowWishlistSuccessModal(true)
+																			} catch (error) {
+																				// Check if error is due to authentication
+																				const errorMessage =
+																					error instanceof Error
+																						? error.message
+																						: 'Unknown error'
+																				if (
+																					errorMessage.includes(
+																						'Authentication required'
+																					) ||
+																					errorMessage.includes(
+																						'not authenticated'
+																					) ||
+																					errorMessage.includes('401')
+																				) {
+																					setShowAuthModal(true)
+																				} else {
+																					// eslint-disable-next-line no-console
+																					console.error(
+																						'Failed to toggle wishlist item:',
+																						error
+																					)
+																				}
+																			} finally {
+																				setIsWishlistProcessing(false)
 																			}
 																		}
 
@@ -488,8 +611,10 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 																					key={post.id}
 																					program={post}
 																					index={index}
-																					isWishlisted={false}
-																					onWishlistToggle={() => {}}
+																					isWishlisted={isInWishlist(post.id)}
+																					onWishlistToggle={() =>
+																						handleWishlistToggle(post.id)
+																					}
 																					onClick={handlePostClick}
 																				/>
 																			)
@@ -499,8 +624,10 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 																					key={post.id}
 																					scholarship={post}
 																					index={index}
-																					isWishlisted={false}
-																					onWishlistToggle={() => {}}
+																					isWishlisted={isInWishlist(post.id)}
+																					onWishlistToggle={() =>
+																						handleWishlistToggle(post.id)
+																					}
 																					onClick={handlePostClick}
 																				/>
 																			)
@@ -510,8 +637,10 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 																					key={post.id}
 																					lab={post}
 																					index={index}
-																					isWishlisted={false}
-																					onWishlistToggle={() => {}}
+																					isWishlisted={isInWishlist(post.id)}
+																					onWishlistToggle={() =>
+																						handleWishlistToggle(post.id)
+																					}
 																					onClick={handlePostClick}
 																				/>
 																			)
@@ -581,6 +710,38 @@ export const InstitutionDetail: React.FC<InstitutionDetailProps> = ({
 					</Card>
 				</div>
 			</div>
+
+			{/* Authentication Required Modal */}
+			<ErrorModal
+				isOpen={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				title={t('auth.required.title')}
+				message={t('auth.required.message')}
+				buttonText={t('buttons.sign_in')}
+				onButtonClick={() => {
+					setShowAuthModal(false)
+					router.push('/signin')
+				}}
+				showSecondButton={true}
+				secondButtonText={t('buttons.sign_up')}
+				onSecondButtonClick={() => {
+					setShowAuthModal(false)
+					router.push('/signup')
+				}}
+				showCloseButton={true}
+			/>
+
+			{/* Wishlist Success Modal */}
+			<SuccessModal
+				isOpen={showWishlistSuccessModal}
+				onClose={() => setShowWishlistSuccessModal(false)}
+				title={wishlistSuccessTitle || t('explore_page.wishlist.added_title')}
+				message={
+					wishlistSuccessMessage ||
+					t('explore_page.wishlist.added_message_default')
+				}
+				buttonText={t('buttons.explore_more')}
+			/>
 		</div>
 	)
 }

@@ -111,8 +111,10 @@ export const ProtectedImage: React.FC<ProtectedImageProps> = ({
 /**
  * Simple img tag version for cases where Next.js Image is not needed
  */
-interface ProtectedImgProps
-	extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
+interface ProtectedImgProps extends Omit<
+	React.ImgHTMLAttributes<HTMLImageElement>,
+	'src'
+> {
 	/**
 	 * The S3 URL or key of the image
 	 */

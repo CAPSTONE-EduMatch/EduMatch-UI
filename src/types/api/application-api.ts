@@ -38,6 +38,7 @@ export interface Application {
 		endDate?: string;
 		location?: string;
 		otherInfo?: string;
+		status?: string;
 		matchScore?: string; // Match percentage (e.g., "85%" or "—" for unauthorized users)
 		subdisciplines?: Array<{
 			name: string;

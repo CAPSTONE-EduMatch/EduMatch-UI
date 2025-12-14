@@ -34,6 +34,7 @@ import { Check, File, Heart, Lock, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 const ScholarshipDetail = () => {
 	const t = useTranslations()
@@ -91,6 +92,7 @@ const ScholarshipDetail = () => {
 	const [hasApplied, setHasApplied] = useState(false)
 	const [isApplying, setIsApplying] = useState(false)
 	const [isCheckingApplication, setIsCheckingApplication] = useState(false)
+	const [isResettingApplication, setIsResettingApplication] = useState(false)
 	const [applicationStatus, setApplicationStatus] = useState<string | null>(
 		null
 	)
@@ -1478,6 +1480,77 @@ const ScholarshipDetail = () => {
 											</th>
 										</tr>
 									</thead>
+									{/* Warning banner for reapply limit */}
+									{applications.length > 0 &&
+										(() => {
+											const maxReapplyCount = Math.max(
+												...applications.map((app: any) => app.reapplyCount || 0)
+											)
+											// reapplyCount is the number of reapplies, so total applications = 1 + reapplyCount
+											// Remaining = 3 - (1 + maxReapplyCount) = 2 - maxReapplyCount
+											const totalApplications = 1 + maxReapplyCount
+											const remaining = 3 - totalApplications
+											return (
+												<thead className="bg-transparent">
+													<tr>
+														<td colSpan={3} className="px-6 py-3">
+															<div
+																className={`rounded-lg p-4 border ${
+																	remaining <= 0
+																		? 'bg-red-50 border-red-200'
+																		: remaining === 1
+																			? 'bg-amber-50 border-amber-200'
+																			: 'bg-blue-50 border-blue-200'
+																}`}
+															>
+																<div className="flex items-start gap-3">
+																	<div
+																		className={`text-xl ${
+																			remaining <= 0
+																				? 'text-red-600'
+																				: remaining === 1
+																					? 'text-amber-600'
+																					: 'text-blue-600'
+																		}`}
+																	>
+																		⚠️
+																	</div>
+																	<div className="flex-1">
+																		<p
+																			className={`text-sm font-medium ${
+																				remaining <= 0
+																					? 'text-red-800'
+																					: remaining === 1
+																						? 'text-amber-800'
+																						: 'text-blue-800'
+																			}`}
+																		>
+																			{remaining <= 0
+																				? t(
+																						'scholarship_detail.apply.reapply_limit_reached'
+																					)
+																				: remaining === 1
+																					? t(
+																							'scholarship_detail.apply.reapply_limit_warning',
+																							{
+																								remaining: remaining,
+																							}
+																						)
+																					: t(
+																							'scholarship_detail.apply.reapply_limit_info',
+																							{
+																								remaining: remaining,
+																							}
+																						)}
+																		</p>
+																	</div>
+																</div>
+															</div>
+														</td>
+													</tr>
+												</thead>
+											)
+										})()}
 									<tbody className="bg-white divide-y divide-gray-200">
 										{applications.map((app) => (
 											<tr
@@ -1647,27 +1720,35 @@ const ScholarshipDetail = () => {
 											{t('scholarship_detail.header.contact_button')}
 										</Button>
 									)}
-								<motion.button
-									onClick={(e) => {
-										e.preventDefault()
-										e.stopPropagation()
-										const scholarshipId = currentScholarship?.id || params?.id
-										if (scholarshipId) {
-											handleScholarshipWishlistToggle(scholarshipId as string)
-										}
-									}}
-									className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
-									whileHover={{ scale: 1.1 }}
-									whileTap={{ scale: 0.9 }}
-								>
-									<Heart
-										className={`w-6 h-6 transition-all duration-200 ${
-											isInWishlist(currentScholarship?.id || params?.id)
-												? 'fill-red-500 text-red-500'
-												: 'text-gray-400 hover:text-red-500'
-										}`}
-									/>
-								</motion.button>
+								{/* Hide wishlist button if post is closed, deleted, or rejected */}
+								{currentScholarship?.status !== 'CLOSED' &&
+									currentScholarship?.status !== 'DELETED' &&
+									currentScholarship?.status !== 'REJECTED' && (
+										<motion.button
+											onClick={(e) => {
+												e.preventDefault()
+												e.stopPropagation()
+												const scholarshipId =
+													currentScholarship?.id || params?.id
+												if (scholarshipId) {
+													handleScholarshipWishlistToggle(
+														scholarshipId as string
+													)
+												}
+											}}
+											className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
+											whileHover={{ scale: 1.1 }}
+											whileTap={{ scale: 0.9 }}
+										>
+											<Heart
+												className={`w-6 h-6 transition-all duration-200 ${
+													isInWishlist(currentScholarship?.id || params?.id)
+														? 'fill-red-500 text-red-500'
+														: 'text-gray-400 hover:text-red-500'
+												}`}
+											/>
+										</motion.button>
+									)}
 							</div>
 
 							<p className="text-sm text-gray-500">
@@ -1822,8 +1903,19 @@ const ScholarshipDetail = () => {
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className=" p-8  bg-white py-6 shadow-xl border"
+					className="relative p-8 bg-white py-6 shadow-xl border"
 				>
+					{/* Loading overlay with blur to prevent flash */}
+					{isResettingApplication && (
+						<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
+							<div className="flex flex-col items-center gap-3">
+								<div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+								<p className="text-sm text-gray-600">
+									{t('scholarship_detail.apply.resetting') || 'Resetting...'}
+								</p>
+							</div>
+						</div>
+					)}
 					<div className="flex items-center justify-between mb-6">
 						<h2 className="text-3xl font-bold">
 							{hasApplied
@@ -2182,134 +2274,173 @@ const ScholarshipDetail = () => {
 							</>
 						)}
 
-					{hasApplied && applicationStatus !== 'REQUIRE_UPDATE' && (
-						<div
-							className={`border rounded-lg p-6 mb-6 ${
-								applicationStatus === 'ACCEPTED'
-									? 'bg-green-50 border-green-200'
-									: applicationStatus === 'REJECTED'
-										? 'bg-red-50 border-red-200'
-										: applicationStatus === 'UPDATED'
-											? 'bg-blue-50 border-blue-200'
-											: 'bg-yellow-50 border-yellow-200'
-							}`}
-						>
-							<div className="flex items-center gap-3">
-								<div
-									className={`text-2xl ${
-										applicationStatus === 'ACCEPTED'
-											? 'text-green-600'
-											: applicationStatus === 'REJECTED'
-												? 'text-red-600'
-												: applicationStatus === 'UPDATED'
-													? 'text-blue-600'
-													: 'text-yellow-600'
-									}`}
-								>
-									{applicationStatus === 'ACCEPTED'
-										? '✓'
+					{!isResettingApplication &&
+						hasApplied &&
+						applicationStatus !== 'REQUIRE_UPDATE' && (
+							<div
+								className={`border rounded-lg p-6 mb-6 ${
+									applicationStatus === 'ACCEPTED'
+										? 'bg-green-50 border-green-200'
 										: applicationStatus === 'REJECTED'
-											? '✗'
+											? 'bg-red-50 border-red-200'
 											: applicationStatus === 'UPDATED'
-												? '↻'
-												: '⏳'}
-								</div>
-								<div>
-									<h3
-										className={`text-lg font-semibold ${
+												? 'bg-blue-50 border-blue-200'
+												: 'bg-yellow-50 border-yellow-200'
+								}`}
+							>
+								<div className="flex items-center gap-3">
+									<div
+										className={`text-2xl ${
 											applicationStatus === 'ACCEPTED'
-												? 'text-green-800'
+												? 'text-green-600'
 												: applicationStatus === 'REJECTED'
-													? 'text-red-800'
+													? 'text-red-600'
 													: applicationStatus === 'UPDATED'
-														? 'text-blue-800'
-														: 'text-yellow-800'
+														? 'text-blue-600'
+														: 'text-yellow-600'
 										}`}
 									>
 										{applicationStatus === 'ACCEPTED'
-											? t('scholarship_detail.apply.status_messages.accepted')
+											? '✓'
 											: applicationStatus === 'REJECTED'
-												? t('scholarship_detail.apply.status_messages.rejected')
+												? '✗'
 												: applicationStatus === 'UPDATED'
-													? t(
-															'scholarship_detail.apply.status_messages.updated'
-														)
-													: t(
-															'scholarship_detail.apply.status_messages.submitted'
-														)}
-									</h3>
-									<p
-										className={`mt-1 ${
-											applicationStatus === 'ACCEPTED'
-												? 'text-green-700'
+													? '↻'
+													: '⏳'}
+									</div>
+									<div>
+										<h3
+											className={`text-lg font-semibold ${
+												applicationStatus === 'ACCEPTED'
+													? 'text-green-800'
+													: applicationStatus === 'REJECTED'
+														? 'text-red-800'
+														: applicationStatus === 'UPDATED'
+															? 'text-blue-800'
+															: 'text-yellow-800'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? t('scholarship_detail.apply.status_messages.accepted')
 												: applicationStatus === 'REJECTED'
-													? 'text-red-700'
-													: applicationStatus === 'UPDATED'
-														? 'text-blue-700'
-														: 'text-yellow-700'
-										}`}
-									>
-										{applicationStatus === 'ACCEPTED'
-											? t(
-													'scholarship_detail.apply.status_messages.accepted_message'
-												)
-											: applicationStatus === 'REJECTED'
-												? t(
-														'scholarship_detail.apply.status_messages.rejected_message'
-													)
-												: applicationStatus === 'UPDATED'
 													? t(
-															'scholarship_detail.apply.status_messages.updated_message'
+															'scholarship_detail.apply.status_messages.rejected'
 														)
-													: t(
-															'scholarship_detail.apply.status_messages.submitted_message'
-														)}
-									</p>
-									{applicationStatus === 'REJECTED' &&
-										// Only show reapply button if all applications for this post are REJECTED
-										// Check if applications list has been fetched for this post
-										lastFetchedPostId === currentScholarship?.id &&
-										applications.length > 0 &&
-										applications.every((app) => app.status === 'REJECTED') && (
-											<div className="mt-4">
-												{' '}
-												<Button
-													onClick={() => {
-														// Reset to allow new application
-														setHasApplied(false)
-														setApplicationStatus(null)
-														setApplicationId(null)
-														setUploadedFiles([])
-														setSelectedDocuments([])
-														// Remove applicationId from URL to show apply section
-														const newUrl = new URL(window.location.href)
-														newUrl.searchParams.delete('applicationId')
-														router.replace(newUrl.pathname + newUrl.search, {
-															scroll: false,
-														})
-														// Scroll to the apply section
-														setTimeout(() => {
-															const applySection = document.getElementById(
-																'application-status-section'
+													: applicationStatus === 'UPDATED'
+														? t(
+																'scholarship_detail.apply.status_messages.updated'
 															)
-															if (applySection) {
-																applySection.scrollIntoView({
-																	behavior: 'smooth',
-																	block: 'start',
+														: t(
+																'scholarship_detail.apply.status_messages.submitted'
+															)}
+										</h3>
+										<p
+											className={`mt-1 ${
+												applicationStatus === 'ACCEPTED'
+													? 'text-green-700'
+													: applicationStatus === 'REJECTED'
+														? 'text-red-700'
+														: applicationStatus === 'UPDATED'
+															? 'text-blue-700'
+															: 'text-yellow-700'
+											}`}
+										>
+											{applicationStatus === 'ACCEPTED'
+												? t(
+														'scholarship_detail.apply.status_messages.accepted_message'
+													)
+												: applicationStatus === 'REJECTED'
+													? t(
+															'scholarship_detail.apply.status_messages.rejected_message'
+														)
+													: applicationStatus === 'UPDATED'
+														? t(
+																'scholarship_detail.apply.status_messages.updated_message'
+															)
+														: t(
+																'scholarship_detail.apply.status_messages.submitted_message'
+															)}
+										</p>
+										{applicationStatus === 'REJECTED' && (
+											<div className="mt-4">
+												{/* Check if post is closed, deleted, or rejected */}
+												{['CLOSED', 'DELETED', 'REJECTED'].includes(
+													currentScholarship?.status || ''
+												) ? (
+													<div className="rounded-lg p-4">
+														<p className="text-sm text-red-800">
+															{t(
+																'scholarship_detail.apply.post_closed_message'
+															)}
+														</p>
+													</div>
+												) : (
+													// Only show reapply button if all applications for this post are REJECTED
+													// and post is not closed
+													lastFetchedPostId === currentScholarship?.id &&
+													applications.length > 0 &&
+													applications.every(
+														(app) => app.status === 'REJECTED'
+													) && (
+														<Button
+															onClick={async () => {
+																// Set loading state immediately to hide rejected section
+																setIsResettingApplication(true)
+																// Use flushSync to force immediate state updates and prevent flash
+																flushSync(() => {
+																	setHasApplied(false)
+																	setApplicationStatus(null)
+																	setApplicationId(null)
+																	setPendingApplication(null)
+																	setUploadedFiles([])
+																	setSelectedDocuments([])
 																})
-															}
-														}, 100)
-													}}
-													className="bg-[#126E64] hover:bg-teal-700 text-white"
-												>
-													{t('scholarship_detail.apply.reapply_button')}
-												</Button>
+																// Switch to detail tab if on application tab
+																if (activeTab === 'application') {
+																	setActiveTab('detail')
+																}
+																// Remove applicationId from URL to show apply section
+																const newUrl = new URL(window.location.href)
+																newUrl.searchParams.delete('applicationId')
+																// Use push instead of replace to ensure navigation happens
+																await router.push(
+																	newUrl.pathname + newUrl.search,
+																	{
+																		scroll: false,
+																	}
+																)
+																// Force a longer delay to ensure URL change is processed,
+																// all useEffects have run, and any fetches are blocked
+																await new Promise((resolve) =>
+																	setTimeout(resolve, 500)
+																)
+																// Clear loading state after everything is settled
+																setIsResettingApplication(false)
+																// Scroll to the apply section
+																setTimeout(() => {
+																	const applySection = document.getElementById(
+																		'application-status-section'
+																	)
+																	if (applySection) {
+																		applySection.scrollIntoView({
+																			behavior: 'smooth',
+																			block: 'start',
+																		})
+																	}
+																}, 150)
+															}}
+															className="bg-[#126E64] hover:bg-teal-700 text-white"
+														>
+															{t('scholarship_detail.apply.reapply_button')}
+														</Button>
+													)
+												)}
 											</div>
 										)}
+									</div>
 								</div>
 							</div>
-						</div>
-					)}
+						)}
 
 					{/* Show uploaded files in read-only mode when applied and not in edit mode */}
 					{hasApplied && uploadedFiles.length > 0 && !isEditMode && (

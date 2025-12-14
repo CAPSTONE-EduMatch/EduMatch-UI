@@ -151,6 +151,7 @@ export async function GET(
 					postId: app.post_id,
 					status: app.status,
 					applyAt: app.apply_at.toISOString(),
+					reapplyCount: app.reapply_count || 0,
 					documents: allDocuments,
 					post: {
 						id: app.post.post_id,

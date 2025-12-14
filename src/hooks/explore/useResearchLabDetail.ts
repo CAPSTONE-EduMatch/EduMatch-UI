@@ -67,6 +67,7 @@ export interface ResearchLabDetail {
 		id: string;
 		name: string;
 	}>;
+	status?: string;
 }
 
 interface UseResearchLabDetailReturn {

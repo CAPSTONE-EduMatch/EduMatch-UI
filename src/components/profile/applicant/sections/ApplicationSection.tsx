@@ -4,7 +4,12 @@ import { ProgramsTab } from '@/components/explore-tab/ProgramsTab'
 import { ResearchLabsTab } from '@/components/explore-tab/ResearchLabsTab'
 import { ScholarshipsTab } from '@/components/explore-tab/ScholarshipsTab'
 import type { SortOption } from '@/components/ui'
-import { Button, SortDropdown, TabSelector } from '@/components/ui'
+import {
+	Button,
+	SortDropdown,
+	TabSelector,
+	SuccessModal,
+} from '@/components/ui'
 import { useApplications } from '@/hooks/application/useApplications'
 import { useWishlist } from '@/hooks/wishlist/useWishlist'
 import { ApplicationStatus } from '@/types/api/application-api'
@@ -161,7 +166,8 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						applicationStatus: app.status,
 						applicationId: app.applicationId,
 						institutionStatus,
-					})
+						postStatus: app.post.status || undefined,
+					} as (typeof programsData)[0])
 				} else if (app.post.scholarship) {
 					// Scholarship application
 					const scholarship: Scholarship = {
@@ -191,7 +197,8 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						applicationStatus: app.status,
 						applicationId: app.applicationId,
 						institutionStatus,
-					})
+						postStatus: app.post.status || undefined,
+					} as (typeof scholarshipsData)[0])
 				} else if (app.post.job) {
 					// Research lab/job application
 					const researchLab: ResearchLab = {
@@ -221,7 +228,8 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						applicationStatus: app.status,
 						applicationId: app.applicationId,
 						institutionStatus,
-					})
+						postStatus: app.post.status || undefined,
+					} as (typeof researchLabsData)[0])
 				}
 			})
 
@@ -271,6 +279,61 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 
 	// Wishlist functionality for cards
 	const { isInWishlist, toggleWishlistItem } = useWishlist()
+
+	// Success modal state for wishlist operations
+	const [showWishlistSuccessModal, setShowWishlistSuccessModal] =
+		useState(false)
+	const [wishlistSuccessMessage, setWishlistSuccessMessage] = useState('')
+	const [wishlistSuccessTitle, setWishlistSuccessTitle] = useState('')
+	const [isWishlistProcessing, setIsWishlistProcessing] = useState(false)
+
+	// Custom wishlist toggle handler with success modal
+	const handleWishlistToggle = useCallback(
+		async (postId: string) => {
+			// Prevent multiple simultaneous API calls
+			if (isWishlistProcessing) {
+				return
+			}
+
+			setIsWishlistProcessing(true)
+			try {
+				const wasInWishlist = isInWishlist(postId)
+				await toggleWishlistItem(postId)
+
+				// Determine the item type based on active tab
+				let itemType = 'item'
+				if (activeTab === 'programmes') {
+					itemType = t('tabs.programmes').toLowerCase()
+				} else if (activeTab === 'scholarships') {
+					itemType = t('tabs.scholarships').toLowerCase()
+				} else if (activeTab === 'research') {
+					itemType = t('tabs.research_labs').toLowerCase()
+				}
+
+				// Show success modal for both adding and removing
+				if (!wasInWishlist) {
+					// Item was added
+					setWishlistSuccessTitle(t('explore_page.wishlist.added_title'))
+					setWishlistSuccessMessage(
+						t('explore_page.wishlist.added_message', { type: itemType })
+					)
+				} else {
+					// Item was removed
+					setWishlistSuccessTitle(t('explore_page.wishlist.removed_title'))
+					setWishlistSuccessMessage(
+						t('explore_page.wishlist.removed_message', { type: itemType })
+					)
+				}
+				setShowWishlistSuccessModal(true)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to toggle wishlist item:', error)
+			} finally {
+				setIsWishlistProcessing(false)
+			}
+		},
+		[isInWishlist, toggleWishlistItem, activeTab, t, isWishlistProcessing]
+	)
 
 	// Filter function for applications
 	const filterApplications = <
@@ -497,7 +560,7 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 							programs={currentData.data as typeof programs}
 							sortBy={sortBy}
 							isInWishlist={isInWishlist} // Check if each program is wishlisted
-							onWishlistToggle={toggleWishlistItem} // Allow wishlist toggle
+							onWishlistToggle={handleWishlistToggle} // Allow wishlist toggle with success modal
 							hasApplied={() => true} // All items in applications are applied
 							isApplying={() => false}
 							onApply={() => {}} // No-op for applications
@@ -685,6 +748,18 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 						onSuccess={handleUpdateSuccess}
 					/>
 				)}
+
+				{/* Wishlist Success Modal */}
+				<SuccessModal
+					isOpen={showWishlistSuccessModal}
+					onClose={() => setShowWishlistSuccessModal(false)}
+					title={wishlistSuccessTitle || t('explore_page.wishlist.added_title')}
+					message={
+						wishlistSuccessMessage ||
+						t('explore_page.wishlist.added_message_default')
+					}
+					buttonText={t('buttons.explore_more')}
+				/>
 			</div>
 		</div>
 	)

@@ -47,6 +47,7 @@ interface ProgramCardProps {
 		match: string
 		attendance: string
 		applicationStatus?: string
+		postStatus?: string
 	}
 	index: number
 	isWishlisted: boolean
@@ -197,24 +198,29 @@ export function ProgramCard({
 					)}
 				</div>
 
-				<motion.button
-					onClick={(e) => {
-						e.preventDefault()
-						e.stopPropagation()
-						onWishlistToggle(program.id)
-					}}
-					className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
-					whileHover={{ scale: 1.1 }}
-					whileTap={{ scale: 0.9 }}
-				>
-					<Heart
-						className={`w-6 h-6 transition-all duration-200 ${
-							isWishlisted
-								? 'fill-red-500 text-red-500'
-								: 'text-gray-400 hover:text-red-500'
-						}`}
-					/>
-				</motion.button>
+				{/* Hide wishlist button if post is closed, deleted, or rejected */}
+				{program.postStatus !== 'CLOSED' &&
+					program.postStatus !== 'DELETED' &&
+					program.postStatus !== 'REJECTED' && (
+						<motion.button
+							onClick={(e) => {
+								e.preventDefault()
+								e.stopPropagation()
+								onWishlistToggle(program.id)
+							}}
+							className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
+							whileHover={{ scale: 1.1 }}
+							whileTap={{ scale: 0.9 }}
+						>
+							<Heart
+								className={`w-6 h-6 transition-all duration-200 ${
+									isWishlisted
+										? 'fill-red-500 text-red-500'
+										: 'text-gray-400 hover:text-red-500'
+								}`}
+							/>
+						</motion.button>
+					)}
 			</div>
 
 			{/* Title */}

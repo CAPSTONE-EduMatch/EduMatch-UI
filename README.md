@@ -66,7 +66,6 @@ aspirations.
 ### Third-Party Services
 
 - **Payments**: Stripe
-- **Real-time Chat**: Ably
 - **AI/ML**: Mistral AI, Ollama
 - **Translation**: Google Cloud Translate
 - **Analytics**: Vercel Analytics

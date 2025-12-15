@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
 import { useAdminPostManagement } from '@/hooks/admin'
 import { PostStatus } from '@prisma/client'
-import { Check, Copy, Users } from 'lucide-react'
+import { Check, Copy, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -226,7 +226,7 @@ export default function AdminPostsPage() {
 					<Card className="bg-white rounded-[20px] shadow-sm border-0 flex-1">
 						<CardContent className="p-5 flex items-center gap-4">
 							<div className="w-14 h-14 rounded-full bg-[#F0A227]/20 flex items-center justify-center">
-								<Users className="w-7 h-7 text-[#F0A227]" />
+								<FileText className="w-7 h-7 text-[#F0A227]" />
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Total posts</p>
@@ -241,7 +241,7 @@ export default function AdminPostsPage() {
 					<Card className="bg-white rounded-[20px] shadow-sm border-0 flex-1">
 						<CardContent className="p-5 flex items-center gap-4">
 							<div className="w-14 h-14 rounded-full bg-[#126E64]/20 flex items-center justify-center">
-								<Users className="w-7 h-7 text-[#126E64]" />
+								<FileText className="w-7 h-7 text-[#126E64]" />
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Published posts</p>
@@ -256,7 +256,7 @@ export default function AdminPostsPage() {
 					<Card className="bg-white rounded-[20px] shadow-sm border-0 flex-1">
 						<CardContent className="p-5 flex items-center gap-4">
 							<div className="w-14 h-14 rounded-full bg-[#6EB6FF]/20 flex items-center justify-center">
-								<Users className="w-7 h-7 text-[#6EB6FF]" />
+								<FileText className="w-7 h-7 text-[#6EB6FF]" />
 							</div>
 							<div className="text-right flex-1">
 								<p className="text-base text-black mb-1">Closed posts</p>

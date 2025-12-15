@@ -261,6 +261,51 @@ export default function CreateProfile() {
 		}
 	}
 
+	// Helper function to get presigned URL and open file
+	const handleViewFile = async (fileUrl: string) => {
+		if (!fileUrl) {
+			console.error('File URL is required')
+			return
+		}
+
+		try {
+			// Get presigned URL from protected-image API
+			const protectedUrl = `/api/files/protected-image?url=${encodeURIComponent(fileUrl)}&expiresIn=3600`
+			const response = await fetch(protectedUrl, {
+				method: 'GET',
+				credentials: 'include',
+			})
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}))
+				if (response.status === 401) {
+					alert('Please log in to view this file.')
+				} else if (response.status === 403) {
+					alert("You don't have permission to view this file.")
+				} else {
+					alert(
+						errorData.error || `Failed to get file URL: ${response.statusText}`
+					)
+				}
+				return
+			}
+
+			const data = await response.json()
+			const presignedUrl = data.url
+
+			if (!presignedUrl) {
+				alert('Failed to get file URL. Please try again.')
+				return
+			}
+
+			// Open the presigned URL in a new tab
+			window.open(presignedUrl, '_blank')
+		} catch (error) {
+			console.error('Error viewing file:', error)
+			alert('Failed to view file. Please try again.')
+		}
+	}
+
 	// Authentication is now handled by AuthWrapper
 
 	return (
@@ -434,7 +479,7 @@ export default function CreateProfile() {
 													</div>
 													<div className="flex items-center gap-2">
 														<button
-															onClick={() => window.open(file.url, '_blank')}
+															onClick={() => handleViewFile(file.url)}
 															className="text-primary hover:text-primary/80 text-sm font-medium"
 														>
 															View
@@ -491,7 +536,7 @@ export default function CreateProfile() {
 														</div>
 														<div className="flex items-center gap-2">
 															<button
-																onClick={() => window.open(file.url, '_blank')}
+																onClick={() => handleViewFile(file.url)}
 																className="text-primary hover:text-primary/80 text-sm font-medium"
 															>
 																View
@@ -547,7 +592,7 @@ export default function CreateProfile() {
 													</div>
 													<div className="flex items-center gap-2">
 														<button
-															onClick={() => window.open(file.url, '_blank')}
+															onClick={() => handleViewFile(file.url)}
 															className="text-primary hover:text-primary/80 text-sm font-medium"
 														>
 															View
@@ -604,7 +649,7 @@ export default function CreateProfile() {
 														</div>
 														<div className="flex items-center gap-2">
 															<button
-																onClick={() => window.open(file.url, '_blank')}
+																onClick={() => handleViewFile(file.url)}
 																className="text-primary hover:text-primary/80 text-sm font-medium"
 															>
 																View
@@ -690,7 +735,7 @@ export default function CreateProfile() {
 																			<div className="flex items-center gap-2">
 																				<button
 																					onClick={() =>
-																						window.open(file.url, '_blank')
+																						handleViewFile(file.url)
 																					}
 																					className="text-primary hover:text-primary/80 text-sm font-medium"
 																				>
@@ -765,9 +810,7 @@ export default function CreateProfile() {
 															</div>
 															<div className="flex items-center gap-2">
 																<button
-																	onClick={() =>
-																		window.open(file.url, '_blank')
-																	}
+																	onClick={() => handleViewFile(file.url)}
 																	className="text-primary hover:text-primary/80 text-sm font-medium"
 																>
 																	View

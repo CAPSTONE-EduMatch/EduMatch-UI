@@ -78,20 +78,28 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// PLAN-BASED AUTHORIZATION: Check if institution can create posts
-		// Institutions must have an active subscription to create/publish posts
-		const { canCreatePost } = await import("@/services/authorization");
-		const authorization = await canCreatePost(institution.institution_id);
+		// Determine the post status (default to DRAFT if not provided)
+		const postStatus = body.status || "DRAFT";
 
-		if (!authorization.authorized) {
-			return NextResponse.json(
-				{
-					error:
-						authorization.reason ||
-						"You do not have permission to create posts",
-				},
-				{ status: 403 } // 403 Forbidden
+		// PLAN-BASED AUTHORIZATION: Check if institution can create/publish posts
+		// Only require subscription for PUBLISHED or SUBMITTED posts
+		// DRAFT posts can be created without subscription
+		if (postStatus !== "DRAFT") {
+			const { canCreatePost } = await import("@/services/authorization");
+			const authorization = await canCreatePost(
+				institution.institution_id
 			);
+
+			if (!authorization.authorized) {
+				return NextResponse.json(
+					{
+						error:
+							authorization.reason ||
+							"You do not have permission to publish posts. Please upgrade your plan to continue.",
+					},
+					{ status: 403 } // 403 Forbidden
+				);
+			}
 		}
 
 		// Check if a published post with the same title already exists (case-insensitive)
@@ -168,7 +176,7 @@ export async function POST(request: NextRequest) {
 				end_date: applicationDeadline,
 				location: body.location,
 				other_info: body.otherInformation.content,
-				status: body.status || "DRAFT", // Use provided status or default to DRAFT
+				status: postStatus, // Use determined status
 				create_at: new Date(),
 				institution_id: institution.institution_id,
 				degree_level: body.degreeLevel,
@@ -392,6 +400,29 @@ export async function PUT(request: NextRequest) {
 				);
 			}
 
+			// If changing status to PUBLISHED or SUBMITTED, check subscription
+			if (
+				updateData.status === "PUBLISHED" ||
+				updateData.status === "SUBMITTED"
+			) {
+				const { canCreatePost } =
+					await import("@/services/authorization");
+				const authorization = await canCreatePost(
+					institution.institution_id
+				);
+
+				if (!authorization.authorized) {
+					return NextResponse.json(
+						{
+							error:
+								authorization.reason ||
+								"You do not have permission to publish posts. Please upgrade your plan to continue.",
+						},
+						{ status: 403 }
+					);
+				}
+			}
+
 			// If changing status to PUBLISHED, check for duplicate published titles
 			if (updateData.status === "PUBLISHED") {
 				const allPublishedPosts =
@@ -442,6 +473,28 @@ export async function PUT(request: NextRequest) {
 					status: updatedPost.status,
 				},
 			});
+		}
+
+		// Full update - check subscription if status is being set to PUBLISHED or SUBMITTED
+		if (
+			updateData.status === "PUBLISHED" ||
+			updateData.status === "SUBMITTED"
+		) {
+			const { canCreatePost } = await import("@/services/authorization");
+			const authorization = await canCreatePost(
+				institution.institution_id
+			);
+
+			if (!authorization.authorized) {
+				return NextResponse.json(
+					{
+						error:
+							authorization.reason ||
+							"You do not have permission to publish posts. Please upgrade your plan to continue.",
+					},
+					{ status: 403 }
+				);
+			}
 		}
 
 		// Full update - check for duplicate title if title is being updated

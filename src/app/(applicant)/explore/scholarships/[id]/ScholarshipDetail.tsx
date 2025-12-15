@@ -822,6 +822,7 @@ const ScholarshipDetail = () => {
 			setHasApplied(true)
 			setApplicationId(clickedApp.applicationId)
 			setApplicationStatus(clickedApp.status)
+			setSelectedApplication(clickedApp) // Store full application data including rejectionNote
 
 			// Update URL with applicationId without scrolling
 			const newUrl = new URL(window.location.href)
@@ -1069,6 +1070,20 @@ const ScholarshipDetail = () => {
 		// Use scholarship ID from URL params as fallback
 		const scholarshipId = currentScholarship?.id || params?.id
 		if (!scholarshipId) {
+			return
+		}
+
+		// Check if application limit reached for this post
+		if (lastFetchedPostId === scholarshipId && applications.length >= 3) {
+			showError(
+				t('scholarship_detail.apply.limit_reached_title') ||
+					'Application Limit Reached',
+				t('scholarship_detail.apply.reapply_limit_reached') ||
+					'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+				{
+					showRetry: false,
+				}
+			)
 			return
 		}
 
@@ -1496,13 +1511,12 @@ const ScholarshipDetail = () => {
 									{/* Warning banner for reapply limit */}
 									{applications.length > 0 &&
 										(() => {
-											const maxReapplyCount = Math.max(
-												...applications.map((app: any) => app.reapplyCount || 0)
-											)
-											// reapplyCount is the number of reapplies, so total applications = 1 + reapplyCount
-											// Remaining = 3 - (1 + maxReapplyCount) = 2 - maxReapplyCount
-											const totalApplications = 1 + maxReapplyCount
-											const remaining = 3 - totalApplications
+											// Total applications = applications.length (each application is counted)
+											// Maximum is 3 applications per post
+											const MAX_APPLICATIONS_PER_POST = 3
+											const totalApplications = applications.length
+											const remaining =
+												MAX_APPLICATIONS_PER_POST - totalApplications
 											return (
 												<thead className="bg-transparent">
 													<tr>
@@ -2055,126 +2069,189 @@ const ScholarshipDetail = () => {
 								{/* Application Documents Section */}
 								<div className="w-full mb-6">
 									<div className="space-y-6 pt-7">
-										{/* Always show Select from Profile and Upload Files options */}
-										<div className="space-y-4">
-											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
-											<div className="text-center">
-												<Button
-													onClick={() => {
-														if (!isAuthenticated) {
-															setShowAuthModal(true)
-															return
+										{/* Check if maximum applications reached */}
+										{(() => {
+											const maxApplicationsReached =
+												lastFetchedPostId === currentScholarship?.id &&
+												applications.length >= 3
+											return (
+												<div className="space-y-4">
+													{/* Select from Profile Button - Opens modal for profile snapshot selection */}
+													<div className="text-center">
+														<Button
+															onClick={() => {
+																if (!isAuthenticated) {
+																	setShowAuthModal(true)
+																	return
+																}
+																if (maxApplicationsReached) {
+																	showError(
+																		t(
+																			'scholarship_detail.apply.limit_reached_title'
+																		) || 'Application Limit Reached',
+																		t(
+																			'scholarship_detail.apply.reapply_limit_reached'
+																		) ||
+																			'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+																		{
+																			showRetry: false,
+																		}
+																	)
+																	return
+																}
+																setShowDocumentSelector(true)
+															}}
+															variant="outline"
+															className={
+																maxApplicationsReached
+																	? 'border-gray-300 text-gray-400 cursor-not-allowed px-8 py-3'
+																	: 'border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3'
+															}
+															disabled={
+																!isAuthenticated || maxApplicationsReached
+															}
+														>
+															{t(
+																'scholarship_detail.apply.select_profile_button'
+															)}
+														</Button>
+														<p className="text-sm text-gray-500 mt-2">
+															{!isAuthenticated
+																? t('auth.required.message') ||
+																	'Please sign in to select documents from your profile.'
+																: maxApplicationsReached
+																	? t(
+																			'scholarship_detail.apply.reapply_limit_reached'
+																		) ||
+																		'You have reached the maximum number of applications for this post (3). You cannot apply again.'
+																	: t(
+																			'scholarship_detail.apply.select_profile_hint'
+																		)}
+														</p>
+													</div>
+
+													{/* Divider with OR */}
+													<div className="flex items-center gap-4">
+														<div className="flex-1 border-t border-gray-300"></div>
+														<span className="text-sm font-medium text-gray-500">
+															{t('scholarship_detail.apply.or_divider')}
+														</span>
+														<div className="flex-1 border-t border-gray-300"></div>
+													</div>
+
+													{/* Upload Files Section - Direct upload, no modal */}
+													<div
+														className={
+															maxApplicationsReached
+																? 'opacity-50 pointer-events-none'
+																: ''
 														}
-														setShowDocumentSelector(true)
-													}}
-													variant="outline"
-													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
-													disabled={!isAuthenticated}
-												>
-													{t('scholarship_detail.apply.select_profile_button')}
-												</Button>
-												<p className="text-sm text-gray-500 mt-2">
-													{!isAuthenticated
-														? t('auth.required.message') ||
-															'Please sign in to select documents from your profile.'
-														: t('scholarship_detail.apply.select_profile_hint')}
-												</p>
-											</div>
+													>
+														<FileUploadManagerWithOCR
+															category="application-documents"
+															isAuthenticated={isAuthenticated}
+															onAuthRequired={() => setShowAuthModal(true)}
+															onFilesUploaded={(uploadedFileData: any[]) => {
+																if (
+																	!uploadedFileData ||
+																	uploadedFileData.length === 0
+																)
+																	return
 
-											{/* Divider with OR */}
-											<div className="flex items-center gap-4">
-												<div className="flex-1 border-t border-gray-300"></div>
-												<span className="text-sm font-medium text-gray-500">
-													{t('scholarship_detail.apply.or_divider')}
-												</span>
-												<div className="flex-1 border-t border-gray-300"></div>
-											</div>
+																// Check if maximum applications reached
+																if (maxApplicationsReached) {
+																	showError(
+																		t(
+																			'scholarship_detail.apply.limit_reached_title'
+																		) || 'Application Limit Reached',
+																		t(
+																			'scholarship_detail.apply.reapply_limit_reached'
+																		) ||
+																			'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+																		{
+																			showRetry: false,
+																		}
+																	)
+																	return
+																}
 
-											{/* Upload Files Section - Direct upload, no modal */}
-											<div className="">
-												<FileUploadManagerWithOCR
-													category="application-documents"
-													isAuthenticated={isAuthenticated}
-													onAuthRequired={() => setShowAuthModal(true)}
-													onFilesUploaded={(uploadedFileData: any[]) => {
-														if (
-															!uploadedFileData ||
-															uploadedFileData.length === 0
-														)
-															return
+																const newDocuments = uploadedFileData.map(
+																	(file) => ({
+																		document_id: `temp_${Date.now()}_${Math.random()}`,
+																		name: file.name,
+																		url: file.url,
+																		size: file.size,
+																		documentType: 'general',
+																		source: 'new' as const,
+																	})
+																)
 
-														const newDocuments = uploadedFileData.map(
-															(file) => ({
-																document_id: `temp_${Date.now()}_${Math.random()}`,
-																name: file.name,
-																url: file.url,
-																size: file.size,
-																documentType: 'general',
-																source: 'new' as const,
-															})
-														)
-
-														// Use functional updates to ensure we have latest state
-														setSelectedDocuments((prevDocs) => {
-															const docsMap = new Map<string, any>()
-															// Add existing documents
-															prevDocs.forEach((doc) =>
-																docsMap.set(doc.url, doc)
-															)
-															// Add new documents
-															newDocuments.forEach((doc) =>
-																docsMap.set(doc.url, doc)
-															)
-															return Array.from(docsMap.values())
-														})
-
-														setUploadedFiles((prevFiles) => {
-															const filesMap = new Map<string, any>()
-															// Add existing files
-															prevFiles.forEach((file) =>
-																filesMap.set(file.url, file)
-															)
-															// Add new files
-															newDocuments.forEach((doc) => {
-																filesMap.set(doc.url, {
-																	id: doc.document_id,
-																	name: doc.name,
-																	url: doc.url,
-																	size: doc.size,
-																	documentType: doc.documentType,
-																	source: doc.source,
-																	applicationDocumentId: (doc as any)
-																		.applicationDocumentId,
+																// Use functional updates to ensure we have latest state
+																setSelectedDocuments((prevDocs) => {
+																	const docsMap = new Map<string, any>()
+																	// Add existing documents
+																	prevDocs.forEach((doc) =>
+																		docsMap.set(doc.url, doc)
+																	)
+																	// Add new documents
+																	newDocuments.forEach((doc) =>
+																		docsMap.set(doc.url, doc)
+																	)
+																	return Array.from(docsMap.values())
 																})
-															})
-															return Array.from(filesMap.values())
-														})
 
-														showSuccess(
-															t(
-																'scholarship_detail.notifications.files_uploaded'
-															),
-															t(
-																'scholarship_detail.notifications.files_uploaded_message',
-																{ count: uploadedFileData.length }
-															)
-														)
-													}}
-													onValidationComplete={(
-														tempId: string,
-														validation: any
-													) => {
-														if (validation && validation.isValid === false) {
-															showError(
-																'Validation Failed',
-																validation.message ||
-																	'File failed validation. Please redact sensitive information and try again.'
-															)
-														}
-													}}
-												/>
-											</div>
-										</div>
+																setUploadedFiles((prevFiles) => {
+																	const filesMap = new Map<string, any>()
+																	// Add existing files
+																	prevFiles.forEach((file) =>
+																		filesMap.set(file.url, file)
+																	)
+																	// Add new files
+																	newDocuments.forEach((doc) => {
+																		filesMap.set(doc.url, {
+																			id: doc.document_id,
+																			name: doc.name,
+																			url: doc.url,
+																			size: doc.size,
+																			documentType: doc.documentType,
+																			source: doc.source,
+																			applicationDocumentId: (doc as any)
+																				.applicationDocumentId,
+																		})
+																	})
+																	return Array.from(filesMap.values())
+																})
+
+																showSuccess(
+																	t(
+																		'scholarship_detail.notifications.files_uploaded'
+																	),
+																	t(
+																		'scholarship_detail.notifications.files_uploaded_message',
+																		{ count: uploadedFileData.length }
+																	)
+																)
+															}}
+															onValidationComplete={(
+																tempId: string,
+																validation: any
+															) => {
+																if (
+																	validation &&
+																	validation.isValid === false
+																) {
+																	showError(
+																		'Validation Failed',
+																		validation.message ||
+																			'File failed validation. Please redact sensitive information and try again.'
+																	)
+																}
+															}}
+														/>
+													</div>
+												</div>
+											)
+										})()}
 									</div>
 								</div>
 
@@ -2375,7 +2452,24 @@ const ScholarshipDetail = () => {
 															)}
 										</p>
 										{applicationStatus === 'REJECTED' && (
-											<div className="mt-4">
+											<div className="mt-4 space-y-4">
+												{/* Display rejection note if available */}
+												{selectedApplication?.rejectionNote && (
+													<div className="rounded-lg p-4 bg-red-100 border border-red-200">
+														<h4 className="text-sm font-semibold text-red-900 mb-2">
+															Rejection Note from Institution:{' '}
+															{selectedApplication.rejectionNote}
+														</h4>
+														{selectedApplication.rejectionNoteAt && (
+															<p className="text-xs text-red-600 mt-2">
+																Received on:{' '}
+																{formatUTCDateToLocal(
+																	selectedApplication.rejectionNoteAt
+																)}
+															</p>
+														)}
+													</div>
+												)}
 												{/* Check if post is closed, deleted, or rejected */}
 												{['CLOSED', 'DELETED', 'REJECTED'].includes(
 													currentScholarship?.status || ''
@@ -2710,14 +2804,36 @@ const ScholarshipDetail = () => {
 						</div>
 					)}
 
+					{/* Show warning if application limit reached */}
+					{!hasApplied &&
+						lastFetchedPostId === currentScholarship?.id &&
+						applications.length >= 3 && (
+							<div className="text-center mb-4">
+								<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+									<div className="flex items-center justify-center gap-2 text-red-700">
+										<span className="text-lg">⚠️</span>
+										<p className="font-medium">
+											{t('scholarship_detail.apply.reapply_limit_reached') ||
+												'You have reached the maximum number of applications for this post (3). You cannot apply again.'}
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+
 					{/* Show helpful message when no files uploaded */}
-					{!hasApplied && uploadedFiles.length === 0 && (
-						<div className="text-center mb-4">
-							<p className="text-amber-600 text-sm font-medium">
-								{t('scholarship_detail.apply.upload_warning')}
-							</p>
-						</div>
-					)}
+					{!hasApplied &&
+						uploadedFiles.length === 0 &&
+						!(
+							lastFetchedPostId === currentScholarship?.id &&
+							applications.length >= 3
+						) && (
+							<div className="text-center mb-4">
+								<p className="text-amber-600 text-sm font-medium">
+									{t('scholarship_detail.apply.upload_warning')}
+								</p>
+							</div>
+						)}
 
 					<div className="flex gap-3 justify-center pt-10">
 						{!hasApplied && selectedDocuments.length > 0 && (
@@ -2738,7 +2854,10 @@ const ScholarshipDetail = () => {
 										  !isUploading &&
 										  !isCheckingApplication
 										? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
-										: 'bg-[#126E64] hover:bg-teal-700 text-white'
+										: lastFetchedPostId === currentScholarship?.id &&
+											  applications.length >= 3
+											? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
+											: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
 							disabled={
@@ -2746,7 +2865,9 @@ const ScholarshipDetail = () => {
 								isApplying ||
 								isUploading ||
 								isCheckingApplication ||
-								uploadedFiles.length === 0
+								uploadedFiles.length === 0 ||
+								(lastFetchedPostId === currentScholarship?.id &&
+									applications.length >= 3)
 							}
 							style={{
 								cursor:

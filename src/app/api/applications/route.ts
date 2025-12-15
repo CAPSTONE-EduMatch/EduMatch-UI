@@ -27,9 +27,8 @@ async function calculateMatchScoresForApplications(
 
 	try {
 		// Check authorization
-		const { canSeeMatchingScore } = await import(
-			"@/services/authorization"
-		);
+		const { canSeeMatchingScore } =
+			await import("@/services/authorization");
 		const applicantId = applications[0]?.applicant_id;
 		if (!applicantId) {
 			return matchScores;
@@ -373,9 +372,8 @@ export async function POST(request: NextRequest) {
 		}
 
 		// PLAN-BASED AUTHORIZATION: Check if applicant can apply to opportunities
-		const { canApplyToOpportunity } = await import(
-			"@/services/authorization"
-		);
+		const { canApplyToOpportunity } =
+			await import("@/services/authorization");
 		const eligibility = await canApplyToOpportunity(applicant.applicant_id);
 
 		if (!eligibility.canApply) {
@@ -409,40 +407,50 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Check if user already applied to this post (get most recent)
-		const existingApplication = await prismaClient.application.findFirst({
+		// Check if user already applied to this post - count ALL applications
+		const allApplicationsForPost = await prismaClient.application.findMany({
 			where: {
 				applicant_id: applicant.applicant_id,
 				post_id: body.postId,
 			},
 			orderBy: {
-				apply_at: "desc", // Get the most recent application
+				apply_at: "desc", // Get most recent first
 			},
 		});
 
+		const totalApplicationsCount = allApplicationsForPost.length;
+		const MAX_APPLICATIONS_PER_POST = 3; // Maximum 3 applications per post (1 initial + 2 reapplies)
+
+		// Check if user has reached the maximum number of applications for this post
+		if (totalApplicationsCount >= MAX_APPLICATIONS_PER_POST) {
+			return NextResponse.json(
+				{
+					error: `You have reached the maximum number of applications for this post (${MAX_APPLICATIONS_PER_POST}). You cannot apply again.`,
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Get the most recent application to check status
+		const existingApplication = allApplicationsForPost[0];
+
 		// Determine reapply_count
-		let reapplyCount = 0;
+		// reapplyCount represents the number of reapplies (0-indexed)
+		// - First application: reapplyCount = 0 (no reapplies yet)
+		// - Second application: reapplyCount = 1 (1st reapply)
+		// - Third application: reapplyCount = 2 (2nd reapply)
+		let reapplyCount = 0; // Start at 0 for the first application
 		if (existingApplication) {
 			// If application exists, check if reapply is allowed
-			if (
-				existingApplication.status === "REJECTED" &&
-				existingApplication.reapply_count < 3
-			) {
-				// Allow reapply: increment the count
-				reapplyCount = existingApplication.reapply_count + 1;
-			} else if (existingApplication.status !== "REJECTED") {
+			if (existingApplication.status === "REJECTED") {
+				// reapplyCount should be the number of existing applications
+				// (since each existing application represents one application attempt)
+				reapplyCount = totalApplicationsCount;
+			} else {
 				// If status is not REJECTED, cannot reapply
 				return NextResponse.json(
 					{ error: "You have already applied to this post" },
 					{ status: 409 }
-				);
-			} else {
-				// REJECTED but reapply_count >= 3
-				return NextResponse.json(
-					{
-						error: "You have reached the maximum number of reapplication attempts (3)",
-					},
-					{ status: 400 }
 				);
 			}
 		}
@@ -612,9 +620,8 @@ export async function POST(request: NextRequest) {
 
 		// Send notification to institution about new application
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			// Get institution info and applicant info
 			const institution = await prismaClient.opportunityPost.findUnique({

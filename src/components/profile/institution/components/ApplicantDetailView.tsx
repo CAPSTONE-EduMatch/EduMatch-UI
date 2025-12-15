@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { Download, User, FileText, ArrowLeft } from 'lucide-react'
 import {
@@ -45,6 +45,9 @@ interface ApplicationDetails {
 		postId: string
 		status: string
 		applyAt: string
+		rejectionNote?: string | null
+		rejectionNoteAt?: string | null
+		rejectionNoteBy?: string | null
 		documents: Document[]
 		post: {
 			id: string
@@ -134,6 +137,8 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 	const [processingStatus, setProcessingStatus] = useState<
 		'approve' | 'reject' | 'update' | null
 	>(null)
+	const [showRejectModal, setShowRejectModal] = useState(false)
+	const [rejectionNote, setRejectionNote] = useState('')
 
 	// Fetch application details from API
 	useEffect(() => {
@@ -556,7 +561,8 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	const handlePreviewFile = (document: Document) => {
 		if (document.url) {
-			openSessionProtectedFile(document.url)
+			// Application documents should use the document route (strict validation)
+			openSessionProtectedFile(document.url, true)
 		}
 	}
 
@@ -566,7 +572,8 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			return
 		}
 		try {
-			await downloadSessionProtectedFile(doc.url, doc.name)
+			// Application documents should use the document route (strict validation)
+			await downloadSessionProtectedFile(doc.url, doc.name, true)
 		} catch (error) {
 			console.error('Failed to download file:', error)
 			alert('Failed to download file. Please try again.')
@@ -637,11 +644,24 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 		}
 	}
 
-	// Handle reject application
+	// Handle reject application - show modal first
+	const handleRejectClick = () => {
+		setShowRejectModal(true)
+		setRejectionNote('')
+	}
+
+	// Handle reject application submission
 	const handleReject = async () => {
 		if (!applicationDetails?.application?.applicationId) return
 
+		// Validate rejection note
+		if (!rejectionNote.trim()) {
+			alert('Please provide a rejection note before rejecting the application.')
+			return
+		}
+
 		setProcessingStatus('reject')
+		setShowRejectModal(false)
 		try {
 			const response = await fetch(
 				`/api/applications/institution/${applicationDetails.application.applicationId}`,
@@ -653,6 +673,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					credentials: 'include',
 					body: JSON.stringify({
 						status: 'REJECTED',
+						rejectionNote: rejectionNote.trim(),
 					}),
 				}
 			)
@@ -698,6 +719,7 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			)
 		} finally {
 			setProcessingStatus(null)
+			setRejectionNote('')
 		}
 	}
 
@@ -1488,20 +1510,13 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 											</Button>
 
 											<Button
-												onClick={handleReject}
+												onClick={handleRejectClick}
 												disabled={processingStatus !== null}
 												variant="outline"
 												className="border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
 												size="sm"
 											>
-												{processingStatus === 'reject' ? (
-													<>
-														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500 mr-1"></div>
-														Processing...
-													</>
-												) : (
-													'Reject'
-												)}
+												Reject
 											</Button>
 										</div>
 									)}
@@ -1519,6 +1534,71 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 					/>
 				}
 			/>
+
+			{/* Rejection Note Modal */}
+			<Modal
+				isOpen={showRejectModal}
+				onClose={() => {
+					setShowRejectModal(false)
+					setRejectionNote('')
+				}}
+				title="Reject Application"
+				maxWidth="md"
+			>
+				<div className="space-y-4">
+					<p className="text-sm text-gray-600">
+						Please provide a note explaining why this application is being
+						rejected. This note will be sent to the applicant via email and
+						displayed in their application section.
+					</p>
+					<div>
+						<label
+							htmlFor="rejectionNote"
+							className="block text-sm font-medium text-gray-700 mb-2"
+						>
+							Rejection Note <span className="text-red-500">*</span>
+						</label>
+						<textarea
+							id="rejectionNote"
+							value={rejectionNote}
+							onChange={(e) => setRejectionNote(e.target.value)}
+							placeholder="Enter the reason for rejection..."
+							rows={6}
+							className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+							required
+						/>
+						<p className="mt-1 text-xs text-gray-500">
+							{rejectionNote.length} characters
+						</p>
+					</div>
+					<div className="flex justify-end gap-3 pt-4">
+						<Button
+							variant="outline"
+							onClick={() => {
+								setShowRejectModal(false)
+								setRejectionNote('')
+							}}
+							disabled={processingStatus === 'reject'}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleReject}
+							disabled={!rejectionNote.trim() || processingStatus === 'reject'}
+							className="bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{processingStatus === 'reject' ? (
+								<>
+									<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1 inline-block"></div>
+									Rejecting...
+								</>
+							) : (
+								'Reject Application'
+							)}
+						</Button>
+					</div>
+				</div>
+			</Modal>
 		</div>
 	)
 }

@@ -679,29 +679,7 @@ export default function InstitutionDetailPage() {
 								<MessageCircle className="w-4 h-4" />
 								Contact Institution
 							</button>
-							<button
-								onClick={handleDeactivateInstitution}
-								disabled={actionLoading}
-								className={`w-full py-2.5 px-4 rounded-[30px] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-									institutionData?.banned
-										? 'bg-[#22C55E] text-white hover:bg-[#16A34A]'
-										: 'bg-[#E20000] text-white hover:bg-[#cc0000]'
-								}`}
-							>
-								{actionLoading
-									? 'Processing...'
-									: institutionData?.banned
-										? 'Unban Institution'
-										: 'Ban Institution'}
-							</button>
-							<button
-								onClick={handleRevokeSessions}
-								disabled={actionLoading}
-								className="w-full bg-[#8B5CF6] text-white py-2.5 px-4 rounded-[30px] flex items-center justify-center gap-2 text-sm font-semibold hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-							>
-								<LogOut className="w-4 h-4" />
-								{actionLoading ? 'Processing...' : 'Revoke All Sessions'}
-							</button>
+
 							{/* Only show approve/deny buttons when status is PENDING, UPDATED, or REJECTED */}
 							{(institutionData.verification_status === 'PENDING' ||
 								institutionData.verification_status === 'UPDATED') && (

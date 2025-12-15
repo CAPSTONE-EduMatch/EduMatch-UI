@@ -948,20 +948,14 @@ export function generatePostStatusUpdateEmailTemplate(
 				<p style="margin: 0;">Your ${postType.toLowerCase()} is no longer accepting applications. You can still view existing applications.</p>
 			</div>
 		`;
-	} else {
-		statusContent = `
-			<div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
-				<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">📋 Status Updated</h3>
-				<p style="margin: 0;">Your ${postType.toLowerCase()} status has changed to ${statusLabel}.</p>
-			</div>
-		`;
 	}
+	// For other statuses (PROGRESSING, SUBMITTED, etc.), don't show duplicate status content
 
 	const bodyHtml = `
 		<p>Dear <strong>${escapeHtml(institutionName)}</strong>,</p>
 		<p>The status of your ${postType.toLowerCase()} has been updated by our admin team.</p>
 		
-		<div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+		<div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
 			<h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600;">${escapeHtml(postTitle)}</h3>
 			<p style="margin: 4px 0;"><strong>Type:</strong> ${postType}</p>
 			<p style="margin: 4px 0;">
@@ -1204,7 +1198,17 @@ function getStatusSpecificContent(status: string, message?: string): string {
 			return `
 				<div style="background: #ffebee; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f44336;">
 					<h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600;">Application Not Selected</h3>
-					<p style="margin: 0;">Unfortunately, your application was not selected this time. Don't give up - there are many other opportunities available!</p>
+					<p style="margin: 0 0 12px;">Unfortunately, your application was not selected this time. Don't give up - there are many other opportunities available!</p>
+					${
+						message
+							? `
+						<div style="background: white; padding: 15px; border-radius: 8px; margin: 12px 0; border: 1px solid #e0e0e0;">
+							<p style="margin: 0 0 10px; font-weight: 600; color: #333;">Rejection Note from Institution:</p>
+							<p style="margin: 0; color: #555; white-space: pre-wrap;">${escapeHtml(message)}</p>
+						</div>
+					`
+							: ""
+					}
 				</div>
 			`;
 		case "require_update":

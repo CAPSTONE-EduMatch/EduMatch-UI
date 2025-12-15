@@ -4,7 +4,6 @@ import { InstitutionProfileLayout } from '@/components/profile/layouts/Instituti
 import { AuthWrapper } from '@/components/auth/AuthWrapper'
 import { ProfileWrapper } from '@/components/auth/ProfileWrapper'
 import { VerificationWaitingScreen } from '@/components/profile/institution/components/VerificationWaitingScreen'
-import { InstitutionInfoRequestBanner } from '@/components/profile/institution/components/InstitutionInfoRequestBanner'
 import { useCallback, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import type { InstitutionProfileSection } from '@/components/profile/layouts/InstitutionProfileLayout'
@@ -56,12 +55,24 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 	// Determine active section from pathname
 	const activeSection = getActiveSection(pathname ?? '/institution/dashboard')
 
-	// Redirect applicants to their profile page
+	// Redirect non-institution users appropriately
 	useEffect(() => {
 		if (profile && profile.role !== 'institution') {
-			router.push('/profile/view')
+			// Check if user is admin - redirect to admin dashboard
+			if (profile.role === 'admin') {
+				// Only redirect if not already on an admin route to prevent loops
+				if (!pathname?.startsWith('/admin')) {
+					router.replace('/admin')
+				}
+			} else {
+				// For applicants or other roles, redirect to profile view
+				// Only redirect if not already on profile route to prevent loops
+				if (!pathname?.startsWith('/profile')) {
+					router.replace('/profile/view')
+				}
+			}
 		}
-	}, [profile, router])
+	}, [profile, router, pathname])
 
 	// Handle section change with route navigation
 	const handleSectionChange = useCallback(
@@ -192,8 +203,20 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 		)
 	}
 
-	// Check if user is an institution - redirect applicants to their profile
+	// Check if user is an institution - redirect non-institution users appropriately
+	// Note: The useEffect above handles the redirect, but we show a loading state here
+	// to prevent flash of content while redirecting
 	if (profile && profile.role !== 'institution') {
+		// If already on the target route (admin or profile), don't show loading screen
+		// This prevents infinite loops
+		if (profile.role === 'admin' && pathname?.startsWith('/admin')) {
+			return null // Already redirected, let the page render
+		}
+		if (profile.role !== 'admin' && pathname?.startsWith('/profile')) {
+			return null // Already redirected, let the page render
+		}
+
+		// Show redirecting message while redirect happens
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-[#F5F7FB] via-white to-[#F5F7FB] flex items-center justify-center">
 				<motion.div
@@ -237,8 +260,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 							Redirecting...
 						</h2>
 						<p className="text-gray-600 text-sm">
-							This page is for institutions only. Redirecting you to your
-							profile.
+							{profile.role === 'admin'
+								? 'This page is for institutions only. Redirecting you to admin dashboard.'
+								: 'This page is for institutions only. Redirecting you to your profile.'}
 						</p>
 					</motion.div>
 

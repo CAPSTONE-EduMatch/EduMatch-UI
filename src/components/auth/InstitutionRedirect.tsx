@@ -19,19 +19,34 @@ export const InstitutionRedirect: React.FC<InstitutionRedirectProps> = ({
 		const checkUserRole = async () => {
 			if (!isAuthenticated || !user) return
 
+			const currentPath = window.location.pathname
+
+			// Don't redirect if already on institution routes, admin routes, or profile routes
+			// These routes have their own redirect logic
+			if (
+				currentPath.startsWith('/institution/') ||
+				currentPath.startsWith('/admin') ||
+				currentPath.startsWith('/profile')
+			) {
+				return
+			}
+
 			try {
 				const response = await axios.get('/api/profile')
 				const profile = response.data?.profile
 
 				if (profile?.role === 'admin') {
 					// Admin user - redirect to admin dashboard
-					const currentPath = window.location.pathname
+					// Only redirect if not already on an admin route to prevent loops
 					if (!currentPath.includes('/admin')) {
-						router.push('/admin')
+						router.replace('/admin')
 					}
 				} else if (profile?.role === 'institution') {
 					// Institution user trying to access public pages - redirect to institution dashboard
-					router.push('/institution/dashboard')
+					// Only redirect if not already on institution route to prevent loops
+					if (!currentPath.startsWith('/institution/')) {
+						router.replace('/institution/dashboard')
+					}
 				}
 			} catch (error) {
 				// If profile doesn't exist or error, let them stay on public pages

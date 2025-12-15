@@ -357,13 +357,8 @@ export async function PATCH(
 		});
 
 		// Create notification for institution user
-		// Only send notifications/emails for status changes that matter to institutions
-		// PROGRESSING is an internal workflow status and shouldn't trigger notifications
-		if (
-			status &&
-			status !== "PROGRESSING" &&
-			currentPost.institution?.user
-		) {
+		// Send notifications/emails for all status changes including PROGRESSING
+		if (status && currentPost.institution?.user) {
 			const institutionUser = currentPost.institution.user;
 
 			// Determine post type
@@ -422,9 +417,8 @@ export async function PATCH(
 
 			// Send email notification via SQS using utility function
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const postUrl = getPostUrlFull(postType, postId);
 

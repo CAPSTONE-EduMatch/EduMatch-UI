@@ -84,7 +84,34 @@ export async function GET(
 			);
 		}
 
+		// SECURITY: First check if application exists at all
+		const applicationExists = await prismaClient.application.findUnique({
+			where: { application_id: params.applicationId },
+			select: {
+				application_id: true,
+				post: {
+					select: {
+						institution_id: true,
+					},
+				},
+			},
+		});
+
+		// If application exists but belongs to another institution, deny access
+		if (
+			applicationExists &&
+			applicationExists.post.institution_id !== institution.institution_id
+		) {
+			return NextResponse.json(
+				{
+					error: "Access denied. This application belongs to another institution.",
+				},
+				{ status: 403 }
+			);
+		}
+
 		// Get application with detailed applicant information including profile snapshot
+		// Only fetch if it belongs to this institution
 		const application = await prismaClient.application.findFirst({
 			where: {
 				application_id: params.applicationId,
@@ -158,9 +185,8 @@ export async function GET(
 
 			// Send notification to applicant about status change to PROGRESSING
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				if (application.applicant?.user) {
 					await NotificationUtils.sendApplicationStatusNotification(
@@ -401,6 +427,10 @@ export async function GET(
 				postId: application.post_id,
 				status: application.status,
 				applyAt: application.apply_at.toISOString(),
+				rejectionNote: application.rejection_note || null,
+				rejectionNoteAt:
+					application.rejection_note_at?.toISOString() || null,
+				rejectionNoteBy: application.rejection_note_by || null,
 				// Include ALL ApplicationDetail documents (uploaded files)
 				// Even if they also exist in profile snapshot, show them here as uploaded documents
 				// This allows the same document to appear in both "Program Requirements" and "Academic Profile"
@@ -710,7 +740,7 @@ export async function PUT(
 		}
 
 		const body = await request.json();
-		const { status } = body;
+		const { status, rejectionNote } = body;
 
 		// Validate status - only allow ACCEPTED or REJECTED
 		if (!status || !["ACCEPTED", "REJECTED"].includes(status)) {
@@ -719,6 +749,42 @@ export async function PUT(
 					error: "Invalid status. Must be one of: ACCEPTED, REJECTED",
 				},
 				{ status: 400 }
+			);
+		}
+
+		// If rejecting, validate rejection note is provided
+		if (status === "REJECTED" && !rejectionNote?.trim()) {
+			return NextResponse.json(
+				{
+					error: "Rejection note is required when rejecting an application",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// SECURITY: First check if application exists and verify ownership
+		const applicationExists = await prismaClient.application.findUnique({
+			where: { application_id: params.applicationId },
+			select: {
+				application_id: true,
+				post: {
+					select: {
+						institution_id: true,
+					},
+				},
+			},
+		});
+
+		// If application exists but belongs to another institution, deny access
+		if (
+			applicationExists &&
+			applicationExists.post.institution_id !== institution.institution_id
+		) {
+			return NextResponse.json(
+				{
+					error: "Access denied. This application belongs to another institution.",
+				},
+				{ status: 403 }
 			);
 		}
 
@@ -758,21 +824,46 @@ export async function PUT(
 
 		const oldStatus = application.status;
 
+		// Prepare update data with proper types
+		const updateData: {
+			status: "ACCEPTED" | "REJECTED";
+			rejection_note?: string | null;
+			rejection_note_at?: Date | null;
+			rejection_note_by?: string | null;
+		} = {
+			status: status as "ACCEPTED" | "REJECTED",
+		};
+
+		// If rejecting, save rejection note and metadata
+		if (status === "REJECTED") {
+			updateData.rejection_note = rejectionNote?.trim() || null;
+			updateData.rejection_note_at = new Date();
+			updateData.rejection_note_by = user.id;
+		} else if (oldStatus === "REJECTED" && status !== "REJECTED") {
+			// If changing from REJECTED to another status, clear rejection note
+			updateData.rejection_note = null;
+			updateData.rejection_note_at = null;
+			updateData.rejection_note_by = null;
+		}
+
 		// Update application status
 		const updatedApplication = await prismaClient.application.update({
 			where: { application_id: params.applicationId },
-			data: {
-				status,
-			},
+			data: updateData,
 		});
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			if (application.applicant?.user) {
+				// Include rejection note in notification if status is REJECTED
+				const notificationMessage =
+					status === "REJECTED" && rejectionNote?.trim()
+						? rejectionNote.trim()
+						: undefined;
+
 				await NotificationUtils.sendApplicationStatusNotification(
 					application.applicant.user.id,
 					application.applicant.user.email || "",
@@ -780,7 +871,8 @@ export async function PUT(
 					application.post.title,
 					oldStatus,
 					status,
-					institution.name
+					institution.name,
+					notificationMessage
 				);
 			}
 		} catch (notificationError) {
@@ -798,6 +890,9 @@ export async function PUT(
 			application: {
 				applicationId: updatedApplication.application_id,
 				status: updatedApplication.status,
+				rejectionNote: updatedApplication.rejection_note || null,
+				rejectionNoteAt:
+					updatedApplication.rejection_note_at?.toISOString() || null,
 			},
 		});
 	} catch (error) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Modal } from '@/components/ui'
+import { Button, ErrorModal, Modal } from '@/components/ui'
 import { usePricing } from '@/hooks/pricing/usePricing'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl'
 
 export function PricingCards() {
 	const t = useTranslations('pricing')
+	const tCommon = useTranslations('')
 	const {
 		currentPlan,
 		canUpgradeTo,
@@ -30,6 +31,7 @@ export function PricingCards() {
 	const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
 	const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
 	const [showCancelModal, setShowCancelModal] = useState(false)
+	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Show loading skeleton while fetching plans
 	if (plansLoading) {
@@ -159,9 +161,9 @@ export function PricingCards() {
 	// }, [])
 
 	const handleUpgrade = async (planId: string, planHierarchy: number) => {
-		// If user is not authenticated, redirect to signup
+		// If user is not authenticated, show auth modal
 		if (!isAuthenticated) {
-			router.push('/signup')
+			setShowAuthModal(true)
 			return
 		}
 
@@ -277,6 +279,16 @@ export function PricingCards() {
 		} finally {
 			setCancelling(null)
 		}
+	}
+
+	const handleSignIn = () => {
+		setShowAuthModal(false)
+		router.push('/signin')
+	}
+
+	const handleSignUp = () => {
+		setShowAuthModal(false)
+		router.push('/signup')
 	}
 
 	const getButtonState = (plan: any) => {
@@ -604,6 +616,20 @@ export function PricingCards() {
 						</Button>
 					</div>
 				</Modal>
+
+				{/* Authentication Required Modal */}
+				<ErrorModal
+					isOpen={showAuthModal}
+					onClose={() => setShowAuthModal(false)}
+					title={tCommon('auth.required.title')}
+					message={tCommon('auth.required.message')}
+					buttonText={tCommon('buttons.sign_in')}
+					onButtonClick={handleSignIn}
+					showSecondButton={true}
+					secondButtonText={tCommon('buttons.sign_up')}
+					onSecondButtonClick={handleSignUp}
+					showCloseButton={true}
+				/>
 			</div>
 		</section>
 	)

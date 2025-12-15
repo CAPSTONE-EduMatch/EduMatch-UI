@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { requireAuth } from "@/utils/auth/auth-utils";
-import { checkMessagingRelationshipInAppSync } from "@/utils/files/checkMessagingRelationship";
+import { validateMessageFileAccess } from "@/utils/files/validateMessageFileAccess";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -114,90 +114,39 @@ export async function GET(request: NextRequest) {
 			fileOwnerId = keyParts[1];
 		}
 
-		// If we can identify the file owner, perform security checks
+		// SECURITY CHECK: Validate file access
 		if (fileOwnerId) {
-			// SECURITY: For applicants, ensure they can only access their own files
-			if (user.role === "applicant" && fileOwnerId !== user.id) {
-				// Applicant trying to access another user's file
-				// Check if they have a messaging relationship
-				let hasMessagingRelationship = false;
-				try {
-					hasMessagingRelationship =
-						await checkMessagingRelationshipInAppSync(
-							user.id,
-							fileOwnerId
-						);
-				} catch (error) {
-					// eslint-disable-next-line no-console
-					console.error(
-						"[Proxy] Error checking AppSync threads:",
-						error
-					);
-					hasMessagingRelationship = false;
-				}
-
-				if (!hasMessagingRelationship) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[Proxy] 🚫 Denied: Applicant ${user.id} tried to access file owned by ${fileOwnerId} without messaging relationship`
-					);
-					return NextResponse.json(
-						{
-							error: "You don't have permission to access this file",
-						},
-						{ status: 403 }
-					);
-				}
-				// Has messaging relationship - allow access
+			// If user owns the file, allow access
+			if (fileOwnerId === user.id) {
 				// eslint-disable-next-line no-console
 				console.log(
-					`[Proxy] ✅ Allowed: Applicant has messaging relationship with file owner`
+					`[Proxy] ✅ Allowed: User ${user.id} owns the file`
 				);
-			}
+			} else {
+				// User doesn't own the file - validate that file is part of a message thread
+				// This ensures only the sender and receiver can access files sent in messages
+				const hasAccess = await validateMessageFileAccess(
+					user.id,
+					fileOwnerId,
+					fileUrl
+				);
 
-			// Allow access if:
-			// 1. User owns the file, OR
-			// 2. Users are messaging each other (for message files)
-			if (fileOwnerId !== user.id) {
-				// Check for messaging relationship
-				let hasMessagingRelationship = false;
-				try {
-					hasMessagingRelationship =
-						await checkMessagingRelationshipInAppSync(
-							user.id,
-							fileOwnerId
-						);
-					// eslint-disable-next-line no-console
-					console.log(
-						`[Proxy] AppSync Thread check: ${hasMessagingRelationship ? "Found" : "Not found"}`
-					);
-				} catch (error) {
-					// eslint-disable-next-line no-console
-					console.error(
-						"[Proxy] Error checking AppSync threads:",
-						error
-					);
-					// Fail closed for messaging check errors
-					hasMessagingRelationship = false;
-				}
-
-				if (!hasMessagingRelationship) {
-					// No messaging relationship - deny access
+				if (!hasAccess) {
 					// eslint-disable-next-line no-console
 					console.warn(
-						`[Proxy] 🚫 Denied: User ${user.id} tried to access file owned by ${fileOwnerId} without messaging relationship`
+						`[Proxy] 🚫 Denied: User ${user.id} tried to access file ${fileUrl} from ${fileOwnerId} - file not found in message thread`
 					);
 					return NextResponse.json(
 						{
-							error: "You don't have permission to access this file",
+							error: "You don't have permission to access this file. This file can only be accessed by the sender and receiver in the message thread.",
 						},
 						{ status: 403 }
 					);
 				}
-				// Has messaging relationship - allow access
+
 				// eslint-disable-next-line no-console
 				console.log(
-					`[Proxy] ✅ Allowed: Users have messaging relationship`
+					`[Proxy] ✅ Allowed: File ${fileUrl} validated in message thread between ${user.id} and ${fileOwnerId}`
 				);
 			}
 		} else {
@@ -206,11 +155,11 @@ export async function GET(request: NextRequest) {
 			// Deny access if we can't identify the owner
 			// eslint-disable-next-line no-console
 			console.warn(
-				`[Proxy] 🚫 Denied: Cannot identify file owner from S3 key pattern`
+				`[Proxy] 🚫 Denied: Cannot identify file owner from S3 key pattern: ${s3Key}`
 			);
 			return NextResponse.json(
 				{
-					error: "You don't have permission to access this file",
+					error: "You don't have permission to access this file. Invalid file path.",
 				},
 				{ status: 403 }
 			);

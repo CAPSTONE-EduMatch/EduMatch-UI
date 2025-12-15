@@ -1,6 +1,10 @@
 import { generateClient } from "aws-amplify/api";
 import { Amplify } from "aws-amplify";
 import { authClient } from "@/config/auth-client";
+import {
+	encryptMessageClient,
+	decryptMessageClient,
+} from "@/utils/encryption/client-message-encryption";
 
 // Configure Amplify
 if (process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT) {
@@ -163,11 +167,26 @@ export const createMessage = async (input: {
 		const client = generateClient();
 		const userContext = await getUserContext();
 
+		// Encrypt message content before sending
+		let encryptedContent = input.content;
+		try {
+			if (input.content) {
+				encryptedContent = await encryptMessageClient(input.content);
+			}
+		} catch (encryptError) {
+			console.error(
+				"Failed to encrypt message, sending plaintext:",
+				encryptError
+			);
+			// Continue with plaintext if encryption fails (for backward compatibility)
+		}
+
 		const result = await client.graphql({
 			query: CREATE_MESSAGE,
 			variables: {
 				input: {
 					...input,
+					content: encryptedContent,
 					senderId: userContext?.userId,
 					senderName: userContext?.userName,
 					senderImage: userContext?.userImage,
@@ -176,6 +195,16 @@ export const createMessage = async (input: {
 		});
 
 		const message = (result as any).data.createMessage;
+
+		// Decrypt message content for client use
+		if (message?.content) {
+			try {
+				message.content = await decryptMessageClient(message.content);
+			} catch (decryptError) {
+				console.error("Failed to decrypt message:", decryptError);
+				// Keep encrypted content if decryption fails
+			}
+		}
 
 		return message;
 	} catch (error) {
@@ -263,7 +292,27 @@ export const getMessages = async (threadId: string) => {
 
 		const messages = (result as any).data.getMessages || [];
 
-		return messages;
+		// Decrypt all message contents
+		const decryptedMessages = await Promise.all(
+			messages.map(async (message: any) => {
+				if (message?.content) {
+					try {
+						message.content = await decryptMessageClient(
+							message.content
+						);
+					} catch (decryptError) {
+						console.error(
+							"Failed to decrypt message:",
+							decryptError
+						);
+						// Keep encrypted content if decryption fails
+					}
+				}
+				return message;
+			})
+		);
+
+		return decryptedMessages;
 	} catch (error) {
 		throw error;
 	}
@@ -298,7 +347,28 @@ export const getThreads = async (retryCount = 0): Promise<any[]> => {
 		});
 
 		const threads = (result as any).data.getThreads || [];
-		return threads;
+
+		// Decrypt lastMessage in threads
+		const decryptedThreads = await Promise.all(
+			threads.map(async (thread: any) => {
+				if (thread?.lastMessage) {
+					try {
+						thread.lastMessage = await decryptMessageClient(
+							thread.lastMessage
+						);
+					} catch (decryptError) {
+						console.error(
+							"Failed to decrypt lastMessage in thread:",
+							decryptError
+						);
+						// Keep encrypted content if decryption fails
+					}
+				}
+				return thread;
+			})
+		);
+
+		return decryptedThreads;
 	} catch (error) {
 		throw error;
 	}
@@ -478,9 +548,23 @@ export const subscribeToMessages = (
 				variables: { threadId },
 			}) as any
 		).subscribe({
-			next: (data: any) => {
+			next: async (data: any) => {
 				const newMessage = data.data?.onMessageAdded;
 				if (newMessage) {
+					// Decrypt message content
+					if (newMessage.content) {
+						try {
+							newMessage.content = await decryptMessageClient(
+								newMessage.content
+							);
+						} catch (decryptError) {
+							console.error(
+								"Failed to decrypt message in subscription:",
+								decryptError
+							);
+							// Keep encrypted content if decryption fails
+						}
+					}
 					callback(newMessage);
 				}
 			},

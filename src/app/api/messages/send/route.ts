@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { prismaClient } from "../../../../../prisma/index";
+import {
+	encryptMessage,
+	decryptMessage,
+} from "@/utils/encryption/message-encryption";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -62,13 +66,16 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Encrypt message content before storing
+		const encryptedContent = content ? encryptMessage(content) : "";
+
 		// Create message
 		const message = await prismaClient.message.create({
 			data: {
 				message_id: crypto.randomUUID(),
 				box_id: threadId,
 				sender_id: user.id,
-				body: content || "",
+				body: encryptedContent,
 				send_at: new Date(),
 			},
 		});
@@ -122,13 +129,16 @@ export async function POST(request: NextRequest) {
 			};
 		}
 
+		// Decrypt message content for response (client will receive decrypted content)
+		const decryptedContent = decryptMessage(message.body);
+
 		return NextResponse.json({
 			success: true,
 			message: {
 				id: message.message_id,
 				threadId: message.box_id,
 				senderId: message.sender_id,
-				content: message.body,
+				content: decryptedContent,
 				sender: sender
 					? {
 							id: sender.id,

@@ -3,7 +3,7 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
-import { checkMessagingRelationshipInAppSync } from "@/utils/files/checkMessagingRelationship";
+import { validateMessageFileAccess } from "@/utils/files/validateMessageFileAccess";
 
 const s3Client = new S3Client({
 	region: process.env.REGION || "us-east-1",
@@ -363,7 +363,7 @@ export async function GET(request: NextRequest) {
 
 				// Allow access if:
 				// 1. User owns the file, OR
-				// 2. Users are messaging each other (for any files in user folder), OR
+				// 2. File is part of a message thread between users (for message files), OR
 				// 3. User is admin/institution (can access applicant files) - only if no messaging relationship
 				if (fileOwnerId !== user.id) {
 					const isAuthorizedRole =
@@ -371,31 +371,31 @@ export async function GET(request: NextRequest) {
 						user.role === "institution" ||
 						user.role === "moderator";
 
-					// Always check for messaging relationship first (regardless of role)
-					// Check AppSync for thread relationship
-					let hasMessagingRelationship = false;
+					// For message files, validate that the file is actually part of a message thread
+					// This ensures only sender and receiver can access files sent in messages
+					let hasMessageFileAccess = false;
 					try {
-						hasMessagingRelationship =
-							await checkMessagingRelationshipInAppSync(
-								user.id,
-								fileOwnerId
-							);
+						hasMessageFileAccess = await validateMessageFileAccess(
+							user.id,
+							fileOwnerId,
+							imageUrl
+						);
 						// eslint-disable-next-line no-console
 						console.log(
-							`[Protected Image] AppSync Thread check: ${hasMessagingRelationship ? "Found" : "Not found"}`
+							`[Protected Image] Message file validation: ${hasMessageFileAccess ? "File found in message thread" : "File not in message thread"}`
 						);
 					} catch (error) {
 						// eslint-disable-next-line no-console
 						console.error(
-							"[Protected Image] Error checking AppSync threads:",
+							"[Protected Image] Error validating message file access:",
 							error
 						);
-						// Fail closed for messaging check errors
-						hasMessagingRelationship = false;
+						// Fail closed for validation errors
+						hasMessageFileAccess = false;
 					}
 
-					// If no messaging relationship, check role-based permissions
-					if (!hasMessagingRelationship) {
+					// If file is not in a message thread, check role-based permissions
+					if (!hasMessageFileAccess) {
 						// For authorized roles, allow access to applicant files
 						// But we need to check if the file owner is an applicant
 						if (isAuthorizedRole) {
@@ -690,16 +690,16 @@ export async function GET(request: NextRequest) {
 								);
 							}
 						} else {
-							// No messaging relationship and not an authorized role - deny access
+							// File not in message thread and not an authorized role - deny access
 							// eslint-disable-next-line no-console
 							console.warn(
-								`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
+								`[Protected Image] 🚫 Denied: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. File not in message thread: ${hasMessageFileAccess}`
 							);
 							// Cache the denial
 							setCachedPermission(user.id, s3Key, false);
 							return NextResponse.json(
 								{
-									error: "You don't have permission to access this file",
+									error: "You don't have permission to access this file. This file can only be accessed by the sender and receiver in the message thread.",
 								},
 								{ status: 403 }
 							);
@@ -707,7 +707,7 @@ export async function GET(request: NextRequest) {
 					} else {
 						// eslint-disable-next-line no-console
 						console.log(
-							`[Protected Image] ✅ Allowed: Messaging relationship exists in AppSync`
+							`[Protected Image] ✅ Allowed: File is part of a message thread between users`
 						);
 						// Cache the permission result (allowed)
 						setCachedPermission(user.id, s3Key, true);

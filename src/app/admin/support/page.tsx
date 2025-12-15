@@ -164,7 +164,7 @@ export default function SupportManagementPage() {
 					className="mb-8"
 				>
 					<h1 className="text-3xl font-bold text-[#126E64] mb-2">
-						Administrator
+						Support Management
 					</h1>
 				</motion.div>
 

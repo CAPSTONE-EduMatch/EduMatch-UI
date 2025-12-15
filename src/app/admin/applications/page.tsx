@@ -1,6 +1,7 @@
 'use client'
 
 import { AdminTable } from '@/components/admin/AdminTable'
+import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
 import { useAdminApplications } from '@/hooks/admin'
@@ -70,9 +71,14 @@ export default function AdminApplicationsPage() {
 		setSearch,
 		setStatus,
 		setPage,
+		setSortBy,
 	} = useAdminApplications()
 
 	const [searchInput, setSearchInput] = useState(filters.search || '')
+	const [statusFilter, setStatusFilter] = useState<string[]>(
+		filters.status && filters.status !== 'all' ? [filters.status] : []
+	)
+	const [localSortBy, setLocalSortBy] = useState(filters.sortBy || 'newest')
 
 	// Debounce search with 500ms delay
 	const debouncedSearchInput = useDebouncedValue(searchInput, 500)
@@ -82,6 +88,22 @@ export default function AdminApplicationsPage() {
 		setSearch(debouncedSearchInput)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [debouncedSearchInput])
+
+	// Update status filter when statusFilter changes
+	useEffect(() => {
+		if (statusFilter.length === 1) {
+			setStatus(statusFilter[0] as ApplicationStatus)
+		} else {
+			setStatus('all')
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [statusFilter])
+
+	// Update sort filter when localSortBy changes
+	useEffect(() => {
+		setSortBy(localSortBy as 'newest' | 'oldest' | 'name' | 'status')
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [localSortBy])
 
 	// Component for ID cell with copy functionality
 	const IdCell = ({ id }: { id: string }) => {
@@ -225,7 +247,9 @@ export default function AdminApplicationsPage() {
 		<div className="min-h-screen bg-[#F5F7FB] pb-12">
 			{/* Header Section */}
 			<div className="px-8 pt-[135px] pb-6">
-				<h1 className="text-2xl font-bold text-[#126E64]">Administrator</h1>
+				<h1 className="text-2xl font-bold text-[#126E64]">
+					Application Management
+				</h1>
 			</div>
 
 			{/* Statistics Cards */}
@@ -295,69 +319,30 @@ export default function AdminApplicationsPage() {
 
 			{/* Main Content */}
 			<div className="px-8">
-				{/* Search Bar */}
-				<div className="mb-4">
-					<input
-						type="text"
-						placeholder="Search by applicant name, post title, institution name, or application ID..."
-						value={searchInput}
-						onChange={(e) => setSearchInput(e.target.value)}
-						className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] focus:border-transparent"
+				{/* Search and Filter */}
+				<div className="mb-6">
+					<SearchAndFilter
+						searchQuery={searchInput}
+						onSearchChange={setSearchInput}
+						statusFilter={statusFilter}
+						onStatusFilterChange={setStatusFilter}
+						sortBy={localSortBy}
+						onSortChange={(sort: string) =>
+							setLocalSortBy(sort as 'newest' | 'oldest' | 'name' | 'status')
+						}
+						searchPlaceholder="Search by applicant name, post title, institution..."
+						statusOptions={[
+							{ value: 'SUBMITTED', label: 'Submitted' },
+							{ value: 'PROGRESSING', label: 'Progressing' },
+							{ value: 'ACCEPTED', label: 'Accepted' },
+							{ value: 'REJECTED', label: 'Rejected' },
+						]}
+						sortOptions={[
+							{ value: 'newest', label: 'Newest First' },
+							{ value: 'oldest', label: 'Oldest First' },
+							{ value: 'status', label: 'By Status' },
+						]}
 					/>
-				</div>
-
-				{/* Status Filter Chips */}
-				<div className="flex gap-3 mb-6">
-					<button
-						onClick={() => setStatus('all')}
-						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-							filters.status === 'all'
-								? 'bg-[#126E64] text-white'
-								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-						}`}
-					>
-						All ({stats.total})
-					</button>
-					<button
-						onClick={() => setStatus('SUBMITTED')}
-						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-							filters.status === 'SUBMITTED'
-								? 'bg-blue-600 text-white'
-								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-						}`}
-					>
-						Submitted ({stats.submitted})
-					</button>
-					<button
-						onClick={() => setStatus('PROGRESSING')}
-						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-							filters.status === 'PROGRESSING'
-								? 'bg-yellow-600 text-white'
-								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-						}`}
-					>
-						Progressing ({stats.progressing})
-					</button>
-					<button
-						onClick={() => setStatus('ACCEPTED')}
-						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-							filters.status === 'ACCEPTED'
-								? 'bg-green-600 text-white'
-								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-						}`}
-					>
-						Accepted ({stats.accepted})
-					</button>
-					<button
-						onClick={() => setStatus('REJECTED')}
-						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-							filters.status === 'REJECTED'
-								? 'bg-red-600 text-white'
-								: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-						}`}
-					>
-						Rejected ({stats.rejected})
-					</button>
 				</div>
 
 				{/* Applications Table */}

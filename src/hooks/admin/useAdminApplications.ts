@@ -21,7 +21,7 @@ export interface AdminApplication {
 export interface ApplicationFilters {
 	search?: string;
 	status?: "all" | ApplicationStatus;
-	sortBy?: "newest" | "oldest" | "name";
+	sortBy?: "newest" | "oldest" | "name" | "status";
 	page?: number;
 	limit?: number;
 }
@@ -112,7 +112,7 @@ export const useAdminApplications = () => {
 		setFilters((prev) => ({ ...prev, status, page: 1 }));
 	};
 
-	const setSortBy = (sortBy: "newest" | "oldest" | "name") => {
+	const setSortBy = (sortBy: "newest" | "oldest" | "name" | "status") => {
 		setFilters((prev) => ({ ...prev, sortBy, page: 1 }));
 	};
 

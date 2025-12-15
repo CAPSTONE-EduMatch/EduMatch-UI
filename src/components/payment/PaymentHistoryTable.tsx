@@ -1,29 +1,19 @@
 'use client'
 
-import {
-	Button,
-	Card,
-	CardContent,
-	Input,
-	CustomSelect,
-	CheckboxSelect,
-} from '@/components/ui'
+import { Button, Card, CardContent, CustomSelect } from '@/components/ui'
 import { Badge } from '@/components/ui/cards/badge'
+import { ShortIdWithCopy } from '@/components/ui/ShortIdWithCopy'
 import { useInvoices } from '@/hooks/subscription/useInvoices'
-import { formatUTCDateToLocal, formatUTCDate } from '@/utils/date'
 import {
 	ArrowDown,
 	ArrowUp,
 	ArrowUpDown,
-	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
 	ExternalLink,
-	Filter,
 	Loader2,
 	Search,
 } from 'lucide-react'
-import { ShortIdWithCopy } from '@/components/ui/ShortIdWithCopy'
 import { useEffect, useMemo, useState } from 'react'
 
 type SortField = 'date' | 'amount' | 'status' | 'method'
@@ -36,7 +26,6 @@ export function PaymentHistoryTable() {
 	const [userTypeFilter, setUserTypeFilter] = useState<string>('')
 	const [sortField, setSortField] = useState<SortField>('date')
 	const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-	const [showFilters, setShowFilters] = useState(false)
 
 	const { invoices, loading, error, pagination, refetch } = useInvoices(
 		currentPage,
@@ -163,18 +152,6 @@ export function PaymentHistoryTable() {
 		)
 	}
 
-	// Get payment method logo
-	const getPaymentMethodLogo = (method: string) => {
-		// For now, return a placeholder. In a real app, you'd have actual payment method logos
-		return (
-			<div className="w-12 h-8 bg-blue-100 rounded flex items-center justify-center">
-				<span className="text-xs font-medium text-blue-700 uppercase">
-					{method}
-				</span>
-			</div>
-		)
-	}
-
 	return (
 		<Card className="bg-white rounded-[40px] shadow-sm border-gray-200 w-full">
 			<CardContent className="p-8 w-full">
@@ -265,23 +242,6 @@ export function PaymentHistoryTable() {
 									className="w-full"
 								/>
 							</div>
-
-							{/* Clear Filters Button */}
-							{(statusFilter || userTypeFilter || searchTerm) && (
-								<Button
-									onClick={() => {
-										setStatusFilter('')
-										setUserTypeFilter('')
-										setSearchTerm('')
-										setCurrentPage(1)
-									}}
-									variant="outline"
-									size="sm"
-									className="px-4 py-2 text-gray-600 hover:bg-gray-50"
-								>
-									Clear
-								</Button>
-							)}
 						</div>
 					</div>
 				</div>

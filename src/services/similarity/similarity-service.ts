@@ -72,20 +72,25 @@ export class SimilarityService {
 	static similarityToMatchPercentage(similarity: number): string {
 		// Clamp similarity to [0, 1] range
 		const clampedSimilarity = Math.max(0, Math.min(1, similarity));
-
 		// Filter out very poor matches: anything below 0.2 is considered 0% match
 		if (clampedSimilarity < 0.2) {
 			return "0%";
 		}
-
 		// Linear mapping from [0.2, 1.0] to [0, 100]
 		// Formula: (similarity - 0.2) / 0.8 * 100
 		// 0.2 → 0%, 0.6 → 50%, 1.0 → 100%
 		const percentage = ((clampedSimilarity - 0.2) / 0.8) * 100;
-
 		// Round to nearest integer
 		return `${Math.round(percentage)}%`;
 	}
+	// [0,1]
+	// static similarityToMatchPercentage(similarity: number): string {
+	// 	const clampedSimilarity = Math.max(0, Math.min(1, similarity));
+
+	// 	const percentage = clampedSimilarity * 100;
+
+	// 	return `${Math.round(percentage)}%`;
+	// }
 
 	/**
 	 * Calculate match score for multiple posts against an applicant

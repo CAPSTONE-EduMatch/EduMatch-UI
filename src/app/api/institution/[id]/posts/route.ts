@@ -49,8 +49,9 @@ async function calculateMatchScoresForPosts(
 	// PLAN-BASED AUTHORIZATION: Check if user can see matching scores FIRST
 	// Only Premium plan users can see matching scores
 	try {
-		const { canSeeMatchingScore } =
-			await import("@/services/authorization");
+		const { canSeeMatchingScore } = await import(
+			"@/services/authorization"
+		);
 		const matchingPermission = await canSeeMatchingScore(applicantId);
 
 		if (!matchingPermission.authorized) {
@@ -244,7 +245,7 @@ export async function GET(request: NextRequest) {
 				attendance = post.programPost.attendance || "";
 			} else if (post.scholarshipPost) {
 				postType = "Scholarship";
-				price = formatCurrency(post.scholarshipPost.award_amount);
+				price = post.scholarshipPost.grant || "Not specified";
 				funding = post.scholarshipPost.award_amount
 					? `$${formatCurrency(post.scholarshipPost.award_amount)}`
 					: "Not specified";
@@ -280,6 +281,14 @@ export async function GET(request: NextRequest) {
 				funding: funding,
 				attendance: attendance,
 				applicationCount: post.applications?.length || 0,
+				amount: postType === "Scholarship" ? price : undefined,
+				provider: post.institution?.name || "",
+				essayRequired:
+					postType === "Scholarship"
+						? post.scholarshipPost?.essay_required
+							? "Yes"
+							: "No"
+						: "",
 			};
 		});
 

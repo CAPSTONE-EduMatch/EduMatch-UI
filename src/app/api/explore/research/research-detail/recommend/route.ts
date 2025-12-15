@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
 			});
 
 			if (applicant) {
-				const { canSeeRecommendations } =
-					await import("@/services/authorization/authorization-service");
+				const { canSeeRecommendations } = await import(
+					"@/services/authorization/authorization-service"
+				);
 				const recommendationPermission = await canSeeRecommendations(
 					applicant.applicant_id
 				);

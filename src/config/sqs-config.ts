@@ -229,7 +229,8 @@ export interface PostStatusUpdateMessage extends BaseNotificationMessage {
 	};
 }
 
-export interface InstitutionProfileStatusUpdateMessage extends BaseNotificationMessage {
+export interface InstitutionProfileStatusUpdateMessage
+	extends BaseNotificationMessage {
 	type: NotificationType.INSTITUTION_PROFILE_STATUS_UPDATE;
 	metadata: {
 		institutionId: string;

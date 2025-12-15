@@ -195,7 +195,7 @@ export default function AdminApplicationsPage() {
 			header: 'Status',
 			accessor: ((app: Application) => (
 				<span
-					className={`inline-block px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(
+					className={`inline-block px-3 py-1.5 rounded-lg text-left text-xs font-semibold ${getStatusColor(
 						app.status
 					)}`}
 				>

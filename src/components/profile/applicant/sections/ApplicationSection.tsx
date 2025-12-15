@@ -313,15 +313,15 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				// Show success modal for both adding and removing
 				if (!wasInWishlist) {
 					// Item was added
-					setWishlistSuccessTitle(t('explore_page.wishlist.added_title'))
+					setWishlistSuccessTitle(t('wishlist.added_title'))
 					setWishlistSuccessMessage(
-						t('explore_page.wishlist.added_message', { type: itemType })
+						t('wishlist.added_message', { type: itemType })
 					)
 				} else {
 					// Item was removed
-					setWishlistSuccessTitle(t('explore_page.wishlist.removed_title'))
+					setWishlistSuccessTitle(t('wishlist.removed_title'))
 					setWishlistSuccessMessage(
-						t('explore_page.wishlist.removed_message', { type: itemType })
+						t('wishlist.removed_message', { type: itemType })
 					)
 				}
 				setShowWishlistSuccessModal(true)
@@ -753,10 +753,9 @@ export const ApplicationSection: React.FC<ApplicationSectionProps> = () => {
 				<SuccessModal
 					isOpen={showWishlistSuccessModal}
 					onClose={() => setShowWishlistSuccessModal(false)}
-					title={wishlistSuccessTitle || t('explore_page.wishlist.added_title')}
+					title={wishlistSuccessTitle || t('wishlist.added_title')}
 					message={
-						wishlistSuccessMessage ||
-						t('explore_page.wishlist.added_message_default')
+						wishlistSuccessMessage || t('wishlist.added_message_default')
 					}
 					buttonText={t('buttons.explore_more')}
 				/>

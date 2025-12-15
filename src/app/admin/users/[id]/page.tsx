@@ -5,8 +5,7 @@ import { DocumentSection } from '@/components/admin/DocumentComponents'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/domain/user-details'
 import { motion } from 'framer-motion'
-import { MessageCircle, User } from 'lucide-react'
-import { ProtectedImage } from '@/components/ui/ProtectedImage'
+import { ArrowLeft, MessageCircle, User } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/modals/Modal'
@@ -160,6 +159,7 @@ export default function UserDetailPage() {
 			}
 		} catch (error) {
 			setEmailError('An error occurred while sending the email')
+			// eslint-disable-next-line no-console
 			console.error('Error sending email:', error)
 		} finally {
 			setEmailSending(false)
@@ -281,6 +281,15 @@ export default function UserDetailPage() {
 
 	return (
 		<>
+			<div className="px-8 pt-[35px] pb-6">
+				<button
+					onClick={() => router.push('/admin/users')}
+					className="flex items-center gap-2 text-[#126E64] hover:underline mb-4"
+				>
+					<ArrowLeft className="w-5 h-5" />
+					<span>Back to Users</span>
+				</button>
+			</div>
 			<div className="flex gap-12 p-6 max-w-7xl mx-auto">
 				{/* Left Column - User Profile */}
 				<div className="w-[350px] flex-shrink-0 ">

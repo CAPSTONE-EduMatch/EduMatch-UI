@@ -49,7 +49,7 @@ export default function AdminDisciplinePage() {
 	return (
 		<div className="min-h-screen bg-[#F5F7FB] pb-20">
 			{/* Header Section */}
-			<div className="px-8 pt-[135px] pb-6 flex items-center gap-6">
+			<div className="px-8 pt-[35px] pb-6 flex items-center gap-6">
 				<button
 					onClick={() => router.push('/admin/disciplines')}
 					className="bg-white/10 text-[#126E64] px-3 py-2 rounded-full hover:bg-white/20 transition"

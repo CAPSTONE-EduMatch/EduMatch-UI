@@ -5,12 +5,13 @@ import type { Applicant } from './ApplicantsTable'
 
 interface SuggestedApplicantsTableProps {
 	applicants: Applicant[]
-	onMoreDetail: (applicant: Applicant) => void
+	onMoreDetail: (applicant: Applicant) => void // Kept for compatibility but not used
+	onContact?: (applicant: Applicant) => void // Contact handler
 }
 
 export const SuggestedApplicantsTable: React.FC<
 	SuggestedApplicantsTableProps
-> = ({ applicants, onMoreDetail }) => {
+> = ({ applicants, onMoreDetail: _onMoreDetail, onContact }) => {
 	const getScoreColor = (score: number) => {
 		if (score >= 80) return 'bg-green-500'
 		if (score >= 60) return 'bg-yellow-500'
@@ -37,7 +38,7 @@ export const SuggestedApplicantsTable: React.FC<
 
 						return (
 							<div
-								key={applicant.id}
+								key={applicant.id || applicant.userId}
 								className={`${rowBg} grid grid-cols-6 px-8 py-5 items-center`}
 							>
 								{/* Name */}
@@ -85,20 +86,22 @@ export const SuggestedApplicantsTable: React.FC<
 												></div>
 											</div>
 										</div>
-										<span className="text-sm font-medium text-gray-900 min-w-[3rem]">
+										<span className="text-sm font-medium text-gray-900 min-w-12">
 											{applicant.matchingScore}%
 										</span>
 									</div>
 								</div>
 
 								{/* Actions */}
-								<div className="flex justify-center gap-2.5 pl-8">
-									<button
-										onClick={() => onMoreDetail(applicant)}
-										className="text-[#126E64] hover:text-[#126E64] text-xs underline hover:no-underline transition-all duration-200"
-									>
-										<span>More detail</span>
-									</button>
+								<div className="flex justify-center pl-8">
+									{onContact && applicant.userId && (
+										<button
+											onClick={() => onContact(applicant)}
+											className="text-[#126E64] hover:text-[#126E64] text-xs underline hover:no-underline transition-all duration-200"
+										>
+											<span>Contact</span>
+										</button>
+									)}
 								</div>
 							</div>
 						)

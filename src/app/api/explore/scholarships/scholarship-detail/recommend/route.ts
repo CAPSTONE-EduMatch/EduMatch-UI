@@ -72,14 +72,14 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Extract criteria for matching
-		const currentDiscipline =
-			currentScholarship.subdisciplines?.[0]?.subdiscipline?.discipline
-				?.name;
+		// Extract criteria for matching - use subdiscipline IDs
+		const subdisciplineIds = currentScholarship.subdisciplines.map(
+			(ps) => ps.subdiscipline.subdiscipline_id
+		);
 		const currentDegreeLevel = currentScholarship.degree_level;
 
 		// If we don't have any criteria, return empty array
-		if (!currentDiscipline && !currentDegreeLevel) {
+		if (subdisciplineIds.length === 0 && !currentDegreeLevel) {
 			return NextResponse.json({
 				success: true,
 				data: [],
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 			});
 		}
 
-		// Build query conditions - match BOTH discipline AND degree level
+		// Build query conditions - match BOTH subdiscipline AND degree level
 		const whereConditions: any = {
 			AND: [
 				{ post_id: { not: scholarshipId } }, // Exclude current scholarship
@@ -97,15 +97,13 @@ export async function GET(request: NextRequest) {
 			],
 		};
 
-		// Require both discipline AND degree level to match
-		if (currentDiscipline) {
+		// Require both subdiscipline AND degree level to match
+		if (subdisciplineIds.length > 0) {
 			whereConditions.AND.push({
 				subdisciplines: {
 					some: {
-						subdiscipline: {
-							discipline: {
-								name: currentDiscipline,
-							},
+						subdiscipline_id: {
+							in: subdisciplineIds,
 						},
 					},
 				},
@@ -284,9 +282,9 @@ export async function GET(request: NextRequest) {
 			data: transformedScholarships,
 			message: `Found ${transformedScholarships.length} recommended scholarships`,
 			criteria: {
-				discipline: currentDiscipline,
+				subdisciplineIds: subdisciplineIds,
 				degreeLevel: currentDegreeLevel,
-				matchType: "AND", // Both discipline AND degree level must match
+				matchType: "AND", // Both subdiscipline AND degree level must match
 			},
 		});
 	} catch (error) {

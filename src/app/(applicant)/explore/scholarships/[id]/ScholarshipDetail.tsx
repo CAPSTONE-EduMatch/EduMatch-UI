@@ -1089,17 +1089,30 @@ const ScholarshipDetail = () => {
 		try {
 			setIsApplying(true)
 
+			// Extract selected profile document IDs (documents from profile, not newly uploaded)
+			const selectedProfileDocumentIds = selectedDocuments
+				.filter((doc) => doc.source === 'existing')
+				.map((doc) => doc.document_id)
+				.filter((id): id is string => Boolean(id)) // Filter out any undefined/null values
+
 			const response = await applicationService.submitApplication({
 				postId:
 					typeof scholarshipId === 'string'
 						? scholarshipId
 						: String(scholarshipId),
-				documents: uploadedFiles.map((file) => ({
-					documentTypeId: file.documentType || getDocumentType(file.name), // Use stored document type or fallback to filename detection
-					name: file.name,
-					url: file.url, // S3 URL from upload
-					size: file.size,
-				})),
+				// Only include uploaded files (source === 'new'), not profile documents (source === 'existing')
+				documents: uploadedFiles
+					.filter((file) => file.source === 'new')
+					.map((file) => ({
+						documentTypeId: file.documentType || getDocumentType(file.name), // Use stored document type or fallback to filename detection
+						name: file.name,
+						url: file.url, // S3 URL from upload
+						size: file.size,
+					})),
+				selectedProfileDocumentIds:
+					selectedProfileDocumentIds.length > 0
+						? selectedProfileDocumentIds
+						: undefined,
 			})
 
 			if (response.success) {

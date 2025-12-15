@@ -30,6 +30,7 @@ const InstitutionScholarshipDetail = () => {
 	const [suggestedApplicants, setSuggestedApplicants] = useState<Applicant[]>(
 		[]
 	)
+	const [isLoadingSuggested, setIsLoadingSuggested] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 
@@ -159,22 +160,55 @@ const InstitutionScholarshipDetail = () => {
 			) {
 				const transformed = transformApplications(applications)
 				setTransformedApplicants(transformed)
-				// For suggested applicants, filter by high matching score (80+)
-				const suggested = transformed
-					.filter((app) => app.matchingScore >= 80)
-					.sort((a, b) => b.matchingScore - a.matchingScore)
-					.slice(0, 10)
-				setSuggestedApplicants(suggested)
 			} else {
 				setTransformedApplicants([])
-				setSuggestedApplicants([])
 			}
 		} catch (error) {
 			// Failed to fetch applications
 			setTransformedApplicants([])
-			setSuggestedApplicants([])
 		} finally {
 			setIsLoadingApplications(false)
+		}
+	}
+
+	// Fetch suggested applicants (users who haven't applied but have match score >= 70%)
+	const fetchSuggestedApplicants = async (scholarshipId: string) => {
+		try {
+			setIsLoadingSuggested(true)
+			const response = await fetch(
+				`/api/applications/institution/suggested?postId=${scholarshipId}&minMatchScore=70`
+			)
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`)
+			}
+
+			const data = await response.json()
+
+			if (data.success && Array.isArray(data.data)) {
+				// Transform suggested applicants to match Applicant interface
+				const transformed = data.data.map((app: any) => ({
+					id: app.applicantId || app.userId, // Use applicantId or userId as fallback
+					postId: scholarshipId,
+					name: app.name || 'Unknown',
+					appliedDate: 'N/A', // Not applicable for suggested applicants
+					degreeLevel: app.degreeLevel || 'Unknown',
+					subDiscipline: app.subDiscipline || 'Unknown',
+					status: 'new_request' as const, // Suggested applicants are new requests
+					matchingScore: app.matchingScore || 0,
+					userId: app.userId,
+					gpa: app.gpa || undefined,
+					postType: 'Scholarship' as const,
+				}))
+				setSuggestedApplicants(transformed)
+			} else {
+				setSuggestedApplicants([])
+			}
+		} catch (error) {
+			// Failed to fetch suggested applicants
+			setSuggestedApplicants([])
+		} finally {
+			setIsLoadingSuggested(false)
 		}
 	}
 
@@ -195,6 +229,8 @@ const InstitutionScholarshipDetail = () => {
 			if (scholarshipData) {
 				// Fetch applications for this scholarship
 				await fetchApplications(scholarshipId)
+				// Fetch suggested applicants (users who haven't applied)
+				await fetchSuggestedApplicants(scholarshipId)
 			}
 		}
 
@@ -215,8 +251,22 @@ const InstitutionScholarshipDetail = () => {
 	}
 
 	const handleApplicantDetail = (applicant: Applicant) => {
-		// Navigate to applicant detail view
+		// For suggested applicants (who haven't applied), they don't have an application ID
+		// Check if this is a suggested applicant by checking if appliedDate is 'N/A'
+		if (applicant.appliedDate === 'N/A' || !applicant.id) {
+			// Suggested applicant - redirect to contact instead
+			handleContactApplicant(applicant)
+			return
+		}
+		// Regular applicant with application - navigate to detail view
 		router.push(`/institution/dashboard/applications/${applicant.id}`)
+	}
+
+	const handleContactApplicant = (applicant: Applicant) => {
+		// Navigate to messages page with contact parameter
+		if (applicant.userId) {
+			router.push(`/institution/dashboard/messages?contact=${applicant.userId}`)
+		}
 	}
 
 	const handleDeleteScholarship = async () => {
@@ -755,17 +805,25 @@ const InstitutionScholarshipDetail = () => {
 							These applicants have high matching scores (80%+) and may be a
 							good fit for this scholarship.
 						</p>
-						{suggestedApplicants.length > 0 ? (
+						{isLoadingSuggested ? (
+							<div className="text-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#126E64] mx-auto"></div>
+								<p className="mt-2 text-gray-600">
+									Loading suggested applicants...
+								</p>
+							</div>
+						) : suggestedApplicants.length > 0 ? (
 							<div className="border bg-white border-gray-200 rounded-xl p-6">
 								<SuggestedApplicantsTable
 									applicants={suggestedApplicants}
 									onMoreDetail={handleApplicantDetail}
+									onContact={handleContactApplicant}
 								/>
 							</div>
 						) : (
 							<div className="text-center py-8 bg-gray-50 rounded-lg">
 								<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-								<p className="text-gray-600">No suggested applicants yet</p>
+								<p className="text-gray-600">No suggested applicants found</p>
 							</div>
 						)}
 					</motion.div>

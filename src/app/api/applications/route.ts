@@ -491,6 +491,7 @@ export async function POST(request: NextRequest) {
 					},
 					select: {
 						document_id: true,
+						url: true, // Need URL to filter out profile documents from ApplicationDetail
 					},
 				},
 			},
@@ -567,6 +568,8 @@ export async function POST(request: NextRequest) {
 			});
 
 		// Create application details (documents) if provided
+		// IMPORTANT: Store ALL documents that are explicitly uploaded, even if they also exist in profile
+		// This allows the same document to appear in both places if user both uploads it AND selects from profile
 		if (body.documents && body.documents.length > 0) {
 			// Map document type IDs to new enum values
 			const mapDocumentType = (docTypeId: string): string => {

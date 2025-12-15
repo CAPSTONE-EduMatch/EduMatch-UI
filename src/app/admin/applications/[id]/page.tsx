@@ -232,10 +232,29 @@ export default function AdminApplicationDetailPage() {
 		application.applicant.name ||
 		'Unknown'
 
+	const parsedLanguages = application.snapshot?.languages
+		? (() => {
+				const raw = application.snapshot!.languages
+
+				if (Array.isArray(raw)) return raw
+
+				if (typeof raw === 'string') {
+					try {
+						const parsed = JSON.parse(raw)
+						return Array.isArray(parsed) ? parsed : []
+					} catch {
+						return []
+					}
+				}
+
+				return []
+			})()
+		: []
+
 	return (
 		<div className="min-h-screen bg-[#F5F7FB] pb-12">
 			{/* Header */}
-			<div className="px-8 pt-[135px] pb-6">
+			<div className="px-8 pt-[35px] pb-6">
 				<button
 					onClick={() => router.push('/admin/applications')}
 					className="flex items-center gap-2 text-[#126E64] hover:underline mb-4"
@@ -431,12 +450,36 @@ export default function AdminApplicationDetailPage() {
 
 									{application.snapshot.hasForeignLanguage && (
 										<div>
-											<p className="text-sm text-gray-600 mb-2">Languages</p>
-											<p className="text-base font-medium text-gray-900">
-												{application.snapshot.languages
-													? JSON.stringify(application.snapshot.languages)
-													: '-'}
-											</p>
+											<p className="text-md text-gray-600 mb-2">Languages</p>
+
+											{parsedLanguages.length === 0 ? (
+												<p className="text-base font-medium text-gray-900">-</p>
+											) : (
+												<div className="space-y-2">
+													{parsedLanguages.map((lang: any, index: number) => (
+														<div
+															key={index}
+															className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg"
+														>
+															<div>
+																<p className="text-md font-medium text-gray-900">
+																	{lang.language || 'Unknown language'}
+																</p>
+																<p className="text-sm text-gray-600">
+																	{lang.certificate
+																		? `Certificate: ${lang.certificate}`
+																		: 'No certificate information'}
+																</p>
+															</div>
+															{lang.score && (
+																<span className="px-3 py-1 rounded-full bg-[#126E64]/10 text-[#126E64] text-xs font-semibold">
+																	Score: {lang.score}
+																</span>
+															)}
+														</div>
+													))}
+												</div>
+											)}
 										</div>
 									)}
 								</>

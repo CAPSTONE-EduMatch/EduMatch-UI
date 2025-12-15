@@ -12,6 +12,9 @@ export default function AdminLayout({
 	const pathname = usePathname()
 	const { isAdmin, isLoading } = useAdminAuth()
 
+	// Don't re-check on every pathname change - useAdminAuth already handles caching
+	// This prevents unnecessary re-renders and checks when navigating
+
 	// Determine active section based on pathname
 	const getActiveSection = () => {
 		if (pathname?.includes('/admin/disciplines')) return 'disciplines'

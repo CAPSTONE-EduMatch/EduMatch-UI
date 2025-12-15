@@ -9,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react'
 import { useNotification } from '@/contexts/NotificationContext'
 import CoverImage from '../../../../../public/EduMatch_Default.png'
-import { Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modals/Modal'
 
 const AdminResearchLabDetail = () => {
@@ -514,6 +514,16 @@ const AdminResearchLabDetail = () => {
 
 	return (
 		<div className="min-h-screen bg-background">
+			{/* Back Button */}
+			<div className="max-w-[1200px] my-auto mx-10 px-4 pt-5">
+				<button
+					onClick={() => router.push('/admin/posts')}
+					className="flex items-center gap-2 text-[#126E64] hover:underline mb-4"
+				>
+					<ArrowLeft className="w-5 h-5" />
+					<span>Back to Posts</span>
+				</button>
+			</div>
 			{/* Header Section with Cover Image */}
 			<motion.div
 				initial={{ opacity: 0 }}

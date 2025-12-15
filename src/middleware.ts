@@ -181,16 +181,43 @@ export async function middleware(request: NextRequest) {
 				return response;
 			}
 
-			// Check if user has admin role
-			const isAdmin = await checkAdminRole(request);
-			if (!isAdmin) {
-				// Redirect non-admin users to dashboard with access denied
-				return NextResponse.redirect(
-					new URL(
-						routeConfig.defaultRedirects.accessDenied,
-						request.url
-					)
+			// Check if user has admin role with error handling
+			try {
+				const adminCheckResult = await checkAdminRole(request);
+
+				// null means check failed (timeout/error) - allow through for client-side check
+				if (adminCheckResult === null) {
+					// eslint-disable-next-line no-console
+					console.log(
+						"[MIDDLEWARE] Admin check failed (timeout/error), allowing client-side check"
+					);
+					// Allow the request to proceed - client-side useAdminAuth will handle auth
+					// This prevents 307 redirects on temporary API failures
+					return NextResponse.next();
+				}
+
+				// false means definitely not admin - redirect
+				if (adminCheckResult === false) {
+					// Redirect non-admin users to dashboard with access denied
+					return NextResponse.redirect(
+						new URL(
+							routeConfig.defaultRedirects.accessDenied,
+							request.url
+						)
+					);
+				}
+
+				// true means is admin - allow through
+			} catch (adminCheckError) {
+				// If admin check throws an unexpected error, log but allow access
+				// Client-side useAdminAuth will handle the actual check and redirect if needed
+				// eslint-disable-next-line no-console
+				console.error(
+					"[MIDDLEWARE] Admin check unexpected error, allowing client-side check:",
+					adminCheckError
 				);
+				// Allow the request to proceed - client-side will handle auth
+				return NextResponse.next();
 			}
 		}
 
@@ -229,6 +256,21 @@ export async function middleware(request: NextRequest) {
 		// Default: allow access
 		return NextResponse.next();
 	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("[MIDDLEWARE] Error:", error);
+
+		// Check if this is an admin route
+		const isAdminRouteInError = routeConfig.adminRoutes.some(
+			(route: string) => pathname.startsWith(route)
+		);
+
+		// For admin routes, don't redirect on error - let client handle it
+		// This prevents 307 redirect loops when admin check fails
+		if (isAdminRouteInError) {
+			// Allow admin routes to proceed - client-side useAdminAuth will handle auth
+			return NextResponse.next();
+		}
+
 		// On error, check if route requires auth
 		if (
 			routeConfig.protectedRoutes.some((route: string) =>

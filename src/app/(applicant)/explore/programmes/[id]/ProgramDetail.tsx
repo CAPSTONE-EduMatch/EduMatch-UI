@@ -1206,12 +1206,15 @@ const ProgramDetail = () => {
 
 			const response = await applicationService.submitApplication({
 				postId: programId,
-				documents: uploadedFiles.map((file) => ({
-					documentTypeId: file.documentType || getDocumentType(file.name), // Use stored document type or fallback to filename detection
-					name: file.name,
-					url: file.url, // S3 URL from upload
-					size: file.size,
-				})),
+				// Only include uploaded files (source === 'new'), not profile documents (source === 'existing')
+				documents: uploadedFiles
+					.filter((file) => file.source === 'new')
+					.map((file) => ({
+						documentTypeId: file.documentType || getDocumentType(file.name), // Use stored document type or fallback to filename detection
+						name: file.name,
+						url: file.url, // S3 URL from upload
+						size: file.size,
+					})),
 				selectedProfileDocumentIds:
 					selectedProfileDocumentIds.length > 0
 						? selectedProfileDocumentIds

@@ -107,7 +107,7 @@ export function AdminTable<T extends { id: string }>({
 										}}
 									>
 										{columns.map((column, colIndex) => (
-											<div key={colIndex} className="text-center">
+											<div key={colIndex} className="">
 												{getCellContent(item, column)}
 											</div>
 										))}

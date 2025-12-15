@@ -127,6 +127,8 @@ export async function GET(
 		}
 
 		// Get ApplicationDetail documents (uploaded files)
+		// Include ALL uploaded documents, even if they also exist in profile
+		// This allows the same document to appear in both places if user both uploads it AND selects from profile
 		const applicationDetailDocuments = application.details
 			.filter((detail: any) => !detail.is_update_submission)
 			.map((detail: any) => ({
@@ -136,25 +138,15 @@ export async function GET(
 				url: detail.url,
 				size: detail.size,
 				documentType: detail.document_type,
-				isFromSnapshot: false, // Flag to identify ApplicationDetail documents
+				isFromSnapshot: false, // Flag to identify ApplicationDetail documents (uploaded)
 			}));
 
 		// Combine both types of documents
-		// Include all ApplicationDetail documents
-		// Include snapshot documents that are NOT already in ApplicationDetail (by URL)
-		const applicationDetailUrls = new Set(
-			applicationDetailDocuments.map((doc: any) => doc.url)
-		);
-
-		// Filter snapshot documents to only include those not already in ApplicationDetail
-		const uniqueSnapshotDocuments = snapshotDocuments.filter(
-			(doc) => !applicationDetailUrls.has(doc.url)
-		);
-
-		// Combine: all ApplicationDetail documents + unique snapshot documents
+		// Include all snapshot documents (from profile) + all ApplicationDetail documents (uploaded)
+		// If the same document exists in both, it will appear twice (once as "From Profile", once as "Uploaded")
 		const allDocuments = [
-			...applicationDetailDocuments,
-			...uniqueSnapshotDocuments,
+			...snapshotDocuments, // Profile documents first
+			...applicationDetailDocuments, // Then uploaded documents (may include duplicates if same doc uploaded + selected)
 		];
 
 		// Transform application

@@ -23,7 +23,13 @@ export const InstitutionRedirect: React.FC<InstitutionRedirectProps> = ({
 				const response = await axios.get('/api/profile')
 				const profile = response.data?.profile
 
-				if (profile?.role === 'institution') {
+				if (profile?.role === 'admin') {
+					// Admin user - redirect to admin dashboard
+					const currentPath = window.location.pathname
+					if (!currentPath.includes('/admin')) {
+						router.push('/admin')
+					}
+				} else if (profile?.role === 'institution') {
 					// Institution user trying to access public pages - redirect to institution dashboard
 					router.push('/institution/dashboard')
 				}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../prisma/index";
 import { requireAuth } from "@/utils/auth/auth-utils";
+import { decryptMessage } from "@/utils/encryption/message-encryption";
 
 export async function GET(
 	request: NextRequest,
@@ -179,14 +180,16 @@ export async function GET(
 			});
 		});
 
-		// Transform messages to match client format
+		// Transform messages to match client format and decrypt content
 		const formattedMessages = messages.map((msg) => {
 			const sender = userMap.get(msg.sender_id);
+			// Decrypt message content
+			const decryptedContent = decryptMessage(msg.body);
 			return {
 				id: msg.message_id,
 				threadId: msg.box_id,
 				senderId: msg.sender_id,
-				content: msg.body,
+				content: decryptedContent,
 				sender: sender
 					? {
 							id: sender.id,

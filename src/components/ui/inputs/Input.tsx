@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import React from 'react'
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps
+	extends React.InputHTMLAttributes<HTMLInputElement> {
 	label?: string
 	error?: string
 	helpText?: string

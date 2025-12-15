@@ -361,7 +361,7 @@ export default function PlansPage() {
 				animate={{ opacity: 1, y: 0 }}
 				className="mb-8"
 			>
-				<div className="flex items-center gap-4 mb-4">
+				{/* <div className="flex items-center gap-4 mb-4">
 					<div className="p-3 bg-[#126E64] rounded-lg">
 						<Building2 className="w-6 h-6 text-white" />
 					</div>
@@ -373,6 +373,9 @@ export default function PlansPage() {
 							Manage subscription plan pricing and Stripe price IDs
 						</p>
 					</div>
+				</div> */}
+				<div className="  pb-3">
+					<h1 className="text-2xl font-bold text-[#126E64]">Plan Management</h1>
 				</div>
 			</motion.div>
 

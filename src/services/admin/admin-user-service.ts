@@ -453,7 +453,7 @@ export class AdminUserService {
 					: applicant.gender
 						? "Male"
 						: "Female",
-			profileImage: dbUser.image || "/profile.svg",
+			profileImage: dbUser.image || "",
 			program: applicant?.level || "Not specified",
 			subdisciplines: subdisciplines,
 			gpa: applicant?.gpa ? applicant.gpa.toString() : "Not provided",

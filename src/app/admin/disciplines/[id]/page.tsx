@@ -234,7 +234,7 @@ export default function DisciplineDetailPage() {
 	return (
 		<div className="min-h-screen bg-[#F5F7FB] pb-12">
 			{/* Header Section */}
-			<div className="px-8 pt-[135px] pb-6">
+			<div className="px-8 pt-[35px] pb-6">
 				<button
 					onClick={() => router.push('/admin/disciplines')}
 					className="flex items-center gap-2 text-[#126E64] hover:underline mb-4"

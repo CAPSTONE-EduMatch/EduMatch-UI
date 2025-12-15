@@ -201,14 +201,14 @@ export default function PaymentsPage() {
 		<div className="min-h-screen bg-[#F5F7FB]">
 			<div className="flex-1">
 				{/* Header */}
-				<div className="bg-white shadow-sm px-8 py-6">
-					<h1 className="text-3xl font-bold text-[#126E64]">
+				<div className="px-8 pt-[35px] pb-6">
+					<h1 className="text-2xl font-bold text-[#126E64]">
 						Payment Management
 					</h1>
 				</div>
 
 				{/* Page Content */}
-				<div className="p-8">
+				<div className="px-8">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}

@@ -112,8 +112,9 @@ export async function GET(request: NextRequest) {
 			});
 
 			if (applicant) {
-				const { canSeeRecommendations } =
-					await import("@/services/authorization/authorization-service");
+				const { canSeeRecommendations } = await import(
+					"@/services/authorization/authorization-service"
+				);
 				const recommendationPermission = await canSeeRecommendations(
 					applicant.applicant_id
 				);
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
 			"Can view recommendations:  ifnoa   jneafi",
 			canViewRecommendations
 		);
-		// Get the current program details to find its discipline and degree level
+		// Get the current program details to find its subdisciplines and degree level
 		const currentProgram = await prismaClient.opportunityPost.findUnique({
 			where: { post_id: programId },
 			include: {
@@ -161,13 +162,13 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Extract discipline IDs and degree level from current program
-		const disciplineIds = currentProgram.subdisciplines.map(
-			(ps) => ps.subdiscipline.discipline.discipline_id
+		// Extract subdiscipline IDs and degree level from current program
+		const subdisciplineIds = currentProgram.subdisciplines.map(
+			(ps) => ps.subdiscipline.subdiscipline_id
 		);
 		const degreeLevel = currentProgram.degree_level;
 
-		// Find recommended programs that share BOTH discipline AND degree level
+		// Find recommended programs that share BOTH subdiscipline AND degree level
 		// Exclude the current program and only get published posts
 		const recommendedPosts = await prismaClient.opportunityPost.findMany({
 			where: {
@@ -175,16 +176,12 @@ export async function GET(request: NextRequest) {
 					{ post_id: { not: programId } }, // Exclude current program
 					{ status: "PUBLISHED" }, // Only published programs
 					{ programPost: { isNot: null } }, // Only program posts
-					// Same discipline (required)
+					// Same subdiscipline (required)
 					{
 						subdisciplines: {
 							some: {
-								subdiscipline: {
-									discipline: {
-										discipline_id: {
-											in: disciplineIds,
-										},
-									},
+								subdiscipline_id: {
+									in: subdisciplineIds,
 								},
 							},
 						},
@@ -304,7 +301,7 @@ export async function GET(request: NextRequest) {
 			data: topPrograms,
 			meta: {
 				total: topPrograms.length,
-				currentProgramDisciplines: disciplineIds,
+				currentProgramSubdisciplines: subdisciplineIds,
 				currentProgramDegreeLevel: degreeLevel,
 			},
 		});

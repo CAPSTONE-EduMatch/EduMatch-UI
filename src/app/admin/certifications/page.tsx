@@ -25,7 +25,7 @@ export default function AdminDisciplinePage() {
 	return (
 		<div className="min-h-screen bg-[#F5F7FB] pb-20">
 			{/* Header Section */}
-			<div className="px-8 pt-[135px] pb-6 justify center items-center flex">
+			<div className="px-8 pt-[35px] pb-6 justify center items-center flex">
 				<h1 className="text-4xl font-bold text-[#126E64]">Add discipline</h1>
 			</div>
 

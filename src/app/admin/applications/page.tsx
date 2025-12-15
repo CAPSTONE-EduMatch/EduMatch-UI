@@ -195,7 +195,7 @@ export default function AdminApplicationsPage() {
 			header: 'Status',
 			accessor: ((app: Application) => (
 				<span
-					className={`inline-block px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(
+					className={`inline-block px-3 py-1.5 rounded-lg text-left text-xs font-semibold ${getStatusColor(
 						app.status
 					)}`}
 				>
@@ -246,7 +246,7 @@ export default function AdminApplicationsPage() {
 	return (
 		<div className="min-h-screen bg-[#F5F7FB] pb-12">
 			{/* Header Section */}
-			<div className="px-8 pt-[135px] pb-6">
+			<div className="px-8 pt-[35px] pb-6">
 				<h1 className="text-2xl font-bold text-[#126E64]">
 					Application Management
 				</h1>

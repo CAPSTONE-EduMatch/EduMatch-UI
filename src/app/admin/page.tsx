@@ -4,6 +4,7 @@ import { SplineArea } from '@/components/charts/SplineArea'
 import { SimplePieChart } from '@/components/charts/SimplePieChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
+import { CustomSelect } from '@/components/ui/inputs/custom-select'
 import { motion } from 'framer-motion'
 import {
 	Info,
@@ -412,19 +413,29 @@ export default function AdminDashboard() {
 										{/* Period Filter */}
 										<div className="flex items-center gap-2">
 											<span className="text-sm text-gray-600">Period:</span>
-											<select
-												value={selectedPeriod}
-												onChange={(e) =>
-													setSelectedPeriod(e.target.value as Period)
-												}
-												className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#126E64] bg-white"
-											>
-												{PERIOD_OPTIONS.map((option) => (
-													<option key={option.value} value={option.value}>
-														{option.label}
-													</option>
-												))}
-											</select>
+											<div className="w-40">
+												<CustomSelect
+													value={{
+														value: selectedPeriod,
+														label:
+															PERIOD_OPTIONS.find(
+																(opt) => opt.value === selectedPeriod
+															)?.label || 'Last 30 Days',
+													}}
+													onChange={(selected: any) =>
+														setSelectedPeriod(
+															(selected?.value as Period) || '30d'
+														)
+													}
+													options={PERIOD_OPTIONS.map((opt) => ({
+														value: opt.value,
+														label: opt.label,
+													}))}
+													variant="default"
+													isClearable={false}
+													className="w-full"
+												/>
+											</div>
 										</div>
 									</div>
 								</CardHeader>

@@ -216,7 +216,7 @@ export default function AdminPostsPage() {
 		<div className="min-h-screen bg-[#F5F7FB] pb-12">
 			{/* Header Section */}
 			<div className="px-8 pt-[35px] pb-6">
-				<h1 className="text-2xl font-bold text-[#126E64]">Administrator</h1>
+				<h1 className="text-2xl font-bold text-[#126E64]">Post Management</h1>
 			</div>
 
 			{/* Statistics Cards */}

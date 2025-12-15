@@ -3,8 +3,11 @@ import { NextRequest } from "next/server";
 /**
  * Edge Runtime compatible admin check function
  * Makes an internal API call to verify user role from the database
+ * Returns: true if admin, false if not admin, null if check failed (timeout/error)
  */
-export async function checkAdminRole(request: NextRequest): Promise<boolean> {
+export async function checkAdminRole(
+	request: NextRequest
+): Promise<boolean | null> {
 	try {
 		// Check if session cookie exists first
 		const allCookies = request.cookies.getAll();
@@ -32,14 +35,38 @@ export async function checkAdminRole(request: NextRequest): Promise<boolean> {
 			apiUrl.protocol = "http:";
 		}
 
-		const response = await fetch(apiUrl.toString(), {
-			method: "GET",
-			headers: {
-				Cookie: request.headers.get("cookie") || "",
-				"x-forwarded-host": request.headers.get("host") || "",
-			},
-			cache: "no-store",
-		});
+		// Add timeout to prevent hanging requests
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+		let response: Response;
+		try {
+			response = await fetch(apiUrl.toString(), {
+				method: "GET",
+				headers: {
+					Cookie: request.headers.get("cookie") || "",
+					"x-forwarded-host": request.headers.get("host") || "",
+				},
+				cache: "no-store",
+				signal: controller.signal,
+			});
+			clearTimeout(timeoutId);
+		} catch (fetchError: any) {
+			clearTimeout(timeoutId);
+			// If it's an abort error (timeout), log it
+			if (fetchError.name === "AbortError") {
+				// eslint-disable-next-line no-console
+				console.error(
+					"[ADMIN CHECK] Request timeout - admin check took too long"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.error("[ADMIN CHECK] Fetch error:", fetchError);
+			}
+			// Return null on error/timeout to indicate check failed (not that user is not admin)
+			// This allows middleware to let request through for client-side check
+			return null;
+		}
 
 		if (response.ok) {
 			const data = await response.json();
@@ -58,7 +85,14 @@ export async function checkAdminRole(request: NextRequest): Promise<boolean> {
 			"[ADMIN CHECK] API call returned non-OK status:",
 			response.status
 		);
-		return false;
+		// Non-OK status means we got a response but it's an error (401, 403, 500, etc.)
+		// Return false only for 403 (Forbidden - definitely not admin)
+		// Return null for other errors to allow client-side check
+		if (response.status === 403) {
+			return false; // Definitely not admin
+		}
+		// For 401, 500, or other errors, return null to allow client-side check
+		return null;
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error("[ADMIN CHECK] Error checking admin role:", error);
@@ -72,7 +106,8 @@ export async function checkAdminRole(request: NextRequest): Promise<boolean> {
 			return true;
 		}
 
-		return false;
+		// Return null on error to allow client-side check
+		return null;
 	}
 }
 

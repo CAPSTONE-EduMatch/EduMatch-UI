@@ -54,6 +54,7 @@ export function AdminSidebar({
 	activeSection = 'dashboard',
 }: AdminSidebarProps) {
 	const router = useRouter()
+	// Use admin auth - it's cached and won't re-check on every render
 	const { isAdmin, isLoading } = useAdminAuth()
 
 	// Handle logout with confirmation modal

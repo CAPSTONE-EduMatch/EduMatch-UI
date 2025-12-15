@@ -1,18 +1,18 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
-import { useFileUpload } from '@/hooks/files/useFileUpload'
-import { FileItem } from '@/utils/file/file-utils'
 import { useOCRData } from '@/components/ocr/OCRButton'
-import { mistralOCRService } from '@/services/ocr/mistral-ocr-service'
-import {
-	OllamaFileValidationService,
-	FileValidationResult,
-} from '@/services/ai/ollama-file-validation-service'
-import { cn } from '@/utils/index'
-import { Sparkles, CheckCircle, Hourglass } from 'lucide-react'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
+import { useFileUpload } from '@/hooks/files/useFileUpload'
+import {
+	FileValidationResult,
+	OllamaFileValidationService,
+} from '@/services/ai/ollama-file-validation-service'
+import { mistralOCRService } from '@/services/ocr/mistral-ocr-service'
+import { FileItem } from '@/utils/file/file-utils'
+import { cn } from '@/utils/index'
+import { CheckCircle, Hourglass, Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import React, { useCallback, useRef, useState } from 'react'
 
 interface FileUploadManagerWithOCRProps {
 	className?: string
@@ -45,7 +45,13 @@ interface FileUploadManagerWithOCRProps {
 interface ProcessingFile {
 	file: File
 	tempId: string
-	status: 'ocr' | 'validating' | 'uploading' | 'completed' | 'failed'
+	status:
+		| 'ocr'
+		| 'validating'
+		| 'validated'
+		| 'uploading'
+		| 'completed'
+		| 'failed'
 	extractedText?: string
 	validation?: FileValidationResult
 	error?: string
@@ -112,6 +118,101 @@ export function FileUploadManagerWithOCR({
 			category,
 			folderId,
 		})
+
+	// Batch upload function for validated files
+	const batchUploadValidatedFiles = useCallback(
+		async (validatedFiles: ProcessingFile[]) => {
+			// eslint-disable-next-line no-console
+			console.log(`📤 Batch uploading ${validatedFiles.length} validated files`)
+
+			// Update all to 'uploading' status
+			validatedFiles.forEach((pf) => {
+				setProcessingFiles((prev) =>
+					prev.map((p) =>
+						p.tempId === pf.tempId ? { ...p, status: 'uploading' } : p
+					)
+				)
+			})
+
+			try {
+				// Upload all files at once
+				await uploadFiles(validatedFiles.map((pf) => pf.file))
+
+				// eslint-disable-next-line no-console
+				console.log('✅ Batch upload completed successfully')
+
+				// Mark all as completed
+				validatedFiles.forEach((pf) => {
+					setProcessingFiles((prev) =>
+						prev.map((p) =>
+							p.tempId === pf.tempId ? { ...p, status: 'completed' } : p
+						)
+					)
+				})
+
+				// Remove completed files after brief delay
+				setTimeout(() => {
+					validatedFiles.forEach((pf) => {
+						setProcessingFiles((prev) =>
+							prev.filter((p) => p.tempId !== pf.tempId)
+						)
+					})
+				}, 1500)
+
+				// Handle callbacks after upload
+				setTimeout(() => {
+					setUploadedFiles((currentFiles) => {
+						validatedFiles.forEach((pf) => {
+							// Find the uploaded file
+							const uploadedFile = currentFiles
+								.filter(
+									(f) =>
+										f.name === pf.file.name || f.originalName === pf.file.name
+								)
+								.sort(
+									(a, b) =>
+										new Date(b.createdAt).getTime() -
+										new Date(a.createdAt).getTime()
+								)[0]
+
+							if (uploadedFile) {
+								// Save extracted text with real file ID
+								if (pf.extractedText) {
+									saveExtractedText(uploadedFile.id, pf.extractedText)
+									onOCRComplete?.(uploadedFile.id, pf.extractedText)
+								}
+
+								// Call validation callback
+								if (pf.validation) {
+									onValidationComplete?.(uploadedFile.id, pf.validation)
+								}
+							}
+						})
+
+						return currentFiles
+					})
+				}, 200)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('Batch upload failed:', error)
+				// Mark all as failed
+				validatedFiles.forEach((pf) => {
+					setProcessingFiles((prev) =>
+						prev.map((p) =>
+							p.tempId === pf.tempId
+								? {
+										...p,
+										status: 'failed',
+										error: 'Upload failed',
+									}
+								: p
+						)
+					)
+				})
+			}
+		},
+		[uploadFiles, saveExtractedText, onOCRComplete, onValidationComplete]
+	)
 
 	// New function to process file with OCR and validation BEFORE upload
 	// Returns validation result instead of uploading directly
@@ -345,12 +446,34 @@ export function FileUploadManagerWithOCR({
 					isValid: validation?.isValid,
 				})
 
-				// Update status to indicate validation is complete, waiting for batch upload
+				// Update status to 'validated' - file passed validation, waiting for batch upload
 				setProcessingFiles((prev) =>
 					prev.map((p) =>
-						p.tempId === tempId ? { ...p, status: 'uploading' as const } : p
+						p.tempId === tempId ? { ...p, status: 'validated' as const } : p
 					)
 				)
+
+				// Check if all files completed validation, trigger auto-batch upload
+				setTimeout(() => {
+					setProcessingFiles((current) => {
+						const allCompleted = current.every(
+							(f) =>
+								f.status === 'validated' ||
+								f.status === 'failed' ||
+								f.status === 'completed'
+						)
+						if (allCompleted && current.some((f) => f.status === 'validated')) {
+							// Trigger batch upload
+							const validatedFiles = current.filter(
+								(f) => f.status === 'validated'
+							)
+							if (validatedFiles.length > 0) {
+								batchUploadValidatedFiles(validatedFiles)
+							}
+						}
+						return current
+					})
+				}, 500) // Small delay to ensure state is updated
 
 				// Return file info for batch upload
 				return {
@@ -392,7 +515,7 @@ export function FileUploadManagerWithOCR({
 				}
 			}
 		},
-		[enableOCR, category]
+		[enableOCR, category, batchUploadValidatedFiles]
 	)
 
 	const handleFileSelection = useCallback(
@@ -417,17 +540,10 @@ export function FileUploadManagerWithOCR({
 				alert(t('file_upload.alerts.max_files', { maxFiles }))
 			}
 
-			// Check for duplicate files in processing queue
-			const currentProcessingFiles = processingFiles.map((pf) => pf.file.name)
+			// Note: Duplicate file check removed to allow multiple file selections
+			// while previous files are processing. Each file gets unique tempId.
 
 			const validFiles = limitedFiles.filter((file) => {
-				if (currentProcessingFiles.includes(file.name)) {
-					alert(
-						`File ${file.name} is already being processed. Please wait for it to complete.`
-					)
-					return false
-				}
-
 				// Check file size
 				if (file.size > maxSize * 1024 * 1024) {
 					alert(
@@ -706,6 +822,9 @@ export function FileUploadManagerWithOCR({
 								{file.status === 'validating' && (
 									<CheckCircle className="w-4 h-4 text-orange-600 animate-pulse" />
 								)}
+								{file.status === 'validated' && (
+									<CheckCircle className="w-4 h-4 text-green-600" />
+								)}
 								{file.status === 'uploading' && (
 									<div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
 								)}
@@ -723,7 +842,8 @@ export function FileUploadManagerWithOCR({
 										t('file_upload.processing.extracting')}
 									{file.status === 'validating' &&
 										'Validating content (it will take 15s - 20s)...'}
-									{file.status === 'uploading' && 'Uploading to cloud...'}
+									{file.status === 'validated' &&
+										'Validated, waiting for batch upload...'}
 									{file.status === 'completed' && 'Processing complete'}
 									{/* {file.status === 'failed' &&
 										`⚠️ Upload blocked: ${file.error || 'Processing failed'}`} */}

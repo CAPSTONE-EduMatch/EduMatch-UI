@@ -6,6 +6,8 @@ export type Period = "all" | "7d" | "1m" | "3m" | "6m";
 
 interface PaymentStats {
 	totalRevenue: number;
+	applicantRevenue: number;
+	institutionRevenue: number;
 	monthlyRevenue: number;
 	totalTransactions: number;
 	successfulTransactions: number;

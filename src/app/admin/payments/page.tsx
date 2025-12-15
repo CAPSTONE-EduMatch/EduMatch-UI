@@ -9,7 +9,6 @@ import { useAdminPaymentStats, type Period } from '@/hooks/admin'
 import { motion } from 'framer-motion'
 import {
 	CheckCircle,
-	Clock,
 	CreditCard,
 	DollarSign,
 	Info,
@@ -19,7 +18,6 @@ import {
 import { useEffect, useState } from 'react'
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-	{ value: 'all', label: 'All Time' },
 	{ value: '7d', label: 'Last 7 Days' },
 	{ value: '1m', label: 'Last Month' },
 	{ value: '3m', label: 'Last 3 Months' },
@@ -81,8 +79,8 @@ const PaymentStatCard = ({
 
 export default function PaymentsPage() {
 	const [isClient, setIsClient] = useState(false)
-	const [selectedPeriod, setSelectedPeriod] = useState<Period>('all')
-	const [chartGroupBy, setChartGroupBy] = useState<'day' | 'month'>('day')
+	const [selectedPeriod, setSelectedPeriod] = useState<Period>('1m')
+	const [chartGroupBy] = useState<'day' | 'month'>('day')
 
 	// Use React Query hook for payment stats
 	const {
@@ -94,6 +92,8 @@ export default function PaymentsPage() {
 
 	const stats = data?.stats ?? {
 		totalRevenue: 0,
+		applicantRevenue: 0,
+		institutionRevenue: 0,
 		monthlyRevenue: 0,
 		totalTransactions: 0,
 		successfulTransactions: 0,
@@ -225,6 +225,44 @@ export default function PaymentsPage() {
 								subtitle="Cumulative revenue"
 								tooltip="Total revenue from subscriptions, application fees, and premium features for the selected period"
 							/>
+							<div className="space-y-4">
+								<Card className="bg-white border shadow-sm hover:shadow-md transition-shadow">
+									<CardContent className="p-4">
+										<div className="space-y-2">
+											<p className="text-sm font-medium text-gray-600">
+												Revenue from Applicant
+											</p>
+											<p className="text-2xl font-bold text-gray-900">
+												${stats.applicantRevenue.toLocaleString()}
+											</p>
+										</div>
+									</CardContent>
+								</Card>
+								<Card className="bg-white border shadow-sm hover:shadow-md transition-shadow">
+									<CardContent className="p-4">
+										<div className="space-y-2">
+											<p className="text-sm font-medium text-gray-600">
+												Revenue from Institution
+											</p>
+											<p className="text-2xl font-bold text-gray-900">
+												${stats.institutionRevenue.toLocaleString()}
+											</p>
+										</div>
+									</CardContent>
+								</Card>
+							</div>
+							<PaymentStatCard
+								title="Active Subscriptions"
+								value={stats.activeSubscriptions.toLocaleString()}
+								icon={Users}
+								iconBgColor="bg-purple-500"
+								subtitle={`${stats.totalSubscriptions} total`}
+								tooltip="Number of users with active (paid) subscription plans. Total includes all subscription records (active, expired, and cancelled)"
+							/>
+						</div>
+
+						{/* Transaction Status Row */}
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							<PaymentStatCard
 								title="Total Transactions"
 								value={stats.totalTransactions.toLocaleString()}
@@ -234,32 +272,12 @@ export default function PaymentsPage() {
 								tooltip="Total number of payment transactions including successful, pending, and failed payments for the selected period"
 							/>
 							<PaymentStatCard
-								title="Active Subscriptions"
-								value={stats.activeSubscriptions.toLocaleString()}
-								icon={Users}
-								iconBgColor="bg-purple-500"
-								subtitle={`${stats.totalSubscriptions} total`}
-								tooltip="Number of users with active subscription plans, excluding expired or cancelled subscriptions"
-							/>
-						</div>
-
-						{/* Transaction Status Row */}
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-							<PaymentStatCard
 								title="Successful Transactions"
 								value={stats.successfulTransactions.toLocaleString()}
 								icon={CheckCircle}
 								iconBgColor="bg-green-500"
 								subtitle={`${stats.totalTransactions > 0 ? ((stats.successfulTransactions / stats.totalTransactions) * 100).toFixed(1) : 0}% success rate`}
 								tooltip="Transactions that have been successfully processed with confirmed payments for subscriptions and purchases"
-							/>
-							<PaymentStatCard
-								title="Pending Transactions"
-								value={stats.pendingTransactions.toLocaleString()}
-								icon={Clock}
-								iconBgColor="bg-yellow-500"
-								subtitle="Awaiting processing"
-								tooltip="Transactions currently being processed by payment providers. Typically resolve within 24-48 hours"
 							/>
 							<PaymentStatCard
 								title="Failed Transactions"
@@ -281,58 +299,31 @@ export default function PaymentsPage() {
 											<CardTitle className="text-lg font-semibold">
 												Revenue Overview
 											</CardTitle>
-											{/* Period and Group By Filters */}
-											<div className="flex items-center gap-3">
-												<div className="flex items-center gap-2">
-													<span className="text-sm text-gray-600">
-														Group by:
-													</span>
-													<div className="w-32">
-														<CustomSelect
-															value={{
-																value: chartGroupBy,
-																label: chartGroupBy === 'day' ? 'Day' : 'Month',
-															}}
-															onChange={(selected: any) =>
-																setChartGroupBy(
-																	(selected?.value as 'day' | 'month') || 'day'
-																)
-															}
-															options={[
-																{ value: 'day', label: 'Day' },
-																{ value: 'month', label: 'Month' },
-															]}
-															variant="default"
-															isClearable={false}
-															className="w-full"
-														/>
-													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<span className="text-sm text-gray-600">Period:</span>
-													<div className="w-40">
-														<CustomSelect
-															value={{
-																value: selectedPeriod,
-																label:
-																	PERIOD_OPTIONS.find(
-																		(opt) => opt.value === selectedPeriod
-																	)?.label || 'All Time',
-															}}
-															onChange={(selected: any) =>
-																setSelectedPeriod(
-																	(selected?.value as Period) || 'all'
-																)
-															}
-															options={PERIOD_OPTIONS.map((opt) => ({
-																value: opt.value,
-																label: opt.label,
-															}))}
-															variant="default"
-															isClearable={false}
-															className="w-full"
-														/>
-													</div>
+											{/* Period Filter */}
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-gray-600">Period:</span>
+												<div className="w-40">
+													<CustomSelect
+														value={{
+															value: selectedPeriod,
+															label:
+																PERIOD_OPTIONS.find(
+																	(opt) => opt.value === selectedPeriod
+																)?.label || 'Last Month',
+														}}
+														onChange={(selected: any) =>
+															setSelectedPeriod(
+																(selected?.value as Period) || '1m'
+															)
+														}
+														options={PERIOD_OPTIONS.map((opt) => ({
+															value: opt.value,
+															label: opt.label,
+														}))}
+														variant="default"
+														isClearable={false}
+														className="w-full"
+													/>
 												</div>
 											</div>
 										</div>

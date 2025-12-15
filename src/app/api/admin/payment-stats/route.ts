@@ -73,14 +73,13 @@ export async function GET(request: NextRequest) {
 			paidInvoices,
 			pendingInvoices,
 			failedInvoices,
-			subscriptions,
 			activeSubscriptionsCount,
 			totalSubscriptionsCount,
 		] = await Promise.all([
 			// Total transactions
 			prismaClient.invoice.count({ where: whereClause }),
 
-			// Successful transactions
+			// Successful transactions with user type information
 			prismaClient.invoice.findMany({
 				where: {
 					...whereClause,
@@ -89,6 +88,7 @@ export async function GET(request: NextRequest) {
 				select: {
 					amount: true,
 					createdAt: true,
+					userType: true,
 				},
 			}),
 
@@ -110,21 +110,6 @@ export async function GET(request: NextRequest) {
 				},
 			}),
 
-			// Get subscriptions count (approximate from recent invoices)
-			prismaClient.invoice.findMany({
-				where: {
-					...whereClause,
-					stripeSubscriptionId: {
-						not: null,
-					},
-				},
-				distinct: ["stripeSubscriptionId"],
-				select: {
-					stripeSubscriptionId: true,
-					status: true,
-				},
-			}),
-
 			// Get active subscriptions from subscription table (not filtered by period)
 			prismaClient.subscription.count({
 				where: {
@@ -142,6 +127,15 @@ export async function GET(request: NextRequest) {
 			0
 		);
 
+		// Calculate revenue by user type
+		const applicantRevenue = paidInvoices
+			.filter((inv) => inv.userType === "applicant")
+			.reduce((sum, invoice) => sum + invoice.amount, 0);
+
+		const institutionRevenue = paidInvoices
+			.filter((inv) => inv.userType === "institution")
+			.reduce((sum, invoice) => sum + invoice.amount, 0);
+
 		// Calculate monthly revenue (for the current or most recent month in the period)
 		const oneMonthAgo = new Date(now);
 		oneMonthAgo.setMonth(now.getMonth() - 1);
@@ -149,9 +143,6 @@ export async function GET(request: NextRequest) {
 		const monthlyRevenue = paidInvoices
 			.filter((inv) => inv.createdAt >= oneMonthAgo)
 			.reduce((sum, invoice) => sum + invoice.amount, 0);
-
-		// Active subscriptions from subscription table (already calculated above)
-		const activeSubscriptions = activeSubscriptionsCount;
 
 		// Group invoices by day or month for chart data
 		const groupedData: {
@@ -207,6 +198,8 @@ export async function GET(request: NextRequest) {
 			data: {
 				stats: {
 					totalRevenue: totalRevenue / 100, // Convert cents to dollars
+					applicantRevenue: applicantRevenue / 100,
+					institutionRevenue: institutionRevenue / 100,
 					monthlyRevenue: monthlyRevenue / 100,
 					totalTransactions: allInvoices,
 					successfulTransactions: paidInvoices.length,

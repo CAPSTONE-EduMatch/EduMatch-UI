@@ -20,7 +20,58 @@ let adminCheckCache: {
 	promise: null,
 };
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - longer cache for better UX
+const STORAGE_KEY = "admin_auth_status";
+const STORAGE_TIMESTAMP_KEY = "admin_auth_timestamp";
+
+/**
+ * Get admin status from localStorage (persists across page navigations)
+ */
+function getAdminStatusFromStorage(): boolean | null {
+	if (typeof window === "undefined") return null;
+	try {
+		const stored = localStorage.getItem(STORAGE_KEY);
+		const timestamp = localStorage.getItem(STORAGE_TIMESTAMP_KEY);
+		if (stored && timestamp) {
+			const age = Date.now() - parseInt(timestamp, 10);
+			if (age < CACHE_DURATION) {
+				return stored === "true";
+			}
+			// Cache expired, clear it
+			localStorage.removeItem(STORAGE_KEY);
+			localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
+		}
+	} catch (error) {
+		// Ignore storage errors
+	}
+	return null;
+}
+
+/**
+ * Save admin status to localStorage (persists across page navigations)
+ */
+function saveAdminStatusToStorage(isAdmin: boolean) {
+	if (typeof window === "undefined") return;
+	try {
+		localStorage.setItem(STORAGE_KEY, String(isAdmin));
+		localStorage.setItem(STORAGE_TIMESTAMP_KEY, String(Date.now()));
+	} catch (error) {
+		// Ignore storage errors
+	}
+}
+
+/**
+ * Clear admin status from localStorage
+ */
+function clearAdminStatusFromStorage() {
+	if (typeof window === "undefined") return;
+	try {
+		localStorage.removeItem(STORAGE_KEY);
+		localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
+	} catch (error) {
+		// Ignore storage errors
+	}
+}
 
 /**
  * Clear the admin check cache
@@ -32,6 +83,7 @@ export function clearAdminCheckCache() {
 		timestamp: 0,
 		promise: null,
 	};
+	clearAdminStatusFromStorage();
 }
 
 /**
@@ -55,7 +107,28 @@ export function useAdminAuth() {
 		}
 
 		const checkAdminStatus = async () => {
-			// Check cache first
+			// Check localStorage first (persists across navigations)
+			const storedAdminStatus = getAdminStatusFromStorage();
+			if (storedAdminStatus !== null) {
+				// Use stored status immediately - no API call needed
+				setState({
+					isAdmin: storedAdminStatus,
+					isLoading: false,
+					error: null,
+				});
+				hasCheckedRef.current = true;
+				// Update module cache
+				adminCheckCache.result = storedAdminStatus;
+				adminCheckCache.timestamp = Date.now();
+
+				// Still redirect if not admin (but use cached result)
+				if (!storedAdminStatus) {
+					router.push("/");
+				}
+				return;
+			}
+
+			// Check module-level cache second
 			const now = Date.now();
 			if (
 				adminCheckCache.result !== null &&
@@ -67,6 +140,8 @@ export function useAdminAuth() {
 					error: null,
 				});
 				hasCheckedRef.current = true;
+				// Save to localStorage for persistence
+				saveAdminStatusToStorage(adminCheckCache.result);
 
 				// Still redirect if not admin (but use cached result)
 				if (!adminCheckCache.result) {
@@ -121,6 +196,7 @@ export function useAdminAuth() {
 							adminCheckCache.result = false;
 							adminCheckCache.timestamp = Date.now();
 							adminCheckCache.promise = null;
+							clearAdminStatusFromStorage(); // Clear on auth failure
 							router.push("/signin");
 							return false;
 						}
@@ -130,6 +206,7 @@ export function useAdminAuth() {
 							adminCheckCache.result = false;
 							adminCheckCache.timestamp = Date.now();
 							adminCheckCache.promise = null;
+							saveAdminStatusToStorage(false); // Cache negative result
 							router.push("/");
 							return false;
 						}
@@ -142,12 +219,14 @@ export function useAdminAuth() {
 
 					const data = await response.json();
 
-					// Cache the result
-					adminCheckCache.result = data.isAdmin === true;
+					// Cache the result in both module cache and localStorage
+					const isAdmin = data.isAdmin === true;
+					adminCheckCache.result = isAdmin;
 					adminCheckCache.timestamp = Date.now();
 					adminCheckCache.promise = null;
+					saveAdminStatusToStorage(isAdmin); // Persist across navigations
 
-					if (!data.isAdmin) {
+					if (!isAdmin) {
 						// Not an admin - redirect to home page
 						router.push("/");
 						return false;

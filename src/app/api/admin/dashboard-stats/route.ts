@@ -82,7 +82,6 @@ export async function GET(request: NextRequest) {
 
 		// Get user statistics
 		const [
-			totalUsers,
 			applicantCount,
 			institutionCount,
 			systemManagerCount,
@@ -90,35 +89,26 @@ export async function GET(request: NextRequest) {
 			activeInstitutions,
 			pendingInstitutions,
 		] = await Promise.all([
-			// Total users count
-			prismaClient.user.count(),
+			// Applicant count - count users who have an Applicant record
+			prismaClient.applicant.count(),
 
-			// Applicant count (role_id: "1" = student)
+			// Institution count - count users who have an Institution record
+			prismaClient.institution.count(),
+
+			// System Manager count (role_id: "3" OR role: "admin")
 			prismaClient.user.count({
 				where: {
-					role_id: "1",
+					OR: [{ role_id: "3" }, { role: "admin" }],
 				},
 			}),
 
-			// Institution count (role_id: "2" = institution)
-			prismaClient.user.count({
+			// Active applicants - count Applicant records where user.status is true
+			prismaClient.applicant.count({
 				where: {
-					role_id: "2",
-				},
-			}),
-
-			// System Manager count (role_id: "3" = system manager)
-			prismaClient.user.count({
-				where: {
-					role_id: "3",
-				},
-			}),
-
-			// Active applicants
-			prismaClient.user.count({
-				where: {
-					role_id: "1",
 					status: true,
+					user: {
+						status: true,
+					},
 				},
 			}),
 
@@ -197,7 +187,7 @@ export async function GET(request: NextRequest) {
 		// Build dashboard stats object
 		const stats: DashboardStats = {
 			totalUsers: {
-				total: totalUsers,
+				total: applicantCount + institutionCount + systemManagerCount,
 				applicants: applicantCount,
 				institutions: institutionCount,
 				systemManagers: systemManagerCount,

@@ -1,5 +1,6 @@
 'use client'
 
+import { ViewDetailButton } from '@/components/admin/ViewDetailButton'
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
@@ -179,23 +180,15 @@ const SupportTable = ({
 										</div>
 										<div className="text-right">
 											{request.status === 'Pending' ? (
-												<motion.button
-													whileHover={{ scale: 1.05 }}
-													whileTap={{ scale: 0.95 }}
+												<ViewDetailButton
 													onClick={() => onReplySupport(request)}
-													className="text-[#126E64] hover:text-[#0f5a52] font-medium underline transition-colors"
-												>
-													Reply support
-												</motion.button>
+													type="modal"
+												/>
 											) : (
-												<motion.button
-													whileHover={{ scale: 1.05 }}
-													whileTap={{ scale: 0.95 }}
+												<ViewDetailButton
 													onClick={() => onViewSupport(request)}
-													className="text-[#126E64] hover:text-[#0f5a52] font-medium underline transition-colors"
-												>
-													View reply
-												</motion.button>
+													type="modal"
+												/>
 											)}
 										</div>
 									</motion.div>

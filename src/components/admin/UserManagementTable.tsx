@@ -1,11 +1,12 @@
 'use client'
 
+import { ViewDetailButton } from '@/components/admin/ViewDetailButton'
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Button, Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
 import { useAdminUserManagement } from '@/hooks/admin/useAdminUserManagement'
 import { motion } from 'framer-motion'
-import { Eye, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { memo, useCallback, useEffect, useState } from 'react'
 
 interface UserManagementTableProps {
@@ -341,15 +342,10 @@ const UserManagementTable = memo(function UserManagementTable({
 											</div>
 
 											<div className="flex justify-center gap-2.5 pl-8">
-												<Button
-													variant="secondary"
-													size="sm"
+												<ViewDetailButton
 													onClick={() => onViewDetails(user.id)}
-													className="text-[#126E64] hover:bg-[#126E64] hover:text-black text-sm px-2.5 py-1.5 h-auto flex items-center"
-												>
-													<Eye className="w-3.5 h-3.5 mr-1" />
-													<span>Details</span>
-												</Button>
+													type="page"
+												/>
 											</div>
 										</motion.div>
 									)

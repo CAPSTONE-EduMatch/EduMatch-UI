@@ -1,6 +1,7 @@
 'use client'
 
 import { AdminTable } from '@/components/admin/AdminTable'
+import { ViewDetailButton } from '@/components/admin/ViewDetailButton'
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
@@ -10,7 +11,6 @@ import { ApplicationStatus } from '@prisma/client'
 import {
 	Check,
 	CheckCircle2,
-	ChevronRight,
 	Clock,
 	Copy,
 	FileText,
@@ -216,13 +216,10 @@ export default function AdminApplicationsPage() {
 		{
 			header: 'Actions',
 			accessor: ((app: Application) => (
-				<button
+				<ViewDetailButton
 					onClick={() => router.push(`/admin/applications/${app.id}`)}
-					className="flex items-center justify-center gap-1 text-[#126E64] hover:underline text-sm mx-auto"
-				>
-					<span>View Details</span>
-					<ChevronRight className="w-4 h-4" />
-				</button>
+					type="page"
+				/>
 			)) as (_app: Application) => React.ReactNode,
 			className: '130px',
 		},

@@ -1,5 +1,6 @@
 'use client'
 
+import { ViewDetailButton } from '@/components/admin/ViewDetailButton'
 import { Button, Card, CardContent, CustomSelect } from '@/components/ui'
 import { Badge } from '@/components/ui/cards/badge'
 import { ShortIdWithCopy } from '@/components/ui/ShortIdWithCopy'
@@ -10,7 +11,6 @@ import {
 	ArrowUpDown,
 	ChevronLeft,
 	ChevronRight,
-	ExternalLink,
 	Loader2,
 	Search,
 } from 'lucide-react'
@@ -283,7 +283,7 @@ export function PaymentHistoryTable() {
 						<div
 							className="grid gap-4 text-white font-semibold text-sm w-full"
 							style={{
-								gridTemplateColumns: '1.2fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.2fr',
+								gridTemplateColumns: '1fr 1.5fr 1.2fr 1fr 1fr 0.8fr 1.2fr',
 							}}
 						>
 							<div
@@ -330,7 +330,7 @@ export function PaymentHistoryTable() {
 											className="grid gap-4 items-center w-full"
 											style={{
 												gridTemplateColumns:
-													'1.2fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.2fr',
+													'1fr 1.5fr 1.2fr 1fr 1fr 0.8fr 1.2fr',
 											}}
 										>
 											<div className="h-4 bg-gray-200 rounded w-24"></div>
@@ -364,7 +364,7 @@ export function PaymentHistoryTable() {
 										className="grid gap-4 items-center w-full"
 										style={{
 											gridTemplateColumns:
-												'1.2fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.2fr',
+												'1fr 1.5fr 1.2fr 1fr 1fr 0.8fr 1.2fr',
 										}}
 									>
 										{/* Date */}
@@ -438,17 +438,13 @@ export function PaymentHistoryTable() {
 										</div>
 
 										{/* Actions */}
-										<div className="flex items-center gap-2">
+										<div className="flex items-center justify-start">
 											{invoice.hostedInvoiceUrl && (
-												<a
+												<ViewDetailButton
+													onClick={() => {}}
+													type="external"
 													href={invoice.hostedInvoiceUrl}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-												>
-													<ExternalLink className="w-4 h-4" />
-													View Details
-												</a>
+												/>
 											)}
 										</div>
 									</div>

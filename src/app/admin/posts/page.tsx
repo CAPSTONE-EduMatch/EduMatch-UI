@@ -1,12 +1,13 @@
 'use client'
 
 import { AdminTable } from '@/components/admin/AdminTable'
+import { ViewDetailButton } from '@/components/admin/ViewDetailButton'
 import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
 import { Card, CardContent } from '@/components/ui'
 import { useDebouncedValue } from '@/hooks'
 import { useAdminPostManagement } from '@/hooks/admin'
 import { PostStatus } from '@prisma/client'
-import { Check, ChevronRight, Copy, Users } from 'lucide-react'
+import { Check, Copy, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -202,13 +203,10 @@ export default function AdminPostsPage() {
 		{
 			header: 'Actions',
 			accessor: ((post: Post) => (
-				<button
+				<ViewDetailButton
 					onClick={() => router.push(`/admin/posts/${post.id}`)}
-					className="flex items-center justify-center gap-1 text-[#126E64] hover:underline text-sm mx-auto"
-				>
-					<span>View Details</span>
-					<ChevronRight className="w-4 h-4" />
-				</button>
+					type="page"
+				/>
 			)) as (post: Post) => React.ReactNode,
 			className: '130px',
 		},

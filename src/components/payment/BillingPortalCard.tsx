@@ -26,7 +26,9 @@ export function BillingPortalCard() {
 	}
 
 	const formatAmount = (amount: number, currency: string) => {
-		const amountInMainUnit = amount
+		// Stripe stores amounts in cents, so we need to convert to main currency unit
+		// For example: 300 cents = $3.00, 30000 cents = $300.00
+		const amountInMainUnit = amount / 100
 		const currencyUpper = currency.toUpperCase()
 
 		// Special formatting for VND with dots as thousands separators

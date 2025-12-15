@@ -292,6 +292,75 @@ export async function GET(request: NextRequest) {
 					`[Protected Image] Access check: User ${user.id} (${user.role}) accessing file ${s3Key} owned by ${fileOwnerId}`
 				);
 
+				// SECURITY: For applicants, ensure they can only access their own documents
+				// or documents from their own applications
+				if (user.role === "applicant" && fileOwnerId !== user.id) {
+					// Applicant trying to access another user's file
+					// Check if this document is part of their own application
+					const applicant = await prismaClient.applicant.findUnique({
+						where: { user_id: user.id },
+						select: { applicant_id: true },
+					});
+
+					if (applicant) {
+						// Check if document is in ApplicationDetail for applicant's applications
+						const applicationDetail =
+							await prismaClient.applicationDetail.findFirst({
+								where: {
+									url: imageUrl,
+									application: {
+										applicant_id: applicant.applicant_id,
+									},
+								},
+								select: {
+									application_id: true,
+								},
+							});
+
+						// Check if document is in ApplicantDocument for this applicant
+						const applicantDocument =
+							await prismaClient.applicantDocument.findFirst({
+								where: {
+									url: imageUrl,
+									applicant_id: applicant.applicant_id,
+								},
+								select: {
+									document_id: true,
+								},
+							});
+
+						if (!applicationDetail && !applicantDocument) {
+							// Document doesn't belong to this applicant
+							// eslint-disable-next-line no-console
+							console.warn(
+								`[Protected Image] 🚫 Denied: Applicant ${user.id} tried to access document that doesn't belong to them`
+							);
+							setCachedPermission(user.id, s3Key, false);
+							return NextResponse.json(
+								{
+									error: "You don't have permission to access this file",
+								},
+								{ status: 403 }
+							);
+						}
+						// Document belongs to applicant - allow access
+						// eslint-disable-next-line no-console
+						console.log(
+							`[Protected Image] ✅ Allowed: Applicant accessing their own document`
+						);
+						setCachedPermission(user.id, s3Key, true);
+					} else {
+						// No applicant profile found
+						setCachedPermission(user.id, s3Key, false);
+						return NextResponse.json(
+							{
+								error: "You don't have permission to access this file",
+							},
+							{ status: 403 }
+						);
+					}
+				}
+
 				// Allow access if:
 				// 1. User owns the file, OR
 				// 2. Users are messaging each other (for any files in user folder), OR
@@ -371,53 +440,213 @@ export async function GET(request: NextRequest) {
 										);
 
 									if (institution) {
-										// Check if there's an application between this institution and applicant
-										const hasApplication =
-											await prismaClient.application.findFirst(
+										// SECURITY: Check if this specific document is part of an application
+										// that belongs to this institution
+										// This prevents Institution B from accessing documents from Institution A's applications
+
+										// First, check if this document is in ApplicationDetail (uploaded during application)
+										const applicationDetail =
+											await prismaClient.applicationDetail.findFirst(
 												{
 													where: {
-														applicant_id:
-															fileOwner.applicant
-																.applicant_id,
-														post: {
-															institution_id:
-																institution.institution_id,
-														},
+														url: imageUrl,
 													},
-													select: {
-														application_id: true,
+													include: {
+														application: {
+															include: {
+																post: {
+																	select: {
+																		institution_id: true,
+																	},
+																},
+															},
+														},
 													},
 												}
 											);
 
-										if (hasApplication) {
+										// If found in ApplicationDetail, verify it belongs to this institution's application
+										if (applicationDetail) {
+											if (
+												applicationDetail.application
+													.post.institution_id !==
+												institution.institution_id
+											) {
+												// Document belongs to another institution's application
+												// eslint-disable-next-line no-console
+												console.warn(
+													`[Protected Image] 🚫 Denied: Institution ${user.id} tried to access document from another institution's application`
+												);
+												setCachedPermission(
+													user.id,
+													s3Key,
+													false
+												);
+												return NextResponse.json(
+													{
+														error: "You don't have permission to access this file",
+													},
+													{ status: 403 }
+												);
+											}
+											// Document belongs to this institution's application - allow
 											// eslint-disable-next-line no-console
 											console.log(
-												`[Protected Image] ✅ Allowed: Institution has application relationship with applicant`
+												`[Protected Image] ✅ Allowed: Document is part of institution's application`
 											);
-											// Cache the permission result (allowed)
 											setCachedPermission(
 												user.id,
 												s3Key,
 												true
 											);
 										} else {
-											// eslint-disable-next-line no-console
-											console.warn(
-												`[Protected Image] 🚫 Denied: Institution ${user.id} tried to access applicant ${fileOwnerId} file but no application relationship exists`
-											);
-											// Cache the denial
-											setCachedPermission(
-												user.id,
-												s3Key,
-												false
-											);
-											return NextResponse.json(
-												{
-													error: "You don't have permission to access this file",
-												},
-												{ status: 403 }
-											);
+											// Document not in ApplicationDetail, check if it's in ApplicantDocument
+											// and part of an application snapshot
+											const applicantDocument =
+												await prismaClient.applicantDocument.findFirst(
+													{
+														where: {
+															url: imageUrl,
+															applicant_id:
+																fileOwner
+																	.applicant
+																	.applicant_id,
+														},
+														select: {
+															document_id: true,
+														},
+													}
+												);
+
+											if (applicantDocument) {
+												// Check if this document is in any application snapshot
+												// for an application that belongs to this institution
+												const snapshotWithDocument =
+													await prismaClient.applicationProfileSnapshot.findFirst(
+														{
+															where: {
+																document_ids: {
+																	has: applicantDocument.document_id,
+																},
+															},
+															include: {
+																application: {
+																	include: {
+																		post: {
+																			select: {
+																				institution_id: true,
+																			},
+																		},
+																	},
+																},
+															},
+														}
+													);
+
+												if (snapshotWithDocument) {
+													// Check if the application belongs to this institution
+													if (
+														snapshotWithDocument
+															.application.post
+															.institution_id !==
+														institution.institution_id
+													) {
+														// Document is in another institution's application snapshot
+														// eslint-disable-next-line no-console
+														console.warn(
+															`[Protected Image] 🚫 Denied: Institution ${user.id} tried to access document from another institution's application snapshot`
+														);
+														setCachedPermission(
+															user.id,
+															s3Key,
+															false
+														);
+														return NextResponse.json(
+															{
+																error: "You don't have permission to access this file",
+															},
+															{ status: 403 }
+														);
+													}
+													// Document is in this institution's application snapshot - allow
+													// eslint-disable-next-line no-console
+													console.log(
+														`[Protected Image] ✅ Allowed: Document is in institution's application snapshot`
+													);
+													setCachedPermission(
+														user.id,
+														s3Key,
+														true
+													);
+												} else {
+													// Document exists but not in any application snapshot
+													// Deny access - institution can only see documents that are part of applications
+													// eslint-disable-next-line no-console
+													console.warn(
+														`[Protected Image] 🚫 Denied: Document not part of any application accessible to institution`
+													);
+													setCachedPermission(
+														user.id,
+														s3Key,
+														false
+													);
+													return NextResponse.json(
+														{
+															error: "You don't have permission to access this file",
+														},
+														{ status: 403 }
+													);
+												}
+											} else {
+												// Document not found in ApplicationDetail or ApplicantDocument
+												// Fall back to checking if there's ANY application (less secure, but backward compatible)
+												const hasApplication =
+													await prismaClient.application.findFirst(
+														{
+															where: {
+																applicant_id:
+																	fileOwner
+																		.applicant
+																		.applicant_id,
+																post: {
+																	institution_id:
+																		institution.institution_id,
+																},
+															},
+															select: {
+																application_id: true,
+															},
+														}
+													);
+
+												if (hasApplication) {
+													// eslint-disable-next-line no-console
+													console.log(
+														`[Protected Image] ✅ Allowed: Institution has application relationship with applicant (fallback)`
+													);
+													setCachedPermission(
+														user.id,
+														s3Key,
+														true
+													);
+												} else {
+													// eslint-disable-next-line no-console
+													console.warn(
+														`[Protected Image] 🚫 Denied: Institution ${user.id} tried to access applicant ${fileOwnerId} file but no application relationship exists`
+													);
+													setCachedPermission(
+														user.id,
+														s3Key,
+														false
+													);
+													return NextResponse.json(
+														{
+															error: "You don't have permission to access this file",
+														},
+														{ status: 403 }
+													);
+												}
+											}
 										}
 									} else {
 										// User claims to be institution but no institution record found

@@ -556,7 +556,8 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 
 	const handlePreviewFile = (document: Document) => {
 		if (document.url) {
-			openSessionProtectedFile(document.url)
+			// Application documents should use the document route (strict validation)
+			openSessionProtectedFile(document.url, true)
 		}
 	}
 
@@ -566,7 +567,8 @@ export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
 			return
 		}
 		try {
-			await downloadSessionProtectedFile(doc.url, doc.name)
+			// Application documents should use the document route (strict validation)
+			await downloadSessionProtectedFile(doc.url, doc.name, true)
 		} catch (error) {
 			console.error('Failed to download file:', error)
 			alert('Failed to download file. Please try again.')

@@ -31,7 +31,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	// Filter states
 	const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>([])
 	const [selectedCountries, setSelectedCountries] = useState<string[]>([])
-	const [selectedFeeRange, setSelectedFeeRange] = useState<string | null>(null)
+	const [selectedFeeRange, setSelectedFeeRange] = useState<string[]>([])
 	const [selectedFunding, setSelectedFunding] = useState<string[]>([])
 	const [selectedDuration, setSelectedDuration] = useState<string[]>([])
 	const [selectedDegreeLevel, setSelectedDegreeLevel] = useState<string[]>([])
@@ -383,14 +383,17 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 			data = data.filter((item) => selectedCountries.includes(item.country))
 		}
 
-		// Apply fee range filter (for programmes)
-		if (selectedFeeRange && activeTab === 'programmes') {
-			const [min, max] = selectedFeeRange.split('-').map(Number)
+		// Apply fee range filter (for programmes) - support multiple ranges
+		if (selectedFeeRange.length > 0 && activeTab === 'programmes') {
 			data = data.filter((item) => {
 				if ('price' in item && item.price) {
 					const priceStr = item.price.replace(/[^0-9]/g, '')
 					const price = parseInt(priceStr)
-					return price >= min && price <= max
+					// Check if price falls within any of the selected ranges
+					return selectedFeeRange.some((range) => {
+						const [min, max] = range.split('-').map(Number)
+						return price >= min && price <= max
+					})
 				}
 				return false
 			})
@@ -591,7 +594,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 	const clearAllFilters = () => {
 		setSelectedDisciplines([])
 		setSelectedCountries([])
-		setSelectedFeeRange(null)
+		setSelectedFeeRange([])
 		setSelectedFunding([])
 		setSelectedDuration([])
 		setSelectedDegreeLevel([])
@@ -604,7 +607,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 		return (
 			selectedDisciplines.length > 0 ||
 			selectedCountries.length > 0 ||
-			selectedFeeRange !== null ||
+			selectedFeeRange.length > 0 ||
 			selectedFunding.length > 0 ||
 			selectedDuration.length > 0 ||
 			selectedDegreeLevel.length > 0 ||
@@ -727,27 +730,19 @@ export const WishlistSection: React.FC<WishlistSectionProps> = () => {
 							/>
 						</div>
 
-						{/* Fee Range Filter (Programmes only) */}
+						{/* Fee Range Filter (Programmes only) - Multiple selection */}
 						{activeTab === 'programmes' && (
 							<div className="w-48">
 								<CheckboxSelect
-									value={
-										selectedFeeRange
-											? [
-													{
-														value: selectedFeeRange,
-														label:
-															availableOptions.feeRanges.find(
-																(fr) => fr.value === selectedFeeRange
-															)?.label || selectedFeeRange,
-													},
-												]
-											: []
-									}
+									value={selectedFeeRange.map((range) => ({
+										value: range,
+										label:
+											availableOptions.feeRanges.find(
+												(fr) => fr.value === range
+											)?.label || range,
+									}))}
 									onChange={(selected) => {
-										setSelectedFeeRange(
-											selected && selected.length > 0 ? selected[0].value : null
-										)
+										setSelectedFeeRange(selected.map((item: any) => item.value))
 									}}
 									placeholder={t('filters.fee_range')}
 									options={availableOptions.feeRanges}

@@ -84,7 +84,34 @@ export async function GET(
 			);
 		}
 
+		// SECURITY: First check if application exists at all
+		const applicationExists = await prismaClient.application.findUnique({
+			where: { application_id: params.applicationId },
+			select: {
+				application_id: true,
+				post: {
+					select: {
+						institution_id: true,
+					},
+				},
+			},
+		});
+
+		// If application exists but belongs to another institution, deny access
+		if (
+			applicationExists &&
+			applicationExists.post.institution_id !== institution.institution_id
+		) {
+			return NextResponse.json(
+				{
+					error: "Access denied. This application belongs to another institution.",
+				},
+				{ status: 403 }
+			);
+		}
+
 		// Get application with detailed applicant information including profile snapshot
+		// Only fetch if it belongs to this institution
 		const application = await prismaClient.application.findFirst({
 			where: {
 				application_id: params.applicationId,
@@ -158,9 +185,8 @@ export async function GET(
 
 			// Send notification to applicant about status change to PROGRESSING
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				if (application.applicant?.user) {
 					await NotificationUtils.sendApplicationStatusNotification(
@@ -722,6 +748,32 @@ export async function PUT(
 			);
 		}
 
+		// SECURITY: First check if application exists and verify ownership
+		const applicationExists = await prismaClient.application.findUnique({
+			where: { application_id: params.applicationId },
+			select: {
+				application_id: true,
+				post: {
+					select: {
+						institution_id: true,
+					},
+				},
+			},
+		});
+
+		// If application exists but belongs to another institution, deny access
+		if (
+			applicationExists &&
+			applicationExists.post.institution_id !== institution.institution_id
+		) {
+			return NextResponse.json(
+				{
+					error: "Access denied. This application belongs to another institution.",
+				},
+				{ status: 403 }
+			);
+		}
+
 		// Get application and verify it belongs to this institution
 		const application = await prismaClient.application.findFirst({
 			where: {
@@ -768,9 +820,8 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			if (application.applicant?.user) {
 				await NotificationUtils.sendApplicationStatusNotification(

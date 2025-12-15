@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { requireAuth } from "@/utils/auth/auth-utils";
-import { prismaClient } from "../../../../../prisma/index";
 import { checkMessagingRelationshipInAppSync } from "@/utils/files/checkMessagingRelationship";
 
 const s3Client = new S3Client({
@@ -52,13 +51,16 @@ function extractS3Key(url: string): string | null {
 
 /**
  * GET /api/files/proxy
- * Proxy file access with session validation
+ * Proxy file access for MESSAGING FILES ONLY
  *
- * This endpoint requires the user to be logged in and have an active session.
- * Files are streamed through the API, so they won't work in incognito without login.
+ * This endpoint is specifically for files shared in messages.
+ * It allows access based on messaging relationships.
+ *
+ * For application documents, use /api/files/document instead.
  *
  * Query parameters:
  * - url: The S3 URL or key of the file
+ * - disposition: "inline" or "attachment" (default: "attachment")
  */
 export async function GET(request: NextRequest) {
 	try {
@@ -98,23 +100,66 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// SECURITY CHECK: Ownership validation
+		// SECURITY CHECK: Ownership validation for messaging files
 		const keyParts = s3Key.split("/");
+
+		// Handle different S3 key patterns:
+		// 1. users/{userId}/... - user-owned files
+		// 2. uploads/{userId}/... - uploaded files (alternative pattern)
+		let fileOwnerId: string | null = null;
 		if (keyParts.length >= 2 && keyParts[0] === "users") {
-			const fileOwnerId = keyParts[1];
+			fileOwnerId = keyParts[1];
+		} else if (keyParts.length >= 2 && keyParts[0] === "uploads") {
+			// Extract user ID from uploads folder (format: uploads/{userId}/...)
+			fileOwnerId = keyParts[1];
+		}
+
+		// If we can identify the file owner, perform security checks
+		if (fileOwnerId) {
+			// SECURITY: For applicants, ensure they can only access their own files
+			if (user.role === "applicant" && fileOwnerId !== user.id) {
+				// Applicant trying to access another user's file
+				// Check if they have a messaging relationship
+				let hasMessagingRelationship = false;
+				try {
+					hasMessagingRelationship =
+						await checkMessagingRelationshipInAppSync(
+							user.id,
+							fileOwnerId
+						);
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.error(
+						"[Proxy] Error checking AppSync threads:",
+						error
+					);
+					hasMessagingRelationship = false;
+				}
+
+				if (!hasMessagingRelationship) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[Proxy] 🚫 Denied: Applicant ${user.id} tried to access file owned by ${fileOwnerId} without messaging relationship`
+					);
+					return NextResponse.json(
+						{
+							error: "You don't have permission to access this file",
+						},
+						{ status: 403 }
+					);
+				}
+				// Has messaging relationship - allow access
+				// eslint-disable-next-line no-console
+				console.log(
+					`[Proxy] ✅ Allowed: Applicant has messaging relationship with file owner`
+				);
+			}
 
 			// Allow access if:
 			// 1. User owns the file, OR
-			// 2. Users are messaging each other (for any files in user folder), OR
-			// 3. User is admin/institution (can access applicant files) - only if no messaging relationship
+			// 2. Users are messaging each other (for message files)
 			if (fileOwnerId !== user.id) {
-				const isAuthorizedRole =
-					user.role === "admin" ||
-					user.role === "institution" ||
-					user.role === "moderator";
-
-				// Always check for messaging relationship first (regardless of role)
-				// Check AppSync for thread relationship
+				// Check for messaging relationship
 				let hasMessagingRelationship = false;
 				try {
 					hasMessagingRelationship =
@@ -136,58 +181,39 @@ export async function GET(request: NextRequest) {
 					hasMessagingRelationship = false;
 				}
 
-				// If no messaging relationship, check role-based permissions
 				if (!hasMessagingRelationship) {
-					// For authorized roles, allow access to applicant files
-					// But we need to check if the file owner is an applicant
-					if (isAuthorizedRole) {
-						// Check if file owner is an applicant
-						const fileOwner = await prismaClient.user.findUnique({
-							where: { id: fileOwnerId },
-							select: {
-								role: true,
-								applicant: {
-									select: {
-										applicant_id: true,
-									},
-								},
-							},
-						});
-
-						// Only allow if file owner is an applicant (not another institution)
-						if (
-							fileOwner?.role === "applicant" ||
-							fileOwner?.applicant
-						) {
-							// Allow access - institution/admin can access applicant files
-						} else {
-							// eslint-disable-next-line no-console
-							console.warn(
-								`🚫 Unauthorized file access: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId} (${fileOwner?.role}). No messaging relationship and not an applicant file.`
-							);
-							return NextResponse.json(
-								{
-									error: "You don't have permission to access this file",
-								},
-								{ status: 403 }
-							);
-						}
-					} else {
-						// No messaging relationship and not an authorized role - deny access
-						// eslint-disable-next-line no-console
-						console.warn(
-							`🚫 Unauthorized file access: User ${user.id} (${user.role}) tried to access ${s3Key} owned by ${fileOwnerId}. Has messaging relationship: ${hasMessagingRelationship}`
-						);
-						return NextResponse.json(
-							{
-								error: "You don't have permission to access this file",
-							},
-							{ status: 403 }
-						);
-					}
+					// No messaging relationship - deny access
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[Proxy] 🚫 Denied: User ${user.id} tried to access file owned by ${fileOwnerId} without messaging relationship`
+					);
+					return NextResponse.json(
+						{
+							error: "You don't have permission to access this file",
+						},
+						{ status: 403 }
+					);
 				}
-				// If hasMessagingRelationship is true, allow access (continue to fetch file)
+				// Has messaging relationship - allow access
+				// eslint-disable-next-line no-console
+				console.log(
+					`[Proxy] ✅ Allowed: Users have messaging relationship`
+				);
 			}
+		} else {
+			// File doesn't match known patterns (users/ or uploads/)
+			// For messaging files, we need to know the owner
+			// Deny access if we can't identify the owner
+			// eslint-disable-next-line no-console
+			console.warn(
+				`[Proxy] 🚫 Denied: Cannot identify file owner from S3 key pattern`
+			);
+			return NextResponse.json(
+				{
+					error: "You don't have permission to access this file",
+				},
+				{ status: 403 }
+			);
 		}
 
 		// Get file from S3

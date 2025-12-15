@@ -158,9 +158,8 @@ export async function GET(
 
 			// Send notification to applicant about status change to PROGRESSING
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				if (application.applicant?.user) {
 					await NotificationUtils.sendApplicationStatusNotification(
@@ -401,6 +400,9 @@ export async function GET(
 				postId: application.post_id,
 				status: application.status,
 				applyAt: application.apply_at.toISOString(),
+				// Include ALL ApplicationDetail documents (uploaded files)
+				// Even if they also exist in profile snapshot, show them here as uploaded documents
+				// This allows the same document to appear in both "Program Requirements" and "Academic Profile"
 				documents: application.details
 					.filter((detail) => !detail.is_update_submission)
 					.map((detail) => ({
@@ -765,9 +767,8 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			if (application.applicant?.user) {
 				await NotificationUtils.sendApplicationStatusNotification(

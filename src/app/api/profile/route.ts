@@ -276,7 +276,7 @@ export async function GET() {
 							(s: any) => s.subdiscipline?.name || ""
 						) || [],
 					favoriteCountries: [],
-					profilePhoto: profile.user?.image || profile.logo || "",
+					profilePhoto: profile.logo || "",
 					// Institution-specific fields mapped correctly
 					institutionName: profile.name || "",
 					institutionAbbreviation: profile.abbreviation || "",
@@ -447,9 +447,8 @@ export async function POST(request: NextRequest) {
 		// Send notifications
 		if (newProfile) {
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				// Send profile created notification
 				// Note: Welcome notification should only be sent on signup, not profile creation
@@ -618,9 +617,8 @@ export async function PUT(request: NextRequest) {
 
 					// Send notification about status change to UPDATED
 					try {
-						const { NotificationUtils } = await import(
-							"@/services/messaging/sqs-handlers"
-						);
+						const { NotificationUtils } =
+							await import("@/services/messaging/sqs-handlers");
 
 						const institution =
 							await prismaClient.institution.findUnique({

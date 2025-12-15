@@ -308,7 +308,10 @@ export class InstitutionProfileService {
 						getStringValue(formData.representativePhoneCode) ||
 						null,
 					about: requiredFields.about,
-					logo: getStringValue(formData.institutionLogo) || null,
+					logo:
+						getStringValue(formData.institutionLogo) ||
+						getStringValue(formData.profilePhoto) ||
+						null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
 					// If resubmitting after rejection or require_update, reset verification status to PENDING
@@ -347,7 +350,10 @@ export class InstitutionProfileService {
 						getStringValue(formData.representativePhoneCode) ||
 						null,
 					about: requiredFields.about,
-					logo: getStringValue(formData.institutionLogo) || null,
+					logo:
+						getStringValue(formData.institutionLogo) ||
+						getStringValue(formData.profilePhoto) ||
+						null,
 					cover_image:
 						getStringValue(formData.institutionCoverImage) || null,
 					// CRITICAL: New institutions must always start with PENDING status
@@ -362,14 +368,8 @@ export class InstitutionProfileService {
 				institution.institution_id
 			);
 
-			// Update user image
-			const profilePhoto = getStringValue(formData.profilePhoto);
-			if (profilePhoto) {
-				await prismaClient.user.update({
-					where: { id: userId },
-					data: { image: profilePhoto },
-				});
-			}
+			// Profile photo is now saved to institution.logo field (not user.image)
+			// This is already handled in the upsert above
 
 			// Handle institution disciplines - only update if provided
 			if (formData.institutionDisciplines !== undefined) {

@@ -757,6 +757,7 @@ const ProgramDetail = () => {
 		setHasApplied(true)
 		setApplicationId(clickedApp.applicationId)
 		setApplicationStatus(clickedApp.status)
+		setSelectedApplication(clickedApp) // Store full application data including rejectionNote
 
 		// Update URL with applicationId without scrolling
 		const newUrl = new URL(window.location.href)
@@ -1085,6 +1086,20 @@ const ProgramDetail = () => {
 		// Use program ID from URL params as fallback
 		const programId = currentProgram?.id || params?.id
 		if (!programId) {
+			return
+		}
+
+		// Check if application limit reached for this post
+		if (lastFetchedPostId === programId && applications.length >= 3) {
+			showError(
+				t('program_detail.apply.limit_reached_title') ||
+					'Application Limit Reached',
+				t('program_detail.apply.reapply_limit_reached') ||
+					'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+				{
+					showRetry: false,
+				}
+			)
 			return
 		}
 
@@ -1900,13 +1915,12 @@ const ProgramDetail = () => {
 									{/* Warning banner for reapply limit */}
 									{applications.length > 0 &&
 										(() => {
-											const maxReapplyCount = Math.max(
-												...applications.map((app: any) => app.reapplyCount || 0)
-											)
-											// reapplyCount is the number of reapplies, so total applications = 1 + reapplyCount
-											// Remaining = 3 - (1 + maxReapplyCount) = 2 - maxReapplyCount
-											const totalApplications = 1 + maxReapplyCount
-											const remaining = 3 - totalApplications
+											// Total applications = applications.length (each application is counted)
+											// Maximum is 3 applications per post
+											const MAX_APPLICATIONS_PER_POST = 3
+											const totalApplications = applications.length
+											const remaining =
+												MAX_APPLICATIONS_PER_POST - totalApplications
 											return (
 												<thead className="bg-transparent">
 													<tr>
@@ -2475,7 +2489,24 @@ const ProgramDetail = () => {
 															)}
 										</p>
 										{applicationStatus === 'REJECTED' && (
-											<div className="mt-4">
+											<div className="mt-4 space-y-4">
+												{/* Display rejection note if available */}
+												{selectedApplication?.rejectionNote && (
+													<div className="rounded-lg p-4 bg-red-100 border border-red-200">
+														<h4 className="text-sm font-semibold text-red-900 mb-2">
+															Rejection Note from Institution:{' '}
+															{selectedApplication.rejectionNote}
+														</h4>
+														{selectedApplication.rejectionNoteAt && (
+															<p className="text-xs text-red-600 mt-2">
+																Received on:{' '}
+																{formatUTCDateToLocal(
+																	selectedApplication.rejectionNoteAt
+																)}
+															</p>
+														)}
+													</div>
+												)}
 												{/* Check if post is closed, deleted, or rejected */}
 												{['CLOSED', 'DELETED', 'REJECTED'].includes(
 													currentProgram?.status || ''
@@ -2616,115 +2647,177 @@ const ProgramDetail = () => {
 								{/* Application Documents Section */}
 								<div className="w-full mb-6">
 									<div className="space-y-6 pt-7">
-										{/* Always show Select from Profile and Upload Files options */}
-										<div className="space-y-4">
-											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
-											<div className="text-center">
-												<Button
-													onClick={() => {
-														if (!isAuthenticated) {
-															setShowAuthModal(true)
-															return
-														}
-														setShowDocumentSelector(true)
-													}}
-													variant="outline"
-													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
-												>
-													{t('program_detail.apply.select_profile_button')}
-												</Button>
-												<p className="text-sm text-gray-500 mt-2">
-													{!isAuthenticated
-														? t('auth.required.message') ||
-															'Please sign in to select documents from your profile.'
-														: t('program_detail.apply.select_profile_hint')}
-												</p>
-											</div>
-
-											{/* Divider with OR */}
-											<div className="flex items-center gap-4">
-												<div className="flex-1 border-t border-gray-300"></div>
-												<span className="text-sm font-medium text-gray-500">
-													{t('program_detail.apply.or_divider')}
-												</span>
-												<div className="flex-1 border-t border-gray-300"></div>
-											</div>
-
-											{/* Upload Files Section - replaced with OCR + AI validation uploader */}
-											<div className="">
-												<FileUploadManagerWithOCR
-													category="application-documents"
-													enableOCR={true}
-													isAuthenticated={isAuthenticated}
-													onAuthRequired={() => setShowAuthModal(true)}
-													onFilesUploaded={async (files) => {
-														// Map uploaded files to application document shape (temp ids)
-														const newDocuments = files.map((file) => ({
-															document_id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-															name: file.name,
-															url: file.url,
-															size: file.size,
-															documentType: 'general',
-															source: 'new' as const,
-														}))
-
-														// Use functional updates to ensure we have latest state
-														setSelectedDocuments((prevDocs) => {
-															const docsMap = new Map<string, any>()
-															// Add existing documents
-															prevDocs.forEach((doc) =>
-																docsMap.set(doc.url, doc)
-															)
-															// Add new documents
-															newDocuments.forEach((doc) =>
-																docsMap.set(doc.url, doc)
-															)
-															return Array.from(docsMap.values())
-														})
-
-														setUploadedFiles((prevFiles) => {
-															const filesMap = new Map<string, any>()
-															// Add existing files
-															prevFiles.forEach((file) =>
-																filesMap.set(file.url, file)
-															)
-															// Add new files
-															newDocuments.forEach((doc) => {
-																filesMap.set(doc.url, {
-																	id: doc.document_id,
-																	name: doc.name,
-																	url: doc.url,
-																	size: doc.size,
-																	documentType: doc.documentType,
-																	source: doc.source,
-																	applicationDocumentId: (doc as any)
-																		.applicationDocumentId,
-																})
-															})
-															return Array.from(filesMap.values())
-														})
-
-														showSuccess(
-															t('program_detail.apply.files_uploaded'),
-															t('program_detail.apply.files_uploaded_message', {
-																count: files.length,
-															})
-														)
-													}}
-													onValidationComplete={(fileId, validation) => {
-														if (!validation.isValid) {
-															showError(
-																t('program_detail.apply.validation_failed'),
-																validation.reasoning ||
-																	t(
-																		'program_detail.apply.validation_failed_message'
+										{/* Check if maximum applications reached */}
+										{(() => {
+											const maxApplicationsReached =
+												lastFetchedPostId === currentProgram?.id &&
+												applications.length >= 3
+											return (
+												<div className="space-y-4">
+													{/* Select from Profile Button - Opens modal for profile snapshot selection */}
+													<div className="text-center">
+														<Button
+															onClick={() => {
+																if (!isAuthenticated) {
+																	setShowAuthModal(true)
+																	return
+																}
+																if (maxApplicationsReached) {
+																	showError(
+																		t(
+																			'program_detail.apply.limit_reached_title'
+																		) || 'Application Limit Reached',
+																		t(
+																			'program_detail.apply.reapply_limit_reached'
+																		) ||
+																			'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+																		{
+																			showRetry: false,
+																		}
 																	)
-															)
+																	return
+																}
+																setShowDocumentSelector(true)
+															}}
+															variant="outline"
+															className={
+																maxApplicationsReached
+																	? 'border-gray-300 text-gray-400 cursor-not-allowed px-8 py-3'
+																	: 'border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3'
+															}
+															disabled={
+																!isAuthenticated || maxApplicationsReached
+															}
+														>
+															{t('program_detail.apply.select_profile_button')}
+														</Button>
+														<p className="text-sm text-gray-500 mt-2">
+															{!isAuthenticated
+																? t('auth.required.message') ||
+																	'Please sign in to select documents from your profile.'
+																: maxApplicationsReached
+																	? t(
+																			'program_detail.apply.reapply_limit_reached'
+																		) ||
+																		'You have reached the maximum number of applications for this post (3). You cannot apply again.'
+																	: t(
+																			'program_detail.apply.select_profile_hint'
+																		)}
+														</p>
+													</div>
+
+													{/* Divider with OR */}
+													<div className="flex items-center gap-4">
+														<div className="flex-1 border-t border-gray-300"></div>
+														<span className="text-sm font-medium text-gray-500">
+															{t('program_detail.apply.or_divider')}
+														</span>
+														<div className="flex-1 border-t border-gray-300"></div>
+													</div>
+
+													{/* Upload Files Section - replaced with OCR + AI validation uploader */}
+													<div
+														className={
+															maxApplicationsReached
+																? 'opacity-50 pointer-events-none'
+																: ''
 														}
-													}}
-												/>
-											</div>
-										</div>
+													>
+														<FileUploadManagerWithOCR
+															category="application-documents"
+															enableOCR={true}
+															isAuthenticated={isAuthenticated}
+															onAuthRequired={() => setShowAuthModal(true)}
+															onFilesUploaded={async (files) => {
+																// Check if maximum applications reached
+																if (maxApplicationsReached) {
+																	showError(
+																		t(
+																			'program_detail.apply.limit_reached_title'
+																		) || 'Application Limit Reached',
+																		t(
+																			'program_detail.apply.reapply_limit_reached'
+																		) ||
+																			'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+																		{
+																			showRetry: false,
+																		}
+																	)
+																	return
+																}
+
+																// Map uploaded files to application document shape (temp ids)
+																const newDocuments = files.map((file) => ({
+																	document_id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+																	name: file.name,
+																	url: file.url,
+																	size: file.size,
+																	documentType: 'general',
+																	source: 'new' as const,
+																}))
+
+																// Use functional updates to ensure we have latest state
+																setSelectedDocuments((prevDocs) => {
+																	const docsMap = new Map<string, any>()
+																	// Add existing documents
+																	prevDocs.forEach((doc) =>
+																		docsMap.set(doc.url, doc)
+																	)
+																	// Add new documents
+																	newDocuments.forEach((doc) =>
+																		docsMap.set(doc.url, doc)
+																	)
+																	return Array.from(docsMap.values())
+																})
+
+																setUploadedFiles((prevFiles) => {
+																	const filesMap = new Map<string, any>()
+																	// Add existing files
+																	prevFiles.forEach((file) =>
+																		filesMap.set(file.url, file)
+																	)
+																	// Add new files
+																	newDocuments.forEach((doc) => {
+																		filesMap.set(doc.url, {
+																			id: doc.document_id,
+																			name: doc.name,
+																			url: doc.url,
+																			size: doc.size,
+																			documentType: doc.documentType,
+																			source: doc.source,
+																			applicationDocumentId: (doc as any)
+																				.applicationDocumentId,
+																		})
+																	})
+																	return Array.from(filesMap.values())
+																})
+
+																showSuccess(
+																	t('program_detail.apply.files_uploaded'),
+																	t(
+																		'program_detail.apply.files_uploaded_message',
+																		{
+																			count: files.length,
+																		}
+																	)
+																)
+															}}
+															onValidationComplete={(fileId, validation) => {
+																if (!validation.isValid) {
+																	showError(
+																		t('program_detail.apply.validation_failed'),
+																		validation.reasoning ||
+																			t(
+																				'program_detail.apply.validation_failed_message'
+																			)
+																	)
+																}
+															}}
+														/>
+													</div>
+												</div>
+											)
+										})()}
 									</div>
 								</div>
 
@@ -3210,10 +3303,32 @@ const ProgramDetail = () => {
 							</div>
 						)}
 					</div>
+					{/* Show warning if application limit reached */}
+					{!hasApplied &&
+						!pendingApplication &&
+						lastFetchedPostId === currentProgram?.id &&
+						applications.length >= 3 && (
+							<div className="text-center mb-6 pt-10">
+								<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+									<div className="flex items-center justify-center gap-2 text-red-700">
+										<span className="text-lg">⚠️</span>
+										<p className="font-medium">
+											{t('program_detail.apply.reapply_limit_reached') ||
+												'You have reached the maximum number of applications for this post (3). You cannot apply again.'}
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+
 					{/* Show warning if no documents selected */}
 					{((!hasApplied && !pendingApplication) ||
 						(hasApplied && applicationStatus === 'SUBMITTED' && isEditMode)) &&
-						uploadedFiles.length === 0 && (
+						uploadedFiles.length === 0 &&
+						!(
+							lastFetchedPostId === currentProgram?.id &&
+							applications.length >= 3
+						) && (
 							<div className="text-center mb-6 pt-10">
 								<div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
 									<div className="flex items-center justify-center gap-2 text-amber-700">
@@ -3258,7 +3373,12 @@ const ProgramDetail = () => {
 										t('program_detail.apply.update_documents_button')
 									)}
 								</Button>
-							) : !hasApplied && selectedDocuments.length > 0 ? (
+							) : !hasApplied &&
+							  selectedDocuments.length > 0 &&
+							  !(
+									lastFetchedPostId === currentProgram?.id &&
+									applications.length >= 3
+							  ) ? (
 								<Button
 									className="bg-[#126E64] hover:bg-teal-700 text-white"
 									onClick={handleApply}

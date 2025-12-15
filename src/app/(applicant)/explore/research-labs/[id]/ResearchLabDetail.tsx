@@ -606,6 +606,7 @@ const ResearchLabDetail = () => {
 		setHasApplied(true)
 		setApplicationId(clickedApp.applicationId)
 		setApplicationStatus(clickedApp.status)
+		setSelectedApplication(clickedApp) // Store full application data including rejectionNote
 
 		// Update URL with applicationId without scrolling
 		const newUrl = new URL(window.location.href)
@@ -836,6 +837,20 @@ const ResearchLabDetail = () => {
 		// Use research lab ID from URL params as fallback
 		const researchLabId = researchLab?.id || params?.id
 		if (!researchLabId) {
+			return
+		}
+
+		// Check if application limit reached for this post
+		if (lastFetchedPostId === researchLabId && applications.length >= 3) {
+			showError(
+				t('research_lab_detail.apply.limit_reached_title') ||
+					'Application Limit Reached',
+				t('research_lab_detail.apply.reapply_limit_reached') ||
+					'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+				{
+					showRetry: false,
+				}
+			)
 			return
 		}
 
@@ -1544,13 +1559,12 @@ const ResearchLabDetail = () => {
 									{/* Warning banner for reapply limit */}
 									{applications.length > 0 &&
 										(() => {
-											const maxReapplyCount = Math.max(
-												...applications.map((app: any) => app.reapplyCount || 0)
-											)
-											// reapplyCount is the number of reapplies, so total applications = 1 + reapplyCount
-											// Remaining = 3 - (1 + maxReapplyCount) = 2 - maxReapplyCount
-											const totalApplications = 1 + maxReapplyCount
-											const remaining = 3 - totalApplications
+											// Total applications = applications.length (each application is counted)
+											// Maximum is 3 applications per post
+											const MAX_APPLICATIONS_PER_POST = 3
+											const totalApplications = applications.length
+											const remaining =
+												MAX_APPLICATIONS_PER_POST - totalApplications
 											return (
 												<thead className="bg-transparent">
 													<tr>
@@ -2123,116 +2137,182 @@ const ResearchLabDetail = () => {
 								{/* Application Documents Section */}
 								<div className="w-full mb-6">
 									<div className="space-y-6 pt-7">
-										{/* Always show Select from Profile and Upload Files options */}
-										<div className="space-y-4">
-											{/* Select from Profile Button - Opens modal for profile snapshot selection */}
-											<div className="text-center">
-												<Button
-													onClick={() => {
-														if (!isAuthenticated) {
-															setShowAuthModal(true)
-															return
-														}
-														setShowDocumentSelector(true)
-													}}
-													variant="outline"
-													className="border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3"
-													disabled={!isAuthenticated}
-												>
-													{t('research_lab_detail.apply.select_profile_button')}
-												</Button>
-												<p className="text-sm text-gray-500 mt-2">
-													{!isAuthenticated
-														? t('auth.required.message') ||
-															'Please sign in to select documents from your profile.'
-														: t(
-																'research_lab_detail.apply.select_profile_hint'
+										{/* Check if maximum applications reached */}
+										{(() => {
+											const maxApplicationsReached =
+												lastFetchedPostId === researchLab?.id &&
+												applications.length >= 3
+											return (
+												<div className="space-y-4">
+													{/* Select from Profile Button - Opens modal for profile snapshot selection */}
+													<div className="text-center">
+														<Button
+															onClick={() => {
+																if (!isAuthenticated) {
+																	setShowAuthModal(true)
+																	return
+																}
+																if (maxApplicationsReached) {
+																	showError(
+																		t(
+																			'research_lab_detail.apply.limit_reached_title'
+																		) || 'Application Limit Reached',
+																		t(
+																			'research_lab_detail.apply.reapply_limit_reached'
+																		) ||
+																			'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+																		{
+																			showRetry: false,
+																		}
+																	)
+																	return
+																}
+																setShowDocumentSelector(true)
+															}}
+															variant="outline"
+															className={
+																maxApplicationsReached
+																	? 'border-gray-300 text-gray-400 cursor-not-allowed px-8 py-3'
+																	: 'border-[#126E64] text-[#126E64] hover:bg-teal-50 px-8 py-3'
+															}
+															disabled={
+																!isAuthenticated || maxApplicationsReached
+															}
+														>
+															{t(
+																'research_lab_detail.apply.select_profile_button'
 															)}
-												</p>
-											</div>
+														</Button>
+														<p className="text-sm text-gray-500 mt-2">
+															{!isAuthenticated
+																? t('auth.required.message') ||
+																	'Please sign in to select documents from your profile.'
+																: maxApplicationsReached
+																	? t(
+																			'research_lab_detail.apply.reapply_limit_reached'
+																		) ||
+																		'You have reached the maximum number of applications for this post (3). You cannot apply again.'
+																	: t(
+																			'research_lab_detail.apply.select_profile_hint'
+																		)}
+														</p>
+													</div>
 
-											{/* Divider with OR */}
-											<div className="flex items-center gap-4">
-												<div className="flex-1 border-t border-gray-300"></div>
-												<span className="text-sm font-medium text-gray-500">
-													{t('research_lab_detail.apply.or_divider')}
-												</span>
-												<div className="flex-1 border-t border-gray-300"></div>
-											</div>
+													{/* Divider with OR */}
+													<div className="flex items-center gap-4">
+														<div className="flex-1 border-t border-gray-300"></div>
+														<span className="text-sm font-medium text-gray-500">
+															{t('research_lab_detail.apply.or_divider')}
+														</span>
+														<div className="flex-1 border-t border-gray-300"></div>
+													</div>
 
-											{/* Upload Files Section - Direct upload, no modal */}
-											<div className="">
-												<FileUploadManagerWithOCR
-													category="application-documents"
-													isAuthenticated={isAuthenticated}
-													onAuthRequired={() => setShowAuthModal(true)}
-													onFilesUploaded={(uploadedFileData: any[]) => {
-														if (
-															!uploadedFileData ||
-															uploadedFileData.length === 0
-														)
-															return
-
-														const newDocuments = uploadedFileData.map(
-															(file) => ({
-																document_id: `temp_${Date.now()}_${Math.random()}`,
-																name: file.name,
-																url: file.url,
-																size: file.size,
-																documentType: 'general',
-																source: 'new' as const,
-															})
-														)
-
-														// Merge with existing documents, deduplicate by URL
-														const docsMap = new Map<string, any>()
-														selectedDocuments.forEach((doc) => {
-															docsMap.set(doc.url, doc)
-														})
-														newDocuments.forEach((doc) => {
-															docsMap.set(doc.url, doc)
-														})
-														const updatedDocs = Array.from(docsMap.values())
-														setSelectedDocuments(updatedDocs)
-
-														// Convert to uploadedFiles format and dedupe
-														const convertedFiles = updatedDocs.map((doc) => ({
-															id: doc.document_id,
-															name: doc.name,
-															url: doc.url,
-															size: doc.size,
-															documentType: doc.documentType,
-															source: doc.source,
-															applicationDocumentId: (doc as any)
-																.applicationDocumentId,
-														}))
-														const uniqueFiles = Array.from(
-															new Map(
-																convertedFiles.map((file) => [file.url, file])
-															).values()
-														)
-														setUploadedFiles(uniqueFiles)
-
-														showSuccess(
-															'Files Uploaded',
-															`${uploadedFileData.length} file(s) uploaded successfully`
-														)
-													}}
-													onValidationComplete={(
-														tempId: string,
-														validation: any
-													) => {
-														if (validation && validation.isValid === false) {
-															showError(
-																'Validation Failed',
-																validation.message ||
-																	'File failed validation. Please redact sensitive information and try again.'
-															)
+													{/* Upload Files Section - Direct upload, no modal */}
+													<div
+														className={
+															maxApplicationsReached
+																? 'opacity-50 pointer-events-none'
+																: ''
 														}
-													}}
-												/>
-											</div>
-										</div>
+													>
+														<FileUploadManagerWithOCR
+															category="application-documents"
+															isAuthenticated={isAuthenticated}
+															onAuthRequired={() => setShowAuthModal(true)}
+															onFilesUploaded={(uploadedFileData: any[]) => {
+																if (
+																	!uploadedFileData ||
+																	uploadedFileData.length === 0
+																)
+																	return
+
+																// Check if maximum applications reached
+																if (maxApplicationsReached) {
+																	showError(
+																		t(
+																			'research_lab_detail.apply.limit_reached_title'
+																		) || 'Application Limit Reached',
+																		t(
+																			'research_lab_detail.apply.reapply_limit_reached'
+																		) ||
+																			'You have reached the maximum number of applications for this post (3). You cannot apply again.',
+																		{
+																			showRetry: false,
+																		}
+																	)
+																	return
+																}
+
+																const newDocuments = uploadedFileData.map(
+																	(file) => ({
+																		document_id: `temp_${Date.now()}_${Math.random()}`,
+																		name: file.name,
+																		url: file.url,
+																		size: file.size,
+																		documentType: 'general',
+																		source: 'new' as const,
+																	})
+																)
+
+																// Merge with existing documents, deduplicate by URL
+																const docsMap = new Map<string, any>()
+																selectedDocuments.forEach((doc) => {
+																	docsMap.set(doc.url, doc)
+																})
+																newDocuments.forEach((doc) => {
+																	docsMap.set(doc.url, doc)
+																})
+																const updatedDocs = Array.from(docsMap.values())
+																setSelectedDocuments(updatedDocs)
+
+																// Convert to uploadedFiles format and dedupe
+																const convertedFiles = updatedDocs.map(
+																	(doc) => ({
+																		id: doc.document_id,
+																		name: doc.name,
+																		url: doc.url,
+																		size: doc.size,
+																		documentType: doc.documentType,
+																		source: doc.source,
+																		applicationDocumentId: (doc as any)
+																			.applicationDocumentId,
+																	})
+																)
+																const uniqueFiles = Array.from(
+																	new Map(
+																		convertedFiles.map((file) => [
+																			file.url,
+																			file,
+																		])
+																	).values()
+																)
+																setUploadedFiles(uniqueFiles)
+
+																showSuccess(
+																	'Files Uploaded',
+																	`${uploadedFileData.length} file(s) uploaded successfully`
+																)
+															}}
+															onValidationComplete={(
+																tempId: string,
+																validation: any
+															) => {
+																if (
+																	validation &&
+																	validation.isValid === false
+																) {
+																	showError(
+																		'Validation Failed',
+																		validation.message ||
+																			'File failed validation. Please redact sensitive information and try again.'
+																	)
+																}
+															}}
+														/>
+													</div>
+												</div>
+											)
+										})()}
 									</div>
 								</div>
 
@@ -2436,7 +2516,24 @@ const ResearchLabDetail = () => {
 															)}
 										</p>
 										{applicationStatus === 'REJECTED' && (
-											<div className="mt-4">
+											<div className="mt-4 space-y-4">
+												{/* Display rejection note if available */}
+												{selectedApplication?.rejectionNote && (
+													<div className="rounded-lg p-4 bg-red-100 border border-red-200">
+														<h4 className="text-sm font-semibold text-red-900 mb-2">
+															Rejection Note from Institution:{' '}
+															{selectedApplication.rejectionNote}
+														</h4>
+														{selectedApplication.rejectionNoteAt && (
+															<p className="text-xs text-red-600 mt-2">
+																Received on:{' '}
+																{formatUTCDateToLocal(
+																	selectedApplication.rejectionNoteAt
+																)}
+															</p>
+														)}
+													</div>
+												)}
 												{/* Check if post is closed, deleted, or rejected */}
 												{['CLOSED', 'DELETED', 'REJECTED'].includes(
 													researchLab?.status || ''
@@ -2775,14 +2872,35 @@ const ResearchLabDetail = () => {
 							</div>
 						</div>
 					)}
+					{/* Show warning if application limit reached */}
+					{!hasApplied &&
+						lastFetchedPostId === researchLab?.id &&
+						applications.length >= 3 && (
+							<div className="text-center mb-4">
+								<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+									<div className="flex items-center justify-center gap-2 text-red-700">
+										<span className="text-lg">⚠️</span>
+										<p className="font-medium">
+											{t('research_lab_detail.apply.reapply_limit_reached') ||
+												'You have reached the maximum number of applications for this post (3). You cannot apply again.'}
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+
 					{/* Show helpful message when no files uploaded */}
-					{!hasApplied && uploadedFiles.length === 0 && (
-						<div className="text-center mb-4">
-							<p className="text-amber-600 text-sm font-medium">
-								{t('research_lab_detail.apply.upload_warning')}
-							</p>
-						</div>
-					)}
+					{!hasApplied &&
+						uploadedFiles.length === 0 &&
+						!(
+							lastFetchedPostId === researchLab?.id && applications.length >= 3
+						) && (
+							<div className="text-center mb-4">
+								<p className="text-amber-600 text-sm font-medium">
+									{t('research_lab_detail.apply.upload_warning')}
+								</p>
+							</div>
+						)}
 					<div className="flex gap-3 justify-center pt-10">
 						{!hasApplied && selectedDocuments.length > 0 && (
 							<Button
@@ -2802,7 +2920,10 @@ const ResearchLabDetail = () => {
 										  !isUploading &&
 										  !isCheckingApplication
 										? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
-										: 'bg-[#126E64] hover:bg-teal-700 text-white'
+										: lastFetchedPostId === researchLab?.id &&
+											  applications.length >= 3
+											? 'bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400'
+											: 'bg-[#126E64] hover:bg-teal-700 text-white'
 							}
 							onClick={handleApply}
 							disabled={
@@ -2810,15 +2931,19 @@ const ResearchLabDetail = () => {
 								isApplying ||
 								isUploading ||
 								isCheckingApplication ||
-								uploadedFiles.length === 0
+								uploadedFiles.length === 0 ||
+								(lastFetchedPostId === researchLab?.id &&
+									applications.length >= 3)
 							}
 							style={{
 								cursor:
-									uploadedFiles.length === 0 &&
-									!hasApplied &&
-									!isApplying &&
-									!isUploading &&
-									!isCheckingApplication
+									(uploadedFiles.length === 0 &&
+										!hasApplied &&
+										!isApplying &&
+										!isUploading &&
+										!isCheckingApplication) ||
+									(lastFetchedPostId === researchLab?.id &&
+										applications.length >= 3)
 										? 'not-allowed'
 										: 'pointer',
 							}}

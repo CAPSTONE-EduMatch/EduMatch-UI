@@ -156,6 +156,9 @@ export async function GET(
 			postId: application.post_id,
 			status: application.status,
 			applyAt: application.apply_at.toISOString(),
+			rejectionNote: application.rejection_note || null,
+			rejectionNoteAt:
+				application.rejection_note_at?.toISOString() || null,
 			documents: allDocuments,
 			post: {
 				id: application.post.post_id,
@@ -355,9 +358,8 @@ export async function PUT(
 
 		// Send notification to applicant about status change
 		try {
-			const { NotificationUtils } = await import(
-				"@/services/messaging/sqs-handlers"
-			);
+			const { NotificationUtils } =
+				await import("@/services/messaging/sqs-handlers");
 
 			// Get applicant info
 			const applicant = await prismaClient.applicant.findUnique({

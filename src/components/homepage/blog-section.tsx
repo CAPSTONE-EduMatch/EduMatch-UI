@@ -5,9 +5,12 @@ import { TabSelector } from '@/components/ui'
 import { ProgramCard } from '@/components/ui/cards/ProgramCard'
 import { ScholarshipCard } from '@/components/ui/cards/ScholarshipCard'
 import { ResearchLabCard } from '@/components/ui/cards/ResearchLabCard'
-import { useState, useEffect } from 'react'
+import { ErrorModal, SuccessModal } from '@/components/ui'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { useWishlist } from '@/hooks/wishlist/useWishlist'
 
 interface Program {
 	id: string
@@ -68,6 +71,22 @@ export function BlogSection() {
 	const [loading, setLoading] = useState(true)
 	const t = useTranslations()
 	const router = useRouter()
+	const { isAuthenticated } = useAuthCheck()
+
+	// Wishlist functionality
+	const { toggleWishlistItem, isInWishlist } = useWishlist({
+		autoFetch: true,
+		isAuthenticated: isAuthenticated,
+		initialParams: { page: 1, limit: 1000, status: 1 },
+	})
+
+	// Modal states
+	const [showAuthModal, setShowAuthModal] = useState(false)
+	const [showWishlistSuccessModal, setShowWishlistSuccessModal] =
+		useState(false)
+	const [wishlistSuccessMessage, setWishlistSuccessMessage] = useState('')
+	const [wishlistSuccessTitle, setWishlistSuccessTitle] = useState('')
+	const [isWishlistProcessing, setIsWishlistProcessing] = useState(false)
 
 	useEffect(() => {
 		const fetchPosts = async () => {
@@ -134,6 +153,90 @@ export function BlogSection() {
 		} else if (activeCategory === 'research_labs') {
 			router.push(`/explore/research-labs/${id}`)
 		}
+	}
+
+	// Handle wishlist toggle
+	const handleWishlistToggle = useCallback(
+		async (postId: string) => {
+			// Check if user is authenticated before attempting to toggle
+			if (!isAuthenticated) {
+				setShowAuthModal(true)
+				return
+			}
+
+			// Prevent multiple simultaneous API calls
+			if (isWishlistProcessing) {
+				return
+			}
+
+			setIsWishlistProcessing(true)
+			try {
+				const wasInWishlist = isInWishlist(postId)
+				await toggleWishlistItem(postId)
+
+				// Determine the item type based on active category
+				let itemType = 'item'
+				if (activeCategory === 'programmes') {
+					itemType = t('tabs.programmes').toLowerCase()
+				} else if (activeCategory === 'scholarships') {
+					itemType = t('tabs.scholarships').toLowerCase()
+				} else if (activeCategory === 'research_labs') {
+					itemType = t('tabs.research_labs').toLowerCase()
+				}
+
+				// Show success modal for both adding and removing
+				if (!wasInWishlist) {
+					// Item was added
+					setWishlistSuccessTitle(t('explore_page.wishlist.added_title'))
+					setWishlistSuccessMessage(
+						t('explore_page.wishlist.added_message', { type: itemType })
+					)
+				} else {
+					// Item was removed
+					setWishlistSuccessTitle(t('explore_page.wishlist.removed_title'))
+					setWishlistSuccessMessage(
+						t('explore_page.wishlist.removed_message', { type: itemType })
+					)
+				}
+				setShowWishlistSuccessModal(true)
+			} catch (error) {
+				// Check if error is due to authentication
+				const errorMessage =
+					error instanceof Error ? error.message : 'Unknown error'
+				if (
+					errorMessage.includes('Authentication required') ||
+					errorMessage.includes('not authenticated') ||
+					errorMessage.includes('401')
+				) {
+					setShowAuthModal(true)
+				} else {
+					// eslint-disable-next-line no-console
+					console.error('Failed to toggle wishlist item:', error)
+				}
+			} finally {
+				setIsWishlistProcessing(false)
+			}
+		},
+		[
+			isAuthenticated,
+			isWishlistProcessing,
+			isInWishlist,
+			toggleWishlistItem,
+			activeCategory,
+			t,
+		]
+	)
+
+	// Handle sign in navigation
+	const handleSignIn = () => {
+		setShowAuthModal(false)
+		router.push('/signin')
+	}
+
+	// Handle sign up navigation
+	const handleSignUp = () => {
+		setShowAuthModal(false)
+		router.push('/signup')
 	}
 
 	const getCurrentData = () => {
@@ -209,8 +312,8 @@ export function BlogSection() {
 											key={program.id}
 											program={program}
 											index={index}
-											isWishlisted={false}
-											onWishlistToggle={() => {}}
+											isWishlisted={isInWishlist(program.id)}
+											onWishlistToggle={() => handleWishlistToggle(program.id)}
 											onClick={handleCardClick}
 										/>
 									))}
@@ -224,8 +327,10 @@ export function BlogSection() {
 											key={scholarship.id}
 											scholarship={scholarship}
 											index={index}
-											isWishlisted={false}
-											onWishlistToggle={() => {}}
+											isWishlisted={isInWishlist(scholarship.id)}
+											onWishlistToggle={() =>
+												handleWishlistToggle(scholarship.id)
+											}
 											onClick={handleCardClick}
 										/>
 									))}
@@ -239,8 +344,8 @@ export function BlogSection() {
 											key={lab.id}
 											lab={lab}
 											index={index}
-											isWishlisted={false}
-											onWishlistToggle={() => {}}
+											isWishlisted={isInWishlist(lab.id)}
+											onWishlistToggle={() => handleWishlistToggle(lab.id)}
 											onClick={handleCardClick}
 										/>
 									))}
@@ -261,6 +366,32 @@ export function BlogSection() {
 					</>
 				)}
 			</div>
+
+			{/* Authentication Required Modal */}
+			<ErrorModal
+				isOpen={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				title={t('auth.required.title')}
+				message={t('auth.required.message')}
+				buttonText={t('buttons.sign_in')}
+				onButtonClick={handleSignIn}
+				showSecondButton={true}
+				secondButtonText={t('buttons.sign_up')}
+				onSecondButtonClick={handleSignUp}
+				showCloseButton={true}
+			/>
+
+			{/* Wishlist Success Modal */}
+			<SuccessModal
+				isOpen={showWishlistSuccessModal}
+				onClose={() => setShowWishlistSuccessModal(false)}
+				title={wishlistSuccessTitle || t('explore_page.wishlist.added_title')}
+				message={
+					wishlistSuccessMessage ||
+					t('explore_page.wishlist.added_message_default')
+				}
+				buttonText={t('buttons.explore_more')}
+			/>
 		</section>
 	)
 }

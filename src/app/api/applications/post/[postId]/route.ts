@@ -152,6 +152,9 @@ export async function GET(
 					status: app.status,
 					applyAt: app.apply_at.toISOString(),
 					reapplyCount: app.reapply_count || 0,
+					rejectionNote: app.rejection_note || null,
+					rejectionNoteAt:
+						app.rejection_note_at?.toISOString() || null,
 					documents: allDocuments,
 					post: {
 						id: app.post.post_id,

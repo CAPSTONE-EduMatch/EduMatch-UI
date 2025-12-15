@@ -181,6 +181,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 					<div className="text-center">
 						{profile?.profilePhoto ? (
 							<ProtectedImage
+								key={profile.profilePhoto}
 								src={profile.profilePhoto}
 								alt="Profile"
 								width={64}

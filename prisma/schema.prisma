@@ -404,6 +404,9 @@ model Application {
   post_id                    String
   status                     ApplicationStatus           @default(SUBMITTED)
   reapply_count              Int                         @default(0)
+  rejection_note             String?
+  rejection_note_at          DateTime?                   @db.Timestamptz(6)
+  rejection_note_by          String?
   applicant                  Applicant                   @relation(fields: [applicant_id], references: [applicant_id], onDelete: NoAction, onUpdate: NoAction)
   post                       OpportunityPost             @relation(fields: [post_id], references: [post_id], onDelete: NoAction, onUpdate: NoAction)
   details                    ApplicationDetail[]

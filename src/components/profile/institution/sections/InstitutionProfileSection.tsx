@@ -111,6 +111,7 @@ export const InstitutionProfileSection: React.FC<
 	const [deletedDocumentIds, setDeletedDocumentIds] = useState<string[]>([])
 	const [isUploadingDocument, setIsUploadingDocument] = useState(false)
 	const [isUploadingCoverImage, setIsUploadingCoverImage] = useState(false)
+	const [isAnyFileUploading, setIsAnyFileUploading] = useState(false)
 
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const {
@@ -1458,7 +1459,16 @@ export const InstitutionProfileSection: React.FC<
 																	...files,
 																]
 																setVerificationDocuments(updatedDocs)
+																setIsAnyFileUploading(false)
 															}}
+															onFileSelectionStart={() =>
+																setIsAnyFileUploading(true)
+															}
+															onProcessingComplete={() => {
+																setIsUploadingDocument(false)
+																setIsAnyFileUploading(false)
+															}}
+															isGloballyDisabled={isAnyFileUploading}
 															category="institution-verification"
 															acceptedTypes={[
 																'application/pdf',

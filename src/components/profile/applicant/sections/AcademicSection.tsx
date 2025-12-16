@@ -1058,6 +1058,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									setIsAnyFileUploading(false)
 								}}
 								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								onProcessingComplete={() => setIsAnyFileUploading(false)}
 								isGloballyDisabled={isAnyFileUploading}
 								category="cv-resume"
 								acceptedTypes={[
@@ -1153,6 +1154,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									setIsAnyFileUploading(false)
 								}}
 								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								onProcessingComplete={() => setIsAnyFileUploading(false)}
 								isGloballyDisabled={isAnyFileUploading}
 								category="language-certificates"
 								acceptedTypes={[
@@ -1252,6 +1254,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									setIsAnyFileUploading(false)
 								}}
 								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								onProcessingComplete={() => setIsAnyFileUploading(false)}
 								isGloballyDisabled={isAnyFileUploading}
 								category="degree-certificates"
 								acceptedTypes={[
@@ -1348,6 +1351,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									setIsAnyFileUploading(false)
 								}}
 								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								onProcessingComplete={() => setIsAnyFileUploading(false)}
 								isGloballyDisabled={isAnyFileUploading}
 								category="academic-transcripts"
 								acceptedTypes={[
@@ -1568,6 +1572,9 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 													}}
 													onFileSelectionStart={() =>
 														setIsAnyFileUploading(true)
+													}
+													onProcessingComplete={() =>
+														setIsAnyFileUploading(false)
 													}
 													isGloballyDisabled={isAnyFileUploading}
 													category="research-papers"

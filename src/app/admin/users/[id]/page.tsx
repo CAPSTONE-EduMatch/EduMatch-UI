@@ -2,15 +2,15 @@
 
 import { DeactivateModal } from '@/components/admin/DeactivateModal'
 import { DocumentSection } from '@/components/admin/DocumentComponents'
+import { Button, Input } from '@/components/ui'
+import Modal from '@/components/ui/modals/Modal'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import { useAdminAuth } from '@/hooks/auth/useAdminAuth'
 import { ApiResponse, UserDetails } from '@/types/domain/user-details'
 import { motion } from 'framer-motion'
 import { ArrowLeft, MessageCircle, User } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import Modal from '@/components/ui/modals/Modal'
-import { Button, Input } from '@/components/ui'
-import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
 // API function to fetch user details
 const fetchUserDetails = async (

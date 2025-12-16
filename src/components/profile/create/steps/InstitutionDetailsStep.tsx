@@ -1,18 +1,21 @@
 'use client'
 
-import React, { useState } from 'react'
-import { ProfileFormData } from '@/services/profile/profile-service'
-import { Label } from '@/components/ui'
-import { Button } from '@/components/ui'
-import { FileUploadManager, FileUploadManagerWithOCR } from '@/components/ui'
-import { CustomSelect } from '@/components/ui'
+import {
+	Button,
+	CustomSelect,
+	FileUploadManager,
+	FileUploadManagerWithOCR,
+	Label,
+} from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { ProfileFormData } from '@/services/profile/profile-service'
+import { useState } from 'react'
 // import { FileValidationResult } from '@/services/ai/file-validation-service'
-import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
-import { Info } from 'lucide-react'
-import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 import { ProtectedImg } from '@/components/ui/ProtectedImage'
+import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
+import { Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 interface InstitutionDetailsStepProps {
@@ -55,6 +58,7 @@ export function InstitutionDetailsStep({
 	const [validationNotifications, setValidationNotifications] = useState<
 		ValidationNotification[]
 	>([])
+	const [isAnyFileUploading, setIsAnyFileUploading] = useState(false)
 
 	const handleCategoryFilesUploaded = (category: string, files: any[]) => {
 		// Add to existing files instead of replacing
@@ -334,12 +338,16 @@ export function InstitutionDetailsStep({
 					</Tooltip>
 				</div>
 				<FileUploadManagerWithOCR
-					onFilesUploaded={(files) =>
+					onFilesUploaded={(files) => {
 						handleCategoryFilesUploaded(
 							'institutionVerificationDocuments',
 							files
 						)
-					}
+						setIsAnyFileUploading(false)
+					}}
+					onFileSelectionStart={() => setIsAnyFileUploading(true)}
+					onProcessingComplete={() => setIsAnyFileUploading(false)}
+					isGloballyDisabled={isAnyFileUploading}
 					category="institution-verification"
 					maxFiles={10}
 					acceptedTypes={[

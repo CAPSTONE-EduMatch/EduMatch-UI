@@ -43,6 +43,7 @@ interface FileUploadManagerWithOCRProps {
 	// Global upload control
 	isGloballyDisabled?: boolean
 	onFileSelectionStart?: () => void
+	onProcessingComplete?: () => void
 }
 
 interface ProcessingFile {
@@ -77,6 +78,7 @@ export function FileUploadManagerWithOCR({
 	onAuthRequired,
 	isGloballyDisabled = false,
 	onFileSelectionStart,
+	onProcessingComplete,
 }: FileUploadManagerWithOCRProps) {
 	const t = useTranslations()
 	const [dragActive, setDragActive] = useState(false)
@@ -200,6 +202,11 @@ export function FileUploadManagerWithOCR({
 						return currentFiles
 					})
 				}, 200)
+
+				// Notify parent that processing is complete
+				if (onProcessingComplete) {
+					onProcessingComplete()
+				}
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('Batch upload failed:', error)
@@ -218,8 +225,19 @@ export function FileUploadManagerWithOCR({
 					)
 				})
 			}
+
+			// Notify parent that processing is complete (even if failed)
+			if (onProcessingComplete) {
+				onProcessingComplete()
+			}
 		},
-		[uploadFiles, saveExtractedText, onOCRComplete, onValidationComplete]
+		[
+			uploadFiles,
+			saveExtractedText,
+			onOCRComplete,
+			onValidationComplete,
+			onProcessingComplete,
+		]
 	)
 
 	// New function to process file with OCR and validation BEFORE upload
@@ -439,7 +457,11 @@ export function FileUploadManagerWithOCR({
 						setProcessingFiles((prev) =>
 							prev.filter((p) => p.tempId !== tempId)
 						)
-					}, 8000)
+						// Notify parent that processing is complete (validation failed)
+						if (onProcessingComplete) {
+							onProcessingComplete()
+						}
+					}, 200)
 
 					return {
 						file,
@@ -514,6 +536,10 @@ export function FileUploadManagerWithOCR({
 				// Remove from processing after delay
 				setTimeout(() => {
 					setProcessingFiles((prev) => prev.filter((p) => p.tempId !== tempId))
+					// Notify parent that processing is complete (with error)
+					if (onProcessingComplete) {
+						onProcessingComplete()
+					}
 				}, 5000)
 
 				return {
@@ -523,7 +549,7 @@ export function FileUploadManagerWithOCR({
 				}
 			}
 		},
-		[enableOCR, category, batchUploadValidatedFiles]
+		[enableOCR, category, batchUploadValidatedFiles, onProcessingComplete]
 	)
 
 	const handleFileSelection = useCallback(
@@ -756,6 +782,8 @@ export function FileUploadManagerWithOCR({
 			isAuthenticated,
 			onAuthRequired,
 			isFilesUploading,
+			isGloballyDisabled,
+			onFileSelectionStart,
 		]
 	)
 

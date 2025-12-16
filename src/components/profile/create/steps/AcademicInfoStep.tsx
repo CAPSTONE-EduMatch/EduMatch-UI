@@ -1,21 +1,23 @@
-import { Button } from '@/components/ui'
-import { Input } from '@/components/ui'
-import { Label } from '@/components/ui'
-import { FileUploadManagerWithOCR } from '@/components/ui'
-import { CustomSelect } from '@/components/ui'
-import { ErrorModal } from '@/components/ui'
+import {
+	Button,
+	CustomSelect,
+	ErrorModal,
+	FileUploadManagerWithOCR,
+	Input,
+	Label,
+} from '@/components/ui'
 import { Tooltip } from '@/components/ui/feedback/tooltip'
 // import { FileValidationResult } from '@/services/ai/file-validation-service'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
-import { FileItem } from '@/utils/file/file-utils'
+import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { getCountriesWithSvgFlags } from '@/data/countries'
+import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 import { ProfileFormData } from '@/services/profile/profile-service'
+import { FileItem } from '@/utils/file/file-utils'
+import { Info } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getCountriesWithSvgFlags } from '@/data/countries'
-import { Info } from 'lucide-react'
-import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
-import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
-import { useTranslations } from 'next-intl'
 
 interface AcademicInfoStepProps {
 	formData: ProfileFormData
@@ -48,6 +50,7 @@ export function AcademicInfoStep({
 	const t = useTranslations('create_profile.academic_info')
 	const [showErrorModal, setShowErrorModal] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [isAnyFileUploading, setIsAnyFileUploading] = useState(false)
 
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const { subdisciplines = [] } = useDisciplinesContext()
@@ -946,9 +949,12 @@ export function AcademicInfoStep({
 							</Tooltip>
 						</div>
 						<FileUploadManagerWithOCR
-							onFilesUploaded={(files) =>
+							onFilesUploaded={(files) => {
 								handleCategoryFilesUploaded('cvFiles', files)
-							}
+								setIsAnyFileUploading(false)
+							}}
+							onFileSelectionStart={() => setIsAnyFileUploading(true)}
+							isGloballyDisabled={isAnyFileUploading}
 							category="cv-resume"
 							acceptedTypes={[
 								'application/pdf',
@@ -985,9 +991,12 @@ export function AcademicInfoStep({
 							</Tooltip>
 						</div>
 						<FileUploadManagerWithOCR
-							onFilesUploaded={(files) =>
+							onFilesUploaded={(files) => {
 								handleCategoryFilesUploaded('languageCertFiles', files)
-							}
+								setIsAnyFileUploading(false)
+							}}
+							onFileSelectionStart={() => setIsAnyFileUploading(true)}
+							isGloballyDisabled={isAnyFileUploading}
 							category="language-certificates"
 							acceptedTypes={[
 								'application/pdf',
@@ -1026,9 +1035,12 @@ export function AcademicInfoStep({
 							</Tooltip>
 						</div>
 						<FileUploadManagerWithOCR
-							onFilesUploaded={(files) =>
+							onFilesUploaded={(files) => {
 								handleCategoryFilesUploaded('degreeFiles', files)
-							}
+								setIsAnyFileUploading(false)
+							}}
+							onFileSelectionStart={() => setIsAnyFileUploading(true)}
+							isGloballyDisabled={isAnyFileUploading}
 							category="degree-certificates"
 							acceptedTypes={[
 								'application/pdf',
@@ -1066,9 +1078,12 @@ export function AcademicInfoStep({
 							</Tooltip>
 						</div>
 						<FileUploadManagerWithOCR
-							onFilesUploaded={(files) =>
+							onFilesUploaded={(files) => {
 								handleCategoryFilesUploaded('transcriptFiles', files)
-							}
+								setIsAnyFileUploading(false)
+							}}
+							onFileSelectionStart={() => setIsAnyFileUploading(true)}
+							isGloballyDisabled={isAnyFileUploading}
 							category="academic-transcripts"
 							acceptedTypes={[
 								'application/pdf',
@@ -1207,11 +1222,15 @@ export function AcademicInfoStep({
 
 											// Update the research papers
 											onInputChange('researchPapers', newPapers)
+											setIsAnyFileUploading(false)
 										} catch (error) {
 											setErrorMessage(t('errors.research_paper_upload_failed'))
 											setShowErrorModal(true)
+											setIsAnyFileUploading(false)
 										}
 									}}
+									onFileSelectionStart={() => setIsAnyFileUploading(true)}
+									isGloballyDisabled={isAnyFileUploading}
 									category={`research-paper-${index}`}
 									acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
 									maxSize={10}

@@ -10,7 +10,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/modals/Modal'
 import { Button, Input } from '@/components/ui'
-import Image from 'next/image'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
 
 // API function to fetch user details
 const fetchUserDetails = async (
@@ -303,12 +303,17 @@ export default function UserDetailPage() {
 						<div className="text-center mb-6">
 							<div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
 								{userData.profileImage ? (
-									<Image
+									<ProtectedImage
 										src={userData.profileImage}
 										alt={userData.name}
 										className="w-full h-full object-cover"
 										width={128}
 										height={128}
+										errorFallback={
+											<div className="w-full h-full bg-gray-200 flex items-center justify-center">
+												<User className="w-12 h-12 text-gray-400" />
+											</div>
+										}
 									/>
 								) : (
 									<div className="w-full h-full bg-gray-200 flex items-center justify-center">

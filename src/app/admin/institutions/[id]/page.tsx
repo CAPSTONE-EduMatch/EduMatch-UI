@@ -784,7 +784,7 @@ export default function InstitutionDetailPage() {
 								>
 									Documents
 								</button>
-								<button
+								{/* <button
 									onClick={() => setActiveTab('posts')}
 									className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all ${
 										activeTab === 'posts'
@@ -793,7 +793,7 @@ export default function InstitutionDetailPage() {
 									}`}
 								>
 									Posts
-								</button>
+								</button> */}
 								<button
 									onClick={() => setActiveTab('update-history')}
 									className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all ${
@@ -862,7 +862,7 @@ export default function InstitutionDetailPage() {
 							)}
 
 							{/* Posts Tab */}
-							{activeTab === 'posts' && (
+							{/* {activeTab === 'posts' && (
 								<div className="bg-white rounded-lg p-6 shadow-sm">
 									<h3 className="text-lg font-semibold text-black mb-4">
 										Institution Posts
@@ -876,7 +876,7 @@ export default function InstitutionDetailPage() {
 										</p>
 									</div>
 								</div>
-							)}
+							)} */}
 
 							{/* Update History Tab */}
 							{activeTab === 'update-history' && (

@@ -1,6 +1,67 @@
+import { SimilarityService } from "@/services/similarity/similarity-service";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../../prisma";
+
+// Helper function to calculate match percentages for recommended research labs
+async function calculateMatchPercentages(
+	labs: any[],
+	userId?: string
+): Promise<void> {
+	if (!userId) {
+		// No authenticated user, show 0%
+		labs.forEach((lab) => {
+			lab.match = "0%";
+		});
+		return;
+	}
+
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findFirst({
+			where: { user_id: userId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			// No applicant embedding, show 0%
+			labs.forEach((lab) => {
+				lab.match = "0%";
+			});
+			return;
+		}
+
+		// Get embeddings for all job posts
+		const postIds = labs.map((l) => l.id);
+		const jobPosts = await prismaClient.jobPost.findMany({
+			where: { post_id: { in: postIds } },
+			select: { post_id: true, embedding: true },
+		});
+
+		// Calculate similarity scores
+		const applicantEmbedding = applicant.embedding as number[];
+		const matchScores = SimilarityService.calculateMatchScores(
+			applicantEmbedding,
+			jobPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			}))
+		);
+
+		// Update lab objects with calculated match scores
+		labs.forEach((lab) => {
+			lab.match = matchScores[lab.id] || "0%";
+		});
+	} catch (error) {
+		if (process.env.NODE_ENV === "development") {
+			console.error("Error calculating match scores:", error);
+		}
+		// Fallback to 0% on error
+		labs.forEach((lab) => {
+			lab.match = "0%";
+		});
+	}
+}
 
 export async function GET(request: NextRequest) {
 	try {
@@ -16,8 +77,10 @@ export async function GET(request: NextRequest) {
 
 		// PLAN-BASED AUTHORIZATION: Check if user can see recommendations
 		let canViewRecommendations = false;
+		let userId: string | undefined;
 		try {
 			const { user } = await requireAuth();
+			userId = user.id;
 
 			const applicant = await prismaClient.applicant.findFirst({
 				where: { user_id: user.id },
@@ -25,8 +88,9 @@ export async function GET(request: NextRequest) {
 			});
 
 			if (applicant) {
-				const { canSeeRecommendations } =
-					await import("@/services/authorization/authorization-service");
+				const { canSeeRecommendations } = await import(
+					"@/services/authorization/authorization-service"
+				);
 				const recommendationPermission = await canSeeRecommendations(
 					applicant.applicant_id
 				);
@@ -185,7 +249,7 @@ export async function GET(request: NextRequest) {
 		});
 
 		// Transform the data to match the expected format
-		const transformedLabs = recommendedLabs.slice(0, 9).map((lab) => ({
+		let transformedLabs = recommendedLabs.map((lab) => ({
 			id: lab.post_id,
 			title: lab.title,
 			description: lab.description,
@@ -258,7 +322,14 @@ export async function GET(request: NextRequest) {
 			researchFocus: lab.jobPost?.research_focus,
 			technicalSkills: lab.jobPost?.technical_skills,
 			professorName: lab.jobPost?.professor_name,
+			match: "0%", // Will be calculated
 		}));
+
+		// Calculate match scores
+		await calculateMatchPercentages(transformedLabs, userId);
+
+		// Already sorted by create_at DESC from query, take first 9
+		transformedLabs = transformedLabs.slice(0, 9);
 
 		return NextResponse.json({
 			success: true,

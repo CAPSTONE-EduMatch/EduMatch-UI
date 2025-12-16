@@ -577,6 +577,76 @@ ${snippet}`,
 				};
 			}
 
+			// Fallback heuristic for institution verification documents
+			case "institution-verification": {
+				const instKeywords = [
+					"institution",
+					"university",
+					"college",
+					"office",
+					"authority",
+					"registration",
+					"certificate number",
+					"official",
+					"letterhead",
+					"seal",
+					"signature",
+					"contact",
+				];
+				const instMatches = instKeywords.filter(
+					(keyword) =>
+						lowerText.includes(keyword) ||
+						lowerFileName.includes(keyword)
+				).length;
+				return {
+					isValid: instMatches >= 2,
+					confidence: Math.min(0.85, instMatches * 0.2),
+					reasoning: `Found ${instMatches} institution-related keywords. ${instMatches >= 2 ? "Likely an institutional document." : "May not be an institution verification document."}`,
+					action: instMatches >= 2 ? "accept" : "reupload",
+					suggestions:
+						instMatches < 2
+							? [
+									"Please provide an official document with institution name, contact info, or official identifiers",
+								]
+							: [],
+				};
+			}
+
+			// Fallback heuristic for research papers
+			case "research-papers": {
+				const paperKeywords = [
+					"abstract",
+					"introduction",
+					"method",
+					"methods",
+					"results",
+					"discussion",
+					"conclusion",
+					"references",
+					"bibliography",
+					"doi",
+					"acknowledg",
+					"et al.",
+				];
+				const paperMatches = paperKeywords.filter(
+					(keyword) =>
+						lowerText.includes(keyword) ||
+						lowerFileName.includes(keyword)
+				).length;
+				return {
+					isValid: paperMatches >= 3,
+					confidence: Math.min(0.9, paperMatches * 0.15),
+					reasoning: `Found ${paperMatches} research-paper related cues. ${paperMatches >= 3 ? "Likely a research paper." : "May not be a formal research paper."}`,
+					action: paperMatches >= 3 ? "accept" : "reupload",
+					suggestions:
+						paperMatches < 3
+							? [
+									"Please upload a full paper with title, abstract, sections, and references",
+								]
+							: [],
+				};
+			}
+
 			case "application-documents": {
 				// Check for sensitive content patterns
 				const sensitivePatterns = [

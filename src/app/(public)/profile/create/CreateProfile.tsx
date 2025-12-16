@@ -412,12 +412,18 @@ export default function CreateProfile() {
 								)}
 								{currentStep === 4 && formData.role === 'applicant' && (
 									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-										<CompletionStep onGetStarted={handleGetStarted} />
+										<CompletionStep
+											onGetStarted={handleGetStarted}
+											role="applicant"
+										/>
 									</div>
 								)}
 								{currentStep === 4 && formData.role === 'institution' && (
 									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-										<CompletionStep onGetStarted={handleGetStarted} />
+										<CompletionStep
+											onGetStarted={handleGetStarted}
+											role="institution"
+										/>
 									</div>
 								)}
 							</div>

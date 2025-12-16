@@ -2522,13 +2522,138 @@
 		},
 		"institution_info": {
 			"title": "Thông Tin Tổ Chức",
-			"subtitle": "Cho chúng tôi biết về tổ chức của bạn",
+			"subtitle": "Vui lòng cung cấp thông tin chi tiết về tổ chức của bạn",
+			"profile_logo": {
+				"label": "Logo Tổ Chức",
+				"upload": "Tải logo tổ chức lên",
+				"uploading": "Đang tải lên...",
+				"requirements": "Phải là file PNG hoặc JPG (tối đa 5MB)"
+			},
+			"institution_name": {
+				"label": "Tên Tổ Chức",
+				"placeholder": "Nhập tên tổ chức",
+				"required": "Tên tổ chức là bắt buộc"
+			},
+			"abbreviation": {
+				"label": "Tên Viết Tắt",
+				"placeholder": "VD: MIT, Harvard"
+			},
+			"hotline": {
+				"label": "Đường Dây Nóng",
+				"placeholder": "Nhập số đường dây nóng",
+				"required": "Đường dây nóng là bắt buộc"
+			},
+			"institution_type": {
+				"label": "Loại Tổ Chức",
+				"placeholder": "Chọn loại tổ chức",
+				"required": "Loại tổ chức là bắt buộc",
+				"options": {
+					"university": "Đại Học",
+					"scholarship_provider": "Nhà Cung Cấp Học Bổng",
+					"research_lab": "Phòng Nghiên Cứu"
+				}
+			},
+			"website": {
+				"label": "Trang Web",
+				"placeholder": "https://www.institution.edu",
+				"required": "Trang web là bắt buộc"
+			},
+			"email": {
+				"label": "Email Tổ Chức",
+				"placeholder": "contact@institution.edu",
+				"required": "Email tổ chức là bắt buộc",
+				"invalid": "Vui lòng nhập địa chỉ email hợp lệ",
+				"tooltip": "Email tổ chức được điền tự động từ tài khoản Google của bạn và không thể thay đổi"
+			},
+			"country": {
+				"label": "Quốc Gia",
+				"placeholder": "Chọn quốc gia",
+				"required": "Quốc gia là bắt buộc"
+			},
+			"address": {
+				"label": "Địa Chỉ Chi Tiết",
+				"placeholder": "Nhập địa chỉ chi tiết",
+				"required": "Địa chỉ chi tiết là bắt buộc"
+			},
+			"representative_info": {
+				"title": "Thông Tin Người Đại Diện",
+				"name": {
+					"label": "Tên Người Đại Diện",
+					"placeholder": "Nhập tên người đại diện",
+					"required": "Tên người đại diện là bắt buộc"
+				},
+				"appellation": {
+					"label": "Xưng Hô",
+					"placeholder": "Chọn xưng hô",
+					"options": {
+						"mr": "Ông",
+						"mrs": "Bà",
+						"ms": "Cô",
+						"dr": "Tiến sĩ",
+						"prof": "Giáo sư",
+						"other": "Khác"
+					}
+				},
+				"position": {
+					"label": "Chức Vụ",
+					"placeholder": "VD: Giám đốc Tuyển sinh",
+					"required": "Chức vụ là bắt buộc"
+				},
+				"email": {
+					"label": "Email Người Đại Diện",
+					"placeholder": "representative@institution.edu",
+					"required": "Email người đại diện là bắt buộc",
+					"invalid": "Vui lòng nhập địa chỉ email hợp lệ"
+				},
+				"phone": {
+					"label": "Số Điện Thoại Người Đại Diện",
+					"placeholder": "Nhập số điện thoại",
+					"required": "Số điện thoại người đại diện là bắt buộc"
+				}
+			},
+			"about_institution": {
+				"label": "Giới Thiệu Về Tổ Chức",
+				"placeholder": "Mô tả tổ chức của bạn, sứ mệnh, các chương trình và điều gì làm cho nó trở nên độc đáo...",
+				"required": "Giới thiệu về tổ chức là bắt buộc"
+			},
+			"manage_files": "Quản Lý Tệp ({count})",
+			"errors": {
+				"upload_failed": "Tải Lên Thất Bại",
+				"invalid_file": "Vui lòng chọn file ảnh PNG hoặc JPG",
+				"file_too_large": "Kích thước file phải nhỏ hơn 5MB",
+				"try_again": "Thử Lại",
+				"required_fields": "Thiếu các trường bắt buộc"
+			},
 			"back": "Quay Lại",
 			"next": "Tiếp Theo"
 		},
 		"institution_details": {
 			"title": "Chi Tiết Tổ Chức",
-			"subtitle": "Thông tin bổ sung về tổ chức của bạn",
+			"subtitle": "Chọn ngành học và tải lên tài liệu xác minh",
+			"subdisciplines": {
+				"label": "Ngành Học Chi Tiết Của Tổ Chức",
+				"placeholder": "Chọn ngành học chi tiết...",
+				"loading": "Đang tải danh sách ngành học...",
+				"error": "Không thể tải danh sách ngành học",
+				"retry": "Thử Lại"
+			},
+			"cover_image": {
+				"label": "Ảnh Bìa Tổ Chức",
+				"remove": "Xóa Ảnh",
+				"failed_to_load": "Không thể tải ảnh"
+			},
+			"verification_documents": {
+				"label": "Tài Liệu Xác Minh",
+				"tooltip": "Tải lên tài liệu xác minh tổ chức định dạng PDF, DOC, DOCX, JPG hoặc PNG (tối đa 10MB mỗi tệp). Yêu cầu: Tên tổ chức và thông tin chính thức, số đăng ký hoặc thông tin công nhận, tiêu đề/logo/con dấu/dấu chứng nhận chính thức, tuyên bố về tình trạng pháp lý/ủy quyền/công nhận, thông tin liên hệ. Phải là tài liệu xác minh chính thức, không phải tài liệu quảng cáo.",
+				"uploaded": "{count} tệp đã tải lên",
+				"error": "Vui lòng tải lên ít nhất một tài liệu xác minh để tiếp tục."
+			},
+			"manage_files": "Quản Lý Tệp ({count})",
+			"errors": {
+				"upload_failed": "Tải Lên Thất Bại",
+				"message": "Không thể tải lên tệp. Vui lòng thử lại.",
+				"try_again": "Thử Lại"
+			},
 			"verification_error": "Vui lòng tải lên ít nhất một tài liệu xác minh để tiếp tục.",
 			"back": "Quay Lại",
 			"next": "Tiếp Theo"

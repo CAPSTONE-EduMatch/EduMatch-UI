@@ -22,7 +22,7 @@ import {
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import JSZip from 'jszip'
-import { getSessionProtectedFileUrl } from '@/utils/files/getSessionProtectedFileUrl'
+import { getAdminFileUrl } from '@/utils/files/getAdminFileUrl'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
 import SuccessModal from '@/components/ui/modals/SuccessModal'
 import ErrorModal from '@/components/ui/modals/ErrorModal'
@@ -429,18 +429,18 @@ export default function InstitutionDetailPage() {
 			// Add all verification documents to the zip
 			for (const doc of institutionData.documents.verificationDocuments) {
 				try {
-					// Use the proxy URL to fetch the file (requires authentication)
-					const proxyUrl = getSessionProtectedFileUrl(doc.url)
+					// Use admin file proxy URL (requires auth on each request)
+					const proxyUrl = getAdminFileUrl(doc.url)
 					if (!proxyUrl) {
 						console.warn(
-							`Failed to generate proxy URL for document: ${doc.name}`
+							`Failed to generate admin file URL for document: ${doc.name}`
 						)
 						continue
 					}
 
 					const response = await fetch(proxyUrl, {
 						method: 'GET',
-						credentials: 'include',
+						credentials: 'include', // Important: include session cookies
 					})
 
 					if (!response.ok) {

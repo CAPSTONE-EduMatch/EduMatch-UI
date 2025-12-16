@@ -371,27 +371,43 @@ export async function GET(request: NextRequest) {
 						user.role === "institution" ||
 						user.role === "moderator";
 
+					// Check if user is admin - admins can access all profile documents
+					const isAdmin =
+						user.role === "admin" ||
+						user.email === process.env.ADMIN_EMAIL;
+
+					// For admins, skip message file check - they can access all profile documents
 					// For message files, validate that the file is actually part of a message thread
 					// This ensures only sender and receiver can access files sent in messages
 					let hasMessageFileAccess = false;
-					try {
-						hasMessageFileAccess = await validateMessageFileAccess(
-							user.id,
-							fileOwnerId,
-							imageUrl
-						);
+					if (!isAdmin) {
+						// Only check message file access for non-admins
+						try {
+							hasMessageFileAccess =
+								await validateMessageFileAccess(
+									user.id,
+									fileOwnerId,
+									imageUrl
+								);
+							// eslint-disable-next-line no-console
+							console.log(
+								`[Protected Image] Message file validation: ${hasMessageFileAccess ? "File found in message thread" : "File not in message thread"}`
+							);
+						} catch (error) {
+							// eslint-disable-next-line no-console
+							console.error(
+								"[Protected Image] Error validating message file access:",
+								error
+							);
+							// Fail closed for validation errors
+							hasMessageFileAccess = false;
+						}
+					} else {
+						// Admin accessing - skip message file check, will be handled by admin permission check
 						// eslint-disable-next-line no-console
 						console.log(
-							`[Protected Image] Message file validation: ${hasMessageFileAccess ? "File found in message thread" : "File not in message thread"}`
+							`[Protected Image] Admin access - skipping message file validation`
 						);
-					} catch (error) {
-						// eslint-disable-next-line no-console
-						console.error(
-							"[Protected Image] Error validating message file access:",
-							error
-						);
-						// Fail closed for validation errors
-						hasMessageFileAccess = false;
 					}
 
 					// If file is not in a message thread, check role-based permissions
@@ -399,7 +415,7 @@ export async function GET(request: NextRequest) {
 						// For authorized roles, allow access to applicant files
 						// But we need to check if the file owner is an applicant
 						if (isAuthorizedRole) {
-							// Check if file owner is an applicant
+							// Check if file owner is an applicant or institution
 							const fileOwner =
 								await prismaClient.user.findUnique({
 									where: { id: fileOwnerId },
@@ -410,18 +426,48 @@ export async function GET(request: NextRequest) {
 												applicant_id: true,
 											},
 										},
+										institution: {
+											select: {
+												institution_id: true,
+											},
+										},
 									},
 								});
 
 							// eslint-disable-next-line no-console
 							console.log(
-								`[Protected Image] File owner check: ${fileOwner?.role || "unknown"} - Has applicant: ${!!fileOwner?.applicant}`
+								`[Protected Image] File owner check: ${fileOwner?.role || "unknown"} - Has applicant: ${!!fileOwner?.applicant} - Has institution: ${!!fileOwner?.institution}`
 							);
 
-							// Only allow if file owner is an applicant (not another institution)
-							if (
-								fileOwner?.role === "applicant" ||
-								fileOwner?.applicant
+							// Admins can access both applicant and institution documents
+							// Institutions can only access applicant documents (with application relationship)
+							const isAdmin =
+								user.role === "admin" ||
+								user.email === process.env.ADMIN_EMAIL;
+
+							// Allow admin access to any user's documents (applicant or institution)
+							// Admins have full access to all profile documents
+							if (isAdmin) {
+								if (fileOwner) {
+									// eslint-disable-next-line no-console
+									console.log(
+										`[Protected Image] ✅ Allowed: Admin accessing ${fileOwner.role || "user"} document`
+									);
+								} else {
+									// eslint-disable-next-line no-console
+									console.log(
+										`[Protected Image] ✅ Allowed: Admin accessing document (file owner not found in DB, but admin has access)`
+									);
+								}
+								setCachedPermission(user.id, s3Key, true);
+								// Continue to generate presigned URL - don't return here
+							}
+							// For institutions, only allow if file owner is an applicant (not another institution)
+							else if (
+								!isAdmin &&
+								fileOwner &&
+								(fileOwner.role === "applicant" ||
+									fileOwner.applicant)
 							) {
 								// For institutions, check if there's an application relationship
 								if (

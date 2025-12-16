@@ -11,6 +11,20 @@ export async function GET(
 		// Authenticate user and check admin permissions
 		const { user: currentUser } = await requireAuth();
 
+		// Verify admin role
+		if (
+			currentUser.role !== "admin" &&
+			currentUser.email !== process.env.ADMIN_EMAIL
+		) {
+			return Response.json(
+				{
+					success: false,
+					error: "Forbidden - Admin access required",
+				},
+				{ status: 403 }
+			);
+		}
+
 		const institutionId = params.id;
 		const documentId = params.documentId;
 

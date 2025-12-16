@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
 import { useFileUpload } from '@/hooks/files/useFileUpload'
-import { FileItem, FolderItem } from '@/utils/file/file-utils'
-import { Button } from '@/components/ui'
+import { FileItem } from '@/utils/file/file-utils'
 import { cn } from '@/utils/index'
+import React, { useCallback, useRef, useState } from 'react'
 
 interface FileUploadManagerProps {
 	className?: string
@@ -67,6 +66,14 @@ export function FileUploadManager({
 	}, [])
 
 	const handleFileSelection = async (files: File[]) => {
+		// Block file selection if upload is in progress
+		if (isUploading) {
+			alert(
+				'Please wait for the current upload to complete before adding more files.'
+			)
+			return
+		}
+
 		// Limit files to maxFiles if specified
 		const limitedFiles = maxFiles ? files.slice(0, maxFiles) : files
 
@@ -127,14 +134,33 @@ export function FileUploadManager({
 				className={cn(
 					'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
 					dragActive
-						? 'border-primary bg-primary/5'
-						: 'border-border hover:border-primary/50',
+						? 'border-primary bg-primary/5 cursor-pointer'
+						: 'border-border hover:border-primary/50 cursor-pointer',
 					isUploading && 'opacity-50 pointer-events-none'
 				)}
-				onDragEnter={handleDrag}
+				role="button"
+				tabIndex={0}
+				aria-disabled={isUploading}
+				onClick={() => {
+					if (!isUploading) fileInputRef.current?.click()
+				}}
+				onKeyDown={(e: React.KeyboardEvent) => {
+					if (isUploading) return
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault()
+						fileInputRef.current?.click()
+					}
+				}}
+				onDragEnter={(e) => {
+					if (!isUploading) handleDrag(e)
+				}}
 				onDragLeave={handleDrag}
-				onDragOver={handleDrag}
-				onDrop={handleDrop}
+				onDragOver={(e) => {
+					if (!isUploading) handleDrag(e)
+				}}
+				onDrop={(e) => {
+					if (!isUploading) handleDrop(e)
+				}}
 			>
 				{!isUploading ? (
 					<div className="space-y-2">
@@ -157,6 +183,9 @@ export function FileUploadManager({
 						<div className="space-y-2">
 							<p className="text-sm font-medium text-foreground">
 								Uploading files...
+							</p>
+							<p className="text-xs text-muted-foreground">
+								Please wait for the upload to complete
 							</p>
 							{uploadProgress.length > 0 && (
 								<div className="space-y-2">

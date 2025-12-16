@@ -40,6 +40,9 @@ interface FileUploadManagerWithOCRProps {
 	// Authentication props
 	isAuthenticated?: boolean
 	onAuthRequired?: () => void
+	// Global upload control
+	isGloballyDisabled?: boolean
+	onFileSelectionStart?: () => void
 }
 
 interface ProcessingFile {
@@ -72,6 +75,8 @@ export function FileUploadManagerWithOCR({
 	onValidationComplete,
 	isAuthenticated = true, // Default to true for backward compatibility
 	onAuthRequired,
+	isGloballyDisabled = false,
+	onFileSelectionStart,
 }: FileUploadManagerWithOCRProps) {
 	const t = useTranslations()
 	const [dragActive, setDragActive] = useState(false)
@@ -88,6 +93,9 @@ export function FileUploadManagerWithOCR({
 		}>
 	>([])
 	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	// Check if any files are currently uploading
+	const isFilesUploading = processingFiles.some((f) => f.status === 'uploading')
 
 	const { saveExtractedText } = useOCRData()
 
@@ -530,6 +538,20 @@ export function FileUploadManagerWithOCR({
 				return
 			}
 
+			// Block file selection if upload is in progress (locally or globally)
+			if (isFilesUploading || isGloballyDisabled) {
+				alert(
+					t('file_upload.alerts.upload_in_progress') ||
+						'Please wait for the current upload to complete before adding more files.'
+				)
+				return
+			}
+
+			// Notify parent that file selection has started
+			if (onFileSelectionStart) {
+				onFileSelectionStart()
+			}
+
 			// eslint-disable-next-line no-console
 			console.log('handleFileSelection called with files:', files)
 
@@ -726,7 +748,6 @@ export function FileUploadManagerWithOCR({
 			maxSize,
 			acceptedTypes,
 			processFileWithOCRAndValidation,
-			processingFiles,
 			t,
 			uploadFiles,
 			saveExtractedText,
@@ -734,6 +755,7 @@ export function FileUploadManagerWithOCR({
 			onValidationComplete,
 			isAuthenticated,
 			onAuthRequired,
+			isFilesUploading,
 		]
 	)
 
@@ -844,6 +866,8 @@ export function FileUploadManagerWithOCR({
 										'Validating content (it will take 15s - 20s)...'}
 									{file.status === 'validated' &&
 										'Validated, waiting for batch upload...'}
+									{file.status === 'uploading' &&
+										'Uploading to cloud storage...'}
 									{file.status === 'completed' && 'Processing complete'}
 									{/* {file.status === 'failed' &&
 										`⚠️ Upload blocked: ${file.error || 'Processing failed'}`} */}
@@ -861,11 +885,20 @@ export function FileUploadManagerWithOCR({
 					dragActive
 						? 'border-primary bg-primary/5 cursor-pointer'
 						: 'border-border hover:border-primary/50 cursor-pointer',
-					(isUploading || !isAuthenticated) && 'opacity-50 pointer-events-none'
+					(isUploading ||
+						isFilesUploading ||
+						isGloballyDisabled ||
+						!isAuthenticated) &&
+						'opacity-50 pointer-events-none'
 				)}
 				role="button"
 				tabIndex={0}
-				aria-disabled={isUploading || !isAuthenticated}
+				aria-disabled={
+					isUploading ||
+					isFilesUploading ||
+					isGloballyDisabled ||
+					!isAuthenticated
+				}
 				onClick={() => {
 					if (!isAuthenticated) {
 						if (onAuthRequired) {
@@ -873,7 +906,8 @@ export function FileUploadManagerWithOCR({
 						}
 						return
 					}
-					if (!isUploading) fileInputRef.current?.click()
+					if (!isUploading && !isFilesUploading && !isGloballyDisabled)
+						fileInputRef.current?.click()
 				}}
 				onKeyDown={(e: React.KeyboardEvent) => {
 					if (!isAuthenticated) {
@@ -882,14 +916,14 @@ export function FileUploadManagerWithOCR({
 						}
 						return
 					}
-					if (isUploading) return
+					if (isUploading || isFilesUploading || isGloballyDisabled) return
 					if (e.key === 'Enter' || e.key === ' ') {
 						e.preventDefault()
 						fileInputRef.current?.click()
 					}
 				}}
 				onDragEnter={(e) => {
-					if (!isAuthenticated) {
+					if (!isAuthenticated || isGloballyDisabled) {
 						e.preventDefault()
 						e.stopPropagation()
 						return
@@ -898,7 +932,7 @@ export function FileUploadManagerWithOCR({
 				}}
 				onDragLeave={handleDrag}
 				onDragOver={(e) => {
-					if (!isAuthenticated) {
+					if (!isAuthenticated || isGloballyDisabled) {
 						e.preventDefault()
 						e.stopPropagation()
 						return
@@ -906,10 +940,10 @@ export function FileUploadManagerWithOCR({
 					handleDrag(e)
 				}}
 				onDrop={(e) => {
-					if (!isAuthenticated) {
+					if (!isAuthenticated || isGloballyDisabled) {
 						e.preventDefault()
 						e.stopPropagation()
-						if (onAuthRequired) {
+						if (!isAuthenticated && onAuthRequired) {
 							onAuthRequired()
 						}
 						return
@@ -959,6 +993,18 @@ export function FileUploadManagerWithOCR({
 								</span>
 							</div>
 						)}
+					</div>
+				) : isFilesUploading ? (
+					<div className="space-y-4">
+						<div className="flex flex-col items-center gap-3">
+							<Hourglass className="w-10 h-10 text-primary animate-pulse" />
+							<p className="text-sm font-medium text-foreground">
+								{t('file_upload.uploading_files') || 'Uploading files...'}
+							</p>
+							<p className="text-xs text-muted-foreground">
+								Please wait for the upload to complete
+							</p>
+						</div>
 					</div>
 				) : (
 					<div className="space-y-4">

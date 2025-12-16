@@ -1,22 +1,25 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui'
-import { Button } from '@/components/ui'
-import { Input } from '@/components/ui'
-import { Label } from '@/components/ui'
-import { CustomSelect } from '@/components/ui'
+import {
+	Button,
+	Card,
+	CardContent,
+	CustomSelect,
+	ErrorModal,
+	Input,
+	Label,
+	SuccessModal,
+	WarningModal,
+} from '@/components/ui'
 import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
-import { Upload, Edit3, Save, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import { SuccessModal } from '@/components/ui'
-import { ErrorModal } from '@/components/ui'
-import { WarningModal } from '@/components/ui'
 import { useSimpleWarning } from '@/hooks/ui/useSimpleWarning'
 import { openSessionProtectedFile } from '@/utils/files/getSessionProtectedFileUrl'
+import { Edit3, Save, Upload, X } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 // import { FileValidationResult } from '@/services/ai/file-validation-service'
-import { useTranslations } from 'next-intl'
 import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
+import { useTranslations } from 'next-intl'
 
 interface AcademicSectionProps {
 	profile: any
@@ -33,6 +36,7 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedProfile, setEditedProfile] = useState(profile)
 	const [isUploading, setIsUploading] = useState(false)
+	const [isAnyFileUploading, setIsAnyFileUploading] = useState(false)
 	const [isSaving, setIsSaving] = useState(false)
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
 	const [showErrorModal, setShowErrorModal] = useState(false)
@@ -1051,7 +1055,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									const existingFiles = editedProfile?.cvFiles || []
 									const updatedFiles = [...existingFiles, ...files]
 									handleFieldChange('cvFiles', updatedFiles)
+									setIsAnyFileUploading(false)
 								}}
+								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								isGloballyDisabled={isAnyFileUploading}
 								category="cv-resume"
 								acceptedTypes={[
 									'application/pdf',
@@ -1143,7 +1150,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									const existingFiles = editedProfile?.languageCertFiles || []
 									const updatedFiles = [...existingFiles, ...files]
 									handleFieldChange('languageCertFiles', updatedFiles)
+									setIsAnyFileUploading(false)
 								}}
+								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								isGloballyDisabled={isAnyFileUploading}
 								category="language-certificates"
 								acceptedTypes={[
 									'application/pdf',
@@ -1239,7 +1249,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									const existingFiles = editedProfile?.degreeFiles || []
 									const updatedFiles = [...existingFiles, ...files]
 									handleFieldChange('degreeFiles', updatedFiles)
+									setIsAnyFileUploading(false)
 								}}
+								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								isGloballyDisabled={isAnyFileUploading}
 								category="degree-certificates"
 								acceptedTypes={[
 									'application/pdf',
@@ -1332,7 +1345,10 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 									const existingFiles = editedProfile?.transcriptFiles || []
 									const updatedFiles = [...existingFiles, ...files]
 									handleFieldChange('transcriptFiles', updatedFiles)
+									setIsAnyFileUploading(false)
 								}}
+								onFileSelectionStart={() => setIsAnyFileUploading(true)}
+								isGloballyDisabled={isAnyFileUploading}
 								category="academic-transcripts"
 								acceptedTypes={[
 									'application/pdf',
@@ -1548,7 +1564,12 @@ export const AcademicSection: React.FC<AcademicSectionProps> = ({
 															],
 														}
 														handleFieldChange('researchPapers', newPapers)
+														setIsAnyFileUploading(false)
 													}}
+													onFileSelectionStart={() =>
+														setIsAnyFileUploading(true)
+													}
+													isGloballyDisabled={isAnyFileUploading}
 													category="research-papers"
 													acceptedTypes={[
 														'application/pdf',

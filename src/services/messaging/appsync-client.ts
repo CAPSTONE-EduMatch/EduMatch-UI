@@ -637,7 +637,8 @@ export const subscribeToAllMessages = (callback: () => void) => {
 
 	// Use a simple polling mechanism to refresh threads periodically
 	// This ensures thread updates are reflected even when user is on different thread
-	// Increased interval to 30 seconds to match throttling and prevent rate limiting
+	// 30 seconds is optimal: balances real-time feel with server load and rate limiting
+	// Note: Active threads use real-time subscriptions, so polling is mainly for background updates
 	const interval = setInterval(() => {
 		// Only poll if tab is visible to save resources
 		if (typeof document !== "undefined" && !document.hidden) {

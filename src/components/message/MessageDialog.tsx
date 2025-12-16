@@ -230,6 +230,7 @@ export function MessageDialog({
 	// This prevents multiple loading states and ensures everything is ready
 	useEffect(() => {
 		// Once initialized, never check again (prevent toggling)
+		// This prevents the loading screen from reappearing when threads refresh periodically
 		if (initializationCheckedRef.current) {
 			return
 		}
@@ -247,17 +248,21 @@ export function MessageDialog({
 		}
 
 		// If threads are actively loading, wait for them to complete
+		// BUT: Only wait on the FIRST load. After initialization, periodic refreshes
+		// should not block initialization
 		if (threadsLoading) {
 			return
 		}
 
 		// If we have threads, wait for users to load so names are available
 		// But if we have no threads, we don't need users loaded
-		if (appSyncThreads.length > 0 && !usersLoaded) {
+		// Also, if users are being refreshed (not initial load), don't wait
+		if (appSyncThreads.length > 0 && !usersLoaded && !refreshingUsers) {
 			return
 		}
 
 		// All critical data is loaded - mark as initialized (only once)
+		// This prevents the loading screen from ever showing again
 		initializationCheckedRef.current = true
 		setIsFullyInitialized(true)
 	}, [
@@ -267,6 +272,7 @@ export function MessageDialog({
 		threadsLoading,
 		appSyncThreads.length,
 		usersLoaded,
+		refreshingUsers,
 	])
 
 	// Handle threadId - navigate to specific thread
@@ -1486,9 +1492,9 @@ export function MessageDialog({
 	// Check if we're still loading initial data
 	// Show loading screen only during full initialization
 	// Only show loading screen when NOT in a specific thread (threadId) to allow thread content to show
-	// Also check if we've already initialized to prevent showing loading again
-	const isInitialLoading =
-		!threadId && !isFullyInitialized && !initializationCheckedRef.current
+	// Once initializationCheckedRef is true, NEVER show loading again (even if threads refresh periodically)
+	// This prevents the annoying "Loading..." flash that appears when threads refresh in the background
+	const isInitialLoading = !threadId && !initializationCheckedRef.current
 
 	// Show loading screen during initial load
 	if (isInitialLoading) {

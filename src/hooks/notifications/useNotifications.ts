@@ -170,13 +170,17 @@ export function useNotifications() {
 		}
 	}, [isAuthenticated, fetchNotifications]);
 
-	// Set up polling for new notifications (every 30 seconds)
+	// Set up polling for new notifications (every 15 seconds for faster alerts)
+	// Notifications are important, so we check more frequently than messages
 	useEffect(() => {
 		if (!isAuthenticated) return;
 
 		const interval = setInterval(() => {
-			fetchNotifications(10, 0, false);
-		}, 30000); // 30 seconds
+			// Only poll if tab is visible to save resources
+			if (typeof document !== "undefined" && !document.hidden) {
+				fetchNotifications(10, 0, false);
+			}
+		}, 15000); // 15 seconds - faster for important alerts
 
 		return () => clearInterval(interval);
 	}, [isAuthenticated, fetchNotifications]);

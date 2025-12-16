@@ -543,8 +543,9 @@ export async function PUT(request: NextRequest) {
 				updateData.status === "PUBLISHED" ||
 				updateData.status === "SUBMITTED"
 			) {
-				const { canCreatePost } =
-					await import("@/services/authorization");
+				const { canCreatePost } = await import(
+					"@/services/authorization"
+				);
 				const authorization = await canCreatePost(
 					institution.institution_id
 				);

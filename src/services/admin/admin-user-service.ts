@@ -1,6 +1,6 @@
 import { auth } from "@/config/auth";
-import { prismaClient } from "../../../prisma/index";
 import { randomUUID } from "crypto";
+import { prismaClient } from "../../../prisma/index";
 
 export interface UserDetailsFromDB {
 	id: string;
@@ -438,6 +438,16 @@ export class AdminUserService {
 			displayName = dbUser.name || "Unknown";
 		}
 
+		// Determine profile image based on user type
+		// For institutions: use logo from institution profile
+		// For applicants/admins: use image from user table (OAuth image)
+		let profileImage = "";
+		if (institution) {
+			profileImage = institution.logo || "";
+		} else {
+			profileImage = dbUser.image || "";
+		}
+
 		return {
 			id: dbUser.id,
 			name: displayName,
@@ -453,7 +463,7 @@ export class AdminUserService {
 					: applicant.gender
 						? "Male"
 						: "Female",
-			profileImage: dbUser.image || "",
+			profileImage: profileImage,
 			program: applicant?.level || "Not specified",
 			subdisciplines: subdisciplines,
 			gpa: applicant?.gpa ? applicant.gpa.toString() : "Not provided",

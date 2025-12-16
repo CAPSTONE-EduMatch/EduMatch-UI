@@ -279,18 +279,12 @@ export async function GET(request: NextRequest) {
 		// Calculate match scores
 		await calculateMatchPercentages(programs, userId);
 
-		// Sort by match score (descending) then by application count (popularity)
+		// Sort by creation date (newest first) - match scores are still calculated and returned
+		// This ensures users see the most recent opportunities while still having personalization data
 		programs.sort((a, b) => {
-			const matchA = parseFloat(a.match.replace("%", ""));
-			const matchB = parseFloat(b.match.replace("%", ""));
-
-			// Primary sort: match score
-			if (matchA !== matchB) {
-				return matchB - matchA;
-			}
-
-			// Secondary sort: popularity (application count)
-			return b.applicationCount - a.applicationCount;
+			// Programs are already sorted by create_at DESC from the query
+			// Just maintain that order, no need to re-sort
+			return 0;
 		});
 
 		// Take only the top 9 programs

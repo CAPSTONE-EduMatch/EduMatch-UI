@@ -1,6 +1,67 @@
+import { SimilarityService } from "@/services/similarity/similarity-service";
 import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 import { prismaClient } from "../../../../../../../prisma";
+
+// Helper function to calculate match percentages for recommended scholarships
+async function calculateMatchPercentages(
+	scholarships: any[],
+	userId?: string
+): Promise<void> {
+	if (!userId) {
+		// No authenticated user, show 0%
+		scholarships.forEach((scholarship) => {
+			scholarship.match = "0%";
+		});
+		return;
+	}
+
+	try {
+		// Get applicant embedding
+		const applicant = await prismaClient.applicant.findFirst({
+			where: { user_id: userId },
+			select: { embedding: true },
+		});
+
+		if (!applicant?.embedding) {
+			// No applicant embedding, show 0%
+			scholarships.forEach((scholarship) => {
+				scholarship.match = "0%";
+			});
+			return;
+		}
+
+		// Get embeddings for all scholarship posts
+		const postIds = scholarships.map((s) => s.id);
+		const scholarshipPosts = await prismaClient.scholarshipPost.findMany({
+			where: { post_id: { in: postIds } },
+			select: { post_id: true, embedding: true },
+		});
+
+		// Calculate similarity scores
+		const applicantEmbedding = applicant.embedding as number[];
+		const matchScores = SimilarityService.calculateMatchScores(
+			applicantEmbedding,
+			scholarshipPosts.map((p) => ({
+				id: p.post_id,
+				embedding: p.embedding as number[] | null,
+			}))
+		);
+
+		// Update scholarship objects with calculated match scores
+		scholarships.forEach((scholarship) => {
+			scholarship.match = matchScores[scholarship.id] || "0%";
+		});
+	} catch (error) {
+		if (process.env.NODE_ENV === "development") {
+			console.error("Error calculating match scores:", error);
+		}
+		// Fallback to 0% on error
+		scholarships.forEach((scholarship) => {
+			scholarship.match = "0%";
+		});
+	}
+}
 
 export async function GET(request: NextRequest) {
 	try {
@@ -16,8 +77,10 @@ export async function GET(request: NextRequest) {
 
 		// PLAN-BASED AUTHORIZATION: Check if user can see recommendations
 		let canViewRecommendations = false;
+		let userId: string | undefined;
 		try {
 			const { user } = await requireAuth();
+			userId = user.id;
 
 			const applicant = await prismaClient.applicant.findFirst({
 				where: { user_id: user.id },
@@ -183,9 +246,8 @@ export async function GET(request: NextRequest) {
 			});
 
 		// Transform the data to match the expected format
-		const transformedScholarships = recommendedScholarships
-			.slice(0, 9)
-			.map((scholarship) => ({
+		let transformedScholarships = recommendedScholarships.map(
+			(scholarship) => ({
 				id: scholarship.post_id,
 				title: scholarship.title,
 				description: scholarship.description,
@@ -275,7 +337,15 @@ export async function GET(request: NextRequest) {
 						total: scholarship._count.applications,
 					},
 				},
-			}));
+				match: "0%", // Will be calculated
+			})
+		);
+
+		// Calculate match scores
+		await calculateMatchPercentages(transformedScholarships, userId);
+
+		// Already sorted by create_at DESC from query, take first 9
+		transformedScholarships = transformedScholarships.slice(0, 9);
 
 		return NextResponse.json({
 			success: true,

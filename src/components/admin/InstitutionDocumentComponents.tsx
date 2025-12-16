@@ -3,10 +3,7 @@
 import { InstitutionDocument } from '@/types/domain/institution-details'
 import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
-import {
-	openSessionProtectedFile,
-	downloadSessionProtectedFile,
-} from '@/utils/files/getSessionProtectedFileUrl'
+import { openAdminFile, downloadAdminFile } from '@/utils/files/getAdminFileUrl'
 
 interface InstitutionDocumentSectionProps {
 	title: string
@@ -21,10 +18,10 @@ export function InstitutionDocumentSection({
 }: InstitutionDocumentSectionProps) {
 	const [downloading, setDownloading] = useState<string | null>(null)
 
-	const handlePreviewDocument = (file: InstitutionDocument) => {
+	const handlePreviewDocument = async (file: InstitutionDocument) => {
 		try {
 			if (file.url && file.url !== '#' && file.url !== '') {
-				openSessionProtectedFile(file.url)
+				await openAdminFile(file.url)
 			} else {
 				alert('Document not available for preview')
 			}
@@ -37,7 +34,7 @@ export function InstitutionDocumentSection({
 		setDownloading(file.documentId)
 		try {
 			if (file.url && file.url !== '#' && file.url !== '') {
-				await downloadSessionProtectedFile(file.url, file.name || 'document')
+				await downloadAdminFile(file.url, file.name || 'document')
 			} else {
 				// Fallback to API download if URL is not available
 				const response = await fetch(

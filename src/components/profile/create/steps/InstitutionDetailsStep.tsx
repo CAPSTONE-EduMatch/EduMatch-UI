@@ -20,10 +20,10 @@ import { useTranslations } from 'next-intl'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData
-	onInputChange: (field: keyof ProfileFormData, value: any) => void
+	onInputChange: (_field: keyof ProfileFormData, _value: any) => void
 	onMultiSelectChange: (
-		field: keyof ProfileFormData
-	) => (values: string[]) => void
+		_field: keyof ProfileFormData
+	) => (_values: string[]) => void
 	onBack: () => void
 	onNext: () => void
 	onShowManageModal: () => void
@@ -37,7 +37,7 @@ export function InstitutionDetailsStep({
 	onNext,
 	onShowManageModal,
 }: InstitutionDetailsStepProps) {
-	const t = useTranslations('create_profile.institution_details')
+	// Institution forms are always in English
 	// Use shared disciplines context (loaded once at layout level, cached by React Query)
 	const {
 		subdisciplines: disciplines = [],
@@ -123,7 +123,7 @@ export function InstitutionDetailsStep({
 	}
 
 	// Function to handle OCR completion for institution verification
-	const handleOCRComplete = async (fileId: string, extractedText: string) => {
+	const handleOCRComplete = async (_fileId: string, _extractedText: string) => {
 		// OCR completed - extracted text saved internally
 		// No UI display needed
 		// Validation will be handled by `handleValidationComplete` callback
@@ -177,9 +177,11 @@ export function InstitutionDetailsStep({
 			{/* Header */}
 			<div className="text-center">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
-					{t('title')}
+					Institution Details
 				</h2>
-				<p className="text-muted-foreground">{t('subtitle')}</p>
+				<p className="text-muted-foreground">
+					Select disciplines and upload verification documents
+				</p>
 			</div>
 
 			{/* Validation Notifications */}
@@ -207,20 +209,20 @@ export function InstitutionDetailsStep({
 				!formData.institutionType) && (
 				<div className="space-y-4">
 					<Label className="text-sm font-medium text-foreground">
-						{t('subdisciplines.label')} <span className="text-red-500">*</span>
+						Institution Sub-Disciplines <span className="text-red-500">*</span>
 					</Label>
 
 					{isLoadingDisciplines ? (
 						<div className="flex items-center justify-center p-4 border border-gray-200 rounded-lg">
 							<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2"></div>
 							<span className="text-sm text-muted-foreground">
-								{t('subdisciplines.loading')}
+								Loading disciplines...
 							</span>
 						</div>
 					) : disciplinesError ? (
 						<div className="p-4 border border-red-200 rounded-lg bg-red-50">
 							<p className="text-sm text-red-600">
-								{disciplinesError?.message || t('subdisciplines.error')}
+								{disciplinesError?.message || 'Failed to load disciplines'}
 							</p>
 							<Button
 								variant="outline"
@@ -230,7 +232,7 @@ export function InstitutionDetailsStep({
 								}}
 								className="mt-2"
 							>
-								{t('subdisciplines.retry')}
+								Retry
 							</Button>
 						</div>
 					) : (
@@ -248,7 +250,7 @@ export function InstitutionDetailsStep({
 									: []
 								onMultiSelectChange('institutionDisciplines')(values)
 							}}
-							placeholder={t('subdisciplines.placeholder')}
+							placeholder="Select sub-disciplines..."
 							isMulti
 							isClearable
 							className="w-full"
@@ -267,7 +269,7 @@ export function InstitutionDetailsStep({
 				!formData.institutionType) && (
 				<div className="space-y-4">
 					<Label className="text-sm font-medium text-foreground">
-						{t('cover_image.label')}
+						Institution Cover Image
 					</Label>
 
 					{/* Display uploaded cover image */}
@@ -283,7 +285,7 @@ export function InstitutionDetailsStep({
 									fallback={
 										<div className="w-full h-full bg-gray-200 flex items-center justify-center">
 											<div className="text-gray-400 text-sm">
-												{t('cover_image.failed_to_load')}
+												Failed to load image
 											</div>
 										</div>
 									}
@@ -301,7 +303,7 @@ export function InstitutionDetailsStep({
 									size="sm"
 									onClick={() => onInputChange('institutionCoverImage', '')}
 								>
-									{t('cover_image.remove')}
+									Remove Image
 								</Button>
 							</div>
 						</div>
@@ -326,11 +328,10 @@ export function InstitutionDetailsStep({
 			<div className="space-y-4">
 				<div className="flex items-center gap-1">
 					<Label className="text-sm font-medium text-foreground">
-						{t('verification_documents.label')}{' '}
-						<span className="text-red-500">*</span>
+						Verification Documents <span className="text-red-500">*</span>
 					</Label>
 					<Tooltip
-						content={t('verification_documents.tooltip')}
+						content="Upload institution verification documents in PDF, DOC, DOCX, JPG, or PNG format (max 10MB per file). Required: Institution name and official details, registration numbers or accreditation information, official letterhead/logo/seal/certification marks, statement of legal status/authorization/recognition, contact information. Must be formal verification documents, not brochures."
 						maxWidth={350}
 						align="left"
 					>
@@ -368,9 +369,8 @@ export function InstitutionDetailsStep({
 				{formData.institutionVerificationDocuments &&
 					formData.institutionVerificationDocuments.length > 0 && (
 						<div className="text-xs text-green-600">
-							{t('verification_documents.uploaded', {
-								count: formData.institutionVerificationDocuments.length,
-							})}
+							{formData.institutionVerificationDocuments.length} file(s)
+							uploaded
 						</div>
 					)}
 				{verificationError && (
@@ -382,7 +382,7 @@ export function InstitutionDetailsStep({
 			{getAllFiles().length > 0 && (
 				<div className="flex justify-center pt-6">
 					<Button variant="outline" onClick={onShowManageModal} size="sm">
-						{t('manage_files', { count: getAllFiles().length })}
+						Manage Files ({getAllFiles().length})
 					</Button>
 				</div>
 			)}
@@ -390,10 +390,10 @@ export function InstitutionDetailsStep({
 			{/* Navigation Buttons */}
 			<div className="flex justify-between pt-8">
 				<Button size="sm" variant="outline" onClick={onBack}>
-					{t('back')}
+					Back
 				</Button>
 				<Button size="sm" onClick={handleNext}>
-					{t('next')}
+					Next
 				</Button>
 			</div>
 		</div>

@@ -1,5 +1,6 @@
 import { AdminUserService } from "@/services/admin/admin-user-service";
 import { getDocumentService } from "@/services/document/document-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -7,6 +8,17 @@ export async function GET(
 	{ params }: { params: { id: string; documentId: string } }
 ) {
 	try {
+		// Authenticate and verify admin role
+		const { user } = await requireAuth();
+
+		// Check if user is admin
+		if (user.role !== "admin" && user.email !== process.env.ADMIN_EMAIL) {
+			return NextResponse.json(
+				{ error: "Forbidden - Admin access required" },
+				{ status: 403 }
+			);
+		}
+
 		const userId = params.id;
 		const documentId = params.documentId;
 

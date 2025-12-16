@@ -9,11 +9,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import JSZip from 'jszip'
-import {
-	openSessionProtectedFile,
-	downloadSessionProtectedFile,
-	getSessionProtectedFileUrl,
-} from '@/utils/files/getSessionProtectedFileUrl'
+import { openAdminFile, downloadAdminFile } from '@/utils/files/getAdminFileUrl'
 
 export interface FileInfo {
 	name: string
@@ -84,9 +80,9 @@ export const FileCard = ({
 		e.stopPropagation()
 		setDownloading(true)
 		try {
-			// If file has a URL, use protected file download (admin has higher permissions)
+			// If file has a URL, use admin file download route
 			if (file.url && file.url !== '#' && file.url !== '') {
-				await downloadSessionProtectedFile(file.url, file.name)
+				await downloadAdminFile(file.url, file.name)
 			} else {
 				// Fallback to admin API endpoint
 				const endpoint = file.document_id
@@ -130,9 +126,9 @@ export const FileCard = ({
 		e.stopPropagation()
 		setPreviewing(true)
 		try {
-			// If file has a URL, use protected file preview (admin has higher permissions)
+			// If file has a URL, use admin file preview route
 			if (file.url && file.url !== '#' && file.url !== '') {
-				openSessionProtectedFile(file.url)
+				await openAdminFile(file.url)
 			} else {
 				// Fallback: try to get preview URL from admin API
 				const endpoint = file.document_id
@@ -235,53 +231,21 @@ export const DocumentSection = ({
 	// Helper function to fetch a protected file and return its blob
 	const fetchProtectedFile = async (fileUrl: string): Promise<Blob | null> => {
 		try {
-			// Use protected file URL (admin has higher permissions)
-			const protectedUrl = `/api/files/protected-image?url=${encodeURIComponent(fileUrl)}&expiresIn=3600`
-			const response = await fetch(protectedUrl, {
+			// Use admin file proxy route (requires auth on each request)
+			const adminFileUrl = `/api/admin/files/proxy?url=${encodeURIComponent(fileUrl)}`
+			const response = await fetch(adminFileUrl, {
 				method: 'GET',
-				credentials: 'include',
+				credentials: 'include', // Important: include session cookies
 			})
 
 			if (!response.ok) {
-				// Fallback to proxy URL
-				const proxyUrl = getSessionProtectedFileUrl(fileUrl)
-				if (!proxyUrl) {
-					console.warn(`Failed to get protected URL for: ${fileUrl}`)
-					return null
-				}
-
-				const proxyResponse = await fetch(proxyUrl, {
-					method: 'GET',
-					credentials: 'include',
-				})
-
-				if (!proxyResponse.ok) {
-					console.warn(`Failed to get proxy URL for: ${fileUrl}`)
-					return null
-				}
-
-				return await proxyResponse.blob()
-			}
-
-			const data = await response.json()
-			const presignedUrl = data.url
-
-			if (!presignedUrl) {
-				console.warn(`No presigned URL returned for: ${fileUrl}`)
+				console.warn(
+					`Failed to get admin file for: ${fileUrl} - Status: ${response.status}`
+				)
 				return null
 			}
 
-			// Fetch the actual file using the presigned URL
-			const fileResponse = await fetch(presignedUrl, {
-				method: 'GET',
-			})
-
-			if (!fileResponse.ok) {
-				console.warn(`Failed to fetch file from presigned URL: ${fileUrl}`)
-				return null
-			}
-
-			return await fileResponse.blob()
+			return await response.blob()
 		} catch (error) {
 			console.warn(`Error fetching protected file ${fileUrl}:`, error)
 			return null

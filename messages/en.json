@@ -2517,6 +2517,113 @@
 			"back": "Back",
 			"next": "Next"
 		},
+		"institution_info": {
+			"title": "Institution Information",
+			"subtitle": "Please provide your institution details",
+			"profile_logo": {
+				"label": "Institution Logo",
+				"upload": "Upload institution logo",
+				"uploading": "Uploading...",
+				"requirements": "Must be PNG or JPG file (max 5MB)"
+			},
+			"institution_name": {
+				"label": "Institution Name",
+				"placeholder": "Enter institution name",
+				"required": "Institution name is required"
+			},
+			"abbreviation": {
+				"label": "Abbreviation",
+				"placeholder": "e.g., MIT, Harvard"
+			},
+			"hotline": {
+				"label": "Hotline",
+				"placeholder": "Enter hotline number",
+				"required": "Hotline is required"
+			},
+			"institution_type": {
+				"label": "Institution Type",
+				"placeholder": "Select institution type",
+				"required": "Institution type is required",
+				"options": {
+					"university": "University",
+					"scholarship_provider": "Scholarship Provider",
+					"research_lab": "Research Lab"
+				}
+			},
+			"website": {
+				"label": "Website",
+				"placeholder": "https://www.institution.edu",
+				"required": "Website is required"
+			},
+			"email": {
+				"label": "Institution Email",
+				"placeholder": "contact@institution.edu",
+				"required": "Institution email is required",
+				"invalid": "Please enter a valid email address",
+				"tooltip": "Institution email is pre-filled from your Google account and cannot be changed"
+			},
+			"country": {
+				"label": "Country",
+				"placeholder": "Select country",
+				"required": "Country is required"
+			},
+			"address": {
+				"label": "Detailed Address",
+				"placeholder": "Enter detailed address",
+				"required": "Detailed address is required"
+			},
+			"representative_info": {
+				"title": "Representative Information",
+				"name": {
+					"label": "Representative Name",
+					"placeholder": "Enter representative name",
+					"required": "Representative name is required"
+				},
+				"appellation": {
+					"label": "Appellation",
+					"placeholder": "Select appellation",
+					"options": {
+						"mr": "Mr.",
+						"mrs": "Mrs.",
+						"ms": "Ms.",
+						"dr": "Dr.",
+						"prof": "Prof.",
+						"other": "Other"
+					}
+				},
+				"position": {
+					"label": "Position",
+					"placeholder": "e.g., Admissions Director",
+					"required": "Position is required"
+				},
+				"email": {
+					"label": "Representative Email",
+					"placeholder": "representative@institution.edu",
+					"required": "Representative email is required",
+					"invalid": "Please enter a valid email address"
+				},
+				"phone": {
+					"label": "Representative Phone",
+					"placeholder": "Enter phone number",
+					"required": "Representative phone is required"
+				}
+			},
+			"about_institution": {
+				"label": "About Institution",
+				"placeholder": "Describe your institution, its mission, programs, and what makes it unique...",
+				"required": "About institution is required"
+			},
+			"manage_files": "Manage Files ({count})",
+			"errors": {
+				"upload_failed": "Upload Failed",
+				"invalid_file": "Please select a PNG or JPG image file",
+				"file_too_large": "File size must be less than 5MB",
+				"try_again": "Try Again",
+				"required_fields": "Required fields missing"
+			},
+			"back": "Back",
+			"next": "Next"
+		},
 		"institution_details": {
 			"title": "Institution Details",
 			"subtitle": "Select disciplines and upload verification documents",

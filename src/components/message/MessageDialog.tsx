@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import {
 	Search,
 	Paperclip,
@@ -104,6 +104,19 @@ export function MessageDialog({
 }: MessageDialogProps = {}) {
 	const searchParams = useSearchParams()
 	const router = useRouter()
+	const pathname = usePathname()
+
+	// Determine the correct messages base path based on current route context
+	// Institutions should use /institution/dashboard/messages, applicants use /messages
+	const getMessagesBasePath = () => {
+		if (
+			pathname?.startsWith('/institution/dashboard/messages') ||
+			pathname?.startsWith('/dashboard/messages')
+		) {
+			return '/institution/dashboard/messages'
+		}
+		return '/messages'
+	}
 
 	// Helper function to filter Google images for institutions
 	// Returns null for institutions with no logo or Google images (to show Building icon)
@@ -553,7 +566,9 @@ export function MessageDialog({
 						})
 
 						// Update URL using Next.js router for proper navigation
-						router.push(`/messages/${existingThread.id}`, { scroll: false })
+						router.push(`${getMessagesBasePath()}/${existingThread.id}`, {
+							scroll: false,
+						})
 						// Clear processed ref since we've navigated away from contact param
 						processedContactRef.current = null
 						setIsCheckingThread(false)
@@ -601,7 +616,7 @@ export function MessageDialog({
 									const newThread = await startNewThread(userId)
 									if (newThread?.id) {
 										// Update URL using Next.js router
-										router.replace(`/messages/${newThread.id}`)
+										router.replace(`${getMessagesBasePath()}/${newThread.id}`)
 									}
 								}
 							} catch (error) {
@@ -609,7 +624,9 @@ export function MessageDialog({
 								const newThread = await startNewThread(userId)
 								if (newThread?.id) {
 									// Update URL using Next.js router for proper navigation
-									router.push(`/messages/${newThread.id}`, { scroll: false })
+									router.push(`${getMessagesBasePath()}/${newThread.id}`, {
+										scroll: false,
+									})
 								}
 							}
 						}
@@ -814,7 +831,9 @@ export function MessageDialog({
 				const newThread = await startNewThread(contactApplicant.id)
 				if (newThread?.id) {
 					// Update URL using Next.js router for proper navigation
-					router.push(`/messages/${newThread.id}`, { scroll: false })
+					router.push(`${getMessagesBasePath()}/${newThread.id}`, {
+						scroll: false,
+					})
 					return
 				}
 			}
@@ -1028,12 +1047,14 @@ export function MessageDialog({
 					: getImageForUser(otherUser?.image, userType) // Fallback to users list (filtered)
 
 				// Use the new flat structure from AppSync
-				// Prefer profile data for name (more accurate), fallback to users list
+				// Prefer profile data for name (more accurate), fallback to users list, then AppSync thread data
+				// AppSync threads include lastMessageSenderName which can be used as a temporary fallback
 				const otherParticipant = {
 					id: otherParticipantId || '',
 					name:
 						profileUser?.name ||
 						otherUser?.name ||
+						appSyncThread.lastMessageSenderName || // Use sender name from thread as fallback
 						(otherParticipantId ? 'Loading...' : 'User'),
 					image: imageToUse,
 					status: profileUser?.status || otherUser?.status || 'offline',
@@ -1133,6 +1154,61 @@ export function MessageDialog({
 		return threads
 	}, [appSyncThreads, users, user?.id, user?.name, user?.image, searchQuery])
 
+	// Proactively fetch user data for threads that show "Loading..." to prevent persistent loading state
+	useEffect(() => {
+		if (!user?.id || !appSyncThreads.length) return
+
+		// Find threads with missing user data (showing "Loading...")
+		const threadsNeedingData = appSyncThreads.filter((appSyncThread) => {
+			const otherParticipantId =
+				appSyncThread.user1Id === user?.id
+					? appSyncThread.user2Id
+					: appSyncThread.user1Id
+
+			if (!otherParticipantId) return false
+
+			// Check if we have cached data
+			const cached = userDataCacheRef.current.get(otherParticipantId)
+			if (cached) {
+				const age = Date.now() - cached.timestamp
+				if (age < 300000 && cached.data?.name) {
+					// Has valid cached data with name
+					return false
+				}
+			}
+
+			// Check if user is in users list
+			const userInList = users.find((u) => u.id === otherParticipantId)
+			if (userInList?.name) {
+				// Has name in users list
+				return false
+			}
+
+			// Check if fetch is already in progress
+			if (userDataFetchPromisesRef.current.has(otherParticipantId)) {
+				return false
+			}
+
+			// Needs data fetch
+			return true
+		})
+
+		// Fetch user data for threads that need it (limit to 5 at a time to avoid overwhelming)
+		threadsNeedingData.slice(0, 5).forEach((appSyncThread) => {
+			const otherParticipantId =
+				appSyncThread.user1Id === user?.id
+					? appSyncThread.user2Id
+					: appSyncThread.user1Id
+
+			if (otherParticipantId) {
+				// Fetch in background - don't await to avoid blocking
+				fetchUserData(otherParticipantId).catch(() => {
+					// Silently handle errors - will retry on next render if needed
+				})
+			}
+		})
+	}, [appSyncThreads, users, user?.id])
+
 	// Handle selecting an existing thread
 	const selectExistingThread = async (thread: Thread) => {
 		// Don't do anything if clicking the same thread
@@ -1206,7 +1282,7 @@ export function MessageDialog({
 			// This prevents the page from rerunning when switching threads
 			// Do this after state is set to prevent useEffect from interfering
 			if (typeof window !== 'undefined') {
-				const newUrl = `/messages/${thread.id}`
+				const newUrl = `${getMessagesBasePath()}/${thread.id}`
 				window.history.pushState({ threadId: thread.id }, '', newUrl)
 			}
 		} finally {

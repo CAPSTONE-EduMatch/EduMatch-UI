@@ -78,7 +78,9 @@ export const InstitutionProfileLayout: React.FC<
 	const [isNotificationOpen, setIsNotificationOpen] = useState(false)
 
 	// Hide message and bell icons on messages page
-	const isMessagesPage = pathname?.startsWith('/institution/dashboard/messages')
+	const isMessagesPage =
+		pathname?.startsWith('/institution/dashboard/messages') ||
+		pathname?.startsWith('/dashboard/messages')
 
 	// Format notification time
 	const formatNotificationTime = (dateString: string) => {

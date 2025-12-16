@@ -1,29 +1,33 @@
 'use client'
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Card, CardContent } from '@/components/ui'
-import { Button } from '@/components/ui'
-import { Input } from '@/components/ui'
-import { Avatar, AvatarFallback } from '@/components/ui'
+import {
+	Avatar,
+	AvatarFallback,
+	Button,
+	Card,
+	CardContent,
+	CustomSelect,
+	ErrorModal,
+	Input,
+	Modal,
+	PhoneInput,
+	SuccessModal,
+} from '@/components/ui'
+import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
 import { ProtectedAvatarImage } from '@/components/ui/ProtectedAvatarImage'
 import { ProtectedImage } from '@/components/ui/ProtectedImage'
-import {
-	openSessionProtectedFile,
-	downloadSessionProtectedFile,
-} from '@/utils/files/getSessionProtectedFileUrl'
-import { PhoneInput } from '@/components/ui'
-import { CustomSelect } from '@/components/ui'
-import { Upload, Building2, Download, Trash2, X } from 'lucide-react'
 import { getCountriesWithSvgFlags } from '@/data/countries'
-import { SuccessModal } from '@/components/ui'
-import { ErrorModal } from '@/components/ui'
-import { Modal } from '@/components/ui'
-import { FileUploadManagerWithOCR } from '@/components/ui/layout/file-upload-manager-with-ocr'
+import {
+	downloadSessionProtectedFile,
+	openSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
+import { Building2, Download, Trash2, Upload, X } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 // import { FileValidationResult } from '@/services/ai/file-validation-service'
-import { ApiService, apiClient } from '@/services/api/axios-config'
-import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
 import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
+import { ApiService, apiClient } from '@/services/api/axios-config'
 
 interface InstitutionProfileSectionProps {
 	profile?: any

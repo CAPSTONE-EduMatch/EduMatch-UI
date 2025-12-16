@@ -16,7 +16,6 @@ import { ProtectedImg } from '@/components/ui/ProtectedImage'
 import { FileValidationNotification } from '@/components/validation/FileValidationNotification'
 import { FileValidationResult } from '@/services/ai/ollama-file-validation-service'
 import { Info } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 
 interface InstitutionDetailsStepProps {
 	formData: ProfileFormData

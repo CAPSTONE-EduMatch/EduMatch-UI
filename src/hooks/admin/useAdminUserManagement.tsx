@@ -11,6 +11,7 @@ export interface User {
 	email: string
 	status:
 		| 'active'
+		| 'deactivated'
 		| 'banned'
 		| 'rejected'
 		| 'pending'

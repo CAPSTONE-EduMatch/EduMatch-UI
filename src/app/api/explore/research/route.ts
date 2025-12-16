@@ -59,8 +59,9 @@ async function calculateMatchPercentages(
 		}
 
 		// PLAN-BASED AUTHORIZATION: Check if user can see matching scores FIRST
-		const { canSeeMatchingScore } =
-			await import("@/services/authorization");
+		const { canSeeMatchingScore } = await import(
+			"@/services/authorization"
+		);
 		const matchingPermission = await canSeeMatchingScore(
 			applicant.applicant_id
 		);

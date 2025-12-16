@@ -467,7 +467,7 @@ export class AdminUserService {
 			program: applicant?.level || "Not specified",
 			subdisciplines: subdisciplines,
 			gpa: applicant?.gpa ? applicant.gpa.toString() : "Not provided",
-			status: dbUser.status ? "Active" : "Inactive",
+			status: dbUser.banned ? "Inactive" : "Active",
 			university: applicant?.university || "Not specified",
 			role: applicant
 				? "student"
@@ -482,13 +482,13 @@ export class AdminUserService {
 	}
 
 	/**
-	 * Activate a user (set status to true)
+	 * Activate a user (set banned to false)
 	 */
 	static async activateUser(userId: string): Promise<boolean> {
 		try {
 			await prismaClient.user.update({
 				where: { id: userId },
-				data: { status: true },
+				data: { banned: false },
 			});
 			return true;
 		} catch (error) {
@@ -501,13 +501,13 @@ export class AdminUserService {
 	}
 
 	/**
-	 * Deactivate a user (set status to false)
+	 * Deactivate a user (set banned to true)
 	 */
 	static async deactivateUser(userId: string): Promise<boolean> {
 		try {
 			await prismaClient.user.update({
 				where: { id: userId },
-				data: { status: false },
+				data: { banned: true },
 			});
 			return true;
 		} catch (error) {

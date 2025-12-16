@@ -178,13 +178,12 @@ const UserManagementTable = memo(function UserManagementTable({
 								{ value: 'rejected', label: 'Rejected' },
 								{ value: 'require_update', label: 'Require Update' },
 								{ value: 'updated', label: 'Updated' },
-								{ value: 'banned', label: 'Banned' },
+								{ value: 'deactivated', label: 'Deactivated' },
 							]
 						: [
 								{ value: 'all', label: 'All Statuses' },
 								{ value: 'active', label: 'Active' },
-								{ value: 'inactive', label: 'Inactive' },
-								{ value: 'banned', label: 'Banned' },
+								{ value: 'deactivated', label: 'Deactivated' },
 							]
 				}
 				sortOptions={[
@@ -304,7 +303,7 @@ const UserManagementTable = memo(function UserManagementTable({
 											<div className="text-center">
 												<span
 													className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${
-														user.status === 'banned'
+														user.status === 'deactivated'
 															? 'bg-[#E20000] text-white'
 															: user.status === 'rejected'
 																? 'bg-[#FFA500] text-white'
@@ -317,8 +316,8 @@ const UserManagementTable = memo(function UserManagementTable({
 																			: 'bg-[#126E64] text-white'
 													}`}
 												>
-													{user.status === 'banned'
-														? 'Banned'
+													{user.status === 'deactivated'
+														? 'Deactivated'
 														: user.status === 'rejected'
 															? 'Rejected'
 															: user.status === 'pending'

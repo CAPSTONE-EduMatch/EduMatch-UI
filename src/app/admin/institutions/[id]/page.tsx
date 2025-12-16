@@ -691,8 +691,8 @@ export default function InstitutionDetailPage() {
 								{actionLoading
 									? 'Processing...'
 									: institutionData?.banned
-										? 'Deactivate Institution'
-										: 'Activate Institution'}
+										? 'Activate Institution'
+										: 'Deactivate Institution'}
 							</button>
 							{/* <button
 								onClick={handleRevokeSessions}

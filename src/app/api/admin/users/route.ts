@@ -104,12 +104,13 @@ export async function GET(request: NextRequest) {
 			} else if (statusArray.length === 1) {
 				// Single status
 				const status = statusArray[0];
-				if (status === "banned") {
+				if (status === "deactivated") {
+					// deactivated means banned = true
 					whereClause.banned = true;
 				} else if (status === "active") {
-					// For active status, exclude banned users
+					// For active status, exclude deactivated users (banned = false)
 					// For institutions, also require approved status (institution.status = true and verification_status = APPROVED)
-					whereClause.banned = { not: true };
+					whereClause.banned = false;
 					if (filters.userType === "institution") {
 						whereClause.institution = {
 							status: true,
@@ -148,12 +149,15 @@ export async function GET(request: NextRequest) {
 				// Multiple statuses - use OR conditions
 				const orConditions: any[] = [];
 
-				if (statusArray.includes("banned")) {
+				if (statusArray.includes("deactivated")) {
+					// deactivated means banned = true
 					orConditions.push({ banned: true });
 				}
 
 				if (statusArray.includes("active")) {
-					const activeCondition: any = { banned: { not: true } };
+					const activeCondition: any = {
+						banned: false,
+					};
 					if (filters.userType === "institution") {
 						activeCondition.institution = {
 							status: true,
@@ -345,34 +349,41 @@ export async function GET(request: NextRequest) {
 			}
 
 			let status = "active";
-			if (user.banned) {
-				status = "banned";
-			} else if (isInstitution && user.institution) {
-				// For institutions: check verification_status first
-				if (user.institution.verification_status === "PENDING") {
-					status = "pending";
-				} else if (
-					user.institution.verification_status === "REJECTED"
-				) {
-					status = "rejected";
-				} else if (
-					user.institution.verification_status === "REQUIRE_UPDATE"
-				) {
-					status = "require_update";
-				} else if (user.institution.verification_status === "UPDATED") {
-					status = "updated";
-				} else if (
-					user.institution.verification_status === "APPROVED"
-				) {
-					// Approved institutions show as "active"
-					status = "active";
+			if (user.banned === true) {
+				// banned = true means user is deactivated
+				status = "deactivated";
+			} else if (user.banned === false) {
+				// banned = false means user is active (unless institution has different status)
+				if (isInstitution && user.institution) {
+					// For institutions: check verification_status
+					if (user.institution.verification_status === "PENDING") {
+						status = "pending";
+					} else if (
+						user.institution.verification_status === "REJECTED"
+					) {
+						status = "rejected";
+					} else if (
+						user.institution.verification_status ===
+						"REQUIRE_UPDATE"
+					) {
+						status = "require_update";
+					} else if (
+						user.institution.verification_status === "UPDATED"
+					) {
+						status = "updated";
+					} else if (
+						user.institution.verification_status === "APPROVED"
+					) {
+						// Approved institutions show as "active"
+						status = "active";
+					} else {
+						// Fallback: treat unknown verification status as pending
+						status = "pending";
+					}
 				} else {
-					// Fallback: treat unknown verification status as pending
-					status = "pending";
+					// Applicants and admins are "active" when banned = false
+					status = "active";
 				}
-			} else if (isApplicant) {
-				// Applicants are always "active" unless banned
-				status = "active";
 			}
 
 			// Determine role for display - use institution record as source of truth

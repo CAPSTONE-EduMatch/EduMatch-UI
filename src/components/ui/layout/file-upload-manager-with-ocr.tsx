@@ -10,7 +10,7 @@ import {
 import { mistralOCRService } from '@/services/ocr/mistral-ocr-service'
 import { FileItem } from '@/utils/file/file-utils'
 import { cn } from '@/utils/index'
-import { CheckCircle, Hourglass, Sparkles } from 'lucide-react'
+import { AlertCircle, CheckCircle, Hourglass, Sparkles, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import React, { useCallback, useRef, useState } from 'react'
 
@@ -92,6 +92,13 @@ export function FileUploadManagerWithOCR({
 			validation: FileValidationResult
 			fileName: string
 			expectedFileType: string
+		}>
+	>([])
+	const [fileErrors, setFileErrors] = useState<
+		Array<{
+			id: string
+			fileName: string
+			errorMessage: string
 		}>
 	>([])
 	const fileInputRef = useRef<HTMLInputElement>(null)
@@ -594,12 +601,22 @@ export function FileUploadManagerWithOCR({
 			const validFiles = limitedFiles.filter((file) => {
 				// Check file size
 				if (file.size > maxSize * 1024 * 1024) {
-					alert(
-						t('file_upload.alerts.file_too_large', {
+					const errorId = `${Date.now()}-${Math.random()}`
+					setFileErrors((prev) => [
+						...prev,
+						{
+							id: errorId,
 							fileName: file.name,
-							maxSize,
-						})
-					)
+							errorMessage: t('file_upload.alerts.file_too_large', {
+								fileName: file.name,
+								maxSize,
+							}),
+						},
+					])
+					// Auto-dismiss after 8 seconds
+					setTimeout(() => {
+						setFileErrors((prev) => prev.filter((e) => e.id !== errorId))
+					}, 8000)
 					return false
 				}
 
@@ -612,12 +629,36 @@ export function FileUploadManagerWithOCR({
 				})
 
 				if (!isValidType) {
-					alert(t('file_upload.alerts.invalid_type', { fileName: file.name }))
+					const errorId = `${Date.now()}-${Math.random()}`
+					setFileErrors((prev) => [
+						...prev,
+						{
+							id: errorId,
+							fileName: file.name,
+							errorMessage: t('file_upload.alerts.invalid_type', {
+								fileName: file.name,
+							}),
+						},
+					])
+					// Auto-dismiss after 8 seconds
+					setTimeout(() => {
+						setFileErrors((prev) => prev.filter((e) => e.id !== errorId))
+					}, 8000)
 					return false
 				}
 
 				return true
 			})
+
+			// If no valid files, reset upload state
+			if (validFiles.length === 0) {
+				// eslint-disable-next-line no-console
+				console.log('No valid files to process, resetting upload state')
+				if (onProcessingComplete) {
+					onProcessingComplete()
+				}
+				return
+			}
 
 			if (validFiles.length > 0) {
 				// Process files in parallel for better performance
@@ -784,6 +825,7 @@ export function FileUploadManagerWithOCR({
 			isFilesUploading,
 			isGloballyDisabled,
 			onFileSelectionStart,
+			onProcessingComplete,
 		]
 	)
 
@@ -837,6 +879,36 @@ export function FileUploadManagerWithOCR({
 
 	return (
 		<div className={cn('space-y-4', className)}>
+			{/* File Error Notifications */}
+			{fileErrors.length > 0 && (
+				<div className="space-y-3">
+					{fileErrors.map((error) => (
+						<div
+							key={error.id}
+							className="flex items-start gap-3 bg-red-50 rounded-lg p-4 border border-red-20"
+						>
+							<AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+							<div className="flex-1 min-w-0">
+								<p className="text-sm font-medium text-red-900">
+									{error.fileName}
+								</p>
+								<p className="text-sm text-red-700 mt-1">
+									{error.errorMessage}
+								</p>
+							</div>
+							<button
+								onClick={() =>
+									setFileErrors((prev) => prev.filter((e) => e.id !== error.id))
+								}
+								className="text-red-400 hover:text-red-600 flex-shrink-0"
+							>
+								<X className="w-4 h-4" />
+							</button>
+						</div>
+					))}
+				</div>
+			)}
+
 			{/* Validation Notifications */}
 			{validationNotifications.length > 0 && (
 				<div className="space-y-3">
@@ -1042,6 +1114,8 @@ export function FileUploadManagerWithOCR({
 								{t('file_upload.uploading_files')}
 							</p>
 							{/* Overall progress bar (0 - 100%) */}
+							onal looking for educational opportunities, courses, or programs.
+							￼ Institution{' '}
 							{uploadProgress.length > 0 && (
 								<div className="w-full max-w-xl">
 									{(() => {

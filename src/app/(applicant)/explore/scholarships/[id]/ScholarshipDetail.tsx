@@ -877,25 +877,35 @@ const ScholarshipDetail = () => {
 	)
 
 	// // Check for existing application when component loads
-	// useEffect(() => {
-	// 	const scholarshipId = currentScholarship?.id || params.id
-	// 	// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
-	// 	if (
-	// 		scholarshipId &&
-	// 		isAuthenticated &&
-	// 		!isCheckingApplication &&
-	// 		!applicationIdFromUrl
-	// 	) {
-	// 		checkExistingApplication(scholarshipId as string)
-	// 	}
-	// }, [
-	// 	currentScholarship?.id,
-	// 	params.id,
-	// 	isAuthenticated,
-	// 	checkExistingApplication,
-	// 	applicationIdFromUrl,
-	// 	isCheckingApplication,
-	// ])
+	// Check for existing application when component loads
+	useEffect(() => {
+		// Skip if we're resetting application to prevent flash
+		if (isResettingApplication) {
+			return
+		}
+		const scholarshipId = currentScholarship?.id || params?.id
+		// Skip if applicationIdFromUrl exists - fetchSelectedApplication will handle loading
+		// Only check if user is authenticated
+		if (
+			scholarshipId &&
+			isAuthenticated &&
+			!isCheckingApplication &&
+			!applicationIdFromUrl
+		) {
+			// Add a small delay to prevent rapid successive calls
+			const timeoutId = setTimeout(() => {
+				checkExistingApplication(scholarshipId as string)
+			}, 200) // 200ms delay
+
+			return () => clearTimeout(timeoutId)
+		}
+	}, [
+		currentScholarship?.id,
+		params?.id,
+		applicationIdFromUrl,
+		isAuthenticated,
+		isResettingApplication,
+	]) // Added isResettingApplication to prevent checks during reset
 
 	// Helper function to determine document type based on file name
 	const getDocumentType = (fileName: string): string => {

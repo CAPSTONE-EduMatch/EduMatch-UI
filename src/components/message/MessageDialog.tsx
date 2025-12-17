@@ -1049,13 +1049,14 @@ export function MessageDialog({
 				// Use the new flat structure from AppSync
 				// Prefer profile data for name (more accurate), fallback to users list, then AppSync thread data
 				// AppSync threads include lastMessageSenderName which can be used as a temporary fallback
+				// Use "User" as final fallback instead of "Loading..." to avoid showing loading state
 				const otherParticipant = {
 					id: otherParticipantId || '',
 					name:
 						profileUser?.name ||
 						otherUser?.name ||
 						appSyncThread.lastMessageSenderName || // Use sender name from thread as fallback
-						(otherParticipantId ? 'Loading...' : 'User'),
+						'User', // Final fallback - no "Loading..." to avoid flickering
 					image: imageToUse,
 					status: profileUser?.status || otherUser?.status || 'offline',
 					userType,
@@ -1152,61 +1153,76 @@ export function MessageDialog({
 		}
 
 		return threads
-	}, [appSyncThreads, users, user?.id, user?.name, user?.image, searchQuery])
+	}, [
+		appSyncThreads,
+		users,
+		user?.id,
+		user?.name,
+		user?.image,
+		searchQuery,
+		profile?.role,
+	])
 
-	// Proactively fetch user data for threads that show "Loading..." to prevent persistent loading state
+	// Preload all user data for threads when they first load - this prevents "Loading..." from appearing
+	// This runs once when threads are loaded and pre-fetches all participant data
 	useEffect(() => {
 		if (!user?.id || !appSyncThreads.length) return
 
-		// Find threads with missing user data (showing "Loading...")
-		const threadsNeedingData = appSyncThreads.filter((appSyncThread) => {
+		// Extract all unique participant IDs from threads
+		const participantIds = new Set<string>()
+		appSyncThreads.forEach((appSyncThread) => {
 			const otherParticipantId =
 				appSyncThread.user1Id === user?.id
 					? appSyncThread.user2Id
 					: appSyncThread.user1Id
+			if (otherParticipantId) {
+				participantIds.add(otherParticipantId)
+			}
+		})
 
-			if (!otherParticipantId) return false
+		// Filter out participants that already have cached data or are in users list
+		const participantsNeedingData = Array.from(participantIds).filter(
+			(participantId) => {
+				// Check if we have cached data (5 minute TTL)
+				const cached = userDataCacheRef.current.get(participantId)
+				if (cached) {
+					const age = Date.now() - cached.timestamp
+					if (age < 300000 && cached.data?.name) {
+						// Has valid cached data with name
+						return false
+					}
+				}
 
-			// Check if we have cached data
-			const cached = userDataCacheRef.current.get(otherParticipantId)
-			if (cached) {
-				const age = Date.now() - cached.timestamp
-				if (age < 300000 && cached.data?.name) {
-					// Has valid cached data with name
+				// Check if user is in users list with a name
+				const userInList = users.find((u) => u.id === participantId)
+				if (userInList?.name) {
+					// Has name in users list
 					return false
 				}
+
+				// Check if fetch is already in progress
+				if (userDataFetchPromisesRef.current.has(participantId)) {
+					return false
+				}
+
+				// Needs data fetch
+				return true
 			}
+		)
 
-			// Check if user is in users list
-			const userInList = users.find((u) => u.id === otherParticipantId)
-			if (userInList?.name) {
-				// Has name in users list
-				return false
-			}
-
-			// Check if fetch is already in progress
-			if (userDataFetchPromisesRef.current.has(otherParticipantId)) {
-				return false
-			}
-
-			// Needs data fetch
-			return true
-		})
-
-		// Fetch user data for threads that need it (limit to 5 at a time to avoid overwhelming)
-		threadsNeedingData.slice(0, 5).forEach((appSyncThread) => {
-			const otherParticipantId =
-				appSyncThread.user1Id === user?.id
-					? appSyncThread.user2Id
-					: appSyncThread.user1Id
-
-			if (otherParticipantId) {
+		// Batch fetch all user data in parallel (but limit concurrent requests to avoid overwhelming)
+		// Process in batches of 10 to avoid too many simultaneous requests
+		const batchSize = 10
+		for (let i = 0; i < participantsNeedingData.length; i += batchSize) {
+			const batch = participantsNeedingData.slice(i, i + batchSize)
+			// Fetch all in parallel for this batch
+			batch.forEach((participantId) => {
 				// Fetch in background - don't await to avoid blocking
-				fetchUserData(otherParticipantId).catch(() => {
+				fetchUserData(participantId).catch(() => {
 					// Silently handle errors - will retry on next render if needed
 				})
-			}
-		})
+			})
+		}
 	}, [appSyncThreads, users, user?.id])
 
 	// Handle selecting an existing thread

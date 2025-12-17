@@ -16,7 +16,7 @@ import { getCountriesWithSvgFlags, Country } from '@/data/countries'
 import { useDisciplinesContext } from '@/contexts/DisciplinesContext'
 import { useSubscription } from '@/hooks/subscription/useSubscription'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui'
-import { Crown, CreditCard } from 'lucide-react'
+import { Crown } from 'lucide-react'
 
 interface CreateProgramPageProps {
 	onBack?: () => void
@@ -132,26 +132,54 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 		}
 	}, [initialData, isEditMode])
 
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<{
+		programTitle: string
+		startDate: string
+		applicationDeadline: string
+		subdiscipline: string
+		duration: string
+		degreeLevel: string
+		attendance: string
+		location: string
+		courseInclude: string
+		description: string
+		academicRequirements: {
+			gpa: string
+			gre: string
+			gmat: string
+		}
+		languageRequirements: Array<{
+			language: string
+			certificate: string
+			score: string
+		}>
+		fileRequirements: {
+			fileName: string
+			fileDescription: string
+		}
+		tuitionFee: {
+			international: string
+			description: string
+		}
+		scholarship: {
+			information: string
+		}
+		otherInformation: {
+			content: string
+		}
+	}>({
 		// Overview Section
-		programTitle: 'International Business and Intercultural Management',
+		programTitle: '',
 		startDate: '',
 		applicationDeadline: '',
-		subdiscipline: 'Information system',
-		duration: 'More than 2 years',
-		degreeLevel: 'Master',
-		attendance: 'At campus',
-		location: 'Vietnam',
+		subdiscipline: '',
+		duration: '',
+		degreeLevel: '',
+		attendance: '',
+		location: '',
 
 		// Programme Structure
-		courseInclude: `<ul>
-<li>Strategy and Governance in IT</li>
-<li>Project Management</li>
-<li>Information Security</li>
-<li>Digital Design and Development</li>
-<li>Group Software Development Project</li>
-<li>Cloud Computing</li>
-</ul>`,
+		courseInclude: '',
 		description: '',
 
 		// Admission Requirements
@@ -160,17 +188,11 @@ export const CreateProgramPage: React.FC<CreateProgramPageProps> = ({
 			gre: '',
 			gmat: '',
 		},
-		languageRequirements: [
-			{
-				language: 'English',
-				certificate: 'IELTS',
-				score: '7.0',
-			},
-		],
+		languageRequirements: [],
 
 		// File Requirements
 		fileRequirements: {
-			fileName: 'Required Documents',
+			fileName: '',
 			fileDescription: '',
 		},
 

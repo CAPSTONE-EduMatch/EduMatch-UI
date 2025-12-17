@@ -417,9 +417,8 @@ export async function PATCH(
 
 			// Send email notification via SQS using utility function
 			try {
-				const { NotificationUtils } = await import(
-					"@/services/messaging/sqs-handlers"
-				);
+				const { NotificationUtils } =
+					await import("@/services/messaging/sqs-handlers");
 
 				const postUrl = getPostUrlFull(postType, postId);
 

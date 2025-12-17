@@ -200,6 +200,9 @@ export function MessageDialog({
 	const processedContactRef = useRef<string | null>(null) // Track processed contact to prevent re-processing
 	const isManuallySelectingRef = useRef(false) // Track manual thread selection to prevent useEffect conflicts
 
+	// State to track cache updates and trigger re-renders when user data is fetched
+	const [cacheUpdateTrigger, setCacheUpdateTrigger] = useState(0)
+
 	// Get user profile and subscription
 	const { profile, isLoading: profileLoading } = useUserProfile()
 	const {
@@ -1049,14 +1052,21 @@ export function MessageDialog({
 				// Use the new flat structure from AppSync
 				// Prefer profile data for name (more accurate), fallback to users list, then AppSync thread data
 				// AppSync threads include lastMessageSenderName which can be used as a temporary fallback
-				// Use "User" as final fallback instead of "Loading..." to avoid showing loading state
+				// IMPORTANT: If we don't have a name yet, return null to filter out this thread
+				// This prevents showing "User" temporarily - thread will appear once name is fetched
+				const participantName =
+					profileUser?.name ||
+					otherUser?.name ||
+					appSyncThread.lastMessageSenderName
+
+				// If we don't have a name yet, skip this thread (it will appear once user data is fetched)
+				if (!participantName) {
+					return null
+				}
+
 				const otherParticipant = {
 					id: otherParticipantId || '',
-					name:
-						profileUser?.name ||
-						otherUser?.name ||
-						appSyncThread.lastMessageSenderName || // Use sender name from thread as fallback
-						'User', // Final fallback - no "Loading..." to avoid flickering
+					name: participantName,
 					image: imageToUse,
 					status: profileUser?.status || otherUser?.status || 'offline',
 					userType,
@@ -1122,6 +1132,7 @@ export function MessageDialog({
 					updatedAt: new Date(appSyncThread.updatedAt),
 				}
 			})
+			.filter((thread) => thread !== null) // Filter out threads without names
 			.sort((a, b) => {
 				// Sort by lastMessageAt if available, otherwise by updatedAt
 				const aTime = a.lastMessage?.createdAt || a.updatedAt
@@ -1161,10 +1172,13 @@ export function MessageDialog({
 		user?.image,
 		searchQuery,
 		profile?.role,
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		cacheUpdateTrigger, // Include cache update trigger to re-render when user data is fetched
 	])
 
 	// Preload all user data for threads when they first load - this prevents "Loading..." from appearing
 	// This runs once when threads are loaded and pre-fetches all participant data
+	// IMPORTANT: Fetch user data immediately for any threads missing it, so they don't show "User"
 	useEffect(() => {
 		if (!user?.id || !appSyncThreads.length) return
 
@@ -1210,19 +1224,21 @@ export function MessageDialog({
 			}
 		)
 
-		// Batch fetch all user data in parallel (but limit concurrent requests to avoid overwhelming)
-		// Process in batches of 10 to avoid too many simultaneous requests
-		const batchSize = 10
-		for (let i = 0; i < participantsNeedingData.length; i += batchSize) {
-			const batch = participantsNeedingData.slice(i, i + batchSize)
-			// Fetch all in parallel for this batch
-			batch.forEach((participantId) => {
-				// Fetch in background - don't await to avoid blocking
-				fetchUserData(participantId).catch(() => {
+		// Immediately fetch user data for all missing participants
+		// This ensures threads appear with names right away, not "User"
+		participantsNeedingData.forEach((participantId) => {
+			// Fetch immediately and trigger re-render when data is fetched
+			fetchUserData(participantId)
+				.then((userData) => {
+					// If we got user data, trigger a re-render so formattedThreads recalculates
+					if (userData?.name) {
+						setCacheUpdateTrigger((prev) => prev + 1)
+					}
+				})
+				.catch(() => {
 					// Silently handle errors - will retry on next render if needed
 				})
-			})
-		}
+		})
 	}, [appSyncThreads, users, user?.id])
 
 	// Handle selecting an existing thread
@@ -1475,6 +1491,9 @@ export function MessageDialog({
 							data: data.user,
 							timestamp: Date.now(),
 						})
+						// Trigger re-render by updating cache trigger state
+						// This ensures formattedThreads recalculates with the new user data
+						setCacheUpdateTrigger((prev) => prev + 1)
 						return data.user
 					}
 				}

@@ -1,0 +1,865 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui'
+import { ProgressBar } from '@/components/profile/create/steps/ProgressBar'
+import { RoleSelectionStep } from '@/components/profile/create/steps/RoleSelectionStep'
+import { BasicInfoStep } from '@/components/profile/create/steps/BasicInfoStep'
+import { AcademicInfoStep } from '@/components/profile/create/steps/AcademicInfoStep'
+import { InstitutionInfoStep } from '@/components/profile/create/steps/InstitutionInfoStep'
+import { InstitutionDetailsStep } from '@/components/profile/create/steps/InstitutionDetailsStep'
+import { CompletionStep } from '@/components/profile/create/steps/CompletionStep'
+import { ProfileFormData } from '@/services/profile/profile-service'
+import { Button } from '@/components/ui'
+import { useAuthCheck } from '@/hooks/auth/useAuthCheck'
+import { AuthWrapper } from '@/components/auth/AuthWrapper'
+import { Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+
+export default function CreateProfile() {
+	const router = useRouter()
+	const t = useTranslations('create_profile')
+	const [currentStep, setCurrentStep] = useState(1)
+	const [isTransitioning, setIsTransitioning] = useState(false)
+	const [showManageModal, setShowManageModal] = useState(false)
+	const [isClosing, setIsClosing] = useState(false)
+	// Use the authentication check hook
+	const { isAuthenticated, user } = useAuthCheck()
+
+	const [formData, setFormData] = useState<ProfileFormData>({
+		role: '',
+		// Student fields
+		firstName: '',
+		lastName: '',
+		gender: '',
+		birthday: '',
+		email: '',
+		nationality: '',
+		phoneNumber: '',
+		countryCode: '+84',
+		interests: [],
+		favoriteCountries: [],
+		profilePhoto: '',
+		// Institution fields
+		institutionName: '',
+		institutionAbbreviation: '',
+		institutionHotline: '',
+		institutionHotlineCode: '+1',
+		institutionType: '',
+		institutionWebsite: '',
+		institutionEmail: '',
+		institutionCountry: '',
+		institutionAddress: '',
+		representativeName: '',
+		representativeAppellation: '',
+		representativePosition: '',
+		representativeEmail: '',
+		representativePhone: '',
+		representativePhoneCode: '+1',
+		aboutInstitution: '',
+		// Institution Details fields
+		institutionDisciplines: [],
+		institutionLogo: '', // Institution logo (small brand mark)
+		institutionCoverImage: '', // Institution cover image (large banner)
+		institutionVerificationDocuments: [],
+		// Academic fields
+		graduationStatus: '',
+		degree: '',
+		fieldOfStudy: '',
+		university: '',
+		gpa: '',
+		countryOfStudy: '',
+		scoreValue: '',
+		// Foreign Language fields
+		hasForeignLanguage: '',
+		languages: [],
+		researchPapers: [],
+		// File upload fields
+		cvFiles: [],
+		languageCertFiles: [],
+		degreeFiles: [],
+		transcriptFiles: [],
+	})
+
+	// Debug: Log user object in CreateProfile
+	useEffect(() => {}, [user, isAuthenticated])
+
+	// Pre-fill email if user is authenticated (for all authenticated users)
+	useEffect(() => {
+		if (isAuthenticated && user?.email && !formData.email) {
+			setFormData((prev) => ({
+				...prev,
+				email: user.email,
+			}))
+		}
+	}, [isAuthenticated, user?.email, formData.email])
+
+	const handleNext = () => {
+		const maxStep = formData.role === 'applicant' ? 4 : 4
+		if (currentStep < maxStep && !isTransitioning) {
+			setIsTransitioning(true)
+			// Auto-close modal if leaving Academic Info step (step 3)
+			if (currentStep === 3 && showManageModal) {
+				setShowManageModal(false)
+				setIsClosing(false)
+			}
+			setTimeout(() => {
+				setCurrentStep(currentStep + 1)
+				setIsTransitioning(false)
+			}, 300)
+		}
+	}
+
+	const handleBack = () => {
+		if (currentStep > 1 && !isTransitioning) {
+			setIsTransitioning(true)
+			// Auto-close modal if leaving Academic Info step (step 3)
+			if (currentStep === 3 && showManageModal) {
+				setShowManageModal(false)
+				setIsClosing(false)
+			}
+			setTimeout(() => {
+				setCurrentStep(currentStep - 1)
+				setIsTransitioning(false)
+			}, 300)
+		}
+	}
+
+	const handleRoleSelect = (role: 'applicant' | 'institution') => {
+		setFormData({ ...formData, role })
+	}
+
+	const handleInputChange = (
+		field: keyof ProfileFormData,
+		value:
+			| string
+			| Array<{ language: string; certificate: string; score: string }>
+			| Array<{ title: string; discipline: string; files: any[] }>
+	) => {
+		setFormData({ ...formData, [field]: value })
+	}
+
+	const handleInputChangeEvent =
+		(field: keyof ProfileFormData) =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			handleInputChange(field, e.target.value)
+		}
+
+	const handleSelectChange =
+		(field: keyof ProfileFormData) => (value: string) => {
+			handleInputChange(field, value)
+		}
+
+	const handleMultiSelectChange =
+		(field: keyof ProfileFormData) => (value: string[]) => {
+			setFormData({ ...formData, [field]: value })
+		}
+
+	const handleFilesUploaded = (files: any[]) => {
+		// Check if files are verification documents
+		const verificationDocs = files.filter(
+			(file) => file.category === 'verification'
+		)
+		if (verificationDocs.length > 0) {
+			setFormData({
+				...formData,
+				institutionVerificationDocuments: [
+					...(formData.institutionVerificationDocuments || []),
+					...verificationDocs,
+				],
+			})
+		} else {
+			// Handle other file types as needed
+			// Files uploaded successfully
+		}
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+	}
+
+	const getAllFiles = () => {
+		const researchPaperFiles =
+			formData.researchPapers?.flatMap((paper) => paper.files || []) || []
+		return [
+			...(formData.cvFiles || []),
+			...(formData.languageCertFiles || []),
+			...(formData.degreeFiles || []),
+			...(formData.transcriptFiles || []),
+			...researchPaperFiles,
+			...(formData.institutionVerificationDocuments || []),
+		]
+	}
+
+	const handleCloseModal = () => {
+		setIsClosing(true)
+		setTimeout(() => {
+			setShowManageModal(false)
+			setIsClosing(false)
+		}, 300) // Match the animation duration
+	}
+
+	const handleOpenModal = () => {
+		setShowManageModal(true)
+		setIsClosing(false)
+	}
+
+	const handleCheckboxChange =
+		(field: keyof ProfileFormData) => (checked: boolean) => {
+			if (field === 'graduationStatus') {
+			}
+		}
+
+	const handleGetStarted = async () => {
+		// Validate research papers before saving
+		const incompleteResearchPapers =
+			formData.researchPapers?.filter(
+				(paper: any) =>
+					(!paper.title ||
+						paper.title.trim() === '' ||
+						!paper.discipline ||
+						paper.discipline.trim() === '') &&
+					paper.files &&
+					paper.files.length > 0
+			) || []
+
+		if (incompleteResearchPapers.length > 0) {
+			alert(
+				'Please provide both title and discipline for all research papers before uploading files.'
+			)
+			return
+		}
+
+		try {
+			// Save profile to database
+			const { ApiService } = await import('@/services/api/axios-config')
+			await ApiService.createProfile(formData)
+
+			// Profile created successfully
+			// Dispatch custom event to notify components that profile has been updated
+			window.dispatchEvent(new CustomEvent('profileUpdated'))
+
+			// Redirect based on role
+			if (formData.role === 'applicant') {
+				router.push('/explore')
+			} else if (formData.role === 'institution') {
+				router.push('/institution/dashboard')
+			} else {
+				router.push('/')
+			}
+		} catch (error: any) {
+			// Error saving profile
+			alert(
+				error.response?.data?.error ||
+					'Failed to save profile. Please try again.'
+			)
+		}
+	}
+
+	// Helper function to get presigned URL and open file
+	const handleViewFile = async (fileUrl: string) => {
+		if (!fileUrl) {
+			console.error('File URL is required')
+			return
+		}
+
+		try {
+			// Get presigned URL from protected-image API
+			const protectedUrl = `/api/files/protected-image?url=${encodeURIComponent(fileUrl)}&expiresIn=3600`
+			const response = await fetch(protectedUrl, {
+				method: 'GET',
+				credentials: 'include',
+			})
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}))
+				if (response.status === 401) {
+					alert('Please log in to view this file.')
+				} else if (response.status === 403) {
+					alert("You don't have permission to view this file.")
+				} else {
+					alert(
+						errorData.error || `Failed to get file URL: ${response.statusText}`
+					)
+				}
+				return
+			}
+
+			const data = await response.json()
+			const presignedUrl = data.url
+
+			if (!presignedUrl) {
+				alert('Failed to get file URL. Please try again.')
+				return
+			}
+
+			// Open the presigned URL in a new tab
+			window.open(presignedUrl, '_blank')
+		} catch (error) {
+			console.error('Error viewing file:', error)
+			alert('Failed to view file. Please try again.')
+		}
+	}
+
+	// Authentication is now handled by AuthWrapper
+
+	return (
+		<AuthWrapper
+			pageTitle="Create Profile"
+			pageDescription="Please sign in to create your profile"
+		>
+			<div className="profile-background flex items-center justify-center p-4 pt-24 overflow-x-hidden">
+				<Card className="w-full max-w-3xl bg-white backdrop-blur-sm">
+					<CardContent className="p-8">
+						<div className="text-center mb-6">
+							<h1 className="text-3xl font-bold text-primary">
+								{t('page_title')}
+							</h1>
+						</div>
+
+						<ProgressBar
+							currentStep={currentStep}
+							totalSteps={formData.role === 'applicant' ? 4 : 4}
+							onStepClick={(step) => {
+								if (step <= currentStep || step === 1) {
+									// Auto-close modal if leaving Academic Info step (step 3)
+									if (currentStep === 3 && showManageModal && step !== 3) {
+										setShowManageModal(false)
+										setIsClosing(false)
+									}
+									setCurrentStep(step)
+								}
+							}}
+						/>
+
+						<div
+							className={`relative ${(currentStep === 4 && formData.role === 'applicant') || (currentStep === 3 && formData.role === 'institution') ? 'min-h-0' : 'min-h-[150px]'}`}
+						>
+							<div
+								className={`transition-all duration-500 ease-in-out ${
+									isTransitioning
+										? 'opacity-0 scale-95'
+										: 'opacity-100 scale-100'
+								}`}
+							>
+								{currentStep === 1 && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<RoleSelectionStep
+											formData={formData}
+											onRoleSelect={handleRoleSelect}
+											onNext={handleNext}
+										/>
+									</div>
+								)}
+								{currentStep === 2 && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										{formData.role === 'applicant' ? (
+											<BasicInfoStep
+												formData={formData}
+												onInputChange={handleInputChange}
+												onInputChangeEvent={handleInputChangeEvent}
+												onSelectChange={handleSelectChange}
+												onMultiSelectChange={handleMultiSelectChange}
+												onBack={handleBack}
+												onNext={handleNext}
+												user={user}
+											/>
+										) : (
+											<InstitutionInfoStep
+												formData={formData}
+												onInputChange={handleInputChange}
+												onInputChangeEvent={handleInputChangeEvent}
+												onSelectChange={handleSelectChange}
+												onBack={handleBack}
+												onNext={handleNext}
+												onShowManageModal={handleOpenModal}
+												user={user}
+											/>
+										)}
+									</div>
+								)}
+								{currentStep === 3 && formData.role === 'applicant' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<AcademicInfoStep
+											formData={formData}
+											onInputChange={handleInputChange}
+											onInputChangeEvent={handleInputChangeEvent}
+											onSelectChange={handleSelectChange}
+											onCheckboxChange={handleCheckboxChange}
+											onFilesUploaded={handleFilesUploaded}
+											onBack={handleBack}
+											onNext={handleNext}
+											onShowManageModal={handleOpenModal}
+										/>
+									</div>
+								)}
+								{currentStep === 3 && formData.role === 'institution' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<InstitutionDetailsStep
+											formData={formData}
+											onInputChange={handleInputChange}
+											onMultiSelectChange={handleMultiSelectChange}
+											onBack={handleBack}
+											onNext={handleNext}
+											onShowManageModal={handleOpenModal}
+										/>
+									</div>
+								)}
+								{currentStep === 4 && formData.role === 'applicant' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<CompletionStep
+											onGetStarted={handleGetStarted}
+											role="applicant"
+										/>
+									</div>
+								)}
+								{currentStep === 4 && formData.role === 'institution' && (
+									<div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
+										<CompletionStep
+											onGetStarted={handleGetStarted}
+											role="institution"
+										/>
+									</div>
+								)}
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+
+				{/* Manage Files Side Panel */}
+				{showManageModal && (
+					<div
+						className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 transition-transform duration-300 ease-out ${
+							isClosing ? 'translate-x-full' : 'translate-x-0'
+						}`}
+						style={{
+							animation:
+								showManageModal && !isClosing
+									? 'slideInFromRight 0.3s ease-out'
+									: 'none',
+						}}
+					>
+						<div className="p-6 border-b">
+							<div className="flex items-center justify-between">
+								<h2 className="text-xl font-semibold">Manage Documents</h2>
+								<Button
+									variant="outline"
+									onClick={handleCloseModal}
+									className="rounded-full"
+								>
+									✕
+								</Button>
+							</div>
+						</div>
+
+						<div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+							<div className="space-y-8">
+								{/* CV/Resume Section */}
+								{formData.cvFiles && formData.cvFiles.length > 0 && (
+									<div className="space-y-4">
+										<h3 className="text-lg font-medium text-foreground border-b pb-2">
+											CV / Resume ({formData.cvFiles.length})
+										</h3>
+										<div className="space-y-3">
+											{formData.cvFiles.map((file) => (
+												<div
+													key={file.id}
+													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+												>
+													<div className="flex items-center gap-3 flex-1 min-w-0">
+														<span className="text-2xl flex-shrink-0">📄</span>
+														<div className="min-w-0 flex-1">
+															<p className="font-medium text-sm truncate">
+																{file.name || file.originalName || 'Document'}
+															</p>
+															<p className="text-sm text-muted-foreground">
+																{formatFileSize(file.size || 0)}
+																{file.fileType ? ` • ${file.fileType}` : ''}
+															</p>
+														</div>
+													</div>
+													<div className="flex items-center gap-2">
+														<button
+															onClick={() => handleViewFile(file.url)}
+															className="text-primary hover:text-primary/80 text-sm font-medium"
+														>
+															View
+														</button>
+														<button
+															onClick={() => {
+																const updatedFiles = formData.cvFiles.filter(
+																	(f) => f.id !== file.id
+																)
+																setFormData({
+																	...formData,
+																	cvFiles: updatedFiles,
+																})
+															}}
+															className="text-gray-400 hover:text-red-600 p-1"
+															title="Delete document"
+														>
+															<Trash2 className="h-4 w-4" />
+														</button>
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Foreign Language Certificate Section */}
+								{formData.languageCertFiles &&
+									formData.languageCertFiles.length > 0 && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Foreign Language Certificates (
+												{formData.languageCertFiles.length})
+											</h3>
+											<div className="space-y-3">
+												{formData.languageCertFiles.map((file) => (
+													<div
+														key={file.id}
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+													>
+														<div className="flex items-center gap-3 flex-1 min-w-0">
+															<span className="text-2xl flex-shrink-0">
+																{file.category === 'image' ? '🖼️' : '📄'}
+															</span>
+															<div className="min-w-0 flex-1">
+																<p className="font-medium text-sm truncate">
+																	{file.name || file.originalName || 'Document'}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(file.size || 0)}
+																	{file.fileType ? ` • ${file.fileType}` : ''}
+																</p>
+															</div>
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => handleViewFile(file.url)}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
+															>
+																View
+															</button>
+															<button
+																onClick={() => {
+																	const updatedFiles =
+																		formData.languageCertFiles.filter(
+																			(f) => f.id !== file.id
+																		)
+																	setFormData({
+																		...formData,
+																		languageCertFiles: updatedFiles,
+																	})
+																}}
+																className="text-gray-400 hover:text-red-600 p-1"
+																title="Delete document"
+															>
+																<Trash2 className="h-4 w-4" />
+															</button>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									)}
+
+								{/* Degree Certificate Section */}
+								{formData.degreeFiles && formData.degreeFiles.length > 0 && (
+									<div className="space-y-4">
+										<h3 className="text-lg font-medium text-foreground border-b pb-2">
+											Degree Certificates ({formData.degreeFiles.length})
+										</h3>
+										<div className="space-y-3">
+											{formData.degreeFiles.map((file) => (
+												<div
+													key={file.id}
+													className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+												>
+													<div className="flex items-center gap-3 flex-1 min-w-0">
+														<span className="text-2xl flex-shrink-0">
+															{file.category === 'image' ? '🖼️' : '📄'}
+														</span>
+														<div className="min-w-0 flex-1">
+															<p className="font-medium text-sm truncate">
+																{file.name || file.originalName || 'Document'}
+															</p>
+															<p className="text-sm text-muted-foreground">
+																{formatFileSize(file.size || 0)}
+																{file.fileType ? ` • ${file.fileType}` : ''}
+															</p>
+														</div>
+													</div>
+													<div className="flex items-center gap-2">
+														<button
+															onClick={() => handleViewFile(file.url)}
+															className="text-primary hover:text-primary/80 text-sm font-medium"
+														>
+															View
+														</button>
+														<button
+															onClick={() => {
+																const updatedFiles =
+																	formData.degreeFiles.filter(
+																		(f) => f.id !== file.id
+																	)
+																setFormData({
+																	...formData,
+																	degreeFiles: updatedFiles,
+																})
+															}}
+															className="text-gray-400 hover:text-red-600 p-1"
+															title="Delete document"
+														>
+															<Trash2 className="h-4 w-4" />
+														</button>
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Academic Transcript Section */}
+								{formData.transcriptFiles &&
+									formData.transcriptFiles.length > 0 && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Academic Transcripts ({formData.transcriptFiles.length})
+											</h3>
+											<div className="space-y-3">
+												{formData.transcriptFiles.map((file) => (
+													<div
+														key={file.id}
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+													>
+														<div className="flex items-center gap-3 flex-1 min-w-0">
+															<span className="text-2xl flex-shrink-0">
+																{file.category === 'image' ? '🖼️' : '📄'}
+															</span>
+															<div className="min-w-0 flex-1">
+																<p className="font-medium text-sm truncate">
+																	{file.name || file.originalName || 'Document'}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(file.size || 0)}
+																	{file.fileType ? ` • ${file.fileType}` : ''}
+																</p>
+															</div>
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => handleViewFile(file.url)}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
+															>
+																View
+															</button>
+															<button
+																onClick={() => {
+																	const updatedFiles =
+																		formData.transcriptFiles.filter(
+																			(f) => f.id !== file.id
+																		)
+																	setFormData({
+																		...formData,
+																		transcriptFiles: updatedFiles,
+																	})
+																}}
+																className="text-gray-400 hover:text-red-600 p-1"
+																title="Delete document"
+															>
+																<Trash2 className="h-4 w-4" />
+															</button>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									)}
+
+								{/* Research Papers Section */}
+								{formData.researchPapers &&
+									formData.researchPapers.some(
+										(paper) => paper.files && paper.files.length > 0
+									) && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Research Papers (
+												{formData.researchPapers.reduce(
+													(total, paper) => total + (paper.files?.length || 0),
+													0
+												)}
+												)
+											</h3>
+											<div className="space-y-6">
+												{formData.researchPapers.map(
+													(paper, paperIndex) =>
+														paper.files &&
+														paper.files.length > 0 && (
+															<div key={paperIndex} className="space-y-3">
+																<div className="bg-blue-50 p-3 rounded-lg">
+																	<h4 className="font-medium text-blue-900">
+																		{paper.title ||
+																			`Research Paper ${paperIndex + 1}`}
+																	</h4>
+																	{paper.discipline && (
+																		<p className="text-sm text-blue-700">
+																			Discipline: {paper.discipline}
+																		</p>
+																	)}
+																</div>
+																<div className="space-y-3">
+																	{paper.files.map((file) => (
+																		<div
+																			key={file.id}
+																			className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+																		>
+																			<div className="flex items-center gap-3 flex-1 min-w-0">
+																				<span className="text-2xl flex-shrink-0">
+																					📄
+																				</span>
+																				<div className="min-w-0 flex-1">
+																					<p className="font-medium text-sm truncate">
+																						{file.name ||
+																							file.originalName ||
+																							'Document'}
+																					</p>
+																					<p className="text-sm text-muted-foreground">
+																						{formatFileSize(file.size || 0)}
+																						{file.fileType
+																							? ` • ${file.fileType}`
+																							: ''}
+																					</p>
+																				</div>
+																			</div>
+																			<div className="flex items-center gap-2">
+																				<button
+																					onClick={() =>
+																						handleViewFile(file.url)
+																					}
+																					className="text-primary hover:text-primary/80 text-sm font-medium"
+																				>
+																					View
+																				</button>
+																				<button
+																					onClick={() => {
+																						const updatedPapers = [
+																							...formData.researchPapers,
+																						]
+																						updatedPapers[paperIndex] = {
+																							...updatedPapers[paperIndex],
+																							files: updatedPapers[
+																								paperIndex
+																							].files.filter(
+																								(f) => f.id !== file.id
+																							),
+																						}
+																						setFormData({
+																							...formData,
+																							researchPapers: updatedPapers,
+																						})
+																					}}
+																					className="text-gray-400 hover:text-red-600 p-1"
+																					title="Delete document"
+																				>
+																					<Trash2 className="h-4 w-4" />
+																				</button>
+																			</div>
+																		</div>
+																	))}
+																</div>
+															</div>
+														)
+												)}
+											</div>
+										</div>
+									)}
+
+								{/* Institution Verification Documents Section */}
+								{formData.institutionVerificationDocuments &&
+									formData.institutionVerificationDocuments.length > 0 && (
+										<div className="space-y-4">
+											<h3 className="text-lg font-medium text-foreground border-b pb-2">
+												Institution Verification Documents (
+												{formData.institutionVerificationDocuments.length})
+											</h3>
+											<div className="space-y-3">
+												{formData.institutionVerificationDocuments.map(
+													(file) => (
+														<div
+															key={file.id}
+															className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+														>
+															<div className="flex items-center gap-3 flex-1 min-w-0">
+																<span className="text-2xl flex-shrink-0">
+																	{file.type?.startsWith('image/')
+																		? '🖼️'
+																		: '📄'}
+																</span>
+																<div className="min-w-0 flex-1">
+																	<p className="font-medium text-sm break-words">
+																		{file.name ||
+																			file.originalName ||
+																			'Document'}
+																	</p>
+																	<p className="text-sm text-muted-foreground">
+																		{formatFileSize(file.size || 0)}
+																		{file.fileType ? ` • ${file.fileType}` : ''}
+																	</p>
+																</div>
+															</div>
+															<div className="flex items-center gap-2">
+																<button
+																	onClick={() => handleViewFile(file.url)}
+																	className="text-primary hover:text-primary/80 text-sm font-medium"
+																>
+																	View
+																</button>
+																<button
+																	onClick={() => {
+																		const updatedFiles =
+																			formData.institutionVerificationDocuments.filter(
+																				(f) => f.id !== file.id
+																			)
+																		setFormData({
+																			...formData,
+																			institutionVerificationDocuments:
+																				updatedFiles,
+																		})
+																	}}
+																	className="text-gray-400 hover:text-red-600 p-1"
+																	title="Delete document"
+																>
+																	<Trash2 className="h-4 w-4" />
+																</button>
+															</div>
+														</div>
+													)
+												)}
+											</div>
+										</div>
+									)}
+
+								{/* Empty State */}
+								{getAllFiles().length === 0 && (
+									<div className="text-center py-8">
+										<div className="text-4xl mb-4">📁</div>
+										<p className="text-muted-foreground">
+											No documents uploaded yet
+										</p>
+									</div>
+								)}
+							</div>
+						</div>
+					</div>
+				)}
+			</div>
+		</AuthWrapper>
+	)
+}

@@ -1,0 +1,211 @@
+{
+	"info": {
+		"name": "Edumatch - Local Tests",
+		"_postman_id": "b45c232f-5af1-45a1-9da6-fcccbbb0e229",
+		"description": "Collection of API tests for local development (localhost:3000). Import into Postman and run.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Programs - Get All (Default)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"]
+				}
+			}
+		},
+		{
+			"name": "Programs - Sort by Most Popular",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?sortBy=most-popular",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [{ "key": "sortBy", "value": "most-popular" }]
+				}
+			}
+		},
+		{
+			"name": "Programs - Sort by Newest",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?sortBy=newest",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [{ "key": "sortBy", "value": "newest" }]
+				}
+			}
+		},
+		{
+			"name": "Programs - Search: Computer Science",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?search=computer%20science",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [{ "key": "search", "value": "computer science" }]
+				}
+			}
+		},
+		{
+			"name": "Programs - Filter Degree: Master's Degree",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?degreeLevel=Master's%20Degree",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [
+						{ "key": "degreeLevel", "value": "Master's Degree" }
+					]
+				}
+			}
+		},
+		{
+			"name": "Scholarships - Sort by Most Popular",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/scholarships?sortBy=most-popular",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "scholarships"],
+					"query": [{ "key": "sortBy", "value": "most-popular" }]
+				}
+			}
+		},
+		{
+			"name": "Scholarships - Filter Essay Required",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/scholarships?essayRequired=true",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "scholarships"],
+					"query": [{ "key": "essayRequired", "value": "true" }]
+				}
+			}
+		},
+		{
+			"name": "Research - Sort by Most Popular",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/research?sortBy=most-popular",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "research"],
+					"query": [{ "key": "sortBy", "value": "most-popular" }]
+				}
+			}
+		},
+		{
+			"name": "Research - Filter Contract Type Full-time",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/research?contractType=Full-time",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "research"],
+					"query": [{ "key": "contractType", "value": "Full-time" }]
+				}
+			}
+		},
+		{
+			"name": "Programs - Pagination Page 1 (5 items)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?page=1&limit=5",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [
+						{ "key": "page", "value": "1" },
+						{ "key": "limit", "value": "5" }
+					]
+				}
+			}
+		},
+		{
+			"name": "Programs - Pagination Page 2 (5 items)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?page=2&limit=5",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [
+						{ "key": "page", "value": "2" },
+						{ "key": "limit", "value": "5" }
+					]
+				}
+			}
+		},
+		{
+			"name": "Programs - Large Page (20 items)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?page=1&limit=20",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [
+						{ "key": "page", "value": "1" },
+						{ "key": "limit", "value": "20" }
+					]
+				}
+			}
+		},
+		{
+			"name": "Programs - Combined Filters with Pagination",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/explore/programs?search=computer&discipline=Computer Science,Data Science&sortBy=most-popular&page=1&limit=10",
+					"protocol": "http",
+					"host": ["localhost:3000"],
+					"path": ["api", "explore", "programs"],
+					"query": [
+						{ "key": "search", "value": "computer" },
+						{
+							"key": "discipline",
+							"value": "Computer Science,Data Science"
+						},
+						{ "key": "sortBy", "value": "most-popular" },
+						{ "key": "page", "value": "1" },
+						{ "key": "limit", "value": "10" }
+					]
+				}
+			}
+		}
+	]
+}

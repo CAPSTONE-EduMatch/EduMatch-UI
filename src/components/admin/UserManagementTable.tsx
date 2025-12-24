@@ -1,0 +1,425 @@
+'use client'
+
+import { ViewDetailButton } from '@/components/admin/ViewDetailButton'
+import { SearchAndFilter } from '@/components/profile/institution/components/SearchAndFilter'
+import { Button, Card, CardContent } from '@/components/ui'
+import { useDebouncedValue } from '@/hooks'
+import { useAdminUserManagement } from '@/hooks/admin/useAdminUserManagement'
+import { motion } from 'framer-motion'
+import { Plus } from 'lucide-react'
+import { memo, useCallback, useEffect, useState } from 'react'
+
+interface UserManagementTableProps {
+	userType: 'applicant' | 'institution' | 'admin'
+	onViewDetails: (userId: string) => void
+	onAddAdmin?: () => void
+}
+
+const UserManagementTable = memo(function UserManagementTable({
+	userType,
+	onViewDetails,
+	onAddAdmin,
+}: UserManagementTableProps) {
+	const {
+		users,
+		loading,
+		error,
+		total,
+		currentPage,
+		filters,
+		updateFilters,
+		setPage,
+		pagination,
+	} = useAdminUserManagement()
+
+	// Local state for UI
+	const [searchInput, setSearchInput] = useState('')
+	const [statusFilter, setStatusFilter] = useState<string[]>([])
+	const [sortBy, setSortBy] = useState<'name' | 'email' | 'createdAt'>(
+		filters.sortBy || 'name'
+	)
+	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
+		filters.sortDirection || 'desc'
+	)
+	const [prevUserType, setPrevUserType] = useState(userType)
+
+	// Debounce search with 500ms delay
+	const debouncedSearchInput = useDebouncedValue(searchInput, 500)
+
+	// Set userType filter when component mounts or userType changes
+	// Only reset filters on actual tab change, not initial mount
+	useEffect(() => {
+		if (prevUserType !== userType) {
+			// Reset search and filters only when switching tabs
+			setSearchInput('')
+			setStatusFilter([])
+			setPrevUserType(userType)
+		}
+		// Always update userType filter
+		updateFilters({ userType, page: 1 })
+	}, [userType, prevUserType, updateFilters])
+
+	// Update search filter when debounced value changes
+	useEffect(() => {
+		updateFilters({
+			search: debouncedSearchInput.trim(),
+		})
+	}, [debouncedSearchInput, updateFilters])
+
+	// Handle status filter with new admin API - supports multiple statuses
+	const handleStatusFilter = useCallback(
+		(statusArray: string[]) => {
+			// If "all" is selected, clear all other filters
+			if (statusArray.includes('all')) {
+				setStatusFilter(['all'])
+				updateFilters({
+					status: 'all',
+				})
+			} else {
+				setStatusFilter(statusArray)
+				// Convert array to comma-separated string or "all" if empty
+				const statusValue =
+					statusArray.length > 0 ? statusArray.join(',') : 'all'
+				updateFilters({
+					status: statusValue,
+				})
+			}
+		},
+		[updateFilters]
+	)
+
+	// Handle sorting with new admin API
+	const handleSort = useCallback(
+		(field: string) => {
+			const validField = field as 'name' | 'email' | 'createdAt'
+			setSortBy(validField)
+			updateFilters({
+				sortBy: validField,
+				sortDirection: sortDirection,
+			})
+		},
+		[updateFilters, sortDirection]
+	)
+
+	const handleSortDirection = useCallback(
+		(direction: 'asc' | 'desc') => {
+			setSortDirection(direction)
+			updateFilters({
+				sortBy: sortBy,
+				sortDirection: direction,
+			})
+		},
+		[updateFilters, sortBy]
+	)
+
+	// Handle pagination with new admin API
+	const handlePageChange = useCallback(
+		(page: number) => {
+			setPage(page)
+		},
+		[setPage]
+	)
+
+	// Natural sort function for alphanumeric strings
+	// const naturalSort = useCallback(
+	// 	(a: string, b: string, direction: 'asc' | 'desc') => {
+	// 		const collator = new Intl.Collator(undefined, {
+	// 			numeric: true,
+	// 			sensitivity: 'base',
+	// 		})
+	// 		const result = collator.compare(a, b)
+	// 		return direction === 'asc' ? result : -result
+	// 	},
+	// 	[]
+	// )
+
+	// // Apply client-side natural sorting to the users from API
+	// const displayUsers = [...users].sort((a, b) => {
+	// 	if (sortBy === 'name') {
+	// 		return naturalSort(a.name || '', b.name || '', sortDirection)
+	// 	} else if (sortBy === 'email') {
+	// 		return naturalSort(a.email || '', b.email || '', sortDirection)
+	// 	} else {
+	// 		// For createdAt, use standard comparison
+	// 		const dateA = new Date(a.createdAt).getTime()
+	// 		const dateB = new Date(b.createdAt).getTime()
+	// 		return sortDirection === 'asc' ? dateA - dateB : dateB - dateA
+	// 	}
+	// })
+
+	const totalPages = pagination?.totalPages || 1
+	const itemsPerPage = filters.limit || 10
+
+	return (
+		<div className="space-y-8">
+			{/* Header */}
+			<div className="flex justify-between items-center mb-4">
+				<h2 className="text-2xl font-bold text-black capitalize">
+					{userType}s {!loading && `(${total} total)`}
+				</h2>
+			</div>
+			{/* Search and Filters */}
+			<SearchAndFilter
+				searchQuery={searchInput}
+				onSearchChange={setSearchInput}
+				statusFilter={statusFilter}
+				onStatusFilterChange={handleStatusFilter}
+				sortBy={sortBy}
+				onSortChange={(sort) => handleSort(sort)}
+				sortDirection={sortDirection}
+				onSortDirectionChange={(direction) => handleSortDirection(direction)}
+				searchPlaceholder="Search by name or email..."
+				statusOptions={
+					userType === 'institution'
+						? [
+								{ value: 'all', label: 'All Statuses' },
+								{ value: 'active', label: 'Active' },
+								{ value: 'pending', label: 'Pending' },
+								{ value: 'rejected', label: 'Rejected' },
+								{ value: 'require_update', label: 'Require Update' },
+								{ value: 'updated', label: 'Updated' },
+								{ value: 'deactivated', label: 'Deactivated' },
+							]
+						: [
+								{ value: 'all', label: 'All Statuses' },
+								{ value: 'active', label: 'Active' },
+								{ value: 'deactivated', label: 'Deactivated' },
+							]
+				}
+				sortOptions={[
+					{ value: 'name', label: 'Name' },
+					{ value: 'createdAt', label: 'Created Date' },
+					{ value: 'email', label: 'Email' },
+				]}
+			/>
+			{/* Add Admin Button */}
+			{userType === 'admin' && onAddAdmin && (
+				<div className="mb-4 flex justify-end">
+					<Button
+						onClick={onAddAdmin}
+						className="bg-[#126E64] hover:bg-[#0f5a52] text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-200 flex items-center gap-2"
+					>
+						<Plus className="h-5 w-5" />
+						Add Admin
+					</Button>
+				</div>
+			)}{' '}
+			{/* Table with horizontal scroll */}
+			<Card className="bg-white rounded-[24px] shadow-xl overflow-hidden border-0">
+				<CardContent className="p-0">
+					{/* Small Progress Bar at Top of Table */}
+					{loading && (
+						<div className="w-full bg-gray-200 h-1 overflow-hidden">
+							<div
+								className="bg-primary h-1"
+								style={{
+									width: '100%',
+									background:
+										'linear-gradient(90deg, #126E64 0%, #0D504A 50%, #126E64 100%)',
+									backgroundSize: '200% 100%',
+									animation: 'shimmer 1.5s ease-in-out infinite',
+								}}
+							/>
+							<style jsx>{`
+								@keyframes shimmer {
+									0% {
+										background-position: -200% 0;
+									}
+									100% {
+										background-position: 200% 0;
+									}
+								}
+							`}</style>
+						</div>
+					)}
+					<div className="w-full">
+						<div
+							className="bg-[#126E64] text-white grid px-8 py-5 text-center font-bold text-base"
+							style={{
+								gridTemplateColumns:
+									userType === 'institution'
+										? '2fr 1.5fr 1fr 1.2fr 1fr 1fr'
+										: '2fr 1.5fr 1fr 1fr 1fr 1fr',
+							}}
+						>
+							<div className="text-left">Name</div>
+							<div>Email</div>
+							<div>Status</div>
+							<div>{userType === 'institution' ? 'Type' : 'Role'}</div>
+							<div>Created</div>
+							<div className="pl-8">Actions</div>
+						</div>
+
+						{loading ? (
+							<div className="text-center py-12 text-gray-500">
+								Loading {userType}s...
+							</div>
+						) : error ? (
+							<div className="text-center py-12">
+								<div className="text-red-500 text-4xl mb-2">⚠️</div>
+								<p className="text-red-600 mb-1">Error loading {userType}s</p>
+								<p className="text-sm text-gray-600">{error}</p>
+							</div>
+						) : (
+							<div className="divide-y divide-gray-100">
+								{users.map((user, index) => {
+									const isEven = index % 2 === 0
+									const rowBg = isEven ? 'bg-[#EAEDF3]' : 'bg-white'
+
+									return (
+										<motion.div
+											key={user.id}
+											initial={{ opacity: 0, y: 10 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: index * 0.05 }}
+											className={`${rowBg} grid px-8 py-5 items-center`}
+											style={{
+												gridTemplateColumns:
+													userType === 'institution'
+														? '2fr 1.5fr 1fr 1.2fr 1fr 1fr'
+														: '2fr 1.5fr 1fr 1fr 1fr 1fr',
+											}}
+										>
+											{/* Name with tooltip for long text */}
+											<div className="font-semibold text-base text-black text-left group relative min-w-0">
+												<div className="truncate pr-2">{user.name}</div>
+												{user.name.length > 30 && (
+													<div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap max-w-xs">
+														{user.name}
+													</div>
+												)}
+											</div>
+
+											{/* Email with tooltip for long text */}
+											<div className="text-gray-700 text-sm text-center group relative min-w-0">
+												<div className="truncate px-2">{user.email}</div>
+												{user.email.length > 25 && (
+													<div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap max-w-md">
+														{user.email}
+													</div>
+												)}
+											</div>
+
+											<div className="text-center">
+												<span
+													className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${
+														user.status === 'deactivated'
+															? 'bg-[#E20000] text-white'
+															: user.status === 'rejected'
+																? 'bg-[#FFA500] text-white'
+																: user.status === 'pending'
+																	? 'bg-[#FFC107] text-white'
+																	: user.status === 'require_update'
+																		? 'bg-[#FF9800] text-white'
+																		: user.status === 'updated'
+																			? 'bg-[#2196F3] text-white'
+																			: 'bg-[#126E64] text-white'
+													}`}
+												>
+													{user.status === 'deactivated'
+														? 'Deactivated'
+														: user.status === 'rejected'
+															? 'Rejected'
+															: user.status === 'pending'
+																? 'Pending'
+																: user.status === 'require_update'
+																	? 'Require Update'
+																	: user.status === 'updated'
+																		? 'Updated'
+																		: 'Active'}
+												</span>
+											</div>
+
+											<div className="text-gray-700 text-sm text-center">
+												{userType === 'institution'
+													? user.type || 'N/A'
+													: user.role || 'User'}
+											</div>
+
+											<div className="text-gray-700 text-sm text-center">
+												{new Date(user.createdAt).toLocaleDateString()}
+											</div>
+
+											<div className="flex justify-center gap-2.5 pl-8">
+												<ViewDetailButton
+													onClick={() => onViewDetails(user.id)}
+													type="page"
+												/>
+											</div>
+										</motion.div>
+									)
+								})}
+							</div>
+						)}
+
+						{!loading && !error && users.length === 0 && (
+							<div className="text-center py-12 text-gray-500">
+								No users found matching your criteria.
+							</div>
+						)}
+					</div>
+				</CardContent>
+			</Card>
+			{/* Pagination */}
+			{!loading && (
+				<div className="flex justify-between items-center mt-6">
+					<div className="text-gray-600 text-xs font-medium">
+						Display {Math.min(itemsPerPage, users.length)} results of{' '}
+						<span className="font-semibold text-gray-800">{total}</span>
+					</div>
+
+					<div className="flex items-center gap-1">
+						<button
+							onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+							disabled={currentPage === 1}
+							className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
+						>
+							‹
+						</button>
+
+						{[...Array(Math.min(6, totalPages))].map((_, i) => {
+							const pageNum = i + 1
+							return (
+								<button
+									key={pageNum}
+									onClick={() => handlePageChange(pageNum)}
+									className={`w-8 h-8 rounded-full text-xs font-semibold transition-all ${
+										currentPage === pageNum
+											? 'bg-[#126E64] text-white shadow-md'
+											: 'text-gray-700 hover:bg-gray-100 hover:text-[#126E64]'
+									}`}
+								>
+									{pageNum}
+								</button>
+							)
+						})}
+
+						{totalPages > 6 && (
+							<>
+								<span className="text-gray-400 mx-1 text-xs">...</span>
+								<button
+									onClick={() => handlePageChange(totalPages)}
+									className="w-8 h-8 rounded-full text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-[#126E64] transition-all"
+								>
+									{totalPages}
+								</button>
+							</>
+						)}
+
+						<button
+							onClick={() =>
+								handlePageChange(Math.min(totalPages, currentPage + 1))
+							}
+							disabled={currentPage === totalPages}
+							className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-medium text-sm"
+						>
+							›
+						</button>
+					</div>
+				</div>
+			)}
+		</div>
+	)
+})
+
+export { UserManagementTable }

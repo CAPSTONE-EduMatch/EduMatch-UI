@@ -1,0 +1,1378 @@
+'use client'
+
+import {
+	AuthLayout,
+	// AuthRedirect,
+	GoogleButton,
+	PasswordField,
+} from '@/components/auth'
+import { Input, Modal } from '@/components/ui'
+import { authClient } from '@/config/auth-client'
+import axios from 'axios'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+
+const LEFT_IMAGE =
+	'https://wallpapers.com/images/featured/cambridge-university-k3uqfq0l7bwrrmpr.jpg'
+// Animation variants for staggered animations
+const containerVariants = {
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: {
+			staggerChildren: 0.1,
+			delayChildren: 0.3,
+		},
+	},
+}
+
+const itemVariants = {
+	hidden: { y: 20, opacity: 0 },
+	visible: {
+		y: 0,
+		opacity: 1,
+		transition: {
+			type: 'spring' as const,
+			stiffness: 100,
+			damping: 10,
+		},
+	},
+}
+
+const fadeIn = {
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: { duration: 0.5 },
+	},
+}
+
+const SignIn: React.FC = () => {
+	const t = useTranslations('auth.signin')
+	const tCommon = useTranslations('auth.common')
+
+	const router = useRouter()
+	const [email, setEmail] = useState('')
+	const [password, setPassword] = useState('')
+	const [showPassword, setShowPassword] = useState(false)
+	const [errors, setErrors] = useState<{
+		email?: string
+		password?: string
+		forgotEmail?: string
+	}>({})
+	const [isLoading, setIsLoading] = useState(false)
+	const [isRedirecting, setIsRedirecting] = useState(false)
+	const [showForgotPassword, setShowForgotPassword] = useState(false)
+	const [forgotPasswordStatus, setForgotPasswordStatus] = useState<{
+		success?: string
+		error?: string
+	}>({})
+	const [resetSent, setResetSent] = useState(false)
+	const [forgotEmail, setForgotEmail] = useState('')
+	const [animateForm, setAnimateForm] = useState(false)
+	const [hasSubmittedForgotEmail, setHasSubmittedForgotEmail] = useState(false)
+	// Email verification OTP states (replacing EmailVerificationModal)
+	const [showOTPPopup, setShowOTPPopup] = useState(false)
+	const [pendingEmail, setPendingEmail] = useState('')
+	const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
+	const [isOTPLoading, setIsOTPLoading] = useState(false)
+	const [OTPError, setOTPError] = useState('')
+	const [resendCountdown, setResendCountdown] = useState(0)
+	const [canResend, setCanResend] = useState(true)
+	// Forgot password cooldown states
+	const [forgotPasswordCooldown, setForgotPasswordCooldown] = useState(0)
+	const [canSendForgotPassword, setCanSendForgotPassword] = useState(true)
+	const [lastForgotPasswordEmail, setLastForgotPasswordEmail] = useState('')
+
+	// Check profile and redirect accordingly
+	const checkProfileAndRedirect = useCallback(
+		async (retryCount = 0) => {
+			const maxRetries = 2
+			const retryDelay = 500 // 500ms delay between retries
+
+			try {
+				// Wait a bit for session to be fully established
+				if (retryCount === 0) {
+					await new Promise((resolve) => setTimeout(resolve, 200))
+				}
+
+				const profileResponse = await axios.get('/api/profile')
+				const profile = profileResponse.data?.profile
+
+				if (profile) {
+					// User has a profile, redirect based on role
+					// Use replace to avoid adding to history
+					const currentPath = window.location.pathname
+
+					if (profile.role === 'admin') {
+						if (!currentPath.includes('/admin')) {
+							router.replace('/admin')
+						}
+					} else if (profile.role === 'institution') {
+						// Already on institution dashboard, no need to redirect
+						if (!currentPath.includes('/institution/dashboard')) {
+							router.replace('/institution/dashboard')
+						}
+					} else if (profile.role === 'applicant') {
+						// Redirect applicants to their profile view
+						if (!currentPath.includes('/profile/view')) {
+							router.replace('/profile/view')
+						}
+					} else {
+						if (!currentPath.includes('/explore')) {
+							router.replace('/explore')
+						}
+					}
+				} else {
+					// Profile response exists but no profile data
+					router.replace('/profile/create')
+				}
+			} catch (error: any) {
+				const status = error?.response?.status
+
+				// If profile doesn't exist (404), redirect to profile creation
+				if (status === 404) {
+					router.replace('/profile/create')
+				} else if (status === 500 && retryCount < maxRetries) {
+					// Retry on server errors (might be temporary)
+					// eslint-disable-next-line no-console
+					console.warn(
+						`Profile check failed with 500, retrying... (${retryCount + 1}/${maxRetries})`
+					)
+					await new Promise((resolve) =>
+						setTimeout(resolve, retryDelay * (retryCount + 1))
+					)
+					return checkProfileAndRedirect(retryCount + 1)
+				} else {
+					// For other errors or max retries reached, check if we can get session info
+					// If session exists, assume profile might exist and redirect to explore
+					// Otherwise, redirect to profile creation
+					try {
+						const session = await authClient.getSession()
+						if (session?.data?.user) {
+							// User is authenticated, try to redirect based on what we know
+							// If it's a server error, assume profile might exist
+							if (status === 500) {
+								// For institution users, try profile/view, for others explore
+								router.replace('/explore')
+							} else {
+								router.replace('/profile/create')
+							}
+						} else {
+							router.replace('/profile/create')
+						}
+					} catch (sessionError) {
+						// Can't verify session, redirect to profile creation
+						router.replace('/profile/create')
+					}
+				}
+			}
+		},
+		[router]
+	)
+
+	// Trigger animation after component mounts
+	useEffect(() => {
+		setAnimateForm(true)
+	}, [])
+
+	// Check if user is already authenticated (e.g., from Google OAuth callback)
+	useEffect(() => {
+		const checkExistingAuth = async () => {
+			try {
+				// Wait a bit longer for Google OAuth callback to complete
+				await new Promise((resolve) => setTimeout(resolve, 500))
+
+				const session = await authClient.getSession()
+
+				if (session?.data?.user) {
+					// User is already authenticated (e.g., returning from Google OAuth)
+					// Set post-login flag to ensure loading state is shown during redirect
+					localStorage.setItem('postLoginInit', 'true')
+
+					// Use a longer delay for Google OAuth to ensure session is fully established
+					await new Promise((resolve) => setTimeout(resolve, 800))
+					await checkProfileAndRedirect()
+				} else {
+				}
+			} catch (error) {
+				// User is not authenticated, continue with signin form
+			}
+		}
+
+		checkExistingAuth()
+	}, [checkProfileAndRedirect])
+
+	// Load forgot password cooldown from localStorage on mount
+	useEffect(() => {
+		const savedCooldown = localStorage.getItem('forgotPasswordCooldownEnd')
+		const savedEmail = localStorage.getItem('forgotPasswordCooldownEmail')
+
+		if (savedCooldown && savedEmail) {
+			const cooldownEnd = parseInt(savedCooldown)
+			const now = Date.now()
+			const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000))
+
+			if (remainingTime > 0) {
+				setForgotPasswordCooldown(remainingTime)
+				setLastForgotPasswordEmail(savedEmail)
+				setCanSendForgotPassword(false)
+			} else {
+				// Cleanup expired cooldown
+				localStorage.removeItem('forgotPasswordCooldownEnd')
+				localStorage.removeItem('forgotPasswordCooldownEmail')
+			}
+		}
+	}, [])
+
+	// Forgot password cooldown effect
+	useEffect(() => {
+		let intervalId: NodeJS.Timeout
+		if (forgotPasswordCooldown > 0) {
+			intervalId = setInterval(() => {
+				setForgotPasswordCooldown((prev) => {
+					if (prev <= 1) {
+						// Clear localStorage when cooldown expires
+						localStorage.removeItem('forgotPasswordCooldownEnd')
+						localStorage.removeItem('forgotPasswordCooldownEmail')
+						setCanSendForgotPassword(true)
+						return 0
+					}
+					return prev - 1
+				})
+			}, 1000)
+		}
+		return () => {
+			if (intervalId) clearInterval(intervalId)
+		}
+	}, [forgotPasswordCooldown])
+
+	// OTP resend countdown effect
+	useEffect(() => {
+		let intervalId: NodeJS.Timeout
+		if (resendCountdown > 0) {
+			intervalId = setInterval(() => {
+				setResendCountdown((prev) => {
+					if (prev <= 1) {
+						setCanResend(true)
+						return 0
+					}
+					return prev - 1
+				})
+			}, 1000)
+		}
+		return () => {
+			if (intervalId) clearInterval(intervalId)
+		}
+	}, [resendCountdown])
+
+	// OTP helper functions
+	const handleOtpChange = (index: number, value: string) => {
+		if (!/^\d*$/.test(value)) return // Only allow digits
+
+		const newDigits = [...otpDigits]
+		newDigits[index] = value.slice(-1) // Only take the last digit
+		setOtpDigits(newDigits)
+
+		// Auto-focus next input
+		if (value && index < 5) {
+			const nextInput = document.getElementById(`otp-${index}`)
+			nextInput?.focus()
+		}
+	}
+
+	const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+		if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+			const prevInput = document.getElementById(`otp-${index - 1}`)
+			prevInput?.focus()
+		}
+	}
+
+	const handleOtpPaste = (e: React.ClipboardEvent) => {
+		e.preventDefault()
+		const pastedData = e.clipboardData.getData('text').replace(/\D/g, '')
+		const newDigits = [...otpDigits]
+
+		for (let i = 0; i < Math.min(pastedData.length, 6); i++) {
+			newDigits[i] = pastedData[i]
+		}
+
+		setOtpDigits(newDigits)
+
+		// Focus the next empty field or the last field
+		const nextEmptyIndex = newDigits.findIndex(
+			(digit, idx) => !digit && idx < 6
+		)
+		const focusIndex = nextEmptyIndex !== -1 ? nextEmptyIndex : 5
+		const targetInput = document.getElementById(`otp-${focusIndex}`)
+		targetInput?.focus()
+	}
+
+	const resetOtpDigits = () => {
+		setOtpDigits(['', '', '', '', '', ''])
+	}
+
+	const handleCloseOTPModal = () => {
+		setShowOTPPopup(false)
+		setOtpDigits(['', '', '', '', '', ''])
+		setOTPError('')
+		setPendingEmail('')
+	}
+
+	function validate() {
+		const next: { email?: string; password?: string } = {}
+		if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+			next.email = t('errors.email_required')
+		}
+		if (!password) {
+			next.password = t('errors.password_required')
+		}
+		setErrors(next)
+		return Object.keys(next).length === 0
+	}
+
+	// Google social sign-in is handled within the GoogleButton component
+
+	const handleEmailSignIn = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!validate()) return
+		setIsLoading(true)
+		try {
+			const res = await authClient.signIn.email({
+				email,
+				password,
+				callbackURL: '/signin', // Stay on signin page, we'll handle redirect client-side
+			})
+
+			// If successful signin, handle redirect
+			if (res?.data && !res?.error) {
+				// Set post-login initialization flag to keep loading state active
+				localStorage.setItem('postLoginInit', 'true')
+
+				// Set redirecting state immediately
+				setIsRedirecting(true)
+
+				// Navigate immediately to institution dashboard to show loading screen
+				// We'll check profile and redirect to correct route if needed
+				// Use replace to avoid back button issues
+				router.replace('/institution/dashboard')
+
+				// Check profile in background and redirect if needed
+				// This happens after navigation so dashboard loading screen shows immediately
+				// Small delay to let navigation start
+				setTimeout(async () => {
+					try {
+						await checkProfileAndRedirect()
+					} catch (error) {
+						// If redirect fails, stay on institution dashboard
+						// The dashboard will handle showing appropriate content or redirect
+					}
+				}, 150)
+
+				// Keep loading state active - it will be cleared when page redirects
+				return
+			}
+
+			if (res?.error) {
+				// eslint-disable-next-line no-console
+
+				const errorMessage = res.error.message?.toLowerCase() || ''
+
+				// First, try to check if user exists and get their verification status
+				let shouldTriggerEmailVerification = false
+				let isAccountDeleted = false
+
+				try {
+					const userCheckResponse = await axios.get(
+						`/api/user?email=${encodeURIComponent(email)}`
+					)
+
+					// Check if account is deleted (status = false)
+					if (
+						userCheckResponse.data.exists &&
+						userCheckResponse.data.status === false
+					) {
+						isAccountDeleted = true
+					}
+					// If user exists but email is not verified, trigger OTP flow
+					else if (
+						userCheckResponse.data.exists &&
+						!userCheckResponse.data.isEmailVerified
+					) {
+						shouldTriggerEmailVerification = true
+					}
+				} catch (apiError) {
+					// eslint-disable-next-line no-console
+				}
+
+				// Enhanced email verification error detection
+				const isEmailVerificationError =
+					shouldTriggerEmailVerification ||
+					(errorMessage.includes('email') &&
+						(errorMessage.includes('verify') ||
+							errorMessage.includes('verification') ||
+							errorMessage.includes('not verified') ||
+							errorMessage.includes('unverified') ||
+							errorMessage.includes('confirm') ||
+							errorMessage.includes('activate'))) ||
+					// Better Auth specific error patterns
+					errorMessage.includes('email not verified') ||
+					errorMessage.includes('please verify') ||
+					errorMessage.includes('account not verified') ||
+					errorMessage.includes('verification required')
+
+				// Check if error is related to wrong password/credentials (but not email verification)
+				const isCredentialError =
+					!isEmailVerificationError &&
+					(errorMessage.includes('password') ||
+						errorMessage.includes('credential') ||
+						errorMessage.includes('invalid') ||
+						errorMessage.includes('unauthorized') ||
+						errorMessage.includes('wrong'))
+
+				// Check if error is related to user not found
+				const isUserNotFoundError =
+					!isEmailVerificationError &&
+					errorMessage.includes('user') &&
+					(errorMessage.includes('not found') ||
+						errorMessage.includes('does not exist') ||
+						errorMessage.includes("doesn't exist"))
+				console.log({
+					isEmailVerificationError,
+					isCredentialError,
+					isUserNotFoundError,
+				})
+				console.log('Error message:', errorMessage)
+
+				if (isAccountDeleted) {
+					// Show error for deleted accounts
+					setErrors({
+						email: t('errors.account_deleted'),
+					})
+				} else if (isEmailVerificationError) {
+					try {
+						// Send OTP for email verification
+						// Normalize email to lowercase to ensure consistent comparison
+						const normalizedEmail = email.toLowerCase().trim()
+						await authClient.emailOtp.sendVerificationOtp({
+							email: normalizedEmail,
+							type: 'email-verification',
+						})
+						setPendingEmail(normalizedEmail)
+						setShowOTPPopup(true)
+					} catch (otpError) {
+						setErrors({
+							email: t('errors.email_not_verified'),
+						})
+					}
+				} else if (isCredentialError) {
+					// Show password error for credential issues
+					setErrors({
+						email: t('errors.invalid_credentials'),
+						password: t('errors.invalid_credentials'),
+					})
+				} else if (isUserNotFoundError) {
+					// Show email error for user not found
+					setErrors({
+						email: t('errors.user_not_found'),
+					})
+				} else {
+					// For any other error, try email verification as fallback
+					try {
+						// Attempt to send verification OTP as fallback
+						// Normalize email to lowercase to ensure consistent comparison
+						const normalizedEmail = email.toLowerCase().trim()
+						await authClient.emailOtp.sendVerificationOtp({
+							email: normalizedEmail,
+							type: 'email-verification',
+						})
+						setPendingEmail(email)
+						setShowOTPPopup(true)
+					} catch (otpError) {
+						// If OTP fails, show the original error
+						setErrors({
+							email: res.error.message ?? 'Sign in failed. Please try again.',
+						})
+					}
+				}
+			}
+		} catch (err) {
+			// eslint-disable-next-line no-console
+		} finally {
+			// Only stop loading if we're not redirecting
+			// If redirecting, keep loading state active until page changes
+			if (!isRedirecting) {
+				setIsLoading(false)
+			}
+		}
+	}
+
+	const handleForgotPassword = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!forgotEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(forgotEmail)) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: t('errors.email_required'),
+			}))
+			return
+		}
+
+		// Check for active cooldown
+		if (forgotPasswordCooldown > 0 && lastForgotPasswordEmail === forgotEmail) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: t('errors.forgot_password_cooldown', {
+					seconds: forgotPasswordCooldown,
+				}),
+			}))
+			return
+		}
+
+		setIsLoading(true)
+		try {
+			// First check if user exists and get provider information
+			const userCheckResponse = await axios.get(
+				`/api/user?email=${encodeURIComponent(forgotEmail)}`
+			)
+
+			if (!userCheckResponse.data.exists) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail:
+						'No account found with this email address. Please check your email or sign up.',
+				}))
+				setIsLoading(false)
+				return
+			}
+
+			// Check if user is a Google user
+			if (
+				userCheckResponse.data.isGoogleUser &&
+				!userCheckResponse.data.hasCredentialAccount
+			) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail: t('errors.google_account'),
+				}))
+				setIsLoading(false)
+				return
+			}
+
+			// If user exists and can reset password, proceed with password reset
+			const { error } = await authClient.requestPasswordReset({
+				email: forgotEmail,
+				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
+			})
+
+			if (error) {
+				// Handle rate limiting errors specifically
+				const errorMessage =
+					error.message || 'Failed to send reset link. Please try again later.'
+
+				if (
+					errorMessage.includes('Too many') &&
+					errorMessage.includes('password reset requests')
+				) {
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail:
+							'⏰ Too many password reset attempts. Please wait 24 hours before trying again.',
+					}))
+				} else if (
+					errorMessage.includes('deactivated') ||
+					errorMessage.includes('has been deactivated')
+				) {
+					// Handle deactivated account error
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail:
+							'Your account has been deactivated. Please contact support if you wish to reactivate your account.',
+					}))
+				} else if (
+					errorMessage.includes('banned') ||
+					errorMessage.includes('has been banned')
+				) {
+					// Handle banned account error (includes temporary and permanent bans)
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail: `${errorMessage}`,
+					}))
+				} else {
+					setErrors((prev) => ({
+						...prev,
+						forgotEmail: errorMessage,
+					}))
+				}
+				setIsLoading(false)
+				return
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+			setForgotPasswordStatus({
+				success: `Password reset link sent to ${forgotEmail}. Please check your inbox.`,
+				error: undefined,
+			})
+			setResetSent(true)
+			setHasSubmittedForgotEmail(true)
+			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
+
+			// Start cooldown to prevent spam
+			setForgotPasswordCooldown(60)
+			setLastForgotPasswordEmail(forgotEmail)
+			setCanSendForgotPassword(false)
+			// Store in localStorage for persistence
+			localStorage.setItem(
+				'forgotPasswordCooldownEnd',
+				(Date.now() + 60000).toString()
+			)
+			localStorage.setItem('forgotPasswordCooldownEmail', forgotEmail)
+		} catch (error) {
+			// Handle API errors
+			if (axios.isAxiosError(error)) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail: 'Unable to verify email. Please try again later.',
+				}))
+			} else {
+				setForgotPasswordStatus({
+					success: undefined,
+					error: 'Failed to send reset link. Please try again later.',
+				})
+			}
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	const handleResendForgotPassword = async () => {
+		if (!forgotEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(forgotEmail)) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: t('errors.email_required'),
+			}))
+			return
+		}
+
+		// Check for active cooldown
+		if (!canSendForgotPassword && lastForgotPasswordEmail === forgotEmail) {
+			setErrors((prev) => ({
+				...prev,
+				forgotEmail: t('errors.forgot_password_cooldown', {
+					seconds: forgotPasswordCooldown,
+				}),
+			}))
+			return
+		}
+
+		setIsLoading(true)
+		try {
+			// First check if user exists
+			const userCheckResponse = await axios.get(
+				`/api/user?email=${encodeURIComponent(forgotEmail)}`
+			)
+
+			if (!userCheckResponse.data.exists) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail:
+						'No account found with this email address. Please check your email or sign up.',
+				}))
+				setIsLoading(false)
+				return
+			}
+
+			// If user exists, proceed with password reset
+			const { error } = await authClient.requestPasswordReset({
+				email: forgotEmail,
+				redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/forgot-password`,
+			})
+
+			if (error) {
+				setForgotPasswordStatus({
+					success: undefined,
+					error:
+						error.message ||
+						'Failed to send reset link. Please try again later.',
+				})
+				return
+			}
+
+			// Simulate delay for better UX
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+			setForgotPasswordStatus({
+				success: `Password reset link sent to ${forgotEmail}. Please check your inbox.`,
+				error: undefined,
+			})
+			setErrors((prev) => ({ ...prev, forgotEmail: undefined }))
+
+			// Start cooldown to prevent spam
+			setForgotPasswordCooldown(60)
+			setLastForgotPasswordEmail(forgotEmail)
+			setCanSendForgotPassword(false)
+			// Store in localStorage for persistence
+			localStorage.setItem(
+				'forgotPasswordCooldownEnd',
+				(Date.now() + 60000).toString()
+			)
+			localStorage.setItem('forgotPasswordCooldownEmail', forgotEmail)
+		} catch (error) {
+			// Handle API errors
+			if (axios.isAxiosError(error)) {
+				setErrors((prev) => ({
+					...prev,
+					forgotEmail: 'Unable to verify email. Please try again later.',
+				}))
+			} else {
+				setForgotPasswordStatus({
+					success: undefined,
+					error: 'Failed to send reset link. Please try again later.',
+				})
+			}
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	const handleVerifyOTP = async () => {
+		const otpCode = otpDigits.join('').trim()
+		if (otpCode.length !== 6) {
+			setOTPError(t('errors.otp_incomplete'))
+			return
+		}
+
+		setIsOTPLoading(true)
+		setOTPError('')
+
+		try {
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = pendingEmail.toLowerCase().trim()
+			const result = await authClient.emailOtp.verifyEmail({
+				email: normalizedEmail,
+				otp: otpCode,
+			})
+
+			if (result.error) {
+				console.error('OTP verification error:', result.error)
+				setOTPError(result.error.message || t('errors.otp_failed'))
+			} else {
+				// Set post-login initialization flag to keep loading state active
+				localStorage.setItem('postLoginInit', 'true')
+
+				// Success - close modal and check profile
+				handleCloseOTPModal()
+				// After successful verification, navigate immediately and check profile
+				setIsRedirecting(true)
+				// Navigate immediately to show loading screen
+				router.replace('/institution/dashboard')
+				// Check profile in background and redirect if needed
+				setTimeout(async () => {
+					try {
+						await checkProfileAndRedirect()
+					} catch (error) {
+						// If redirect fails, stay on institution dashboard
+					}
+				}, 150)
+			}
+		} catch (err) {
+			console.error('OTP verification exception:', err)
+			setOTPError('Verification failed. Please try again.')
+			setIsRedirecting(false)
+		} finally {
+			setIsOTPLoading(false)
+		}
+	}
+
+	const handleResendOTP = async () => {
+		if (resendCountdown > 0 || !canResend) return
+
+		setIsOTPLoading(true)
+		setOTPError('')
+
+		try {
+			// Normalize email to lowercase to ensure consistent comparison
+			const normalizedEmail = pendingEmail.toLowerCase().trim()
+			const result = await authClient.emailOtp.sendVerificationOtp({
+				email: normalizedEmail,
+				type: 'email-verification',
+			})
+
+			if (result.error) {
+				setOTPError(result.error.message || 'Failed to send verification code')
+			} else {
+				setResendCountdown(30) // 30-second cooldown
+				setCanResend(false)
+				setOtpDigits(['', '', '', '', '', '']) // Clear current OTP
+			}
+		} catch (err) {
+			setOTPError('Failed to resend verification code')
+		} finally {
+			setIsOTPLoading(false)
+		}
+	}
+
+	useEffect(() => {
+		// Show Google One Tap prompt when the page loads
+		const cleanup = () => {
+			try {
+				authClient.oneTap({
+					callbackURL: '/dashboard',
+					fetchOptions: {
+						onSuccess: (response) => {
+							// Handle success silently to avoid console spam
+						},
+						onError: (error) => {
+							// Silently handle Google OAuth errors - they're not critical
+							// Only log critical errors, not FedCM warnings
+							if (
+								error &&
+								typeof error === 'object' &&
+								'message' in error &&
+								!String(error.message).includes('FedCM') &&
+								!String(error.message).includes('message channel')
+							) {
+								// eslint-disable-next-line no-console
+							}
+						},
+					},
+				})
+			} catch (error) {
+				// Silently handle any Google OAuth initialization errors
+				// Only log critical errors, not FedCM warnings
+				if (
+					error &&
+					typeof error === 'object' &&
+					'message' in error &&
+					!String(error.message).includes('FedCM') &&
+					!String(error.message).includes('message channel')
+				) {
+					// eslint-disable-next-line no-console
+				}
+			}
+		}
+		cleanup()
+	}, [])
+
+	return (
+		<div className="relative">
+			{/* <AuthRedirect redirectTo="/dashboard"> */}
+			<AuthLayout imageSrc={LEFT_IMAGE}>
+				<motion.div
+					className="relative z-10 max-w-2xl"
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.7, delay: 0.3 }}
+				>
+					<motion.h1
+						className="text-4xl font-bold text-[#126E64] mb-3"
+						initial={{ opacity: 0, y: -20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.7, delay: 0.4 }}
+					>
+						{t('title')}
+					</motion.h1>
+
+					<motion.p
+						className="text-sm text-gray-500 mb-8"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 0.7, delay: 0.5 }}
+					>
+						{t('subtitle')}
+					</motion.p>
+
+					<motion.form
+						onSubmit={handleEmailSignIn}
+						className="space-y-6"
+						variants={containerVariants}
+						initial="hidden"
+						animate={animateForm ? 'visible' : 'hidden'}
+					>
+						<motion.div
+							className="grid grid-cols-12 items-center gap-4"
+							variants={itemVariants}
+						>
+							<label className="col-span-3 text-sm font-medium text-gray-700">
+								{t('form.email.label')} <span className="text-red-500">*</span>
+							</label>
+							<div className="col-span-9">
+								<Input
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									type="email"
+									placeholder={t('form.email.placeholder')}
+									aria-label={t('form.email.label')}
+									variant="signin"
+									error={errors.email}
+									disabled={isLoading}
+								/>
+							</div>
+						</motion.div>
+
+						<motion.div
+							className="grid grid-cols-12 items-center gap-4"
+							variants={itemVariants}
+						>
+							{/* <label className="col-span-3 text-sm font-medium text-gray-700">
+								Password <span className="text-red-500">*</span>
+							</label> */}
+							<div className="relative col-span-12">
+								{/* <Input
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									type={showPassword ? 'text' : 'password'}
+									placeholder="Enter your password"
+									aria-label="Password"
+									variant="signin"
+									error={errors.password}
+								/>
+								<motion.button
+									type="button"
+									className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+									onClick={() => setShowPassword(!showPassword)}
+									// whileHover={{ scale: 1.1 }}
+									// whileTap={{ scale: 0.9 }}
+									aria-label={showPassword ? 'Hide password' : 'Show password'}
+								>
+									{showPassword ? (
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											className="h-5 w-5"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+										>
+											<path
+												fillRule="evenodd"
+												d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
+												clipRule="evenodd"
+											/>
+											<path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+										</svg>
+									) : (
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											className="h-5 w-5"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+										>
+											<path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+											<path
+												fillRule="evenodd"
+												d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+												clipRule="evenodd"
+											/>
+										</svg>
+									)}
+								</motion.button> */}
+								<PasswordField
+									label="Password"
+									name="Password"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									placeholder="Enter your password"
+									error={errors.password}
+									required
+									showCriteria={false}
+									// helpText="Re-enter your password to confirm"
+								/>
+							</div>
+						</motion.div>
+
+						<motion.div
+							className="flex items-center justify-end"
+							variants={itemVariants}
+						>
+							{/* <label className="flex items-center text-sm text-gray-600">
+                    <input type="checkbox" className="mr-2" /> Remember me
+                  </label> */}
+							<motion.button
+								type="button"
+								onClick={() => {
+									setForgotEmail(email) // Pre-fill with current email if available
+									setShowForgotPassword(true)
+									setResetSent(false)
+								}}
+								className="text-sm text-[#126E64] hover:underline"
+								whileHover={{ scale: 1.05 }}
+								whileTap={{ scale: 0.95 }}
+							>
+								{t('form.forgot_password')}
+							</motion.button>
+						</motion.div>
+
+						<motion.div variants={itemVariants}>
+							<motion.button
+								type="submit"
+								disabled={isLoading}
+								className="w-full bg-[#126E64] text-white py-3 rounded-full shadow-md hover:opacity-90 transition-all duration-100 hover:shadow-lg transform hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+								whileHover={
+									!isLoading
+										? {
+												scale: 1.02,
+												boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+											}
+										: {}
+								}
+								whileTap={!isLoading ? { scale: 0.98 } : {}}
+							>
+								{isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+								{t('buttons.submit')}
+							</motion.button>
+						</motion.div>
+
+						<motion.div variants={itemVariants}>
+							<motion.div className="mt-4" variants={itemVariants}>
+								<GoogleButton
+									action="signin"
+									callbackURL="/signin" // Stay on signin page, we'll handle redirect client-side
+									isLoading={isLoading}
+									text={t('buttons.google')}
+									loadingText={t('buttons.google_loading')}
+								/>
+							</motion.div>
+						</motion.div>
+
+						<motion.p
+							className="text-center text-sm text-gray-500 mt-2"
+							variants={itemVariants}
+						>
+							{t('links.no_account')}{' '}
+							<Link href="/signup">
+								<motion.span
+									className="text-[#126E64] font-medium hover:underline inline-block"
+									whileHover={{
+										scale: 1.05,
+										color: '#0D504A',
+										transition: { duration: 0.2 },
+									}}
+								>
+									{t('links.sign_up')}
+								</motion.span>
+							</Link>
+						</motion.p>
+					</motion.form>
+				</motion.div>
+			</AuthLayout>
+
+			{/* Forgot Password Modal */}
+			<Modal
+				isOpen={showForgotPassword}
+				onClose={() => setShowForgotPassword(false)}
+				maxWidth="sm"
+			>
+				<motion.h2
+					className="text-2xl font-bold text-[#126E64] mb-2"
+					initial={{ opacity: 0, y: -10 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.2 }}
+				>
+					{t('forgot_password_modal.title')}
+				</motion.h2>
+
+				{!resetSent ? (
+					<motion.div
+						initial="hidden"
+						animate="visible"
+						variants={containerVariants}
+					>
+						<motion.p className="text-gray-600 mb-6" variants={itemVariants}>
+							{t('forgot_password_modal.description')}
+						</motion.p>
+
+						<motion.form onSubmit={handleForgotPassword} className="space-y-4">
+							<motion.div variants={itemVariants} className="relative">
+								<Input
+									type="email"
+									value={forgotEmail}
+									onChange={(e) => setForgotEmail(e.target.value)}
+									placeholder={t('forgot_password_modal.email_placeholder')}
+									variant="signin"
+									error={errors.forgotEmail}
+									required
+								/>
+							</motion.div>
+
+							<motion.button
+								type="submit"
+								disabled={isLoading}
+								className="w-full bg-[#126E64] text-white py-3 rounded-full font-medium shadow-md hover:bg-opacity-90 "
+								variants={itemVariants}
+								whileHover={{
+									scale: 1.02,
+									boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+								}}
+								whileTap={{ scale: 0.98 }}
+							>
+								{isLoading
+									? t('forgot_password_modal.sending_button')
+									: t('forgot_password_modal.send_button')}
+							</motion.button>
+						</motion.form>
+
+						{hasSubmittedForgotEmail && (
+							<motion.button
+								onClick={handleResendForgotPassword}
+								disabled={isLoading || !canSendForgotPassword}
+								className="mt-4 w-full px-4 py-2 text-sm font-medium text-[#126E64] bg-transparent border border-[#126E64] rounded-full hover:bg-[#126E64] hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								whileHover={
+									canSendForgotPassword && !isLoading ? { scale: 1.02 } : {}
+								}
+								whileTap={
+									canSendForgotPassword && !isLoading ? { scale: 0.98 } : {}
+								}
+							>
+								{isLoading
+									? t('forgot_password_modal.sending_button')
+									: !canSendForgotPassword
+										? t('forgot_password_modal.resend_countdown', {
+												seconds: forgotPasswordCooldown,
+											})
+										: t('forgot_password_modal.resend_button')}
+							</motion.button>
+						)}
+					</motion.div>
+				) : (
+					<motion.div
+						className="text-center py-4"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+					>
+						<motion.svg
+							className="mx-auto h-12 w-12 text-green-500 mb-4"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							initial={{ scale: 0, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							transition={{
+								type: 'spring',
+								stiffness: 100,
+								delay: 0.2,
+							}}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</motion.svg>
+						<motion.p
+							className="text-gray-700 mb-4"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.3 }}
+						>
+							{t('forgot_password_modal.success_message', {
+								email: forgotEmail,
+							})}
+						</motion.p>
+						<motion.button
+							onClick={() => setShowForgotPassword(false)}
+							className="w-full bg-[#126E64] text-white py-2 rounded-full font-medium shadow-md hover:bg-opacity-90 transition-all duration-300"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.4 }}
+							whileHover={{
+								scale: 1.02,
+								boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+							}}
+							whileTap={{ scale: 0.98 }}
+						>
+							{t('forgot_password_modal.cancel_button')}
+						</motion.button>
+
+						{hasSubmittedForgotEmail && (
+							<motion.button
+								onClick={handleResendForgotPassword}
+								disabled={isLoading || !canSendForgotPassword}
+								className="mt-4 w-full px-4 py-2 text-sm font-medium text-[#126E64] bg-transparent border border-[#126E64] rounded-full hover:bg-[#126E64] hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								whileHover={
+									canSendForgotPassword && !isLoading ? { scale: 1.02 } : {}
+								}
+								whileTap={
+									canSendForgotPassword && !isLoading ? { scale: 0.98 } : {}
+								}
+							>
+								{isLoading
+									? t('forgot_password_modal.sending_button')
+									: !canSendForgotPassword
+										? t('forgot_password_modal.resend_countdown', {
+												seconds: forgotPasswordCooldown,
+											})
+										: t('forgot_password_modal.resend_button')}
+							</motion.button>
+						)}
+					</motion.div>
+				)}
+			</Modal>
+
+			{/* Email Verification OTP Popup */}
+			{showOTPPopup && (
+				<motion.div
+					className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.3 }}
+				>
+					<motion.div
+						className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full"
+						initial={{ opacity: 0, scale: 0.9, y: 20 }}
+						animate={{ opacity: 1, scale: 1, y: 0 }}
+						transition={{
+							type: 'spring',
+							stiffness: 100,
+							damping: 15,
+						}}
+					>
+						<div className="flex justify-between items-center mb-4">
+							<h2 className="text-xl font-bold text-gray-800">
+								{t('otp_modal.title')}
+							</h2>
+							<motion.button
+								onClick={handleCloseOTPModal}
+								className="text-gray-500 hover:text-gray-700 transition-all duration-300"
+								whileHover={{ scale: 1.1 }}
+								whileTap={{ scale: 0.95 }}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-6 w-6"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</motion.button>
+						</div>
+
+						<motion.div
+							initial="hidden"
+							animate="visible"
+							variants={containerVariants}
+						>
+							<motion.p className="text-gray-600 mb-4" variants={itemVariants}>
+								{t('otp_modal.description', { email: pendingEmail })}
+							</motion.p>
+
+							{OTPError && (
+								<motion.div
+									className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded"
+									initial={{ opacity: 0, x: -20 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{ type: 'spring', stiffness: 100 }}
+								>
+									{OTPError}
+								</motion.div>
+							)}
+
+							<motion.div className="mb-4" variants={itemVariants}>
+								<label className="block text-sm font-medium text-gray-700 mb-3">
+									{t('otp_modal.code_label')}
+								</label>
+								<div className="flex justify-center space-x-2">
+									{otpDigits.map((digit, index) => (
+										<input
+											key={index}
+											id={`otp-${index}`}
+											type="text"
+											inputMode="numeric"
+											maxLength={1}
+											value={digit}
+											onChange={(e) => handleOtpChange(index, e.target.value)}
+											onKeyDown={(e) => handleOtpKeyDown(index, e)}
+											onPaste={handleOtpPaste}
+											className="w-14 h-16 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-[#126E64] focus:outline-none focus:ring-2 focus:ring-[#126E64]/20 transition-all duration-200 hover:border-gray-400"
+										/>
+									))}
+								</div>
+								{otpDigits.some((digit) => digit) && (
+									<div className="text-center mt-2">
+										<button
+											type="button"
+											onClick={resetOtpDigits}
+											className="text-sm text-gray-500 hover:text-gray-700 underline"
+										>
+											{t('otp_modal.clear_button')}
+										</button>
+									</div>
+								)}
+							</motion.div>
+
+							<motion.div
+								className="flex justify-end space-x-2"
+								variants={itemVariants}
+							>
+								<motion.button
+									type="button"
+									onClick={handleCloseOTPModal}
+									className="px-4 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-300"
+									whileHover={{
+										scale: 1.02,
+										boxShadow: '0 5px 10px rgba(0, 0, 0, 0.05)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									{t('otp_modal.cancel_button')}
+								</motion.button>
+								<motion.button
+									type="button"
+									onClick={handleVerifyOTP}
+									disabled={isOTPLoading || otpDigits.some((digit) => !digit)}
+									className="px-4 py-2 bg-[#126E64] text-white rounded-full shadow-md hover:opacity-90 disabled:opacity-70 transition-all duration-300"
+									whileHover={{
+										scale: 1.02,
+										boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									{isOTPLoading
+										? t('otp_modal.verifying_button')
+										: t('otp_modal.verify_button')}
+								</motion.button>
+							</motion.div>
+
+							<motion.p
+								className="text-sm text-gray-500 mt-4"
+								variants={itemVariants}
+							>
+								{t('otp_modal.resend_text')}{' '}
+								<motion.button
+									type="button"
+									onClick={handleResendOTP}
+									disabled={isOTPLoading || !canResend}
+									className="text-[#126E64] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+									whileHover={
+										canResend ? { scale: 1.05, color: '#0D504A' } : {}
+									}
+									whileTap={canResend ? { scale: 0.98 } : {}}
+								>
+									{isOTPLoading
+										? t('otp_modal.sending_button')
+										: !canResend
+											? t('otp_modal.resend_countdown', {
+													seconds: resendCountdown,
+												})
+											: t('otp_modal.resend_button')}
+								</motion.button>
+							</motion.p>
+						</motion.div>
+					</motion.div>
+				</motion.div>
+			)}
+			{/* </AuthRedirect> */}
+		</div>
+	)
+}
+
+export default SignIn

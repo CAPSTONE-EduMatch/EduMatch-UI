@@ -1,0 +1,349 @@
+'use client'
+
+import {
+	calculateDaysLeft,
+	formatDateToDDMMYYYY,
+} from '@/utils/date/date-utils'
+import { motion } from 'framer-motion'
+import { Calendar, GraduationCap, Heart, Lock, MapPin, X } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+
+// Check if URL is an S3 URL that needs protection (not already public)
+const isProtectedS3Url = (url: string | null | undefined): boolean => {
+	if (!url) return false
+
+	// If it's already a pre-signed URL (has AWS signature query params), it's ready to use
+	if (url.includes('X-Amz-Algorithm') || url.includes('X-Amz-Signature')) {
+		return false // Already pre-signed, use directly
+	}
+
+	// All S3 URLs (including HTTPS ones) need protection unless pre-signed
+	// Check if it's an S3 URL
+	const isS3Url =
+		url.includes('.s3.') ||
+		url.includes('.s3.amazonaws.com') ||
+		url.startsWith('s3://') ||
+		url.includes('/users/') ||
+		url.includes('/institutions/')
+
+	return isS3Url
+}
+
+interface ProgramCardProps {
+	program: {
+		id: string
+		title: string
+		description: string
+		university: string
+		logo: string
+		field: string
+		country: string
+		date: string
+		daysLeft: number
+		price: string
+		match: string
+		attendance: string
+		applicationStatus?: string
+		postStatus?: string
+	}
+	index: number
+	isWishlisted: boolean
+	// eslint-disable-next-line no-unused-vars
+	onWishlistToggle: (id: string) => void
+	// eslint-disable-next-line no-unused-vars
+	onClick?: (programId: string) => void
+	hasApplied?: boolean
+	isApplying?: boolean
+	onApply?: (programId: string) => void
+	applicationId?: string
+	onUpdateRequest?: (applicationId: string) => void
+	institutionStatus?: {
+		status?: boolean
+	}
+}
+
+export function ProgramCard({
+	program,
+	index,
+	isWishlisted,
+	onWishlistToggle,
+	onClick,
+	hasApplied = false,
+	isApplying = false,
+	onApply,
+	applicationId,
+	onUpdateRequest,
+	institutionStatus,
+}: ProgramCardProps) {
+	const router = useRouter()
+	const t = useTranslations('application_section')
+	// Check if match score is restricted (shown as "—" for non-Premium users)
+	const isMatchRestricted = program.match === '—'
+	// Format date and calculate days left on the client side
+	const formattedDate = formatDateToDDMMYYYY(program.date)
+	const daysLeft = calculateDaysLeft(program.date)
+
+	// Utility function to get institution status
+	const getInstitutionStatus = (institutionStatus?: {
+		isActive?: boolean
+		status?: string | boolean
+	}) => {
+		if (!institutionStatus) return null
+
+		// Check for deactivated account (status = false)
+		if (institutionStatus.status === false) {
+			return {
+				type: 'deactivated' as const,
+				label: 'Account Deactivated',
+				color: 'bg-orange-100 text-orange-800 border-orange-200',
+			}
+		}
+
+		return null
+	}
+
+	// Institution status badge component
+	const InstitutionStatusBadge: React.FC<{
+		institutionStatus?: {
+			isActive?: boolean
+			status?: string | boolean
+		}
+	}> = ({ institutionStatus }) => {
+		const status = getInstitutionStatus(institutionStatus)
+
+		if (!status) return null
+
+		return (
+			<div
+				className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}
+			>
+				<X className="w-3 h-3" />
+				{status.label}
+			</div>
+		)
+	}
+
+	return (
+		<motion.div
+			// initial={{ opacity: 0, y: 20 }}
+			// animate={{ opacity: 1, y: 0 }}
+			// transition={{ duration: 0.3 }}
+			whileHover={{ y: -5 }}
+			onClick={() => onClick?.(program.id)}
+			className="flex flex-col h-full bg-white rounded-3xl border border-gray-400 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
+		>
+			{/* Header with logo and wishlist */}
+			<div className="flex justify-between items-start mb-4 gap-4">
+				<div className="flex-shrink-0 relative w-[150px] h-[90px] flex items-center justify-start bg-white rounded-lg">
+					{program.logo && program.logo !== '/logos/default.png' ? (
+						isProtectedS3Url(program.logo) ? (
+							<ProtectedImage
+								src={program.logo}
+								alt={program.university}
+								width={150}
+								height={90}
+								className="rounded-lg max-w-[150px] max-h-[90px] w-auto h-auto object-contain"
+								expiresIn={7200}
+								autoRefresh={true}
+								errorFallback={
+									<div className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center">
+										<span className="text-gray-400 text-xs text-center px-2">
+											{program.university.substring(0, 2).toUpperCase()}
+										</span>
+									</div>
+								}
+							/>
+						) : (
+							<>
+								<Image
+									src={program.logo}
+									alt={program.university}
+									width={140}
+									height={80}
+									unoptimized
+									className="rounded-lg max-w-[140px] max-h-[80px] object-contain"
+									style={{
+										width: 'auto',
+										height: 'auto',
+										maxWidth: '140px',
+										maxHeight: '80px',
+									}}
+									onError={(e) => {
+										const target = e.currentTarget
+										target.style.display = 'none'
+										const fallback = target.nextElementSibling as HTMLElement
+										if (fallback) fallback.style.display = 'flex'
+									}}
+								/>
+								{/* Fallback that shows when image fails to load */}
+								<div
+									className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center"
+									style={{ display: 'none' }}
+								>
+									<span className="text-gray-400 text-xs text-center px-2">
+										{program.university.substring(0, 2).toUpperCase()}
+									</span>
+								</div>
+							</>
+						)
+					) : (
+						<div className="w-[80px] h-[80px] bg-gray-200 rounded-lg flex items-center justify-center">
+							<span className="text-gray-400 text-xs text-center px-2">
+								{program.university.substring(0, 2).toUpperCase()}
+							</span>
+						</div>
+					)}
+				</div>
+
+				{/* Hide wishlist button if post is closed, deleted, or rejected */}
+				{program.postStatus !== 'CLOSED' &&
+					program.postStatus !== 'DELETED' &&
+					program.postStatus !== 'REJECTED' && (
+						<motion.button
+							onClick={(e) => {
+								e.preventDefault()
+								e.stopPropagation()
+								onWishlistToggle(program.id)
+							}}
+							className="p-2 rounded-full transition-all duration-200 hover:bg-gray-50"
+							whileHover={{ scale: 1.1 }}
+							whileTap={{ scale: 0.9 }}
+						>
+							<Heart
+								className={`w-6 h-6 transition-all duration-200 ${
+									isWishlisted
+										? 'fill-red-500 text-red-500'
+										: 'text-gray-400 hover:text-red-500'
+								}`}
+							/>
+						</motion.button>
+					)}
+			</div>
+
+			{/* Title */}
+			<h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+				{program.title}
+			</h3>
+
+			{/* Description */}
+			<div
+				className="text-gray-500 mb-6 line-clamp-3 text-sm leading-relaxed flex-shrink-0 prose prose-content"
+				dangerouslySetInnerHTML={{ __html: program.description }}
+			/>
+
+			{/* Tags */}
+			<div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">
+				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+					<GraduationCap className="w-4 h-4" />
+					{program.field}
+				</span>
+				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+					<MapPin className="w-4 h-4" />
+					{program.country}
+				</span>
+			</div>
+
+			<div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">
+				<span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+					<Calendar className="w-4 h-4" />
+					{formattedDate}{' '}
+					<span className="text-red-500 font-semibold">
+						({daysLeft} days left)
+					</span>
+				</span>
+			</div>
+
+			<div className="flex flex-wrap gap-2 mb-6 flex-shrink-0">
+				<span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-medium">
+					<span className="inline-flex items-center gap-1">
+						📱 {program.attendance}
+					</span>
+				</span>
+			</div>
+
+			{/* Institution Status Badge */}
+			{institutionStatus && (
+				<div className="mb-3 flex-shrink-0">
+					<InstitutionStatusBadge institutionStatus={institutionStatus} />
+				</div>
+			)}
+
+			{/* Price */}
+			<div className="text-center mb-6 flex-grow flex items-end justify-center min-h-[60px]">
+				<div className="text-2xl font-bold text-gray-900">
+					{Number(program.price.replace(/[^\d.-]/g, '')).toLocaleString(
+						'en-US'
+					)}{' '}
+					USD
+				</div>
+			</div>
+			{/* Match */}
+			{isMatchRestricted ? (
+				<div
+					className="mt-auto relative w-full h-7 bg-gradient-to-r from-[#126E64]/20 to-[#126E64]/10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer hover:from-[#126E64]/30 hover:to-[#126E64]/20 transition-all"
+					onClick={(e) => {
+						e.stopPropagation()
+						router.push('/pricing')
+					}}
+				>
+					<div className="absolute inset-0 flex items-center justify-center gap-2">
+						<Lock className="w-4 h-4 text-[#126E64]" />
+						<span className="font-medium text-sm text-[#126E64]">
+							Upgrade to see Match Score
+						</span>
+					</div>
+				</div>
+			) : (
+				<div className="mt-auto relative w-full h-7 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
+					{/* Animated progress */}
+					<motion.div
+						className="h-full bg-[#32CF5C] rounded-full relative"
+						initial={{ width: '0%' }}
+						animate={{ width: program.match }}
+						transition={{
+							duration: 1.2,
+							delay: index * 0.1 + 0.3,
+							ease: [0.4, 0, 0.2, 1],
+						}}
+					/>
+
+					{/* Centered text */}
+					<div className="absolute inset-0 flex items-center justify-center">
+						<motion.span
+							className="font-semibold text-lg text-white"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ delay: index * 0.1 + 0.8 }}
+						>
+							Match: {program.match}
+						</motion.span>
+					</div>
+				</div>
+			)}
+
+			{/* Application Status */}
+			{program.applicationStatus && (
+				<div className="mt-3 flex flex-col items-center gap-2">
+					<span
+						className={`px-4 py-2 rounded-full text-sm font-medium ${
+							program.applicationStatus === 'SUBMITTED'
+								? 'bg-yellow-100 text-yellow-800'
+								: program.applicationStatus === 'PROGRESSING'
+									? 'bg-blue-100 text-blue-800'
+									: program.applicationStatus === 'ACCEPTED'
+										? 'bg-green-100 text-green-800'
+										: program.applicationStatus === 'REJECTED'
+											? 'bg-red-100 text-red-800'
+											: 'bg-gray-100 text-gray-800'
+						}`}
+					>
+						{t(`status.${program.applicationStatus}`)}
+					</span>
+				</div>
+			)}
+		</motion.div>
+	)
+}

@@ -1,0 +1,1861 @@
+{
+ "Description": "EduMatch SQS and Lambda infrastructure for notifications",
+ "Resources": {
+  "NotificationsDLQ7EE1DB27": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "ContentBasedDeduplication": true,
+    "FifoQueue": true,
+    "MessageRetentionPeriod": 1209600,
+    "QueueName": "edumatch-notifications-dlq.fifo"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationsDLQ/Resource"
+   }
+  },
+  "NotificationsQueue3B766469": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "ContentBasedDeduplication": true,
+    "FifoQueue": true,
+    "MessageRetentionPeriod": 1209600,
+    "QueueName": "edumatch-notifications.fifo",
+    "RedrivePolicy": {
+     "deadLetterTargetArn": {
+      "Fn::GetAtt": [
+       "NotificationsDLQ7EE1DB27",
+       "Arn"
+      ]
+     },
+     "maxReceiveCount": 3
+    },
+    "VisibilityTimeout": 300
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationsQueue/Resource"
+   }
+  },
+  "EmailsDLQ1B20FAB8": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "ContentBasedDeduplication": true,
+    "FifoQueue": true,
+    "MessageRetentionPeriod": 1209600,
+    "QueueName": "edumatch-emails-dlq.fifo"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EmailsDLQ/Resource"
+   }
+  },
+  "EmailsQueue3086DFE6": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "ContentBasedDeduplication": true,
+    "FifoQueue": true,
+    "MessageRetentionPeriod": 1209600,
+    "QueueName": "edumatch-emails.fifo",
+    "RedrivePolicy": {
+     "deadLetterTargetArn": {
+      "Fn::GetAtt": [
+       "EmailsDLQ1B20FAB8",
+       "Arn"
+      ]
+     },
+     "maxReceiveCount": 3
+    },
+    "VisibilityTimeout": 300
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EmailsQueue/Resource"
+   }
+  },
+  "NotificationLambdaRole8517A721": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "sqs:ChangeMessageVisibility",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ReceiveMessage"
+         ],
+         "Effect": "Allow",
+         "Resource": [
+          {
+           "Fn::GetAtt": [
+            "EmailsDLQ1B20FAB8",
+            "Arn"
+           ]
+          },
+          {
+           "Fn::GetAtt": [
+            "EmailsQueue3086DFE6",
+            "Arn"
+           ]
+          },
+          {
+           "Fn::GetAtt": [
+            "NotificationsDLQ7EE1DB27",
+            "Arn"
+           ]
+          },
+          {
+           "Fn::GetAtt": [
+            "NotificationsQueue3B766469",
+            "Arn"
+           ]
+          }
+         ]
+        },
+        {
+         "Action": [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+         ],
+         "Effect": "Allow",
+         "Resource": "*"
+        },
+        {
+         "Action": [
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:UpdateItem"
+         ],
+         "Effect": "Allow",
+         "Resource": "arn:aws:dynamodb:*:*:table/edumatch-*"
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "SQSAndSESPolicy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationLambdaRole/Resource"
+   }
+  },
+  "NotificationLambdaRoleDefaultPolicy07D18877": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EmailsQueue3086DFE6",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "NotificationsQueue3B766469",
+          "Arn"
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessageReadsTable793D4BB1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "MessagesTable05B58A27",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "ThreadsTable1D5C607C",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessagesTable05B58A27",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "NotificationLambdaRoleDefaultPolicy07D18877",
+    "Roles": [
+     {
+      "Ref": "NotificationLambdaRole8517A721"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationLambdaRole/DefaultPolicy/Resource"
+   }
+  },
+  "NotificationProcessorLogGroup84C9CB83": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationProcessorLogGroup/Resource"
+   }
+  },
+  "NotificationProcessorE91924AA": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');\nconst https = require('https');\nconst { URL } = require('url');\n\nconst sqsClient = new SQSClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  console.log('📬 NotificationProcessor Lambda triggered with', event.Records.length, 'record(s)');\n  \n  for (const record of event.Records) {\n    try {\n      const message = JSON.parse(record.body);\n      console.log('Processing notification:', message.type, 'for user:', message.userId);\n      \n      // Store notification in database (continue even if this fails)\n      try {\n        await storeNotificationInDatabase(message);\n        console.log('✅ Notification stored in database');\n      } catch (storageError) {\n        // Log the error but continue processing\n        // This ensures emails are still sent even if notification storage fails\n        console.error('⚠️ Failed to store notification in database, but continuing:', storageError.message);\n        // Check if it's a duplicate error - if so, that's okay, notification already exists\n        if (storageError.message && storageError.message.includes('Unique constraint')) {\n          console.log('ℹ️ Notification already exists in database, skipping storage');\n        }\n      }\n      \n      // Forward message to email queue (always do this, even if storage failed)\n      const emailCommand = new SendMessageCommand({\n        QueueUrl: process.env.EMAILS_QUEUE_URL,\n        MessageBody: JSON.stringify(message),\n        MessageAttributes: {\n          Type: {\n            DataType: 'String',\n            StringValue: message.type,\n          },\n          UserEmail: {\n            DataType: 'String',\n            StringValue: message.userEmail,\n          },\n        },\n        MessageGroupId: message.userEmail,\n        MessageDeduplicationId: message.id,\n      });\n      \n      await sqsClient.send(emailCommand);\n      console.log('✅ Message forwarded to email queue');\n      \n    } catch (error) {\n      console.error('❌ Error processing notification:', error);\n      console.error('Error stack:', error.stack);\n      throw error; // This will trigger retry\n    }\n  }\n  \n  console.log('✅ All notifications processed successfully');\n};\n\nasync function storeNotificationInDatabase(message) {\n  try {\n    // Create notification title and body based on type\n    let title = \"\";\n    let bodyText = \"\";\n    let url = \"/\";\n\n    switch (message.type) {\n      case \"WELCOME\":\n        title = \"Welcome to EduMatch!\";\n        bodyText = `Welcome ${message.metadata?.firstName || \"User\"}! Your account has been created successfully.`;\n        url = \"/profile/create\";\n        break;\n      case \"PROFILE_CREATED\":\n        title = \"Profile Created Successfully!\";\n        bodyText = `Your ${message.metadata?.role || \"profile\"} profile has been created and is now live.`;\n        url = \"/profile/view\";\n        break;\n      case \"PAYMENT_DEADLINE\":\n        title = \"Payment Deadline Reminder\";\n        bodyText = `Your ${message.metadata?.planName || \"subscription\"} payment is due on ${message.metadata?.deadlineDate || \"soon\"}.`;\n        url = \"/pricing\";\n        break;\n      case \"WISHLIST_DEADLINE\":\n        title = `Deadline Approaching - ${message.metadata?.postTitle || \"Wishlist Item\"}`;\n        const daysRemaining = message.metadata?.daysRemaining || 0;\n        const daysText = daysRemaining === 1 ? \"1 day\" : `${daysRemaining} days`;\n        bodyText = `⏰ Don't miss this opportunity! \"${message.metadata?.postTitle || \"An item in your wishlist\"}\" is approaching its deadline in ${daysText}. Make sure to submit your application before it expires!`;\n        const postType = message.metadata?.postType || \"programme\";\n        if (postType === \"scholarship\") {\n          url = `/explore/scholarships/${message.metadata?.postId || \"\"}`;\n        } else if (postType === \"research-lab\") {\n          url = `/explore/research-labs/${message.metadata?.postId || \"\"}`;\n        } else {\n          url = `/explore/programmes/${message.metadata?.postId || \"\"}`;\n        }\n        break;\n      default:\n        title = \"New Notification\";\n        bodyText = \"You have a new notification from EduMatch.\";\n        break;\n    }\n\n    // Call your API to store notification using https module\n    const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';\n    const apiPath = '/api/notifications/store';\n    const urlObj = new URL(apiPath, apiUrl);\n    \n    const postData = JSON.stringify({\n      id: message.id,\n      userId: message.userId,\n      type: message.type,\n      title,\n      bodyText,\n      url,\n      createAt: message.createAt || new Date().toISOString(),\n      queuedAt: message.queuedAt || new Date().toISOString(),\n      payload: message.metadata || {},\n    });\n    \n    const response = await new Promise((resolve, reject) => {\n      const options = {\n        hostname: urlObj.hostname,\n        port: urlObj.port || 443,\n        path: urlObj.pathname,\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Content-Length': Buffer.byteLength(postData),\n        },\n      };\n      \n      const req = https.request(options, (res) => {\n        let data = '';\n        \n        res.on('data', (chunk) => {\n          data += chunk;\n        });\n        \n        res.on('end', () => {\n          if (res.statusCode >= 200 && res.statusCode < 300) {\n            resolve({ statusCode: res.statusCode, data });\n          } else {\n            reject(new Error(`Failed to store notification: ${res.statusCode} - ${data}`));\n          }\n        });\n      });\n      \n      req.on('error', (error) => {\n        reject(error);\n      });\n      \n      req.write(postData);\n      req.end();\n    });\n    \n    console.log('✅ Notification stored in database successfully');\n  } catch (error) {\n    console.error('❌ Error storing notification in database:', error);\n    console.error('Error stack:', error.stack);\n    throw error;\n  }\n}\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "NOTIFICATIONS_QUEUE_URL": {
+       "Ref": "NotificationsQueue3B766469"
+      },
+      "EMAILS_QUEUE_URL": {
+       "Ref": "EmailsQueue3086DFE6"
+      },
+      "API_BASE_URL": "https://dev.d1jaxpbx3axxsh.amplifyapp.com"
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "NotificationProcessorLogGroup84C9CB83"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationProcessor/Resource"
+   }
+  },
+  "NotificationProcessorSqsEventSourceEduMatchNotificationStackNotificationsQueueD5B21BB63BAC48DC": {
+   "Type": "AWS::Lambda::EventSourceMapping",
+   "Properties": {
+    "BatchSize": 10,
+    "EventSourceArn": {
+     "Fn::GetAtt": [
+      "NotificationsQueue3B766469",
+      "Arn"
+     ]
+    },
+    "FunctionName": {
+     "Ref": "NotificationProcessorE91924AA"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/NotificationProcessor/SqsEventSource:EduMatchNotificationStackNotificationsQueueD5B21BB6/Resource"
+   }
+  },
+  "EmailProcessorLogGroup8A79A2C8": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EmailProcessorLogGroup/Resource"
+   }
+  },
+  "EmailProcessor218EC076": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst https = require('https');\nconst { URL } = require('url');\n\nexports.handler = async (event) => {\n  console.log('📧 EmailProcessor Lambda triggered with', event.Records.length, 'record(s)');\n  \n  for (const record of event.Records) {\n    try {\n      const message = JSON.parse(record.body);\n      console.log('Processing email for:', message.type, 'to:', message.userEmail);\n      \n      // Send email by calling your Next.js app's email service API\n      // The API endpoint handles all email types and templates\n      const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';\n      const apiPath = '/api/notifications/send-email';\n      \n      // Use https module instead of fetch for better Lambda compatibility\n      const url = new URL(apiPath, apiUrl);\n      \n      const postData = JSON.stringify(message);\n      \n      const response = await new Promise((resolve, reject) => {\n        const options = {\n          hostname: url.hostname,\n          port: url.port || 443,\n          path: url.pathname,\n          method: 'POST',\n          headers: {\n            'Content-Type': 'application/json',\n            'Content-Length': Buffer.byteLength(postData),\n          },\n        };\n        \n        const req = https.request(options, (res) => {\n          let data = '';\n          \n          res.on('data', (chunk) => {\n            data += chunk;\n          });\n          \n          res.on('end', () => {\n            if (res.statusCode >= 200 && res.statusCode < 300) {\n              console.log('✅ Email sent successfully via API for:', message.userEmail);\n              resolve({ statusCode: res.statusCode, data });\n            } else {\n              console.error('❌ Failed to send email via API:', res.statusCode, data);\n              reject(new Error(`Email sending failed: ${res.statusCode} - ${data}`));\n            }\n          });\n        });\n        \n        req.on('error', (error) => {\n          console.error('❌ Request error:', error);\n          reject(error);\n        });\n        \n        req.write(postData);\n        req.end();\n      });\n      \n      console.log('✅ Email processed successfully for:', message.userEmail);\n      \n    } catch (error) {\n      console.error('❌ Error processing email:', error);\n      console.error('Error stack:', error.stack);\n      throw error; // This will trigger retry\n    }\n  }\n  \n  console.log('✅ All emails processed successfully');\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "API_BASE_URL": "https://dev.d1jaxpbx3axxsh.amplifyapp.com"
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "EmailProcessorLogGroup8A79A2C8"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EmailProcessor/Resource"
+   }
+  },
+  "EmailProcessorSqsEventSourceEduMatchNotificationStackEmailsQueueA17FD60A9634D804": {
+   "Type": "AWS::Lambda::EventSourceMapping",
+   "Properties": {
+    "BatchSize": 10,
+    "EventSourceArn": {
+     "Fn::GetAtt": [
+      "EmailsQueue3086DFE6",
+      "Arn"
+     ]
+    },
+    "FunctionName": {
+     "Ref": "EmailProcessor218EC076"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EmailProcessor/SqsEventSource:EduMatchNotificationStackEmailsQueueA17FD60A/Resource"
+   }
+  },
+  "MessagesTable05B58A27": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "threadId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "createdAt",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+     {
+      "AttributeName": "threadId",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "createdAt",
+      "KeyType": "RANGE"
+     }
+    ],
+    "TableName": "edumatch-messages-v2"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessagesTable/Resource"
+   }
+  },
+  "ThreadsTable1D5C607C": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "userId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "threadId",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+     {
+      "AttributeName": "userId",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "threadId",
+      "KeyType": "RANGE"
+     }
+    ],
+    "TableName": "edumatch-threads-v2"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ThreadsTable/Resource"
+   }
+  },
+  "MessageReadsTable793D4BB1": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "messageId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "userId",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+     {
+      "AttributeName": "messageId",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "userId",
+      "KeyType": "RANGE"
+     }
+    ],
+    "TableName": "edumatch-message-reads-v2"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessageReadsTable/Resource"
+   }
+  },
+  "ThreadManagerLogGroupB3777F31": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ThreadManagerLogGroup/Resource"
+   }
+  },
+  "ThreadManagerD7162686": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');\nconst { marshall } = require('@aws-sdk/util-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  try {\n    const { currentUserId, participantId, threadId, createdAt, userName, userEmail, userImage } = event.arguments.input;\n    \n    if (!currentUserId || !participantId || !threadId) {\n      throw new Error('Missing required parameters: currentUserId, participantId, or threadId');\n    }\n    \n    // Create thread entry for current user\n    const currentUserThread = {\n      userId: currentUserId,\n      threadId: threadId,\n      id: threadId,\n      user1Id: currentUserId,\n      user2Id: participantId,\n      lastMessage: \"\",\n      lastMessageAt: createdAt,\n      lastMessageSenderId: null,\n      lastMessageSenderName: null,\n      lastMessageSenderImage: null,\n      lastMessageFileUrl: null,\n      lastMessageFileName: null,\n      lastMessageMimeType: null,\n      createdAt: createdAt,\n      updatedAt: createdAt,\n      unreadCount: 0\n    };\n    \n    // Create thread entry for participant\n    const participantThread = {\n      userId: participantId,\n      threadId: threadId,\n      id: threadId,\n      user1Id: participantId,\n      user2Id: currentUserId,\n      lastMessage: \"\",\n      lastMessageAt: createdAt,\n      lastMessageSenderId: null,\n      lastMessageSenderName: null,\n      lastMessageSenderImage: null,\n      lastMessageFileUrl: null,\n      lastMessageFileName: null,\n      lastMessageMimeType: null,\n      createdAt: createdAt,\n      updatedAt: createdAt,\n      unreadCount: 0\n    };\n    \n    // Put both thread entries\n    const currentUserCommand = new PutItemCommand({\n      TableName: process.env.THREADS_TABLE_NAME,\n      Item: marshall(currentUserThread)\n    });\n    \n    const participantCommand = new PutItemCommand({\n      TableName: process.env.THREADS_TABLE_NAME,\n      Item: marshall(participantThread)\n    });\n    \n    await Promise.all([\n      dynamoClient.send(currentUserCommand),\n      dynamoClient.send(participantCommand)\n    ]);\n    \n    // Return the current user's thread entry\n    return currentUserThread;\n    \n  } catch (error) {\n    console.error('Error in thread manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "ThreadManagerLogGroupB3777F31"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ThreadManager/Resource"
+   }
+  },
+  "MessageManagerLogGroup706CEE6F": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessageManagerLogGroup/Resource"
+   }
+  },
+  "MessageManager52B59406": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, PutItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');\nconst { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  try {\n    const { threadId, content, senderId, senderName, senderImage, fileUrl, fileName, mimeType } = event.arguments.input;\n    \n    if (!threadId || !content || !senderId) {\n      throw new Error('Missing required parameters: threadId, content, or senderId');\n    }\n    \n    const messageId = event.arguments.input.messageId || require('crypto').randomUUID();\n    const createdAt = event.arguments.input.createdAt || new Date().toISOString();\n    \n    // Create the message\n    const message = {\n      threadId: threadId,\n      createdAt: createdAt,\n      id: messageId,\n      content: content,\n      senderId: senderId,\n      senderName: senderName,\n      senderImage: senderImage,\n      fileUrl: fileUrl || null,\n      fileName: fileName || null,\n      mimeType: mimeType || null,\n      isRead: false,\n      readAt: null\n    };\n    \n    // Put the message\n    const messageCommand = new PutItemCommand({\n      TableName: process.env.MESSAGES_TABLE_NAME,\n      Item: marshall(message)\n    });\n    \n    await dynamoClient.send(messageCommand);\n    \n    // Update thread information for both users\n    // First, get the thread to find both users\n    const threadQuery = {\n      TableName: process.env.THREADS_TABLE_NAME,\n      FilterExpression: 'threadId = :threadId',\n      ExpressionAttributeValues: {\n        ':threadId': { S: threadId }\n      }\n    };\n    \n    const { ScanCommand } = require('@aws-sdk/client-dynamodb');\n    const scanCommand = new ScanCommand(threadQuery);\n    const threadResult = await dynamoClient.send(scanCommand);\n    \n    if (threadResult.Items && threadResult.Items.length > 0) {\n      // Update each thread entry\n      for (const threadItem of threadResult.Items) {\n        const thread = unmarshall(threadItem);\n        \n        // Determine if this thread entry is for the sender or recipient\n        const isSender = thread.userId === senderId;\n        \n        let updateCommand;\n        if (isSender) {\n          // For sender: set unreadCount to 0\n          updateCommand = new UpdateItemCommand({\n            TableName: process.env.THREADS_TABLE_NAME,\n            Key: {\n              userId: { S: thread.userId },\n              threadId: { S: thread.threadId }\n            },\n            UpdateExpression: 'SET lastMessage = :lastMessage, lastMessageAt = :lastMessageAt, lastMessageSenderId = :lastMessageSenderId, lastMessageSenderName = :lastMessageSenderName, lastMessageSenderImage = :lastMessageSenderImage, lastMessageFileUrl = :lastMessageFileUrl, lastMessageFileName = :lastMessageFileName, lastMessageMimeType = :lastMessageMimeType, updatedAt = :updatedAt, unreadCount = :zero',\n            ExpressionAttributeValues: {\n              ':lastMessage': { S: content },\n              ':lastMessageAt': { S: createdAt },\n              ':lastMessageSenderId': { S: senderId },\n              ':lastMessageSenderName': { S: senderName || '' },\n              ':lastMessageSenderImage': { S: senderImage || '' },\n              ':lastMessageFileUrl': { S: fileUrl || '' },\n              ':lastMessageFileName': { S: fileName || '' },\n              ':lastMessageMimeType': { S: mimeType || '' },\n              ':updatedAt': { S: createdAt },\n              ':zero': { N: '0' }\n            }\n          });\n        } else {\n          // For recipient: increment unreadCount\n          updateCommand = new UpdateItemCommand({\n            TableName: process.env.THREADS_TABLE_NAME,\n            Key: {\n              userId: { S: thread.userId },\n              threadId: { S: thread.threadId }\n            },\n            UpdateExpression: 'SET lastMessage = :lastMessage, lastMessageAt = :lastMessageAt, lastMessageSenderId = :lastMessageSenderId, lastMessageSenderName = :lastMessageSenderName, lastMessageSenderImage = :lastMessageSenderImage, lastMessageFileUrl = :lastMessageFileUrl, lastMessageFileName = :lastMessageFileName, lastMessageMimeType = :lastMessageMimeType, updatedAt = :updatedAt, unreadCount = unreadCount + :one',\n            ExpressionAttributeValues: {\n              ':lastMessage': { S: content },\n              ':lastMessageAt': { S: createdAt },\n              ':lastMessageSenderId': { S: senderId },\n              ':lastMessageSenderName': { S: senderName || '' },\n              ':lastMessageSenderImage': { S: senderImage || '' },\n              ':lastMessageFileUrl': { S: fileUrl || '' },\n              ':lastMessageFileName': { S: fileName || '' },\n              ':lastMessageMimeType': { S: mimeType || '' },\n              ':updatedAt': { S: createdAt },\n              ':one': { N: '1' }\n            }\n          });\n        }\n        \n        await dynamoClient.send(updateCommand);\n      }\n    }\n    \n    return message;\n    \n  } catch (error) {\n    console.error('Error in message manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "MESSAGES_TABLE_NAME": {
+       "Ref": "MessagesTable05B58A27"
+      },
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "MessageManagerLogGroup706CEE6F"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MessageManager/Resource"
+   }
+  },
+  "MarkReadManagerLogGroup81DB0517": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MarkReadManagerLogGroup/Resource"
+   }
+  },
+  "MarkReadManagerA1C8AB18": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, PutItemCommand, UpdateItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');\nconst { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  try {\n    const { messageId, userId } = event.arguments.input;\n    \n    if (!messageId || !userId) {\n      throw new Error('Missing required parameters: messageId or userId');\n    }\n    \n    const readId = event.arguments.input.readId || require('crypto').randomUUID();\n    const readAt = event.arguments.input.readAt || new Date().toISOString();\n    \n    // First, get the message to find the threadId\n    const messageCommand = new GetItemCommand({\n      TableName: process.env.MESSAGES_TABLE_NAME,\n      Key: {\n        threadId: { S: 'temp' }, // We need to scan to find the message\n        createdAt: { S: 'temp' }\n      }\n    });\n    \n    // Since we don't have threadId, we need to scan for the message\n    const { ScanCommand } = require('@aws-sdk/client-dynamodb');\n    const scanCommand = new ScanCommand({\n      TableName: process.env.MESSAGES_TABLE_NAME,\n      FilterExpression: 'id = :messageId',\n      ExpressionAttributeValues: {\n        ':messageId': { S: messageId }\n      }\n    });\n    \n    const messageResult = await dynamoClient.send(scanCommand);\n    \n    if (!messageResult.Items || messageResult.Items.length === 0) {\n      throw new Error('Message not found');\n    }\n    \n    const message = unmarshall(messageResult.Items[0]);\n    const threadId = message.threadId;\n    \n    // Create the read record\n    const readRecord = {\n      messageId: messageId,\n      userId: userId,\n      id: readId,\n      readAt: readAt\n    };\n    \n    const readCommand = new PutItemCommand({\n      TableName: process.env.MESSAGE_READS_TABLE_NAME,\n      Item: marshall(readRecord)\n    });\n    \n    await dynamoClient.send(readCommand);\n    \n    // Update the thread's unread count for this user\n    const threadQuery = {\n      TableName: process.env.THREADS_TABLE_NAME,\n      FilterExpression: 'threadId = :threadId AND userId = :userId',\n      ExpressionAttributeValues: {\n        ':threadId': { S: threadId },\n        ':userId': { S: userId }\n      }\n    };\n    \n    const threadScanCommand = new ScanCommand(threadQuery);\n    const threadResult = await dynamoClient.send(threadScanCommand);\n    \n    if (threadResult.Items && threadResult.Items.length > 0) {\n      const thread = unmarshall(threadResult.Items[0]);\n      \n      const updateCommand = new UpdateItemCommand({\n        TableName: process.env.THREADS_TABLE_NAME,\n        Key: {\n          userId: { S: thread.userId },\n          threadId: { S: thread.threadId }\n        },\n        UpdateExpression: 'SET unreadCount = unreadCount - :one',\n        ConditionExpression: 'unreadCount > :zero',\n        ExpressionAttributeValues: {\n          ':one': { N: '1' },\n          ':zero': { N: '0' }\n        }\n      });\n      \n      try {\n        await dynamoClient.send(updateCommand);\n      } catch (error) {\n        // If unreadCount is already 0, that's fine\n      }\n    }\n    \n    return readRecord;\n    \n  } catch (error) {\n    console.error('Error in mark read manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "MESSAGES_TABLE_NAME": {
+       "Ref": "MessagesTable05B58A27"
+      },
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      },
+      "MESSAGE_READS_TABLE_NAME": {
+       "Ref": "MessageReadsTable793D4BB1"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "MarkReadManagerLogGroup81DB0517"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/MarkReadManager/Resource"
+   }
+  },
+  "ClearUnreadManagerLogGroupA2D34E3A": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ClearUnreadManagerLogGroup/Resource"
+   }
+  },
+  "ClearUnreadManagerBDCB9586": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');\n\nconst dynamoClient = new DynamoDBClient({ region: 'ap-northeast-1' });\n\nexports.handler = async (event) => {\n  try {\n    const { threadId, userId } = event.arguments.input;\n    \n    if (!threadId || !userId) {\n      throw new Error('Missing required parameters: threadId or userId');\n    }\n    \n    // Update the thread's unread count to 0 for this user\n    const updateCommand = new UpdateItemCommand({\n      TableName: process.env.THREADS_TABLE_NAME,\n      Key: {\n        userId: { S: userId },\n        threadId: { S: threadId }\n      },\n      UpdateExpression: 'SET unreadCount = :zero',\n      ExpressionAttributeValues: {\n        ':zero': { N: '0' }\n      },\n      ReturnValues: 'ALL_NEW'\n    });\n    \n    const result = await dynamoClient.send(updateCommand);\n    \n    return {\n      id: threadId,\n      unreadCount: 0\n    };\n    \n  } catch (error) {\n    console.error('Error in clear unread manager:', error);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "THREADS_TABLE_NAME": {
+       "Ref": "ThreadsTable1D5C607C"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "ClearUnreadManagerLogGroupA2D34E3A"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/ClearUnreadManager/Resource"
+   }
+  },
+  "EduMatchMessagingApiBA77C261": {
+   "Type": "AWS::AppSync::GraphQLApi",
+   "Properties": {
+    "AdditionalAuthenticationProviders": [
+     {
+      "AuthenticationType": "AMAZON_COGNITO_USER_POOLS",
+      "UserPoolConfig": {
+       "AwsRegion": "ap-northeast-1",
+       "UserPoolId": "us-east-1_XXXXXXXXX"
+      }
+     }
+    ],
+    "AuthenticationType": "API_KEY",
+    "Name": "EduMatchMessagingApi",
+    "XrayEnabled": true
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/Resource"
+   }
+  },
+  "EduMatchMessagingApiSchema41540462": {
+   "Type": "AWS::AppSync::GraphQLSchema",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "Definition": "type User {\n\tid: ID!\n\tname: String!\n\temail: String!\n\timage: String\n}\n\ntype Message {\n\tid: ID!\n\tthreadId: ID!\n\tcontent: String!\n\tsenderId: ID!\n\tsenderName: String!\n\tsenderImage: String\n\tcreatedAt: String!\n\tfileUrl: String\n\tfileName: String\n\tmimeType: String\n\tisRead: Boolean!\n\treadAt: String\n}\n\ntype Thread {\n\tid: ID!\n\tuser1Id: ID!\n\tuser2Id: ID!\n\tlastMessage: String\n\tlastMessageAt: String\n\tlastMessageSenderId: ID\n\tlastMessageSenderName: String\n\tlastMessageSenderImage: String\n\tlastMessageFileUrl: String\n\tlastMessageFileName: String\n\tlastMessageMimeType: String\n\tcreatedAt: String!\n\tupdatedAt: String!\n\tunreadCount: Int!\n}\n\ntype MessageRead {\n\tid: ID!\n\tmessageId: ID!\n\tuserId: ID!\n\treadAt: String!\n}\n\ninput CreateMessageInput {\n\tthreadId: ID!\n\tcontent: String!\n\tfileUrl: String\n\tfileName: String\n\tmimeType: String\n\tsenderId: ID\n\tsenderName: String\n\tsenderImage: String\n}\n\ninput CreateThreadInput {\n\tparticipantId: ID!\n\tuserId: ID\n\tuserName: String\n\tuserEmail: String\n\tuserImage: String\n}\n\ninput MarkMessageReadInput {\n\tmessageId: ID!\n\tuserId: ID\n}\n\ninput ClearThreadUnreadCountInput {\n\tthreadId: ID!\n\tuserId: ID\n}\n\ntype Query {\n\tgetThreads(userId: ID): [Thread!]!\n\tgetMessages(threadId: ID!): [Message!]!\n\tgetUnreadCount(userId: ID): Int!\n}\n\ntype Mutation {\n\tcreateMessage(input: CreateMessageInput!): Message!\n\tcreateThread(input: CreateThreadInput!): Thread!\n\tmarkMessageRead(input: MarkMessageReadInput!): MessageRead!\n\tclearThreadUnreadCount(input: ClearThreadUnreadCountInput!): Thread!\n}\n\ntype Subscription {\n\tonMessageAdded(threadId: ID!): Message\n\t\t@aws_subscribe(mutations: [\"createMessage\"])\n\tonThreadCreated: Thread @aws_subscribe(mutations: [\"createThread\"])\n}\n"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/Schema"
+   }
+  },
+  "EduMatchMessagingApiDefaultApiKey3C625F00": {
+   "Type": "AWS::AppSync::ApiKey",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "Expires": 1796207678
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/DefaultApiKey"
+   }
+  },
+  "EduMatchMessagingApiMessagesDataSourceServiceRole6F6DD6BC": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessagesDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessagesDataSourceServiceRoleDefaultPolicy0E47B253": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessagesTable05B58A27",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiMessagesDataSourceServiceRoleDefaultPolicy0E47B253",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiMessagesDataSourceServiceRole6F6DD6BC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessagesDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessagesDataSourceF27C1361": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DynamoDBConfig": {
+     "AwsRegion": "ap-northeast-1",
+     "TableName": {
+      "Ref": "MessagesTable05B58A27"
+     }
+    },
+    "Name": "MessagesDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiMessagesDataSourceServiceRole6F6DD6BC",
+      "Arn"
+     ]
+    },
+    "Type": "AMAZON_DYNAMODB"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessagesDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadsDataSourceServiceRole5CD739A8": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadsDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadsDataSourceServiceRoleDefaultPolicyA5DB5C43": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ThreadsTable1D5C607C",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiThreadsDataSourceServiceRoleDefaultPolicyA5DB5C43",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiThreadsDataSourceServiceRole5CD739A8"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadsDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadsDataSource61344A17": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DynamoDBConfig": {
+     "AwsRegion": "ap-northeast-1",
+     "TableName": {
+      "Ref": "ThreadsTable1D5C607C"
+     }
+    },
+    "Name": "ThreadsDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiThreadsDataSourceServiceRole5CD739A8",
+      "Arn"
+     ]
+    },
+    "Type": "AMAZON_DYNAMODB"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadsDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadManagerDataSourceServiceRoleDefaultPolicyF4BEDC57": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ThreadManagerD7162686",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ThreadManagerD7162686",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiThreadManagerDataSourceServiceRoleDefaultPolicyF4BEDC57",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiThreadManagerDataSource991308D0": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "ThreadManagerD7162686",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "ThreadManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiThreadManagerDataSourceServiceRole68DFB733",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ThreadManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessageManagerDataSourceServiceRoleDefaultPolicyECC8C916": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MessageManager52B59406",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "MessageManager52B59406",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiMessageManagerDataSourceServiceRoleDefaultPolicyECC8C916",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiMessageManagerDataSource23A7D64B": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "MessageManager52B59406",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "MessageManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiMessageManagerDataSourceServiceRole8A7A64A2",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MessageManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkReadManagerDataSourceServiceRoleDefaultPolicyC0FB4C57": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "MarkReadManagerA1C8AB18",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "MarkReadManagerA1C8AB18",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiMarkReadManagerDataSourceServiceRoleDefaultPolicyC0FB4C57",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkReadManagerDataSourceA09F1459": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "MarkReadManagerA1C8AB18",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "MarkReadManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiMarkReadManagerDataSourceServiceRole8E04741F",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkReadManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/ServiceRole/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleDefaultPolicy7EE0F163": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ClearUnreadManagerBDCB9586",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ClearUnreadManagerBDCB9586",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleDefaultPolicy7EE0F163",
+    "Roles": [
+     {
+      "Ref": "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearUnreadManagerDataSource585C53CF": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Fn::GetAtt": [
+       "ClearUnreadManagerBDCB9586",
+       "Arn"
+      ]
+     }
+    },
+    "Name": "ClearUnreadManagerDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiClearUnreadManagerDataSourceServiceRoleBB1212BB",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearUnreadManagerDataSource/Resource"
+   }
+  },
+  "EduMatchMessagingApiGetMessagesResolver33E0BB7B": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "MessagesDataSource",
+    "FieldName": "getMessages",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Query\",\n\t\t\t\t\t\"query\": {\n\t\t\t\t\t\t\"expression\": \"threadId = :threadId\",\n\t\t\t\t\t\t\"expressionValues\": {\n\t\t\t\t\t\t\t\":threadId\": $util.dynamodb.toDynamoDBJson($ctx.args.threadId)\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result.items)",
+    "TypeName": "Query"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiMessagesDataSourceF27C1361",
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/GetMessagesResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiCreateMessageResolverDCBC7BAC": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "MessageManagerDataSource",
+    "FieldName": "createMessage",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($senderId = $ctx.identity.sub)\n\t\t\t\t#set($senderName = $ctx.identity.claims.name)\n\t\t\t\t#set($senderImage = $ctx.identity.claims.picture)\n\t\t\t\t#if($ctx.args.input.senderId)\n\t\t\t\t\t#set($senderId = $ctx.args.input.senderId)\n\t\t\t\t#end\n\t\t\t\t#if($ctx.args.input.senderName)\n\t\t\t\t\t#set($senderName = $ctx.args.input.senderName)\n\t\t\t\t#end\n\t\t\t\t#if($ctx.args.input.senderImage)\n\t\t\t\t\t#set($senderImage = $ctx.args.input.senderImage)\n\t\t\t\t#end\n\t\t\t\t#set($messageId = $util.autoId())\n\t\t\t\t#set($createdAt = $util.time.nowISO8601())\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"messageId\": $util.toJson($messageId),\n\t\t\t\t\t\t\t\t\"threadId\": $util.toJson($ctx.args.input.threadId),\n\t\t\t\t\t\t\t\t\"content\": $util.toJson($ctx.args.input.content),\n\t\t\t\t\t\t\t\t\"senderId\": $util.toJson($senderId),\n\t\t\t\t\t\t\t\t\"senderName\": $util.toJson($senderName),\n\t\t\t\t\t\t\t\t\"senderImage\": $util.toJson($senderImage),\n\t\t\t\t\t\t\t\t\"fileUrl\": $util.toJson($ctx.args.input.fileUrl),\n\t\t\t\t\t\t\t\t\"fileName\": $util.toJson($ctx.args.input.fileName),\n\t\t\t\t\t\t\t\t\"mimeType\": $util.toJson($ctx.args.input.mimeType),\n\t\t\t\t\t\t\t\t\"createdAt\": $util.toJson($createdAt)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result)",
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiMessageManagerDataSource23A7D64B",
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/CreateMessageResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiGetThreadsResolverE8D22243": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "ThreadsDataSource",
+    "FieldName": "getThreads",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.userId)\n\t\t\t\t\t#set($userId = $ctx.args.userId)\n\t\t\t\t#end\n\t\t\t\t#if($userId)\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Query\",\n\t\t\t\t\t\"query\": {\n\t\t\t\t\t\t\"expression\": \"userId = :userId\",\n\t\t\t\t\t\t\"expressionValues\": {\n\t\t\t\t\t\t\t\":userId\": $util.dynamodb.toDynamoDBJson($userId)\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\t#else\n\t\t\t\t$util.error(\"User ID is required\", \"BadRequest\")\n\t\t\t\t#end\n\t\t\t",
+    "ResponseMappingTemplate": "\n\t\t\t\t#set($items = [])\n\t\t\t\t#foreach($item in $ctx.result.items)\n\t\t\t\t\t#set($item.unreadCount = $util.defaultIfNull($item.unreadCount, 0))\n\t\t\t\t\t$util.qr($items.add($item))\n\t\t\t\t#end\n\t\t\t\t$util.toJson($items)\n\t\t\t",
+    "TypeName": "Query"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiSchema41540462",
+    "EduMatchMessagingApiThreadsDataSource61344A17"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/GetThreadsResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiCreateThreadResolver2BE40D1D": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "ThreadManagerDataSource",
+    "FieldName": "createThread",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($currentUserId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.input.userId)\n\t\t\t\t\t#set($currentUserId = $ctx.args.input.userId)\n\t\t\t\t#end\n\t\t\t\t#set($threadId = $util.autoId())\n\t\t\t\t#set($createdAt = $util.time.nowISO8601())\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"currentUserId\": $util.toJson($currentUserId),\n\t\t\t\t\t\t\t\t\"participantId\": $util.toJson($ctx.args.input.participantId),\n\t\t\t\t\t\t\t\t\"threadId\": $util.toJson($threadId),\n\t\t\t\t\t\t\t\t\"createdAt\": $util.toJson($createdAt),\n\t\t\t\t\t\t\t\t\"userName\": $util.toJson($ctx.args.input.userName),\n\t\t\t\t\t\t\t\t\"userEmail\": $util.toJson($ctx.args.input.userEmail),\n\t\t\t\t\t\t\t\t\"userImage\": $util.toJson($ctx.args.input.userImage)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result)",
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiSchema41540462",
+    "EduMatchMessagingApiThreadManagerDataSource991308D0"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/CreateThreadResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiMarkMessageReadResolver3E6E7CEF": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "MarkReadManagerDataSource",
+    "FieldName": "markMessageRead",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.input.userId)\n\t\t\t\t\t#set($userId = $ctx.args.input.userId)\n\t\t\t\t#end\n\t\t\t\t#set($readId = $util.autoId())\n\t\t\t\t#set($readAt = $util.time.nowISO8601())\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"messageId\": $util.toJson($ctx.args.input.messageId),\n\t\t\t\t\t\t\t\t\"userId\": $util.toJson($userId),\n\t\t\t\t\t\t\t\t\"readId\": $util.toJson($readId),\n\t\t\t\t\t\t\t\t\"readAt\": $util.toJson($readAt)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result)",
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiMarkReadManagerDataSourceA09F1459",
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/MarkMessageReadResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiClearThreadUnreadCountResolver3FF12049": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "ClearUnreadManagerDataSource",
+    "FieldName": "clearThreadUnreadCount",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.input.userId)\n\t\t\t\t\t#set($userId = $ctx.args.input.userId)\n\t\t\t\t#end\n\t\t\t\t\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Invoke\",\n\t\t\t\t\t\"payload\": {\n\t\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\t\"input\": {\n\t\t\t\t\t\t\t\t\"threadId\": $util.toJson($ctx.args.input.threadId),\n\t\t\t\t\t\t\t\t\"userId\": $util.toJson($userId)\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t",
+    "ResponseMappingTemplate": "$util.toJson($ctx.result)",
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiClearUnreadManagerDataSource585C53CF",
+    "EduMatchMessagingApiSchema41540462"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/ClearThreadUnreadCountResolver/Resource"
+   }
+  },
+  "EduMatchMessagingApiGetUnreadCountResolverBF0F926F": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "EduMatchMessagingApiBA77C261",
+      "ApiId"
+     ]
+    },
+    "DataSourceName": "ThreadsDataSource",
+    "FieldName": "getUnreadCount",
+    "Kind": "UNIT",
+    "RequestMappingTemplate": "\n\t\t\t\t#set($userId = $ctx.identity.sub)\n\t\t\t\t#if($ctx.args.userId)\n\t\t\t\t\t#set($userId = $ctx.args.userId)\n\t\t\t\t#end\n\t\t\t\t#if($userId)\n\t\t\t\t{\n\t\t\t\t\t\"version\": \"2017-02-28\",\n\t\t\t\t\t\"operation\": \"Query\",\n\t\t\t\t\t\"query\": {\n\t\t\t\t\t\t\"expression\": \"userId = :userId\",\n\t\t\t\t\t\t\"expressionValues\": {\n\t\t\t\t\t\t\t\":userId\": $util.dynamodb.toDynamoDBJson($userId)\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\t#else\n\t\t\t\t$util.error(\"User ID is required\", \"BadRequest\")\n\t\t\t\t#end\n\t\t\t",
+    "ResponseMappingTemplate": "\n\t\t\t\t#set($totalUnread = 0)\n\t\t\t\t#foreach($item in $ctx.result.items)\n\t\t\t\t\t#set($totalUnread = $totalUnread + $item.unreadCount)\n\t\t\t\t#end\n\t\t\t\t$totalUnread\n\t\t\t",
+    "TypeName": "Query"
+   },
+   "DependsOn": [
+    "EduMatchMessagingApiSchema41540462",
+    "EduMatchMessagingApiThreadsDataSource61344A17"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/EduMatchMessagingApi/GetUnreadCountResolver/Resource"
+   }
+  },
+  "WishlistDeadlineCronLogGroupE76C266E": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineCronLogGroup/Resource"
+   }
+  },
+  "WishlistDeadlineCron419D9359": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst https = require('https');\nconst http = require('http');\n\nexports.handler = async (event) => {\n  console.log('🔄 Starting wishlist deadline cron job...');\n  console.log('📦 Event received:', JSON.stringify(event, null, 2));\n  \n  const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';\n  const cronSecret = process.env.CRON_SECRET;\n  \n  console.log('📍 API URL:', apiUrl);\n  console.log('🔑 CRON_SECRET set:', !!cronSecret);\n  \n  if (!cronSecret) {\n    console.warn('⚠️ WARNING: CRON_SECRET not set in Lambda environment variables!');\n    console.warn('⚠️ The API endpoint may reject the request if CRON_SECRET is required.');\n  }\n  \n  try {\n    const url = new URL(apiUrl + '/api/cron/wishlist-deadlines');\n    const headers = {\n      'Content-Type': 'application/json',\n    };\n    \n    // Only add Authorization header if CRON_SECRET is set\n    if (cronSecret) {\n      headers['Authorization'] = `Bearer ${cronSecret}`;\n    }\n    \n    const options = {\n      method: 'POST',\n      headers: headers,\n      timeout: 30000, // 30 seconds\n    };\n    \n    const response = await new Promise((resolve, reject) => {\n      const client = url.protocol === 'https:' ? https : http;\n      \n      const req = client.request(url, options, (res) => {\n        let data = '';\n        \n        res.on('data', (chunk) => {\n          data += chunk;\n        });\n        \n        res.on('end', () => {\n          resolve({\n            statusCode: res.statusCode,\n            headers: res.headers,\n            body: data,\n          });\n        });\n      });\n      \n      req.on('error', (error) => {\n        reject(error);\n      });\n      \n      req.on('timeout', () => {\n        req.destroy();\n        reject(new Error('Request timeout'));\n      });\n      \n      req.end();\n    });\n    \n    console.log('📊 Response status:', response.statusCode);\n    console.log('📊 Response headers:', JSON.stringify(response.headers, null, 2));\n    console.log('📊 Response body length:', response.body ? response.body.length : 0);\n    console.log('📊 Response body preview (first 200 chars):', response.body ? response.body.substring(0, 200) : 'empty');\n    \n    // Check if response is HTML (404 or error page) - check before parsing\n    const bodyStr = response.body || '';\n    const trimmedBody = bodyStr.trim();\n    \n    if (trimmedBody && (trimmedBody.startsWith('<!DOCTYPE') || trimmedBody.startsWith('<html') || trimmedBody.startsWith('<!doctype'))) {\n      console.error('❌ API returned HTML instead of JSON - likely 404 or error page');\n      console.error('❌ Response status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`API endpoint returned HTML (likely 404). Status: ${response.statusCode}. The route /api/cron/wishlist-deadlines does not exist or is not deployed. Please deploy your Next.js app to include this route.`);\n    }\n    \n    // Check if status code indicates error\n    if (response.statusCode >= 400) {\n      console.error('❌ API returned error status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`API endpoint returned error status ${response.statusCode}. Response: ${trimmedBody.substring(0, 200)}`);\n    }\n    \n    let result;\n    try {\n      result = JSON.parse(bodyStr);\n    } catch (parseError) {\n      console.error('❌ Failed to parse response body as JSON');\n      console.error('❌ Response status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`Failed to parse API response as JSON: ${parseError.message}. Response might be HTML or invalid JSON. Status: ${response.statusCode}`);\n    }\n    \n    if (response.statusCode === 200) {\n      console.log('✅ Cron job executed successfully:', JSON.stringify(result, null, 2));\n      \n      // Wait a few seconds for messages to be fully queued\n      if (result.notificationsSent > 0) {\n        console.log('⏳ Waiting 3 seconds for messages to be fully queued in SQS...');\n        await new Promise(resolve => setTimeout(resolve, 3000));\n      }\n      \n      // Process notification queue (forward to email queue)\n      console.log('📬 Processing notification queue...');\n      try {\n        const notificationQueueUrl = new URL(apiUrl + '/api/notifications/process');\n        const notificationResponse = await new Promise((resolve, reject) => {\n          const client = notificationQueueUrl.protocol === 'https:' ? https : http;\n          const req = client.request(notificationQueueUrl, {\n            method: 'POST',\n            headers: {\n              'Content-Type': 'application/json',\n              ...(cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {}),\n            },\n            timeout: 30000,\n          }, (res) => {\n            let data = '';\n            res.on('data', (chunk) => { data += chunk; });\n            res.on('end', () => {\n              resolve({\n                statusCode: res.statusCode,\n                body: data,\n              });\n            });\n          });\n          req.on('error', reject);\n          req.on('timeout', () => { req.destroy(); reject(new Error('Notification queue timeout')); });\n          req.end();\n        });\n        console.log('📬 Notification queue processed:', notificationResponse.statusCode);\n      } catch (notificationError) {\n        console.error('⚠️ Error processing notification queue:', notificationError);\n        // Don't fail the entire job if queue processing fails\n      }\n      \n      // Process email queue (send emails)\n      console.log('📧 Processing email queue...');\n      try {\n        const emailQueueUrl = new URL(apiUrl + '/api/notifications/process');\n        const emailResponse = await new Promise((resolve, reject) => {\n          const client = emailQueueUrl.protocol === 'https:' ? https : http;\n          const req = client.request(emailQueueUrl, {\n            method: 'PUT',\n            headers: {\n              'Content-Type': 'application/json',\n              ...(cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {}),\n            },\n            timeout: 60000, // 60 seconds for email sending\n          }, (res) => {\n            let data = '';\n            res.on('data', (chunk) => { data += chunk; });\n            res.on('end', () => {\n              resolve({\n                statusCode: res.statusCode,\n                body: data,\n              });\n            });\n          });\n          req.on('error', reject);\n          req.on('timeout', () => { req.destroy(); reject(new Error('Email queue timeout')); });\n          req.end();\n        });\n        console.log('📧 Email queue processed:', emailResponse.statusCode);\n      } catch (emailError) {\n        console.error('⚠️ Error processing email queue:', emailError);\n        // Don't fail the entire job if email processing fails\n      }\n      \n      return {\n        statusCode: 200,\n        body: JSON.stringify({\n          success: true,\n          message: 'Wishlist deadline cron job completed and queues processed',\n          result,\n        }),\n      };\n    } else {\n      console.error('❌ API returned error:', response.statusCode, result);\n      throw new Error(`API returned ${response.statusCode}: ${JSON.stringify(result)}`);\n    }\n  } catch (error) {\n    console.error('❌ Error executing cron job:', error);\n    console.error('❌ Error stack:', error.stack);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "API_BASE_URL": "https://dev.d1jaxpbx3axxsh.amplifyapp.com",
+      "CRON_SECRET": ""
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "WishlistDeadlineCronLogGroupE76C266E"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineCron/Resource"
+   }
+  },
+  "WishlistDeadlineRuleFF2DFDA3": {
+   "Type": "AWS::Events::Rule",
+   "Properties": {
+    "Description": "Trigger wishlist deadline notifications daily at 9 AM UTC",
+    "ScheduleExpression": "cron(0 9 * * ? *)",
+    "State": "ENABLED",
+    "Targets": [
+     {
+      "Arn": {
+       "Fn::GetAtt": [
+        "WishlistDeadlineCron419D9359",
+        "Arn"
+       ]
+      },
+      "Id": "Target0"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineRule/Resource"
+   }
+  },
+  "WishlistDeadlineRuleAllowEventRuleEduMatchNotificationStackWishlistDeadlineCron0FAC1353CACB6C43": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "WishlistDeadlineCron419D9359",
+      "Arn"
+     ]
+    },
+    "Principal": "events.amazonaws.com",
+    "SourceArn": {
+     "Fn::GetAtt": [
+      "WishlistDeadlineRuleFF2DFDA3",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/WishlistDeadlineRule/AllowEventRuleEduMatchNotificationStackWishlistDeadlineCron0FAC1353"
+   }
+  },
+  "CloseExpiredPostsCronLogGroup7B443478": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/CloseExpiredPostsCronLogGroup/Resource"
+   }
+  },
+  "CloseExpiredPostsCron0736FBCF": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\nconst https = require('https');\nconst http = require('http');\n\nexports.handler = async (event) => {\n  console.log('🔄 Starting close expired posts cron job...');\n  console.log('📦 Event received:', JSON.stringify(event, null, 2));\n  \n  const apiUrl = process.env.API_BASE_URL || 'https://dev.d1jaxpbx3axxsh.amplifyapp.com';\n  const cronSecret = process.env.CRON_SECRET;\n  \n  console.log('📍 API URL:', apiUrl);\n  console.log('🔑 CRON_SECRET set:', !!cronSecret);\n  \n  if (!cronSecret) {\n    console.warn('⚠️ WARNING: CRON_SECRET not set in Lambda environment variables!');\n    console.warn('⚠️ The API endpoint may reject the request if CRON_SECRET is required.');\n  }\n  \n  try {\n    const url = new URL(apiUrl + '/api/cron/close-expired-posts');\n    const headers = {\n      'Content-Type': 'application/json',\n    };\n    \n    // Only add Authorization header if CRON_SECRET is set\n    if (cronSecret) {\n      headers['Authorization'] = `Bearer ${cronSecret}`;\n    }\n    \n    const options = {\n      method: 'POST',\n      headers: headers,\n      timeout: 30000, // 30 seconds\n    };\n    \n    const response = await new Promise((resolve, reject) => {\n      const client = url.protocol === 'https:' ? https : http;\n      \n      const req = client.request(url, options, (res) => {\n        let data = '';\n        \n        res.on('data', (chunk) => {\n          data += chunk;\n        });\n        \n        res.on('end', () => {\n          resolve({\n            statusCode: res.statusCode,\n            headers: res.headers,\n            body: data,\n          });\n        });\n      });\n      \n      req.on('error', (error) => {\n        reject(error);\n      });\n      \n      req.on('timeout', () => {\n        req.destroy();\n        reject(new Error('Request timeout'));\n      });\n      \n      req.end();\n    });\n    \n    console.log('📊 Response status:', response.statusCode);\n    console.log('📊 Response headers:', JSON.stringify(response.headers, null, 2));\n    console.log('📊 Response body length:', response.body ? response.body.length : 0);\n    console.log('📊 Response body preview (first 200 chars):', response.body ? response.body.substring(0, 200) : 'empty');\n    \n    // Check if response is HTML (404 or error page) - check before parsing\n    const bodyStr = response.body || '';\n    const trimmedBody = bodyStr.trim();\n    \n    if (trimmedBody && (trimmedBody.startsWith('<!DOCTYPE') || trimmedBody.startsWith('<html') || trimmedBody.startsWith('<!doctype'))) {\n      console.error('❌ API returned HTML instead of JSON - likely 404 or error page');\n      console.error('❌ Response status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`API endpoint returned HTML (likely 404). Status: ${response.statusCode}. The route /api/cron/close-expired-posts does not exist or is not deployed. Please deploy your Next.js app to include this route.`);\n    }\n    \n    // Check if status code indicates error\n    if (response.statusCode >= 400) {\n      console.error('❌ API returned error status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`API endpoint returned error status ${response.statusCode}. Response: ${trimmedBody.substring(0, 200)}`);\n    }\n    \n    let result;\n    try {\n      result = JSON.parse(bodyStr);\n    } catch (parseError) {\n      console.error('❌ Failed to parse response body as JSON');\n      console.error('❌ Response status:', response.statusCode);\n      console.error('❌ Response body (first 500 chars):', trimmedBody.substring(0, 500));\n      throw new Error(`Failed to parse API response as JSON: ${parseError.message}. Response might be HTML or invalid JSON. Status: ${response.statusCode}`);\n    }\n    \n    if (response.statusCode === 200) {\n      console.log('✅ Cron job executed successfully:', JSON.stringify(result, null, 2));\n      \n      return {\n        statusCode: 200,\n        body: JSON.stringify({\n          success: true,\n          message: 'Close expired posts cron job completed',\n          result,\n        }),\n      };\n    } else {\n      console.error('❌ API returned error:', response.statusCode, result);\n      throw new Error(`API returned ${response.statusCode}: ${JSON.stringify(result)}`);\n    }\n  } catch (error) {\n    console.error('❌ Error executing cron job:', error);\n    console.error('❌ Error stack:', error.stack);\n    throw error;\n  }\n};\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "API_BASE_URL": "https://dev.d1jaxpbx3axxsh.amplifyapp.com",
+      "CRON_SECRET": ""
+     }
+    },
+    "Handler": "index.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "CloseExpiredPostsCronLogGroup7B443478"
+     }
+    },
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "NotificationLambdaRole8517A721",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "NotificationLambdaRoleDefaultPolicy07D18877",
+    "NotificationLambdaRole8517A721"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/CloseExpiredPostsCron/Resource"
+   }
+  },
+  "CloseExpiredPostsRule7814CA3D": {
+   "Type": "AWS::Events::Rule",
+   "Properties": {
+    "Description": "Close expired posts (programs, scholarships, research labs) daily at midnight UTC",
+    "ScheduleExpression": "cron(0 0 * * ? *)",
+    "State": "ENABLED",
+    "Targets": [
+     {
+      "Arn": {
+       "Fn::GetAtt": [
+        "CloseExpiredPostsCron0736FBCF",
+        "Arn"
+       ]
+      },
+      "Id": "Target0"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/CloseExpiredPostsRule/Resource"
+   }
+  },
+  "CloseExpiredPostsRuleAllowEventRuleEduMatchNotificationStackCloseExpiredPostsCronA4BB48BBC9EDD340": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "CloseExpiredPostsCron0736FBCF",
+      "Arn"
+     ]
+    },
+    "Principal": "events.amazonaws.com",
+    "SourceArn": {
+     "Fn::GetAtt": [
+      "CloseExpiredPostsRule7814CA3D",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/CloseExpiredPostsRule/AllowEventRuleEduMatchNotificationStackCloseExpiredPostsCronA4BB48BB"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/22QT2/CMAzFPwv34I3edkRj47BOg7L75KZeCeQfTQKqonz3KSlMTNrJv/deZMeuoFo8weMML27Ou+NcihbiziM/Mry4r+hODuI2UCD2/K0LJCZQQWyMLF6pGyMFH7OcKDFpegexNv16MMHm5MaJSVRthxBfg+ZeGJ3TX345k/Y7EwZO72it0H2O/3c3NCjhnDA6sW7UqEzXQvzEdvpagcTQWjdqDnE9oN2f5NKKnBa1rf+qHd+TwmwsrXijka1K21W7Qo/T/Bzeqbosc2c05Iw801COc+XEKC/gIDbherYgKaXy+Nb0I3gbfGLadAQH93CuKqgWsJgdnBDzIWgvFEEz1R/8RoQjuQEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "EduMatchNotificationStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "NotificationsQueueUrl": {
+   "Description": "SQS Notifications Queue URL",
+   "Value": {
+    "Ref": "NotificationsQueue3B766469"
+   },
+   "Export": {
+    "Name": "EduMatch-NotificationsQueueUrl"
+   }
+  },
+  "EmailsQueueUrl": {
+   "Description": "SQS Emails Queue URL",
+   "Value": {
+    "Ref": "EmailsQueue3086DFE6"
+   },
+   "Export": {
+    "Name": "EduMatch-EmailsQueueUrl"
+   }
+  },
+  "NotificationProcessorArn": {
+   "Description": "Notification Processor Lambda ARN",
+   "Value": {
+    "Fn::GetAtt": [
+     "NotificationProcessorE91924AA",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-NotificationProcessorArn"
+   }
+  },
+  "EmailProcessorArn": {
+   "Description": "Email Processor Lambda ARN",
+   "Value": {
+    "Fn::GetAtt": [
+     "EmailProcessor218EC076",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-EmailProcessorArn"
+   }
+  },
+  "AppSyncApiEndpoint": {
+   "Description": "AppSync GraphQL API Endpoint",
+   "Value": {
+    "Fn::GetAtt": [
+     "EduMatchMessagingApiBA77C261",
+     "GraphQLUrl"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-AppSyncApiEndpoint"
+   }
+  },
+  "AppSyncApiKey": {
+   "Description": "AppSync API Key",
+   "Value": {
+    "Fn::GetAtt": [
+     "EduMatchMessagingApiDefaultApiKey3C625F00",
+     "ApiKey"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-AppSyncApiKey"
+   }
+  },
+  "MessagesTableName": {
+   "Description": "Messages DynamoDB Table Name",
+   "Value": {
+    "Ref": "MessagesTable05B58A27"
+   },
+   "Export": {
+    "Name": "EduMatch-MessagesTableName"
+   }
+  },
+  "ThreadsTableName": {
+   "Description": "Threads DynamoDB Table Name",
+   "Value": {
+    "Ref": "ThreadsTable1D5C607C"
+   },
+   "Export": {
+    "Name": "EduMatch-ThreadsTableName"
+   }
+  },
+  "WishlistDeadlineCronArn": {
+   "Description": "Wishlist Deadline Cron Lambda ARN",
+   "Value": {
+    "Fn::GetAtt": [
+     "WishlistDeadlineCron419D9359",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-WishlistDeadlineCronArn"
+   }
+  },
+  "WishlistDeadlineRuleArn": {
+   "Description": "EventBridge Rule ARN for Wishlist Deadline Cron",
+   "Value": {
+    "Fn::GetAtt": [
+     "WishlistDeadlineRuleFF2DFDA3",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-WishlistDeadlineRuleArn"
+   }
+  },
+  "CloseExpiredPostsCronArn": {
+   "Description": "Close Expired Posts Cron Lambda ARN",
+   "Value": {
+    "Fn::GetAtt": [
+     "CloseExpiredPostsCron0736FBCF",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-CloseExpiredPostsCronArn"
+   }
+  },
+  "CloseExpiredPostsRuleArn": {
+   "Description": "EventBridge Rule ARN for Close Expired Posts Cron",
+   "Value": {
+    "Fn::GetAtt": [
+     "CloseExpiredPostsRule7814CA3D",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EduMatch-CloseExpiredPostsRuleArn"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

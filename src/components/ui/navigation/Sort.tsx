@@ -1,0 +1,119 @@
+'use client'
+
+import { useState } from 'react'
+import { ChevronDown, ArrowUpDown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui'
+import { useTranslations } from 'next-intl'
+
+export type SortOption =
+	| 'most-popular'
+	| 'newest'
+	| 'oldest'
+	| 'match-score'
+	| 'deadline'
+	| 'default'
+
+interface SortDropdownProps {
+	value: SortOption
+	onChange: (value: SortOption) => void
+	excludeOptions?: SortOption[] // Options to exclude from the dropdown
+}
+
+interface SortOptionItem {
+	value: SortOption
+	label: string
+	separator?: boolean
+}
+
+export function SortDropdown({
+	value,
+	onChange,
+	excludeOptions = [],
+}: SortDropdownProps) {
+	const [isOpen, setIsOpen] = useState(false)
+	const t = useTranslations('sort')
+
+	const allSortOptions: SortOptionItem[] = [
+		{ value: 'most-popular' as SortOption, label: t('most_popular') },
+		{ value: 'newest' as SortOption, label: t('newest') },
+		{ value: 'oldest' as SortOption, label: t('oldest') },
+		{ value: 'match-score' as SortOption, label: t('match_score') },
+		{ value: 'deadline' as SortOption, label: t('deadline') },
+		// { value: 'default' as SortOption, label: 'Clear sort', separator: true },
+	]
+
+	// Filter out excluded options
+	const sortOptions = allSortOptions.filter(
+		(option) => !excludeOptions.includes(option.value)
+	)
+
+	const currentOption = sortOptions.find((option) => option.value === value)
+
+	return (
+		<div className="relative">
+			<Button
+				variant="outline"
+				onClick={() => setIsOpen(!isOpen)}
+				className="flex items-center space-x-2 rounded-full border-gray-300 hover:border-teal-500 transition-colors"
+			>
+				<ArrowUpDown className="w-4 h-4" />
+				<span>{t('sort_by')}</span>
+				<motion.div
+					animate={{ rotate: isOpen ? 180 : 0 }}
+					transition={{ duration: 0.2 }}
+				>
+					<ChevronDown className="w-4 h-4" />
+				</motion.div>
+			</Button>
+
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, y: -10, scale: 0.95 }}
+						animate={{ opacity: 1, y: 0, scale: 1 }}
+						exit={{ opacity: 0, y: -10, scale: 0.95 }}
+						transition={{ duration: 0.2 }}
+						className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[160px]"
+					>
+						{sortOptions.map((option, index) => (
+							<div key={option.value}>
+								{option.separator && (
+									<div className="border-t border-gray-200 my-1" />
+								)}
+								<motion.button
+									onClick={() => {
+										onChange(option.value)
+										setIsOpen(false)
+									}}
+									className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors ${
+										index === 0 ? 'rounded-t-xl' : ''
+									} ${index === sortOptions.length - 1 ? 'rounded-b-xl' : ''} ${
+										value === option.value
+											? 'bg-teal-50 text-teal-700'
+											: option.value === 'default'
+												? 'text-red-600 hover:bg-red-50'
+												: 'text-gray-700'
+									}`}
+									whileHover={{
+										backgroundColor:
+											option.value === 'default'
+												? 'rgb(254 242 242)'
+												: 'rgb(249 250 251)',
+									}}
+									whileTap={{ scale: 0.98 }}
+								>
+									{option.label}
+								</motion.button>
+							</div>
+						))}
+					</motion.div>
+				)}
+			</AnimatePresence>
+
+			{isOpen && (
+				<div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+			)}
+		</div>
+	)
+}

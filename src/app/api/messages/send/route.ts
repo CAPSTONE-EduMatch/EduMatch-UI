@@ -1,0 +1,168 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { prismaClient } from "../../../../../prisma/index";
+import {
+	encryptMessage,
+	decryptMessage,
+} from "@/utils/encryption/message-encryption";
+
+export async function POST(request: NextRequest) {
+	try {
+		// Check authentication
+		const session = await requireAuth();
+		const user = session.user;
+
+		if (!user.id) {
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 }
+			);
+		}
+
+		const body = await request.json();
+		const { threadId, content, fileUrl, fileName, fileSize, mimeType } =
+			body;
+		if (!threadId || (!content && !fileUrl)) {
+			return NextResponse.json(
+				{
+					error: "Thread ID and either content or fileUrl are required",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Verify user has access to this thread (now called Box)
+		console.log("Checking box access for user:", user.id, "box:", threadId);
+		const box = await prismaClient.box.findFirst({
+			where: {
+				box_id: threadId,
+				OR: [{ user_one_id: user.id }, { user_two_id: user.id }],
+			},
+		});
+
+		console.log(
+			"Box found:",
+			box ? "Yes" : "No",
+			box
+				? {
+						box_id: box.box_id,
+						user_one_id: box.user_one_id,
+						user_two_id: box.user_two_id,
+					}
+				: null
+		);
+
+		if (!box) {
+			// Box doesn't exist in PostgreSQL, but might exist in AppSync
+			// This can happen when using the hybrid approach
+			console.log(
+				"Box not found in PostgreSQL, this might be an AppSync-only box"
+			);
+			return NextResponse.json(
+				{
+					error: "Box not found in database. Please refresh and try again.",
+				},
+				{ status: 404 }
+			);
+		}
+
+		// Encrypt message content before storing
+		const encryptedContent = content ? encryptMessage(content) : "";
+
+		// Create message
+		const message = await prismaClient.message.create({
+			data: {
+				message_id: crypto.randomUUID(),
+				box_id: threadId,
+				sender_id: user.id,
+				body: encryptedContent,
+				send_at: new Date(),
+			},
+		});
+
+		// Update box's last message
+		await prismaClient.box.update({
+			where: { box_id: threadId },
+			data: {
+				last_message_id: message.message_id,
+				last_message_at: message.send_at,
+			},
+		});
+
+		// Get sender information
+		const senderUser = await prismaClient.user.findUnique({
+			where: { id: user.id },
+			select: {
+				id: true,
+				name: true,
+				image: true,
+				applicant: {
+					select: {
+						first_name: true,
+						last_name: true,
+					},
+				},
+				institution: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		});
+
+		let sender = null;
+		if (senderUser) {
+			let name = senderUser.name || "Unknown User";
+			if (!name || name === "Unknown User") {
+				if (senderUser.applicant) {
+					name =
+						`${senderUser.applicant.first_name || ""} ${senderUser.applicant.last_name || ""}`.trim() ||
+						"Applicant";
+				} else if (senderUser.institution) {
+					name = senderUser.institution.name;
+				}
+			}
+			sender = {
+				id: senderUser.id,
+				name,
+				image: senderUser.image,
+			};
+		}
+
+		// Decrypt message content for response (client will receive decrypted content)
+		const decryptedContent = decryptMessage(message.body);
+
+		return NextResponse.json({
+			success: true,
+			message: {
+				id: message.message_id,
+				threadId: message.box_id,
+				senderId: message.sender_id,
+				content: decryptedContent,
+				sender: sender
+					? {
+							id: sender.id,
+							name: sender.name,
+							image: sender.image,
+						}
+					: {
+							id: user.id,
+							name: "Unknown User",
+							image: null,
+						},
+				fileUrl: null, // Not in new schema
+				fileName: null, // Not in new schema
+				fileSize: null, // Not in new schema
+				mimeType: null, // Not in new schema
+				createdAt: message.send_at,
+				isRead: false, // Not in new schema
+			},
+		});
+	} catch (error) {
+		console.error("Send message error:", error);
+		return NextResponse.json(
+			{ error: "Failed to send message" },
+			{ status: 500 }
+		);
+	}
+}

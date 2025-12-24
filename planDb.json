@@ -1,0 +1,88 @@
+[
+	{
+		"plan_id": "550e8400-e29b-41d4-a716-446655440100",
+		"priceId": "price_1SQqrj1f58RNYg006oSQ6mr0",
+		"name": "Institution Plan",
+		"description": "Institution plan for Education Group",
+		"features": [
+			"Create and manage comprehensive institutional profiles with branding and details.",
+			"Post detailed opportunities with descriptions, eligibility criteria, and deadlines.",
+			"Create and manage comprehensive institutional profiles with branding and details.",
+			"Access intelligent matching algorithms to find the best candidates.",
+			"View detailed applicant profiles with matching scores and analytics.",
+			"Invite applicants for interviews and update selection results seamlessly.",
+			"Communicate with applicants via built-in chat and email systems.",
+			"Monitor engagement statistics, views, and applications through web dashboards."
+		],
+		"month_price": 1000,
+		"year_price": 10000,
+		"status": true,
+		"create_at": "2025-10-26T12:02:37.737Z",
+		"type": 2,
+		"hierarchy": 3
+	},
+	{
+		"plan_id": "550e8400-e29b-41d4-a716-446655440101",
+		"priceId": "N/A",
+		"name": "Free Plan",
+		"description": "Basic plan for students",
+		"features": [
+			"Account registration & OTP verification",
+			"Create & update personal profile (GPA, skills, research topic, etc.)",
+			"Basic scholarship, program & research group search",
+			"View scholarship details & requirements",
+			"Receive deadline reminders for saved scholarships/programs",
+			"Send messages to scholarship staff / professors"
+		],
+		"month_price": 0,
+		"year_price": 0,
+		"status": true,
+		"create_at": "2025-10-26T12:02:37.737Z",
+		"type": 1,
+		"hierarchy": 0
+	},
+	{
+		"plan_id": "standard",
+		"priceId": "price_1SFXgR1f58RNYg0098jAKotV",
+		"name": "Standard Plan",
+		"description": "Perfect for active scholarship hunters and applicants",
+		"features": [
+			"Everything in Free",
+			"Advanced scholarship matching algorithms",
+			"Priority application tracking",
+			"Extended program database access",
+			"Email notifications & reminders",
+			"Direct messaging with admissions staff",
+			"Application deadline calendar sync",
+			"Basic analytics dashboard"
+		],
+		"month_price": 10,
+		"year_price": 100,
+		"status": true,
+		"create_at": "2025-10-26T12:02:37.737Z",
+		"type": 1,
+		"hierarchy": 1
+	},
+	{
+		"plan_id": "premium",
+		"priceId": "price_1S4fZ61f58RNYg00FWakIrLm",
+		"name": "Premium Plan",
+		"description": "Unlimited and unlock all functions",
+		"features": [
+			"Everything in Standard",
+			"AI-powered essay review & suggestions",
+			"One-on-one consultation calls",
+			"Custom scholarship recommendations",
+			"Application document templates",
+			"Interview preparation resources",
+			"Exclusive webinars & workshops",
+			"Priority customer support"
+		],
+		"month_price": 50,
+		"year_price": 500,
+		"status": true,
+		"create_at": "2025-10-26T12:02:37.737Z",
+		"type": 1,
+		"hierarchy": 2
+	}
+]

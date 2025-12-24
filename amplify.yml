@@ -1,0 +1,65 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Install pnpm and use it for faster builds
+        - npm ci --legacy-peer-deps
+        # Create .env file more efficiently with error handling
+        - echo "Creating .env file..."
+        - echo "DATABASE_URL=$DATABASE_URL" > .env
+        - echo "BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET" >> .env
+        - echo "BETTER_AUTH_URL=$BETTER_AUTH_URL" >> .env
+        - echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
+        - echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
+        - echo "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" >> .env
+        - echo "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" >> .env
+        - echo "REDIS_URL=$REDIS_URL" >> .env
+        - echo "SMTP_HOST=$SMTP_HOST" >> .env
+        - echo "SMTP_PORT=$SMTP_PORT" >> .env
+        - echo "SMTP_USER=$SMTP_USER" >> .env
+        - echo "SMTP_PASS=$SMTP_PASS" >> .env
+        - echo "SMTP_FROM=$SMTP_FROM" >> .env
+        - echo "REGION=$REGION" >> .env
+        - echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> .env
+        - echo "SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY" >> .env
+        - echo "ACCESS_KEY_ID=$ACCESS_KEY_ID" >> .env
+        - echo "SQS_NOTIFICATIONS_QUEUE_URL=$SQS_NOTIFICATIONS_QUEUE_URL" >> .env
+        - echo "SQS_EMAILS_QUEUE_URL=$SQS_EMAILS_QUEUE_URL" >> .env
+        - echo "NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL" >> .env
+        - echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID" >> .env
+        - echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" >> .env
+        - echo "NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID=$NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID" >> .env
+        - echo "NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID=$NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID" >> .env
+        - echo "NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID=$NEXT_PUBLIC_STRIPE_INSTITUTION_MONTHLY_PRICE_ID" >> .env
+        - echo "NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID=$NEXT_PUBLIC_STRIPE_INSTITUTION_YEARLY_PRICE_ID" >> .env
+        - echo "STRIPE_STANDARD_PRICE_ID=$STRIPE_STANDARD_PRICE_ID" >> .env
+        - echo "STRIPE_PREMIUM_PRICE_ID=$STRIPE_PREMIUM_PRICE_ID" >> .env
+        - echo "STRIPE_INSTITUTION_MONTHLY_PRICE_ID=$STRIPE_INSTITUTION_MONTHLY_PRICE_ID" >> .env
+        - echo "STRIPE_INSTITUTION_YEARLY_PRICE_ID=$STRIPE_INSTITUTION_YEARLY_PRICE_ID" >> .env
+        - echo "NEXT_PUBLIC_APPSYNC_ENDPOINT=$NEXT_PUBLIC_APPSYNC_ENDPOINT" >> .env
+        - echo "NEXT_PUBLIC_APPSYNC_API_KEY=$NEXT_PUBLIC_APPSYNC_API_KEY" >> .env
+        - echo "NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION" >> .env
+        - echo "NEXT_PUBLIC_MISTRAL_OCR_API_KEY=$NEXT_PUBLIC_MISTRAL_OCR_API_KEY" >> .env
+        - echo "MISTRAL_OCR_ENDPOINT=$MISTRAL_OCR_ENDPOINT" >> .env
+        - echo "NEXT_PUBLIC_MISTRAL_OCR_ENABLED=$NEXT_PUBLIC_MISTRAL_OCR_ENABLED" >> .env
+        - echo "OLLAMA_API_KEY=$OLLAMA_API_KEY" >> .env
+        - echo "ONLINE_STATUS_THRESHOLD_MINUTES=$ONLINE_STATUS_THRESHOLD_MINUTES" >> .env
+        - echo ".env file created successfully"
+        - echo "Generating Prisma client..."
+        - npx prisma generate
+        - echo "PreBuild phase completed"
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+  runtime:
+    name: node
+    version: 20

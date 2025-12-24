@@ -1,0 +1,63 @@
+#!/usr/bin/env sh
+set -e
+
+echo "🐙 Performing commit message checks..."
+
+# (Husky v9 warns about sourcing _/husky.sh; remove these 2 lines when you move to v10)
+# . "$(dirname "$0")/_/husky.sh"
+
+# 1) Ensure Node is reachable (Flatpak won’t see system PATH)
+add_node_bin() {
+  dir="$1"
+  [ -x "$dir/node" ] && export PATH="$dir:$PATH" && echo "→ using node at $dir/node" && return 0
+  return 1
+}
+# Try common homes (nvm / volta / asdf) then system
+add_node_bin "$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n1)/bin" \
+  || add_node_bin "$HOME/.volta/bin" \
+  || add_node_bin "$HOME/.asdf/shims" \
+  || add_node_bin "/usr/bin" \
+  || {
+    # Try to load nvm default if available
+    if [ -s "$HOME/.nvm/nvm.sh" ]; then
+      . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1 || true
+      nvm use default >/dev/null 2>&1 || true
+    fi
+  }
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ 'node' not found in PATH (Flatpak GitKraken can’t see your Node)."
+  echo "   Install Node under your home (nvm/volta) or add its bin dir to PATH."
+  exit 127
+fi
+
+# 2) Prefer the local binary in node_modules/.bin (no pnpm/npx needed)
+if [ -x "./node_modules/.bin/commitlint" ]; then
+  ./node_modules/.bin/commitlint --edit "$1"
+  echo "✅ Your commit message is a work of art. Chef kiss 🧑‍🍳😙🤌. Nice job 👍"
+  exit 0
+fi
+
+# 3) If the local bin is missing, try pnpm (absolute path first), then pnpm on PATH
+PNPM="$HOME/.local/share/pnpm/pnpm"
+if [ -x "$PNPM" ]; then
+  echo "→ using pnpm at $PNPM"
+  "$PNPM" exec commitlint --edit "$1"
+  echo "✅ Your commit message is a work of art. Chef kiss 🧑‍🍳😙🤌. Nice job 👍"
+  exit 0
+elif command -v pnpm >/dev/null 2>&1; then
+  pnpm exec commitlint --edit "$1"
+  echo "✅ Your commit message is a work of art. Chef kiss 🧑‍🍳😙🤌. Nice job 👍"
+  exit 0
+fi
+
+# 4) Final fallback (only if npx actually exists on PATH)
+if command -v npx >/dev/null 2>&1; then
+  npx --no-install commitlint --edit "$1"
+  echo "✅ Your commit message is a work of art. Chef kiss 🧑‍🍳😙🤌. Nice job 👍"
+  exit 0
+fi
+
+echo "❌ commitlint not found (no local bin, pnpm, or npx)."
+echo "   Fix: add @commitlint/cli to devDependencies and run: pnpm i"
+exit 127

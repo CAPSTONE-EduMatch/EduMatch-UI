@@ -1,0 +1,1604 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button, Modal } from '@/components/ui'
+import { ProtectedImage } from '@/components/ui/ProtectedImage'
+import { Download, User, FileText, ArrowLeft } from 'lucide-react'
+import {
+	InfoSection,
+	ProfileCard,
+	DocumentPanel,
+	TwoPanelLayout,
+} from '@/components/profile/shared'
+import type { Applicant } from './ApplicantsTable'
+import { getCountriesWithSvgFlags } from '@/data/countries'
+import JSZip from 'jszip'
+import {
+	openSessionProtectedFile,
+	downloadSessionProtectedFile,
+} from '@/utils/files/getSessionProtectedFileUrl'
+
+interface ApplicantDetailViewProps {
+	applicant: Applicant
+	onBack: () => void
+	onApprove: (applicant: Applicant) => void
+	onReject: (applicant: Applicant) => void
+}
+
+interface Document {
+	documentId: string
+	name: string
+	size: number
+	uploadDate?: string
+	updatedAt?: string
+	url: string
+	title?: string | null
+	subdiscipline?: string[]
+	updateRequestId?: string
+}
+
+interface ApplicationDetails {
+	application: {
+		applicationId: string
+		applicantId: string
+		postId: string
+		status: string
+		applyAt: string
+		rejectionNote?: string | null
+		rejectionNoteAt?: string | null
+		rejectionNoteBy?: string | null
+		documents: Document[]
+		post: {
+			id: string
+			title: string
+			startDate: string
+			endDate?: string
+			location?: string
+			otherInfo?: string
+			institution: {
+				name: string
+				logo?: string
+				country?: string
+			}
+			program?: any
+			scholarship?: any
+			job?: any
+		}
+	}
+	applicant: {
+		applicantId: string
+		userId?: string
+		firstName?: string
+		lastName?: string
+		name: string
+		email: string
+		image?: string
+		birthday?: string
+		gender?: string
+		nationality?: string
+		phoneNumber?: string
+		countryCode?: string
+		graduated?: boolean
+		level?: string
+		subdiscipline?:
+			| Array<{
+					id: string
+					name: string
+					disciplineName: string
+			  }>
+			| string
+		disciplines?: string[]
+		gpa?: any
+		university?: string
+		countryOfStudy?: string
+		hasForeignLanguage?: boolean
+		languages?: any
+		documents: Document[]
+	}
+}
+
+export const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({
+	applicant,
+	onBack,
+	onApprove,
+	onReject,
+}) => {
+	const router = useRouter()
+
+	// Handle back navigation with URL cleanup
+	const handleBack = () => {
+		// Call onBack to update parent state (this will update URL via parent's handleBackToList)
+		onBack()
+	}
+
+	// Handle browser back button - detect when user navigates away
+	useEffect(() => {
+		const handlePopState = () => {
+			// When browser back button is clicked, check if applicationId is removed
+			const url = new URL(window.location.href)
+			if (!url.searchParams.has('applicationId')) {
+				onBack()
+			}
+		}
+
+		window.addEventListener('popstate', handlePopState)
+		return () => window.removeEventListener('popstate', handlePopState)
+	}, [onBack])
+
+	const [activeTab, setActiveTab] = useState<'academic' | 'requirements'>(
+		'academic'
+	)
+	const [applicationDetails, setApplicationDetails] =
+		useState<ApplicationDetails | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+	const [downloadingZip, setDownloadingZip] = useState<string | null>(null)
+	const [processingStatus, setProcessingStatus] = useState<
+		'approve' | 'reject' | 'update' | null
+	>(null)
+	const [showRejectModal, setShowRejectModal] = useState(false)
+	const [rejectionNote, setRejectionNote] = useState('')
+
+	// Fetch application details from API
+	useEffect(() => {
+		const applicationId = applicant.id
+
+		const fetchApplicationDetails = async () => {
+			try {
+				setLoading(true)
+				setError(null)
+
+				const response = await fetch(
+					`/api/applications/institution/${applicationId}`,
+					{
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						credentials: 'include',
+					}
+				)
+
+				if (!response.ok) {
+					throw new Error('Failed to fetch application details')
+				}
+
+				const result = await response.json()
+
+				if (result.success) {
+					setApplicationDetails(result.data)
+				} else {
+					throw new Error(result.error || 'Failed to fetch application details')
+				}
+			} catch (err) {
+				setError(
+					err instanceof Error
+						? err.message
+						: 'Failed to fetch application details'
+				)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		fetchApplicationDetails()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [applicant.id])
+
+	// Get documents from API data - use profile snapshot documents for Academic Profile tab
+	const documents: Document[] = applicationDetails?.applicant?.documents || []
+
+	// Helper function to get applicant name from firstName/lastName or fallback to name
+	const getApplicantName = () => {
+		if (applicationDetails?.applicant) {
+			const { firstName, lastName, name } = applicationDetails.applicant
+			if (firstName || lastName) {
+				return [firstName, lastName].filter(Boolean).join(' ').trim()
+			}
+			if (name) {
+				return name
+			}
+		}
+		return applicant.name || 'Unknown'
+	}
+
+	const applicantName = getApplicantName()
+
+	const getDocumentTypeLabel = (documentType: string) => {
+		// Map category keys to display labels
+		const categoryLabels = {
+			cv: 'CV / Resume',
+			certificate: 'Language Certificates',
+			degree: 'Degree Certificates',
+			transcript: 'Academic Transcripts',
+			research: 'Research Papers',
+			portfolio: 'Portfolio',
+			personal: 'Personal Statements',
+			recommendation: 'Recommendation Letters',
+			passport: 'Passport Copies',
+			institution: 'Institution Verification',
+			required: 'Required Documents',
+			other: 'Other Documents',
+		}
+
+		return (
+			categoryLabels[documentType as keyof typeof categoryLabels] ||
+			documentType
+		)
+	}
+
+	const formatFileSize = (bytes: number) => {
+		if (bytes === 0) return '0 Bytes'
+		const k = 1024
+		const sizes = ['Bytes', 'KB', 'MB', 'GB']
+		const i = Math.floor(Math.log(bytes) / Math.log(k))
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+	}
+
+	const formatDate = (dateString: string) => {
+		return new Date(dateString).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+		})
+	}
+
+	// Helper function to fetch a protected file and return its blob
+	const fetchProtectedFile = async (fileUrl: string): Promise<Blob | null> => {
+		try {
+			// Get protected URL first
+			const protectedUrl = `/api/files/protected-image?url=${encodeURIComponent(fileUrl)}&expiresIn=3600`
+			const response = await fetch(protectedUrl, {
+				method: 'GET',
+				credentials: 'include',
+			})
+
+			if (!response.ok) {
+				// eslint-disable-next-line no-console
+				console.warn(`Failed to get protected URL for: ${fileUrl}`)
+				return null
+			}
+
+			const data = await response.json()
+			const presignedUrl = data.url
+
+			if (!presignedUrl) {
+				// eslint-disable-next-line no-console
+				console.warn(`No presigned URL returned for: ${fileUrl}`)
+				return null
+			}
+
+			// Fetch the actual file using the presigned URL
+			const fileResponse = await fetch(presignedUrl, {
+				method: 'GET',
+			})
+
+			if (!fileResponse.ok) {
+				// eslint-disable-next-line no-console
+				console.warn(`Failed to fetch file from presigned URL: ${fileUrl}`)
+				return null
+			}
+
+			return await fileResponse.blob()
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.warn(`Error fetching protected file ${fileUrl}:`, error)
+			return null
+		}
+	}
+
+	const createZipFromDocuments = async (
+		docs: Document[],
+		zipName: string,
+		organizeByCategory: boolean = false
+	) => {
+		const zip = new JSZip()
+
+		// Create a root folder for the documents
+		const rootFolder = zip.folder(zipName) || zip
+
+		if (organizeByCategory) {
+			// Group documents by category
+			const documentsByCategory = docs.reduce(
+				(acc, doc) => {
+					// Use document_type from API
+					const docType = (doc as any).documentType || 'OTHER'
+					let category = 'other'
+
+					// Map document type names to category (same logic as in the UI)
+					const upperType = docType.toUpperCase()
+					if (upperType.includes('CV') || upperType.includes('RESUME')) {
+						category = 'cv'
+					} else if (upperType.includes('DEGREE')) {
+						category = 'degree'
+					} else if (
+						upperType.includes('LANGUAGE') ||
+						upperType.includes('CERTIFICATE')
+					) {
+						category = 'certificate'
+					} else if (upperType.includes('TRANSCRIPT')) {
+						category = 'transcript'
+					} else if (upperType.includes('RESEARCH')) {
+						category = 'research'
+					} else if (upperType.includes('PORTFOLIO')) {
+						category = 'portfolio'
+					} else if (upperType.includes('PERSONAL')) {
+						category = 'personal'
+					} else if (upperType.includes('RECOMMENDATION')) {
+						category = 'recommendation'
+					} else if (upperType.includes('PASSPORT')) {
+						category = 'passport'
+					} else if (upperType.includes('INSTITUTION')) {
+						category = 'institution'
+					} else if (upperType.includes('REQUIRED')) {
+						category = 'required'
+					} else {
+						category = 'other'
+					}
+
+					if (!acc[category]) acc[category] = []
+					acc[category].push(doc)
+					return acc
+				},
+				{} as Record<string, Document[]>
+			)
+
+			// Create folders for each category and add documents
+			for (const [category, categoryDocs] of Object.entries(
+				documentsByCategory
+			)) {
+				const categoryLabel = getDocumentTypeLabel(category)
+				const categoryFolder =
+					rootFolder.folder(categoryLabel.replace(/\s+/g, '_')) || rootFolder
+
+				// Special handling for research papers - group by title
+				if (category === 'research') {
+					const groupedPapers = categoryDocs.reduce(
+						(acc, doc) => {
+							const title = doc.title || 'Untitled Research Paper'
+							if (!acc[title]) {
+								acc[title] = []
+							}
+							acc[title].push(doc)
+							return acc
+						},
+						{} as Record<string, Document[]>
+					)
+
+					// Create subfolders for each research paper title
+					for (const [title, papers] of Object.entries(groupedPapers)) {
+						const titleFolder =
+							categoryFolder.folder(title.replace(/\s+/g, '_')) ||
+							categoryFolder
+
+						for (const doc of papers) {
+							try {
+								const blob = await fetchProtectedFile(doc.url)
+								if (!blob) {
+									// eslint-disable-next-line no-console
+									console.warn(`Failed to fetch document: ${doc.name}`)
+									continue
+								}
+
+								const arrayBuffer = await blob.arrayBuffer()
+								titleFolder.file(doc.name, arrayBuffer)
+							} catch (error) {
+								// eslint-disable-next-line no-console
+								console.warn(`Error adding document ${doc.name} to zip:`, error)
+							}
+						}
+					}
+				} else {
+					// For other categories, add documents directly to category folder
+					for (const doc of categoryDocs) {
+						try {
+							const blob = await fetchProtectedFile(doc.url)
+							if (!blob) {
+								// eslint-disable-next-line no-console
+								console.warn(`Failed to fetch document: ${doc.name}`)
+								continue
+							}
+
+							const arrayBuffer = await blob.arrayBuffer()
+							categoryFolder.file(doc.name, arrayBuffer)
+						} catch (error) {
+							// eslint-disable-next-line no-console
+							console.warn(`Error adding document ${doc.name} to zip:`, error)
+						}
+					}
+				}
+			}
+		} else {
+			// Original behavior: add all documents to root folder
+			for (const doc of docs) {
+				try {
+					const blob = await fetchProtectedFile(doc.url)
+					if (!blob) {
+						// eslint-disable-next-line no-console
+						console.warn(`Failed to fetch document: ${doc.name}`)
+						continue
+					}
+
+					const arrayBuffer = await blob.arrayBuffer()
+					rootFolder.file(doc.name, arrayBuffer)
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.warn(`Error adding document ${doc.name} to zip:`, error)
+				}
+			}
+		}
+
+		// Generate the zip file
+		const zipBlob = await zip.generateAsync({ type: 'blob' })
+
+		// Create download link
+		const url = window.URL.createObjectURL(zipBlob)
+		const link = document.createElement('a')
+		link.href = url
+		link.download = `${zipName}.zip`
+		document.body.appendChild(link)
+		link.click()
+		document.body.removeChild(link)
+		window.URL.revokeObjectURL(url)
+	}
+
+	const handleDownloadAll = async () => {
+		if (
+			!applicationDetails?.applicant?.documents ||
+			applicationDetails.applicant.documents.length === 0
+		) {
+			return
+		}
+
+		setDownloadingZip('all')
+		try {
+			const zipName = `${applicantName.replace(/\s+/g, '_')}_All_Documents`
+			// Organize documents by category
+			await createZipFromDocuments(
+				applicationDetails.applicant.documents,
+				zipName,
+				true // organizeByCategory = true
+			)
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error creating zip file:', error)
+		} finally {
+			setDownloadingZip(null)
+		}
+	}
+
+	const handleDownloadFolder = async (documentType: string) => {
+		if (!documents || documents.length === 0) {
+			return
+		}
+
+		// Filter documents by type
+		const typeDocs = documents.filter((doc) => {
+			const docType = (doc as any).documentType || 'OTHER'
+			const upperType = docType.toUpperCase()
+
+			// Map category to document type matching
+			if (
+				documentType === 'cv' &&
+				(upperType.includes('CV') || upperType.includes('RESUME'))
+			) {
+				return true
+			} else if (documentType === 'degree' && upperType.includes('DEGREE')) {
+				// Check degree first to catch DEGREE_CERTIFICATE
+				return true
+			} else if (
+				documentType === 'certificate' &&
+				(upperType.includes('LANGUAGE') ||
+					(upperType.includes('CERTIFICATE') && !upperType.includes('DEGREE')))
+			) {
+				// Certificate category excludes DEGREE_CERTIFICATE
+				return true
+			} else if (
+				documentType === 'transcript' &&
+				upperType.includes('TRANSCRIPT')
+			) {
+				return true
+			} else if (
+				documentType === 'research' &&
+				upperType.includes('RESEARCH')
+			) {
+				return true
+			} else if (
+				documentType === 'portfolio' &&
+				upperType.includes('PORTFOLIO')
+			) {
+				return true
+			} else if (
+				documentType === 'personal' &&
+				upperType.includes('PERSONAL')
+			) {
+				return true
+			} else if (
+				documentType === 'recommendation' &&
+				upperType.includes('RECOMMENDATION')
+			) {
+				return true
+			} else if (
+				documentType === 'passport' &&
+				upperType.includes('PASSPORT')
+			) {
+				return true
+			} else if (
+				documentType === 'institution' &&
+				upperType.includes('INSTITUTION')
+			) {
+				return true
+			} else if (
+				documentType === 'required' &&
+				upperType.includes('REQUIRED')
+			) {
+				return true
+			} else if (documentType === 'other') {
+				return true
+			}
+			return false
+		})
+
+		if (typeDocs.length === 0) {
+			return
+		}
+
+		setDownloadingZip(documentType)
+		try {
+			const folderName = getDocumentTypeLabel(documentType).replace(/\s+/g, '_')
+			const zipName = `${applicantName.replace(/\s+/g, '_')}_${folderName}`
+			await createZipFromDocuments(typeDocs, zipName)
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error('Error creating zip file:', error)
+		} finally {
+			setDownloadingZip(null)
+		}
+	}
+
+	const handlePreviewFile = (document: Document) => {
+		if (document.url) {
+			// Application documents should use the document route (strict validation)
+			openSessionProtectedFile(document.url, true)
+		}
+	}
+
+	const handleDownloadFile = async (doc: Document) => {
+		if (!doc.url) {
+			console.error('Document URL is missing')
+			return
+		}
+		try {
+			// Application documents should use the document route (strict validation)
+			await downloadSessionProtectedFile(doc.url, doc.name, true)
+		} catch (error) {
+			console.error('Failed to download file:', error)
+			alert('Failed to download file. Please try again.')
+		}
+	}
+
+	// Handle approve application
+	const handleApprove = async () => {
+		if (!applicationDetails?.application?.applicationId) return
+
+		setProcessingStatus('approve')
+		try {
+			const response = await fetch(
+				`/api/applications/institution/${applicationDetails.application.applicationId}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+					body: JSON.stringify({
+						status: 'ACCEPTED',
+					}),
+				}
+			)
+
+			if (!response.ok) {
+				const errorData = await response.json()
+				throw new Error(errorData.error || 'Failed to approve application')
+			}
+
+			const result = await response.json()
+			if (result.success) {
+				// Refresh application details
+				const refreshResponse = await fetch(
+					`/api/applications/institution/${applicationDetails.application.applicationId}`,
+					{
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						credentials: 'include',
+					}
+				)
+
+				if (refreshResponse.ok) {
+					const refreshResult = await refreshResponse.json()
+					if (refreshResult.success) {
+						setApplicationDetails(refreshResult.data)
+					}
+				}
+
+				// Call parent callback if provided
+				if (onApprove) {
+					onApprove(applicant)
+				}
+			}
+		} catch (err) {
+			// eslint-disable-next-line no-console
+			console.error('Error approving application:', err)
+			alert(
+				err instanceof Error
+					? err.message
+					: 'Failed to approve application. Please try again.'
+			)
+		} finally {
+			setProcessingStatus(null)
+		}
+	}
+
+	// Handle reject application - show modal first
+	const handleRejectClick = () => {
+		setShowRejectModal(true)
+		setRejectionNote('')
+	}
+
+	// Handle reject application submission
+	const handleReject = async () => {
+		if (!applicationDetails?.application?.applicationId) return
+
+		// Validate rejection note
+		if (!rejectionNote.trim()) {
+			alert('Please provide a rejection note before rejecting the application.')
+			return
+		}
+
+		setProcessingStatus('reject')
+		setShowRejectModal(false)
+		try {
+			const response = await fetch(
+				`/api/applications/institution/${applicationDetails.application.applicationId}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+					body: JSON.stringify({
+						status: 'REJECTED',
+						rejectionNote: rejectionNote.trim(),
+					}),
+				}
+			)
+
+			if (!response.ok) {
+				const errorData = await response.json()
+				throw new Error(errorData.error || 'Failed to reject application')
+			}
+
+			const result = await response.json()
+			if (result.success) {
+				// Refresh application details
+				const refreshResponse = await fetch(
+					`/api/applications/institution/${applicationDetails.application.applicationId}`,
+					{
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						credentials: 'include',
+					}
+				)
+
+				if (refreshResponse.ok) {
+					const refreshResult = await refreshResponse.json()
+					if (refreshResult.success) {
+						setApplicationDetails(refreshResult.data)
+					}
+				}
+
+				// Call parent callback if provided
+				if (onReject) {
+					onReject(applicant)
+				}
+			}
+		} catch (err) {
+			// eslint-disable-next-line no-console
+			console.error('Error rejecting application:', err)
+			alert(
+				err instanceof Error
+					? err.message
+					: 'Failed to reject application. Please try again.'
+			)
+		} finally {
+			setProcessingStatus(null)
+			setRejectionNote('')
+		}
+	}
+
+	// Prepare data for shared components using real API data
+	// Helper function to get match score color
+	const getMatchScoreColor = (score: number) => {
+		if (score >= 80) return 'text-green-600 bg-green-50'
+		if (score >= 60) return 'text-yellow-600 bg-yellow-50'
+		return 'text-red-600 bg-red-50'
+	}
+
+	const academicDetails = [
+		// {
+		// 	label: 'Matching Score',
+		// 	value: (() => {
+		// 		const matchingScore =
+		// 			applicationDetails?.applicant?.matchingScore ??
+		// 			applicant.matchingScore ??
+		// 			0
+		// 		return (
+		// 			<div className="flex items-center gap-3">
+		// 				<div className="flex items-center gap-2">
+		// 					<div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+		// 						<div
+		// 							className={`h-full rounded-full transition-all duration-300 ${
+		// 								matchingScore >= 80
+		// 									? 'bg-green-500'
+		// 									: matchingScore >= 60
+		// 										? 'bg-yellow-500'
+		// 										: 'bg-red-500'
+		// 							}`}
+		// 							style={{ width: `${matchingScore}%` }}
+		// 						/>
+		// 					</div>
+		// 					<span
+		// 						className={`text-sm font-semibold px-2 py-1 rounded ${getMatchScoreColor(matchingScore)}`}
+		// 					>
+		// 						{matchingScore}%
+		// 					</span>
+		// 				</div>
+		// 			</div>
+		// 		)
+		// 	})(),
+		// },
+		{
+			label: 'Program',
+			value: (() => {
+				// Check if we have valid level from API
+				const level =
+					applicationDetails?.applicant?.level ||
+					(applicant?.degreeLevel && applicant.degreeLevel !== 'Unknown'
+						? applicant.degreeLevel
+						: null)
+				const subdisciplines = applicationDetails?.applicant?.subdiscipline
+
+				// If we have level and subdisciplines as array
+				if (
+					level &&
+					Array.isArray(subdisciplines) &&
+					subdisciplines.length > 0
+				) {
+					return (
+						<div className="flex flex-col gap-2">
+							{level && <span className="text-sm font-medium">{level}</span>}
+							<div className="flex flex-wrap gap-2">
+								{subdisciplines.map((sub, index) => (
+									<span
+										key={index}
+										className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium break-words whitespace-normal"
+									>
+										{sub.name}
+									</span>
+								))}
+							</div>
+						</div>
+					)
+				}
+
+				// If we have level and subdisciplines as string
+				if (
+					level &&
+					typeof subdisciplines === 'string' &&
+					subdisciplines.trim() !== ''
+				) {
+					return (
+						<div className="flex flex-col gap-2">
+							<span className="text-sm font-medium">{level}</span>
+							<span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium break-words whitespace-normal w-fit">
+								{subdisciplines}
+							</span>
+						</div>
+					)
+				}
+
+				// If we only have level
+				if (level && level.trim() !== '') {
+					return <span className="text-sm font-medium">{level}</span>
+				}
+
+				// If we only have subdisciplines
+				if (Array.isArray(subdisciplines) && subdisciplines.length > 0) {
+					return (
+						<div className="flex flex-wrap gap-2 w-full">
+							{subdisciplines.map((sub, index) => (
+								<span
+									key={index}
+									className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium break-words whitespace-normal"
+								>
+									{sub.name}
+								</span>
+							))}
+						</div>
+					)
+				}
+
+				// Final fallback
+				return 'Not provided'
+			})(),
+		},
+		{
+			label: 'GPA',
+			value: applicationDetails?.applicant?.gpa?.toString() || 'Not provided',
+		},
+		{
+			label: 'Status',
+			value: applicationDetails?.applicant?.graduated
+				? 'Graduated'
+				: 'Not graduated',
+			className: applicationDetails?.applicant?.graduated
+				? 'text-green-600'
+				: 'text-yellow-600',
+		},
+		{
+			label: 'University',
+			value: applicationDetails?.applicant?.university || 'Not provided',
+		},
+		{
+			label: 'Country of Study',
+			value: (() => {
+				const countryOfStudy = applicationDetails?.applicant?.countryOfStudy
+				if (!countryOfStudy || countryOfStudy === 'Not provided') {
+					return 'Not provided'
+				}
+				const countryData = getCountriesWithSvgFlags().find(
+					(c) => c.name.toLowerCase() === countryOfStudy.toLowerCase()
+				)
+				return (
+					<div className="flex items-center gap-2">
+						{countryData?.flag && (
+							<span className="text-base">{countryData.flag}</span>
+						)}
+						<span>{countryOfStudy}</span>
+					</div>
+				)
+			})(),
+		},
+		{
+			label: 'Foreign Language',
+			value: applicationDetails?.applicant?.hasForeignLanguage ? 'Yes' : 'No',
+		},
+	]
+
+	const contactInfo = [
+		{
+			label: 'Email',
+			value: applicationDetails?.applicant?.email || 'Not provided',
+		},
+		{
+			label: 'Phone',
+			value: (() => {
+				const phoneNumber = applicationDetails?.applicant?.phoneNumber
+				const countryCode = applicationDetails?.applicant?.countryCode
+				if (!phoneNumber) {
+					return 'Not provided'
+				}
+				const countryData = countryCode
+					? getCountriesWithSvgFlags().find((c) => c.phoneCode === countryCode)
+					: null
+				return (
+					<div className="flex items-center gap-2">
+						{countryData?.flag && (
+							<span className="text-base">{countryData.flag}</span>
+						)}
+						<span>
+							{countryCode ? `${countryCode} ` : ''}
+							{phoneNumber}
+						</span>
+					</div>
+				)
+			})(),
+		},
+		{
+			label: 'Nationality',
+			value: (() => {
+				const nationality = applicationDetails?.applicant?.nationality
+				if (!nationality || nationality === 'Not provided') {
+					return 'Not provided'
+				}
+				const countryData = getCountriesWithSvgFlags().find(
+					(c) => c.name.toLowerCase() === nationality.toLowerCase()
+				)
+				return (
+					<div className="flex items-center gap-2">
+						{countryData?.flag && (
+							<span className="text-base">{countryData.flag}</span>
+						)}
+						<span>{nationality}</span>
+					</div>
+				)
+			})(),
+		},
+		{
+			label: 'Gender',
+			value: applicationDetails?.applicant?.gender || 'Not specified',
+		},
+		{
+			label: 'Birthday',
+			value: applicationDetails?.applicant?.birthday
+				? new Date(applicationDetails.applicant.birthday).toLocaleDateString()
+				: 'Not provided',
+		},
+	]
+
+	const tabs = [
+		{
+			id: 'academic',
+			label: 'Academic Profile',
+			content: (
+				<div className="h-full flex flex-col">
+					{/* Documents List - Scrollable */}
+					<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
+						{loading ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="flex flex-col items-center gap-3">
+									<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
+									<p className="text-gray-600 text-sm">Loading...</p>
+								</div>
+							</div>
+						) : error ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="text-center">
+									<p className="text-red-600 text-sm mb-2">
+										Error loading documents
+									</p>
+									<p className="text-gray-500 text-xs">{error}</p>
+								</div>
+							</div>
+						) : (
+							<div className="pt-4 space-y-6">
+								{/* Group documents by type */}
+								{Object.entries(
+									documents.reduce(
+										(acc, doc) => {
+											// Use document_type from API
+											const docType = (doc as any).documentType || 'OTHER'
+											let category = 'other'
+
+											// Map document type names to category
+											// Check more specific types first to avoid incorrect categorization
+											const upperType = docType.toUpperCase()
+											if (
+												upperType.includes('CV') ||
+												upperType.includes('RESUME')
+											) {
+												category = 'cv'
+											} else if (upperType.includes('DEGREE')) {
+												// Check DEGREE before CERTIFICATE to catch DEGREE_CERTIFICATE
+												category = 'degree'
+											} else if (
+												upperType.includes('LANGUAGE') ||
+												upperType.includes('CERTIFICATE')
+											) {
+												category = 'certificate'
+											} else if (upperType.includes('TRANSCRIPT')) {
+												category = 'transcript'
+											} else if (upperType.includes('RESEARCH')) {
+												category = 'research'
+											} else if (upperType.includes('PORTFOLIO')) {
+												category = 'portfolio'
+											} else if (upperType.includes('PERSONAL')) {
+												category = 'personal'
+											} else if (upperType.includes('RECOMMENDATION')) {
+												category = 'recommendation'
+											} else if (upperType.includes('PASSPORT')) {
+												category = 'passport'
+											} else if (upperType.includes('INSTITUTION')) {
+												category = 'institution'
+											} else if (upperType.includes('REQUIRED')) {
+												category = 'required'
+											} else {
+												category = 'other'
+											}
+											if (!acc[category]) acc[category] = []
+											acc[category].push(doc)
+											return acc
+										},
+										{} as Record<string, Document[]>
+									)
+								).map(([category, typeDocs]) => {
+									// Special handling for research papers - group by title
+									if (category === 'research') {
+										// Group research papers by title
+										const groupedPapers = typeDocs.reduce(
+											(acc, doc) => {
+												const title = doc.title || 'Untitled Research Paper'
+												if (!acc[title]) {
+													acc[title] = []
+												}
+												acc[title].push(doc)
+												return acc
+											},
+											{} as Record<string, Document[]>
+										)
+
+										return (
+											<div
+												key={category}
+												className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+											>
+												<div className="flex justify-between items-center mb-4">
+													<h3 className="text-lg font-semibold">
+														{getDocumentTypeLabel(category)}
+													</h3>
+													<button
+														onClick={() => handleDownloadFolder(category)}
+														disabled={downloadingZip === category}
+														className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+													>
+														{downloadingZip === category && (
+															<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
+														)}
+														Download folder
+													</button>
+												</div>
+
+												{/* Research Papers List - Grouped by Title */}
+												<div className="space-y-6">
+													{Object.entries(groupedPapers).map(
+														([title, papers]) => (
+															<div
+																key={title}
+																className="border rounded-lg p-4 bg-gray-50"
+															>
+																{/* Paper Title and Discipline */}
+																<div className="mb-4 pb-4 border-b border-gray-200">
+																	<h4 className="text-base font-semibold mb-2">
+																		{title}
+																	</h4>
+																	{papers[0]?.subdiscipline &&
+																	papers[0].subdiscipline.length > 0 ? (
+																		<div className="flex flex-wrap gap-2">
+																			{papers[0].subdiscipline.map(
+																				(subName, index) => (
+																					<span
+																						key={index}
+																						className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
+																					>
+																						{subName}
+																					</span>
+																				)
+																			)}
+																		</div>
+																	) : (
+																		<p className="text-sm text-gray-500">
+																			No discipline specified
+																		</p>
+																	)}
+																</div>
+
+																{/* Files List for this Paper */}
+																<div className="space-y-3">
+																	{papers.map((doc) => (
+																		<div
+																			key={doc.documentId}
+																			className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200"
+																		>
+																			<div className="flex items-center gap-3">
+																				<span className="text-2xl">📄</span>
+																				<div>
+																					<p className="font-medium text-sm">
+																						{doc.name}
+																					</p>
+																					<p className="text-sm text-muted-foreground">
+																						{formatFileSize(doc.size)} •{' '}
+																						{formatDate(
+																							doc.uploadDate ||
+																								doc.updatedAt ||
+																								''
+																						)}
+																					</p>
+																				</div>
+																			</div>
+																			<div className="flex items-center gap-2">
+																				<button
+																					onClick={() => handlePreviewFile(doc)}
+																					className="text-primary hover:text-primary/80 text-sm font-medium"
+																				>
+																					View
+																				</button>
+																				<button
+																					onClick={() =>
+																						handleDownloadFile(doc)
+																					}
+																					className="text-gray-400 hover:text-gray-600 p-1"
+																				>
+																					<Download className="h-4 w-4" />
+																				</button>
+																			</div>
+																		</div>
+																	))}
+																</div>
+															</div>
+														)
+													)}
+												</div>
+											</div>
+										)
+									}
+
+									// Default display for other document types
+									return (
+										<div
+											key={category}
+											className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+										>
+											<div className="flex justify-between items-center mb-4">
+												<h3 className="text-lg font-semibold">
+													{getDocumentTypeLabel(category)}
+												</h3>
+												<button
+													onClick={() => handleDownloadFolder(category)}
+													disabled={downloadingZip === category}
+													className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+												>
+													{downloadingZip === category && (
+														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
+													)}
+													Download folder
+												</button>
+											</div>
+
+											{/* Files List */}
+											<div className="space-y-3 max-h-64 overflow-y-auto">
+												{typeDocs.map((doc) => (
+													<div
+														key={doc.documentId}
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+													>
+														<div className="flex items-center gap-3">
+															<span className="text-2xl">📄</span>
+															<div>
+																<p className="font-medium text-sm">
+																	{doc.name}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(doc.size)} •{' '}
+																	{formatDate(
+																		doc.uploadDate || doc.updatedAt || ''
+																	)}
+																</p>
+															</div>
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => handlePreviewFile(doc)}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
+															>
+																View
+															</button>
+															<button
+																onClick={() => handleDownloadFile(doc)}
+																className="text-gray-400 hover:text-gray-600 p-1"
+															>
+																<Download className="h-4 w-4" />
+															</button>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									)
+								})}
+
+								{documents.length === 0 && (
+									<div className="text-center py-8">
+										<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+										<p className="text-gray-500">No documents uploaded</p>
+									</div>
+								)}
+							</div>
+						)}
+
+						{/* Download All Button */}
+						<div className="mt-6 pt-6 border-t border-gray-200">
+							<button
+								onClick={handleDownloadAll}
+								disabled={downloadingZip === 'all'}
+								className="w-full text-primary hover:text-primary/80 text-sm font-medium underline text-center py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							>
+								{downloadingZip === 'all' && (
+									<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
+								)}
+								Download all documents
+							</button>
+						</div>
+					</div>
+				</div>
+			),
+		},
+		{
+			id: 'requirements',
+			label: 'Program requirements',
+			content: (
+				<div className="h-full flex flex-col">
+					{/* Application Documents */}
+					<div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
+						{loading ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="flex flex-col items-center gap-3">
+									<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
+									<p className="text-gray-600 text-sm">Loading...</p>
+								</div>
+							</div>
+						) : error ? (
+							<div className="flex items-center justify-center py-20">
+								<div className="text-center">
+									<p className="text-red-600 text-sm mb-2">
+										Error loading documents
+									</p>
+									<p className="text-gray-500 text-xs">{error}</p>
+								</div>
+							</div>
+						) : (
+							<div className="pt-4 space-y-6">
+								{/* Application Documents - Flat List (No Grouping) */}
+								{applicationDetails?.application?.documents &&
+								applicationDetails.application.documents.length > 0 ? (
+									<div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="text-lg font-semibold">
+												Application Documents
+											</h3>
+											<button
+												onClick={async () => {
+													// Download all application documents as zip
+													if (
+														applicationDetails.application.documents.length ===
+														0
+													) {
+														return
+													}
+
+													setDownloadingZip('application')
+													try {
+														const zipName = `${applicantName.replace(/\s+/g, '_')}_Application_Documents`
+														await createZipFromDocuments(
+															applicationDetails.application.documents,
+															zipName
+														)
+													} catch (error) {
+														// eslint-disable-next-line no-console
+														console.error('Error creating zip file:', error)
+													} finally {
+														setDownloadingZip(null)
+													}
+												}}
+												disabled={downloadingZip === 'application'}
+												className="text-primary hover:text-primary/80 text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+											>
+												{downloadingZip === 'application' && (
+													<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#126E64]"></div>
+												)}
+												Download folder
+											</button>
+										</div>
+
+										{/* Application Files List - Flat List */}
+										<div className="space-y-3 max-h-64 overflow-y-auto">
+											{applicationDetails.application.documents.map(
+												(doc: Document) => (
+													<div
+														key={doc.documentId}
+														className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+													>
+														<div className="flex items-center gap-3">
+															<span className="text-2xl">📄</span>
+															<div>
+																<p className="font-medium text-sm">
+																	{doc.name}
+																</p>
+																<p className="text-sm text-muted-foreground">
+																	{formatFileSize(doc.size)} •{' '}
+																	{formatDate(
+																		doc.uploadDate || doc.updatedAt || ''
+																	)}
+																</p>
+															</div>
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => handlePreviewFile(doc)}
+																className="text-primary hover:text-primary/80 text-sm font-medium"
+															>
+																View
+															</button>
+															<button
+																onClick={() => handleDownloadFile(doc)}
+																className="text-gray-400 hover:text-gray-600 p-1"
+															>
+																<Download className="h-4 w-4" />
+															</button>
+														</div>
+													</div>
+												)
+											)}
+										</div>
+									</div>
+								) : (
+									<div className="text-center py-8">
+										<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+										<p className="text-gray-500">
+											No application documents uploaded
+										</p>
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+				</div>
+			),
+		},
+	]
+
+	// Show loading state for the entire component
+	if (loading) {
+		return (
+			<div className="space-y-6">
+				<div className="flex items-center">
+					<Button
+						variant="outline"
+						onClick={handleBack}
+						className="flex items-center gap-2"
+						size="sm"
+					>
+						<ArrowLeft className="w-4 h-4" />
+						Back to Applications
+					</Button>
+				</div>
+				<div className="flex items-center justify-center py-20">
+					<div className="flex flex-col items-center gap-3">
+						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#126E64]"></div>
+						<p className="text-gray-600 text-sm">Loading...</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="space-y-6">
+				<div className="flex items-center">
+					<Button
+						variant="outline"
+						onClick={handleBack}
+						className="flex items-center gap-2"
+						size="sm"
+					>
+						<ArrowLeft className="w-4 h-4" />
+						Back to Applications
+					</Button>
+				</div>
+				<div className="flex items-center justify-center py-20">
+					<div className="text-center">
+						<p className="text-red-600 text-sm mb-2">
+							Error loading applicant details
+						</p>
+						<p className="text-gray-500 text-xs">{error}</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	return (
+		<div className="space-y-6">
+			{/* Back Button */}
+			<div className="flex items-center">
+				<Button
+					variant="outline"
+					onClick={onBack}
+					className="flex items-center gap-2"
+					size="sm"
+				>
+					<ArrowLeft className="w-4 h-4" />
+					Back to Applications
+				</Button>
+			</div>
+
+			<TwoPanelLayout
+				leftPanel={
+					<ProfileCard
+						header={{
+							avatar: applicationDetails?.applicant?.image ? (
+								<ProtectedImage
+									src={applicationDetails.applicant.image}
+									alt={applicantName}
+									width={64}
+									height={64}
+									className="w-16 h-16 rounded-full object-cover"
+									expiresIn={7200}
+									autoRefresh={true}
+									errorFallback={
+										<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+											<User className="w-8 h-8 text-gray-400" />
+										</div>
+									}
+								/>
+							) : (
+								<div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+									<User className="w-8 h-8 text-gray-400" />
+								</div>
+							),
+							title: applicantName,
+							subtitle:
+								applicationDetails?.applicant?.birthday &&
+								applicationDetails?.applicant?.gender
+									? `${new Date(applicationDetails.applicant.birthday).toLocaleDateString()} - ${applicationDetails.applicant.gender}`
+									: 'Details not available',
+						}}
+						status={
+							applicationDetails?.application?.status?.toLowerCase() ||
+							applicant.status
+						}
+						sections={[
+							<InfoSection
+								key="academic"
+								title="Academic Details"
+								items={academicDetails}
+							/>,
+							<InfoSection
+								key="contact"
+								title="Contact Information"
+								items={contactInfo}
+							/>,
+						]}
+						actions={
+							<div className="space-y-3 w-full">
+								<Button
+									onClick={() => {
+										// Navigate to messages with contact parameter
+										// Use userId from applicationDetails (API response) which includes userId
+										const userId =
+											applicationDetails?.applicant?.userId || applicant.userId
+										if (userId) {
+											router.push(
+												`/institution/dashboard/messages?contact=${userId}`
+											)
+										}
+									}}
+									className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+									size="md"
+								>
+									Contact Applicant
+								</Button>
+
+								{/* Only show action buttons if status is not ACCEPTED or REJECTED */}
+								{applicationDetails?.application?.status?.toUpperCase() !==
+									'ACCEPTED' &&
+									applicationDetails?.application?.status?.toUpperCase() !==
+										'REJECTED' && (
+										<div className="grid grid-cols-2 gap-2">
+											<Button
+												onClick={handleApprove}
+												disabled={processingStatus !== null}
+												className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+												size="sm"
+											>
+												{processingStatus === 'approve' ? (
+													<>
+														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+														Processing...
+													</>
+												) : (
+													'Approve'
+												)}
+											</Button>
+
+											<Button
+												onClick={handleRejectClick}
+												disabled={processingStatus !== null}
+												variant="outline"
+												className="border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+												size="sm"
+											>
+												Reject
+											</Button>
+										</div>
+									)}
+							</div>
+						}
+					/>
+				}
+				rightPanel={
+					<DocumentPanel
+						tabs={tabs}
+						activeTab={activeTab}
+						onTabChange={(tabId) =>
+							setActiveTab(tabId as 'academic' | 'requirements')
+						}
+					/>
+				}
+			/>
+
+			{/* Rejection Note Modal */}
+			<Modal
+				isOpen={showRejectModal}
+				onClose={() => {
+					setShowRejectModal(false)
+					setRejectionNote('')
+				}}
+				title="Reject Application"
+				maxWidth="md"
+			>
+				<div className="space-y-4">
+					<p className="text-sm text-gray-600">
+						Please provide a note explaining why this application is being
+						rejected. This note will be sent to the applicant via email and
+						displayed in their application section.
+					</p>
+					<div>
+						<label
+							htmlFor="rejectionNote"
+							className="block text-sm font-medium text-gray-700 mb-2"
+						>
+							Rejection Note <span className="text-red-500">*</span>
+						</label>
+						<textarea
+							id="rejectionNote"
+							value={rejectionNote}
+							onChange={(e) => setRejectionNote(e.target.value)}
+							placeholder="Enter the reason for rejection..."
+							rows={6}
+							className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+							required
+						/>
+						<p className="mt-1 text-xs text-gray-500">
+							{rejectionNote.length} characters
+						</p>
+					</div>
+					<div className="flex justify-end gap-3 pt-4">
+						<Button
+							variant="outline"
+							onClick={() => {
+								setShowRejectModal(false)
+								setRejectionNote('')
+							}}
+							disabled={processingStatus === 'reject'}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleReject}
+							disabled={!rejectionNote.trim() || processingStatus === 'reject'}
+							className="bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{processingStatus === 'reject' ? (
+								<>
+									<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1 inline-block"></div>
+									Rejecting...
+								</>
+							) : (
+								'Reject Application'
+							)}
+						</Button>
+					</div>
+				</div>
+			</Modal>
+		</div>
+	)
+}

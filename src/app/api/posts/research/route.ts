@@ -1,0 +1,1079 @@
+import { EmbeddingService } from "@/services/embedding/embedding-service";
+import { requireAuth } from "@/utils/auth/auth-utils";
+import { PostStatus } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
+import { prismaClient } from "../../../../../prisma";
+
+interface CreateResearchLabRequest {
+	// Overview Section
+	jobName: string;
+	startDate: string;
+	applicationDeadline: string;
+	country: string;
+	researchFields: string[];
+	typeOfContract: string;
+	attendance: string;
+	jobType: string;
+	professorName?: string;
+	degree_level: string;
+
+	// Offer Information Section
+	salary: {
+		min: string;
+		max: string;
+		description: string;
+	};
+	benefit: string;
+
+	// Job Requirements Section
+	mainResponsibility: string;
+	qualificationRequirement: string;
+	experienceRequirement: string;
+	assessmentCriteria: string;
+	otherRequirement: string;
+
+	// Lab Details Section
+	labDescription: string;
+	labType: string;
+	researchFocus: string;
+
+	// Research Areas
+	researchAreas: string;
+
+	// Lab Facilities
+	labFacilities: string;
+
+	// Research Requirements
+	researchRequirements: {
+		academicBackground: string;
+		researchExperience: string;
+		technicalSkills: string;
+	};
+
+	// Application Requirements
+	applicationRequirements: {
+		documents: string;
+		researchProposal: string;
+		recommendations: string;
+	};
+
+	// File Requirements - optional
+	fileRequirements?: {
+		fileName?: string;
+		fileDescription?: string;
+	};
+
+	// Additional Information - optional
+	additionalInformation?: {
+		content?: string;
+	};
+
+	// Status
+	status?: PostStatus;
+}
+
+export async function POST(request: NextRequest) {
+	try {
+		const body: CreateResearchLabRequest = await request.json();
+
+		// Get user from session
+		const { user } = await requireAuth();
+		if (!user.id) {
+			return NextResponse.json(
+				{ error: "User not authenticated" },
+				{ status: 401 }
+			);
+		}
+
+		// Get institution for the user
+		const institution = await prismaClient.institution.findUnique({
+			where: { user_id: user.id },
+		});
+
+		if (!institution) {
+			return NextResponse.json(
+				{ error: "Institution not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Determine the post status (default to DRAFT if not provided)
+		const postStatus = body.status || "DRAFT";
+
+		// PLAN-BASED AUTHORIZATION: Check if institution can create/publish posts
+		// Only require subscription for PUBLISHED or SUBMITTED posts
+		// DRAFT posts can be created without subscription
+		if (postStatus !== "DRAFT") {
+			const { canCreatePost } = await import("@/services/authorization");
+			const authorization = await canCreatePost(
+				institution.institution_id
+			);
+
+			if (!authorization.authorized) {
+				return NextResponse.json(
+					{
+						error:
+							authorization.reason ||
+							"You do not have permission to publish posts. Please upgrade your plan to continue.",
+					},
+					{ status: 403 }
+				);
+			}
+		}
+
+		// Check if a published post with the same title already exists (case-insensitive)
+		const allPublishedPosts = await prismaClient.opportunityPost.findMany({
+			where: {
+				institution_id: institution.institution_id,
+				status: "PUBLISHED",
+			},
+			select: {
+				title: true,
+			},
+		});
+
+		// Check for case-insensitive match (trim and compare)
+		const normalizedNewTitle = body.jobName.trim();
+		const existingPost = allPublishedPosts.find(
+			(post) =>
+				post.title.trim().toLowerCase() ===
+				normalizedNewTitle.toLowerCase()
+		);
+
+		if (existingPost) {
+			return NextResponse.json(
+				{
+					error: `A published post with the title "${body.jobName}" already exists. Please use a different title.`,
+				},
+				{ status: 409 } // 409 Conflict
+			);
+		}
+
+		// Parse dates with validation
+		const startDate = new Date(body.startDate);
+		const applicationDeadline = new Date(body.applicationDeadline);
+
+		// Validate dates
+		if (isNaN(startDate.getTime())) {
+			return NextResponse.json(
+				{ error: "Invalid start date format" },
+				{ status: 400 }
+			);
+		}
+		if (isNaN(applicationDeadline.getTime())) {
+			return NextResponse.json(
+				{ error: "Invalid application deadline format" },
+				{ status: 400 }
+			);
+		}
+
+		// Check if dates are in the future (today or later)
+		const today = new Date();
+		today.setHours(0, 0, 0, 0); // Reset time to start of day
+
+		if (startDate < today) {
+			return NextResponse.json(
+				{ error: "Start date must be today or in the future" },
+				{ status: 400 }
+			);
+		}
+		if (applicationDeadline < today) {
+			return NextResponse.json(
+				{
+					error: "Application deadline must be today or in the future",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Create the opportunity post
+		const opportunityPost = await prismaClient.opportunityPost.create({
+			data: {
+				post_id: uuidv4(),
+				title: body.jobName,
+				start_date: startDate,
+				end_date: applicationDeadline,
+				location: body.country,
+				other_info: body.additionalInformation?.content || null,
+				status: postStatus, // Use determined status
+				create_at: new Date(),
+				institution_id: institution.institution_id,
+				degree_level: body.degree_level || "RESEARCH", // Add required degree_level field
+			},
+		});
+
+		// Validate salary min/max
+		let minSalary: number | null = null;
+		let maxSalary: number | null = null;
+
+		if (body.salary.min) {
+			const minValue = parseFloat(body.salary.min);
+			if (isNaN(minValue)) {
+				// eslint-disable-next-line no-console
+				console.error("Invalid min_salary value:", body.salary.min);
+				return NextResponse.json(
+					{ error: "Invalid minimum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (minValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Min salary cannot be negative:", minValue);
+				return NextResponse.json(
+					{ error: "Minimum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			minSalary = minValue;
+		}
+
+		if (body.salary.max) {
+			const maxValue = parseFloat(body.salary.max);
+			if (isNaN(maxValue)) {
+				// eslint-disable-next-line no-console
+				console.error("Invalid max_salary value:", body.salary.max);
+				return NextResponse.json(
+					{ error: "Invalid maximum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (maxValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Max salary cannot be negative:", maxValue);
+				return NextResponse.json(
+					{ error: "Maximum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			maxSalary = maxValue;
+		}
+
+		// Validate min <= max
+		if (minSalary !== null && maxSalary !== null && minSalary > maxSalary) {
+			// eslint-disable-next-line no-console
+			console.error("Min salary cannot be greater than max salary:", {
+				min: minSalary,
+				max: maxSalary,
+			});
+			return NextResponse.json(
+				{
+					error: "Minimum salary must be less than or equal to maximum salary",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Generate embedding for the research lab post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatResearchLabDataForEmbedding(body);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for research lab text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for research lab post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for research lab post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
+		// Create the job post (research position)
+		await prismaClient.jobPost.create({
+			data: {
+				post_id: opportunityPost.post_id,
+				contract_type: body.typeOfContract,
+				attendance: body.attendance,
+				job_type: body.jobType,
+				professor_name: body.professorName || null,
+				min_salary: minSalary,
+				max_salary: maxSalary,
+				salary_description: body.salary.description,
+				benefit: body.benefit,
+				main_responsibility: body.mainResponsibility,
+				qualification_requirement: body.qualificationRequirement,
+				experience_requirement: body.experienceRequirement,
+				assessment_criteria: body.assessmentCriteria,
+				other_requirement: body.otherRequirement,
+				lab_type: body.labType,
+				research_focus: body.researchFocus,
+				lab_capacity: null,
+				research_areas: body.researchAreas,
+				lab_facilities: body.labFacilities,
+				lab_director: null,
+				lab_contact_email: null,
+				lab_website: null,
+				academic_background:
+					body.researchRequirements.academicBackground,
+				research_experience:
+					body.researchRequirements.researchExperience,
+				technical_skills: body.researchRequirements.technicalSkills,
+				application_documents: body.applicationRequirements.documents,
+				research_proposal:
+					body.applicationRequirements.researchProposal,
+				recommendations: body.applicationRequirements.recommendations,
+				embedding: embeddingData,
+			},
+		});
+
+		// Create post documents for file requirements
+		// Only need fileDescription, fileName is optional (will use default)
+		if (body.fileRequirements?.fileDescription) {
+			// First, get or create a document type for "Research Documents"
+			let documentType = await prismaClient.documentType.findFirst({
+				where: { name: "Research Documents" },
+			});
+
+			if (!documentType) {
+				documentType = await prismaClient.documentType.create({
+					data: {
+						document_type_id: randomUUID(),
+						name: "Research Documents",
+						description:
+							"Documents required for research position application",
+					},
+				});
+			}
+
+			await prismaClient.postDocument.create({
+				data: {
+					document_id: randomUUID(),
+					post_id: opportunityPost.post_id,
+					document_type_id: documentType.document_type_id,
+					name:
+						body.fileRequirements?.fileName || "Required Documents",
+					description: body.fileRequirements?.fileDescription || "",
+				},
+			});
+		}
+
+		// Link to subdisciplines (research fields)
+		// Also save subdiscipline IDs as comma-separated string in research_areas
+		const subdisciplineIds: string[] = [];
+		if (body.researchFields && body.researchFields.length > 0) {
+			// eslint-disable-next-line no-console
+			console.log(
+				"Research fields received:",
+				JSON.stringify(body.researchFields)
+			);
+
+			for (const researchField of body.researchFields) {
+				// Trim whitespace and handle case-insensitive matching
+				const trimmedField = researchField?.trim();
+				if (!trimmedField) {
+					// eslint-disable-next-line no-console
+					console.warn("Empty research field, skipping");
+					continue;
+				}
+
+				// Try case-insensitive search first
+				let subdiscipline = await prismaClient.subdiscipline.findFirst({
+					where: {
+						name: {
+							equals: trimmedField,
+							mode: "insensitive", // Case-insensitive search
+						},
+					},
+				});
+
+				// If not found, try exact match (fallback)
+				if (!subdiscipline) {
+					subdiscipline = await prismaClient.subdiscipline.findFirst({
+						where: { name: trimmedField },
+					});
+				}
+
+				if (subdiscipline) {
+					// Save to PostSubdiscipline join table
+					await prismaClient.postSubdiscipline.create({
+						data: {
+							subdiscipline_id: subdiscipline.subdiscipline_id,
+							post_id: opportunityPost.post_id,
+							add_at: new Date(),
+						},
+					});
+					// Collect subdiscipline IDs for research_areas field
+					subdisciplineIds.push(subdiscipline.subdiscipline_id);
+					// eslint-disable-next-line no-console
+					console.log(
+						`Successfully linked research field "${trimmedField}" to subdiscipline ${subdiscipline.subdiscipline_id}`
+					);
+				} else {
+					// eslint-disable-next-line no-console
+					console.error(
+						`Subdiscipline not found for research field: "${trimmedField}"`
+					);
+				}
+			}
+
+			// Update research_areas field with comma-separated subdiscipline IDs
+			if (subdisciplineIds.length > 0) {
+				await prismaClient.jobPost.update({
+					where: { post_id: opportunityPost.post_id },
+					data: {
+						research_areas: subdisciplineIds.join(","),
+					},
+				});
+			}
+		}
+
+		return NextResponse.json({
+			success: true,
+			post: {
+				id: opportunityPost.post_id,
+				title: opportunityPost.title,
+				status: opportunityPost.status,
+			},
+		});
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("Error creating research lab post:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+			timestamp: new Date().toISOString(),
+		});
+		return NextResponse.json(
+			{
+				error: "Failed to create research lab post",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
+	}
+}
+
+export async function PUT(request: NextRequest) {
+	try {
+		const body: CreateResearchLabRequest & { postId: string } =
+			await request.json();
+		const { postId, ...updateData } = body;
+
+		if (!postId) {
+			return NextResponse.json(
+				{ error: "Post ID is required for update" },
+				{ status: 400 }
+			);
+		}
+
+		// Get user from session
+		const { user } = await requireAuth();
+		if (!user.id) {
+			return NextResponse.json(
+				{ error: "User not authenticated" },
+				{ status: 401 }
+			);
+		}
+
+		// Get institution for the user
+		const institution = await prismaClient.institution.findUnique({
+			where: { user_id: user.id },
+		});
+
+		if (!institution) {
+			return NextResponse.json(
+				{ error: "Institution not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Verify the post belongs to this institution
+		const existingPost = await prismaClient.opportunityPost.findFirst({
+			where: {
+				post_id: postId,
+				institution_id: institution.institution_id,
+			},
+		});
+
+		if (!existingPost) {
+			return NextResponse.json(
+				{ error: "Post not found or access denied" },
+				{ status: 404 }
+			);
+		}
+
+		// Check if this is a status-only update
+		const isStatusOnlyUpdate =
+			updateData.status &&
+			!updateData.jobName &&
+			!updateData.startDate &&
+			!updateData.applicationDeadline;
+
+		// Handle status-only update
+		if (isStatusOnlyUpdate) {
+			const validStatuses: PostStatus[] = [
+				"DRAFT",
+				"PUBLISHED",
+				"CLOSED",
+				"SUBMITTED",
+				"UPDATED",
+				"REJECTED",
+				"DELETED",
+			];
+
+			if (!validStatuses.includes(updateData.status as PostStatus)) {
+				return NextResponse.json(
+					{
+						error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+					},
+					{ status: 400 }
+				);
+			}
+
+			// If changing status to PUBLISHED or SUBMITTED, check subscription
+			if (
+				updateData.status === "PUBLISHED" ||
+				updateData.status === "SUBMITTED"
+			) {
+				const { canCreatePost } =
+					await import("@/services/authorization");
+				const authorization = await canCreatePost(
+					institution.institution_id
+				);
+
+				if (!authorization.authorized) {
+					return NextResponse.json(
+						{
+							error:
+								authorization.reason ||
+								"You do not have permission to publish posts. Please upgrade your plan to continue.",
+						},
+						{ status: 403 }
+					);
+				}
+			}
+
+			// If changing status to PUBLISHED, check for duplicate published titles
+			if (updateData.status === "PUBLISHED") {
+				const allPublishedPosts =
+					await prismaClient.opportunityPost.findMany({
+						where: {
+							institution_id: institution.institution_id,
+							status: "PUBLISHED",
+							post_id: {
+								not: postId, // Exclude the current post being updated
+							},
+						},
+						select: {
+							title: true,
+						},
+					});
+
+				// Check for case-insensitive match (trim and compare)
+				const normalizedCurrentTitle = existingPost.title.trim();
+				const duplicatePost = allPublishedPosts.find(
+					(post) =>
+						post.title.trim().toLowerCase() ===
+						normalizedCurrentTitle.toLowerCase()
+				);
+
+				if (duplicatePost) {
+					return NextResponse.json(
+						{
+							error: `A published post with the title "${existingPost.title}" already exists. Please use a different title.`,
+						},
+						{ status: 409 } // 409 Conflict
+					);
+				}
+			}
+
+			const updatedPost = await prismaClient.opportunityPost.update({
+				where: { post_id: postId },
+				data: {
+					status: updateData.status as PostStatus,
+					update_at: new Date(),
+				},
+			});
+
+			return NextResponse.json({
+				success: true,
+				post: {
+					id: postId,
+					title: updatedPost.title,
+					status: updatedPost.status,
+				},
+			});
+		}
+
+		// Full update - check subscription if status is being set to PUBLISHED or SUBMITTED
+		if (
+			updateData.status === "PUBLISHED" ||
+			updateData.status === "SUBMITTED"
+		) {
+			const { canCreatePost } = await import("@/services/authorization");
+			const authorization = await canCreatePost(
+				institution.institution_id
+			);
+
+			if (!authorization.authorized) {
+				return NextResponse.json(
+					{
+						error:
+							authorization.reason ||
+							"You do not have permission to publish posts. Please upgrade your plan to continue.",
+					},
+					{ status: 403 }
+				);
+			}
+		}
+
+		// Full update - check for duplicate title if title is being updated
+		if (updateData.jobName) {
+			const allPublishedPosts =
+				await prismaClient.opportunityPost.findMany({
+					where: {
+						institution_id: institution.institution_id,
+						status: "PUBLISHED",
+						post_id: {
+							not: postId, // Exclude the current post being updated
+						},
+					},
+					select: {
+						title: true,
+					},
+				});
+
+			// Check for case-insensitive match (trim and compare)
+			const normalizedNewTitle = updateData.jobName.trim();
+			const duplicatePost = allPublishedPosts.find(
+				(post) =>
+					post.title.trim().toLowerCase() ===
+					normalizedNewTitle.toLowerCase()
+			);
+
+			if (duplicatePost) {
+				return NextResponse.json(
+					{
+						error: `A published post with the title "${updateData.jobName}" already exists. Please use a different title.`,
+					},
+					{ status: 409 } // 409 Conflict
+				);
+			}
+		}
+
+		// Parse dates with validation
+		const startDate = new Date(updateData.startDate);
+		const applicationDeadline = new Date(updateData.applicationDeadline);
+
+		// Validate dates
+		if (isNaN(startDate.getTime())) {
+			return NextResponse.json(
+				{ error: "Invalid start date format" },
+				{ status: 400 }
+			);
+		}
+		if (isNaN(applicationDeadline.getTime())) {
+			return NextResponse.json(
+				{ error: "Invalid application deadline format" },
+				{ status: 400 }
+			);
+		}
+
+		// Update the opportunity post
+		await prismaClient.opportunityPost.update({
+			where: { post_id: postId },
+			data: {
+				title: updateData.jobName,
+				start_date: startDate,
+				end_date: applicationDeadline,
+				location: updateData.country,
+				other_info: updateData.additionalInformation?.content || null,
+				degree_level: updateData.degree_level || "RESEARCH",
+				...(updateData.status && { status: updateData.status }),
+			},
+		});
+
+		// Validate salary min/max
+		let minSalary: number | null = null;
+		let maxSalary: number | null = null;
+
+		if (updateData.salary.min) {
+			const minValue = parseFloat(updateData.salary.min);
+			if (isNaN(minValue)) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Invalid min_salary value:",
+					updateData.salary.min
+				);
+				return NextResponse.json(
+					{ error: "Invalid minimum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (minValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Min salary cannot be negative:", minValue);
+				return NextResponse.json(
+					{ error: "Minimum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			minSalary = minValue;
+		}
+
+		if (updateData.salary.max) {
+			const maxValue = parseFloat(updateData.salary.max);
+			if (isNaN(maxValue)) {
+				// eslint-disable-next-line no-console
+				console.error(
+					"Invalid max_salary value:",
+					updateData.salary.max
+				);
+				return NextResponse.json(
+					{ error: "Invalid maximum salary value" },
+					{ status: 400 }
+				);
+			}
+			if (maxValue < 0) {
+				// eslint-disable-next-line no-console
+				console.error("Max salary cannot be negative:", maxValue);
+				return NextResponse.json(
+					{ error: "Maximum salary must be a positive number" },
+					{ status: 400 }
+				);
+			}
+			maxSalary = maxValue;
+		}
+
+		// Validate min <= max
+		if (minSalary !== null && maxSalary !== null && minSalary > maxSalary) {
+			// eslint-disable-next-line no-console
+			console.error("Min salary cannot be greater than max salary:", {
+				min: minSalary,
+				max: maxSalary,
+			});
+			return NextResponse.json(
+				{
+					error: "Minimum salary must be less than or equal to maximum salary",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Generate embedding for the updated research lab post
+		let embeddingData: any = null;
+		try {
+			const textForEmbedding =
+				EmbeddingService.formatResearchLabDataForEmbedding(updateData);
+			// eslint-disable-next-line no-console
+			console.log(
+				"📝 Generating embedding for updated research lab text:",
+				textForEmbedding.substring(0, 200) + "..."
+			);
+
+			const embedding =
+				await EmbeddingService.generateEmbedding(textForEmbedding);
+			if (embedding) {
+				embeddingData = embedding;
+				// eslint-disable-next-line no-console
+				console.log(
+					"✅ Embedding generated successfully for updated research lab post"
+				);
+			} else {
+				// eslint-disable-next-line no-console
+				console.warn(
+					"⚠️ Failed to generate embedding for updated research lab post"
+				);
+			}
+		} catch (embeddingError) {
+			// eslint-disable-next-line no-console
+			console.error("❌ Error generating embedding:", embeddingError);
+			// Continue without embedding - don't fail the entire operation
+		}
+
+		// Update the job post (research position)
+		await prismaClient.jobPost.update({
+			where: { post_id: postId },
+			data: {
+				contract_type: updateData.typeOfContract,
+				attendance: updateData.attendance,
+				job_type: updateData.jobType,
+				professor_name: updateData.professorName || null,
+				min_salary: minSalary,
+				max_salary: maxSalary,
+				salary_description: updateData.salary.description,
+				benefit: updateData.benefit,
+				main_responsibility: updateData.mainResponsibility,
+				qualification_requirement: updateData.qualificationRequirement,
+				experience_requirement: updateData.experienceRequirement,
+				assessment_criteria: updateData.assessmentCriteria,
+				other_requirement: updateData.otherRequirement,
+				lab_type: updateData.labType,
+				research_focus: updateData.researchFocus,
+				lab_capacity: null,
+				research_areas: updateData.researchAreas,
+				lab_facilities: updateData.labFacilities,
+				lab_director: null,
+				lab_contact_email: null,
+				lab_website: null,
+				academic_background:
+					updateData.researchRequirements.academicBackground,
+				research_experience:
+					updateData.researchRequirements.researchExperience,
+				technical_skills:
+					updateData.researchRequirements.technicalSkills,
+				application_documents:
+					updateData.applicationRequirements.documents,
+				research_proposal:
+					updateData.applicationRequirements.researchProposal,
+				recommendations:
+					updateData.applicationRequirements.recommendations,
+				embedding: embeddingData,
+			},
+		});
+
+		// Delete existing documents and recreate
+		await prismaClient.postDocument.deleteMany({
+			where: { post_id: postId },
+		});
+
+		// Only need fileDescription, fileName is optional (will use default)
+		if (updateData.fileRequirements?.fileDescription) {
+			let documentType = await prismaClient.documentType.findFirst({
+				where: { name: "Research Documents" },
+			});
+
+			if (!documentType) {
+				documentType = await prismaClient.documentType.create({
+					data: {
+						document_type_id: randomUUID(),
+						name: "Research Documents",
+						description:
+							"Documents required for research position application",
+					},
+				});
+			}
+
+			await prismaClient.postDocument.create({
+				data: {
+					document_id: randomUUID(),
+					post_id: postId,
+					document_type_id: documentType.document_type_id,
+					name:
+						updateData.fileRequirements?.fileName ||
+						"Required Documents",
+					description:
+						updateData.fileRequirements?.fileDescription || "",
+				},
+			});
+		}
+
+		// Delete existing subdisciplines and recreate
+		await prismaClient.postSubdiscipline.deleteMany({
+			where: { post_id: postId },
+		});
+
+		// Link to subdisciplines (research fields)
+		// Also save subdiscipline IDs as comma-separated string in research_areas
+		const subdisciplineIds: string[] = [];
+		if (updateData.researchFields && updateData.researchFields.length > 0) {
+			// eslint-disable-next-line no-console
+			console.log(
+				"Research fields received for update:",
+				JSON.stringify(updateData.researchFields)
+			);
+
+			for (const researchField of updateData.researchFields) {
+				// Trim whitespace and handle case-insensitive matching
+				const trimmedField = researchField?.trim();
+				if (!trimmedField) {
+					// eslint-disable-next-line no-console
+					console.warn("Empty research field, skipping");
+					continue;
+				}
+
+				// Try case-insensitive search first
+				let subdiscipline = await prismaClient.subdiscipline.findFirst({
+					where: {
+						name: {
+							equals: trimmedField,
+							mode: "insensitive", // Case-insensitive search
+						},
+					},
+				});
+
+				// If not found, try exact match (fallback)
+				if (!subdiscipline) {
+					subdiscipline = await prismaClient.subdiscipline.findFirst({
+						where: { name: trimmedField },
+					});
+				}
+
+				if (subdiscipline) {
+					// Save to PostSubdiscipline join table
+					await prismaClient.postSubdiscipline.create({
+						data: {
+							subdiscipline_id: subdiscipline.subdiscipline_id,
+							post_id: postId,
+							add_at: new Date(),
+						},
+					});
+					// Collect subdiscipline IDs for research_areas field
+					subdisciplineIds.push(subdiscipline.subdiscipline_id);
+					// eslint-disable-next-line no-console
+					console.log(
+						`Successfully linked research field "${trimmedField}" to subdiscipline ${subdiscipline.subdiscipline_id}`
+					);
+				} else {
+					// eslint-disable-next-line no-console
+					console.error(
+						`Subdiscipline not found for research field: "${trimmedField}"`
+					);
+				}
+			}
+
+			// Update research_areas field with comma-separated subdiscipline IDs
+			if (subdisciplineIds.length > 0) {
+				await prismaClient.jobPost.update({
+					where: { post_id: postId },
+					data: {
+						research_areas: subdisciplineIds.join(","),
+					},
+				});
+			} else {
+				// Clear research_areas if no subdisciplines found
+				await prismaClient.jobPost.update({
+					where: { post_id: postId },
+					data: {
+						research_areas: null,
+					},
+				});
+			}
+		} else {
+			// Clear research_areas if no research fields provided
+			await prismaClient.jobPost.update({
+				where: { post_id: postId },
+				data: {
+					research_areas: null,
+				},
+			});
+		}
+
+		return NextResponse.json({
+			success: true,
+			post: {
+				id: postId,
+				title: updateData.jobName,
+			},
+		});
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("Error updating research lab post:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+			timestamp: new Date().toISOString(),
+		});
+		return NextResponse.json(
+			{
+				error: "Failed to update research lab post",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
+	}
+}
+
+export async function DELETE(request: NextRequest) {
+	try {
+		const { searchParams } = new URL(request.url);
+		const postId = searchParams.get("postId");
+
+		if (!postId) {
+			return NextResponse.json(
+				{ error: "Post ID is required" },
+				{ status: 400 }
+			);
+		}
+
+		// Get user from session
+		const { user } = await requireAuth();
+
+		// Get institution for the user
+		const institution = await prismaClient.institution.findUnique({
+			where: { user_id: user.id },
+		});
+
+		if (!institution) {
+			return NextResponse.json(
+				{ error: "Institution not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Check if post exists and belongs to this institution
+		const post = await prismaClient.opportunityPost.findUnique({
+			where: { post_id: postId },
+			include: {
+				jobPost: true,
+			},
+		});
+
+		if (!post) {
+			return NextResponse.json(
+				{ error: "Post not found" },
+				{ status: 404 }
+			);
+		}
+
+		if (post.institution_id !== institution.institution_id) {
+			return NextResponse.json(
+				{ error: "Unauthorized to delete this post" },
+				{ status: 403 }
+			);
+		}
+
+		// Only allow deletion of DRAFT posts
+		if (post.status !== "DRAFT") {
+			return NextResponse.json(
+				{
+					error: "Only draft posts can be deleted",
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Soft delete: Set status to DELETED
+		await prismaClient.opportunityPost.update({
+			where: { post_id: postId },
+			data: {
+				status: "DELETED",
+				update_at: new Date(),
+			},
+		});
+
+		return NextResponse.json({
+			success: true,
+			message: "Post deleted successfully",
+		});
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("Error deleting research lab post:", error);
+		return NextResponse.json(
+			{
+				error: "Failed to delete post",
+				details:
+					error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
+	}
+}

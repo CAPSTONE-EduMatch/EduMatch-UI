@@ -1,0 +1,2658 @@
+{
+	"explore": "Explore",
+	"about-us": "About us",
+	"program": "Program",
+
+	"phone_input": {
+		"select_country": "Select country",
+		"placeholder": {
+			"default": "Enter your phone number",
+			"vietnam": "Nhập số điện thoại của bạn"
+		},
+		"errors": {
+			"invalid_country": "Please enter a valid {country} phone number",
+			"invalid_format": "Invalid phone number format"
+		}
+	},
+
+	"header": {
+		"navigation": {
+			"about_us": "About us",
+			"explore": "Explore",
+			"pricing": "Pricing",
+			"support": "Support",
+			"program": "Program"
+		},
+		"notifications": {
+			"title": "Notifications",
+			"mark_all_read": "Mark all read",
+			"no_notifications": "No notifications yet"
+		},
+		"language": {
+			"select": "Select Language",
+			"english": "English",
+			"vietnamese": "Vietnamese",
+			"switch_to": "Switch to"
+		},
+		"user_menu": {
+			"user_menu": "User Menu",
+			"login": "Login",
+			"sign_in": "Sign In",
+			"sign_up": "Sign Up",
+			"logout": "Log out",
+			"student": "Student",
+			"institution": "Institution",
+			"plan": "Plan",
+			"free_plan": "Free Plan",
+			"standard_plan": "Standard Plan",
+			"premium_plan": "Premium Plan"
+		},
+		"menu": {
+			"profile": "Profile",
+			"institution_profile": "Institution Profile",
+			"academic_information": "Academic Information",
+			"wishlist": "Wishlist",
+			"my_applications": "My Applications",
+			"applications": "Applications",
+			"programs": "Programs",
+			"payment": "Payment",
+			"settings": "Settings"
+		}
+	},
+
+	"breadcrumb": {
+		"home": "Home",
+		"explore": "Explore",
+		"programmes": "Programmes",
+		"scholarships": "Scholarships",
+		"research_labs": "Research Labs"
+	},
+
+	"explore_page": {
+		"quote": {
+			"author": "John Dewey:",
+			"text": "Education is not preparation for life; education is life itself. It is the continuous reconstruction of experience, where each lesson learned becomes the foundation for new growth, and every challenge faced an opportunity for deeper wisdom."
+		},
+		"breadcrumb": {
+			"home": "Home",
+			"explore": "Explore"
+		},
+		"search": {
+			"title": "Search your needs here",
+			"placeholder": "Search by name of program, scholarship, or research lab"
+		},
+		"tabs": {
+			"programmes": "Programmes",
+			"scholarships": "Scholarships",
+			"research_labs": "Research Labs"
+		},
+		"results": "results",
+		"loading": {
+			"programmes": "Loading programs...",
+			"scholarships": "Loading scholarships...",
+			"research": "Loading research labs..."
+		},
+		"subscription": {
+			"badge": "Subscription Plans",
+			"title": "Find Your Perfect Learning Path",
+			"description": "From basic scholarship search to AI-powered matching, choose the plan that fits your academic goals. Get personalized recommendations and connect with opportunities worldwide.",
+			"cta": "Explore more",
+			"benefit_1": {
+				"title": "Save Time & Stay Organized",
+				"desc": "Easily find and track scholarships with deadline reminders."
+			},
+			"benefit_2": {
+				"title": "Connect Directly",
+				"desc": "Message professors & scholarship officers to boost your chances."
+			},
+			"benefit_3": {
+				"title": "Get Smart Matches",
+				"desc": "Use AI to find the best-fit scholarships and research groups."
+			}
+		},
+		"auth": {
+			"required": {
+				"title": "Authentication Required",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
+			}
+		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
+		"buttons": {
+			"sign_in": "Sign in",
+			"sign_up": "Sign up",
+			"explore_more": "Explore more"
+		},
+		"images": {
+			"university_campus": "University Campus",
+			"student_illustration": "Student illustration"
+		},
+		"empty": {
+			"programmes": {
+				"title": "No programs found",
+				"hint": "Try adjusting your filters or search criteria"
+			},
+			"scholarships": {
+				"title": "No scholarships found",
+				"hint": "Try adjusting your filters or search criteria"
+			},
+			"research": {
+				"title": "No research labs found",
+				"hint": "Try adjusting your filters or search criteria"
+			}
+		},
+		"filters": {
+			"title": "Selected filters",
+			"discipline": {
+				"label": "Discipline",
+				"research_field": "Research field",
+				"placeholder": "Search discipline...",
+				"select_prompt": "Select a discipline",
+				"loading": "Loading disciplines...",
+				"no_results": "No disciplines found",
+				"subdiscipline_placeholder": "Search subdiscipline...",
+				"research_field_placeholder": "Search research field...",
+				"select_research_fields": "Select research fields",
+				"subdisciplines_of": "{discipline} subdisciplines",
+				"back_to_disciplines": "← Back to disciplines",
+				"subdisciplines_count": "subdisciplines",
+				"no_match": "No disciplines match your search",
+				"no_available": "No disciplines available",
+				"check_back": "Check back later or contact support"
+			},
+			"country": {
+				"label": "Country",
+				"placeholder": "Search country...",
+				"loading": "Loading..."
+			},
+			"fee": {
+				"label": "Fee",
+				"range_label": "Fee Range",
+				"min_label": "Min ($)",
+				"max_label": "Max ($)"
+			},
+			"salary": {
+				"label": "Salary",
+				"range_label": "Salary Range",
+				"min_label": "Min ($)",
+				"max_label": "Max ($)"
+			},
+			"duration": {
+				"label": "Duration"
+			},
+			"degree_level": {
+				"label": "Degree level"
+			},
+			"attendance": {
+				"label": "Attendance"
+			},
+			"essay_required": {
+				"label": "Essay required"
+			},
+			"contract_type": {
+				"label": "Type of Contract"
+			},
+			"job_type": {
+				"label": "Job type"
+			}
+		},
+		"cards": {
+			"days_left": "days left",
+			"account_deactivated": "Account Deactivated"
+		}
+	},
+
+	"search": {
+		"title": "Search your needs here",
+		"placeholder": "Search by name of program, scholarship, or research lab"
+	},
+
+	"tabs": {
+		"programmes": "Programmes",
+		"scholarships": "Scholarships",
+		"research_labs": "Research Labs"
+	},
+
+	"images": {
+		"university_campus": "University Campus",
+		"student_illustration": "Student illustration"
+	},
+
+	"results": "results",
+
+	"sort": {
+		"most_popular": "Most popular",
+		"newest": "Newest",
+		"oldest": "Oldest",
+		"match_score": "Match score",
+		"deadline": "Deadline",
+		"latest": "Latest",
+		"deadline_soon": "Deadline soon",
+		"a_to_z": "A → Z",
+		"z_to_a": "Z → A",
+		"sort_by": "Sort"
+	},
+
+	"filter": {
+		"title": "Filters"
+	},
+
+	"pagination": {
+		"previous": "Previous",
+		"next": "Next"
+	},
+
+	"loading": {
+		"programmes": "Loading programs...",
+		"scholarships": "Loading scholarships...",
+		"research": "Loading research labs..."
+	},
+
+	"auth": {
+		"required": {
+			"title": "Authentication Required",
+			"message": "You need to sign in to access this feature. Please sign in to your account or create a new one."
+		},
+		"signup": {
+			"title": "Sign up",
+			"subtitle": "Join our community and discover educational opportunities that match your unique profile",
+			"form": {
+				"email": {
+					"label": "Email",
+					"placeholder": "Enter your email",
+					"help_text": "(or institution email if you are institution)"
+				},
+				"password": {
+					"label": "Password",
+					"placeholder": "Enter your password"
+				},
+				"confirm_password": {
+					"label": "Confirm Password",
+					"placeholder": "Confirm your password",
+					"help_text": "Re-enter your password to confirm"
+				},
+				"terms": {
+					"text": "By creating the account means you agree with our",
+					"terms_of_service": "Terms of Service",
+					"and": "and",
+					"privacy_policy": "Privacy Policy",
+					"our_default": "and our default",
+					"notification_settings": "Notification Settings"
+				}
+			},
+			"buttons": {
+				"submit": "Sign Up",
+				"submitting": "Signing you up...",
+				"continue_verification": "Continue Verification",
+				"google": "Sign up with Google",
+				"google_loading": "Signing up..."
+			},
+			"links": {
+				"have_account": "Already have an account?",
+				"sign_in": "Sign in"
+			},
+			"otp_modal": {
+				"title": "Verify Your Email",
+				"description": "We've sent a 6-digit verification code to {email}. Please enter it below to verify your email address.",
+				"code_label": "Verification Code",
+				"clear_button": "Clear all",
+				"verify_button": "Verify",
+				"verifying_button": "Verifying...",
+				"cancel_button": "Cancel",
+				"resend_text": "Didn't receive the code?",
+				"resend_button": "Resend Code",
+				"resend_countdown": "Resend Code ({seconds}s)",
+				"sending_button": "Sending..."
+			},
+			"errors": {
+				"email_required": "Please enter a valid email address",
+				"password_invalid": "Please enter a valid password",
+				"passwords_no_match": "Passwords don't match",
+				"account_exists": "An account with this email already exists. Please sign in instead.",
+				"account_deleted": "Your account has been deleted. Please create another account.",
+				"invalid_email_format": "Invalid email format. Please check your email and try again.",
+				"verification_failed": "Verification failed: {error}",
+				"otp_incomplete": "Please enter the 6-digit OTP.",
+				"otp_send_failed": "Failed to send verification code: {error}",
+				"unexpected_error": "An unexpected error occurred. Please try again.",
+				"user_info_failed": "Failed to retrieve user information. Please try signing in.",
+				"password_set_failed": "Failed to set password. Please try signing in."
+			},
+			"success": {
+				"account_created": "Account created successfully!"
+			}
+		},
+		"signin": {
+			"title": "Sign in",
+			"subtitle": "Welcome back! Sign in to your account to continue your educational journey",
+			"form": {
+				"email": {
+					"label": "Email",
+					"placeholder": "Enter your email"
+				},
+				"password": {
+					"label": "Password",
+					"placeholder": "Enter your password"
+				},
+				"forgot_password": "Forgot password?",
+				"remember_me": "Remember me"
+			},
+			"buttons": {
+				"submit": "Sign In",
+				"submitting": "Signing in...",
+				"google": "Sign in with Google",
+				"google_loading": "Signing in..."
+			},
+			"links": {
+				"no_account": "Don't have an account?",
+				"sign_up": "Sign up"
+			},
+			"forgot_password_modal": {
+				"title": "Reset Password",
+				"description": "Enter your email address and we'll send you a link to reset your password.",
+				"email_label": "Email Address",
+				"email_placeholder": "Enter your email",
+				"send_button": "Send Reset Link",
+				"sending_button": "Sending...",
+				"resend_button": "Resend Link",
+				"resend_countdown": "Resend Link ({seconds}s)",
+				"cancel_button": "Cancel",
+				"back_to_signin": "Back to Sign In",
+				"success_message": "Password reset link sent to {email}. Please check your inbox.",
+				"check_inbox": "We've sent a password reset link to your email. Please check your inbox and follow the instructions."
+			},
+			"otp_modal": {
+				"title": "Verify Your Email",
+				"description": "We've sent a 6-digit verification code to {email}. Please enter it below to continue.",
+				"code_label": "Verification Code",
+				"clear_button": "Clear all",
+				"verify_button": "Verify",
+				"verifying_button": "Verifying...",
+				"cancel_button": "Cancel",
+				"resend_text": "Didn't receive the code?",
+				"resend_button": "Resend Code",
+				"resend_countdown": "Resend Code ({seconds}s)",
+				"sending_button": "Sending..."
+			},
+			"errors": {
+				"email_required": "Please enter a valid email address.",
+				"password_required": "Please enter your password.",
+				"invalid_credentials": "Invalid email or password. Please try again.",
+				"email_not_verified": "Your email is not verified. Please check your inbox for the verification link.",
+				"account_deleted": "Your account has been deleted. Please contact support if you believe this is an error.",
+				"user_not_found": "No account found with this email address.",
+				"forgot_password_cooldown": "Please wait {seconds} seconds before requesting another reset link.",
+				"google_account": "This account was created with Google. Please sign in with Google or check your email address.",
+				"otp_incomplete": "Please enter the complete 6-digit code",
+				"otp_failed": "Verification failed. Please try again.",
+				"otp_resend_failed": "Failed to resend verification code",
+				"unexpected_error": "An unexpected error occurred. Please try again."
+			}
+		},
+		"forgot_password": {
+			"title": "Reset Password",
+			"subtitle": "Create a new password for your account.",
+			"form": {
+				"new_password": {
+					"label": "New Password",
+					"placeholder": "Enter your new password"
+				},
+				"confirm_password": {
+					"label": "Confirm New Password",
+					"placeholder": "Confirm your new password"
+				}
+			},
+			"buttons": {
+				"submit": "Reset Password",
+				"submitting": "Updating Password...",
+				"back_to_signin": "Back to Sign In"
+			},
+			"links": {
+				"remember_password": "Remember your password?"
+			},
+			"errors": {
+				"password_invalid": "Please enter a valid new password that meets all criteria.",
+				"confirm_required": "Please confirm your new password.",
+				"passwords_no_match": "Passwords don't match.",
+				"update_failed": "Failed to update password. Please try again."
+			},
+			"success": {
+				"password_updated": "Password updated successfully! You will be redirected to sign in."
+			}
+		},
+		"common": {
+			"or": "Or",
+			"required": "Required",
+			"optional": "Optional"
+		},
+		"errors": {
+			"accountDeactivated": "Your account has been deactivated. Please contact support if you wish to reactivate your account.",
+			"accountBanned": "Your account has been permanently banned. Please contact support for more information.",
+			"accountBannedUntil": "Your account has been banned until {date}. Please try again after this date or contact support.",
+			"accountBannedWithReason": "Your account has been banned. Reason: {reason}"
+		}
+	},
+
+	"quote": {
+		"JohnDewey": "Education is not preparation for life; education is life itself. It is the continuous reconstruction of experience, where each lesson learned becomes the foundation for new growth, and every challenge faced an opportunity for deeper wisdom.",
+		"author": "John Dewey:"
+	},
+
+	"subscription": {
+		"badge": "Subscription Plans",
+		"title": "Find Your Perfect Learning Path",
+		"description": "From basic scholarship search to AI-powered matching, choose the plan that fits your academic goals. Get personalized recommendations and connect with opportunities worldwide.",
+		"cta": "Explore more",
+		"benefit_1": {
+			"title": "Save Time & Stay Organized",
+			"desc": "Easily find and track scholarships with deadline reminders."
+		},
+		"benefit_2": {
+			"title": "Connect Directly",
+			"desc": "Message professors & scholarship officers to boost your chances."
+		},
+		"benefit_3": {
+			"title": "Get Smart Matches",
+			"desc": "Use AI to find the best-fit scholarships and research groups."
+		},
+		"image": {
+			"alt": "Student illustration"
+		}
+	},
+
+	"homepage": {
+		"hero_section": {
+			"title": "Match. Apply. Succeed.",
+			"subtitle": "Find your perfect opportunity match with our intelligent matching system"
+		},
+		"about_section": {
+			"title": "Your Gateway to Study Abroad, Global Research & Scholarship Opportunities",
+			"description": "At EduMatch, we bring students closer to graduate research programs and scholarships worldwide, ensuring a perfect fit with our intelligent matching system. Explore opportunities that align with your academic background and aspirations."
+		},
+		"disciplines_section": {
+			"title": "Browse by Discipline"
+		},
+		"features_section": {
+			"title": "Features",
+			"features_1": {
+				"title": "Smart Matching",
+				"description": "Match students with the right programs based on qualifications."
+			},
+			"features_2": {
+				"title": "Global Opportunities",
+				"description": "Access scholarships and research programs globally."
+			},
+			"features_3": {
+				"title": "Personalized Recommendations",
+				"description": "Find opportunities tailored to your specific academic background."
+			},
+			"features_4": {
+				"title": "Seamless Application Process",
+				"description": "Apply with ease through our platform's intuitive interface."
+			}
+		},
+		"blog_section": {
+			"title": "Latest Posts",
+			"empty": {
+				"title": "No posts yet",
+				"description_programmes": "No programmes available at the moment. Check back later for new opportunities!",
+				"description_scholarships": "No scholarships available at the moment. Check back later for new opportunities!",
+				"description_research_labs": "No research labs available at the moment. Check back later for new opportunities!",
+				"try_other_button": "Try other category"
+			}
+		},
+		"cta_section": {
+			"title": "Explore Programmes, Research and Scholarship Opportunities Today",
+			"description_1": "Join EduMatch now to start your journey to success.",
+			"description_2": "Find the perfect opportunities for you.",
+			"authenticated_title": "Continue Your Journey to Success",
+			"authenticated_description_1": "Discover more opportunities tailored to your profile.",
+			"authenticated_description_2": "Explore programs, scholarships, and research labs that match your interests."
+		}
+	},
+
+	"buttons": {
+		"explore_more": "Explore more",
+		"show_more": "Show more",
+		"show_less": "Show less",
+		"learn_more": "Learn more",
+		"sign_in": "Sign in",
+		"sign_up": "Sign up",
+		"log-out": "Log out",
+		"retry": "Retry"
+	},
+
+	"empty": {
+		"title": "No programs found",
+		"hint": "Try adjusting your filters or search criteria"
+	},
+
+	"document_selector": {
+		"header": {
+			"title": "Select Documents",
+			"close": "Close"
+		},
+		"empty": {
+			"title": "No Documents Available",
+			"message": "You haven't uploaded any documents yet. Please upload your documents first to include them in your application."
+		},
+		"available_documents": {
+			"title": "Available Documents",
+			"select": "Select"
+		},
+		"folder": {
+			"other_documents": "Other Documents"
+		},
+		"document_types": {
+			"research_proposal": "Research Proposal",
+			"cv_resume": "CV/Resume",
+			"portfolio": "Portfolio",
+			"academic_transcript": "Academic Transcript",
+			"personal_statement": "Personal Statement",
+			"recommendation_letter": "Recommendation Letter",
+			"language_certificate": "Language Certificate",
+			"passport_copy": "Passport Copy",
+			"degree_certificate": "Degree Certificate",
+			"research_paper": "Research Paper",
+			"institution_verification": "Institution Verification",
+			"required_documents": "Required Documents",
+			"other": "Other"
+		},
+		"loading": "Loading documents...",
+		"error": "Failed to load documents"
+	},
+
+	"research_lab_detail": {
+		"loading": "Loading research lab details...",
+		"error": "Error",
+		"not_found": "Research lab not found",
+		"breadcrumb": {
+			"home": "Home",
+			"explore": "Explore",
+			"research_labs": "Research Labs"
+		},
+		"header": {
+			"institution_detail_button": "View Institution Detail",
+			"contact_button": "Contact Institution",
+			"applications_count": "Number of applications: {count}",
+			"provided_by": "Provided by: {organization}",
+			"job_name": "Job's name"
+		},
+		"institution_status": {
+			"pending": "Pending Approval",
+			"rejected": "Account Rejected",
+			"deactivated": "Account Deactivated"
+		},
+		"info": {
+			"location": "Location",
+			"salary": "Salary",
+			"duration": "Duration",
+			"deadline": "Application deadline",
+			"job_type": "Job type",
+			"contract_type": "Contract Type",
+			"year": "year",
+			"years": "years",
+			"month": "month",
+			"months": "months"
+		},
+		"tabs": {
+			"job_description": "Job description",
+			"offer_information": "Offer information",
+			"job_requirements": "Job requirements",
+			"other_information": "Other information",
+			"application": "My Applications",
+			"overview": "Overview",
+			"applications": "Applications"
+		},
+		"about": {
+			"title": "About",
+			"no_description": "No description available.",
+			"research_focus": "Research Focus:",
+			"research_areas": "Research Areas:",
+			"institution": "Institution:",
+			"visit_website": "Visit Institution Website"
+		},
+		"job_description": {
+			"title": "Job Description",
+			"research_field": "1. Research Field:",
+			"start_date": "2. Start date:",
+			"deadline": "3. Application deadline:",
+			"country": "4. Country:",
+			"contract_type": "5. Type of Contract:",
+			"attendance": "6. Attendance:",
+			"job_type": "7. Job type:",
+			"detail_description": "8. Detail description:",
+			"not_specified": "Not specified",
+			"no_description": "No description available"
+		},
+		"offer_information": {
+			"title": "Offer Information",
+			"salary": "Salary:",
+			"salary_description": "Salary Description",
+			"benefit": "Benefit:",
+			"lab_facilities": "Lab Facilities:"
+		},
+		"job_requirements": {
+			"title": "Job Requirements",
+			"main_responsibilities": "1. Main responsibilities:",
+			"qualification_requirements": "2. Qualification requirements:",
+			"experience_requirements": "3. Experience requirements:",
+			"assessment_criteria": "4. Assessment criteria:",
+			"other_requirements": "5. Other requirements:",
+			"technical_skills": "Technical Skills:",
+			"academic_background": "Academic Background:",
+			"research_focus": "Research Focus:",
+			"research_areas": "Research Areas:",
+			"institution": "Institution:"
+		},
+		"other_information": {
+			"title": "Other Information:"
+		},
+		"apply": {
+			"title_not_applied": "Apply here !",
+			"title_applied": "Application Status",
+			"edit_documents": "Edit Application Documents",
+			"cancel_edit": "Cancel Edit",
+			"status_badge": {
+				"submitted": "SUBMITTED",
+				"pending": "SUBMITTED",
+				"require_update": "REQUIRE_UPDATE",
+				"updated": "UPDATED",
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED"
+			},
+			"status_messages": {
+				"submitted": "Application Submitted Successfully!",
+				"submitted_message": "Your application has been submitted. You will receive updates via email.",
+				"updated": "Application Updated",
+				"updated_message": "Your application has been updated. The institution will review your changes.",
+				"accepted": "Application Accepted!",
+				"accepted_message": "Congratulations! Your application has been accepted. The institution will contact you soon with next steps.",
+				"rejected": "Application Not Selected",
+				"rejected_message": "We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application."
+			},
+			"congratulations": {
+				"title": "Congratulations!",
+				"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
+				"status_label": "Application Status:"
+			},
+			"document_requirements": {
+				"no_specific": "Not have any specific document requirement. You can upload any"
+			},
+			"select_profile_button": "📄 Select from Profile",
+			"select_profile_hint": "Choose documents from your profile for the snapshot",
+			"or_divider": "OR",
+			"documents_uploaded": "Application Documents ({count} file{plural})",
+			"from_profile_badge": "From Profile",
+			"uploaded_badge": "Uploaded",
+			"view_button": "View",
+			"remove_button": "Remove",
+			"download_button": "Download",
+			"edit_documents_button": "Edit Documents",
+			"documents_description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
+			"uploaded_label": "Uploaded:",
+			"remove_all_button": "Remove all",
+			"submit_button": "Submit Application",
+			"submitting_button": "Submitting...",
+			"upload_files_button": "Upload Files to Continue",
+			"uploading_files_button": "Uploading Files...",
+			"checking_button": "Checking...",
+			"application_submitted": "✓ Application Submitted",
+			"upload_warning": "📁 Please upload at least one document to submit your application",
+			"reapply_button": "Reapply Now",
+			"resetting": "Resetting...",
+			"post_closed_message": "This research lab is closed. You cannot reapply.",
+			"reapply_limit_info": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_warning": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_reached": "You have reached the maximum number of reapplication attempts (3 times). You cannot apply again.",
+			"uploading_progress": "Uploading files...",
+			"file_progress": "File {index}",
+			"file_size": "{size} KB",
+			"already_applied_title": "Already Applied",
+			"already_applied_message": "You have already applied to this research lab. You cannot submit multiple applications.",
+			"documents_updated_title": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed_title": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error_title": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"retry": "Retry",
+			"application_submitted_title": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email.",
+			"application_failed_title": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"limit_reached_title": "Application Limit Reached",
+			"upgrade_plan": "Upgrade Plan",
+			"application_error_title": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again."
+		},
+		"recommendations": {
+			"title": "Related Research Labs",
+			"loading": "Loading recommendations...",
+			"no_recommendations": "No recommendations available at this time.",
+			"upgrade": {
+				"title": "Unlock Personalized Recommendations",
+				"message": "Upgrade to Standard or Premium to see research labs tailored to your profile and interests.",
+				"button": "View Upgrade Options"
+			}
+		},
+		"applications_list": {
+			"title": "My Applications",
+			"table_headers": {
+				"date": "Application Date",
+				"status": "Status",
+				"documents": "Documents"
+			},
+			"documents_count": "{count} document(s)",
+			"status_badges": {
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED",
+				"progressing": "PROGRESSING",
+				"submitted": "SUBMITTED"
+			},
+			"empty": {
+				"title": "No applications found for this research lab",
+				"message": "Submit an application to get started"
+			}
+		},
+		"modals": {
+			"delete_confirm": {
+				"title": "Delete All Files",
+				"message": "Do you want to delete all files? This action cannot be undone.",
+				"cancel": "Cancel",
+				"confirm": "Delete All"
+			},
+			"cancel_edit": {
+				"title": "Discard Changes?",
+				"message": "You have unsaved changes. Are you sure you want to cancel editing? All changes will be lost.",
+				"keep": "Keep Editing",
+				"discard": "Discard Changes"
+			},
+			"document_selector": {
+				"title": "Select Documents for Application",
+				"summary": {
+					"selected": "{count} document{plural} selected from profile",
+					"ready": "Ready to submit",
+					"none_selected": "No documents selected",
+					"choose_files": "Choose files to continue"
+				},
+				"cancel": "Cancel",
+				"continue": "Continue",
+				"select_first": "Select Documents First",
+				"success": "Documents Selected!",
+				"success_message": "{count} document{plural} ready for application submission"
+			},
+			"auth_required": {
+				"title": "Authentication Required",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
+				"sign_in": "Sign In",
+				"sign_up": "Sign Up"
+			}
+		},
+		"notifications": {
+			"validation_failed": "Validation Failed",
+			"validation_failed_message": "File failed validation. Please redact sensitive information and try again.",
+			"documents_updated": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"already_applied": "Already Applied",
+			"already_applied_message": "You have already applied to this research lab. You cannot submit multiple applications.",
+			"application_failed": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"application_error": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again.",
+			"application_limit": "Application Limit Reached",
+			"upload_failed": "Upload Failed",
+			"upload_failed_message": "Failed to upload files. Please try again.",
+			"application_submitted": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email."
+		}
+	},
+
+	"program_detail": {
+		"breadcrumb": {
+			"home": "Home",
+			"explore": "Explore",
+			"programmes": "Programmes"
+		},
+		"wishlist_actions": {
+			"share": "Share",
+			"copy_link": "Copy link",
+			"link_copied": "Link copied!",
+			"save": "Save",
+			"unsave": "Unsave"
+		},
+		"info": {
+			"location": "Location",
+			"fee": "Fee",
+			"duration": "Duration",
+			"deadline": "Deadline",
+			"start_date": "Start Date",
+			"degree_level": "Degree Level",
+			"attendance": "Attendance",
+			"contact_institution": "Contact institution",
+			"year": "year",
+			"years": "years",
+			"month": "month",
+			"months": "months"
+		},
+		"tabs": {
+			"overview": "Overview",
+			"structure": "Programme structure",
+			"admission": "Admission requirements",
+			"fee": "Fee and funding",
+			"scholarship": "Scholarship",
+			"other": "Other information",
+			"application": "My Applications"
+		},
+		"about": {
+			"title": "About",
+			"no_description": "No description available."
+		},
+		"overview": {
+			"description_label": "Description:",
+			"duration_label": "1. Duration:",
+			"start_dates_label": "2. Start dates:",
+			"deadlines_label": "3. Application deadlines:",
+			"deadlines_before": "before {date}",
+			"subdiscipline_label": "4. Subdiscipline:",
+			"attendance_label": "5. Attendance:",
+			"location_label": "6. Location:",
+			"degree_level_label": "7. Degree level:",
+			"days_left_label": "8. Days left:",
+			"days_unit": "{count} days"
+		},
+		"structure": {
+			"subdiscipline_label": "Subdiscipline:",
+			"courses_include": "Courses include:",
+			"discipline_area": "Discipline area:"
+		},
+		"admission": {
+			"academic_requirements": "Academic requirements:",
+			"gpa_label": "GPA: {value}",
+			"gre_label": "GRE: {value}",
+			"gmat_label": "GMAT: {value}",
+			"contact_requirement": "Please contact institution for requirements",
+			"language_requirements": "Language requirements:",
+			"certificate_format": "{name}: {score}",
+			"required_documents": "Required documents:"
+		},
+		"fee": {
+			"tuition_fee": "Tuition Fee:",
+			"tuition_fee_value": "${amount}/year",
+			"contact_for_fee": "Contact institution for tuition fee information",
+			"fee_description": "Fee description:"
+		},
+		"scholarship": {
+			"title": "Scholarships Information:",
+			"default_message": "Explore available scholarships offered by this institution that may help fund your studies.",
+			"available_title": "Available Scholarships:",
+			"eligibility_note": "You are eligible to apply for these scholarships but a selection process will still be applied by the provider.",
+			"no_scholarships": "No scholarships available from this institution at the moment.",
+			"loading": "Loading scholarships..."
+		},
+		"other_info": {
+			"title": "Other Information:",
+			"contact_title": "Contact Information:",
+			"email_label": "Email:",
+			"hotline_label": "Hotline:",
+			"website_label": "Website:",
+			"address_label": "Address:"
+		},
+		"applications_list": {
+			"title": "My Applications",
+			"table_headers": {
+				"date": "Application Date",
+				"status": "Status",
+				"documents": "Documents"
+			},
+			"documents_count": "{count} document(s)",
+			"status_badges": {
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED",
+				"progressing": "PROGRESSING",
+				"submitted": "SUBMITTED"
+			},
+			"empty": {
+				"title": "No applications found for this program",
+				"message": "Submit an application to get started"
+			}
+		},
+		"header": {
+			"institution_detail_button": "Institution Detail",
+			"contact_button": "Contact Institution",
+			"applications_count": "Number of applications: {count}"
+		},
+		"institution_status": {
+			"pending": "Pending Approval",
+			"rejected": "Account Rejected",
+			"deactivated": "Account Deactivated"
+		},
+		"errors": {
+			"error_title": "Error",
+			"failed_to_load": "Failed to load program details"
+		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This program has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This program has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
+		"recommendations": {
+			"title": "Recommend for you",
+			"no_recommendations": "No recommendations available at this time.",
+			"loading": "Loading...",
+			"upgrade": {
+				"title": "Unlock Personalized Recommendations",
+				"message": "Upgrade to Standard or Premium to see programs tailored to your profile and interests.",
+				"button": "View Upgrade Options"
+			}
+		},
+		"update_requests": {
+			"pending": {
+				"title": "Update Required",
+				"message": "The institution has requested additional information or documents for your application. Please review the request and submit the required updates.",
+				"button": "View Update Request & Submit Response"
+			},
+			"responded": {
+				"title": "Update Submitted Successfully",
+				"message": "Your update response has been submitted successfully. The institution will review your changes.",
+				"button": "View Update Details"
+			},
+			"reviewed": {
+				"title": "Update Submitted Successfully",
+				"message": "Your update response has been submitted successfully. The institution will review your changes.",
+				"button": "View Update Details"
+			},
+			"default": {
+				"title": "Update Request",
+				"message_prefix": "Update request #"
+			}
+		},
+		"congratulations": {
+			"title": "Congratulations!",
+			"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
+			"status_label": "Application Status:"
+		},
+		"application_status": {
+			"accepted": {
+				"title": "Application Accepted!",
+				"message": "Congratulations! Your application has been accepted. The institution will contact you soon with next steps."
+			},
+			"rejected": {
+				"title": "Application Not Selected",
+				"message": "We regret to inform you that your application was not selected this time. You can reapply if you wish to submit a new application."
+			},
+			"updated": {
+				"title": "Application Updated",
+				"message": "Your application has been updated successfully. The institution will review your changes."
+			},
+			"submitted": {
+				"title": "Application Submitted Successfully!",
+				"message": "Your application has been submitted. You will receive updates via email."
+			}
+		},
+		"apply": {
+			"title": "Apply here !",
+			"status_title": "Application Status",
+			"edit_documents": "Edit Application Documents",
+			"cancel_edit": "Cancel Edit",
+			"reapply_button": "Reapply",
+			"resetting": "Resetting...",
+			"post_closed_message": "This program is closed. You cannot reapply.",
+			"reapply_limit_info": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_warning": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_reached": "You have reached the maximum number of reapplication attempts (3 times). You cannot apply again.",
+			"document_requirement": "Required Document(s)",
+			"select_profile_button": "Select Documents from Profile",
+			"select_profile_hint": "Choose documents you've already uploaded to your profile",
+			"or_divider": "or",
+			"files_uploaded": "Files Uploaded!",
+			"files_uploaded_message": "{count} file(s) uploaded and added to your application",
+			"validation_failed": "Validation Failed!",
+			"validation_failed_message": "Some files failed validation. Please remove them and try again.",
+			"documents_label": "Documents:",
+			"from_profile_badge": "From Profile",
+			"uploaded_badge": "Uploaded",
+			"view_button": "View",
+			"remove_button": "Remove",
+			"uploading_files": "Uploading files...",
+			"remove_all_button": "Remove all",
+			"update_documents_button": "Update Documents",
+			"updating_button": "Updating...",
+			"submit_button": "Submit Application",
+			"submitting_button": "Submitting...",
+			"cancel_edit_button": "Cancel",
+			"save_changes_button": "Save Changes",
+			"edit_documents_button": "Edit Documents",
+			"already_applied_title": "Already Applied",
+			"already_applied_message": "You have already applied to this program. You cannot submit multiple applications.",
+			"documents_updated_title": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed_title": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error_title": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"retry": "Retry",
+			"application_submitted_title": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email.",
+			"application_failed_title": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"limit_reached_title": "Application Limit Reached",
+			"upgrade_plan": "Upgrade Plan",
+			"application_error_title": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again."
+		},
+		"documents_section": {
+			"title": "Application Documents",
+			"title_with_count": "Application Documents ({count} file{plural})",
+			"edit_button": "Edit Documents",
+			"description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
+			"uploaded_label": "Uploaded:",
+			"download_button": "Download",
+			"status_submitted": "SUBMITTED",
+			"status_require_update": "REQUIRE_UPDATE",
+			"status_accepted": "ACCEPTED",
+			"ready_title": "{count} Document{plural} Ready",
+			"warning": "Please select at least one document to submit your application"
+		},
+		"modals": {
+			"delete_confirm": {
+				"title": "Delete All Files",
+				"message": "Do you want to delete all files? This action cannot be undone.",
+				"cancel": "Cancel",
+				"confirm": "Delete All"
+			},
+			"cancel_edit": {
+				"title": "Discard Changes?",
+				"message": "You have unsaved changes. Are you sure you want to cancel editing? All changes will be lost.",
+				"keep": "Keep Editing",
+				"discard": "Discard Changes"
+			},
+			"document_selector": {
+				"title": "Select Documents for Application",
+				"summary": {
+					"selected": "{count} document{plural} selected from profile",
+					"ready": "Ready to submit",
+					"none_selected": "No documents selected",
+					"choose_files": "Choose files to continue"
+				},
+				"cancel": "Cancel",
+				"continue": "Continue",
+				"select_first": "Select Documents First",
+				"success": "Documents Selected!",
+				"success_message": "{count} document{plural} ready for application submission"
+			},
+			"auth_required": {
+				"title": "Authentication Required",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
+				"sign_in": "Sign in",
+				"sign_up": "Sign up"
+			}
+		},
+		"notifications": {
+			"wishlist_added": "Added to Wishlist",
+			"wishlist_added_message": "This program has been added to your wishlist.",
+			"wishlist_removed": "Removed from Wishlist",
+			"wishlist_removed_message": "This program has been removed from your wishlist.",
+			"wishlist_error": "Wishlist Error",
+			"wishlist_error_message": "Failed to update wishlist. Please try again.",
+			"documents_updated": "Documents Updated!",
+			"documents_updated_message": "Your application documents have been updated successfully.",
+			"update_failed": "Update Failed",
+			"update_failed_message": "Failed to update documents. Please try again.",
+			"update_error": "Update Error",
+			"update_error_message": "An unexpected error occurred. Please try again.",
+			"application_submitted": "Application Submitted!",
+			"application_submitted_message": "Your application has been submitted successfully. You will receive updates via email.",
+			"application_failed": "Application Failed",
+			"application_failed_message": "Failed to submit application. Please try again.",
+			"application_error": "Application Error",
+			"application_error_message": "An unexpected error occurred. Please try again.",
+			"application_limit": "Application Limit Reached",
+			"already_applied_title": "Already Applied",
+			"already_applied_message": "You have already applied to this program. You cannot submit multiple applications.",
+			"update_submitted": "Update Submitted",
+			"update_submitted_message": "Your update response has been submitted successfully. The institution will review your changes.",
+			"retry": "Retry",
+			"upgrade_plan": "Upgrade Plan"
+		},
+		"loading": "Loading program details...",
+		"error": "Failed to load program details",
+		"not_found": "Program not found"
+	},
+
+	"scholarship_detail": {
+		"loading": "Loading scholarship details...",
+		"error": "Failed to load scholarship details",
+		"not_found": "Scholarship not found",
+		"breadcrumb": {
+			"home": "Home",
+			"explore": "Explore",
+			"scholarships": "Scholarships",
+			"detail": "Scholarship Detail"
+		},
+		"header": {
+			"institution_detail_button": "View Institution Detail",
+			"contact_button": "Contact Institution",
+			"applications_count": "Number of applications: {count}",
+			"grant": "Grant",
+			"country": "Country",
+			"institution_type": "Insitutuion Type",
+			"application_deadline": "Application deadline",
+			"na": "N/A",
+			"status_pending": "Pending Verification",
+			"status_rejected": "Rejected",
+			"status_deactivated": "Deactivated"
+		},
+		"tabs": {
+			"detail": "Detail",
+			"eligibility": "Eligibility",
+			"other": "Other information",
+			"application": "My Applications",
+			"overview": "Overview",
+			"applications": "Applications"
+		},
+		"about": {
+			"title": "About"
+		},
+		"detail": {
+			"description_title": "Description",
+			"no_description": "No description available.",
+			"details_title": "Details",
+			"amount": "Amount",
+			"type": "Type",
+			"coverage": "Coverage",
+			"essay_required": "Essay Required",
+			"number_available": "Number Available",
+			"days_left": "Days Left",
+			"days_count": "{count} days",
+			"match_percentage": "Match Percentage",
+			"not_available": "N/A"
+		},
+		"eligibility": {
+			"title": "Eligibility Requirements",
+			"no_requirements": "No specific eligibility requirements listed.",
+			"subdisciplines_label": "Related Subdisciplines:",
+			"documents_label": "Required Documents:"
+		},
+		"other": {
+			"institution_title": "Institution Information",
+			"name_label": "Name:",
+			"abbreviation_label": "Abbreviation:",
+			"country_label": "Country:",
+			"website_label": "Website:"
+		},
+		"eligibility_programmes": {
+			"title": "Eligibility programmes",
+			"description": "Programmes you may be eligible for based on this scholarship's requirements.",
+			"loading": "Loading eligibility programmes...",
+			"results": "{count} results",
+			"page_info": "(Page {current} of {total})",
+			"empty": {
+				"icon": "📚",
+				"title": "No programmes found",
+				"message": "Try adjusting your filters to find more programmes"
+			}
+		},
+		"apply": {
+			"title_not_applied": "Apply here !",
+			"title_applied": "Application Status",
+			"edit_documents_title": "Edit Application Documents",
+			"cancel_edit_button": "Cancel Edit",
+			"status_badge": {
+				"submitted": "SUBMITTED",
+				"pending": "SUBMITTED",
+				"require_update": "REQUIRE_UPDATE",
+				"updated": "UPDATED",
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED"
+			},
+			"status_messages": {
+				"submitted": "Application Submitted Successfully!",
+				"submitted_message": "Your application has been submitted. You will receive updates via email.",
+				"updated": "Application Updated",
+				"updated_message": "Your application has been updated. The institution will review your changes.",
+				"accepted": "Application Accepted!",
+				"accepted_message": "Congratulations! Your application has been accepted. The institution will contact you soon with next steps.",
+				"rejected": "Application Not Selected",
+				"rejected_message": "We regret to inform you that your application was not selected this time. You can reapply below if you wish to submit a new application."
+			},
+			"congratulations": {
+				"title": "Congratulations!",
+				"message": "Your application has been approved! The institution will contact you with further details about the next steps.",
+				"status_label": "Application Status:",
+				"accepted": "ACCEPTED"
+			},
+			"document_requirements": {
+				"no_specific": "Not have any specific document requirement. You can upload any"
+			},
+			"select_profile_button": "📄 Select from Profile",
+			"select_profile_hint": "Choose documents from your profile for the snapshot",
+			"or_divider": "OR",
+			"documents_uploaded": "Application Documents ({count} file{plural})",
+			"from_profile_badge": "From Profile",
+			"uploaded_badge": "Uploaded",
+			"view_button": "View",
+			"remove_button": "Remove",
+			"download_button": "Download",
+			"edit_documents_button": "Edit Documents",
+			"documents_description": "These are the documents you submitted with your application. They cannot be modified or deleted.",
+			"uploaded_label": "Uploaded:",
+			"remove_all_button": "Remove all",
+			"submit_button": "Submit Application",
+			"submitting_button": "Submitting...",
+			"upload_files_button": "Upload Files to Continue",
+			"checking_button": "Checking...",
+			"uploading_files_button": "Uploading Files...",
+			"application_submitted": "✓ Application Submitted",
+			"upload_warning": "📁 Please upload at least one document to submit your application",
+			"uploading_progress": "Uploading files...",
+			"file_progress": "File {index}",
+			"reapply_button": "Reapply Now",
+			"resetting": "Resetting...",
+			"post_closed_message": "This scholarship is closed. You cannot reapply.",
+			"reapply_limit_info": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_warning": "You can apply at most 3 times. You have {remaining} attempt(s) remaining.",
+			"reapply_limit_reached": "You have reached the maximum number of reapplication attempts (3 times). You cannot apply again."
+		},
+		"recommendations": {
+			"title": "Recommended Scholarships",
+			"description": "Similar scholarships based on discipline or degree level",
+			"loading": "Loading recommendations...",
+			"no_recommendations": "No recommendations available at this time.",
+			"upgrade": {
+				"icon": "🔒",
+				"title": "Unlock Personalized Recommendations",
+				"message": "Upgrade to Standard or Premium to see scholarships tailored to your profile and interests.",
+				"button": "View Upgrade Options"
+			}
+		},
+		"applications_list": {
+			"title": "My Applications",
+			"table_headers": {
+				"date": "Application Date",
+				"status": "Status",
+				"documents": "Documents"
+			},
+			"documents_count": "{count} document(s)",
+			"status_badges": {
+				"accepted": "ACCEPTED",
+				"rejected": "REJECTED",
+				"progressing": "PROGRESSING",
+				"submitted": "SUBMITTED"
+			},
+			"empty": {
+				"title": "No applications found for this scholarship",
+				"message": "Submit an application to get started"
+			}
+		},
+		"modals": {
+			"delete_confirm": {
+				"title": "Delete All Files",
+				"message": "Do you want to delete all files? This action cannot be undone.",
+				"cancel": "Cancel",
+				"confirm": "Delete All"
+			},
+			"cancel_edit": {
+				"title": "Discard Changes?",
+				"message": "You have unsaved changes. Are you sure you want to cancel editing? All changes will be lost.",
+				"keep": "Keep Editing",
+				"discard": "Discard Changes"
+			},
+			"document_selector": {
+				"title": "Select Documents for Application",
+				"summary": {
+					"selected": "{count} document{plural} selected from profile",
+					"ready": "Ready to submit",
+					"none_selected": "No documents selected",
+					"choose_files": "Choose files to continue"
+				},
+				"cancel": "Cancel",
+				"continue": "Continue",
+				"select_first": "Select Documents First",
+				"success": "Documents Selected!",
+				"success_message": "{count} document{plural} ready for application submission"
+			},
+			"auth_required": {
+				"title": "Authentication Required",
+				"message": "You need to sign in to access this feature. Please sign in to your account or create a new one.",
+				"sign_in": "Sign In",
+				"sign_up": "Sign Up"
+			}
+		},
+		"notifications": {
+			"files_uploaded": "Files Uploaded",
+			"files_uploaded_message": "{count} file(s) uploaded successfully"
+		}
+	},
+
+	"pricing": {
+		"hero": {
+			"badge": "Pricing plan",
+			"title": "Choose the plan that's right for you",
+			"description": "Select a plan that fits your scholarship hunting needs. From basic search to AI-powered matching, we've got you covered."
+		},
+		"plans": {
+			"free": {
+				"name": "Free Plan",
+				"price": "0",
+				"period": "monthly",
+				"description": "Ideal for applicants ready to apply and track progress.",
+				"button": "Get Started Free",
+				"features": [
+					"Account registration & OTP verification",
+					"Create & update personal profile (GPA, skills, research topic, etc.)",
+					"Basic scholarship, program & research group search",
+					"View scholarship details & requirements",
+					"Receive deadline reminders for saved scholarships/programs",
+					"Send messages to scholarship staff / professors"
+				],
+				"limits": {
+					"applications": "Applications:",
+					"scholarships": "Scholarships:",
+					"programs": "Programs:"
+				}
+			},
+			"standard": {
+				"name": "Standard Membership",
+				"price": "99",
+				"period": "monthly",
+				"description": "Perfect for active scholarship hunters and applicants.",
+				"button": "Upgrade to Standard",
+				"features": [
+					"All Free Plan features",
+					"Advanced scholarship matching algorithms",
+					"Priority application tracking",
+					"Extended program database access",
+					"Email notifications & reminders",
+					"Direct messaging with admissions staff",
+					"Application deadline calendar sync",
+					"Basic analytics dashboard"
+				],
+				"limits": {
+					"applications": "Applications:",
+					"scholarships": "Scholarships:",
+					"programs": "Programs:"
+				}
+			},
+			"premium": {
+				"name": "Premium Membership",
+				"price": "199",
+				"period": "monthly",
+				"description": "Ultimate package for serious academic pursuers.",
+				"button": "Upgrade to Premium",
+				"features": [
+					"All Standard Plan features",
+					"AI-powered essay review & suggestions",
+					"One-on-one consultation calls",
+					"Custom scholarship recommendations",
+					"Application document templates",
+					"Interview preparation resources",
+					"Exclusive webinars & workshops",
+					"Priority customer support"
+				],
+				"limits": {
+					"applications": "Applications:",
+					"scholarships": "Scholarships:",
+					"programs": "Programs:"
+				}
+			}
+		},
+		"badges": {
+			"most_popular": "Most Popular",
+			"active": "Active"
+		},
+		"buttons": {
+			"get_started": "Get Started",
+			"current_plan": "Current Plan",
+			"lower_plan": "Lower Plan",
+			"processing": "Processing...",
+			"cancel_subscription": "Cancel Subscription",
+			"cancelling": "Cancelling...",
+			"contact_us": "Contact Us",
+			"keep_current_plan": "Keep Current Plan",
+			"cancel_current_plan": "Cancel Current Plan",
+			"keep_my_subscription": "Keep My Subscription",
+			"upgrade": "Upgrade",
+			"upgrading": "Upgrading...",
+			"canceling": "Canceling...",
+			"loading": "Loading...",
+			"sign_in_required": "Sign in to upgrade"
+		},
+		"modals": {
+			"active_subscription": {
+				"title": "You Already Have an Active Subscription",
+				"current_plan": "You currently have an active {plan} subscription.",
+				"need_cancel": "To subscribe to the {newPlan} plan, you need to cancel your current subscription first.",
+				"access_note": "You'll retain access to your current plan until the end of your billing period.",
+				"canceling": "Canceling..."
+			},
+			"cancel_confirmation": {
+				"title": "Cancel Subscription",
+				"confirm_question": "Are you sure you want to cancel your subscription?",
+				"current_plan": "You currently have an active {plan} subscription.",
+				"access_note": "You'll retain access to your current plan until the end of your billing period.",
+				"warning": "This action cannot be undone. You'll need to resubscribe to regain access."
+			}
+		},
+		"comparison": {
+			"title": "Compare Plans",
+			"description": "Choose the plan that best fits your scholarship hunting needs and budget.",
+			"features_header": "Features",
+			"monthly": "month",
+			"feature_map": {
+				"Account registration & OTP verification": "Account registration & OTP verification",
+				"Create & update personal profile (GPA, skills, research topic, etc)": "Create & update personal profile (GPA, skills, research topic, etc.)",
+				"Basic scholarship, program & research group search": "Basic scholarship, program & research group search",
+				"View scholarship details & requirements": "View scholarship details & requirements",
+				"Receive deadline reminders for saved scholarships/programs": "Receive deadline reminders for saved scholarships/programs",
+				"Send messages to scholarship staff / professors": "Send messages to scholarship staff / professors",
+				"See matching score for scholarships / research groups": "See matching score for scholarships / research groups",
+				"Basic recommendations (rule-based)": "Basic recommendations (rule-based)",
+				"Advanced AI Matching": "Advanced AI Matching",
+				"Search scholarships with natural language input": "Search scholarships with natural language input",
+				"Unlimited applications": "Unlimited applications",
+				"Unlimited messaging": "Unlimited messaging",
+				"All Free Plan features": "All Free Plan features",
+				"All Standard Plan features": "All Standard Plan features",
+				"Everything in Free": "Everything in Free Plan",
+				"Everything in Standard": "Everything in Standard Plan",
+				"Advanced scholarship matching algorithms": "Advanced scholarship matching algorithms",
+				"Priority application tracking": "Priority application tracking",
+				"Extended program database access": "Extended program database access",
+				"Email notifications & reminders": "Email notifications & reminders",
+				"Direct messaging with admissions staff": "Direct messaging with admissions staff",
+				"Application deadline calendar sync": "Application deadline calendar sync",
+				"Basic analytics dashboard": "Basic analytics dashboard",
+				"AI-powered essay review & suggestions": "AI-powered essay review & suggestions",
+				"One-on-one consultation calls": "One-on-one consultation calls",
+				"Custom scholarship recommendations": "Custom scholarship recommendations",
+				"Application document templates": "Application document templates",
+				"Interview preparation resources": "Interview preparation resources",
+				"Exclusive webinars & workshops": "Exclusive webinars & workshops",
+				"Priority customer support": "Priority customer support",
+				"Create and manage comprehensive institutional profiles with branding and details": "Create and manage comprehensive institutional profiles with branding and details",
+				"Post detailed opportunities with descriptions, eligibility criteria, and deadlines": "Post detailed opportunities with descriptions, eligibility criteria, and deadlines",
+				"Access intelligent matching algorithms to find the best candidates": "Access intelligent matching algorithms to find the best candidates",
+				"View detailed applicant profiles with matching scores and analytics": "View detailed applicant profiles with matching scores and analytics",
+				"Invite applicants for interviews and update selection results seamlessly": "Invite applicants for interviews and update selection results seamlessly",
+				"Communicate with applicants via built-in chat and email systems": "Communicate with applicants via built-in chat and email systems",
+				"Monitor engagement statistics, views, and applications through web dashboards": "Monitor engagement statistics, views, and applications through web dashboards"
+			},
+			"plan_names": {
+				"Free Plan": "Free Plan",
+				"Standard Plan": "Standard Plan",
+				"Premium Plan": "Premium Plan",
+				"Institution Plan": "Institution Plan"
+			},
+			"plan_descriptions": {
+				"Basic plan for students": "Basic plan for students",
+				"Perfect for active scholarship hunters and applicants": "Perfect for active scholarship hunters and applicants",
+				"Unlimited and unlock all functions": "Unlimited and unlock all functions",
+				"Institution plan for Education Group": "Institution plan for Education Group"
+			},
+			"features": [
+				"Account registration & OTP verification",
+				"Create & update personal profile (GPA, skills, research topic, etc.)",
+				"Basic scholarship, program & research group search",
+				"View scholarship details & requirements",
+				"Receive deadline reminders for saved scholarships/programs",
+				"Send messages to scholarship staff / professors",
+				"See matching score for scholarships / research groups",
+				"Basic recommendations (rule-based)",
+				"Advanced AI Matching",
+				"Search scholarships with natural language input",
+				"Unlimited applications",
+				"Unlimited messaging"
+			]
+		},
+		"faq": {
+			"badge": "Common questions",
+			"title": "Frequently asked questions",
+			"description": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s",
+			"questions": [
+				{
+					"question": "What is included in the Free Plan?",
+					"answer": "The Free Plan includes basic account registration, profile creation, scholarship search, and viewing details. Perfect for getting started with EduMatch."
+				},
+				{
+					"question": "Can I upgrade or downgrade my plan anytime?",
+					"answer": "Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle."
+				},
+				{
+					"question": "What makes the Premium Plan worth it?",
+					"answer": "The Premium Plan includes advanced AI matching, unlimited applications, natural language search, and priority customer support for serious scholarship hunters."
+				},
+				{
+					"question": "Do you offer refunds?",
+					"answer": "We offer a 30-day money-back guarantee for all paid plans. If you are not satisfied, contact our support team for a full refund."
+				}
+			]
+		},
+		"includes": "Includes"
+	},
+	"file_upload": {
+		"drag_drop": "Drag and drop files here, or",
+		"browse": "browse",
+		"max_size": "{size}MB each",
+		"processing": {
+			"extracting": "Extracting text (it will take a few seconds)...",
+			"validating": "Validating content (it will take 15s - 20s)...",
+			"uploading": "Uploading to cloud...",
+			"completed": "Processing complete",
+			"failed": "Processing failed",
+			"blocked": "⚠️ Upload blocked: {reason}"
+		},
+		"ocr_required": "OCR text extraction & validation required",
+		"validation_required": "Files must pass content validation before upload",
+		"uploading_files": "Uploading files...",
+		"overall_progress": "Overall progress",
+		"alerts": {
+			"max_files": "You can only select up to {maxFiles} file(s). Only the first {maxFiles} file(s) will be processed.",
+			"file_too_large": "File {fileName} is too large. Maximum size is {maxSize}MB.",
+			"invalid_type": "File {fileName} is not an accepted file type.",
+			"upload_failed": "Upload failed: {error}"
+		}
+	},
+	"application_section": {
+		"title": "Application",
+		"tabs": {
+			"programmes": "Programmes",
+			"scholarships": "Scholarships",
+			"research": "Research Labs"
+		},
+		"filters": {
+			"submitted": "Submitted",
+			"progressing": "Progressing",
+			"accepted": "Accepted",
+			"rejected": "Rejected"
+		},
+		"wishlist": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"error_title": "Wishlist Error",
+			"error_message": "Failed to update wishlist. Please try again."
+		},
+		"buttons": {
+			"explore_more": "Explore more"
+		},
+		"status": {
+			"SUBMITTED": "Submitted",
+			"REQUIRE_UPDATE": "Update Required",
+			"ACCEPTED": "Accepted",
+			"REJECTED": "Rejected",
+			"UPDATED": "Updated",
+			"PROGRESSING": "In Progress"
+		},
+		"search": {
+			"placeholder": "Search..."
+		},
+		"results": {
+			"count": "{count} results"
+		},
+		"empty": {
+			"title": "No applications found",
+			"description": "You haven't applied to any programs, scholarships, or research labs yet.",
+			"button": "Explore Opportunities"
+		},
+		"error": {
+			"failed_to_process": "Failed to process application data",
+			"button": "Retry"
+		},
+		"defaults": {
+			"no_description": "No description available",
+			"not_specified": "Not specified",
+			"academic_program": "Academic Program",
+			"funding_available": "Available",
+			"default_match": "85%",
+			"research": "Research",
+			"professor": "Prof. Researcher"
+		}
+	},
+	"profile_view": {
+		"loading": "Loading profile...",
+		"redirecting": "Redirecting...",
+		"error_title": "Error",
+		"try_again": "Try Again",
+		"errors": {
+			"load_failed": "Failed to load profile data",
+			"refresh_failed": "Failed to refresh profile data"
+		},
+		"payment": {
+			"title": "My Subscription",
+			"description": "Manage your subscription plan and billing through Stripe"
+		},
+		"subscription_widget": {
+			"plan_applications": "Plan Applications",
+			"resets_in_days": "Resets in {days} days",
+			"applications_used": "Applications Used",
+			"status": {
+				"limit_reached": "Application limit reached.",
+				"upgrade_unlimited": "Upgrade for unlimited applications",
+				"only_remaining": "Only {count} application remaining this period",
+				"only_remaining_plural": "Only {count} applications remaining this period",
+				"remaining": "{count} applications remaining this period"
+			}
+		},
+		"subscription_info": {
+			"current_subscription": "Your current subscription",
+			"upgrade_plan": "Upgrade plan",
+			"next_billing_date": "Next Billing Date",
+			"monthly_cost": "Monthly cost",
+			"member_since": "Member since",
+			"not_available": "N/A",
+			"not_available_full": "Not available",
+			"plans": {
+				"free": "Free Plan",
+				"standard": "Standard Membership",
+				"premium": "Premium Membership"
+			}
+		},
+		"subscription_features": {
+			"title": "Current plan include",
+			"features": {
+				"messages": "Send messages to scholarship officers / professors (limited number of initiated messages)",
+				"match_level": "View scholarship/research match level",
+				"basic_recommendations": "Basic opportunity recommendations (rule-based)",
+				"advanced_matching": "Advanced scholarship matching algorithms",
+				"priority_tracking": "Priority application tracking",
+				"extended_database": "Extended program database access",
+				"email_notifications": "Email notifications & reminders",
+				"direct_messaging": "Direct messaging with admissions staff",
+				"all_standard": "All Standard Plan features",
+				"ai_essay_review": "AI-powered essay review & suggestions",
+				"consultation_calls": "One-on-one consultation calls",
+				"custom_recommendations": "Custom scholarship recommendations",
+				"document_templates": "Application document templates",
+				"interview_prep": "Interview preparation resources",
+				"exclusive_webinars": "Exclusive webinars & workshops",
+				"priority_support": "Priority customer support"
+			}
+		},
+		"billing_portal": {
+			"title": "Billing & Payments",
+			"description": "Manage your subscription, payment methods, and billing history",
+			"payment_history": "Payment History",
+			"payment_history_description": "View all your past transactions and download invoices",
+			"no_history_found": "No payment history found",
+			"transaction_history": "Your transaction history will appear here",
+			"table": {
+				"date": "Date",
+				"invoice_id": "Invoice ID",
+				"amount": "Amount",
+				"status": "Status",
+				"actions": "Actions"
+			},
+			"actions": {
+				"view": "View",
+				"view_invoice": "View Invoice",
+				"download_pdf": "Download PDF"
+			},
+			"pagination": {
+				"showing": "Showing {from} to {to} of {total} transactions",
+				"page_of": "Page {current} of {total}",
+				"previous": "Previous",
+				"next": "Next"
+			},
+			"status": {
+				"paid": "Paid",
+				"open": "Open",
+				"void": "Void",
+				"uncollectible": "Uncollectible"
+			}
+		},
+		"navigation": {
+			"profile_info": "Profile Info",
+			"academic": "Academic",
+			"portfolio": "Portfolio",
+			"wishlist": "Wishlist",
+			"applications": "Applications",
+			"payment": "Payment",
+			"settings": "Settings",
+			"student": "Student"
+		}
+	},
+	"profile_info_section": {
+		"title": "Basic Information",
+		"description": "Manage your personal information and preferences",
+		"not_available": "This section is only available for student accounts.",
+		"buttons": {
+			"edit": "Edit",
+			"cancel": "Cancel",
+			"save": "Save",
+			"saving": "Saving...",
+			"upload_photo": "Upload your photo",
+			"uploading": "Uploading..."
+		},
+		"photo": {
+			"instructions": "Must be PNG or JPG file (max 5MB)"
+		},
+		"fields": {
+			"first_name": {
+				"label": "First Name",
+				"placeholder": "Enter your first name",
+				"not_provided": "Not provided"
+			},
+			"last_name": {
+				"label": "Last Name",
+				"placeholder": "Enter your last name",
+				"not_provided": "Not provided"
+			},
+			"gender": {
+				"label": "Gender",
+				"placeholder": "Choose gender",
+				"male": "Male",
+				"female": "Female",
+				"not_provided": "Not provided",
+				"options": {
+					"male": "Male",
+					"female": "Female"
+				}
+			},
+			"birthday": {
+				"label": "Birthday",
+				"placeholder": "dd/mm/yyyy"
+			},
+			"email": {
+				"label": "Email",
+				"not_provided": "Not provided"
+			},
+			"nationality": {
+				"label": "Nationality",
+				"placeholder": "Choose your nationality",
+				"not_provided": "Not provided"
+			},
+			"phone": {
+				"label": "Phone Number",
+				"placeholder": "Enter your phone number",
+				"not_provided": "Not provided"
+			},
+			"interests": {
+				"label": "Interest",
+				"placeholder": "Choose subject(s)/field(s) you interested in",
+				"not_provided": "No interests specified"
+			},
+			"favorite_countries": {
+				"label": "Favorite country",
+				"placeholder": "Choose your favorite countries",
+				"not_provided": "No favorite countries specified"
+			}
+		},
+		"errors": {
+			"invalid_image": "Please select an image file",
+			"file_too_large": "File size must be less than 5MB",
+			"upload_failed": "Failed to upload image. Please try again.",
+			"save_failed": "Failed to save profile. Please try again."
+		},
+		"success": {
+			"title": "Success!",
+			"message": "Your profile has been updated successfully.",
+			"button": "Continue"
+		},
+		"error": {
+			"title": "Error",
+			"button": "Close"
+		}
+	},
+	"academic_section": {
+		"title": "Academic Information",
+		"description": "Your educational background and academic achievements",
+		"not_available": "This section is only available for student accounts.",
+		"buttons": {
+			"edit": "Edit",
+			"cancel": "Cancel",
+			"save": "Save",
+			"saving": "Saving...",
+			"add_language": "Add language certification",
+			"add_research_paper": "Add Research Paper",
+			"delete_language": "Delete language certification",
+			"delete_research_paper": "Delete Research Paper"
+		},
+		"graduated": {
+			"title": "Graduated",
+			"not_yet": "Not yet",
+			"graduated": "Graduated",
+			"level": "Level",
+			"discipline": "Subdiscipline",
+			"gpa": "GPA",
+			"university": "University",
+			"country_of_study": "Country of Study"
+		},
+		"fields": {
+			"level": {
+				"label": "Level",
+				"placeholder": "Level",
+				"not_provided": "Not provided",
+				"options": {
+					"high_school": "High School",
+					"associate": "Associate",
+					"bachelor": "Bachelor's",
+					"master": "Master's",
+					"phd": "PhD",
+					"professional": "Professional"
+				}
+			},
+			"discipline": {
+				"label": "Subdiscipline",
+				"placeholder": "Choose Subdiscipline",
+				"not_provided": "Not provided"
+			},
+			"gpa": {
+				"label": "GPA",
+				"placeholder": "0.0–4.0",
+				"not_provided": "Not provided"
+			},
+			"university": {
+				"label": "University",
+				"placeholder": "e.g., Harvard University",
+				"not_provided": "Not provided"
+			},
+			"country_of_study": {
+				"label": "Country of Study",
+				"placeholder": "Select country",
+				"not_provided": "Not provided"
+			}
+		},
+		"foreign_language": {
+			"title": "Foreign Language",
+			"yes": "Yes",
+			"no": "No",
+			"language": "Language",
+			"certificate": "Certificate",
+			"score": "Score",
+			"placeholder": {
+				"language": "Language",
+				"certificate": "Select certificate",
+				"score": "Score"
+			},
+			"languages": {
+				"vietnamese": "Vietnamese",
+				"english": "English",
+				"spanish": "Spanish",
+				"french": "French",
+				"german": "German",
+				"chinese": "Chinese",
+				"japanese": "Japanese",
+				"korean": "Korean"
+			}
+		},
+		"files": {
+			"cv": {
+				"title": "CV / Resume",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
+			},
+			"language_cert": {
+				"title": "Foreign Language Certificate",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
+			},
+			"degree": {
+				"title": "Degree Certificate",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
+			},
+			"transcript": {
+				"title": "Academic Transcript",
+				"no_files": "No files uploaded yet",
+				"upload_hint": "Click \"Add More\" to upload files"
+			},
+			"view": "View",
+			"remove": "Remove"
+		},
+		"research_papers": {
+			"title": "Research Papers",
+			"paper_title": "Paper Title",
+			"disciplines": "Subdisciplines",
+			"files": "Research Paper Files",
+			"no_files": "No files uploaded",
+			"no_papers": "No research papers uploaded yet",
+			"upload_hint": "Click \"Add Research Paper\" to get started",
+			"placeholder": {
+				"title": "Enter research paper title",
+				"disciplines": "Choose subdisciplines"
+			},
+			"not_provided": "Not provided"
+		},
+		"errors": {
+			"incomplete_papers": "Please provide both title and discipline for all research papers before uploading files.",
+			"save_failed": "Failed to save academic information. Please try again.",
+			"upload_failed": "Failed to upload files. Please try again.",
+			"invalid_file": "Please select image, PDF, or document files",
+			"file_too_large": "File size must be less than 10MB"
+		},
+		"error": {
+			"title": "Error",
+			"button": "Close"
+		},
+		"success": {
+			"title": "Success!",
+			"message": "Your academic information has been updated successfully.",
+			"button": "Continue"
+		}
+	},
+	"wishlist_section": {
+		"title": "Wishlist",
+		"tabs": {
+			"programmes": "Programmes",
+			"scholarships": "Scholarships",
+			"research_labs": "Research Labs"
+		},
+		"search": {
+			"placeholder": "Search..."
+		},
+		"filters": {
+			"all_disciplines": "All Disciplines",
+			"all_countries": "All Countries",
+			"fee_range": "Fee Range",
+			"all_durations": "All Durations",
+			"all_degree_levels": "All Degree Levels",
+			"all_attendance": "All Attendance",
+			"show_expired": "Show Expired",
+			"clear_filters": "Clear Filters"
+		},
+		"results": {
+			"count": "{count} results"
+		},
+		"loading": "Loading your wishlist...",
+		"empty": {
+			"title": "No items in your wishlist",
+			"description": "Start exploring and add programs, scholarships, or research opportunities to your wishlist.",
+			"button": "Explore Opportunities"
+		},
+		"error": {
+			"message": "Failed to load wishlist data",
+			"button": "Retry"
+		},
+		"success": {
+			"added_title": "Added to Wishlist",
+			"added_message": "This {type} has been added to your wishlist.",
+			"added_message_default": "This item has been added to your wishlist.",
+			"removed_title": "Removed from Wishlist",
+			"removed_message": "This {type} has been removed from your wishlist.",
+			"removed_message_default": "This item has been removed from your wishlist.",
+			"button": "Continue"
+		}
+	},
+	"settings_section": {
+		"account_info": {
+			"title": "Account Information",
+			"description": "Manage your personal information and account settings. Keep your details up to date for the best experience.",
+			"email": {
+				"label": "Email"
+			}
+		},
+		"notifications": {
+			"title": "Notification Preferences",
+			"loading": "Loading...",
+			"application_status": {
+				"title": "Application status updates",
+				"description": "Get notified when your application status changes through email"
+			},
+			"wishlist_deadline": {
+				"title": "Deadline for wishlist items",
+				"description": "Get email notifications when events in your wishlist are about to expire"
+			},
+			"payment": {
+				"title": "Payment",
+				"description": "Get email notifications 3 days before membership fee payment is due"
+			}
+		},
+		"delete_account": {
+			"title": "Delete account",
+			"description": "Permanently remove your account and all associated data. This action cannot be undone and will:",
+			"consequences": [
+				"Delete your profile and personal information",
+				"Remove all your applications and saved opportunities",
+				"Cancel any active subscriptions",
+				"Permanently delete your account history"
+			],
+			"note": "Note: Your account data will be preserved and you can contact support to reactivate your account in the future if needed.",
+			"button": "Delete your account",
+			"checking": "Checking subscriptions...",
+			"modal": {
+				"title": "Delete Account",
+				"confirmation_title": "Are you absolutely sure?",
+				"confirmation_message": "This action cannot be undone. This will permanently delete your account and remove all your data from our servers.",
+				"data_warning": "The following data will be permanently deleted:",
+				"data_list": [
+					"Your profile information",
+					"All your applications and saved posts",
+					"Your wishlist and preferences",
+					"Your message history",
+					"All associated files and documents"
+				],
+				"type_delete": "Type \"DELETE\" to confirm",
+				"placeholder": "Type DELETE to confirm",
+				"cancel": "Cancel",
+				"delete": "Delete Account",
+				"deleting": "Deleting..."
+			},
+			"subscription_warning": {
+				"title": "Active Subscription Found",
+				"cannot_delete": "Cannot Delete Account",
+				"message": "You have active subscriptions that need to be canceled before you can delete your account.",
+				"what_to_do": "What you need to do:",
+				"steps": [
+					"Go to the pricing page to manage your subscriptions",
+					"Cancel all active subscriptions",
+					"Return to this page to delete your account"
+				],
+				"cancel": "Cancel",
+				"go_to_pricing": "Go to Pricing Page"
+			}
+		},
+		"password": {
+			"label": "Password",
+			"change_button": "Change password",
+			"checking_auth": "Checking authentication method...",
+			"google_signin": "Signed in with Google",
+			"google_message": "Password management is handled by Google. You can change your password in your Google account settings.",
+			"modal": {
+				"title": "Change Password",
+				"success": "Password changed successfully!",
+				"current_password": {
+					"label": "Current Password",
+					"placeholder": "Enter your current password",
+					"required": "*"
+				},
+				"new_password": {
+					"label": "New Password",
+					"placeholder": "Enter your new password",
+					"required": "*"
+				},
+				"confirm_password": {
+					"label": "Confirm New Password",
+					"placeholder": "Confirm your new password",
+					"required": "*"
+				},
+				"cancel": "Cancel",
+				"submit": "Change Password",
+				"submitting": "Changing...",
+				"success_button": "Success!"
+			}
+		}
+	},
+	"application_update_modal": {
+		"title": "Update Required - Submit Response",
+		"loading": "Loading update request...",
+		"error": {
+			"title": "Failed to load update request"
+		},
+		"request": {
+			"title": "Institution Request",
+			"requested_on": "Requested on: {date}",
+			"requested_documents": "Requested Documents:"
+		},
+		"upload": {
+			"title": "Upload Documents",
+			"required": "*",
+			"drag_drop": "Click to upload or drag and drop",
+			"accepted_formats": "PDF, DOC, DOCX, JPG, PNG (Max 10MB)",
+			"uploaded_files": "Uploaded Files",
+			"submitted_documents": "Submitted Documents ({count})"
+		},
+		"document_types": {
+			"research_proposal": "Research Proposal",
+			"cv_resume": "CV/Resume",
+			"portfolio": "Portfolio",
+			"academic_transcript": "Academic Transcript",
+			"personal_statement": "Personal Statement",
+			"recommendation_letter": "Recommendation Letter",
+			"language_certificate": "Language Certificate",
+			"passport_copy": "Passport Copy",
+			"degree_certificate": "Degree Certificate",
+			"other": "Other"
+		},
+		"response": {
+			"title": "Response Message (Optional)",
+			"placeholder": "Add any comments or notes regarding the update...",
+			"characters": "{count} characters",
+			"your_response": "Your Response",
+			"submitted_on": "Submitted on: {date}"
+		},
+		"buttons": {
+			"cancel": "Cancel",
+			"submit": "Submit Update Response",
+			"submitting": "Submitting...",
+			"view": "View",
+			"close": "Close"
+		},
+		"errors": {
+			"no_documents": "Please upload at least one document",
+			"submit_failed": "Failed to submit update response. Please try again."
+		}
+	},
+	"sidebar": {
+		"subscription": {
+			"institution_yearly": "Institution Yearly",
+			"institution_monthly": "Institution Monthly",
+			"no_subscription": "No Subscription",
+			"standard": "Standard",
+			"premium": "Premium",
+			"free": "Free"
+		}
+	},
+	"modals": {
+		"success": {
+			"title": "Success!",
+			"message": "Operation completed successfully.",
+			"button": "Continue"
+		},
+		"error": {
+			"title": "Error",
+			"message": "Something went wrong. Please try again.",
+			"button": "Close",
+			"retry": "Try Again",
+			"cancel": "Cancel"
+		},
+		"warning": {
+			"title": "Unsaved Changes",
+			"message": "You have unsaved changes. What would you like to do before leaving this section?",
+			"discard": "Discard Changes",
+			"save": "Save & Continue",
+			"saving": "Saving..."
+		}
+	},
+	"support_page": {
+		"header": {
+			"title": "Support Center",
+			"subtitle": "Get help using the EduMatch platform, find answers to frequently asked questions, and contact our support team for personalized assistance."
+		},
+		"tabs": {
+			"account": "Account",
+			"application": "Application",
+			"subscription": "Subscription",
+			"other": "Other information"
+		},
+		"faq": {
+			"title": "Frequently Asked Questions",
+			"no_faqs_available": "No FAQs available"
+		},
+		"divider": {
+			"icon_label": "Need more help?"
+		},
+		"contact": {
+			"title": "Contact Us",
+			"subtitle": "Have an issue not covered in the FAQs? You can ask us a question here, and we'll get back to you to help.",
+			"email_label": "Your Email",
+			"email_placeholder": "you@example.com",
+			"problem_type_label": "Problem Type",
+			"problem_type_placeholder": "Select problem type",
+			"problem_types": {
+				"application": "Application",
+				"account": "Account",
+				"subscription": "Subscription",
+				"technical": "Technical",
+				"other": "Other"
+			},
+			"question_placeholder": "Enter your question here",
+			"note": "You can attach files to help us better understand your issue. Supported formats: PNG, JPEG (max 5MB), PDF, DOC, DOCX (max 10MB).",
+			"note_label": "Note:",
+			"uploaded_files_label": "Uploaded Files ({count}):",
+			"manage_files_button": "Manage Files",
+			"more_files_text": "... and {count} more files. Click \"Manage Files\" to view all.",
+			"sending": "Sending your request...",
+			"submit_success": "Your request has been submitted. We will contact you soon.",
+			"submit_error": "Please enter your question",
+			"email_required": "Please provide your email",
+			"generic_error": "An error occurred"
+		},
+		"file_validation": {
+			"image_too_large": "{filename} is too large. Image files must be under 5MB.",
+			"document_too_large": "{filename} is too large. Document files must be under 10MB.",
+			"unsupported_type": "{filename} is not supported. Only PNG, JPEG, PDF, and DOC files are accepted."
+		},
+		"file_modal": {
+			"title": "Manage Files",
+			"close_button": "✕",
+			"uploaded_section_title": "Uploaded Files ({count})",
+			"delete_button": "Delete",
+			"empty_state": "No files uploaded yet",
+			"empty_icon": "📁",
+			"file_icons": {
+				"pdf": "📄",
+				"image": "🖼️",
+				"default": "📎"
+			}
+		},
+		"faqs": {
+			"account": [
+				{
+					"question": "How do I create an EduMatch account?",
+					"answer": "Click the \"Sign Up\" button on the homepage, fill in your information including email, password, and basic profile information. You'll receive a verification email to activate your account."
+				},
+				{
+					"question": "I forgot my password. How do I reset it?",
+					"answer": "Click \"Forgot Password\" on the login page, enter your email address, and we'll send you a password reset link. Follow the instructions in the email to create a new password."
+				},
+				{
+					"question": "How can I update my profile information?",
+					"answer": "Navigate to the Profile section after logging in. You can edit your personal information, academic background, research interests, and upload documents."
+				},
+				{
+					"question": "Can I delete my account?",
+					"answer": "Yes, you can delete your account by going to Account Settings and clicking \"Delete Account\". Note that this action is irreversible and all your data will be permanently removed."
+				}
+			],
+			"application": [
+				{
+					"question": "How do I apply for scholarships and research opportunities?",
+					"answer": "Navigate to the Explore section, filter by your preferences, and click on any opportunity you're interested in. Each listing has detailed application instructions and required documents."
+				},
+				{
+					"question": "Can I apply to multiple opportunities at once?",
+					"answer": "Yes, you can apply to as many opportunities as you're eligible for. We recommend tailoring each application to the specific requirements."
+				},
+				{
+					"question": "How do I track my application status?",
+					"answer": "Visit your profile dashboard where you can view all submitted applications, their current status, and any updates from the institutions."
+				},
+				{
+					"question": "What documents do I need for applications?",
+					"answer": "Common documents include CV/Resume, transcripts, letters of recommendation, personal statements, and research proposals. Each opportunity specifies its exact requirements."
+				}
+			],
+			"subscription": [
+				{
+					"question": "What subscription plans are available?",
+					"answer": "We offer Basic (free), Premium, and Professional subscription plans. Each plan provides different levels of access to opportunities, application tracking, and premium features."
+				},
+				{
+					"question": "How do I upgrade my subscription?",
+					"answer": "Go to Account Settings and click \"Subscription\". Select your desired plan and complete the payment process. Your upgrade will be activated immediately."
+				},
+				{
+					"question": "Can I cancel my subscription anytime?",
+					"answer": "Yes, you can cancel your subscription at any time from your Account Settings. Your premium features will remain active until the end of your current billing cycle."
+				},
+				{
+					"question": "Do you offer refunds?",
+					"answer": "We offer a 30-day money-back guarantee for new subscriptions. Contact our support team within 30 days of purchase for a full refund."
+				}
+			],
+			"other": [
+				{
+					"question": "How does the matching algorithm work?",
+					"answer": "Our algorithm analyzes your academic background, research interests, location preferences, and career goals to match you with the most suitable opportunities."
+				},
+				{
+					"question": "Is my personal information secure?",
+					"answer": "Yes, we use industry-standard encryption and security measures to protect your data. We never share your personal information with third parties without your consent."
+				},
+				{
+					"question": "How do I contact support?",
+					"answer": "You can reach our support team via email, phone, or live chat. We also have an extensive help center with articles and tutorials."
+				},
+				{
+					"question": "Do you have a mobile app?",
+					"answer": "Currently, EduMatch is available as a mobile-optimized web application. We're working on native mobile apps that will be available soon."
+				}
+			]
+		}
+	},
+	"create_profile": {
+		"page_title": "Create Profile",
+		"role_selection": {
+			"title": "Choose your role",
+			"subtitle": "Select whether you're looking for educational opportunities or representing an educational institution.",
+			"applicant": {
+				"title": "Applicant",
+				"description": "I'm a student or professional looking for educational opportunities, courses, or programs."
+			},
+			"institution": {
+				"title": "Institution",
+				"description": "I represent a school, university, or educational organization offering programs and courses."
+			},
+			"next": "Next"
+		},
+		"basic_info": {
+			"title": "Basic information",
+			"subtitle": "Please provide your basic personal information to create your profile.",
+			"profile_photo": {
+				"label": "Profile Photo",
+				"upload": "Upload your photo",
+				"uploading": "Uploading...",
+				"requirements": "Must be PNG, JPG, or WebP file (max 10MB)"
+			},
+			"first_name": {
+				"label": "First Name",
+				"placeholder": "Enter your first name",
+				"required": "First name is required"
+			},
+			"last_name": {
+				"label": "Last Name",
+				"placeholder": "Enter your last name",
+				"required": "Last name is required"
+			},
+			"email": {
+				"label": "Email",
+				"placeholder": "example123@gmail.com",
+				"required": "Email is required",
+				"invalid": "Please enter a valid email",
+				"tooltip": "Email is pre-filled from your account and cannot be changed"
+			},
+			"phone": {
+				"label": "Phone Number",
+				"placeholder": "Your phone number (numbers only)",
+				"min_length": "Phone number must be at least 7 digits",
+				"max_length": "Phone number cannot exceed 15 digits"
+			},
+			"birthday": {
+				"label": "Birthday",
+				"placeholder": "dd/mm/yyyy"
+			},
+			"gender": {
+				"label": "Gender",
+				"placeholder": "Choose gender",
+				"required": "Gender is required",
+				"options": {
+					"male": "Male",
+					"female": "Female"
+				}
+			},
+			"nationality": {
+				"label": "Nationality",
+				"placeholder": "Choose your nationality",
+				"required": "Nationality is required"
+			},
+			"interests": {
+				"label": "Interest",
+				"placeholder": "Choose subject(s)/field(s) you interested in",
+				"loading": "Loading disciplines...",
+				"error": "Failed to load disciplines. Please refresh the page."
+			},
+			"favorite_countries": {
+				"label": "Favorite country",
+				"placeholder": "Choose your favorite country"
+			},
+			"errors": {
+				"upload_failed": "Upload Failed",
+				"invalid_file": "Please select a PNG or JPG image file",
+				"file_requirements": "Must be PNG or JPG file (max 5MB)",
+				"try_again": "Try Again"
+			},
+			"back": "Back",
+			"next": "Next"
+		},
+		"academic_info": {
+			"title": "Academic Information",
+			"subtitle": "Share your educational background",
+			"graduated": {
+				"label": "Graduated",
+				"options": {
+					"yes": "Yes",
+					"no": "Not yet"
+				}
+			},
+			"level": {
+				"label": "Level",
+				"placeholder": "Level",
+				"options": {
+					"high_school": "High School",
+					"associate": "Associate",
+					"bachelor": "Bachelor's",
+					"master": "Master's",
+					"phd": "PhD",
+					"professional": "Professional"
+				}
+			},
+			"discipline": {
+				"label": "Subdiscipline",
+				"placeholder": "Choose Subdiscipline"
+			},
+			"gpa": {
+				"label": "GPA",
+				"placeholder": "0.0-4.0"
+			},
+			"university": {
+				"label": "University",
+				"placeholder": "e.g., Harvard University"
+			},
+			"country_of_study": {
+				"label": "Country of Study",
+				"placeholder": "Select country"
+			},
+			"foreign_language": {
+				"title": "Foreign Language",
+				"yes": "Yes",
+				"no": "No",
+				"language": {
+					"label": "Language",
+					"placeholder": "Language",
+					"options": {
+						"vietnamese": "Vietnamese",
+						"english": "English",
+						"spanish": "Spanish",
+						"french": "French",
+						"german": "German",
+						"chinese": "Chinese",
+						"japanese": "Japanese",
+						"korean": "Korean"
+					}
+				},
+				"certificate": {
+					"label": "Certificate",
+					"placeholder": "Certificate",
+					"ielts": "IELTS",
+					"toefl": "TOEFL",
+					"toeic": "TOEIC",
+					"delf": "DELF",
+					"dalf": "DALF",
+					"testdaf": "TestDaF",
+					"goethe": "Goethe-Zertifikat",
+					"hsk": "HSK",
+					"jlpt": "JLPT",
+					"topik": "TOPIK",
+					"dele": "DELE"
+				},
+				"score": {
+					"label": "Score",
+					"placeholder": "Score"
+				},
+				"add": "Add language certification",
+				"delete": "Delete language certification"
+			},
+			"files": {
+				"cv": {
+					"label": "CV / Resume",
+					"tooltip": "Upload CV/Resume in PDF, DOC, DOCX format (max 10MB). Required: Personal info, education, work experience, skills, contact details. Must be a CV/Resume, not a cover letter or personal statement."
+				},
+				"language_cert": {
+					"label": "Foreign Language Certificate",
+					"tooltip": "Upload language certificates in PDF, JPG, or PNG format (max 10MB). Required: Test name (IELTS/TOEFL/etc.), test scores, test date, candidate name and info, issuing organization logo/seal. Must be official certificates, not practice tests."
+				},
+				"degree": {
+					"label": "Degree Certificate",
+					"tooltip": "Upload degree/diploma certificates in PDF, JPG, or PNG format (max 10MB). Required: Degree type (Bachelor's, Master's, PhD), field of study, institution name, graduation date, student name, official status (seal/signature/stamp). Must be a certificate, not transcript."
+				},
+				"transcript": {
+					"label": "Academic Transcript",
+					"tooltip": "Upload academic transcripts in PDF, JPG, or PNG format (max 10MB). Required: List of courses/subjects, grades for each course, academic periods/terms, overall GPA (if applicable), student name and ID, institution name. Must show detailed course and grade information."
+				},
+				"uploaded": "{count} file(s) uploaded"
+			},
+			"research_papers": {
+				"title": "Research Papers",
+				"paper_title": {
+					"label": "Paper Title",
+					"placeholder": "Enter research paper title"
+				},
+				"disciplines": {
+					"label": "Disciplines",
+					"placeholder": "Choose disciplines"
+				},
+				"files": {
+					"label": "Research Paper Files",
+					"tooltip": "Upload formal academic research papers in PDF format (max 10MB per file). Required: Clear title, author name(s) and affiliation, abstract, structured sections (Introduction, Methods, Results, Conclusion), references with citations, academic writing style. Must be formal research papers, not blog posts or essays."
+				},
+				"add": "Add research paper",
+				"uploaded": "{count} file(s) uploaded"
+			},
+			"manage_files": "Manage Files ({count})",
+			"errors": {
+				"upload_failed": "Upload Failed",
+				"message": "Failed to upload files. Please try again.",
+				"research_paper_upload_failed": "Failed to upload research paper files. Please try again.",
+				"try_again": "Try Again"
+			},
+			"back": "Back",
+			"next": "Next"
+		},
+		"institution_info": {
+			"title": "Institution Information",
+			"subtitle": "Please provide your institution details",
+			"profile_logo": {
+				"label": "Institution Logo",
+				"upload": "Upload institution logo",
+				"uploading": "Uploading...",
+				"requirements": "Must be PNG or JPG file (max 5MB)"
+			},
+			"institution_name": {
+				"label": "Institution Name",
+				"placeholder": "Enter institution name",
+				"required": "Institution name is required"
+			},
+			"abbreviation": {
+				"label": "Abbreviation",
+				"placeholder": "e.g., MIT, Harvard"
+			},
+			"hotline": {
+				"label": "Hotline",
+				"placeholder": "Enter hotline number",
+				"required": "Hotline is required"
+			},
+			"institution_type": {
+				"label": "Institution Type",
+				"placeholder": "Select institution type",
+				"required": "Institution type is required",
+				"options": {
+					"university": "University",
+					"scholarship_provider": "Scholarship Provider",
+					"research_lab": "Research Lab"
+				}
+			},
+			"website": {
+				"label": "Website",
+				"placeholder": "https://www.institution.edu",
+				"required": "Website is required"
+			},
+			"email": {
+				"label": "Institution Email",
+				"placeholder": "contact@institution.edu",
+				"required": "Institution email is required",
+				"invalid": "Please enter a valid email address",
+				"tooltip": "Institution email is pre-filled from your Google account and cannot be changed"
+			},
+			"country": {
+				"label": "Country",
+				"placeholder": "Select country",
+				"required": "Country is required"
+			},
+			"address": {
+				"label": "Detailed Address",
+				"placeholder": "Enter detailed address",
+				"required": "Detailed address is required"
+			},
+			"representative_info": {
+				"title": "Representative Information",
+				"name": {
+					"label": "Representative Name",
+					"placeholder": "Enter representative name",
+					"required": "Representative name is required"
+				},
+				"appellation": {
+					"label": "Appellation",
+					"placeholder": "Select appellation",
+					"options": {
+						"mr": "Mr.",
+						"mrs": "Mrs.",
+						"ms": "Ms.",
+						"dr": "Dr.",
+						"prof": "Prof.",
+						"other": "Other"
+					}
+				},
+				"position": {
+					"label": "Position",
+					"placeholder": "e.g., Admissions Director",
+					"required": "Position is required"
+				},
+				"email": {
+					"label": "Representative Email",
+					"placeholder": "representative@institution.edu",
+					"required": "Representative email is required",
+					"invalid": "Please enter a valid email address"
+				},
+				"phone": {
+					"label": "Representative Phone",
+					"placeholder": "Enter phone number",
+					"required": "Representative phone is required"
+				}
+			},
+			"about_institution": {
+				"label": "About Institution",
+				"placeholder": "Describe your institution, its mission, programs, and what makes it unique...",
+				"required": "About institution is required"
+			},
+			"manage_files": "Manage Files ({count})",
+			"errors": {
+				"upload_failed": "Upload Failed",
+				"invalid_file": "Please select a PNG or JPG image file",
+				"file_too_large": "File size must be less than 5MB",
+				"try_again": "Try Again",
+				"required_fields": "Required fields missing"
+			},
+			"back": "Back",
+			"next": "Next"
+		},
+		"institution_details": {
+			"title": "Institution Details",
+			"subtitle": "Select disciplines and upload verification documents",
+			"subdisciplines": {
+				"label": "Institution Sub-Disciplines",
+				"placeholder": "Select sub-disciplines...",
+				"loading": "Loading disciplines...",
+				"error": "Failed to load disciplines",
+				"retry": "Retry"
+			},
+			"cover_image": {
+				"label": "Institution Cover Image",
+				"remove": "Remove Image",
+				"failed_to_load": "Failed to load image"
+			},
+			"verification_documents": {
+				"label": "Verification Documents",
+				"tooltip": "Upload institution verification documents in PDF, DOC, DOCX, JPG, or PNG format (max 10MB per file). Required: Institution name and official details, registration numbers or accreditation information, official letterhead/logo/seal/certification marks, statement of legal status/authorization/recognition, contact information. Must be formal verification documents, not brochures.",
+				"uploaded": "{count} file(s) uploaded",
+				"error": "Please upload at least one verification document to continue."
+			},
+			"manage_files": "Manage Files ({count})",
+			"back": "Back",
+			"next": "Next"
+		},
+		"completion": {
+			"title": "Profile Complete!",
+			"subtitle": "Your profile has been successfully created. You can now start using EduMatch.",
+			"button": "Get Started"
+		}
+	}
+}
